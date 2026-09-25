@@ -55089,7 +55089,7 @@
    },
    "actions": {
     "Browse": {
-     "description": "Standard CDS Browse \u2014 enumerates the music index. No impl call extracted (browse handler dispatches internally); the largest action in the service.",
+     "description": "Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -> children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -> metadata path, anything else -> 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].",
      "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
@@ -55109,10 +55109,280 @@
         "slot": 60,
         "purpose": "other"
        }
+      ],
+      "impl_function": "0x103042f0",
+      "impl_notes": "Handler 0x10306b3c is a shim: calls req->v[+0x3c] then tail-calls real handler f_10304390, which parses the six args, requests a browse object via req->v[+0x34] and context via req->v[+0x40], builds the {callback=f_10305fec, StartingIndex, RequestedCount, 4 string ptrs, vtable 0x10f11cec} record and calls executor f_103042f0.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10304390",
+        "notes": "real Browse handler - all six arg parses"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10304580",
+        "notes": "call to executor f_103042f0"
+       }
       ]
      },
-     "inputs": {},
-     "outputs": {},
+     "inputs": {
+      "ObjectID": {
+       "description": "Container/item object id to browse",
+       "status": "confirmed",
+       "direction": "in",
+       "semantic_type": "SonosStringArg",
+       "format": "utf-8 text, capped 0x400 by f_1056157c",
+       "unit": "n/a - text",
+       "accepted_values": "Content-directory object id namespace (e.g. Q:0, A:, S:) - Worker-determined enumeration",
+       "range": "<=0x400 chars",
+       "special_values": "impl-defined roots",
+       "required": true,
+       "default": "none",
+       "validation": "string arg via bounded request helper; object-id resolution inside the browse object",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103043d4",
+         "notes": "ObjectID arg name + parse call"
+        }
+       ]
+      },
+      "BrowseFlag": {
+       "description": "Browse mode selector",
+       "status": "confirmed",
+       "direction": "in",
+       "semantic_type": "SonosEnumArg",
+       "format": "utf-8 literal, capped 0x400",
+       "unit": "n/a",
+       "accepted_values": "\"BrowseDirectChildren\" or \"BrowseMetadata\" exactly - other values fault 402",
+       "range": "2 literals",
+       "special_values": "none",
+       "required": true,
+       "default": "none",
+       "validation": "strcmp against both literals inside executor f_103042f0; mismatch returns 0x192 (402)",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304324",
+         "notes": "strcmp vs BrowseDirectChildren"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304378",
+         "notes": "strcmp vs BrowseMetadata"
+        }
+       ]
+      },
+      "Filter": {
+       "description": "DIDL property filter spec",
+       "status": "confirmed",
+       "direction": "in",
+       "semantic_type": "SonosStringArg",
+       "format": "comma-list filter spec text, capped 0x400",
+       "unit": "n/a",
+       "accepted_values": "Worker-determined - passed to the browse object verbatim",
+       "range": "<=0x400 chars",
+       "special_values": "* / empty impl-defined",
+       "required": true,
+       "default": "none",
+       "validation": "copied through bounded helper; consumed by the enumeration vfunc",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304420",
+         "notes": "Filter arg name + parse call"
+        }
+       ]
+      },
+      "StartingIndex": {
+       "description": "Zero-based result offset",
+       "status": "confirmed",
+       "direction": "in",
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text via int parse helper",
+       "unit": "index",
+       "accepted_values": "0..N",
+       "range": "Worker-determined",
+       "special_values": "none",
+       "required": true,
+       "default": "none",
+       "validation": "int parse; paging applied by the browse object",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304448",
+         "notes": "StartingIndex arg + int parse"
+        }
+       ]
+      },
+      "RequestedCount": {
+       "description": "Max items to return",
+       "status": "confirmed",
+       "direction": "in",
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text via int parse helper",
+       "unit": "count",
+       "accepted_values": "0..N (0 conventionally = all) - Worker-determined",
+       "range": "Worker-determined",
+       "special_values": "0",
+       "required": true,
+       "default": "none",
+       "validation": "int parse; paging applied by the browse object",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1030446c",
+         "notes": "RequestedCount arg + int parse"
+        }
+       ]
+      },
+      "SortCriteria": {
+       "description": "DIDL sort specification",
+       "status": "confirmed",
+       "direction": "in",
+       "semantic_type": "SonosStringArg",
+       "format": "sort spec text, capped 0x400",
+       "unit": "n/a",
+       "accepted_values": "Worker-determined - passed to the browse object verbatim",
+       "range": "<=0x400 chars",
+       "special_values": "empty string",
+       "required": true,
+       "default": "none",
+       "validation": "copied through bounded helper; consumed by the enumeration vfunc",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304490",
+         "notes": "SortCriteria arg + parse call"
+        }
+       ]
+      }
+     },
+     "outputs": {
+      "Result": {
+       "description": "DIDL-Lite XML result fragment emitted via per-item writer callbacks f_10306088/0x10306098/0x103060a8 through request v[+0x24]",
+       "status": "confirmed",
+       "direction": "out",
+       "semantic_type": "SonosMetaDataArg",
+       "format": "DIDL-Lite XML",
+       "unit": "n/a",
+       "accepted_values": "serialized container/item set",
+       "range": "response-sized",
+       "special_values": "empty DIDL for empty containers",
+       "required": false,
+       "default": "populated on success",
+       "validation": "written by emit callbacks, not validated",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304618",
+         "notes": "'Result' out-name + emit path"
+        }
+       ]
+      },
+      "NumberReturned": {
+       "description": "Count of items emitted in Result",
+       "status": "strong",
+       "direction": "out",
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "count",
+       "accepted_values": "0..TotalMatches",
+       "range": "0..N",
+       "special_values": "0 for empty result",
+       "required": false,
+       "default": "populated by emit path",
+       "validation": "computed by the browse object",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304604",
+         "notes": "emit path"
+        }
+       ]
+      },
+      "TotalMatches": {
+       "description": "Total items matching regardless of paging",
+       "status": "strong",
+       "direction": "out",
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "count",
+       "accepted_values": "0..N",
+       "range": "0..N",
+       "special_values": "0",
+       "required": false,
+       "default": "populated by emit path",
+       "validation": "computed by the browse object",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304604",
+         "notes": "emit path"
+        }
+       ]
+      },
+      "UpdateID": {
+       "description": "Container update id for the browsed object (fetched via f_1034a224 on browse obj+0x168 with selector 0x2bd)",
+       "status": "strong",
+       "direction": "out",
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "n/a",
+       "accepted_values": "current container generation",
+       "range": "monotonic counter",
+       "special_values": "0",
+       "required": false,
+       "default": "populated by emit path",
+       "validation": "read from the container record",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10304314",
+         "notes": "f_1034a224(obj+0x168,0x2bd) preceding dispatch"
+        }
+       ]
+      }
+     },
      "validation": {
       "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
       "status": "confirmed",
@@ -55132,16 +55402,10 @@
       "status": "confirmed",
       "evidence": []
      },
-     "state_dependencies": {
-      "description": "Accessed via the impl member/vfunc; service-internal state.",
-      "status": "strong",
-      "evidence": []
-     },
+     "state_dependencies": "Content-directory index state at browse object +0x168 supplies the UpdateID",
      "side_effects": [
       {
-       "description": "Reads the index (impl-level effect; wrapper-proven)",
-       "status": "confirmed",
-       "evidence": []
+       "description": "Read-only enumeration; request-scoped browse object built and torn down per call"
       }
      ],
      "events_triggered": {
@@ -55230,6 +55494,58 @@
          "status": "confirmed",
          "address": "0x10306b3c",
          "notes": "wrapper parse + fault path"
+        }
+       ]
+      },
+      {
+       "code": "402",
+       "meaning": "invalid BrowseFlag: value is neither \"BrowseDirectChildren\" nor \"BrowseMetadata\" (literal strcmp inside executor f_103042f0)",
+       "conditions": [
+        {
+         "description": "BrowseFlag fails both strcmps; executor presets r9=0x192",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10304380",
+           "notes": "0x192 preset after second strcmp"
+          }
+         ]
+        },
+        {
+         "description": "Any of the six arg parse helpers fails",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103045a0",
+           "notes": "req->v[+0x14] fault branch"
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103042f0",
+         "notes": "BrowseFlag dispatch"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103045a0",
+         "notes": "fault call in the real handler"
         }
        ]
       }
@@ -58982,7 +59298,7 @@
      "notes": "service dispatcher"
     }
    ],
-   "notes": null
+   "notes": "None Browse internals decoded: handler shim 0x10306b3c -> real handler f_10304390 -> executor f_103042f0. BrowseFlag is literal-validated (BrowseDirectChildren / BrowseMetadata, else 402); DIDL output is generated by per-item writer callbacks (f_10306088/0x10306098/0x103060a8) driven through request v[+0x24]. UpdateID comes from the container record via f_1034a224(obj+0x168, selector 0x2bd)."
   },
   "/MusicServices/Control": {
    "name": "MusicServices",
@@ -72634,6 +72950,54 @@
      "status": "confirmed",
      "address": "0x104000c4",
      "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x10304390": {
+   "description": "Real ContentDirectory.Browse handler: parses ObjectID, BrowseFlag, Filter, StartingIndex, RequestedCount, SortCriteria (0x400-capped strings, int helpers), acquires a browse object via req->v[+0x34], builds the {f_10305fec callback, counts, 4 string ptrs, vtable 0x10f11cec} record and calls executor f_103042f0; success emits via per-item DIDL callbacks, failure faults req->v[+0x14].",
+   "why_external": "Implements the entire Browse SOAP contract",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10304390",
+     "notes": "handler body with all six parses"
+    }
+   ]
+  },
+  "0x103042f0": {
+   "description": "Browse executor: locks/looks up UpdateID via f_1034a224 on browse obj+0x168 (selector 0x2bd), strcmp-dispatches BrowseFlag - BrowseDirectChildren -> children enumeration vfunc v[+0x28], BrowseMetadata -> metadata path, other -> 402.",
+   "why_external": "Determines Browse mode and its 402 taxonomy",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x103042f0",
+     "notes": "dispatch body"
+    }
+   ]
+  },
+  "0x10305fec": {
+   "description": "Browse result-record callback (2-ins stub at its head - real body follows); stored at +0x48 of the browse request record.",
+   "why_external": "Result-callback slot of the browse executor",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10304548",
+     "notes": "callback ptr in the request record"
     }
    ]
   }
