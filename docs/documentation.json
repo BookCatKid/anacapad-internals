@@ -14540,7 +14540,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -14616,9 +14616,9 @@
      "notes": null
     },
     "GetCurrentTransportActions": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -> *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f884c",
      "handler_func": "0x102f884c",
@@ -14659,8 +14659,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Instance index; impl returns 718 on nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -14669,15 +14669,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Instance index; impl returns 718 on nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -14701,22 +14701,22 @@
      },
      "outputs": {
       "Actions": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Comma-separated transport action names currently legal for the active source.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -14738,13 +14738,239 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b2a8c",
+        "notes": "impl decode",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2b94",
+        "notes": "f_102b29d0 action-list builder",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2ba0",
+        "notes": "f_102fcbf4",
+        "function": "f_102b2a8c"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b2a8c",
+        "notes": "impl decode",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2b94",
+        "notes": "f_102b29d0 action-list builder",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2ba0",
+        "notes": "f_102fcbf4",
+        "function": "f_102b2a8c"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Action list computed from current source capabilities via f_102b29d0/f_102fcbf4; the per-capability action mapping is unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b2a8c",
+        "notes": "impl decode",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2b94",
+        "notes": "f_102b29d0 action-list builder",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2ba0",
+        "notes": "f_102fcbf4",
+        "function": "f_102b2a8c"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102b2a8c",
+         "notes": "impl decode",
+         "function": "f_102b2a8c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b2b94",
+         "notes": "f_102b29d0 action-list builder",
+         "function": "f_102b2a8c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b2ba0",
+         "notes": "f_102fcbf4",
+         "function": "f_102b2a8c"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b2a8c",
+        "notes": "impl decode",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2b94",
+        "notes": "f_102b29d0 action-list builder",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2ba0",
+        "notes": "f_102fcbf4",
+        "function": "f_102b2a8c"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b2a8c",
+        "notes": "impl decode",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2b94",
+        "notes": "f_102b29d0 action-list builder",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2ba0",
+        "notes": "f_102fcbf4",
+        "function": "f_102b2a8c"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b2a8c",
+        "notes": "impl decode",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2b94",
+        "notes": "f_102b29d0 action-list builder",
+        "function": "f_102b2a8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2ba0",
+        "notes": "f_102fcbf4",
+        "function": "f_102b2a8c"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f88ec",
@@ -14754,14 +14980,28 @@
      ],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x4c)",
-       "meaning": null,
-       "status": "unresolved",
+       "code": 718,
+       "code_expr": "vret(r5-in)",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
        "fault_sites": [
         "0x102f88ec"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f88ec",
+           "notes": "718 gate in impl"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -14769,14 +15009,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f88ec",
-         "notes": "fault raise site"
+         "notes": "718 gate"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f88ec with computed code vret(r5-in,+0x4c)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -14786,25 +15021,35 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f884c",
-       "address": "0x102f884c",
-       "notes": "action wrapper handler"
+       "address": "f_102b2a8c",
+       "notes": "impl decode",
+       "function": "f_102b2a8c"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb30c0",
-       "notes": "action dispatch table entry"
+       "address": "0x102b2b94",
+       "notes": "f_102b29d0 action-list builder",
+       "function": "f_102b2a8c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x102b2ba0",
+       "notes": "f_102fcbf4",
+       "function": "f_102b2a8c"
       }
      ],
      "notes": null
     },
     "GetDeviceCapabilities": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4 shares the getter boilerplate; no InstanceID input on this action per the extractor's arg map.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f8970",
      "handler_func": "0x102f8970",
@@ -14870,22 +15115,22 @@
      "inputs": {},
      "outputs": {
       "PlayMedia": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Comma-separated playable media types.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -14907,22 +15152,22 @@
        "notes": null
       },
       "RecMedia": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Recordable media types (empty typical).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -14944,22 +15189,22 @@
        "notes": null
       },
       "RecQualityModes": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Supported record quality modes.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -14981,13 +15226,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad4a4",
+        "notes": "impl decode",
+        "function": "f_102ad4a4"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad4a4",
+        "notes": "impl decode",
+        "function": "f_102ad4a4"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Device capability strings read from static engine config; provenance unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad4a4",
+        "notes": "impl decode",
+        "function": "f_102ad4a4"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102ad4a4",
+         "notes": "impl decode",
+         "function": "f_102ad4a4"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad4a4",
+        "notes": "impl decode",
+        "function": "f_102ad4a4"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad4a4",
+        "notes": "impl decode",
+        "function": "f_102ad4a4"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad4a4",
+        "notes": "impl decode",
+        "function": "f_102ad4a4"
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [],
      "firmware_differences": [],
@@ -14997,25 +15342,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f8970",
-       "address": "0x102f8970",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb30cc",
-       "notes": "action dispatch table entry"
+       "address": "f_102ad4a4",
+       "notes": "impl decode",
+       "function": "f_102ad4a4"
       }
      ],
      "notes": null
     },
     "GetMediaInfo": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fa9e4",
      "handler_func": "0x102fa9e4",
@@ -15111,22 +15448,22 @@
      "inputs": {},
      "outputs": {
       "NrTracks": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Track count of the current queue/media.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15148,22 +15485,22 @@
        "notes": null
       },
       "MediaDuration": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Total media duration string.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15185,22 +15522,22 @@
        "notes": null
       },
       "CurrentURI": {
-       "description": null,
-       "status": "unresolved",
+       "description": "URI of current media.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15222,22 +15559,22 @@
        "notes": null
       },
       "CurrentURIMetaData": {
-       "description": null,
-       "status": "unresolved",
+       "description": "DIDL metadata for current media.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15259,22 +15596,22 @@
        "notes": null
       },
       "NextURI": {
-       "description": null,
-       "status": "unresolved",
+       "description": "URI of the queued next track/stream.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15296,22 +15633,22 @@
        "notes": null
       },
       "NextURIMetaData": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Metadata for next media.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15333,22 +15670,22 @@
        "notes": null
       },
       "PlayMedium": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Medium type being played (e.g. TRACK-N/NETWORK family).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15370,22 +15707,22 @@
        "notes": null
       },
       "RecordMedium": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Recording medium (NONE typical).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15407,22 +15744,22 @@
        "notes": null
       },
       "WriteStatus": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Write-protect status string.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15444,13 +15781,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102adcb4",
+        "notes": "impl decode",
+        "function": "f_102adcb4"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102adcb4",
+        "notes": "impl decode",
+        "function": "f_102adcb4"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Media descriptor fields read from engine session state; per-field provenance unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102adcb4",
+        "notes": "impl decode",
+        "function": "f_102adcb4"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102adcb4",
+         "notes": "impl decode",
+         "function": "f_102adcb4"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102adcb4",
+        "notes": "impl decode",
+        "function": "f_102adcb4"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102adcb4",
+        "notes": "impl decode",
+        "function": "f_102adcb4"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102adcb4",
+        "notes": "impl decode",
+        "function": "f_102adcb4"
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [],
      "firmware_differences": [],
@@ -15460,25 +15897,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fa9e4",
-       "address": "0x102fa9e4",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb30d8",
-       "notes": "action dispatch table entry"
+       "address": "f_102adcb4",
+       "notes": "impl decode",
+       "function": "f_102adcb4"
       }
      ],
      "notes": null
     },
     "GetPositionInfo": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns position metadata for the current track: Track number, TrackDuration, TrackMetaData, TrackURI, RelTime, AbsTime, RelCount, AbsCount. Impl f_102b1a88 is the widest getter (~10 out pointers in r5-r10+stack); mode impl+0x4654 selects whether position comes from the indexed engine or the streamer session.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fbda4",
      "handler_func": "0x102fbda4",
@@ -15556,22 +15985,22 @@
      "inputs": {},
      "outputs": {
       "Track": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Current track ordinal (queue position for indexed sources).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15593,22 +16022,22 @@
        "notes": null
       },
       "TrackDuration": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Duration string of current track.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15630,22 +16059,22 @@
        "notes": null
       },
       "TrackMetaData": {
-       "description": null,
-       "status": "unresolved",
+       "description": "DIDL metadata XML for the current track.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15667,22 +16096,22 @@
        "notes": null
       },
       "TrackURI": {
-       "description": null,
-       "status": "unresolved",
+       "description": "URI of the current track.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15704,22 +16133,22 @@
        "notes": null
       },
       "RelTime": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Elapsed position within the track.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15741,22 +16170,22 @@
        "notes": null
       },
       "AbsTime": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Absolute time position.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15778,22 +16207,22 @@
        "notes": null
       },
       "RelCount": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Relative byte/frame count position.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15815,22 +16244,22 @@
        "notes": null
       },
       "AbsCount": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Absolute byte/frame count.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15852,13 +16281,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b1a88",
+        "notes": "impl decode",
+        "function": "f_102b1a88"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b1a88",
+        "notes": "impl decode",
+        "function": "f_102b1a88"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Mode impl+0x4654 selects the position source (indexed session vs streamer); per-field provenance unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b1a88",
+        "notes": "impl decode",
+        "function": "f_102b1a88"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102b1a88",
+         "notes": "impl decode",
+         "function": "f_102b1a88"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b1a88",
+        "notes": "impl decode",
+        "function": "f_102b1a88"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b1a88",
+        "notes": "impl decode",
+        "function": "f_102b1a88"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102b1a88",
+        "notes": "impl decode",
+        "function": "f_102b1a88"
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [],
      "firmware_differences": [],
@@ -15868,25 +16397,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fbda4",
-       "address": "0x102fbda4",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb30e4",
-       "notes": "action dispatch table entry"
+       "address": "f_102b1a88",
+       "notes": "impl decode",
+       "function": "f_102b1a88"
       }
      ],
      "notes": null
     },
     "GetRemainingSleepTimerDuration": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102ada98 shares the getter boilerplate; reads the sleep-timer fields from the engine.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fb518",
      "handler_func": "0x102fb518",
@@ -15940,22 +16461,22 @@
      "inputs": {},
      "outputs": {
       "RemainingSleepTimerDuration": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Time left on the running sleep timer (empty/zero if none).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -15977,22 +16498,22 @@
        "notes": null
       },
       "CurrentSleepTimerGeneration": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Monotonic generation counter identifying the timer instance.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16014,13 +16535,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ada98",
+        "notes": "impl decode",
+        "function": "f_102ada98"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ada98",
+        "notes": "impl decode",
+        "function": "f_102ada98"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Sleep-timer remaining time + generation counter read from engine timer state; field offsets unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ada98",
+        "notes": "impl decode",
+        "function": "f_102ada98"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102ada98",
+         "notes": "impl decode",
+         "function": "f_102ada98"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ada98",
+        "notes": "impl decode",
+        "function": "f_102ada98"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ada98",
+        "notes": "impl decode",
+        "function": "f_102ada98"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ada98",
+        "notes": "impl decode",
+        "function": "f_102ada98"
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [],
      "firmware_differences": [],
@@ -16030,25 +16651,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fb518",
-       "address": "0x102fb518",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb30f0",
-       "notes": "action dispatch table entry"
+       "address": "f_102ada98",
+       "notes": "impl decode",
+       "function": "f_102ada98"
       }
      ],
      "notes": null
     },
     "GetRunningAlarmProperties": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fb664",
      "handler_func": "0x102fb664",
@@ -16108,22 +16721,22 @@
      "inputs": {},
      "outputs": {
       "AlarmID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Identifier of the running alarm (empty if none).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16145,22 +16758,22 @@
        "notes": null
       },
       "GroupID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Group the alarm runs on.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16182,22 +16795,22 @@
        "notes": null
       },
       "LoggedStartTime": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Start timestamp as logged by the alarm scheduler.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16219,13 +16832,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad8fc",
+        "notes": "impl decode",
+        "function": "f_102ad8fc"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad8fc",
+        "notes": "impl decode",
+        "function": "f_102ad8fc"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Alarm context fields read from engine alarm state; empty when idle; provenance unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad8fc",
+        "notes": "impl decode",
+        "function": "f_102ad8fc"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102ad8fc",
+         "notes": "impl decode",
+         "function": "f_102ad8fc"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad8fc",
+        "notes": "impl decode",
+        "function": "f_102ad8fc"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad8fc",
+        "notes": "impl decode",
+        "function": "f_102ad8fc"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad8fc",
+        "notes": "impl decode",
+        "function": "f_102ad8fc"
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [],
      "firmware_differences": [],
@@ -16235,17 +16948,9 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fb664",
-       "address": "0x102fb664",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb30fc",
-       "notes": "action dispatch table entry"
+       "address": "f_102ad8fc",
+       "notes": "impl decode",
+       "function": "f_102ad8fc"
       }
      ],
      "notes": null
@@ -16563,7 +17268,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -16614,9 +17319,9 @@
      "notes": null
     },
     "GetTransportSettings": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerplate; PlayMode reflects the enum written by SetPlayMode (NORMAL..SHUFFLE_REPEAT_ONE mapped back to its string).",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f8340",
      "handler_func": "0x102f8340",
@@ -16676,22 +17381,22 @@
      "inputs": {},
      "outputs": {
       "PlayMode": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Current play-mode string; maps the stored enum 0-5 back to its name.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16713,22 +17418,22 @@
        "notes": null
       },
       "RecQualityMode": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Record quality mode string (NOT_IMPLEMENTED typical).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined engine state",
+       "range": "impl-defined engine state",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16750,13 +17455,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad634",
+        "notes": "impl decode",
+        "function": "f_102ad634"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only (where present).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad634",
+        "notes": "impl decode",
+        "function": "f_102ad634"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "PlayMode string derived from the stored play-mode enum; RecQualityMode from engine settings; field provenance unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad634",
+        "notes": "impl decode",
+        "function": "f_102ad634"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_102ad634",
+         "notes": "impl decode",
+         "function": "f_102ad634"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad634",
+        "notes": "impl decode",
+        "function": "f_102ad634"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad634",
+        "notes": "impl decode",
+        "function": "f_102ad634"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "f_102ad634",
+        "notes": "impl decode",
+        "function": "f_102ad634"
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [],
      "firmware_differences": [],
@@ -16766,17 +17571,9 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f8340",
-       "address": "0x102f8340",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb3114",
-       "notes": "action dispatch table entry"
+       "address": "f_102ad634",
+       "notes": "impl decode",
+       "function": "f_102ad634"
       }
      ],
      "notes": null
@@ -16994,7 +17791,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -17599,7 +18396,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -18338,7 +19135,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -21876,7 +22673,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -22517,7 +23314,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
@@ -23428,7 +24225,7 @@
        ],
        "conditions": [
         {
-         "description": "InstanceID != 0",
+         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
          "evidence": [
           {
            "type": "firmware",
