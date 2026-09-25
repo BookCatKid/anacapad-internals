@@ -10626,8 +10626,8 @@
   "/MediaRenderer/AVTransport/Control": {
    "name": "AVTransport",
    "control_path": "/MediaRenderer/AVTransport/Control",
-   "description": null,
-   "status": "unresolved",
+   "description": "UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc+4)). Impl vfuncs live in a large vtable (A=0x10eaf2ec standalone, B=0x10edfbb8 group-aware; identical except SetAVTransportURI and the three Become*Coordinator* ops). All impls serialize on mutex impl+0x458 and dispatch on the transport-source mode enum at impl+0x4654: 2=indexed/queue (requests submitted to impl+0x580 via f_10255f64/f_10256a84), others reach the streamer session at impl+0x5a0 via op-0x19 submission f_102aff9c on impl+0x5dc.",
+   "status": "confirmed",
    "visibility": "unknown",
    "registration": {
     "router": "0x101953c8",
@@ -10640,17 +10640,8 @@
     }
    },
    "availability": {
-    "enabled_source": {
-     "store_pc": "0x10195684",
-     "size": "stb",
-     "raw_expr": "xor(*(r3-in+0x571c))",
-     "kind": "field_inverted",
-     "base": "r3-in",
-     "off": 22300,
-     "confidence": "proven"
-    },
-    "cap_flags": "0x2000",
-    "notes": null
+    "notes": "Registered unconditionally at zoneplayer init (ctor f_102fc9c0 for the svc wrapper at ctx+off). Whether the engine impl is the A or B class depends on grouping state - unresolved selection point.",
+    "status": "inferred"
    },
    "object": {
     "expr": "r3-in+0x3fa38",
@@ -14308,9 +14299,9 @@
      "notes": null
     },
     "GetCrossfadeMode": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplate: builds a scoped context from the impl+0x3dc name string, RAII-locks impl+0x458, returns 718 on InstanceID!=0; the body fills the CrossfadeMode out byte from engine state.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fc28c",
      "handler_func": "0x102fc28c",
@@ -14345,8 +14336,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -14355,15 +14346,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -14387,22 +14378,22 @@
      },
      "outputs": {
       "CrossfadeMode": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Current crossfade flag as a byte; which engine field feeds it is unresolved.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined",
+       "range": "impl-defined",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -14424,13 +14415,113 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102ad370",
+        "notes": "getter decode",
+        "function": "f_102ad370"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102ad424",
+        "notes": "cmpwi r29,0 gate",
+        "function": "f_102ad370"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads engine crossfade state; source field unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102ad370",
+        "notes": "getter shape",
+        "function": "f_102ad370"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102ad400",
+         "notes": "f_10557afc lock",
+         "function": "f_102ad370"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102ad370",
+        "notes": "no emit calls",
+        "function": "f_102ad370"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102ad370",
+        "notes": "read-only",
+        "function": "f_102ad370"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success; 718 for InstanceID!=0.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102ad428",
+        "notes": "r30=0x2ce",
+        "function": "f_102ad370"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102fc328",
@@ -14440,14 +14531,64 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 718,
        "code_expr": "vret(r5-in,+0x24)",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102fc338"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102ad428",
+           "notes": "r30=0x2ce",
+           "function": "f_102ad370"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102ad428",
+         "notes": "718",
+         "function": "f_102ad370"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102fc328"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102fc328",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -14455,14 +14596,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102fc328",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102fc328 with computed code vret(r5-in,+0x24)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -14472,17 +14608,9 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fc28c",
-       "address": "0x102fc28c",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb30b4",
-       "notes": "action dispatch table entry"
+       "address": "0x102ad370",
+       "notes": "getter decode",
+       "function": "f_102ad370"
       }
      ],
      "notes": null
@@ -16123,9 +16251,9 @@
      "notes": null
     },
     "GetTransportInfo": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -> indexed fill path 0x102b1a44; ==1 -> 0x102b19c8; else -> f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fbb60",
      "handler_func": "0x102fbb60",
@@ -16196,22 +16324,22 @@
      "inputs": {},
      "outputs": {
       "CurrentTransportState": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Transport-state string filled per mode (PLAYING/PAUSED_PLAYBACK/STOPPED family).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined",
+       "range": "impl-defined",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16233,22 +16361,22 @@
        "notes": null
       },
       "CurrentTransportStatus": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Status string (OK / ERROR_OCCURRED family).",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined",
+       "range": "impl-defined",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16270,22 +16398,22 @@
        "notes": null
       },
       "CurrentSpeed": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Playback speed string - normally 1.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "string",
+       "unit": "none - dimensionless",
+       "accepted_values": "impl-defined",
+       "range": "impl-defined",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg",
        "evidence": [
         {
          "type": "firmware",
@@ -16307,15 +16435,161 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b1738",
+        "notes": "gate decode",
+        "function": "f_102b1738"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b1684",
+        "notes": "worker decode",
+        "function": "f_102b1684"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b1818",
+        "notes": "cmpwi r29,0 gate",
+        "function": "f_102b1738"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "mode impl+0x4654 selects which state source fills the outputs (indexed vs streamer vs default f_10308aec path).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b1928",
+        "notes": "cmplwi mode,2/1 dispatch",
+        "function": "f_102b1684"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only under impl+0x458 mutex; copies engine state strings to the out pointers.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b17f0",
+         "notes": "f_10557afc lock",
+         "function": "f_102b1738"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None - pure read.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b1738",
+        "notes": "no emit calls",
+        "function": "f_102b1738"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b1738",
+        "notes": "read-only",
+        "function": "f_102b1738"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success after filling outs; 718 only for InstanceID!=0. No other faults observed in the impl.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b17fc",
+        "notes": "return paths",
+        "function": "f_102b1738"
+       }
+      ]
+     },
      "fault_sites": [],
-     "errors": [],
+     "errors": [
+      {
+       "code": 718,
+       "code_expr": "vret(r5-in,+0x14)",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102fbc24"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b1818",
+           "notes": "cmpwi -> r30=0x2ce",
+           "function": "f_102b1738"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b1818",
+         "notes": "718",
+         "function": "f_102b1738"
+        }
+       ]
+      }
+     ],
      "firmware_differences": [],
      "evidence": [
       {
@@ -16323,17 +16597,18 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fbb60",
-       "address": "0x102fbb60",
-       "notes": "action wrapper handler"
+       "address": "0x102b1738",
+       "notes": "gate decode",
+       "function": "f_102b1738"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb3108",
-       "notes": "action dispatch table entry"
+       "address": "0x102b1684",
+       "notes": "worker decode",
+       "function": "f_102b1684"
       }
      ],
      "notes": null
@@ -16507,9 +16782,9 @@
      "notes": null
     },
     "Next": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->711, else->701}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f8674",
      "handler_func": "0x102f8674",
@@ -16544,8 +16819,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -16554,15 +16829,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -16585,13 +16860,122 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9874",
+        "notes": "gate decode",
+        "function": "f_102b9874"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b60b0",
+        "notes": "worker decode",
+        "function": "f_102b60b0"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9874",
+        "notes": "gate decode",
+        "function": "f_102b9874"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session path via impl+0x5a0.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b60dc",
+        "notes": "cmplwi mode,2",
+        "function": "f_102b60b0"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Track-advance request submitted to impl+0x580 (indexed) or streamer vfunc (stream); impl+0x6ed8 cleared on success.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b6174",
+         "notes": "stw 0 -> impl+0x6ed8",
+         "function": "f_102b60b0"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct emit in impl; downstream transport events unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b98d4",
+        "notes": "no emit calls",
+        "function": "f_102b98d4"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Current track advances by one (indexed) or streamer skip issued; submission vs completion distinction preserved: stream-mode success means the streamer vfunc returned nonzero.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b61f8",
+        "notes": "f_10256a84(op5) source-activate path",
+        "function": "f_102b60b0"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Indexed submit rc {2->800,3->711,else->701}; stream path: streamer vfunc nonzero -> 0 else 701.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b6184",
+        "notes": "rc->800/711/701 isel map",
+        "function": "f_102b60b0"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f870c",
@@ -16601,14 +16985,181 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 718,
        "code_expr": "vret(r5-in,+0x38)",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8728"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b98b4",
+           "notes": "li r3,0x2ce",
+           "function": "f_102b9874"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b98b4",
+         "notes": "li 0x2ce",
+         "function": "f_102b9874"
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "code_expr": "vret(r5-in,+0x38)",
+       "meaning": "Operation not currently possible - streamer vfunc returned 0 (no session/rejected) or indexed submit returned an unmapped rc.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8728"
+       ],
+       "conditions": [
+        {
+         "description": "stream mode: f_106a7a34 streamer result == 0; indexed: submit rc not in {0,2,3}",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b60e8",
+           "notes": "r30=0x2bd before stream check",
+           "function": "f_102b60b0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b6194",
+           "notes": "isel default 0x2bd",
+           "function": "f_102b60b0"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b60e8",
+         "notes": "701",
+         "function": "f_102b60b0"
+        }
+       ]
+      },
+      {
+       "code": 711,
+       "code_expr": "vret(r5-in,+0x38)",
+       "meaning": "Indexed submit rc==3 - request rejected by impl+0x580 (queue end / illegal target).",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8728"
+       ],
+       "conditions": [
+        {
+         "description": "f_10255f64 submit returned 3",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b618c",
+           "notes": "cmplwi rc,3 -> r9=0x2c7",
+           "function": "f_102b60b0"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b6194",
+         "notes": "711",
+         "function": "f_102b60b0"
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "code_expr": "vret(r5-in,+0x38)",
+       "meaning": "Indexed submit rc==2 - a distinct engine rejection code (exact semantics unresolved, mapped verbatim).",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8728"
+       ],
+       "conditions": [
+        {
+         "description": "f_10255f64 submit returned 2",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b6184",
+           "notes": "cmplwi rc,2 -> r30=0x320",
+           "function": "f_102b60b0"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b6184",
+         "notes": "800",
+         "function": "f_102b60b0"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102f870c"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f870c",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -16616,14 +17167,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f870c",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f870c with computed code vret(r5-in,+0x38)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -16633,17 +17179,18 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f8674",
-       "address": "0x102f8674",
-       "notes": "action wrapper handler"
+       "address": "0x102b9874",
+       "notes": "gate decode",
+       "function": "f_102b9874"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb3120",
-       "notes": "action dispatch table entry"
+       "address": "0x102b60b0",
+       "notes": "worker decode",
+       "function": "f_102b60b0"
       }
      ],
      "notes": null
@@ -16831,9 +17378,9 @@
      "notes": null
     },
     "Pause": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f8588",
      "handler_func": "0x102f8588",
@@ -16868,8 +17415,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -16878,15 +17425,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -16909,13 +17456,131 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2b28",
+        "notes": "gate+body decode",
+        "function": "f_102d2b28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b00cc",
+        "notes": "worker decode",
+        "function": "f_102b00cc"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "None beyond InstanceID==0; no mode gate in the impl entry itself.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2b28",
+        "notes": "gate decode",
+        "function": "f_102d2b28"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Requires a live streamer/control target for the fast path; otherwise the f_102d0ac8 fallback handles (or fails) it.",
+      "status": "strong",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b0134",
+        "notes": "f_106a7880 on *(impl+0x5a0)",
+        "function": "f_102b00cc"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Op-0x19 submitted to impl+0x5dc; streamer pause vfunc invoked when submission succeeds.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b00f8",
+         "notes": "f_102aff9c(impl+0x5dc,&rec,0x19,0)",
+         "function": "f_102b00cc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b0134",
+         "notes": "f_106a7880(impl+0x5a0)",
+         "function": "f_102b00cc"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct emit in the impl; transport-state events come from the downstream state machine (unresolved).",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2b38",
+        "notes": "no emit calls in impl body",
+        "function": "f_102d2b38"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Pause submitted to control target + streamer; submission vs actual pause completion is the accepted/submitted distinction - the SOAP call returns after the streamer vfunc returns, not after audio pauses.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b0134",
+        "notes": "streamer vfunc path",
+        "function": "f_102b00cc"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Success iff worker returned nonzero (submitted + streamer accepted) OR the f_102d0ac8 fallback succeeded; impl rc = fallback rc on the zero path, else 0.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2be0",
+        "notes": "fallback call f_102d0ac8(impl,1,1,-1,-1)",
+        "function": "f_102d2bcc"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f8620",
@@ -16925,14 +17590,104 @@
      ],
      "errors": [
       {
+       "code": 718,
+       "code_expr": "vret(r5-in,+0x30)",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f863c"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d2b30",
+           "notes": "li r3,0x2ce on r4!=0",
+           "function": "f_102d2b28"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2b30",
+         "notes": "li 0x2ce",
+         "function": "f_102d2b28"
+        }
+       ]
+      },
+      {
        "code": null,
        "code_expr": "vret(r5-in,+0x30)",
-       "meaning": null,
+       "meaning": "Fallback f_102d0ac8 rc propagated when the direct streamer path failed.",
        "status": "unresolved",
+       "fault_sites": [
+        "0x102f863c"
+       ],
+       "conditions": [
+        {
+         "description": "f_102b00cc returned 0 AND f_102d0ac8 returned nonzero",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d2be0",
+           "notes": "fallback rc -> r31",
+           "function": "f_102d2bcc"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2be0",
+         "notes": "fallback call",
+         "function": "f_102d2bcc"
+        }
+       ],
+       "unresolved": {
+        "proven": "fallback rc returned as impl status when streamer path failed",
+        "unknown": "concrete codes f_102d0ac8 produces; whether 0 means no session or rejected"
+       }
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102f8620"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f8620",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -16940,14 +17695,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f8620",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f8620 with computed code vret(r5-in,+0x30)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -16957,25 +17707,26 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f8588",
-       "address": "0x102f8588",
-       "notes": "action wrapper handler"
+       "address": "0x102d2b28",
+       "notes": "gate+body decode",
+       "function": "f_102d2b28"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb3138",
-       "notes": "action dispatch table entry"
+       "address": "0x102b00cc",
+       "notes": "worker decode",
+       "function": "f_102b00cc"
       }
      ],
      "notes": null
     },
     "Play": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f9244",
      "handler_func": "0x102f9244",
@@ -17010,8 +17761,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -17020,15 +17771,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -17050,8 +17801,8 @@
        "notes": null
       },
       "Speed": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Playback speed string; impl does strcmp(Speed,\"1\") - ONLY the exact string '1' is accepted, any other value (including '1.0' or '') returns SOAP fault 717.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -17060,15 +17811,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "literal string",
+       "unit": "none - dimensionless",
+       "accepted_values": "Playback speed string; impl does strcmp(Speed,\"1\") - ONLY the exact string '1' is accepted, any other value (including '1.0' or '') returns SOAP fault 717.",
+       "range": "see accepted_values",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Playback speed string; impl does strcmp(Speed,\"1\") - ONLY the exact string '1' is accepted, any other value (including '1.0' or '') returns SOAP fault 717.",
        "evidence": [
         {
          "type": "firmware",
@@ -17091,13 +17842,111 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d4078",
+        "notes": "full impl decode",
+        "function": "f_102d4078"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Speed must be exactly '1'. Engine object must be live; *(impl+0x3dc)!=0 gates the logging preamble.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d4110",
+        "notes": "strcmp(Speed,\"1\")",
+        "function": "f_102d4078"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse source triggers a rebuild/log path before play is submitted.",
+      "status": "strong",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10eb145c",
+        "notes": "'Received play for non-muse source'"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Submit path calls f_102cfa50(impl,-1,-1,0) (track=-1,pos=-1 = resume/current).",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d4204",
+         "notes": "f_102cfa50(impl,-1,-1,0)",
+         "function": "f_102d4078"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "f_100caad8 is invoked on the submit path - the shared transport-changed emit used by the getter-scope boilerplate.",
+      "status": "strong",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d41e8",
+        "notes": "f_100caad8 call",
+        "function": "f_102d4078"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Play submission to the engine/session machinery; exact track-selection semantics of the -1,-1 sentinels unresolved.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d4204",
+        "notes": "-1,-1 sentinel args",
+        "function": "f_102d4078"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "rc of f_102cfa50 (or the non-muse path result) is returned as the impl status; cr0.eq=success convention -> SOAP emit vs req->v[+0x14] fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102f9244",
+        "notes": "wrapper decode"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f9308",
@@ -17107,14 +17956,140 @@
      ],
      "errors": [
       {
+       "code": 718,
+       "code_expr": "vret(r5-in,+0x2c)",
+       "meaning": "InstanceID was nonzero - the engine only accepts instance 0.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f93d4"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID argument != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d4084",
+           "notes": "cmpwi r4,0 -> li r3,0x2ce",
+           "function": "f_102d4078"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d4094",
+         "notes": "li r3,0x2ce",
+         "function": "f_102d4078"
+        }
+       ]
+      },
+      {
+       "code": 717,
+       "code_expr": "vret(r5-in,+0x2c)",
+       "meaning": "Speed was not the exact string '1'.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f93d4"
+       ],
+       "conditions": [
+        {
+         "description": "strcmp(Speed,'1') != 0 - including '1.0','0','' or any other speed",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d4118",
+           "notes": "li r3,0x2cd after strcmp",
+           "function": "f_102d4078"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d4118",
+         "notes": "strcmp + li 0x2cd",
+         "function": "f_102d4078"
+        }
+       ]
+      },
+      {
        "code": null,
        "code_expr": "vret(r5-in,+0x2c)",
-       "meaning": null,
+       "meaning": "Downstream play-submission failure (f_102cfa50/non-muse path) propagated as impl rc.",
        "status": "unresolved",
+       "fault_sites": [
+        "0x102f93d4"
+       ],
+       "conditions": [
+        {
+         "description": "submission helper returned a nonzero engine rc",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d4208",
+           "notes": "r31 = f_102cfa50 rc",
+           "function": "f_102d4078"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d4204",
+         "notes": "submit call",
+         "function": "f_102d4078"
+        }
+       ],
+       "unresolved": {
+        "proven": "helper rc returned verbatim as impl status",
+        "unknown": "which engine codes f_102cfa50/f_102d0ac8 can produce and their SOAP meanings"
+       }
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102f9308"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f9308",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -17122,14 +18097,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f9308",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f9308 with computed code vret(r5-in,+0x2c)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -17139,25 +18109,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f9244",
-       "address": "0x102f9244",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10eb3144",
-       "notes": "action dispatch table entry"
+       "address": "0x102d4078",
+       "notes": "full impl decode",
+       "function": "f_102d4078"
       }
      ],
      "notes": null
     },
     "Previous": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998: lock impl+0x458, log 'upnp'/'previous', call f_102b6214. mode!=2 -> f_102b01b4 (submit op-0x19 then streamer prev vfunc at *(impl+0x5a0); streamer nonzero=ok). mode==2 -> FIRST checks capability: f_10258ab0(impl+0x580,0,1) bit 0x00100000 - if the source cannot skip back, returns success WITHOUT submitting anything (silent no-op). If capable: f_102b5ddc, build rec, submit f_10255f64; nonzero rc -> 711, zero -> clear impl+0x6ed8 + return 0.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f8760",
      "handler_func": "0x102f8760",
@@ -17192,8 +18154,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -17202,15 +18164,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -17233,13 +18195,131 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9938",
+        "notes": "gate decode",
+        "function": "f_102b9938"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b6214",
+        "notes": "worker decode",
+        "function": "f_102b6214"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID==0 only.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9938",
+        "notes": "gate decode",
+        "function": "f_102b9938"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x580,0,1); without it Previous is a silent success no-op.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b6288",
+        "notes": "andis. caps,0x10 -> silent success",
+        "function": "f_102b6214"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Track-back request submitted (indexed) or streamer vfunc; impl+0x6ed8 cleared on success.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b62c8",
+         "notes": "stw 0 -> impl+0x6ed8",
+         "function": "f_102b6214"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct emit in impl; downstream transport events unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9998",
+        "notes": "no emit calls",
+        "function": "f_102b9998"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Moves to previous track when the source supports it; capability-gated no-op otherwise - request accepted vs operation submitted distinction is explicit in this impl.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b6288",
+        "notes": "capability short-circuit",
+        "function": "f_102b6214"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "rc==0 on success incl. the capability no-op; 711 on indexed submit failure; 701 on streamer failure.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b62dc",
+        "notes": "li r3,0x2c7",
+        "function": "f_102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b624c",
+        "notes": "r30=0x2bd",
+        "function": "f_102b6214"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f87f8",
@@ -17249,14 +18329,136 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 718,
        "code_expr": "vret(r5-in,+0x3c)",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8814"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b9978",
+           "notes": "li r3,0x2ce",
+           "function": "f_102b9938"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b9978",
+         "notes": "li 0x2ce",
+         "function": "f_102b9938"
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "code_expr": "vret(r5-in,+0x3c)",
+       "meaning": "Stream-mode skip failed - the streamer vfunc returned 0 (no live session or rejected).",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8814"
+       ],
+       "conditions": [
+        {
+         "description": "mode!=2 and streamer vfunc result == 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b624c",
+           "notes": "r30=0x2bd on streamer fail",
+           "function": "f_102b6214"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b624c",
+         "notes": "701",
+         "function": "f_102b6214"
+        }
+       ]
+      },
+      {
+       "code": 711,
+       "code_expr": "vret(r5-in,+0x3c)",
+       "meaning": "Indexed submit failed - the impl+0x580 engine rejected the track-back request.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8814"
+       ],
+       "conditions": [
+        {
+         "description": "mode==2, cap bit set, and f_10255f64 returned nonzero",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b62dc",
+           "notes": "li r3,0x2c7 on submit fail",
+           "function": "f_102b6214"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b62dc",
+         "notes": "711",
+         "function": "f_102b6214"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102f87f8"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f87f8",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -17264,14 +18466,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f87f8",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f87f8 with computed code vret(r5-in,+0x3c)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -17281,17 +18478,18 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f8760",
-       "address": "0x102f8760",
-       "notes": "action wrapper handler"
+       "address": "0x102b9938",
+       "notes": "gate decode",
+       "function": "f_102b9938"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb3150",
-       "notes": "action dispatch table entry"
+       "address": "0x102b6214",
+       "notes": "worker decode",
+       "function": "f_102b6214"
       }
      ],
      "notes": null
@@ -19455,13 +20653,8 @@
        "semantic_type": "instance selector (integer)",
        "format": "decimal integer parsed into a type-tag-4 argument record (helper 0x105614e0, 24-byte record)",
        "unit": "none",
-       "accepted_values": [
-        "0"
-       ],
-       "range": {
-        "min": 0,
-        "max": 0
-       },
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
        "special_values": {
         "0": "the only instance this zone player implements; anything else faults"
        },
@@ -20413,9 +21606,9 @@
      "notes": null
     },
     "SetCrossfadeMode": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock impl+0x458, log 'upnp'/'change crossfade', call f_102b26dc. The worker REQUIRES mode impl+0x4654==2 (indexed) - anything else -> 712 immediately. In indexed mode it further requires f_101471f0(impl+0x5dc)!=0 AND strncmp(current URI,'x-sonosapi-hls:',15)!=0 AND f_101475dc!=0 (crossfade-capable, non-HLS source). When the source cannot crossfade: arg==0 still succeeds silently, arg!=0 -> 712. When capable: a request record (f_1032e270 + f_1032e550(rec,arg,1)) is submitted via f_10255f64(impl+0x580); success clears impl+0x6ed8.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102fa158",
      "handler_func": "0x102fa158",
@@ -20450,8 +21643,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -20460,15 +21653,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -20490,8 +21683,8 @@
        "notes": null
       },
       "CrossfadeMode": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -20500,15 +21693,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "literal string",
+       "unit": "none - dimensionless",
+       "accepted_values": "Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.",
+       "range": "see accepted_values",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.",
        "evidence": [
         {
          "type": "firmware",
@@ -20531,13 +21724,140 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b99fc",
+        "notes": "gate decode",
+        "function": "f_102b99fc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b26dc",
+        "notes": "worker decode",
+        "function": "f_102b26dc"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Only meaningful when a queued/indexed source is active (mode==2); streaming sources reject nonzero crossfade.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2704",
+        "notes": "cmpwi mode,2 -> 712 otherwise",
+        "function": "f_102b26dc"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi-hls:' URI - HLS streams cannot crossfade.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2768",
+        "notes": "strncmp(uri,'x-sonosapi-hls:',15)",
+        "function": "f_102b26dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b277c",
+        "notes": "f_101475dc cap check",
+        "function": "f_102b26dc"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Crossfade request submitted to impl+0x580; impl+0x6ed8 cleared on success.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b27a8",
+         "notes": "f_10255f64 submit",
+         "function": "f_102b26dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b27c0",
+         "notes": "clear impl+0x6ed8",
+         "function": "f_102b26dc"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct emit in impl; crossfade state event unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9a0c",
+        "notes": "no emit calls",
+        "function": "f_102b9a0c"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Crossfade mode applied through the indexed request machinery; arg==0 on an incapable source is a silent success no-op.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b27cc",
+        "notes": "arg==0 -> success even when blocked",
+        "function": "f_102b26dc"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "0 on success (incl. silent no-op); 712 for wrong mode, incapable source, or submit failure.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b270c",
+        "notes": "li r3,0x2c8",
+        "function": "f_102b26dc"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102fa218",
@@ -20547,14 +21867,137 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 718,
        "code_expr": "vret(r5-in,+0x44)",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102fa20c"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b9a04",
+           "notes": "li r3,0x2ce",
+           "function": "f_102b99fc"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b9a04",
+         "notes": "li 0x2ce",
+         "function": "f_102b99fc"
+        }
+       ]
+      },
+      {
+       "code": 712,
+       "code_expr": "vret(r5-in,+0x44)",
+       "meaning": "Crossfade rejected: transport mode !=2 (not indexed), source not crossfade-capable, HLS stream, nonzero arg on incapable source, or submit failed.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102fa20c"
+       ],
+       "conditions": [
+        {
+         "description": "impl+0x4654 mode != 2",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b2708",
+           "notes": "mode check -> 0x2c8",
+           "function": "f_102b26dc"
+          }
+         ]
+        },
+        {
+         "description": "f_101471f0 or f_101475dc returned 0, or URI starts with x-sonosapi-hls:, with arg != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b2768",
+           "notes": "HLS strncmp gate",
+           "function": "f_102b26dc"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b27cc",
+           "notes": "blocked-path arg check",
+           "function": "f_102b26dc"
+          }
+         ]
+        },
+        {
+         "description": "f_10255f64 submit returned nonzero",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b27ac",
+           "notes": "submit rc check -> 0x2c8",
+           "function": "f_102b26dc"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b270c",
+         "notes": "712 returns",
+         "function": "f_102b26dc"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102fa218"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102fa218",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -20562,14 +22005,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102fa218",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102fa218 with computed code vret(r5-in,+0x44)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -20579,17 +22017,18 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102fa158",
-       "address": "0x102fa158",
-       "notes": "action wrapper handler"
+       "address": "0x102b99fc",
+       "notes": "gate decode",
+       "function": "f_102b99fc"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb31c8",
-       "notes": "action dispatch table entry"
+       "address": "0x102b26dc",
+       "notes": "worker decode",
+       "function": "f_102b26dc"
       }
      ],
      "notes": null
@@ -20817,9 +22256,9 @@
      "notes": null
     },
     "SetPlayMode": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: lock impl+0x458, log 'upnp'/'change play mode', call f_102b24dc(impl,mode-str) which maps the string to an enum {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}. Non-NORMAL modes require capability gates: f_10147928(impl+0x5dc)!=0 (source/queue present), f_10148308!=0 (cap), and byte impl+0x1a03 (shuffle-capable flag), else 712. Per-mode apply: mode==2 -> indexed path; mode==1 -> f_106a9e88(impl+0x5a0,1,mode_enum,0,0) streamer vfunc, its failure -> 712.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f94a0",
      "handler_func": "0x102f94a0",
@@ -20854,8 +22293,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -20864,15 +22303,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -20894,8 +22333,8 @@
        "notes": null
       },
       "NewPlayMode": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -20904,15 +22343,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "string",
+       "format": "literal string",
+       "unit": "none - dimensionless",
+       "accepted_values": "Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.",
+       "range": "see accepted_values",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.",
        "evidence": [
         {
          "type": "firmware",
@@ -20935,13 +22374,131 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9a9c",
+        "notes": "gate decode",
+        "function": "f_102b9a9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b24dc",
+        "notes": "worker decode",
+        "function": "f_102b24dc"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc and pass f_10147928/f_10148308 checks plus the impl+0x1a03 flag.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b25d4",
+        "notes": "f_10147928 gate",
+        "function": "f_102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b25f0",
+        "notes": "impl+0x1a03 byte gate",
+        "function": "f_102b24dc"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mode==0 has its own NORMAL path.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2530",
+        "notes": "cmplwi mode,2/1 dispatch",
+        "function": "f_102b24dc"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Play-mode enum applied to the indexed engine or forwarded to the streamer as a mode command.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b26a4",
+         "notes": "f_106a9e88(impl+0x5a0,1,mode,0,0)",
+         "function": "f_102b24dc"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct emit in impl; play-mode event unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b9aac",
+        "notes": "no emit calls",
+        "function": "f_102b9aac"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Play mode changes to the mapped enum; unknown strings rejected before any state change.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b25fc",
+        "notes": "string->enum table",
+        "function": "f_102b24dc"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Worker rc returned as impl status: 0 on success, 712 for unknown string, missing source, capability failure, or streamer rejection.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2554",
+        "notes": "li r3,0x2c8",
+        "function": "f_102b24dc"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f9564",
@@ -20951,14 +22508,128 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 718,
        "code_expr": "vret(r5-in,+0x40)",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f9554"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b9aa4",
+           "notes": "li r3,0x2ce",
+           "function": "f_102b9a9c"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b9aa4",
+         "notes": "li 0x2ce",
+         "function": "f_102b9a9c"
+        }
+       ]
+      },
+      {
+       "code": 712,
+       "code_expr": "vret(r5-in,+0x40)",
+       "meaning": "Play-mode rejected: unrecognized string, no eligible source for non-NORMAL modes, capability byte impl+0x1a03 blocks it, or the streamer mode-set vfunc failed.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f9554"
+       ],
+       "conditions": [
+        {
+         "description": "NewPlayMode not in the 6-string table",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b2674",
+           "notes": "falls through to li r3,0x2c8",
+           "function": "f_102b24dc"
+          }
+         ]
+        },
+        {
+         "description": "non-NORMAL mode but f_10147928(impl+0x5dc)==0 or f_10148308 or impl+0x1a03 flag fails",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b25d8",
+           "notes": "cap gates to 0x2c8",
+           "function": "f_102b24dc"
+          }
+         ]
+        },
+        {
+         "description": "mode==1 and f_106a9e88 streamer call failed",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102b26a8",
+           "notes": "streamer fail -> 0x2c8",
+           "function": "f_102b24dc"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b2554",
+         "notes": "712 returns",
+         "function": "f_102b24dc"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102f9564"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f9564",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -20966,14 +22637,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f9564",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f9564 with computed code vret(r5-in,+0x40)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -20983,17 +22649,18 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f94a0",
-       "address": "0x102f94a0",
-       "notes": "action wrapper handler"
+       "address": "0x102b9a9c",
+       "notes": "gate decode",
+       "function": "f_102b9a9c"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb31e0",
-       "notes": "action dispatch table entry"
+       "address": "0x102b24dc",
+       "notes": "worker decode",
+       "function": "f_102b24dc"
       }
      ],
      "notes": null
@@ -21523,9 +23190,9 @@
      "notes": null
     },
     "Stop": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -> 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x102f849c",
      "handler_func": "0x102f849c",
@@ -21560,8 +23227,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -21570,15 +23237,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless",
+       "accepted_values": "0 only - nonzero faults 718",
+       "range": "0",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
        "evidence": [
         {
          "type": "firmware",
@@ -21601,13 +23268,148 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "See inputs/impl notes",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2e54",
+        "notes": "gate decode",
+        "function": "f_102d2e54"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2bec",
+        "notes": "worker decode",
+        "function": "f_102d2bec"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "None beyond InstanceID==0.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2e54",
+        "notes": "gate decode",
+        "function": "f_102d2e54"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/0x5a7f/0x7764 gate the chime-restore behavior.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2c64",
+        "notes": "mode dispatch",
+        "function": "f_102d2bec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10eb12cc",
+        "notes": "'restoring after stop chime: ret=%d ar=%d wrca=%d pavt=%d'"
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Clears impl+0x7778, impl+0x7766/0x776c on the chime path; submits stop to indexed session (op 1) or stream path.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2c1c",
+         "notes": "stw 0 -> impl+0x7778",
+         "function": "f_102d2bec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2c94",
+         "notes": "f_10256a84(impl+0x580,1,0,name,0)",
+         "function": "f_102d2bec"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "f_102b05e4(impl,1) tail is the transport-state update that produces the STOPPED event (strong inference from call order; emit helper itself unresolved).",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2d6c",
+        "notes": "f_102b05e4(impl,1)",
+        "function": "f_102d2bec"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Stop submitted; queue/URI fields cleared on the chime path; transport-state update run.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2cd8",
+        "notes": "fields cleared",
+        "function": "f_102d2bec"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "701 when f_102931f0(impl+0x5dc) fails its precondition; else mode-path rc flows through f_102b05e4's status (0=success).",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2c40",
+        "notes": "li r3,0x2bd on f_102931f0 fail",
+        "function": "f_102d2bec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102d2d74",
+        "notes": "f_102b05e4 rc -> r28",
+        "function": "f_102d2bec"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x102f8534",
@@ -21617,14 +23419,140 @@
      ],
      "errors": [
       {
+       "code": 718,
+       "code_expr": "vret(r5-in,+0x28)",
+       "meaning": "InstanceID was nonzero.",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8554"
+       ],
+       "conditions": [
+        {
+         "description": "InstanceID != 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d2e94",
+           "notes": "li r3,0x2ce on r31!=0",
+           "function": "f_102d2e54"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2e94",
+         "notes": "li 0x2ce",
+         "function": "f_102d2e54"
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "code_expr": "vret(r5-in,+0x28)",
+       "meaning": "The impl+0x5dc control target rejected the stop precondition (f_102931f0 cr0.eq clear).",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x102f8554"
+       ],
+       "conditions": [
+        {
+         "description": "f_102931f0(impl+0x5dc) failed - control target not in a stoppable state",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d2c40",
+           "notes": "li r3,0x2bd after bc 12,2",
+           "function": "f_102d2bec"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2c40",
+         "notes": "701 return",
+         "function": "f_102d2bec"
+        }
+       ]
+      },
+      {
        "code": null,
        "code_expr": "vret(r5-in,+0x28)",
-       "meaning": null,
+       "meaning": "Downstream mode-path failure propagated via f_102b05e4 status.",
        "status": "unresolved",
+       "fault_sites": [
+        "0x102f8554"
+       ],
+       "conditions": [
+        {
+         "description": "f_102b05e4(impl,1) returned nonzero",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102d2d74",
+           "notes": "bc 4,30 on r3!=0 -> error tail",
+           "function": "f_102d2bec"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102d2d6c",
+         "notes": "f_102b05e4 call",
+         "function": "f_102d2bec"
+        }
+       ],
+       "unresolved": {
+        "proven": "tail rc is returned",
+        "unknown": "concrete codes produced by the mode paths (f_10256a84/f_102b0a48) surfacing here"
+       }
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "status": "confirmed",
+       "meaning": "Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.",
        "fault_sites": [
         "0x102f8534"
        ],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "typed argument parse or request-shape check failed in the wrapper",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102f8534",
+           "notes": "request fault site"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -21632,14 +23560,9 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x102f8534",
-         "notes": "fault raise site"
+         "notes": "request-layer fault site"
         }
-       ],
-       "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x102f8534 with computed code vret(r5-in,+0x28)",
-        "unknown": null
-       },
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -21649,17 +23572,18 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x102f849c",
-       "address": "0x102f849c",
-       "notes": "action wrapper handler"
+       "address": "0x102d2e54",
+       "notes": "gate decode",
+       "function": "f_102d2e54"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "address": "0x10eb3204",
-       "notes": "action dispatch table entry"
+       "address": "0x102d2bec",
+       "notes": "worker decode",
+       "function": "f_102d2bec"
       }
      ],
      "notes": null
@@ -21720,7 +23644,9 @@
      "notes": "service dispatcher"
     }
    ],
-   "notes": null
+   "notes": [
+    "Engine impl object fields recovered: +0x458 command mutex; +0x3dc name string (nonzero gates scoped logging); +0x580 indexed/chsrc session manager (f_10255f64 submit, f_10256a84 ops); +0x5a0 streamer session object (vfuncs f_106a7880 pause, f_106a7a34 next, f_106a7930 seek, f_106a9e88 mode); +0x5dc source/URI control target (cap queries f_10147928/f_101471f0/f_101475dc/f_10148308/f_10688070, precondition f_102931f0); +0x5d4 default state source; +0x4654 transport-source mode enum {0,1,2} (2=indexed/queue); +0x6ed8 pending-op field cleared on successful track/mode ops; +0x7778 cleared by Stop; +0x1a03 shuffle-capable flag; +0x5a86/+0x5a7f/+0x7764/+0x7766/+0x776c chime-restore flags; +0xaaa0 member object touched by Stop. Engine vtables: A=0x10eaf2ec, B=0x10edfbb8 - identical for all actions except SetAVTransportURI and the three Become*Coordinator* ops (B overrides to 0x10513230/0x10513244/0x105133e4/0x105134a8, the group-aware class)."
+   ]
   },
   "/MediaRenderer/ConnectionManager/Control": {
    "name": "ConnectionManager",
@@ -48327,58 +50253,34 @@
    ]
   },
   "0x10255f64": {
-   "address": "0x10255f64",
-   "used_by": [],
-   "role": "rchsrcreq_submit",
-   "description": "Submits an rchsrcreq record to the channel-source transaction engine (obj+0x580): resolves 'chsrc' registry entry, logs 'RCHSRCReq Current Op', stores the record at obj+0x2594 and signals obj+0x2e8; nonzero return = accepted for async apply.",
-   "why_external": "Explains why indexed-mode seeks are asynchronous and where submit-failure errors originate (701 time / 711 track).",
+   "description": "Indexed-source request submitter: f(impl+0x580, &record). Returns engine rc: 0=accepted, 2 and 3 are distinct rejection codes (mapped to SOAP 800/711 by Next), anything else treated as generic failure.",
+   "status": "confirmed",
    "required_for_behavior": true,
-   "status": "strong",
+   "why_external": "The single funnel for queue/indexed transport operations (Next, Previous, crossfade, play-mode); its rc taxonomy drives multiple SOAP faults.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "status": "confirmed",
-     "notes": "record stored at obj+0x2594 and signaled via obj+0x2e8; 'RCHSRCReq Current Op' log at 0x10ea8c10",
-     "address": "0x10256034",
-     "function": "0x10255f64"
+     "address": "0x10255f64",
+     "notes": "Indexed-source request submitter: f(impl+0x580, &record). Returns engine rc: 0=accepted, 2 and 3 are distinct rejection codes (mapped to SOAP 800/711 by Next), anything else treated as generic failure."
     }
    ]
   },
   "0x1032e270": {
-   "address": "0x1032e270",
-   "used_by": [],
-   "role": "rchsrcreq_ctor",
-   "description": "Constructs an 'rchsrcreq' source-change request record (name string at 0x10eb84a4); companion setters f_1032e4c4 (tag 8: u16 track ordinal at +0xfc) and f_1032e4dc (tag 9: i64 seconds at +0x108, u16 isDelta flag at +0xfc, out-status ptr at +0x114).",
-   "why_external": "Defines how TRACK_NR/REL_TIME/TIME_DELTA parameters are encoded into the internal seek request.",
-   "required_for_behavior": true,
+   "description": "Initializes the transport request record that impls fill and pass to f_10255f64/f_102aff9c.",
    "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Defines the record layout every indexed operation submits.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "status": "confirmed",
-     "notes": "ctor references 'rchsrcreq' name at 0x10eb84a4",
-     "address": "0x1032e284",
-     "function": "0x1032e270"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "notes": "tag-8 setter: stw 8 at +0xe4, sth arg at +0xfc",
-     "address": "0x1032e4c4"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "notes": "tag-9 setter: stw 9 at +0xe4, i64 arg at +0x108/0x10c, u16 flag at +0xfc, ptr at +0x114",
-     "address": "0x1032e4dc"
+     "address": "0x1032e270",
+     "notes": "Initializes the transport request record that impls fill and pass to f_10255f64/f_102aff9c."
     }
    ]
   },
@@ -48402,43 +50304,36 @@
    ]
   },
   "0x10258ab0": {
-   "address": "0x10258ab0",
-   "used_by": [],
-   "role": "media_caps_query",
-   "description": "Queries the channel-source object (engine+0x580) for a capability bitmask; Seek tests bit 0x200000 (time-seek allowed) and 0x400000 (track-ordinal-seek allowed) in indexed mode.",
-   "why_external": "Determines which seek units are permitted for the current media.",
+   "description": "Capability query f(impl+0x580,sel1,sel2) returning a mask; bit 0x00100000 gates Previous indexed path.",
+   "status": "confirmed",
    "required_for_behavior": true,
-   "status": "strong",
-   "notes": "Bit derivation lives in f_102587b4 (chsrc.cxx) and depends on current media-item metadata; not fully resolved.",
+   "why_external": "The capability bit that decides whether Previous is real or a silent no-op.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "status": "strong",
-     "notes": "called with (engine+0x580, 0, 1); result is the cap bitmask tested with 0x400000/0x200000",
-     "address": "0x102b90d0",
-     "function": "0x102b9088"
-    },
+     "status": "confirmed",
+     "address": "0x10258ab0",
+     "notes": "Capability query f(impl+0x580,sel1,sel2) returning a mask; bit 0x00100000 gates Previous indexed path."
+    }
+   ]
+  },
+  "0x102b5ddc": {
+   "description": "Pre-submission step shared by indexed Next/Previous - probably pauses/quiets the current streamer session.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Runs before every indexed track change; part of the track-transition sequence.",
+   "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "status": "confirmed",
-     "notes": "inner worker f_102587b4 reads media-item flags (file chsrc.cxx)",
-     "address": "0x10258810",
-     "function": "0x102587b4"
+     "address": "0x102b5ddc",
+     "notes": "Pre-submission step shared by indexed Next/Previous - probably pauses/quiets the current streamer session."
     }
    ]
-  },
-  "0x102b5ddc": {
-   "address": "0x102b5ddc",
-   "used_by": [],
-   "role": "state_sync",
-   "description": "Called at the top of the indexed Seek path with its result unused; performs zone/group state housekeeping (references 'dapst', 'pullContext', 'Direct Control', 'amp already on' log strings).",
-   "why_external": "May refresh coordinator/direct-control state that the capability query then observes; exact effect on Seek semantics unresolved.",
-   "required_for_behavior": true,
-   "status": "inferred"
   },
   "0x100d71e0": {
    "address": "0x100d71e0",
@@ -49470,6 +51365,742 @@
     }
    ],
    "required_for_behavior": true
+  },
+  "0x102aff9c": {
+   "description": "Control-request submission helper: f(impl+0x5dc, &record, opcode, flags). Used by Pause/Next/Previous stream workers with opcode 0x19; rc!=0 = submission failed, rc==0 = submitted (caller then invokes the streamer vfunc).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The accepted-vs-submitted boundary for the stream transport path: separates request-well-formed from streamer-performed.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102aff9c",
+     "notes": "Control-request submission helper: f(impl+0x5dc, &record, opcode, flags). Used by Pause/Next/Previous stream workers with opcode 0x19; rc!=0 = submission failed, rc==0 = submitted (caller then invokes the streamer vfunc)."
+    }
+   ]
+  },
+  "0x10557cac": {
+   "description": "Lock acquisition on the engine mutex at impl+0x458 (non-RAII form).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Every AVTransport command impl serializes through this mutex - defines the atomicity boundary for transport commands.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10557cac",
+     "notes": "Lock acquisition on the engine mutex at impl+0x458 (non-RAII form)."
+    }
+   ]
+  },
+  "0x10557afc": {
+   "description": "RAII-scope variant locking impl+0x458, used by the wide-arg getter impls with a scoped-context guard (callback f_100caad8).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Locks the engine during multi-output state reads so getters return a consistent snapshot.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10557afc",
+     "notes": "RAII-scope variant locking impl+0x458, used by the wide-arg getter impls with a scoped-context guard (callback f_100caad8)."
+    }
+   ]
+  },
+  "0x10557848": {
+   "description": "Unlock counterpart of f_10557cac for the impl+0x458 mutex.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Release side of the engine command mutex.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10557848",
+     "notes": "Unlock counterpart of f_10557cac for the impl+0x458 mutex."
+    }
+   ]
+  },
+  "0x1032e550": {
+   "description": "Fills a request record for a mode/flag operation (e.g. crossfade value).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Encodes the operation payload for mode-setting submissions.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1032e550",
+     "notes": "Fills a request record for a mode/flag operation (e.g. crossfade value)."
+    }
+   ]
+  },
+  "0x1032e494": {
+   "description": "Fills a request record from impl+0x5dc state plus a u16 target (track advance ops).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Encodes the track-advance payload for Next/Previous indexed submissions.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1032e494",
+     "notes": "Fills a request record from impl+0x5dc state plus a u16 target (track advance ops)."
+    }
+   ]
+  },
+  "0x1032e2d8": {
+   "description": "Destroys/releases a request record (called on both success and failure paths).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Record lifetime management; a record destroyed without submission is an accepted-but-dropped request.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1032e2d8",
+     "notes": "Destroys/releases a request record (called on both success and failure paths)."
+    }
+   ]
+  },
+  "0x102b8c44": {
+   "description": "UPnP action logger: emits 'upnp' '<action-name>' records ('pause','stop','next','previous','play','change play mode','change crossfade').",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Marks the observable log entry for every control action, useful for runtime tracing and confirming which impl ran.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b8c44",
+     "notes": "UPnP action logger: emits 'upnp' '<action-name>' records ('pause','stop','next','previous','play','change play mode','change crossfade')."
+    }
+   ]
+  },
+  "0x106a7880": {
+   "description": "Streamer-session pause vfunc invoked on *(impl+0x5a0) after control submission; nonzero result = accepted.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The actual stream-pause executor behind the Pause fast path.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x106a7880",
+     "notes": "Streamer-session pause vfunc invoked on *(impl+0x5a0) after control submission; nonzero result = accepted."
+    }
+   ]
+  },
+  "0x106a7a34": {
+   "description": "Streamer-session next-track vfunc invoked on *(impl+0x5a0); nonzero = accepted.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The actual stream-skip executor behind stream-mode Next.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x106a7a34",
+     "notes": "Streamer-session next-track vfunc invoked on *(impl+0x5a0); nonzero = accepted."
+    }
+   ]
+  },
+  "0x106a9e88": {
+   "description": "Streamer-session mode-set call f(streamer,1,mode_enum,0,0) used to forward play-mode changes to the streamer.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "How SetPlayMode reaches stream-mode sources; its failure maps to SOAP 712.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x106a9e88",
+     "notes": "Streamer-session mode-set call f(streamer,1,mode_enum,0,0) used to forward play-mode changes to the streamer."
+    }
+   ]
+  },
+  "0x102d0ac8": {
+   "description": "Mode-agnostic transport-command fallback: f(impl,1,1,-1,-1) used by Pause when the direct streamer path fails; -1,-1 sentinels = current track/pos.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The generic resume-point command channel shared by transport actions on the fallback path.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102d0ac8",
+     "notes": "Mode-agnostic transport-command fallback: f(impl,1,1,-1,-1) used by Pause when the direct streamer path fails; -1,-1 sentinels = current track/pos."
+    }
+   ]
+  },
+  "0x102cfa50": {
+   "description": "Transport play-submit helper: f(impl,-1,-1,0) invoked by Play on the normal path; -1,-1 = resume current position.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The actual play-request submission behind Play.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102cfa50",
+     "notes": "Transport play-submit helper: f(impl,-1,-1,0) invoked by Play on the normal path; -1,-1 = resume current position."
+    }
+   ]
+  },
+  "0x102b0058": {
+   "description": "Pre-play check called by Play; when it returns 0 the impl proceeds to f_102cfa50 submission.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Gates whether Play issues a fresh submission vs taking the non-muse/rebuild path.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b0058",
+     "notes": "Pre-play check called by Play; when it returns 0 the impl proceeds to f_102cfa50 submission."
+    }
+   ]
+  },
+  "0x102d39ac": {
+   "description": "Source-classification call f(impl,'upnp') in Play; result==1 selects the non-muse-source rebuild path.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Determines whether Play must rebuild the source context before submitting.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102d39ac",
+     "notes": "Source-classification call f(impl,'upnp') in Play; result==1 selects the non-muse-source rebuild path."
+    }
+   ]
+  },
+  "0x102c350c": {
+   "description": "Source rebuild helper invoked on the 'Received play for non-muse source' path (f(impl,&rec,impl+0xaaa4,2)).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Reconstructs the source context when play arrives for a non-muse source.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102c350c",
+     "notes": "Source rebuild helper invoked on the 'Received play for non-muse source' path (f(impl,&rec,impl+0xaaa4,2))."
+    }
+   ]
+  },
+  "0x102b2ee4": {
+   "description": "Source-state query used by the Play non-muse path to decide whether a rebuild is needed.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Classifies the current source before play submission.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b2ee4",
+     "notes": "Source-state query used by the Play non-muse path to decide whether a rebuild is needed."
+    }
+   ]
+  },
+  "0x102b1c5c": {
+   "description": "Indexed-path helper in Next when the submitted record returns a u16 target of 1 - the 'advance to next source' escalation.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Handles the queue-boundary case where Next must activate the next source rather than the next track.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b1c5c",
+     "notes": "Indexed-path helper in Next when the submitted record returns a u16 target of 1 - the 'advance to next source' escalation."
+    }
+   ]
+  },
+  "0x102b4b48": {
+   "description": "Post-advance activation call f(impl,1) used after successful indexed Next (and mirrored in Stop).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Reactivates transport after a track/source transition.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b4b48",
+     "notes": "Post-advance activation call f(impl,1) used after successful indexed Next (and mirrored in Stop)."
+    }
+   ]
+  },
+  "0x10256a84": {
+   "description": "Indexed session operation call f(impl+0x580,op,rec_ctx,name,flag): op 5 = activate-next-source (Next/Stop), op 1 = stop.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The engine op-dispatch for indexed session transitions; rc feeds the 701/711/800 SOAP map.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10256a84",
+     "notes": "Indexed session operation call f(impl+0x580,op,rec_ctx,name,flag): op 5 = activate-next-source (Next/Stop), op 1 = stop."
+    }
+   ]
+  },
+  "0x102b0a48": {
+   "description": "Stream-mode stop worker: f(impl,0) invoked when mode==1 in Stop.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The mode==1 stop path distinct from the indexed op-1 submit.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b0a48",
+     "notes": "Stream-mode stop worker: f(impl,0) invoked when mode==1 in Stop."
+    }
+   ]
+  },
+  "0x102b05e4": {
+   "description": "Transport-state update tail: f(impl,1) run by Stop after the mode-specific work; its rc is returned as the impl status.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The shared state-machine transition that finalizes a stop and likely produces the STOPPED event.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b05e4",
+     "notes": "Transport-state update tail: f(impl,1) run by Stop after the mode-specific work; its rc is returned as the impl status."
+    }
+   ]
+  },
+  "0x102931f0": {
+   "description": "Stop-precondition check on impl+0x5dc: cr0.eq must be set or Stop returns 701 before any work.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Gates whether the current source can be stopped at all.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102931f0",
+     "notes": "Stop-precondition check on impl+0x5dc: cr0.eq must be set or Stop returns 701 before any work."
+    }
+   ]
+  },
+  "0x102ae2d0": {
+   "description": "Member-object call on impl+0xaaa0 run at the start of Stop before the precondition check.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "Part of the stop sequence - clears/prepares a related object (semantics unresolved).",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x102ae2d0",
+     "notes": "Member-object call on impl+0xaaa0 run at the start of Stop before the precondition check."
+    }
+   ]
+  },
+  "0x102d094c": {
+   "description": "Conditional teardown call in Stop chime-restore path and Play tail.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "Auxiliary transition used by the chime/grouped-stop flows.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x102d094c",
+     "notes": "Conditional teardown call in Stop chime-restore path and Play tail."
+    }
+   ]
+  },
+  "0x102d2bec": {
+   "description": "Stop worker (impl arg2=1): clears impl+0x7778, calls f_102ae2d0(impl+0xaaa0), checks f_102931f0(impl+0x5dc) -> 701, then mode-dispatches the stop and runs f_102b05e4 tail.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The entire observable stop sequence behind the SOAP Stop action.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102d2bec",
+     "notes": "Stop worker (impl arg2=1): clears impl+0x7778, calls f_102ae2d0(impl+0xaaa0), checks f_102931f0(impl+0x5dc) -> 701, then mode-dispatches the stop and runs f_102b05e4 tail."
+    }
+   ]
+  },
+  "0x102b00cc": {
+   "description": "Pause worker: f_102aff9c(impl+0x5dc,rec,0x19,0) then streamer f_106a7880(*(impl+0x5a0)); returns 0 on submit-fail else the streamer result.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Defines Pause submit-then-streamer contract and the source of its fallback path.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b00cc",
+     "notes": "Pause worker: f_102aff9c(impl+0x5dc,rec,0x19,0) then streamer f_106a7880(*(impl+0x5a0)); returns 0 on submit-fail else the streamer result."
+    }
+   ]
+  },
+  "0x102b0140": {
+   "description": "Stream-mode Next worker: submit op-0x19 then streamer next vfunc f_106a7a34(*(impl+0x5a0)); returns streamer result or 0 on submit-fail.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "How Next reaches the streamer in non-indexed modes.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b0140",
+     "notes": "Stream-mode Next worker: submit op-0x19 then streamer next vfunc f_106a7a34(*(impl+0x5a0)); returns streamer result or 0 on submit-fail."
+    }
+   ]
+  },
+  "0x102b01b4": {
+   "description": "Stream-mode Previous worker: submit op-0x19 then streamer prev vfunc (*(impl+0x5a0)); returns streamer result or 0 on submit-fail.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "How Previous reaches the streamer in non-indexed modes.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b01b4",
+     "notes": "Stream-mode Previous worker: submit op-0x19 then streamer prev vfunc (*(impl+0x5a0)); returns streamer result or 0 on submit-fail."
+    }
+   ]
+  },
+  "0x102b60b0": {
+   "description": "Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The complete Next behavior incl. the capability escalation and rc taxonomy.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b60b0",
+     "notes": "Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8."
+    }
+   ]
+  },
+  "0x102b6214": {
+   "description": "Previous worker: mode==2 -> capability check (f_10258ab0(impl+0x580,0,1) bit 0x00100000; incapable => silent success no-op) then indexed submit (rc!=0 -> 711); mode!=2 -> f_102b01b4 stream path.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The complete Previous behavior incl. the capability-gated silent no-op.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b6214",
+     "notes": "Previous worker: mode==2 -> capability check (f_10258ab0(impl+0x580,0,1) bit 0x00100000; incapable => silent success no-op) then indexed submit (rc!=0 -> 711); mode!=2 -> f_102b01b4 stream path."
+    }
+   ]
+  },
+  "0x102b24dc": {
+   "description": "SetPlayMode worker: maps {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}; non-NORMAL needs f_10147928+f_10148308+impl+0x1a03 gates; mode==1 applies via streamer f_106a9e88; failures -> 712.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The authoritative play-mode acceptance table and capability gating.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b24dc",
+     "notes": "SetPlayMode worker: maps {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}; non-NORMAL needs f_10147928+f_10148308+impl+0x1a03 gates; mode==1 applies via streamer f_106a9e88; failures -> 712."
+    }
+   ]
+  },
+  "0x102b26dc": {
+   "description": "SetCrossfadeMode worker: requires mode==2; requires f_101471f0/f_101475dc caps and non-HLS URI (strncmp 'x-sonosapi-hls:'); arg==0 silently succeeds on incapable sources; submits via f_10255f64.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "The authoritative crossfade acceptance rules incl. the HLS exclusion.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b26dc",
+     "notes": "SetCrossfadeMode worker: requires mode==2; requires f_101471f0/f_101475dc caps and non-HLS URI (strncmp 'x-sonosapi-hls:'); arg==0 silently succeeds on incapable sources; submits via f_10255f64."
+    }
+   ]
+  },
+  "0x102b1684": {
+   "description": "GetTransportInfo worker: mode dispatch filling the three out strings; default path runs f_10308aec(impl+0x5d4) + strlcpy of impl+0x5dc source name.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Where transport state/status/speed strings actually come from.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b1684",
+     "notes": "GetTransportInfo worker: mode dispatch filling the three out strings; default path runs f_10308aec(impl+0x5d4) + strlcpy of impl+0x5dc source name."
+    }
+   ]
+  },
+  "0x10147928": {
+   "description": "Source/queue presence query on impl+0x5dc; nonzero required before any non-NORMAL play mode is accepted.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "First capability gate for repeat/shuffle modes.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10147928",
+     "notes": "Source/queue presence query on impl+0x5dc; nonzero required before any non-NORMAL play mode is accepted."
+    }
+   ]
+  },
+  "0x10148308": {
+   "description": "Capability query on impl+0x5dc (returns a caps/u16 word used by Next deep path and SetPlayMode gates).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Second capability gate for play modes and track ops.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10148308",
+     "notes": "Capability query on impl+0x5dc (returns a caps/u16 word used by Next deep path and SetPlayMode gates)."
+    }
+   ]
+  },
+  "0x101471f0": {
+   "description": "Crossfade-capability query on impl+0x5dc; must be nonzero before nonzero crossfade is accepted.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "First crossfade gate.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x101471f0",
+     "notes": "Crossfade-capability query on impl+0x5dc; must be nonzero before nonzero crossfade is accepted."
+    }
+   ]
+  },
+  "0x101475dc": {
+   "description": "Second crossfade-capability query on impl+0x5dc; must be nonzero.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "Second crossfade gate - probably source-supports vs transport-supports split.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x101475dc",
+     "notes": "Second crossfade-capability query on impl+0x5dc; must be nonzero."
+    }
+   ]
+  },
+  "0x10688070": {
+   "description": "Stream-session liveness check on impl+0x5dc used by the mode==1 play-mode path before calling the streamer.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Determines whether a live stream session exists to forward mode changes to.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10688070",
+     "notes": "Stream-session liveness check on impl+0x5dc used by the mode==1 play-mode path before calling the streamer."
+    }
+   ]
+  },
+  "0x10308aec": {
+   "description": "Default-path transport-state filler: f(impl+0x5d4,&outs...) used when mode is neither 1 nor 2.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "Supplies state strings for the generic/idle transport case.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x10308aec",
+     "notes": "Default-path transport-state filler: f(impl+0x5d4,&outs...) used when mode is neither 1 nor 2."
+    }
+   ]
+  },
+  "0x102587b4": {
+   "description": "Capability-mask reader on the session/queue object (pair with f_10258ab0).",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Shared capability interpretation used by transport ops (from Seek cluster).",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102587b4",
+     "notes": "Capability-mask reader on the session/queue object (pair with f_10258ab0)."
+    }
+   ]
+  },
+  "0x100caad8": {
+   "description": "Deferred-scope callback / transport-changed emit helper installed in the getter scope-guard and invoked on Play submit path.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "The shared emit hook that turns engine changes into UPnP LastChange state.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x100caad8",
+     "notes": "Deferred-scope callback / transport-changed emit helper installed in the getter scope-guard and invoked on Play submit path."
+    }
+   ]
+  },
+  "0x102ab4dc": {
+   "description": "Scoped-context builder taking (buf,name,name_end) - wraps the impl+0x3dc name for logging scope.",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "why_external": "Boilerplate context construction shared by all wide-arg impls.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102ab4dc",
+     "notes": "Scoped-context builder taking (buf,name,name_end) - wraps the impl+0x3dc name for logging scope."
+    }
+   ]
+  },
+  "0x102ab5d4": {
+   "description": "Scoped log-record initializer used by Play non-muse path.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "Log-record construction shared by transport impls.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x102ab5d4",
+     "notes": "Scoped log-record initializer used by Play non-muse path."
+    }
+   ]
+  },
+  "0x10807034": {
+   "description": "Scope-guard destructor invoked when the scoped-context self-check fails.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "Cleanup counterpart of the scoped-context boilerplate.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x10807034",
+     "notes": "Scope-guard destructor invoked when the scoped-context self-check fails."
+    }
+   ]
+  },
+  "0x102ab010": {
+   "description": "Deferred function pointer (at 0x10eaea90) swapped in by Play/GetTransportInfo boilerplate.",
+   "status": "inferred",
+   "required_for_behavior": true,
+   "why_external": "A deferred-work callback in the impl scope machinery.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "inferred",
+     "address": "0x102ab010",
+     "notes": "Deferred function pointer (at 0x10eaea90) swapped in by Play/GetTransportInfo boilerplate."
+    }
+   ]
   }
  },
  "dispatch_candidates": {
