@@ -30507,9 +30507,9 @@
     "/MediaRenderer/Queue/Control": {
       "name": "Queue",
       "control_path": "/MediaRenderer/Queue/Control",
-      "description": null,
-      "status": "unresolved",
-      "visibility": "unknown",
+      "description": "Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -> req->v[+0x14](req,401). Matched entries tail-call svc->v[+0x38] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.",
+      "status": "confirmed",
+      "visibility": "internal",
       "registration": {
         "router": "0x101953c8",
         "cap_flags": "0x8000",
@@ -30560,9 +30560,9 @@
       },
       "actions": {
         "AddMultipleURIs": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x2c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10464f34",
           "handler_func": "0x10464f34",
@@ -30604,8 +30604,8 @@
           "inputs": {},
           "outputs": {
             "NumTracksAdded": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -30641,8 +30641,8 @@
               "notes": null
             },
             "NewQueueLength": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -30678,8 +30678,8 @@
               "notes": null
             },
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -30715,15 +30715,127 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10464f34",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x2c].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [],
-          "errors": [],
+          "errors": [
+            {
+              "code": null,
+              "code_expr": "vret",
+              "meaning": "queue-manager impl->v[+0x2c] rc surfaced",
+              "status": "unresolved",
+              "fault_sites": [
+                "0x10464f34"
+              ],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464f34",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464f34",
+                  "notes": "impl rc passthrough site"
+                }
+              ],
+              "unresolved": {
+                "proven": "queue-manager impl->v[+0x2c] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x10464f34"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464f34",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464f34",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
+            }
+          ],
           "firmware_differences": [],
           "evidence": [
             {
@@ -30747,9 +30859,9 @@
           "notes": null
         },
         "AddURI": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl->v[+0x8](impl, QueueID, UpdateID, &URI, &MD, DesiredFirst, EnqueueAsNext, &out1,&out2,&out3,&out4) on the queue-manager \u2014 rc==0 emits the four outputs, nonzero goes to req->v[+0x14] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x1046453c",
           "handler_func": "0x1046453c",
@@ -30784,8 +30896,8 @@
           },
           "inputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Identifier of the target queue in the manager registry \u2014 explicit, unlike the implicit AVTransport queue.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -30797,12 +30909,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "A valid registered queue id",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Identifier of the target queue in the manager registry \u2014 explicit, unlike the implicit AVTransport queue.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -30824,8 +30936,8 @@
               "notes": null
             },
             "UpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Optimistic-concurrency token for the queue; 0 typically skips the check (family convention), nonzero must match.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -30837,12 +30949,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "0 or current queue update-id",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Optimistic-concurrency token for the queue; 0 typically skips the check (family convention), nonzero must match.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -30864,8 +30976,8 @@
               "notes": null
             },
             "EnqueuedURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Track URI, parsed into a 0x401-byte buffer.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -30877,12 +30989,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "URI string",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Track URI, parsed into a 0x401-byte buffer.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -30904,8 +31016,8 @@
               "notes": null
             },
             "EnqueuedURIMetaData": {
-              "description": null,
-              "status": "unresolved",
+              "description": "DIDL metadata, parsed into a 0x1001-byte buffer.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -30917,12 +31029,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "DIDL-Lite string",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "DIDL metadata, parsed into a 0x1001-byte buffer.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -30944,8 +31056,8 @@
               "notes": null
             },
             "DesiredFirstTrackNumberEnqueued": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Requested insertion position.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -30957,12 +31069,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "1-based position",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Requested insertion position.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -30984,8 +31096,8 @@
               "notes": null
             },
             "EnqueueAsNext": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Boolean parsed by f_10561444 requesting next-track insertion.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -30997,12 +31109,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "0 or 1",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Boolean parsed by f_10561444 requesting next-track insertion.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -31026,8 +31138,8 @@
           },
           "outputs": {
             "FirstTrackNumberEnqueued": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31063,8 +31175,8 @@
               "notes": null
             },
             "NumTracksAdded": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31100,8 +31212,8 @@
               "notes": null
             },
             "NewQueueLength": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31137,8 +31249,8 @@
               "notes": null
             },
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31174,13 +31286,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x1046453c",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry (checked inside the impl vfunc).",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID/UpdateID consumed by the manager; concurrency and insertion semantics inside the vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Adds one track to the selected queue; the four position/count outputs report the result.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue mutation; eventing is inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Selected queue gains the URI at the requested (or worker-chosen) position.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 = enqueued; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x104646d4",
@@ -31192,12 +31343,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x8)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x8] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x104646d4"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a code not covered by the gates",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104646d4",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -31205,14 +31370,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x104646d4",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x104646d4 with computed code vret(r5-in,+0x8)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x8] rc surfaced",
+                "unknown": "concrete codes for bad QueueID, stale UpdateID, URI validation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x104646d4"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x1046453c",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x1046453c",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -31238,9 +31436,9 @@
           "notes": null
         },
         "AttachQueue": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in \u2014 the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x104647b8",
           "handler_func": "0x104647b8",
@@ -31294,8 +31492,8 @@
           "inputs": {},
           "outputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31331,8 +31529,8 @@
               "notes": null
             },
             "QueueOwnerContext": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -31368,15 +31566,127 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x104647b8",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x1c].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [],
-          "errors": [],
+          "errors": [
+            {
+              "code": null,
+              "code_expr": "vret",
+              "meaning": "queue-manager impl->v[+0x1c] rc surfaced",
+              "status": "unresolved",
+              "fault_sites": [
+                "0x104647b8"
+              ],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104647b8",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x104647b8",
+                  "notes": "impl rc passthrough site"
+                }
+              ],
+              "unresolved": {
+                "proven": "queue-manager impl->v[+0x1c] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x104647b8"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104647b8",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x104647b8",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
+            }
+          ],
           "firmware_differences": [],
           "evidence": [
             {
@@ -31400,9 +31710,9 @@
           "notes": null
         },
         "Backup": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Backs up queue state \u2014 the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl->v[+0x10](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10465660",
           "handler_func": "0x10465660",
@@ -31431,13 +31741,52 @@
           },
           "inputs": {},
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10465660",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x10].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x104656b0",
@@ -31449,12 +31798,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x10)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x10] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x104656b0"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104656b0",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -31462,14 +31825,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x104656b0",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x104656b0 with computed code vret(r5-in,+0x10)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x10] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x104656b0"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10465660",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10465660",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -31495,9 +31891,9 @@
           "notes": null
         },
         "Browse": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x28](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10464200",
           "handler_func": "0x10464200",
@@ -31526,15 +31922,127 @@
           },
           "inputs": {},
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10464200",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x28].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [],
-          "errors": [],
+          "errors": [
+            {
+              "code": null,
+              "code_expr": "vret",
+              "meaning": "queue-manager impl->v[+0x28] rc surfaced",
+              "status": "unresolved",
+              "fault_sites": [
+                "0x10464200"
+              ],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464200",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464200",
+                  "notes": "impl rc passthrough site"
+                }
+              ],
+              "unresolved": {
+                "proven": "queue-manager impl->v[+0x28] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x10464200"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464200",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464200",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
+            }
+          ],
           "firmware_differences": [],
           "evidence": [
             {
@@ -31558,9 +32066,9 @@
           "notes": null
         },
         "CreateQueue": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x14](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10464bd0",
           "handler_func": "0x10464bd0",
@@ -31595,8 +32103,8 @@
           },
           "inputs": {
             "QueueOwnerID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -31608,12 +32116,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -31635,8 +32143,8 @@
               "notes": null
             },
             "QueueOwnerContext": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -31648,12 +32156,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -31675,8 +32183,8 @@
               "notes": null
             },
             "QueuePolicy": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -31688,12 +32196,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -31717,8 +32225,8 @@
           },
           "outputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31754,13 +32262,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10464bd0",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x14].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x10464ce8",
@@ -31772,12 +32319,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x14)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x14] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x10464ce8"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464ce8",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -31785,14 +32346,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x10464ce8",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x10464ce8 with computed code vret(r5-in,+0x14)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x14] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x10464ce8"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464bd0",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464bd0",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -31818,9 +32412,9 @@
           "notes": null
         },
         "RemoveAllTracks": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Removes all tracks from the queue identified by QueueID \u2014 explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x18](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10464908",
           "handler_func": "0x10464908",
@@ -31855,8 +32449,8 @@
           },
           "inputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -31868,12 +32462,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -31895,8 +32489,8 @@
               "notes": null
             },
             "UpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -31908,12 +32502,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -31937,8 +32531,8 @@
           },
           "outputs": {
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -31974,13 +32568,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10464908",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x18].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x104649cc",
@@ -31992,12 +32625,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x18)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x18] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x104649cc"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104649cc",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -32005,14 +32652,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x104649cc",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x104649cc with computed code vret(r5-in,+0x18)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x18] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x104649cc"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464908",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464908",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -32038,9 +32718,9 @@
           "notes": null
         },
         "RemoveTrackRange": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Removes a contiguous range from QueueID \u2014 explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10464a44",
           "handler_func": "0x10464a44",
@@ -32075,8 +32755,8 @@
           },
           "inputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32088,12 +32768,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32115,8 +32795,8 @@
               "notes": null
             },
             "UpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32128,12 +32808,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32155,8 +32835,8 @@
               "notes": null
             },
             "StartingIndex": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32168,12 +32848,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32195,8 +32875,8 @@
               "notes": null
             },
             "NumberOfTracks": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32208,12 +32888,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32237,8 +32917,8 @@
           },
           "outputs": {
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -32274,13 +32954,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10464a44",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x1c].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x10464b58",
@@ -32292,12 +33011,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x1c)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x1c] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x10464b58"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464b58",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -32305,14 +33038,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x10464b58",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x10464b58 with computed code vret(r5-in,+0x1c)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x1c] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x10464b58"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464a44",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464a44",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -32338,9 +33104,9 @@
           "notes": null
         },
         "ReorderTracks": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Reorders a block within QueueID \u2014 explicit-id twin of AVTransport.ReorderTracksInQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x20](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10464d68",
           "handler_func": "0x10464d68",
@@ -32375,8 +33141,8 @@
           },
           "inputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32388,12 +33154,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32415,8 +33181,8 @@
               "notes": null
             },
             "StartingIndex": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32428,12 +33194,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32455,8 +33221,8 @@
               "notes": null
             },
             "NumberOfTracks": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32468,12 +33234,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32495,8 +33261,8 @@
               "notes": null
             },
             "InsertBefore": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to the queue-manager impl vfunc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32508,12 +33274,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to the queue-manager impl vfunc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32535,8 +33301,8 @@
               "notes": null
             },
             "UpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32548,12 +33314,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32577,8 +33343,8 @@
           },
           "outputs": {
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -32614,13 +33380,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10464d68",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x20].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x10464eb8",
@@ -32632,12 +33437,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x20)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x20] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x10464eb8"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464eb8",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -32645,14 +33464,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x10464eb8",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x10464eb8 with computed code vret(r5-in,+0x20)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x20] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x10464eb8"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10464d68",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10464d68",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -32678,9 +33530,9 @@
           "notes": null
         },
         "ReplaceAllTracks": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x30](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x10465090",
           "handler_func": "0x10465090",
@@ -32722,8 +33574,8 @@
           "inputs": {},
           "outputs": {
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -32759,15 +33611,127 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x10465090",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x30].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [],
-          "errors": [],
+          "errors": [
+            {
+              "code": null,
+              "code_expr": "vret",
+              "meaning": "queue-manager impl->v[+0x30] rc surfaced",
+              "status": "unresolved",
+              "fault_sites": [
+                "0x10465090"
+              ],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10465090",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10465090",
+                  "notes": "impl rc passthrough site"
+                }
+              ],
+              "unresolved": {
+                "proven": "queue-manager impl->v[+0x30] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x10465090"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10465090",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10465090",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
+            }
+          ],
           "firmware_differences": [],
           "evidence": [
             {
@@ -32791,9 +33755,9 @@
           "notes": null
         },
         "SaveAsSonosPlaylist": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Saves QueueID as a Sonos playlist under Title/ObjectID \u2014 explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x24](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "status": "confirmed",
+          "visibility": "internal",
           "reachability": null,
           "handler": "0x104643c0",
           "handler_func": "0x104643c0",
@@ -32834,8 +33798,8 @@
           },
           "inputs": {
             "QueueID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -32847,12 +33811,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32874,8 +33838,8 @@
               "notes": null
             },
             "Title": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Playlist title (SaveQueue-family trimming rules may apply inside the impl).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -32887,12 +33851,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Playlist title (SaveQueue-family trimming rules may apply inside the impl).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32914,8 +33878,8 @@
               "notes": null
             },
             "ObjectID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Saved-queue object id / parent selector.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -32927,12 +33891,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Saved-queue object id / parent selector.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -32956,8 +33920,8 @@
           },
           "outputs": {
             "AssignedObjectID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Written by the queue-manager impl on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -32993,13 +33957,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x104643c0",
+                "notes": "wrapper decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Target queue must exist in the manager registry; mutation actions use QueueID+UpdateID concurrency.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "QueueID selects the queue; UpdateID gates concurrency inside the impl vfunc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performed by the queue-manager impl->v[+0x24].",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue state change; eventing inside the manager.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Queue state updated per the action; NewUpdateID returned where applicable.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; nonzero impl rc -> req->v[+0x14] fault.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x104644b8",
@@ -33011,12 +34014,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x24)",
-              "meaning": null,
+              "meaning": "queue-manager impl->v[+0x24] rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x104644b8"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the impl vfunc produced a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104644b8",
+                      "notes": "impl rc passthrough"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -33024,14 +34041,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x104644b8",
-                  "notes": "fault raise site"
+                  "notes": "impl rc passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x104644b8 with computed code vret(r5-in,+0x24)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "queue-manager impl->v[+0x24] rc surfaced",
+                "unknown": "concrete rc vocabulary for this queue operation"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x104644b8"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x104643c0",
+                      "notes": "parse vcalls then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x104643c0",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
