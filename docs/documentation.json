@@ -22387,9 +22387,9 @@
   "/MediaRenderer/GroupRenderingControl/Control": {
    "name": "GroupRenderingControl",
    "control_path": "/MediaRenderer/GroupRenderingControl/Control",
-   "description": null,
-   "status": "unresolved",
-   "visibility": "unknown",
+   "description": "Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v[+0x08..+0x1c]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.",
+   "status": "confirmed",
+   "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
     "cap_flags": "0x4000",
@@ -22401,17 +22401,8 @@
     }
    },
    "availability": {
-    "enabled_source": {
-     "store_pc": "0x10195688",
-     "size": "stb",
-     "raw_expr": "xor(*(r3-in+0x571c))",
-     "kind": "field_inverted",
-     "base": "r3-in",
-     "off": 22300,
-     "confidence": "proven"
-    },
-    "cap_flags": "0x4000",
-    "notes": null
+    "notes": "Registered unconditionally at service-init like the other control services; functional usefulness requires the device to be a group coordinator (impl iterates group members), but no coordinator gate exists in the wrappers themselves.",
+    "status": "inferred"
    },
    "object": {
     "expr": "r3-in+0x3fa50",
@@ -22440,9 +22431,9 @@
    },
    "actions": {
     "GetGroupMute": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x10738e9c",
      "handler_func": "0x10738e9c",
@@ -22473,12 +22464,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "notes": "impl = arg5 = *(svc+4); group-impl vfunc block v[+0x08..+0x1c] is sequential across the 6 actions; concrete impl function addresses not yet resolved (vtable anchor not located)."
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_105614e0 (u32). Forwarded to impl; no range/instance check proven in the wrapper.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -22487,15 +22479,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless index",
+       "accepted_values": "decimal uint32",
+       "range": "unbounded u32 in wrapper",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_105614e0 (u32). Forwarded to impl; no range/instance check proven in the wrapper.",
        "evidence": [
         {
          "type": "firmware",
@@ -22519,22 +22511,22 @@
      },
      "outputs": {
       "CurrentMute": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Group mute flag written by the impl as a byte; aggregation semantics across members unresolved.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "byte",
+       "format": "byte",
+       "unit": "none - boolean-ish byte",
+       "accepted_values": "0/1 expected; byte width proven only",
+       "range": "0/1 expected; byte width proven only",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg; no client-side validation",
        "evidence": [
         {
          "type": "firmware",
@@ -22556,13 +22548,107 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "request parsing: req->v[+0x1c](req, name) returns the arg node; typed helpers convert text\n(f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);\nreq->v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;\nimpl->v[+0x08](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v[+0x14](req, impl_rc)\npropagates the impl return code toward a SOAP fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738f1c",
+        "notes": "impl->v[+0x08](impl,InstanceID,&byte)",
+        "function": "f_10738e9c"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Meaningful only on a group coordinator (the impl iterates group members); whether the service is registered/gated on coordinator role is unresolved - the wrapper itself performs no capability check.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u' implies member fan-out"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Group membership snapshot read inside impl (member table stride 0x2740 in f_103a1b8c); 'snapshot %s: %u (was %u)' log implies a prior volume snapshot is consulted/updated. Exact snapshot semantics unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log call in f_103a1b8c",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "side_effects": {
+      "description": "Read path; no member writes proven.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10738f1c",
+        "notes": "single out-byte impl call"
+       }
+      ]
+     },
+     "events_triggered": {
+      "description": "None proven in the SOAP path.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738e9c",
+        "notes": "no event calls in wrapper"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None proven; read-only.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738e9c",
+        "notes": "read-only path"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738f1c",
+        "notes": "impl->v[+0x08](impl,InstanceID,&byte)",
+        "function": "f_10738e9c"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x10738f38",
@@ -22574,12 +22660,26 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x8)",
-       "meaning": null,
        "status": "unresolved",
        "fault_sites": [
         "0x10738f38"
        ],
-       "conditions": [],
+       "meaning": "Any non-success impl rc is forwarded to req->v[+0x14]; the emitted SOAP code equals the impl code.",
+       "conditions": [
+        {
+         "description": "impl v[+0x08] returned a non-success rc (cr0.eq clear)",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10738f38",
+           "notes": "rc -> r4 -> req->v[+0x14]"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -22587,14 +22687,13 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10738f38",
-         "notes": "fault raise site"
+         "notes": "fault propagation site"
         }
        ],
        "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x10738f38 with computed code vret(r5-in,+0x8)",
-        "unknown": null
-       },
-       "notes": null
+        "proven": "impl rc propagated verbatim to the fault vfunc",
+        "unknown": "which numeric codes the impl can produce and their SOAP-level meanings"
+       }
       }
      ],
      "firmware_differences": [],
@@ -22604,25 +22703,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x10738e9c",
        "address": "0x10738e9c",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10f11aa8",
-       "notes": "action dispatch table entry"
+       "notes": "full wrapper decode",
+       "function": "f_10738e9c"
       }
      ],
      "notes": null
     },
     "GetGroupVolume": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v[+0x10].",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x107390c4",
      "handler_func": "0x107390c4",
@@ -22657,8 +22748,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -22667,15 +22758,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless index",
+       "accepted_values": "decimal uint32",
+       "range": "unbounded u32 in wrapper",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
        "evidence": [
         {
          "type": "firmware",
@@ -22699,22 +22790,22 @@
      },
      "outputs": {
       "CurrentVolume": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Group volume u16 written by impl; group aggregation rule unresolved.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "u16",
+       "format": "u16",
+       "unit": "percent volume units (unproven)",
+       "accepted_values": "0..100 expected; width proven only",
+       "range": "0..100 expected; width proven only",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg; no client-side validation",
        "evidence": [
         {
          "type": "firmware",
@@ -22736,13 +22827,107 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "request parsing: req->v[+0x1c](req, name) returns the arg node; typed helpers convert text\n(f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);\nreq->v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;\nimpl->v[+0x10](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v[+0x14](req, impl_rc)\npropagates the impl return code toward a SOAP fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10739144",
+        "notes": "impl->v[+0x10](impl,InstanceID,&u16)",
+        "function": "f_107390c4"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Meaningful only on a group coordinator (the impl iterates group members); whether the service is registered/gated on coordinator role is unresolved - the wrapper itself performs no capability check.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u' implies member fan-out"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Group membership snapshot read inside impl (member table stride 0x2740 in f_103a1b8c); 'snapshot %s: %u (was %u)' log implies a prior volume snapshot is consulted/updated. Exact snapshot semantics unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log call in f_103a1b8c",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "side_effects": {
+      "description": "Read path; no member writes proven.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x107390c4",
+        "notes": "wrapper decode"
+       }
+      ]
+     },
+     "events_triggered": {
+      "description": "None proven in the SOAP path.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x107390c4",
+        "notes": "wrapper decode"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None proven; read-only.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x107390c4",
+        "notes": "wrapper decode"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10739144",
+        "notes": "impl->v[+0x10](impl,InstanceID,&u16)",
+        "function": "f_107390c4"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x10739160",
@@ -22754,12 +22939,26 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x10)",
-       "meaning": null,
        "status": "unresolved",
        "fault_sites": [
         "0x10739160"
        ],
-       "conditions": [],
+       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "conditions": [
+        {
+         "description": "impl v[+0x10] returned non-success rc",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10739160",
+           "notes": "rc propagation"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -22767,14 +22966,13 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10739160",
-         "notes": "fault raise site"
+         "notes": "fault propagation site"
         }
        ],
        "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x10739160 with computed code vret(r5-in,+0x10)",
-        "unknown": null
-       },
-       "notes": null
+        "proven": "impl rc propagated to fault vfunc",
+        "unknown": "concrete codes/conditions the group impl produces"
+       }
       }
      ],
      "firmware_differences": [],
@@ -22784,25 +22982,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x107390c4",
        "address": "0x107390c4",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10f11ab4",
-       "notes": "action dispatch table entry"
+       "notes": "full wrapper decode",
+       "function": "f_107390c4"
       }
      ],
      "notes": null
     },
     "SetGroupMute": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x10738fb0",
      "handler_func": "0x10738fb0",
@@ -22837,8 +23027,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -22847,15 +23037,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless index",
+       "accepted_values": "decimal uint32",
+       "range": "unbounded u32 in wrapper",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
        "evidence": [
         {
          "type": "firmware",
@@ -22877,8 +23067,8 @@
        "notes": null
       },
       "DesiredMute": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -22887,15 +23077,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
+       "format": "decimal text",
+       "unit": "none - boolean-ish byte",
+       "accepted_values": "byte numeric",
+       "range": "byte width proven",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
        "evidence": [
         {
          "type": "firmware",
@@ -22918,13 +23108,186 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "request parsing: req->v[+0x1c](req, name) returns the arg node; typed helpers convert text\n(f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);\nreq->v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;\nimpl->v[+0x0c](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v[+0x14](req, impl_rc)\npropagates the impl return code toward a SOAP fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10739054",
+        "notes": "impl->v[+0x0c](impl,InstanceID,byte)",
+        "function": "f_10738fb0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "strong",
+        "address": "0x103a1c0c",
+        "notes": "'urn:...:service:RenderingControl:1' + 'SetMute' request table built",
+        "function": "f_103a1b8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "strong",
+        "address": "0x103a1fe8",
+        "notes": "'SetGroupMute: local set to %d rc=%d'",
+        "function": "f_103a1b8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "strong",
+        "address": "0x103a1ea4",
+        "notes": "'SetGroupMute: %s set to %d rc=%d' remote member log",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Meaningful only on a group coordinator (the impl iterates group members); whether the service is registered/gated on coordinator role is unresolved - the wrapper itself performs no capability check.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u' implies member fan-out"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Group membership snapshot read inside impl (member table stride 0x2740 in f_103a1b8c); 'snapshot %s: %u (was %u)' log implies a prior volume snapshot is consulted/updated. Exact snapshot semantics unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log call in f_103a1b8c",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "side_effects": {
+      "description": "Member fan-out: local mute written directly; remote members get real UPnP SetMute calls. Per-member rc is logged; a completion loop over request objects (vfunc +0x00 per record) runs before return - synchronous-or-posted boundary unresolved.",
+      "status": "strong",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x103a204c",
+        "notes": "request-object dispatch/wait loop",
+        "function": "f_103a1b8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec3d7c",
+        "notes": "local/remote set log strings"
+       }
+      ]
+     },
+     "events_triggered": {
+      "description": "GroupVolumeSetActionEvent machinery exists in the group path ('process GroupVolumeSetActionEvent' f_1039fbd4, 'firing ...' f_104164e4); whether SetGroupMute posts it directly is unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec3c20",
+        "notes": "'process GroupVolumeSetActionEvent (%u,%d)'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ecc3e4",
+        "notes": "'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)'"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' names built in f_1039d11c are evented state variables.",
+      "status": "strong",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec39fc",
+        "notes": "'GroupMute' state-var name"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec3a08",
+        "notes": "'GroupVolumeChangeable'"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10739054",
+        "notes": "impl->v[+0x0c](impl,InstanceID,byte)",
+        "function": "f_10738fb0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "strong",
+        "address": "0x103a1c0c",
+        "notes": "'urn:...:service:RenderingControl:1' + 'SetMute' request table built",
+        "function": "f_103a1b8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "strong",
+        "address": "0x103a1fe8",
+        "notes": "'SetGroupMute: local set to %d rc=%d'",
+        "function": "f_103a1b8c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "strong",
+        "address": "0x103a1ea4",
+        "notes": "'SetGroupMute: %s set to %d rc=%d' remote member log",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x10739070",
@@ -22936,12 +23299,26 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xc)",
-       "meaning": null,
        "status": "unresolved",
        "fault_sites": [
         "0x10739070"
        ],
-       "conditions": [],
+       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "conditions": [
+        {
+         "description": "impl v[+0x0c] returned non-success rc",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10739070",
+           "notes": "rc -> r4 -> req->v[+0x14]"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -22949,14 +23326,13 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10739070",
-         "notes": "fault raise site"
+         "notes": "fault propagation site"
         }
        ],
        "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x10739070 with computed code vret(r5-in,+0xc)",
-        "unknown": null
-       },
-       "notes": null
+        "proven": "impl rc propagated to fault vfunc; per-member rc only logged",
+        "unknown": "whether any member failure yields a SOAP fault or is masked; concrete codes"
+       }
       }
      ],
      "firmware_differences": [],
@@ -22966,25 +23342,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x10738fb0",
        "address": "0x10738fb0",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10f11ac0",
-       "notes": "action dispatch table entry"
+       "notes": "full wrapper decode",
+       "function": "f_10738fb0"
       }
      ],
      "notes": null
     },
     "SetGroupVolume": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x107391d8",
      "handler_func": "0x107391d8",
@@ -23019,8 +23387,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -23029,15 +23397,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless index",
+       "accepted_values": "decimal uint32",
+       "range": "unbounded u32 in wrapper",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
        "evidence": [
         {
          "type": "firmware",
@@ -23059,8 +23427,8 @@
        "notes": null
       },
       "DesiredVolume": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -23069,15 +23437,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.",
+       "format": "decimal text",
+       "unit": "percent volume units (Sonos convention, unproven for group path)",
+       "accepted_values": "decimal",
+       "range": "u16 width proven",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.",
        "evidence": [
         {
          "type": "firmware",
@@ -23100,13 +23468,143 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "request parsing: req->v[+0x1c](req, name) returns the arg node; typed helpers convert text\n(f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);\nreq->v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;\nimpl->v[+0x14](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v[+0x14](req, impl_rc)\npropagates the impl return code toward a SOAP fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x1073927c",
+        "notes": "impl->v[+0x14](impl,InstanceID,desired)",
+        "function": "f_107391d8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u'",
+        "function": "~f_103a2430"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Meaningful only on a group coordinator (the impl iterates group members); whether the service is registered/gated on coordinator role is unresolved - the wrapper itself performs no capability check.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u' implies member fan-out"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Group membership snapshot read inside impl (member table stride 0x2740 in f_103a1b8c); 'snapshot %s: %u (was %u)' log implies a prior volume snapshot is consulted/updated. Exact snapshot semantics unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log call in f_103a1b8c",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "side_effects": {
+      "description": "Per-member volume sets (local direct + remote UPnP); a volume-change is also reported to eSDK ('Sent group volume change %u to eSDK (mute %d)' at 0x10214828) though which path triggers that send is unresolved.",
+      "status": "strong",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec3dc4",
+        "notes": "fan-out counters log"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ea29ac",
+        "notes": "eSDK group volume push",
+        "function": "f_10214790"
+       }
+      ]
+     },
+     "events_triggered": {
+      "description": "GroupVolumeSetActionEvent is the bookkeeping event for group volume changes ('vol:%u,mute:%d,from_sonos:%d,vligrouping:%d'); GroupVolumeChangedEvent name also present. Whether the SOAP impl posts or runs it inline is unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec39d4",
+        "notes": "'GroupVolumeSetActionEvent'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ea26f0",
+        "notes": "'GroupVolumeChangedEvent'"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Member volumes change; 'snapshot %s: %u (was %u)' indicates a snapshot of prior volume state is maintained/updated in the group path.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x103a1fc8",
+        "notes": "snapshot log",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x1073927c",
+        "notes": "impl->v[+0x14](impl,InstanceID,desired)",
+        "function": "f_107391d8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u'",
+        "function": "~f_103a2430"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x10739298",
@@ -23118,12 +23616,26 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x14)",
-       "meaning": null,
        "status": "unresolved",
        "fault_sites": [
         "0x10739298"
        ],
-       "conditions": [],
+       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "conditions": [
+        {
+         "description": "impl v[+0x14] returned non-success rc",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10739298",
+           "notes": "rc propagation"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -23131,14 +23643,13 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10739298",
-         "notes": "fault raise site"
+         "notes": "fault propagation site"
         }
        ],
        "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x10739298 with computed code vret(r5-in,+0x14)",
-        "unknown": null
-       },
-       "notes": null
+        "proven": "impl rc propagated; member fan-out logged with per-member rc",
+        "unknown": "whether member failures surface as SOAP faults or are masked; concrete codes"
+       }
       }
      ],
      "firmware_differences": [],
@@ -23148,25 +23659,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x107391d8",
        "address": "0x107391d8",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10f11acc",
-       "notes": "action dispatch table entry"
+       "notes": "full wrapper decode",
+       "function": "f_107391d8"
       }
      ],
      "notes": null
     },
     "SetRelativeGroupVolume": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Adjusts group volume by a signed delta and returns the new group volume. impl->v[+0x18](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x107392ec",
      "handler_func": "0x107392ec",
@@ -23201,8 +23704,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -23211,15 +23714,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless index",
+       "accepted_values": "decimal uint32",
+       "range": "unbounded u32 in wrapper",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
        "evidence": [
         {
          "type": "firmware",
@@ -23241,8 +23744,8 @@
        "notes": null
       },
       "Adjustment": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -23251,15 +23754,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.",
+       "format": "decimal text",
+       "unit": "percent volume units (signed delta, unproven)",
+       "accepted_values": "signed decimal",
+       "range": "i32-ish width via f_10561514",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.",
        "evidence": [
         {
          "type": "firmware",
@@ -23283,22 +23786,22 @@
      },
      "outputs": {
       "NewVolume": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Resulting group volume written as u16 at impl out-arg (sp+0x12); fan-out/aggregation unresolved.",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
         "fmt": null
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "u16",
+       "format": "u16",
+       "unit": "percent volume units (unproven)",
+       "accepted_values": "type width only",
+       "range": "type width only",
+       "special_values": "none observed in this build",
+       "required": false,
+       "default": "none - impl writes the value",
+       "validation": "impl-written out arg; no client-side validation",
        "evidence": [
         {
          "type": "firmware",
@@ -23320,13 +23823,108 @@
        "notes": null
       }
      },
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "request parsing: req->v[+0x1c](req, name) returns the arg node; typed helpers convert text\n(f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);\nreq->v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;\nimpl->v[+0x18](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v[+0x14](req, impl_rc)\npropagates the impl return code toward a SOAP fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10739394",
+        "notes": "impl->v[+0x18](impl,InstanceID,adj,&u16)",
+        "function": "f_107392ec"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Meaningful only on a group coordinator (the impl iterates group members); whether the service is registered/gated on coordinator role is unresolved - the wrapper itself performs no capability check.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u' implies member fan-out"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Group membership snapshot read inside impl (member table stride 0x2740 in f_103a1b8c); 'snapshot %s: %u (was %u)' log implies a prior volume snapshot is consulted/updated. Exact snapshot semantics unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log call in f_103a1b8c",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "side_effects": {
+      "description": "Same member fan-out machinery as SetGroupVolume (relative deltas); unresolved whether the delta is applied per-member or against a computed group value.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "shared SetGroupVolume machinery"
+       }
+      ]
+     },
+     "events_triggered": {
+      "description": "GroupVolumeSetActionEvent machinery shared with SetGroupVolume; direct trigger unproven.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ecc3e4",
+        "notes": "event log string"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Member volumes change by the adjustment; snapshot semantics as SetGroupVolume.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x103a1fc8",
+        "notes": "snapshot log",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10739394",
+        "notes": "impl->v[+0x18](impl,InstanceID,adj,&u16)",
+        "function": "f_107392ec"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x107393b0",
@@ -23338,12 +23936,26 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x18)",
-       "meaning": null,
        "status": "unresolved",
        "fault_sites": [
         "0x107393b0"
        ],
-       "conditions": [],
+       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "conditions": [
+        {
+         "description": "impl v[+0x18] returned non-success rc",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x107393b0",
+           "notes": "rc propagation"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -23351,14 +23963,13 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x107393b0",
-         "notes": "fault raise site"
+         "notes": "fault propagation site"
         }
        ],
        "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x107393b0 with computed code vret(r5-in,+0x18)",
-        "unknown": null
-       },
-       "notes": null
+        "proven": "impl rc propagated to fault vfunc",
+        "unknown": "concrete codes; clamp/bounds failure semantics"
+       }
       }
      ],
      "firmware_differences": [],
@@ -23368,25 +23979,17 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x107392ec",
        "address": "0x107392ec",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10f11ad8",
-       "notes": "action dispatch table entry"
+       "notes": "full wrapper decode",
+       "function": "f_107392ec"
       }
      ],
      "notes": null
     },
     "SnapshotGroupVolume": {
-     "description": null,
-     "status": "unresolved",
-     "visibility": "unknown",
+     "description": "Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v[+0x1c](impl, InstanceID) only - no outputs.",
+     "status": "confirmed",
+     "visibility": "advertised",
      "reachability": null,
      "handler": "0x10738db0",
      "handler_func": "0x10738db0",
@@ -23421,8 +24024,8 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": null,
-       "status": "unresolved",
+       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -23431,15 +24034,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": null,
-       "format": null,
-       "unit": null,
-       "accepted_values": null,
-       "range": null,
-       "special_values": null,
-       "required": null,
-       "default": null,
-       "validation": null,
+       "semantic_type": "SonosUintArg",
+       "format": "decimal text",
+       "unit": "none - dimensionless index",
+       "accepted_values": "decimal uint32",
+       "range": "unbounded u32 in wrapper",
+       "special_values": "none observed in this build",
+       "required": true,
+       "default": "none - required argument",
+       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
        "evidence": [
         {
          "type": "firmware",
@@ -23462,13 +24065,127 @@
       }
      },
      "outputs": {},
-     "validation": null,
-     "requirements": null,
-     "state_dependencies": null,
-     "side_effects": null,
-     "events_triggered": null,
-     "state_transitions": null,
-     "return_behavior": null,
+     "validation": {
+      "description": "request parsing: req->v[+0x1c](req, name) returns the arg node; typed helpers convert text\n(f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);\nreq->v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;\nimpl->v[+0x1c](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v[+0x14](req, impl_rc)\npropagates the impl return code toward a SOAP fault.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738e2c",
+        "notes": "impl->v[+0x1c](impl,InstanceID)",
+        "function": "f_10738db0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log in group worker",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Meaningful only on a group coordinator (the impl iterates group members); whether the service is registered/gated on coordinator role is unresolved - the wrapper itself performs no capability check.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x10ec3dc4",
+        "notes": "'SetGroupVolume: local:%d netops:%u zones:%u' implies member fan-out"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Group membership snapshot read inside impl (member table stride 0x2740 in f_103a1b8c); 'snapshot %s: %u (was %u)' log implies a prior volume snapshot is consulted/updated. Exact snapshot semantics unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log call in f_103a1b8c",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "side_effects": {
+      "description": "Records per-member volume state for later restore semantics (the snapshot log shows old-vs-new bookkeeping); the snapshot's consumer (e.g. RampToVolume/restore paths) is unresolved.",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x103a1fc8",
+        "notes": "snapshot log",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "events_triggered": {
+      "description": "None proven.",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738db0",
+        "notes": "no event calls in wrapper"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Snapshot state updated (was->now bookkeeping).",
+      "status": "inferred",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x103a1fc8",
+        "notes": "snapshot log",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "status": "confirmed",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10738e2c",
+        "notes": "impl->v[+0x1c](impl,InstanceID)",
+        "function": "f_10738db0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "inferred",
+        "address": "0x103a1fc8",
+        "notes": "'snapshot %s: %u (was %u)' log in group worker",
+        "function": "f_103a1b8c"
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x10738e48",
@@ -23480,12 +24197,26 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x1c)",
-       "meaning": null,
        "status": "unresolved",
        "fault_sites": [
         "0x10738e48"
        ],
-       "conditions": [],
+       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "conditions": [
+        {
+         "description": "impl v[+0x1c] returned non-success rc",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10738e48",
+           "notes": "rc propagation"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -23493,14 +24224,13 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10738e48",
-         "notes": "fault raise site"
+         "notes": "fault propagation site"
         }
        ],
        "unresolved": {
-        "proven": "request fault vfunc (+0x14) invoked at 0x10738e48 with computed code vret(r5-in,+0x1c)",
-        "unknown": null
-       },
-       "notes": null
+        "proven": "impl rc propagated to fault vfunc",
+        "unknown": "concrete codes/conditions"
+       }
       }
      ],
      "firmware_differences": [],
@@ -23510,17 +24240,9 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "status": "confirmed",
-       "function": "0x10738db0",
        "address": "0x10738db0",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "status": "confirmed",
-       "address": "0x10f11ae4",
-       "notes": "action dispatch table entry"
+       "notes": "full wrapper decode",
+       "function": "f_10738db0"
       }
      ],
      "notes": null
@@ -46243,154 +46965,9 @@
    "notes": null
   },
   "0x10561444": {
-   "address": "0x10561444",
-   "role": "input_arg_parser",
-   "description": null,
-   "why_external": null,
-   "required_for_behavior": true,
-   "status": "unresolved",
-   "used_by": [
-    {
-     "arg": "Enabled",
-     "direction": "in",
-     "site": "0x107344bc"
-    },
-    {
-     "arg": "IncludeLinkedZones",
-     "direction": "in",
-     "site": "0x107345a4"
-    },
-    {
-     "arg": "AutoAdjustDst",
-     "direction": "in",
-     "site": "0x10734354"
-    },
-    {
-     "arg": "Enabled",
-     "direction": "in",
-     "site": "0x10734788"
-    },
-    {
-     "arg": "IncludeLinkedZones",
-     "direction": "in",
-     "site": "0x10734870"
-    },
-    {
-     "arg": "KeepGrouped",
-     "direction": "in",
-     "site": "0x10736944"
-    },
-    {
-     "arg": "ChirpIfPlayingSwappableAudio",
-     "direction": "in",
-     "site": "0x10737394"
-    },
-    {
-     "arg": "IncludeLinkedZones",
-     "direction": "in",
-     "site": "0x10736a50"
-    },
-    {
-     "arg": "UseVolume",
-     "direction": "in",
-     "site": "0x10736b90"
-    },
-    {
-     "arg": "EnqueueAsNext",
-     "direction": "in",
-     "site": "0x102fb958"
-    },
-    {
-     "arg": "EnqueueAsNext",
-     "direction": "in",
-     "site": "0x102faddc"
-    },
-    {
-     "arg": "RestartSink",
-     "direction": "in",
-     "site": "0x102fa4f4"
-    },
-    {
-     "arg": "RejoinGroup",
-     "direction": "in",
-     "site": "0x102fa300"
-    },
-    {
-     "arg": "ClearSource",
-     "direction": "in",
-     "site": "0x102fa324"
-    },
-    {
-     "arg": "IncludeLinkedZones",
-     "direction": "in",
-     "site": "0x102fc620"
-    },
-    {
-     "arg": "CrossfadeMode",
-     "direction": "in",
-     "site": "0x102fa1bc"
-    },
-    {
-     "arg": "IncludeLinkedZones",
-     "direction": "in",
-     "site": "0x102fc7cc"
-    },
-    {
-     "arg": "ResetVolumeAfter",
-     "direction": "in",
-     "site": "0x102fc7f0"
-    },
-    {
-     "arg": "DesiredMute",
-     "direction": "in",
-     "site": "0x10739014"
-    },
-    {
-     "arg": "EnqueueAsNext",
-     "direction": "in",
-     "site": "0x10464638"
-    },
-    {
-     "arg": "ResetVolumeAfter",
-     "direction": "in",
-     "site": "0x1073c90c"
-    },
-    {
-     "arg": "DesiredLoudness",
-     "direction": "in",
-     "site": "0x1073b500"
-    },
-    {
-     "arg": "DesiredMute",
-     "direction": "in",
-     "site": "0x1073b3c0"
-    },
-    {
-     "arg": "DesiredFixed",
-     "direction": "in",
-     "site": "0x1073b618"
-    },
-    {
-     "arg": "RoomCalibrationEnabled",
-     "direction": "in",
-     "site": "0x1073b730"
-    },
-    {
-     "arg": "RDMValue",
-     "direction": "in",
-     "site": "0x10732cc0"
-    },
-    {
-     "arg": "CachedOnly",
-     "direction": "in",
-     "site": "0x10733384"
-    },
-    {
-     "arg": "IncludeControllers",
-     "direction": "in",
-     "site": "0x107336b4"
-    }
-   ],
+   "description": "Byte-width numeric argument parser used for DesiredMute.",
+   "status": "confirmed",
+   "why_external": "Defines the lexical acceptance and width of the DesiredMute argument.",
    "evidence": [
     {
      "type": "firmware",
@@ -46398,65 +46975,15 @@
      "build": "86.10-80260",
      "status": "confirmed",
      "address": "0x10561444",
-     "notes": "input_arg_parser helper"
+     "notes": "Byte-width numeric argument parser used for DesiredMute."
     }
    ],
-   "notes": null
+   "required_for_behavior": true
   },
   "0x10561478": {
-   "address": "0x10561478",
-   "role": "input_arg_parser",
-   "description": null,
-   "why_external": null,
-   "required_for_behavior": true,
-   "status": "unresolved",
-   "used_by": [
-    {
-     "arg": "Volume",
-     "direction": "in",
-     "site": "0x10734580"
-    },
-    {
-     "arg": "Volume",
-     "direction": "in",
-     "site": "0x1073484c"
-    },
-    {
-     "arg": "Channel",
-     "direction": "in",
-     "site": "0x1073734c"
-    },
-    {
-     "arg": "Volume",
-     "direction": "in",
-     "site": "0x10736fb8"
-    },
-    {
-     "arg": "Volume",
-     "direction": "in",
-     "site": "0x102fc5fc"
-    },
-    {
-     "arg": "Volume",
-     "direction": "in",
-     "site": "0x102fc7a8"
-    },
-    {
-     "arg": "DesiredVolume",
-     "direction": "in",
-     "site": "0x1073923c"
-    },
-    {
-     "arg": "DesiredVolume",
-     "direction": "in",
-     "site": "0x1073c8e8"
-    },
-    {
-     "arg": "DesiredVolume",
-     "direction": "in",
-     "site": "0x1073c170"
-    }
-   ],
+   "description": "u16-width numeric argument parser used for DesiredVolume.",
+   "status": "confirmed",
+   "why_external": "Defines the lexical acceptance and width of DesiredVolume.",
    "evidence": [
     {
      "type": "firmware",
@@ -46464,10 +46991,10 @@
      "build": "86.10-80260",
      "status": "confirmed",
      "address": "0x10561478",
-     "notes": "input_arg_parser helper"
+     "notes": "u16-width numeric argument parser used for DesiredVolume."
     }
    ],
-   "notes": null
+   "required_for_behavior": true
   },
   "0x1055fcbc": {
    "address": "0x1055fcbc",
@@ -47519,44 +48046,9 @@
    "notes": null
   },
   "0x10561514": {
-   "address": "0x10561514",
-   "role": "input_arg_parser",
-   "description": null,
-   "why_external": null,
-   "required_for_behavior": true,
-   "status": "unresolved",
-   "used_by": [
-    {
-     "arg": "Index",
-     "direction": "in",
-     "site": "0x1073420c"
-    },
-    {
-     "arg": "Index",
-     "direction": "in",
-     "site": "0x10734330"
-    },
-    {
-     "arg": "ResultCode",
-     "direction": "in",
-     "site": "0x1073890c"
-    },
-    {
-     "arg": "Adjustment",
-     "direction": "in",
-     "site": "0x10739350"
-    },
-    {
-     "arg": "Adjustment",
-     "direction": "in",
-     "site": "0x1073c2b0"
-    },
-    {
-     "arg": "Browseable",
-     "direction": "in",
-     "site": "0x10307464"
-    }
-   ],
+   "description": "Numeric argument parser used for Adjustment (distinct from the u32/u16 helpers - consistent with signed intake).",
+   "status": "confirmed",
+   "why_external": "Defines the lexical acceptance and width of the signed Adjustment argument.",
    "evidence": [
     {
      "type": "firmware",
@@ -47564,10 +48056,10 @@
      "build": "86.10-80260",
      "status": "confirmed",
      "address": "0x10561514",
-     "notes": "input_arg_parser helper"
+     "notes": "Numeric argument parser used for Adjustment (distinct from the u32/u16 helpers - consistent with signed intake)."
     }
    ],
-   "notes": null
+   "required_for_behavior": true
   },
   "0x1055fc4c": {
    "address": "0x1055fc4c",
@@ -48866,6 +49358,118 @@
      "address": "0x10759984"
     }
    ]
+  },
+  "0x103a1b8c": {
+   "description": "Group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records (stride 0x2740, callback f_103a3f28), sets the local zone directly, issues remote member ops, and runs a completion loop over request objects via vfunc +0x00.",
+   "status": "strong",
+   "why_external": "Explains what SetGroupMute/SetGroupVolume actually do to the group: which members get real UPnP calls, how per-member rc is handled (logged only), and where the synchronous boundary of the SOAP call sits.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "strong",
+     "address": "0x103a1b8c",
+     "notes": "Group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records (stride 0x2740, callback f_103a3f28), sets the local zone directly, issues remote member ops, and runs a completion loop over request objects via vfunc +0x00."
+    }
+   ],
+   "required_for_behavior": true
+  },
+  "0x103a2430": {
+   "description": "SetGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan-out.",
+   "status": "strong",
+   "why_external": "Defines the group-volume fan-out accounting: local vs remote member handling and how many network ops a call creates.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "strong",
+     "address": "0x103a2430",
+     "notes": "SetGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan-out."
+    }
+   ],
+   "required_for_behavior": true
+  },
+  "0x1039fbd4": {
+   "description": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event.",
+   "status": "confirmed",
+   "why_external": "Shows group volume/mute changes are carried by an internal event object, relevant to accepted-vs-completed timing semantics.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1039fbd4",
+     "notes": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event."
+    }
+   ],
+   "required_for_behavior": true
+  },
+  "0x104164e4": {
+   "description": "'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' - posts the group-volume event.",
+   "status": "confirmed",
+   "why_external": "Identifies the event emission point that links SOAP-side group changes to downstream processing.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x104164e4",
+     "notes": "'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' - posts the group-volume event."
+    }
+   ],
+   "required_for_behavior": true
+  },
+  "0x103a3f28": {
+   "description": "Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c.",
+   "status": "confirmed",
+   "why_external": "The per-member UPnP op completion hook; determines whether member results are awaited inside the SOAP call.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x103a3f28",
+     "notes": "Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c."
+    }
+   ],
+   "required_for_behavior": true
+  },
+  "0x1039d11c": {
+   "description": "Builds the 'GroupMute' and 'GroupVolumeChangeable' evented state-variable names.",
+   "status": "confirmed",
+   "why_external": "Proves which state variables the group-rendering subsystem exposes to eventing.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1039d11c",
+     "notes": "Builds the 'GroupMute' and 'GroupVolumeChangeable' evented state-variable names."
+    }
+   ],
+   "required_for_behavior": true
+  },
+  "0x10214790": {
+   "description": "'Sent group volume change %u to eSDK (mute %d)' - pushes group volume/mute to the eSDK/cloud channel.",
+   "status": "confirmed",
+   "why_external": "Shows group volume state is mirrored off-box, an observable side effect of the group volume path.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10214790",
+     "notes": "'Sent group volume change %u to eSDK (mute %d)' - pushes group volume/mute to the eSDK/cloud channel."
+    }
+   ],
+   "required_for_behavior": true
   }
  },
  "dispatch_candidates": {
