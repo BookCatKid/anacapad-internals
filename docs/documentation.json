@@ -19584,22 +19584,28 @@
         "via_slot": 28
        },
        "semantic_type": "track ordinal or time position (seconds)",
-       "format": "TRACK_NR: strtol(Target,NULL,10) - leading whitespace and +/- sign accepted, trailing junk ignored, saturates at LONG_MIN/MAX. REL_TIME/TIME_DELTA: sscanf '%hhu:%hhu:%hhu' - exactly three 0..255 decimal fields separated by ':' required; optional leading '-' sets a sign flag and negates the total; trailing junk ignored; each component stored as u8 so values >255 wrap.",
+       "format": "TRACK_NR: strtol(Target,NULL,10) on the raw text - base 10, leading whitespace and a +/- sign accepted per strtoul rules, NO endptr so trailing junk is silently ignored ('5junk' -> track 5), saturates at LONG_MIN/MAX on overflow. REL_TIME/TIME_DELTA: f_102ab830 consumes at most one leading '-' manually (sets a separate sign flag byte), then sscanf('%hhu:%hhu:%hhu') must return exactly 3. Each %hhu field skips leading whitespace and accepts its own optional +/- sign (strtoul semantics: '-5' wraps to 251); the ':' separators must match literally with no intervening whitespace; each component is stored as u8 so values above 255 wrap mod 256 ('256:00:00' -> 0:00:00, '999' -> 231); trailing characters after the third field are ignored.",
        "unit": "track ordinal; or seconds",
-       "accepted_values": "per-format; TRACK_NR requires 1..65534, time fields 0..255 each",
+       "accepted_values": "TRACK_NR: textual decimal whose strtol result lies in 1..65534. REL_TIME/TIME_DELTA: three u8-wrapping decimal components; computed value = h*3600+m*60+s seconds.",
        "range": {
-        "min": "TRACK_NR: 1; REL_TIME/TIME_DELTA: 0 s",
-        "max": "TRACK_NR: 65534; REL_TIME/TIME_DELTA: 933855 s (255:255:255)"
+        "min": "TRACK_NR: 1 (lexical, on unmasked strtol result); REL_TIME/TIME_DELTA: 0 s",
+        "max": "TRACK_NR: 65534; REL_TIME/TIME_DELTA: 934575 s (255:255:255, components wrap mod 256)"
        },
        "special_values": {
-        "0 / -1 / negative / >65534 (TRACK_NR)": "rejected with 711: the strtol result minus one is compared unsigned against 0xFFFD",
-        "00:00:00 (TIME_DELTA, indexed mode)": "no-op returning success without submitting anything",
-        "-H:M:S (REL_TIME, indexed mode)": "rejected with 711 (sign flag checked at 0x102b924c-0x102b9270)",
-        "-H:M:S (TIME_DELTA or stream mode)": "accepted; sign negates only the low 32-bit word (hi word stays 0), so a negative value is submitted as ~4.29e9-x seconds"
+        "TRACK_NR text beyond 1..65534 (incl. '0', '-5', '65537', saturating input)": "rejected with 711: validation is (strtol_result - 1) <= 0xFFFD unsigned on the UNMASKED value; the u16 truncation (rlwinm r4,r30,0,16,31 at 0x102b938c) only sizes the record field and never rescues an out-of-range text - '65537' faults, it does not wrap to track 1",
+        "TRACK_NR with trailing junk, leading whitespace, '+', or zeros (' 5', '+5', '05', '5abc')": "accepted - strtol skips ws/sign and endptr is NULL so the tail is ignored",
+        "'--H:M:S' or signed components ('-5:00:00' after the outer sign, '+01:02:03')": "accepted: the outer '-' is consumed manually, then each %hhu applies strtoul sign/wrap rules, so '--0:1:0' parses as negative-(251:00:00 wrapped) - a quirk of layering the manual sign over %hhu",
+        "'00:00:00' or '-00:00:00' (REL_TIME/TIME_DELTA, indexed mode)": "zero magnitude -> success WITHOUT submitting any request (0x102b92d4-0x102b9318); '-00:00:00' under REL_TIME still faults 711 because the sign check precedes the zero check",
+        "'-H:M:S' (REL_TIME, indexed mode)": "rejected with 711 - sign flag byte nonzero and Unit != TIME_DELTA (0x102b9258-0x102b9270)",
+        "'-H:M:S' (TIME_DELTA, indexed mode)": "accepted; parser negates only the low seconds word (neg at 0x102ab920, hi word stays 0) plus a separate sign byte; submitted as a negative relative offset",
+        "'-H:M:S' (stream mode)": "not sign-checked at all - the negated seconds word *1000 yields a negative millisecond operand passed straight to the session vfunc; outcome is downstream-determined",
+        "'256:00:00' / '999:99:99' (either mode)": "accepted with u8 wraparound: 256->0, 999->231 etc.; there is no upper bound check on the total",
+        "'1 :2:3' (whitespace before a colon)": "rejected - the ':' literals in the scanf format must match immediately",
+        "'01:02:03junk'": "accepted - sscanf stops after the 3rd conversion and the tail is never inspected"
        },
        "required": true,
        "default": "none",
-       "validation": "TRACK_NR: strtol then (t-1) <= 0xFFFD unsigned else 711; submits u16 = t & 0xffff. REL_TIME/TIME_DELTA: parse failure -> 711 in indexed mode, 701 in stream mode. Malformed/missing -> 402 via request validation.",
+       "validation": "TRACK_NR (indexed mode only): strtol result must satisfy (t-1) <= 0xFFFD unsigned else 711; on success u16 field t&0xffff is recorded in the rchsrcreq tag-8 record (the truncation is field-width only; the range check ran on the raw strtol value, so no wrap-to-valid exists). REL_TIME/TIME_DELTA: f_102ab830 failure -> 711 indexed / 701 stream; indexed-mode leading '-' under REL_TIME -> 711; indexed-mode zero magnitude -> silent success no-op; stream mode performs no sign or zero gating. Missing/unparsable at the request layer -> 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -19644,22 +19650,40 @@
          "notes": "bound check: cmplwi (t-1) vs 0xFFFD; u16 t&0xffff stored via rlwinm 0,16,31 at 0x102b938c into rchsrcreq tag-8 record",
          "function": "0x102b9088",
          "address": "0x102b939c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "rlwinm r4,r30,0,16,31 computes the u16 record field from raw strtol result r30; the following addi r30,-1 + cmplwi 0xFFFD at 0x102b9394-0x102b939c validate the UNMASKED value",
+         "address": "0x102b938c",
+         "function": "0x102b9088"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "parser: secs = h*60+m then *60+s via shift/subf; bc on cr4.eq (first char '-') -> neg r7 at 0x102ab920; out pair {secs_word, 0} + separate sign byte at *arg2",
+         "address": "0x102ab8d8",
+         "function": "0x102ab830"
         }
        ],
-       "notes": null
+       "notes": "Track normalization: strtol -> record field = value & 0xffff -> range check on the RAW value (raw-1 <= 0xFFFD). Ordering means the stored u16 equals the input for every accepted value; masking cannot wrap an out-of-range ordinal into range."
       }
      },
      "outputs": {},
      "validation": "Request layer: all three arguments fetched by name (req vfunc +0x1c); req vfunc +0x08 must return nonzero else fault 402. Impl f_102b95a8: InstanceID must be 0 else 718. Engine f_102b9088 branches on engine+0x4654 (source mode): ==2 -> indexed path (TRACK_NR with cap 0x400000, REL_TIME/TIME_DELTA with cap 0x200000, unknown -> 710); !=2 -> stream path (only REL_TIME/TIME_DELTA, unknown -> 701, direct streamer vfunc seek). See Target validation notes for per-mode parsers.",
      "requirements": {
-      "group_coordinator": "no explicit coordinator check in the Seek path; indexed mode first calls state-sync helper f_102b5ddc (dapst/Direct-Control housekeeping, result unused) before evaluating capabilities",
+      "group_coordinator": "No coordinator/group check exists in the Seek path itself (confirmed: no such test between wrapper and submission). Any group/coordinator routing happens downstream inside the chsrc transaction engine or streamer session and is not yet characterized.",
       "transport_states": "none checked directly; behavior depends on engine source-mode field this+0x4654 (==2 indexed/queue path, otherwise direct-stream path)",
-      "media_capabilities": "indexed path requires capability bitmask from f_10258ab0(this+0x580,0,1): bit 0x400000 enables TRACK_NR, bit 0x200000 enables REL_TIME/TIME_DELTA",
+      "media_capabilities": "Indexed path requires capability bitmask from f_10258ab0(engine+0x580,0,1): bit 0x400000 enables TRACK_NR, bit 0x200000 enables REL_TIME/TIME_DELTA (andis. at 0x102b91a8 / 0x102b9214). Stream path performs no capability check.",
       "service_binding": "service object must have a bound implementation (svc+4 non-NULL) else dispatcher faults 401; service enable byte ctx+0x571c gates the whole service",
       "serialization": "engine mutex at this+0x458 is held across the operation (lock guard at 0x102b9644)"
      },
      "state_dependencies": [
-      "engine+0x4654 source-mode field (written with values 0/1/2 across engine code; constructor initializes 2) selects indexed vs stream seek path",
+      "engine+0x4654 source-mode enum (writers store only 0/1/2 across engine code; constructor initializes 2; transitions e.g. 'if mode!=2 set 2' at 0x102ce968/0x102d50c4 when a source activates) selects the indexed/rchsrcreq path (==2) vs the direct-streamer path (!=2); exact per-value source mapping not yet fully characterized",
       "capability mask produced at runtime by f_10258ab0(*(engine+0x580)) from the current channel-source/media state - bit 0x200000 = time-seek permitted, bit 0x400000 = track-ordinal seek permitted (usage confirmed; bit derivation internal to chsrc.cxx logic)",
       "engine+0x580 = channel-source object (rchsrcreq submission target); engine+0x5a0 = streamer object used by stream-mode path; engine+0x5dc = queue object (sibling path)"
      ],
@@ -19693,7 +19717,7 @@
        ]
       },
       {
-       "description": "Indexed mode (this+0x4654==2): builds an 'rchsrcreq' source-change record - tag 8 carries u16 track ordinal (TRACK_NR), tag 9 carries i64 seconds plus isDelta flag (REL_TIME/TIME_DELTA) - and enqueues it to the channel-source transaction engine via f_10255f64(engine+0x580,rec); application is asynchronous.",
+       "description": "Indexed mode (engine+0x4654==2): builds an 'rchsrcreq' source-change record - tag 8 carries u16 track ordinal (TRACK_NR), tag 9 carries the {seconds, fraction} word pair plus flags (REL_TIME/TIME_DELTA) - and enqueues it to the channel-source transaction engine via f_10255f64(engine+0x580,rec); application is asynchronous. A zero-magnitude time target skips submission entirely and still returns success (0x102b92d4-0x102b9318).",
        "evidence": [
         {
          "type": "firmware",
@@ -19712,11 +19736,20 @@
          "notes": "f_10255f64 stores record at obj+0x2594 and signals obj+0x2e8 - async dispatch",
          "function": "0x10255f64",
          "address": "0x10256034"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "both pair words zero -> jump to rc=0 finalize, f_10255f64 never called",
+         "address": "0x102b92d4",
+         "function": "0x102b9088"
         }
        ]
       },
       {
-       "description": "Stream mode (this+0x4654!=2): calls f_106a7930(engine+0x5a0, seconds*1000, isDelta, &status) which locks the streamer, obtains the current stream session (this+0x354->+4->vfunc+0x2c) and invokes its vfunc +0x10 (absolute) or +0x14 (delta) with the position in milliseconds.",
+       "description": "Stream mode (engine+0x4654!=2): f_106a7930(engine+0x5a0, seconds*1000, isDelta, &flag@sp+0x1e) locks the streamer, resolves the current stream session (streamer+0x354 -> +4 -> vfunc+0x2c) and invokes its vfunc +0x10 (absolute, REL_TIME) or +0x14 (delta, TIME_DELTA) with the signed millisecond operand. The vfunc's own byte result is written to the out-flag, which only selects a 'seek time' log line - it is NOT propagated into the SOAP result, so a streamer-side rejection still returns success.",
        "evidence": [
         {
          "type": "firmware",
@@ -19735,13 +19768,31 @@
          "notes": "streamer inner: session vfunc +0x10 when isDelta==0, +0x14 when !=0",
          "function": "0x106a7930",
          "address": "0x106a79a4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "after session vfunc bctrl: stb r3,0(r29) stores vfunc byte result to caller flag; r31=1 returned regardless",
+         "address": "0x106a79c0",
+         "function": "0x106a7930"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "stbu r27(0),-0x152(r6) pre-zeroes flag at sp+0x1e and passes &flag as arg4",
+         "address": "0x102b91c0",
+         "function": "0x102b9088"
         }
        ]
       }
      ],
      "events_triggered": "No UPnP event is emitted synchronously by this path; the SOAP response is committed immediately after the engine accepts the request while the actual position/track change is applied asynchronously by the chsrc transaction or streamer session. Any LastChange/state-variable update therefore originates downstream of the async apply and is not statically proven in this path.",
      "state_transitions": "None synchronously. The accepted seek is queued/applied by the player engine after the call returns; decoder, position and track-index state change happen inside the async transaction/streamer path, not in this handler.",
-     "return_behavior": "The impl returns an integer status. On 0 the wrapper commits an empty 200 OK via req vfunc +0x0c (0x102f9494). On nonzero the code is forwarded to the request fault path req vfunc +0x14 at 0x102f944c and surfaces as the UPnPError errorCode. Note: the wrapper tests cr0 rather than r3 at 0x102f9440 (beq -> commit); impl callees' stack-canary epilogues leave cr0.eq=1 on normal return, so in this build the rc actually reaches the completion path vfunc +0x0c with r4=rc, which handles the status-bearing response; the explicit +0x14 branch is effectively a fallback.",
+     "return_behavior": "The impl returns an integer status. On 0 the wrapper commits an empty 200 OK via req vfunc +0x0c (0x102f9494). On nonzero the code is forwarded to the request fault path req vfunc +0x14 at 0x102f944c and surfaces as the UPnPError errorCode. Caveats: (1) the wrapper tests cr0 rather than r3 at 0x102f9440; impl epilogues' stack-canary xor. leaves cr0.eq=1 on normal return, so rc reaches the completion vfunc +0x0c with r4=rc which handles the status-bearing response - the +0x14 branch is effectively a fallback. (2) In stream mode rc==0 only proves a session object accepted the call; the session vfunc's byte result is captured to a flag that gates a log line (0x102b91d8) and is not reflected in the SOAP status - a rejected streamer seek still reports success. (3) In indexed mode rc==0 only proves the rchsrcreq was enqueued, not that the seek applied; a zero-magnitude time target returns 0 without enqueueing at all.",
      "fault_sites": [
       {
        "site": "0x102f944c",
@@ -45454,7 +45505,7 @@
    "address": "0x102ab830",
    "used_by": [],
    "role": "time_parser",
-   "description": "Target time parser: optional leading '-' sets a sign flag and is skipped; sscanf '%hhu:%hhu:%hhu' must produce all three fields; returns seconds as i64 (hi word always 0, negation applied only to low word); returns 1 on success, 0 on malformed input.",
+   "description": "Target time parser for REL_TIME/TIME_DELTA: consumes at most one leading '-' manually (sign flag byte -> *arg2, cr4 captured before sscanf); sscanf(str,'%hhu:%hhu:%hhu') must return exactly 3 - per-component strtoul semantics (ws skip, own +/- sign, u8 wrap mod 256), literal colons, trailing junk ignored; seconds computed as (h*60+m)*60+s via shift/subf; on leading '-' the seconds word is negated (neg) while the pair's second word stays 0. Writes a {seconds_word, 0} pair to *arg3 (printed downstream as '%lld.%06lld' = seconds.fraction) and the sign byte to *arg2; returns 1 on success, 0 on malformed input.",
    "why_external": "Determines the accepted Target syntax for REL_TIME/TIME_DELTA and the negative-value quirk.",
    "required_for_behavior": true,
    "status": "confirmed",
@@ -45466,6 +45517,24 @@
      "status": "confirmed",
      "notes": "sscanf format string at 0x10eafc7c",
      "address": "0x102ab830"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "notes": "cmplwi first char vs 0x2d; mfcr extract cr4.eq -> r31 -> r3+=r31; stb r31,*sign; stw secs,*out; stw 0,out+4",
+     "function": "0x102ab830",
+     "address": "0x102ab86c"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "notes": "bc 12,cr4.eq -> neg r7: sign negates seconds word only",
+     "function": "0x102ab830",
+     "address": "0x102ab904"
     }
    ]
   },
