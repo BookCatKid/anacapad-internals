@@ -12771,9 +12771,9 @@
           "notes": null
         },
         "BecomeCoordinatorOfStandaloneGroup": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs \"avt_impl\" \"BecomeCoordinatorOfStandaloneGroup\", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ \u2014 B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102f8b04",
           "handler_func": "0x102f8b04",
@@ -12825,8 +12825,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -12838,12 +12838,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "0 only - nonzero faults 718",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -12867,8 +12867,8 @@
           },
           "outputs": {
             "DelegatedGroupCoordinatorID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Group/coordinator identity written by the promotion path on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -12904,8 +12904,8 @@
               "notes": null
             },
             "NewGroupID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Group/coordinator identity written by the promotion path on success.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -12941,13 +12941,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102f8b04",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Group/topology machinery does the promotion; the impl is the logging+gate+orchestration shell.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458 through the promotion.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Reassigns group coordination to self; writes the delegated-coordinator and new-group identity outputs.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Group/topology changes surface through the group machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "This player becomes group coordinator.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; 718 on nonzero InstanceID; promotion failure codes live in the worker tail.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102f8c78",
@@ -12957,14 +12996,62 @@
           ],
           "errors": [
             {
-              "code": 402,
+              "code": 718,
               "code_expr": "const",
-              "meaning": null,
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f8c78"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102d5524",
+                      "notes": "cmpwi r29,0 -> r9=0x2ce at 0x102d55b8"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102d5524",
+                  "notes": "cmpwi r29,0 -> r9=0x2ce at 0x102d55b8"
+                }
+              ]
+            },
+            {
+              "code": null,
+              "code_expr": "const",
+              "meaning": "promotion-path rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102f8c78"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the promotion path produced a code not covered by the gate",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102d55d0",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -12972,14 +13059,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102f8c78",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102f8c78 with constant code 402",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "promotion-path rc surfaced",
+                "unknown": "concrete codes from the coordinator promotion tail"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f8c78"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102f8b04",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102f8b04",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -13005,9 +13125,9 @@
           "notes": null
         },
         "BecomeGroupCoordinator": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs \"avt_impl\" \"BecomeGroupCoordinator\", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ \u2014 B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fc8b0",
           "handler_func": "0x102fc8b0",
@@ -13042,13 +13162,52 @@
           },
           "inputs": {},
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fc8b0",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Group/session machinery; mode impl+0x4654==0 or the alternate flag path gates submission.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458 through the coordinator submission.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Submits a coordinator-assumption request through the session request machinery (op via f_10256a84 + f_10255f64).",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Group/topology changes surface through the group machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "This player assumes the coordinator role for the group.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Submission-path rc; 0 on success.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fc944",
@@ -13060,12 +13219,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0xd0)",
-              "meaning": null,
+              "meaning": "session request-path rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fc944"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the worker produced a code not covered by the gates",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102de840",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -13073,14 +13246,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fc944",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fc944 with computed code vret(r5-in,+0xd0)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "session request-path rc surfaced",
+                "unknown": "concrete codes from the op-1 dispatch and record submission"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc944"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fc8b0",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fc8b0",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -13106,9 +13312,9 @@
           "notes": null
         },
         "BecomeGroupCoordinatorAndSource": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ \u2014 B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fc3a0",
           "handler_func": "0x102fc3a0",
@@ -13148,13 +13354,52 @@
           },
           "inputs": {},
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fc3a0",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Group/session machinery.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458 through the coordinator submission.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Coordinator+source promotion inside the worker.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Group/topology changes surface through the group machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "This player assumes the coordinator role and its source becomes the group source.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Submission-path rc; 0 on success.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fc464",
@@ -13166,12 +13411,26 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0xd4)",
-              "meaning": null,
+              "meaning": "promotion worker rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fc464"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the worker produced a code not covered by the gates",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102df4cc",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -13179,14 +13438,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fc464",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fc464 with computed code vret(r5-in,+0xd4)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "promotion worker rc surfaced",
+                "unknown": "the promotion worker core is untraced"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc464"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fc3a0",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fc3a0",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -13212,9 +13504,9 @@
           "notes": null
         },
         "ChangeCoordinator": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Reassigns group coordination from one member to another with transport-settings handover. Impl f_102af490 logs \"change coordinator: old = %s, new = %s, ts = %s, uri = %s\" on the avt_impl channel, then under impl+0x458 enforces InstanceID==0 (718) and runs the coordinator-change path taking CurrentCoordinator, NewCoordinator, NewTransportSettings, CurrentAVTransportURI and RestartSink.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fa3ec",
           "handler_func": "0x102fa3ec",
@@ -13249,8 +13541,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -13262,12 +13554,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -13289,8 +13581,8 @@
               "notes": null
             },
             "CurrentCoordinator": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Identifier of the member currently holding coordination.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -13302,12 +13594,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Identifier of the member currently holding coordination.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -13329,8 +13621,8 @@
               "notes": null
             },
             "NewCoordinator": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Identifier of the member to receive coordination.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -13342,12 +13634,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Identifier of the member to receive coordination.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -13369,8 +13661,8 @@
               "notes": null
             },
             "NewTransportSettings": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Settings handed to the new coordinator (same family as ChangeTransportSettings).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -13382,12 +13674,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Settings handed to the new coordinator (same family as ChangeTransportSettings).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -13409,8 +13701,8 @@
               "notes": null
             },
             "CurrentAVTransportURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Source URI carried through the handover.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -13422,12 +13714,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Source URI carried through the handover.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -13449,8 +13741,8 @@
               "notes": null
             },
             "RestartSink": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Flag requesting a sink restart on the new coordinator.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -13462,12 +13754,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Flag requesting a sink restart on the new coordinator.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -13490,13 +13782,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fa3ec",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Group membership must be active for the worker to accept the handover.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Performs the old->new coordinator swap with transport-settings propagation and optional sink restart (RestartSink).",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Group/topology changes surface through the group machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Coordination moves from CurrentCoordinator to NewCoordinator.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Worker rc; 0 on success; 718 on nonzero InstanceID.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fa56c",
@@ -13506,14 +13837,62 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x5c)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa56c"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102af490",
+                      "notes": "cmpwi r26,0 -> r30=0x2ce at 0x102af538"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102af490",
+                  "notes": "cmpwi r26,0 -> r30=0x2ce at 0x102af538"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x5c)",
-              "meaning": null,
+              "meaning": "coordinator-change worker rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fa56c"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the worker produced a code not covered by the gate",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102af53c",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -13521,14 +13900,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fa56c",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fa56c with computed code vret(r5-in,+0x5c)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "coordinator-change worker rc surfaced",
+                "unknown": "concrete codes for member validation / handover refusal"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa56c"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fa3ec",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fa3ec",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -22778,9 +23190,9 @@
           "notes": null
         },
         "RunAlarm": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc \u2014 the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fc4ac",
           "handler_func": "0x102fc4ac",
@@ -22815,8 +23227,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -22828,12 +23240,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "0 only - nonzero faults 718",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -22855,8 +23267,8 @@
               "notes": null
             },
             "AlarmID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -22868,12 +23280,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -22895,8 +23307,8 @@
               "notes": null
             },
             "LoggedStartTime": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -22908,12 +23320,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -22935,8 +23347,8 @@
               "notes": null
             },
             "Duration": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -22948,12 +23360,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -22975,8 +23387,8 @@
               "notes": null
             },
             "ProgramURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -22988,12 +23400,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23015,8 +23427,8 @@
               "notes": null
             },
             "ProgramMetaData": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -23028,12 +23440,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23055,8 +23467,8 @@
               "notes": null
             },
             "PlayMode": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -23068,12 +23480,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23095,8 +23507,8 @@
               "notes": null
             },
             "Volume": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 2,
@@ -23108,12 +23520,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23135,8 +23547,8 @@
               "notes": null
             },
             "IncludeLinkedZones": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared alarm worker f_102e17dc.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -23148,12 +23560,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared alarm worker f_102e17dc.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23176,13 +23588,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fc4ac",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Alarm/session machinery accepts the run request.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Shared alarm worker handles the program URI/metadata, volume, play mode and linked-zone expansion.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Triggers the alarm program through the alarm/session worker \u2014 playback start with the requested PlayMode/Volume and linked-zone fan-out (IncludeLinkedZones).",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Alarm-run effects surface through the alarm and transport machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Alarm playback started per ProgramURI/ProgramMetaData.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Worker rc; 0 on success; 718 on nonzero InstanceID.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fc6a0",
@@ -23192,14 +23643,62 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x98)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc6a0"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102e1d68",
+                      "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102e1d94"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102e1d68",
+                  "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102e1d94"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x98)",
-              "meaning": null,
+              "meaning": "alarm worker f_102e17dc rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fc6a0"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the worker produced a code not covered by the gate",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102e1da8",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -23207,14 +23706,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fc6a0",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fc6a0 with computed code vret(r5-in,+0x98)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "alarm worker f_102e17dc rc surfaced",
+                "unknown": "program-parse, session and linked-zone codes inside the worker"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc6a0"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fc4ac",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fc4ac",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -24475,9 +25007,9 @@
           "notes": "Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x10eaf320 and 0x10edfbec both resolve slot +0x34 to it). f_102b95a8(engine,inst,unit,target): inst!=0 -> 718; else f_102b9088(engine,unit,target). Internal callers of the same engine exist (f_102b9464 seeks REL_TIME '00:00:00' as a reset). Accepted Units are mode-dependent, not a single static enum."
         },
         "SetAVTransportURI": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ \u2014 B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fa71c",
           "handler_func": "0x102fa71c",
@@ -24512,8 +25044,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -24525,12 +25057,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "0 only - nonzero faults 718",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -24552,8 +25084,8 @@
               "notes": null
             },
             "CurrentURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Playback URI installed by the shared worker.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -24565,12 +25097,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-validated URI string",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Playback URI installed by the shared worker.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -24592,8 +25124,8 @@
               "notes": null
             },
             "CurrentURIMetaData": {
-              "description": null,
-              "status": "unresolved",
+              "description": "DIDL metadata accompanying CurrentURI.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 8,
@@ -24605,12 +25137,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-validated DIDL string",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "DIDL metadata accompanying CurrentURI.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -24633,13 +25165,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fa71c",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Worker f_102dc81c performs URI validation, source selection and session setup.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "CurrentURI/CurrentURIMetaData consumed verbatim by the worker.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Installs the new source URI through the shared worker \u2014 the transport source is replaced (mode impl+0x4654 transitions inside the worker).",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Source change surfaces through LastChange inside the worker machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Playback source set to CurrentURI; transport mode driven by the worker.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Worker rc (0 = accepted). 718 on nonzero InstanceID.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fa818",
@@ -24649,14 +25220,62 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x8)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa818"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102dcb58",
+                      "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102dcb64"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102dcb58",
+                  "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102dcb64"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x8)",
-              "meaning": null,
+              "meaning": "shared URI-set worker f_102dc81c rc returned",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fa818"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the worker produced a code not covered by the gate",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102dcb84",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -24664,14 +25283,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fa818",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fa818 with computed code vret(r5-in,+0x8)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "shared URI-set worker f_102dc81c rc returned",
+                "unknown": "URI validation, source-mode and session codes inside the worker; also the class-B group variant 0x10513230 is unexplored"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa818"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fa71c",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fa71c",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -26315,9 +26967,9 @@
           "notes": null
         },
         "StartAutoplay": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0 \u2014 sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fc6f4",
           "handler_func": "0x102fc6f4",
@@ -26352,8 +27004,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -26365,12 +27017,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "0 only - nonzero faults 718",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -26392,8 +27044,8 @@
               "notes": null
             },
             "ProgramURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Program definition parsed by f_10c3cbfc - rejection faults 402.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -26405,12 +27057,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Program definition parsed by f_10c3cbfc - rejection faults 402.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -26432,8 +27084,8 @@
               "notes": null
             },
             "ProgramMetaData": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared autoplay worker f_102e14e0.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -26445,12 +27097,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared autoplay worker f_102e14e0.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -26472,8 +27124,8 @@
               "notes": null
             },
             "Volume": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared autoplay worker f_102e14e0.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 2,
@@ -26485,12 +27137,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared autoplay worker f_102e14e0.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -26512,8 +27164,8 @@
               "notes": null
             },
             "IncludeLinkedZones": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared autoplay worker f_102e14e0.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -26525,12 +27177,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared autoplay worker f_102e14e0.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -26552,8 +27204,8 @@
               "notes": null
             },
             "ResetVolumeAfter": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Forwarded to shared autoplay worker f_102e14e0.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -26565,12 +27217,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Worker-determined",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Forwarded to shared autoplay worker f_102e14e0.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -26593,13 +27245,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fc6f4",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Program fields must parse; session/submission machinery handles the start.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Worker f_102e14e0 runs parse + submission.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Starts the autoplay program with ProgramURI/ProgramMetaData at the requested Volume, optional linked-zone expansion (IncludeLinkedZones) and post-run volume restore (ResetVolumeAfter).",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Playback effects surface through the transport machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Autoplay session started.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Worker rc; 0 on success; 402 when f_10c3cbfc rejects the program fields; 718 on nonzero InstanceID.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fc85c",
@@ -26609,14 +27300,96 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x9c)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc85c"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102e17a8",
+                      "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102e17b4"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102e17a8",
+                  "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102e17b4"
+                }
+              ]
+            },
+            {
+              "code": 402,
+              "code_expr": "vret(r5-in,+0x9c)",
+              "meaning": "Program fields failed the f_10c3cbfc parse inside the worker.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc85c"
+              ],
+              "conditions": [
+                {
+                  "description": "f_10c3cbfc returned nonzero on the program fields",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102e17a8",
+                      "notes": "bc at 0x102e18b4 -> r3=0x192"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102e17a8",
+                  "notes": "bc at 0x102e18b4 -> r3=0x192"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x9c)",
-              "meaning": null,
+              "meaning": "autoplay worker f_102e14e0 rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fc85c"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the worker produced a code not covered by the gates",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102e17d8",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -26624,14 +27397,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fc85c",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fc85c with computed code vret(r5-in,+0x9c)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "autoplay worker f_102e14e0 rc surfaced",
+                "unknown": "session/submission codes inside the worker"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fc85c"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fc6f4",
+                      "notes": "parse vcall +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fc6f4",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
