@@ -14203,9 +14203,9 @@
           "notes": null
         },
         "DelegateGroupCoordinationTo": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 \u2014 that specific code is treated as success \u2014 while every other code passes through verbatim.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fa26c",
           "handler_func": "0x102fa26c",
@@ -14240,8 +14240,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -14253,12 +14253,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 only - nonzero faults 718",
+              "range": "0",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -14280,8 +14280,8 @@
               "notes": null
             },
             "NewCoordinator": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Identity of the member to receive coordination; must be a non-empty string \u2014 NULL pointer or empty text faults 402 before the worker runs.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -14290,15 +14290,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Non-empty member identifier string",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Identity of the member to receive coordination; must be a non-empty string \u2014 NULL pointer or empty text faults 402 before the worker runs.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -14320,8 +14320,8 @@
               "notes": null
             },
             "RejoinGroup": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Flag forwarded verbatim to f_102ddae8 \u2014 requests rejoining the group under the new coordinator.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -14330,15 +14330,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosUintArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Boolean-ish integer forwarded uninterpreted",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Flag forwarded verbatim to f_102ddae8 \u2014 requests rejoining the group under the new coordinator.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -14360,8 +14360,8 @@
               "notes": null
             },
             "ClearSource": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Flag forwarded verbatim to f_102ddae8 \u2014 requests clearing the current source during delegation.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -14370,15 +14370,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosUintArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Boolean-ish integer forwarded uninterpreted",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Flag forwarded verbatim to f_102ddae8 \u2014 requests clearing the current source during delegation.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -14401,13 +14401,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fa26c",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "NewCoordinator must identify a reachable member (validated inside f_102ddae8). Empty or NULL NewCoordinator is rejected up front.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458 around the worker call.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Delegates coordination per the worker \u2014 group membership/topology effects are inside f_102ddae8; RejoinGroup and ClearSource flags are forwarded verbatim.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "No direct event in the impl shim; group/topology changes surface through the group machinery.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "This player relinquishes coordinator role to the named member when the worker accepts the delegation.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Worker rc verbatim, EXCEPT 803 which is remapped to 0 (isel r9,0,r31,cr7eq after cmpwi 0x323).",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fa394",
@@ -14417,14 +14456,96 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x58)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa394"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102de180",
+                      "notes": "cmpwi r4,0 at 0x102de180 -> return r9"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102de180",
+                  "notes": "cmpwi r4,0 at 0x102de180 -> return r9"
+                }
+              ]
+            },
+            {
+              "code": 402,
+              "code_expr": "vret(r5-in,+0x58)",
+              "meaning": "NewCoordinator was NULL or an empty string.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa394"
+              ],
+              "conditions": [
+                {
+                  "description": "r5==0 or *r5==0",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102de180",
+                      "notes": "cmpwi r5,0 at 0x102de194; lbz check at 0x102de1a0 -> r9=0x192"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102de180",
+                  "notes": "cmpwi r5,0 at 0x102de194; lbz check at 0x102de1a0 -> r9=0x192"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x58)",
-              "meaning": null,
+              "meaning": "worker rc returned verbatim except 803->0",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fa394"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "f_102ddae8 returned a nonzero code other than 803",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102de1f8",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -14432,14 +14553,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fa394",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fa394 with computed code vret(r5-in,+0x58)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "worker rc returned verbatim except 803->0",
+                "unknown": "the full rc vocabulary of f_102ddae8 (delegation refusal reasons)"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa394"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fa26c",
+                      "notes": "parse vcall slot +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fa26c",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -18421,9 +18575,9 @@
           "notes": null
         },
         "NotifyDeletedURI": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) \u2014 the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs \"job\"/\"deleted uri\", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec) \u2014 likely triggering source-failover or stop behavior for the deleted content.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102f912c",
           "handler_func": "0x102f912c",
@@ -18458,8 +18612,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -18471,12 +18625,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 only - nonzero faults 718",
+              "range": "0",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -18498,8 +18652,8 @@
               "notes": null
             },
             "DeletedURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -18508,15 +18662,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Any string; only exact match with the active source has an effect",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -18539,13 +18693,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102f912c",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "None beyond the URI equality check \u2014 the action is designed to be a no-op when the deleted URI is not the active source.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458. Reads the current source URI at impl+0x5dc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "On URI match: submits an internal job through f_102ceb40 targeting the deleted-source handler \u2014 the actual transport consequence (stop/failover) is inside that job machinery.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "No direct event in the impl; any LastChange result comes from the submitted job.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "On match the engine transitions toward handling the deleted source; exact transition lives in the job at f_102ceb40.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Always 0 once InstanceID passes \u2014 both the ignored-notification and submitted-job paths return success.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102f91f0",
@@ -18555,14 +18748,62 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x48)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f91f0"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102d5858",
+                      "notes": "cmpwi r4,0 -> r31=0x2ce at 0x102d5898"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102d5858",
+                  "notes": "cmpwi r4,0 -> r31=0x2ce at 0x102d5898"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x48)",
-              "meaning": null,
+              "meaning": "impl returns 0 unconditionally after the gate",
               "status": "unresolved",
               "fault_sites": [
                 "0x102f91f0"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "n/a - every post-gate path returns 0",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102d58ac",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -18570,14 +18811,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102f91f0",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102f91f0 with computed code vret(r5-in,+0x48)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "impl returns 0 unconditionally after the gate",
+                "unknown": "none identified \u2014 the job-submission result is not propagated"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f91f0"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102f912c",
+                      "notes": "parse vcall slot +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102f912c",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -19982,9 +20256,9 @@
           "notes": null
         },
         "RemoveTrackFromQueue": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028) \u2014 optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102f9aa8",
           "handler_func": "0x102f9aa8",
@@ -20019,8 +20293,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -20032,12 +20306,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 only - nonzero faults 718",
+              "range": "0",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20059,8 +20333,8 @@
               "notes": null
             },
             "ObjectID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Identifies the queue entry to remove; stored verbatim into the request record by f_1032e440 (e.g. a queue object id).",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -20069,15 +20343,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Any string the request-record builder accepts; no local validation beyond presence",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Identifies the queue entry to remove; stored verbatim into the request record by f_1032e440 (e.g. a queue object id).",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20099,8 +20373,8 @@
               "notes": null
             },
             "UpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -20109,15 +20383,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosUintArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 (skip check) or exactly the current queue update-id - mismatch faults 1028",
+              "range": "0 or current update-id",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20140,13 +20414,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102f9aa8",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "The indexed session impl+0x580 must exist. transport mode impl+0x4654 must be 1 or 2; queued removal is rejected in other modes with 800.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458 for the whole operation. Reads queue update-id from the session object and mode impl+0x4654.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Removes the requested track through the session submission machinery; on success impl+0x6ed8 may be cleared and impl+0x5dc is re-probed.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue mutation is observable through queue/state events; no explicit event emission in this impl path.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "One queue entry removed when the update-id check and submission succeed.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success \u2014 note f_10255f64 uses nonzero=success internally; a failed submission surfaces as 800. UpdateID mismatch is 1028; wrong mode is also 800.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102f9ba8",
@@ -20156,14 +20469,130 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x70)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f9ba8"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa770",
+                      "notes": "cmpwi r4,0 -> addi r31,0x2ce at 0x102aa7b8"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102aa770",
+                  "notes": "cmpwi r4,0 -> addi r31,0x2ce at 0x102aa7b8"
+                }
+              ]
+            },
+            {
+              "code": 1028,
+              "code_expr": "vret(r5-in,+0x70)",
+              "meaning": "UpdateID argument was nonzero and did not equal the current queue update-id.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f9ba8"
+              ],
+              "conditions": [
+                {
+                  "description": "UpdateID!=0 and UpdateID != session update-id",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa770",
+                      "notes": "cmp r28,*(sp+0x14) at 0x102aa834 -> r31=0x404"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102aa770",
+                  "notes": "cmp r28,*(sp+0x14) at 0x102aa834 -> r31=0x404"
+                }
+              ]
+            },
+            {
+              "code": 800,
+              "code_expr": "vret(r5-in,+0x70)",
+              "meaning": "Transport mode is not 1 or 2, OR the session submission f_10255f64 returned 0 (failure).",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f9ba8"
+              ],
+              "conditions": [
+                {
+                  "description": "(impl+0x4654 - 1) unsigned > 1, or submission failed",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa770",
+                      "notes": "cmplwi 0x1 at 0x102aa848; submit rc path at 0x102aa874"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102aa770",
+                  "notes": "cmplwi 0x1 at 0x102aa848; submit rc path at 0x102aa874"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x70)",
-              "meaning": null,
+              "meaning": "impl returns the preloaded code r31",
               "status": "unresolved",
               "fault_sites": [
                 "0x102f9ba8"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "a code path not covered by the enumerated checks produced a result",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa7c4",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -20171,14 +20600,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102f9ba8",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102f9ba8 with computed code vret(r5-in,+0x70)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "impl returns the preloaded code r31",
+                "unknown": "any other rc the request-record builders could surface"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f9ba8"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102f9aa8",
+                      "notes": "parse vcall slot +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102f9aa8",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -20204,9 +20666,9 @@
           "notes": null
         },
         "RemoveTrackRangeFromQueue": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work \u2014 StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector \"0\" via snprintf(\"%u\") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match \u2014 selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102faf24",
           "handler_func": "0x102faf24",
@@ -20241,8 +20703,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero. It is additionally reused by the worker as the queue selector formatted \"%u\" \u2014 value 0 selects the default queue.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -20254,12 +20716,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 only - nonzero faults 718 and also fails the queue-selector match",
+              "range": "0",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero. It is additionally reused by the worker as the queue selector formatted \"%u\" \u2014 value 0 selects the default queue.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20281,8 +20743,8 @@
               "notes": null
             },
             "UpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Optimistic-concurrency token: 0 disables the check; nonzero must equal the current queue update-id else 1028.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -20291,15 +20753,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosUintArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 (skip check) or exactly the current queue update-id",
+              "range": "0 or current update-id",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Optimistic-concurrency token: 0 disables the check; nonzero must equal the current queue update-id else 1028.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20321,8 +20783,8 @@
               "notes": null
             },
             "StartingIndex": {
-              "description": null,
-              "status": "unresolved",
+              "description": "1-based index of the first track to remove. Value 0 is rejected with 402 before any queue work \u2014 the impl treats it as invalid, not as \"first element\".",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -20331,15 +20793,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosUintArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "1..queue length - 0 faults 402",
+              "range": "1..N",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "1-based index of the first track to remove. Value 0 is rejected with 402 before any queue work \u2014 the impl treats it as invalid, not as \"first element\".",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20361,8 +20823,8 @@
               "notes": null
             },
             "NumberOfTracks": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Count of tracks to remove starting at StartingIndex. Value 0 is rejected with 402.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -20371,15 +20833,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosUintArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "1..queue length - 0 faults 402",
+              "range": "1..N",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Count of tracks to remove starting at StartingIndex. Value 0 is rejected with 402.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -20403,8 +20865,8 @@
           },
           "outputs": {
             "NewUpdateID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "New queue update-id written by the worker through the out pointer after a successful removal.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -20440,13 +20902,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102faf24",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Indexed session impl+0x580 must exist. transport mode impl+0x4654 must be 1 or 2 (else 800). Both index arguments are 1-based \u2014 zero is rejected as a parse-level invalid argument.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458. Reads queue-id strings and update-id from the session, plus mode impl+0x4654.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Removes the requested contiguous range via the session machinery; writes the new queue update-id to the NewUpdateID output on success.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "Queue mutation observable through queue/state events; the returned NewUpdateID lets clients detect concurrent modification.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Contiguous queue entries [StartingIndex, StartingIndex+NumberOfTracks) removed when all checks pass.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "0 on success; 402 for zero index/count or parse failure, 718 for InstanceID/selector mismatch, 1028 for stale UpdateID, 800 for wrong mode.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fb038",
@@ -20456,14 +20957,130 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x74)",
+              "meaning": "Nonzero InstanceID, or the \"%u\"-formatted selector fails the session queue-id strcmp.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fb038"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID nonzero or selector mismatch at session+0x2fff4",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102acca8",
+                      "notes": "cmpwi r4,0 at 0x102acca8; worker strcmp at 0x102acd94"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102acca8",
+                  "notes": "cmpwi r4,0 at 0x102acca8; worker strcmp at 0x102acd94"
+                }
+              ]
+            },
+            {
+              "code": 1028,
+              "code_expr": "vret(r5-in,+0x74)",
+              "meaning": "UpdateID argument was nonzero and did not equal the current queue update-id.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fb038"
+              ],
+              "conditions": [
+                {
+                  "description": "UpdateID!=0 and != session update-id",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102acca8",
+                      "notes": "cmp at 0x102acdd8 -> r28=0x404"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102acca8",
+                  "notes": "cmp at 0x102acdd8 -> r28=0x404"
+                }
+              ]
+            },
+            {
+              "code": 800,
+              "code_expr": "vret(r5-in,+0x74)",
+              "meaning": "Transport mode impl+0x4654 is not 1 or 2.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fb038"
+              ],
+              "conditions": [
+                {
+                  "description": "(impl+0x4654 - 1) unsigned > 1",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102acca8",
+                      "notes": "cmplwi 0x1 at 0x102acde8 -> r28=0x320"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102acca8",
+                  "notes": "cmplwi 0x1 at 0x102acde8 -> r28=0x320"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x74)",
-              "meaning": null,
+              "meaning": "worker rc surfaced",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fb038"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the removal body produced a code not covered by the enumerated gates",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102ace58",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -20471,14 +21088,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fb038",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fb038 with computed code vret(r5-in,+0x74)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "worker rc surfaced",
+                "unknown": "the actual removal path beyond 0x102ace58 was not fully traced \u2014 additional submission codes may exist"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fb038"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102faf24",
+                      "notes": "parse vcall slot +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102faf24",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -21682,9 +22332,9 @@
           "notes": null
         },
         "SaveQueue": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \\r or \\n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) \u2014 the same persistence/path helper BackupQueue uses \u2014 storing the queue under the given ObjectID and writing the assigned object id.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102f96fc",
           "handler_func": "0x102f96fc",
@@ -21725,8 +22375,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -21738,12 +22388,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 only - nonzero faults 718",
+              "range": "0",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -21765,8 +22415,8 @@
               "notes": null
             },
             "Title": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Saved-queue name, copied into a 0x400-byte buffer then whitespace-trimmed.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -21775,15 +22425,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Non-empty after sonosTrimWhitespace, and must not contain carriage-return or line-feed characters - violations fault 402",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Saved-queue name, copied into a 0x400-byte buffer then whitespace-trimmed.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -21805,8 +22455,8 @@
               "notes": null
             },
             "ObjectID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Requested object id / parent selector passed through to f_10146e94.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -21815,15 +22465,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Any string accepted by the persistence helper",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "Requested object id / parent selector passed through to f_10146e94.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -21847,8 +22497,8 @@
           },
           "outputs": {
             "AssignedObjectID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "Object id assigned to the new saved queue, written by f_10146e94 through the out pointer.",
+              "status": "inferred",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -21884,13 +22534,52 @@
               "notes": null
             }
           },
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102f96fc",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Indexed session impl+0x580 must exist. transport mode impl+0x4654 must be 1 or 2 (else 800). Title must be non-empty after trimming regardless of mode ordering in the impl (Title checks run only after the mode check passes).",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458. Reads mode impl+0x4654 and session storage handles.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Persists a snapshot of the current queue into saved-queue storage via f_10146e94 under Title/ObjectID; writes the assigned object id through the out pointer.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "No direct event in the impl; the new saved queue becomes visible through content-directory state.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "A saved-queue record is created; the live queue is unchanged.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "f_10146e94 rc (0 = saved). 402 for empty/whitespace-only Title or Title containing CR/LF; 800 for wrong mode; 718 for InstanceID.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102f97f4",
@@ -21900,14 +22589,130 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0x7c)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f97f4"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa8b4",
+                      "notes": "cmpwi r4,0 at 0x102aa90c -> r31=0x2ce"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102aa8b4",
+                  "notes": "cmpwi r4,0 at 0x102aa90c -> r31=0x2ce"
+                }
+              ]
+            },
+            {
+              "code": 800,
+              "code_expr": "vret(r5-in,+0x7c)",
+              "meaning": "Transport mode impl+0x4654 is not 1 or 2.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f97f4"
+              ],
+              "conditions": [
+                {
+                  "description": "(impl+0x4654 - 1) unsigned > 1",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa8b4",
+                      "notes": "cmplwi 0x1 at 0x102aa970 -> r31=0x320"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102aa8b4",
+                  "notes": "cmplwi 0x1 at 0x102aa970 -> r31=0x320"
+                }
+              ]
+            },
+            {
+              "code": 402,
+              "code_expr": "vret(r5-in,+0x7c)",
+              "meaning": "Title was empty after whitespace trimming, or contained a CR/LF character.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f97f4"
+              ],
+              "conditions": [
+                {
+                  "description": "trimmed Title[0]==0 or strpbrk(Title,\"\\r\\n\")!=NULL",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa8b4",
+                      "notes": "lbz check at 0x102aa994; strpbrk at 0x102aa9ac -> r31=0x192"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102aa8b4",
+                  "notes": "lbz check at 0x102aa994; strpbrk at 0x102aa9ac -> r31=0x192"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0x7c)",
-              "meaning": null,
+              "meaning": "f_10146e94 persistence rc returned",
               "status": "unresolved",
               "fault_sites": [
                 "0x102f97f4"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "f_10146e94 returned a nonzero code",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102aa9e0",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -21915,14 +22720,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102f97f4",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102f97f4 with computed code vret(r5-in,+0x7c)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "f_10146e94 persistence rc returned",
+                "unknown": "concrete codes the saved-queue persistence helper can produce (storage/duplicate errors)"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102f97f4"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102f96fc",
+                      "notes": "parse vcall slot +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102f96fc",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
@@ -23379,9 +24217,9 @@
           "notes": null
         },
         "SetNextAVTransportURI": {
-          "description": null,
-          "status": "unresolved",
-          "visibility": "unknown",
+          "description": "Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate \u2014 impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with \"lookup of %s URIs for %s failed\" topology logging on failure) \u2014 i.e. the next-track request can be delegated to the actual playback member.",
+          "status": "confirmed",
+          "visibility": "advertised",
           "reachability": null,
           "handler": "0x102fa880",
           "handler_func": "0x102fa880",
@@ -23416,8 +24254,8 @@
           },
           "inputs": {
             "InstanceID": {
-              "description": null,
-              "status": "unresolved",
+              "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -23429,12 +24267,12 @@
               "semantic_type": null,
               "format": null,
               "unit": null,
-              "accepted_values": null,
-              "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "accepted_values": "0 only - nonzero faults 718",
+              "range": "0",
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23456,8 +24294,8 @@
               "notes": null
             },
             "NextURI": {
-              "description": null,
-              "status": "unresolved",
+              "description": "URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -23466,15 +24304,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Any URI string accepted by the record writer f_106faeb8",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23496,8 +24334,8 @@
               "notes": null
             },
             "NextURIMetaData": {
-              "description": null,
-              "status": "unresolved",
+              "description": "DIDL metadata for the next track, stored alongside NextURI in the same record write.",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 8,
@@ -23506,15 +24344,15 @@
                 "fmt": null,
                 "via_slot": 28
               },
-              "semantic_type": null,
+              "semantic_type": "SonosStringArg",
               "format": null,
               "unit": null,
-              "accepted_values": null,
+              "accepted_values": "Any metadata string accepted by the record writer",
               "range": null,
-              "special_values": null,
-              "required": null,
-              "default": null,
-              "validation": null,
+              "special_values": "none observed in this build",
+              "required": true,
+              "default": "none - required argument",
+              "validation": "DIDL metadata for the next track, stored alongside NextURI in the same record write.",
               "evidence": [
                 {
                   "type": "firmware",
@@ -23537,13 +24375,52 @@
             }
           },
           "outputs": {},
-          "validation": null,
-          "requirements": null,
-          "state_dependencies": null,
-          "side_effects": null,
-          "events_triggered": null,
-          "state_transitions": null,
-          "return_behavior": null,
+          "validation": {
+            "description": "See inputs/impl notes",
+            "status": "confirmed",
+            "evidence": [
+              {
+                "type": "firmware",
+                "binary": "anacapad",
+                "build": "86.10-80260",
+                "status": "confirmed",
+                "address": "0x102fa880",
+                "notes": "wrapper + impl decode"
+              }
+            ]
+          },
+          "requirements": {
+            "description": "Requires impl+0x4654 == 2 \u2014 queued/indexed playback only; stream sources return 800.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "state_dependencies": {
+            "description": "Holds impl+0x458. Reads mode impl+0x4654, pending flags, current source impl+0x5dc and source name impl+0x3dc.",
+            "status": "strong",
+            "evidence": []
+          },
+          "side_effects": [
+            {
+              "description": "Writes the next-URI record at impl+0x6edc..0x6ee0, toggles pending flags +0x754c/+0x75cd=0 and +0x764e=1, and for non-local sources forwards the URI through the member/topology machinery.",
+              "status": "confirmed",
+              "evidence": []
+            }
+          ],
+          "events_triggered": {
+            "description": "No direct event emission observed; the pending flags feed later transport bookkeeping.",
+            "status": "strong",
+            "evidence": []
+          },
+          "state_transitions": {
+            "description": "Next-track record updated; flag impl+0x764e marks a pending next-URI handoff.",
+            "status": "confirmed",
+            "evidence": []
+          },
+          "return_behavior": {
+            "description": "Worker rc (0 = accepted). Distinct faults: 800 when mode != 2, 718 on nonzero InstanceID.",
+            "status": "confirmed",
+            "evidence": []
+          },
           "fault_sites": [
             {
               "site": "0x102fa97c",
@@ -23553,14 +24430,96 @@
           ],
           "errors": [
             {
+              "code": 718,
+              "code_expr": "vret(r5-in,+0xc)",
+              "meaning": "Nonzero InstanceID.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa97c"
+              ],
+              "conditions": [
+                {
+                  "description": "InstanceID argument is nonzero",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102af288",
+                      "notes": "cmpwi r4,0 at 0x102af288 -> r3=0x2ce"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102af288",
+                  "notes": "cmpwi r4,0 at 0x102af288 -> r3=0x2ce"
+                }
+              ]
+            },
+            {
+              "code": 800,
+              "code_expr": "vret(r5-in,+0xc)",
+              "meaning": "Transport mode impl+0x4654 is not 2 \u2014 next-URI requires indexed/queue playback.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa97c"
+              ],
+              "conditions": [
+                {
+                  "description": "impl+0x4654 != 2",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102af288",
+                      "notes": "cmpwi 0x2 at 0x102af2d8 -> r31=0x320"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102af288",
+                  "notes": "cmpwi 0x2 at 0x102af2d8 -> r31=0x320"
+                }
+              ]
+            },
+            {
               "code": null,
               "code_expr": "vret(r5-in,+0xc)",
-              "meaning": null,
+              "meaning": "worker f_102af1c8 rc returned",
               "status": "unresolved",
               "fault_sites": [
                 "0x102fa97c"
               ],
-              "conditions": [],
+              "conditions": [
+                {
+                  "description": "the delegated-URI path produced a code not covered by the enumerated gates",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102af404",
+                      "notes": "passthrough path"
+                    }
+                  ]
+                }
+              ],
               "evidence": [
                 {
                   "type": "firmware",
@@ -23568,14 +24527,47 @@
                   "build": "86.10-80260",
                   "status": "confirmed",
                   "address": "0x102fa97c",
-                  "notes": "fault raise site"
+                  "notes": "impl vret passthrough site"
                 }
               ],
               "unresolved": {
-                "proven": "request fault vfunc (+0x14) invoked at 0x102fa97c with computed code vret(r5-in,+0xc)",
-                "unknown": null
-              },
-              "notes": null
+                "proven": "worker f_102af1c8 rc returned",
+                "unknown": "codes produced by the member/topology forwarding path (f_10765a00/f_10762c30/f_106fbef4)"
+              }
+            },
+            {
+              "code": 402,
+              "code_expr": "parse/req-layer",
+              "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+              "status": "confirmed",
+              "fault_sites": [
+                "0x102fa97c"
+              ],
+              "conditions": [
+                {
+                  "description": "Missing or unparseable input argument at the wrapper parse stage",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102fa880",
+                      "notes": "parse vcall slot +0x8 then fault path"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102fa880",
+                  "notes": "wrapper parse + fault path"
+                }
+              ]
             }
           ],
           "firmware_differences": [],
