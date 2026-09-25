@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sonos-research.local/anacapad-soap/documentation.schema.json",
+  "title": "anacapad SOAP surface documentation",
+  "type": "object",
+  "required": ["meta", "services"],
+  "additionalProperties": false,
+  "definitions": {
+    "status": {"enum": ["confirmed", "strong", "inferred", "unresolved"]},
+    "evidence": {
+      "type": "object",
+      "required": ["type", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {"enum": ["firmware", "live_test", "network_capture",
+                          "runtime_trace", "device_observation"]},
+        "binary": {"type": "string"},
+        "build": {"type": "string"},
+        "function": {"type": "string"},
+        "address": {"type": "string"},
+        "callsite": {"type": "string"},
+        "notes": {"type": "string"},
+        "status": {"$ref": "#/definitions/status"}
+      }
+    },
+    "evidenceList": {"type": "array", "items": {"$ref": "#/definitions/evidence"}},
+    "description": {"type": ["string", "null"]},
+    "sentinelOr": {
+      "description": "null = unassessed; a sentinel string ('none','n/a','unconstrained','any','unbounded') = assessed-empty; otherwise real content."
+    },
+    "condition": {
+      "type": "object",
+      "required": ["description", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string"},
+        "evidence": {"$ref": "#/definitions/evidenceList"}
+      }
+    },
+    "errorEntry": {
+      "type": "object",
+      "required": ["status", "fault_sites", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {"type": ["integer", "null"],
+                 "description": "SOAP fault code, or null when the code is computed"},
+        "code_expr": {"type": ["string", "null"],
+                      "description": "symbolic expression for computed codes, e.g. vret(r5,+0x34)"},
+        "meaning": {"type": ["string", "null"],
+                    "description": "what this error means for this action"},
+        "status": {"$ref": "#/definitions/status"},
+        "fault_sites": {"type": "array", "items": {"type": "string"},
+                        "description": "request-vtable(+0x14) call sites this entry accounts for"},
+        "conditions": {"type": "array",
+                       "items": {"$ref": "#/definitions/condition"},
+                       "description": "action-specific conditions that raise this error"},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "unresolved": {
+          "type": ["object", "null"],
+          "required": ["proven", "unknown"],
+          "additionalProperties": false,
+          "properties": {
+            "proven": {"type": ["string", "null"],
+                       "description": "what the binary proves about this fault path"},
+            "unknown": {"type": ["string", "null"],
+                        "description": "what remains unknown; must name the follow-up question"}
+          }
+        },
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "argument": {
+      "type": "object",
+      "required": ["direction", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"$ref": "#/definitions/description"},
+        "status": {"$ref": "#/definitions/status"},
+        "direction": {"enum": ["in", "out"]},
+        "primitive": {
+          "type": ["object", "null"],
+          "description": "machine-owned: parse/format helper facts from the extractor",
+          "additionalProperties": true
+        },
+        "semantic_type": {"type": ["string", "null"],
+                          "description": "e.g. uuid, uri, bool, track-index, seconds"},
+        "format": {"type": ["string", "null"],
+                   "description": "wire format e.g. 'HH:MM:SS', 'x-sonos-...'; 'any' allowed"},
+        "unit": {"type": ["string", "null"], "description": "'none' allowed"},
+        "accepted_values": {
+          "description": "list of allowed strings, or 'unconstrained'",
+          "type": ["array", "string", "null"],
+          "items": {"type": "string"}
+        },
+        "range": {
+          "description": "{min,max} or 'unbounded'/'n/a'",
+          "type": ["object", "string", "null"],
+          "properties": {"min": {}, "max": {}}
+        },
+        "special_values": {
+          "description": "map of special value -> meaning, or 'none'",
+          "type": ["object", "string", "null"]
+        },
+        "required": {"type": ["boolean", "string", "null"],
+                     "enum": [true, false, "conditional", null]},
+        "default": {"description": "default when omitted, or 'none'",
+                    "type": ["string", "number", "boolean", "null"]},
+        "validation": {"type": ["string", "object", "null"],
+                       "description": "validation behavior, or 'none'"},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["status", "visibility", "inputs", "outputs", "errors",
+                   "fault_sites", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"$ref": "#/definitions/description"},
+        "status": {"$ref": "#/definitions/status"},
+        "visibility": {"enum": ["advertised", "hidden", "internal", "unknown"]},
+        "reachability": {"type": ["string", "null"],
+                         "description": "required for hidden actions: how/if it can be invoked"},
+        "handler": {"type": ["string", "null"]},
+        "handler_func": {"type": ["string", "null"]},
+        "req_arg": {"type": ["string", "null"]},
+        "dispatch": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "description": "machine-owned: table entry/voff or strcmp evidence"
+        },
+        "implementation": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "description": "machine-owned: impl vfunc calls with obj/slot/callsite"
+        },
+        "inputs": {"type": "object",
+                   "additionalProperties": {"$ref": "#/definitions/argument"}},
+        "outputs": {"type": "object",
+                    "additionalProperties": {"$ref": "#/definitions/argument"}},
+        "validation": {"type": ["string", "object", "null"]},
+        "requirements": {"type": ["string", "object", "null"],
+                         "description": "preconditions e.g. group coordinator; 'none' allowed"},
+        "state_dependencies": {"type": ["string", "array", "null"]},
+        "side_effects": {
+          "type": ["string", "array", "null"],
+          "items": {
+            "type": "object",
+            "required": ["description"],
+            "properties": {
+              "description": {"type": "string"},
+              "evidence": {"$ref": "#/definitions/evidenceList"}
+            }
+          }
+        },
+        "events_triggered": {"type": ["string", "array", "null"]},
+        "state_transitions": {"type": ["string", "object", "null"]},
+        "return_behavior": {"type": ["string", "null"]},
+        "fault_sites": {
+          "type": "array",
+          "description": "machine-owned: every req->vfunc[0x14] site found",
+          "items": {
+            "type": "object",
+            "properties": {
+              "site": {"type": "string"},
+              "code": {"type": ["integer", "null"]},
+              "code_expr": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "errors": {"type": "array",
+                   "items": {"$ref": "#/definitions/errorEntry"}},
+        "firmware_differences": {"type": "array",
+                                 "items": {"type": "string"}},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "stateVariable": {
+      "type": "object",
+      "required": ["status", "evented"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"$ref": "#/definitions/description"},
+        "status": {"$ref": "#/definitions/status"},
+        "data_type": {"type": ["string", "null"]},
+        "evented": {"type": ["boolean", "null"]},
+        "accepted_values": {"type": ["array", "string", "null"]},
+        "range": {"type": ["object", "string", "null"]},
+        "related_actions": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["name", "control_path", "status", "availability",
+                   "actions", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "control_path": {"type": "string"},
+        "description": {"$ref": "#/definitions/description"},
+        "status": {"$ref": "#/definitions/status"},
+        "visibility": {"enum": ["advertised", "hidden", "internal", "unknown"]},
+        "registration": {"type": ["object", "null"], "additionalProperties": true},
+        "availability": {
+          "type": "object",
+          "required": ["notes"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled_source": {"type": ["object", "null"], "additionalProperties": true},
+            "cap_flags": {"type": ["string", "null"]},
+            "notes": {"type": ["string", "null"],
+                      "description": "human explanation of when/why the service is reachable"}
+          }
+        },
+        "object": {"type": ["object", "null"], "additionalProperties": true},
+        "dispatcher": {"type": ["object", "null"], "additionalProperties": true},
+        "actions": {"type": "object",
+                    "additionalProperties": {"$ref": "#/definitions/action"}},
+        "state_variables": {"type": "object",
+                            "additionalProperties": {"$ref": "#/definitions/stateVariable"}},
+        "events": {"type": ["object", "null"]},
+        "errors": {"type": "array",
+                   "items": {"$ref": "#/definitions/errorEntry"},
+                   "description": "dispatcher-level faults (e.g. unknown-action 401)"},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"$ref": "#/definitions/description"},
+        "effect": {"type": ["string", "null"],
+                   "description": "what this field/flag controls"},
+        "status": {"$ref": "#/definitions/status"},
+        "loads": {"type": "array"},
+        "stores": {"type": "array"},
+        "affected_services": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "internalFunction": {
+      "type": "object",
+      "required": ["status", "required_for_behavior"],
+      "additionalProperties": false,
+      "properties": {
+        "address": {"type": "string"},
+        "role": {"type": ["string", "null"]},
+        "description": {"$ref": "#/definitions/description"},
+        "why_external": {"type": ["string", "null"],
+                         "description": "the observable protocol behavior it explains; required when required_for_behavior"},
+        "required_for_behavior": {"type": "boolean"},
+        "status": {"$ref": "#/definitions/status"},
+        "used_by": {"type": "array"},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "dispatchCandidate": {
+      "type": "object",
+      "required": ["func", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "func": {"type": "string"},
+        "li_401_at": {"type": ["string", "null"]},
+        "kind": {"type": ["string", "null"]},
+        "compares": {"type": "array"},
+        "vptr_candidates": {"type": "array"},
+        "assessment": {"type": ["string", "null"],
+                       "description": "verdict: is this a SOAP dispatcher / reachable callable?"},
+        "status": {"$ref": "#/definitions/status"},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "formatSpec": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"$ref": "#/definitions/description"},
+        "format": {"type": ["string", "null"]},
+        "status": {"$ref": "#/definitions/status"},
+        "used_by": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"$ref": "#/definitions/evidenceList"},
+        "notes": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["binary", "build", "schema_version"],
+      "additionalProperties": true,
+      "properties": {
+        "binary": {"type": "string"},
+        "build": {"type": "string"},
+        "schema_version": {"type": "integer"},
+        "source_extract": {"type": "string"}
+      }
+    },
+    "routing": {"type": ["object", "null"], "additionalProperties": true},
+    "request_vtable": {"type": ["object", "null"], "additionalProperties": true},
+    "services": {"type": "object",
+                 "additionalProperties": {"$ref": "#/definitions/service"}},
+    "capabilities": {"type": "object",
+                     "additionalProperties": {"$ref": "#/definitions/capability"}},
+    "internal_functions": {"type": "object",
+                           "additionalProperties": {"$ref": "#/definitions/internalFunction"}},
+    "dispatch_candidates": {"type": "object",
+                            "additionalProperties": {"$ref": "#/definitions/dispatchCandidate"}},
+    "state_variables": {"type": "object",
+                        "additionalProperties": {"$ref": "#/definitions/stateVariable"},
+                        "description": "global/shared state variables not owned by one service"},
+    "uri_formats": {"type": "object",
+                    "additionalProperties": {"$ref": "#/definitions/formatSpec"}},
+    "payload_formats": {"type": "object",
+                        "additionalProperties": {"$ref": "#/definitions/formatSpec"}},
+    "firmware_differences": {"type": "array", "items": {"type": "object"}}
+  }
+}

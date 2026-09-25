@@ -1,0 +1,97 @@
+{
+ "binary": "anacapad",
+ "arch": "ppc32be",
+ "functions_mapped": 12,
+ "confidence_note": "fixture",
+ "routers": {
+  "0x1000": {
+   "kind": "soap_path_router",
+   "record_stride": 20,
+   "n_records": 1,
+   "records": [{"path": "/Test/Control", "name": "TestSvc", "cap_flags": "0x1"}]
+  }
+ },
+ "router_chain": [{"from": "0x1000", "to": "0x2000", "at": "0x1010"}],
+ "capability_fields": {
+  "0xcdc": {
+   "loads": [{"pc": "0x1", "func": "0xf1"}],
+   "stores": [{"pc": "0x2", "func": "0xf2", "size": "stw", "src": "0x2000"}]
+  }
+ },
+ "services": [
+  {
+   "name": "TestSvc",
+   "control_path": "/Test/Control",
+   "router": "0x1000",
+   "cap_flags": "0x1",
+   "enabled": {"store_pc": "0x111", "size": "stb", "raw_expr": "0x1",
+               "kind": "const", "value": 1, "confidence": "proven"},
+   "evidence": {"record_stack_off": -10, "path_str_va": "0xa1",
+                "name_str_va": "0xa2", "path_store_pc": "0x100"},
+   "object": {"expr": "r3-in+0x10", "ctx_off": "0x10", "source": "member",
+              "ctor_candidates": [{"ctor": "0xc1", "site_pc": "0xc2",
+                                   "in_func": "0xc3", "vptr": "0x5000"}],
+              "vptr": "0x5000"},
+   "dispatcher": {"addr": "0x6000", "kind": "table",
+                  "fault_sites": [{"pc": "0x6010", "code": 401}],
+                  "action_table": "0x7000"},
+   "actions": [
+    {
+     "name": "DoThing", "entry_addr": "0x7000", "kind": "virtual",
+     "voff": 56, "handler": "0x8000", "handler_func": "0x8000",
+     "req_arg": "r4-in",
+     "args_in": [
+      {"name": "Mode", "name_va": "0xa3", "site": "0x8010",
+       "via_slot": 28, "parse_helper": "0x9000", "type_tag": 7,
+       "buf_cap": null, "fmt": null},
+      {"name": "Target", "name_va": "0xa5", "site": "0x8018",
+       "via_slot": 28, "parse_helper": "0x9000", "type_tag": 7,
+       "buf_cap": null, "fmt": null}
+     ],
+     "args_out": [
+      {"name": "Result", "name_va": "0xa4", "site": "0x8020",
+       "fmt_helper": "0x9010", "fmt": null}
+     ],
+     "faults": [
+      {"site": "0x8030", "code": 718, "code_expr": null, "source": "const"},
+      {"site": "0x8040", "code": null, "code_expr": "vret(r5,+0x34)",
+       "source": "vret(r5,+0x34)"}
+     ],
+     "req_vcalls": [{"site": "0x8050", "slot": 8, "purpose": "parse"}],
+     "impl_calls": [{"site": "0x8060", "obj": "*(r3-in+0x4)", "slot": 52,
+                     "arg4": "sp"}]
+    },
+    {
+     "name": "HiddenOne", "entry_addr": "0x70f0", "kind": "direct",
+     "voff": null, "handler": "0x8100", "handler_func": "0x8100",
+     "req_arg": "r4-in", "args_in": [], "args_out": [], "faults": [],
+     "req_vcalls": [], "impl_calls": []
+    }
+   ]
+  },
+  {
+   "name": "NoTable",
+   "control_path": "/NoTable/Control",
+   "router": "0x2000",
+   "cap_flags": "0x2",
+   "enabled": {"store_pc": "0x222", "size": "lbz",
+               "raw_expr": "*(r3-in+0x5704)", "kind": "field",
+               "base": "r3-in", "off": 22276, "confidence": "proven"},
+   "evidence": {},
+   "object": {"expr": "*(r3-in+0xaa6c)", "cell_off": "0xaa6c",
+              "base": "r3-in", "source": "indirect_ptr",
+              "store_sites": [{"pc": "0x3", "func": "0xf3"}],
+              "candidates": ["0x0"], "vptr": null},
+   "dispatcher": {"addr": "0x9000", "kind": "reject-all",
+                  "fault_sites": [{"pc": "0x9010", "code": 401}]},
+   "actions": []
+  }
+ ],
+ "unattached_dispatcher_candidates": [
+  {"func": "0xa000", "li_401_at": "0xa010", "kind": "reject-all",
+   "vptr_candidates": ["0xb000"], "compares": []}
+ ],
+ "action_tables": [{"base": "0x7000", "n": 2,
+                    "names": ["DoThing", "HiddenOne"]}],
+ "request_vtable": {"0x14": "raise fault", "confidence": "inferred"}
+}
