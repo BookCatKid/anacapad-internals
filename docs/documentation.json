@@ -19583,7 +19583,7 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "track ordinal or time position (seconds)",
+       "semantic_type": "SonosTrackOrdinal (TRACK_NR) or SonosSeekTime (REL_TIME/TIME_DELTA) - see payload_formats",
        "format": "TRACK_NR: strtol(Target,NULL,10) on the raw text - base 10, leading whitespace and a +/- sign accepted per strtoul rules, NO endptr so trailing junk is silently ignored ('5junk' -> track 5), saturates at LONG_MIN/MAX on overflow. REL_TIME/TIME_DELTA: f_102ab830 consumes at most one leading '-' manually (sets a separate sign flag byte), then sscanf('%hhu:%hhu:%hhu') must return exactly 3. Each %hhu field skips leading whitespace and accepts its own optional +/- sign (strtoul semantics: '-5' wraps to 251); the ':' separators must match literally with no intervening whitespace; each component is stored as u8 so values above 255 wrap mod 256 ('256:00:00' -> 0:00:00, '999' -> 231); trailing characters after the third field are ignored.",
        "unit": "track ordinal; or seconds",
        "accepted_values": "TRACK_NR: textual decimal whose strtol result lies in 1..65534. REL_TIME/TIME_DELTA: three u8-wrapping decimal components; computed value = h*3600+m*60+s seconds.",
@@ -45828,6 +45828,47 @@
  },
  "state_variables": {},
  "uri_formats": {},
- "payload_formats": {},
+ "payload_formats": {
+  "SonosSeekTime": {
+   "description": "Sonos time-position operand produced by f_102ab830: an optional leading '-' sets a separate sign flag, then sscanf('%hhu:%hhu:%hhu') must convert exactly three decimal fields. Each %hhu applies strtoul semantics per component - leading whitespace skipped, own optional +/- sign allowed, result truncated to u8 so >255 wraps mod 256. The ':' separators match literally (no whitespace before them); trailing characters after the third field are ignored. Output is a {seconds_word, fraction_word=0} pair (printed as '%lld.%06lld') plus the sign byte; a leading '-' negates only the seconds word. Total range 0..934575 s (255:255:255); there is no upper-bound check.",
+   "format": "[-]H:M:S where each component is a scanf %hhu (u8, mod-256 wrap); exactly three required; trailing junk ignored",
+   "status": "confirmed",
+   "used_by": [
+    "AVTransport.Seek (Target for REL_TIME/TIME_DELTA, both indexed and stream modes)"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "notes": "sign skip via cmplwi '-' + r3+=cr4.eq; sscanf fmt at 0x10eafc7c; secs=(h*60+m)*60+s; neg on cr4.eq; stw {secs,0} pair + sign byte",
+     "address": "0x102ab830",
+     "function": "0x102ab830"
+    }
+   ],
+   "notes": "Action-specific restrictions layer on top: e.g. Seek indexed mode rejects a set sign flag unless Unit==TIME_DELTA, and treats a zero-magnitude pair as a silent no-op success. Stream mode performs no sign or zero gating."
+  },
+  "SonosTrackOrdinal": {
+   "description": "Sonos track-ordinal operand: strtol(text,NULL,10) on the raw string - base 10, leading whitespace and +/- accepted, endptr NULL so trailing junk is silently ignored ('5junk' -> 5), saturates at LONG_MIN/MAX. Acceptance range is validated on the UNMASKED strtol result as (value-1) <= 0xFFFD unsigned, i.e. exactly 1..65534; a separate u16 truncation (value & 0xffff) sizes the downstream record field and cannot wrap an out-of-range input into validity.",
+   "format": "decimal integer, strtol base 10; accepted lexical range 1..65534",
+   "status": "confirmed",
+   "used_by": [
+    "AVTransport.Seek (Target for TRACK_NR, indexed mode)"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "notes": "strtol(r26,0,10); rlwinm &0xffff at 0x102b938c sizes the record field; addi r30,-1 + cmplwi 0xFFFD at 0x102b9394-0x102b939c validates the raw value",
+     "address": "0x102b9350",
+     "function": "0x102b9088"
+    }
+   ],
+   "notes": "The mask-before-validate ordering looks alarming but is inert: the record field is computed pre-check, the check uses the raw value, and a rejected record is destroyed unsubmitted."
+  }
+ },
  "firmware_differences": []
 }

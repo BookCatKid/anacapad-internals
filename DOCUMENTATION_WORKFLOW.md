@@ -34,11 +34,40 @@ tests/                         unittest suite + synthetic fixture
 5. Reverse the implementation path (handler -> impl vfunc -> callee).
 6. Fill semantic fields in documentation.json for that action.
 7. Add evidence records (address + build + status) for every non-obvious claim.
-8. Run validation and coverage.         python3 tools/validate.py
+8. Verification pass (see below) BEFORE treating the entry as confirmed.
+9. Run validation and coverage.         python3 tools/validate.py
                                         python3 tools/lint.py
                                         python3 tools/coverage.py
-9. Repeat.
+10. Repeat.
 ```
+
+## Verification pass
+
+A first semantic pass produces a *candidate*, not a finished entry. Before
+accepting `confirmed` statuses, re-inspect the instruction/dataflow level for
+the boundary assumptions that are easy to get wrong on this target:
+
+- **PPC decode traps**: disassembler mnemonics can mislead — `rlwinm rX,rY,0,16,31`
+  renders as a shift-like op but is `rY & 0xffff`; `cmplwi` immediates are
+  *zero*-extended (`0xFFFD`, not a negative); `bc bo=4/5` vs `bo=12/13` flip
+  branch polarity on the same CR bit. Decode raw words at every validation
+  boundary, mask, and range check.
+- **Validate-vs-normalize order**: note whether a range check runs on the raw
+  parsed value or a truncated/masked copy. The two produce different accepted
+  lexical ranges (Seek TRACK_NR: check is on the raw `strtol` result).
+- **Out-params via stack slots**: callers pass `&sp+N`; a `stbu`-computed
+  pointer can alias what looks like an unrelated byte read. Trace which bytes
+  a callee actually writes before reading meaning into a post-call load.
+- **Return-convention splits**: a callee's byte/int result may go to an
+  out-param while the return register carries only "dispatched" status
+  (Seek's stream path: the session vfunc's result byte is logged, not
+  propagated — SOAP success does not mean the streamer accepted the seek).
+  Distinguish *request accepted* / *operation submitted* / *operation
+  actually succeeded*.
+- **Branch-order quirks**: the order of sign checks, zero checks, and
+  submission gates creates observable asymmetries (`-00:00:00` faults as
+  REL_TIME but is a silent no-op as TIME_DELTA). Preserve the order in the
+  docs; do not "clean up" semantics that differ only by check ordering.
 
 ## Completeness rules
 
@@ -110,6 +139,21 @@ extraction as `required_for_behavior:true`), shared URI/metadata parsers,
 coordinator/state validators, error-translation functions, capability
 checkers, queue mutators. Allocators, thunks, logging, libc wrappers: mark
 `required_for_behavior:false` or leave undeclared.
+
+### Shared primitives
+
+Some internals are worth characterizing *once, globally* because many
+actions converge on them — document them in `internal_functions` /
+`payload_formats` and reference rather than re-derive per action:
+
+- `f_102ab830` — the `SonosSeekTime` parser (declared in `payload_formats`).
+- `f_102587b4` / `f_10258ab0` — media-item capability mask derivation
+  (Seek tests bits `0x400000`/`0x200000`); bit semantics reused across
+  transport actions.
+- `engine+0x4654` — source-mode enum `{0,1,2}` selecting indexed vs stream
+  behavior; several actions likely branch on it. If two or more actions
+  prove to depend on it, pause and reverse the enum's writers once rather
+  than rediscovering it per action.
 
 ## Example
 
