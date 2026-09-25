@@ -106,11 +106,15 @@ def lint(doc, api):
                 _check_claim_evidence(warnings, "%s error %s" % (wa, c),
                                       e.get("status"), e.get("evidence"))
                 for s in e.get("fault_sites") or []:
-                    if s in seen_sites:
+                    # a site may legitimately carry several distinct codes
+                    # through one emitter; flag only ambiguous duplicate
+                    # claims (same code twice, or an uncoded entry repeated)
+                    if s in seen_sites and (e.get("code") is None
+                                            or e.get("code") in seen_sites[s]):
                         warnings.append(
-                            "%s: fault site %s claimed by two error entries"
-                            % (wa, s))
-                    seen_sites[s] = True
+                            "%s: fault site %s claimed ambiguously by "
+                            "multiple error entries" % (wa, s))
+                    seen_sites.setdefault(s, set()).add(e.get("code"))
             for an, arg, direction in doclib.iter_args(act):
                 wg = "%s %s-arg %s" % (wa, direction, an)
                 _check_text(warnings, wg, "description",
