@@ -16720,7 +16720,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks."
     },
     "AddURIToQueue": {
      "description": "Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls shared enqueue worker f_102b6948(engine, args..., 0). The worker logs \"avt_impl\" \"Add to queue %u; URI: %s\" and \"Add to queue %u; MD: %s\", takes the impl+0x458 lock, and performs the enqueue through the queue/session machinery.",
@@ -17252,7 +17252,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks. The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128)."
     },
     "AddURIToSavedQueue": {
      "description": "Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.",
@@ -17824,7 +17824,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks."
     },
     "BackupQueue": {
      "description": "Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0 \u2014 backing up an empty queue is a silent success no-op. Otherwise it builds the \"trackqueue\"/\"trackqueue.rsq\" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.",
@@ -20539,7 +20539,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release."
     },
     "DelegateGroupCoordinationTo": {
      "description": "Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 \u2014 that specific code is treated as success \u2014 while every other code passes through verbatim.",
@@ -26567,7 +26567,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128)."
     },
     "RemoveTrackFromQueue": {
      "description": "Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028) \u2014 optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.",
@@ -28434,7 +28434,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release."
     },
     "RunAlarm": {
      "description": "Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc \u2014 the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.",
@@ -36244,7 +36244,8 @@
       "code": 401
      }
     ],
-    "action_table": "0x10ed19ec"
+    "action_table": "0x10ed19ec",
+    "notes": "Dispatch table 0x10ed19ec is binary-searched by name (12-byte entries {name_ptr, word1, member_off}). word1 bit0=1: word1 is the handler address called as handler(svc+member_off, request, impl). bit0=0: handler = *(*(svc+member_off) + word1 - 1), i.e. an indirect table lookup on a pointer member. Unknown action faults via request->v[+0x14] with 0x191 (401). The impl argument r5 is *(svc+4), the queue-manager singleton stored at global 0x11096770."
    },
    "actions": {
     "AddMultipleURIs": {
@@ -36286,6 +36287,18 @@
         "site": "0x10465084",
         "slot": 12,
         "purpose": "commit"
+       }
+      ],
+      "impl_vfunc": "0x1046594c",
+      "impl_notes": "impl->vfunc 0x1046594c on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x1046594c",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
        }
       ]
      },
@@ -36544,7 +36557,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly."
     },
     "AddURI": {
      "description": "Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl->v[+0x8](impl, QueueID, UpdateID, &URI, &MD, DesiredFirst, EnqueueAsNext, &out1,&out2,&out3,&out4) on the queue-manager \u2014 rc==0 emits the four outputs, nonzero goes to req->v[+0x14] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.",
@@ -36579,6 +36592,26 @@
         "site": "0x10464654",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_vfunc": "0x10465a44",
+      "impl_notes": "impl->vfunc 0x10465a44 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object then tail-calls engine worker 0x102b6948",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465a44",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b6948",
+        "notes": "engine worker tail-called by the vfunc forwarder"
        }
       ]
      },
@@ -37121,7 +37154,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly."
     },
     "AttachQueue": {
      "description": "Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in \u2014 the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
@@ -37174,6 +37207,26 @@
         "site": "0x104648fc",
         "slot": 12,
         "purpose": "commit"
+       }
+      ],
+      "impl_vfunc": "0x10465a54",
+      "impl_notes": "impl->vfunc 0x10465a54 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object then tail-calls engine worker 0x102b2da4",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465a54",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b2da4",
+        "notes": "engine worker tail-called by the vfunc forwarder"
        }
       ]
      },
@@ -37395,7 +37448,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly."
     },
     "Backup": {
      "description": "Backs up queue state \u2014 the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl->v[+0x10](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
@@ -37425,7 +37478,19 @@
         "arg4": "vret(r5-in,+0x10)"
        }
       ],
-      "req_vcalls": []
+      "req_vcalls": [],
+      "impl_vfunc": "0x1046593c",
+      "impl_notes": "impl->vfunc 0x1046593c on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x1046593c",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       }
+      ]
      },
      "inputs": {},
      "outputs": {},
@@ -37605,6 +37670,18 @@
         "site": "0x10464228",
         "slot": 60,
         "purpose": "other"
+       }
+      ],
+      "impl_vfunc": "0x10466280",
+      "impl_notes": "impl->vfunc 0x10466280 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10466280",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
        }
       ]
      },
@@ -37786,6 +37863,26 @@
         "site": "0x10464ca0",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_vfunc": "0x10465a64",
+      "impl_notes": "impl->vfunc 0x10465a64 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object then tail-calls engine worker 0x102dff24",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465a64",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102dff24",
+        "notes": "engine worker tail-called by the vfunc forwarder"
        }
       ]
      },
@@ -38133,6 +38230,26 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "impl_vfunc": "0x10465a74",
+      "impl_notes": "impl->vfunc 0x10465a74 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object then tail-calls engine worker 0x102b3a84",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465a74",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b3a84",
+        "notes": "engine worker tail-called by the vfunc forwarder"
+       }
       ]
      },
      "inputs": {
@@ -38438,6 +38555,26 @@
         "site": "0x10464b0c",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_vfunc": "0x10465a84",
+      "impl_notes": "impl->vfunc 0x10465a84 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object then tail-calls engine worker 0x102b3954",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465a84",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b3954",
+        "notes": "engine worker tail-called by the vfunc forwarder"
        }
       ]
      },
@@ -38824,6 +38961,26 @@
         "site": "0x10464e68",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_vfunc": "0x10465a94",
+      "impl_notes": "impl->vfunc 0x10465a94 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object then tail-calls engine worker 0x102b3924",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465a94",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102b3924",
+        "notes": "engine worker tail-called by the vfunc forwarder"
        }
       ]
      },
@@ -39257,6 +39414,18 @@
         "slot": 12,
         "purpose": "commit"
        }
+      ],
+      "impl_vfunc": "0x10465970",
+      "impl_notes": "impl->vfunc 0x10465970 on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465970",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
+       }
       ]
      },
      "inputs": {},
@@ -39481,6 +39650,18 @@
         "site": "0x1046446c",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_vfunc": "0x10465f7c",
+      "impl_notes": "impl->vfunc 0x10465f7c on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10465f7c",
+        "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
        }
       ]
      },
@@ -39858,9 +40039,17 @@
      "status": "confirmed",
      "address": "0x10464268",
      "notes": "service dispatcher"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102bd0a4",
+     "notes": "saved-queue shim loads singleton 0x11096770 as worker `this`"
     }
    ],
-   "notes": null
+   "notes": "None Impl provenance: *(svc+4) resolves to the queue-manager singleton at global 0x11096770 (the same `this` pointer passed to all 0x1047xxxx saved-queue workers by the AVTransport impl shims at 0x102bd048/0x102bd140/0x102bd238). Companion global 0x11096774 holds a refcounted session token: *(token+4) is atomically incremented (stwcx.) before each worker call and released with f_100c5050 afterwards; a null token degrades to a plain tail call. Queue-manager vtable resolved: 0x10ed1bcc (ctor f_10465fac, log tag Queue). All action vfuncs +0x08..+0x30 forward to the shared queue engine at *(qm+0x128) - the same engine workers AVTransport queue ops use (f_102b6948 AddURI, f_102b3a84 RemoveAllTracks): the two services are SOAP facades over one queue engine."
   },
   "/MediaRenderer/RenderingControl/Control": {
    "name": "RenderingControl",
@@ -71952,6 +72141,294 @@
      "status": "inferred",
      "address": "0x102ab010",
      "notes": "Deferred function pointer (at 0x10eaea90) swapped in by Play/GetTransportInfo boilerplate."
+    }
+   ]
+  },
+  "0x10479bb4": {
+   "description": "Saved-queue creation worker (queue-manager `this` = global singleton 0x11096770). Acquires the manager mutex via f_10988558 on this+0x28, reads a state record whose +0xec field is the update counter (new UpdateID = old+1 stored into the request record), and drives table 0x10ed2f88 callbacks f_1047f588/f_1047f590 during list mutation.",
+   "why_external": "CreateSavedQueue (AVTransport v+0xac impl) tail-calls this worker with the full arg vector after the singleton presence gate",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10479bb4",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x10479fb8": {
+   "description": "Saved-queue URI-append worker on the queue-manager singleton (0x11096770). Reached through the refcounted-session protocol: caller atomically increments *(session+4) before the call and releases via f_100c5050 after.",
+   "why_external": "AddURIToSavedQueue (AVTransport v+0xac impl at 0x102bd140) tail-calls this worker; absent session object degrades to a plain tail call",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10479fb8",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x1047a3bc": {
+   "description": "Saved-queue reorder worker on the queue-manager singleton (0x11096770); same refcounted-session protocol as f_10479fb8.",
+   "why_external": "ReorderTracksInSavedQueue (AVTransport impl at 0x102bd238) tail-calls this worker",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1047a3bc",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x104794d4": {
+   "description": "Queue persistence worker invoked by the AVTransport SaveQueue path; performs the on-disk queue save after Title validation.",
+   "why_external": "Called from f_10146e94 which is reached by the SaveQueue impl path",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x104794d4",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x100c5050": {
+   "description": "Refcount release helper for the queue-session token object (global 0x11096774); decrements *(obj+4) and frees at zero. Pairs with the atomic stwcx. increment performed by every saved-queue caller.",
+   "why_external": "Called after every saved-queue worker invocation in the 0x102bdxxx shim family",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x100c5050",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x1047851c": {
+   "description": "Queue-subsystem worker called inside the Queue-service registration helper f_104634c4 during singleton refcount setup.",
+   "why_external": "Reached from f_104634c4 while wiring the queue-manager session token",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1047851c",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x104791b0": {
+   "description": "Queue-subsystem worker called from the service-registration path f_101981f0 alongside session-token installation on the zoneplayer object.",
+   "why_external": "Called during router init when the queue-manager token is bound to zoneplayer fields -0x3d4/-0x3d8",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x104791b0",
+     "notes": "worker function body; reached via tail call from documented SOAP impl path"
+    }
+   ]
+  },
+  "0x10465fac": {
+   "description": "Queue-manager ctor: initializes the Queue-tagged manager object, stores vtable 0x10ed1bcc, builds member sub-objects via f_1067aec4 and f_10807034.",
+   "why_external": "Constructs the object whose vfuncs implement all 11 Queue-service actions",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10466070",
+     "notes": "'Queue' log tag inside ctor"
+    }
+   ]
+  },
+  "0x10466280": {
+   "description": "Queue-manager Browse vfunc body (vtable 0x10ed1bcc +0x28); larger function than the forwarder thunks - performs the queue browse enumeration.",
+   "why_external": "Implements Queue.Browse SOAP semantics",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10466280",
+     "notes": "vtable slot +0x28 body"
+    }
+   ]
+  },
+  "0x10465f7c": {
+   "description": "Queue-manager SaveAsSonosPlaylist vfunc body (vtable +0x24); persists the attached queue as a Sonos playlist.",
+   "why_external": "Implements Queue.SaveAsSonosPlaylist semantics",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465f7c",
+     "notes": "vtable slot +0x24 body"
+    }
+   ]
+  },
+  "0x10465a44": {
+   "description": "Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b6948.",
+   "why_external": "vtable slot of queue-manager class 0x10ed1bcc; dispatch target for a SOAP action",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a44",
+     "notes": "3-instruction forwarder: lwz r3,0x128(r3); b 0x102b6948"
+    }
+   ]
+  },
+  "0x10465a54": {
+   "description": "Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b2da4.",
+   "why_external": "vtable slot of queue-manager class 0x10ed1bcc; dispatch target for a SOAP action",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a54",
+     "notes": "3-instruction forwarder: lwz r3,0x128(r3); b 0x102b2da4"
+    }
+   ]
+  },
+  "0x10465a64": {
+   "description": "Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102dff24.",
+   "why_external": "vtable slot of queue-manager class 0x10ed1bcc; dispatch target for a SOAP action",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a64",
+     "notes": "3-instruction forwarder: lwz r3,0x128(r3); b 0x102dff24"
+    }
+   ]
+  },
+  "0x10465a74": {
+   "description": "Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3a84.",
+   "why_external": "vtable slot of queue-manager class 0x10ed1bcc; dispatch target for a SOAP action",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a74",
+     "notes": "3-instruction forwarder: lwz r3,0x128(r3); b 0x102b3a84"
+    }
+   ]
+  },
+  "0x10465a84": {
+   "description": "Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3954.",
+   "why_external": "vtable slot of queue-manager class 0x10ed1bcc; dispatch target for a SOAP action",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a84",
+     "notes": "3-instruction forwarder: lwz r3,0x128(r3); b 0x102b3954"
+    }
+   ]
+  },
+  "0x10465a94": {
+   "description": "Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3924.",
+   "why_external": "vtable slot of queue-manager class 0x10ed1bcc; dispatch target for a SOAP action",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a94",
+     "notes": "3-instruction forwarder: lwz r3,0x128(r3); b 0x102b3924"
+    }
+   ]
+  },
+  "0x102b6948": {
+   "description": "Shared queue-enqueue engine worker (logs Add to queue %u; URI: %s). Reached from BOTH AVTransport.AddURIToQueue (engine impl path) and Queue.AddURI (queue-manager vfunc f_10465a44 forwarder via *(qm+0x128)). The two SOAP services are facades over this single engine op.",
+   "why_external": "Implements AddURI semantics for two SOAP services",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a50",
+     "notes": "queue-manager AddURI vfunc tail-calls this worker"
+    }
+   ]
+  },
+  "0x102b3a84": {
+   "description": "Shared remove-all-tracks engine worker. Reached from AVTransport.RemoveAllTracksFromQueue and Queue.RemoveAllTracks (vfunc f_10465a74 via *(qm+0x128)).",
+   "why_external": "Implements remove-all semantics for two SOAP services",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465a7c",
+     "notes": "queue-manager RemoveAllTracks vfunc tail-calls this worker"
     }
    ]
   }
