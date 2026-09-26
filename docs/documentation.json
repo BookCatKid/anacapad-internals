@@ -51960,7 +51960,9 @@
                 "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
               }
             ],
-            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref"
+            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref",
+            "domain": "{0,718,1028,800,803,804,worker}",
+            "resolution": "queue-leaf FUN_102b674c/FUN_102aca78 -> engine -> FUN_10255f64 txn-submit"
           },
           "inputs": {
             "QueueID": {
@@ -54697,7 +54699,9 @@
                 "notes": "engine worker tail-called by the vfunc forwarder"
               }
             ],
-            "engine_resolution": "shared_primitives.queue_engine - engine vtable 0x10e97d30 statically bound at zp+0x1934/qm+0x128"
+            "engine_resolution": "shared_primitives.queue_engine - engine vtable 0x10e97d30 statically bound at zp+0x1934/qm+0x128",
+            "resolved_domain": "{0,402}",
+            "worker_semantics": "FUN_102dff24: validates name (no \n, <255) + metadata (<1024); parses policy-flag bitmask 0x173c02e from flags arg \u2014 bad flag -> 'bad policy input' -> 402; locks +0x458, FUN_102b2ee4 + FUN_102c3694 create w/ uVar6 flag mask"
           },
           "inputs": {
             "QueueOwnerID": {
@@ -56875,7 +56879,9 @@
                 "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
               }
             ],
-            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref"
+            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref",
+            "domain": "{0,718,1028,800,803,804,worker}",
+            "resolution": "queue-leaf FUN_102b674c/FUN_102aca78 -> engine -> FUN_10255f64 txn-submit"
           },
           "inputs": {
             "QueueID": {
@@ -100738,7 +100744,33 @@
           "notes": "shared_ptr attach helper; chain blocks are {px,pn} handles"
         }
       ],
-      "notes": "Layout resolved: queue impl *(svc+4)=singleton 0x11096770; forwarders do this=*(impl+0x128) then vptr[+0xd8]/[+0xdc]/[+0x7c]. impl+0x128 self-points into the zone-player composite's embedded-base chain (vtable group 0x10e97d5c); the engine dispatch goes through manager+0x124 sub-object vtable 0x10e98098. The concrete engine vptr is bounded to the 0x10e97dXX/0x10e980XX secondary-vtable family; the exact base depends on which embedded base occupies +0x128 (init-wiring xref pending)."
+      "notes": "Layout resolved: queue impl *(svc+4)=singleton 0x11096770; forwarders do this=*(impl+0x128) then vptr[+0xd8]/[+0xdc]/[+0x7c]. impl+0x128 self-points into the zone-player composite's embedded-base chain (vtable group 0x10e97d5c); the engine dispatch goes through manager+0x124 sub-object vtable 0x10e98098. The concrete engine vptr is bounded to the 0x10e97dXX/0x10e980XX secondary-vtable family; the exact base depends on which embedded base occupies +0x128 (init-wiring xref pending).",
+      "engine_worker_102b62e8": "RESOLVED via Ghidra: gates on *(param_1+0x4654) state counter (<2); selects queue uVar4 in {0,1,2,4} by param_2 == *(param_1+0x580)+{0x2d890,0x2ff98,0x2b188}; per-item FUN_10255f64 store-insert; param_13..16 = out {FirstTrackNumberEnqueued,NumTracksAdded,NewQueueLength,NewUpdateID}; domain {0,800}; param_10 bitmask: |2 enqueue-as-next flag, &8 alt-path, >>1 track-order",
+      "error_domain_resolved": {
+        "leaf_FUN_10255f64": "STORE-INSERT = async transaction submitter: locks +0x208, *(+0x32800)=txn-state indexing PTR_s_INVALID table, logs 'RCHSRCReq ... TransactionID %d', FUN_1032e320 serializes doc, FUN_104b8248(+0x13c) submits to 'chsrc' channel -> queues are COORDINATED TRANSACTIONS broadcast to group members. returns void; 800-vs-0 decided by synchronous submit success (non-null = ok).",
+        "code_vocabulary": {
+          "0": "commit/ok",
+          "402": "invalid args / track-range > queue-len",
+          "718": "QueueID not found",
+          "800": "queue transaction submit/commit failed",
+          "803": "queue full (*(+0x26c8)>=*(+0x26bc))",
+          "804": "empty list / zero tracks added",
+          "1028": "UpdateID optimistic-concurrency mismatch"
+        },
+        "worker_domains": {
+          "FUN_1014f808 per-track": "{0,803,804}",
+          "FUN_102b62e8 engine": "{0,800}",
+          "FUN_102b674c add-leaf": "{0,718,1028,800}",
+          "FUN_102aca78 reorder/remove-range": "{0,718,402,1028,800}",
+          "FUN_102dff24 CreateQueue": "{0,402}+policy-mask",
+          "FUN_102b3a84 RemoveAll": "{0,718,1028,worker}",
+          "FUN_102bd4f0 refcount-worker": "{800,FUN_102f7bd0 rc}",
+          "FUN_102b6948 AddURI": "FUN_102b674c rc",
+          "FUN_102b3954 Reorder": "{402,FUN_102aca78 rc}",
+          "FUN_102b2da4 AttachQueue": "FUN_102b2cbc rc"
+        },
+        "readiness_gate": "*(+0x4654) state counter <2 gates ALL queue ops (service not-ready => skip); *(+0x580)=queue-store, +0x2d890/+0x2ff98/+0x2b188 = main/saved/aux queues, +0x458=mutex"
+      }
     },
     "sp_store_object": {
       "name": "shared zone-settings store object (DP+SP)",
