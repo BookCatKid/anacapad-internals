@@ -15560,7 +15560,7 @@
      }
     ],
     "vptr": "0x10ea61d0",
-    "notes": "svc object embedded at mgr+0x3d510; vptr 0x10ea61d0 installed by ctors f_10241ed0/f_10241ee4/f_10242118 (sites 0x1018f6d8 in f_1018d27c and 0x101928a0 in f_101921a0). A SECOND vtable 0x10f11b6c exists with 501-stub f_107396d0 at the LearnIRCode/IdentifyIRRemote slots (req->v[+0x08] gate then unconditional req->v[+0x14](0x1f5)) but is never installed in this build - the no-IR variant is dead code. Impl px bound post-construction at svc+4; class unresolved."
+    "notes": "impl class resolved: vtable 0x10ea6254 (ctor f_102426f0); px at svc+4 of embedded svc ctx+0x3d510. 8 ops: +0x08 GetIRRepeaterState 0x1024222c, +0x0c SetIRRepeaterState 0x102424d8, +0x10/+0x14 501-stubs (0x10243b8c/0x10243b9c), +0x18 CommitLearnedIRCodes 0x10242380, +0x1c IsRemoteConfigured 0x102423a8, +0x20 SetLEDFeedbackState 0x10242160, +0x24 GetLEDFeedbackState 0x1024265c. LearnIRCode/IdentifyIRRemote call impl methods DIRECTLY (f_10242dfc/f_10242e20) bypassing the vtable. Dead variant vtable 0x10f11b6c (501-stubs at learn slots) is never installed."
    },
    "dispatcher": {
     "addr": "0x10739730",
@@ -15611,30 +15611,32 @@
       ],
       "handler_addr": "0x10739968",
       "impl_slot": 24,
-      "impl_notes": "impl->v[+0x18]; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "*flag==0 -> 402; *flag!=0 -> tail 0x10243b9c = unconditional 501 (commit disabled in this build)",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10739968",
-        "notes": "action handler"
+        "address": "0x10242380",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x10242380",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {
       "Name": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "impl reads first byte only: 0 (empty) -> 402, nonzero -> 501; commit never proceeds in this build",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -15646,12 +15648,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "impl accepts only the empty string for a non-faulting path (and even that returns 402); any non-empty -> 501",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "non-empty value always faults 501; empty faults 402",
        "evidence": [
         {
          "type": "firmware",
@@ -15668,6 +15670,14 @@
          "status": "confirmed",
          "address": "0x10f028dc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10242380",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -15729,24 +15739,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(*(r3-in+0x4),+0x18)",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739a04"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739a04",
-           "notes": "impl rc passthrough"
+           "address": "0x10242380",
+           "notes": "impl head"
           }
          ]
         }
@@ -15757,8 +15767,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739a04",
-         "notes": "impl rc passthrough site"
+         "address": "0x10242380",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -15872,31 +15882,33 @@
       ],
       "handler_addr": "0x10739d30",
       "impl_slot": 8,
-      "impl_notes": "impl->v[+0x08] reads repeater state; emitted via req->v[+0x14]-family out-arg; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "locks this+0x150; f_10906304(out, this+0x1ec) copies repeater state string; unlock; returns 0",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10739d30",
-        "notes": "action handler"
+        "address": "0x1024222c",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x1024222c",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {},
      "outputs": {
       "CurrentIRRepeaterState": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "state string copied from impl member this+0x1ec under lock this+0x150",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -15910,7 +15922,7 @@
        "special_values": "none observed in this build",
        "required": false,
        "default": "none - boolean decoded from request text",
-       "validation": "written on the success path; contents not traced",
+       "validation": "impl copies member string verbatim; no output validation layer",
        "evidence": [
         {
          "type": "firmware",
@@ -15927,6 +15939,14 @@
          "status": "confirmed",
          "address": "0x10f11c30",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1024222c",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -15981,24 +16001,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739d30"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739d30",
-           "notes": "impl rc passthrough"
+           "address": "0x1024222c",
+           "notes": "impl head"
           }
          ]
         }
@@ -16009,8 +16029,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739d30",
-         "notes": "impl rc passthrough site"
+         "address": "0x1024222c",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -16124,31 +16144,33 @@
       ],
       "handler_addr": "0x10739c34",
       "impl_slot": 36,
-      "impl_notes": "impl->v[+0x24] reads LED feedback state; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "out==NULL or len==0 -> 402; else locks this+0x200, emits member LED state",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10739c34",
-        "notes": "action handler"
+        "address": "0x1024265c",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x1024265c",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {},
      "outputs": {
       "LEDFeedbackState": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "member LED state emitted under lock this+0x200; NULL out or len==0 -> 402",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -16162,7 +16184,7 @@
        "special_values": "none observed in this build",
        "required": false,
        "default": "none - boolean decoded from request text",
-       "validation": "written on the success path; contents not traced",
+       "validation": "impl emits member state verbatim",
        "evidence": [
         {
          "type": "firmware",
@@ -16179,6 +16201,14 @@
          "status": "confirmed",
          "address": "0x10f11c08",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1024265c",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -16233,24 +16263,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739c34"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739c34",
-           "notes": "impl rc passthrough"
+           "address": "0x1024265c",
+           "notes": "impl head"
           }
          ]
         }
@@ -16261,8 +16291,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739c34",
-         "notes": "impl rc passthrough site"
+         "address": "0x1024265c",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -16357,30 +16387,32 @@
        }
       ],
       "handler_addr": "0x10242008",
-      "impl_notes": "self-contained handler in the HT/IR code family (0x10241xxx); no impl-obj calls recorded; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "direct call: IRCode string parsed (<=0x20 chars); Timeout bound same as LearnIRCode -> 402; else this+0x218 op",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10242008",
-        "notes": "action handler"
+        "address": "0x10242e20",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x10242e20",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {
       "Timeout": {
-       "description": "request argument parsed via 0x105614e0 (cap 24) and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "u32; same <0xffffea60 gate else 402; handler ALSO parses an undocumented IRCode string arg (<=0x20 chars) not present in the declared signature",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -16392,12 +16424,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "[0,0xffffea5f] per impl cmplwi bound",
+       "range": "[0, 0xffffea5f]",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "cmplwi vs 0xffffea60 else 402",
        "evidence": [
         {
          "type": "firmware",
@@ -16414,6 +16446,14 @@
          "status": "confirmed",
          "address": "0x10e71218",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10242e20",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -16475,24 +16515,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "ret(0x10242dfc)",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10241fb4"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10241fb4",
-           "notes": "impl rc passthrough"
+           "address": "0x10242e20",
+           "notes": "impl head"
           }
          ]
         }
@@ -16503,8 +16543,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10241fb4",
-         "notes": "impl rc passthrough site"
+         "address": "0x10242e20",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -16612,31 +16652,33 @@
       ],
       "handler_addr": "0x10739b48",
       "impl_slot": 28,
-      "impl_notes": "impl->v[+0x1c] reads remote-configured flag; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "reads flag byte at this+0x218 -> *out; returns 0",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10739b48",
-        "notes": "action handler"
+        "address": "0x102423a8",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x102423a8",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {},
      "outputs": {
       "RemoteConfigured": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "flag byte read from impl member this+0x218",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -16645,12 +16687,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "{0,1} byte",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "none - raw flag byte",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "none - always read from member",
+       "validation": "single byte 0/1 written to out",
        "evidence": [
         {
          "type": "firmware",
@@ -16667,6 +16709,14 @@
          "status": "confirmed",
          "address": "0x10f11c1c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102423a8",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -16721,24 +16771,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739b48"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739b48",
-           "notes": "impl rc passthrough"
+           "address": "0x102423a8",
+           "notes": "impl head"
           }
          ]
         }
@@ -16749,8 +16799,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739b48",
-         "notes": "impl rc passthrough site"
+         "address": "0x102423a8",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -16845,30 +16895,32 @@
        }
       ],
       "handler_addr": "0x10241f24",
-      "impl_notes": "self-contained handler: fetches 'Timeout' arg via req->v[+0x1c] -> f_105614e0 numeric parse; no impl-obj calls recorded; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "direct call: Timeout >= 0xffffea60 -> 402 (bound is a no-op for all u32); else op on this+0x218 learn state",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10241f24",
-        "notes": "action handler"
+        "address": "0x10242dfc",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x10242dfc",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {
       "IRCode": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "string arg; impl (f_10242dfc) does not inspect it - only Timeout is validated",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -16880,12 +16932,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted - impl never reads the value",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "no impl-level validation observed",
        "evidence": [
         {
          "type": "firmware",
@@ -16902,13 +16954,21 @@
          "status": "confirmed",
          "address": "0x10ea61fc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10242dfc",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
       },
       "Timeout": {
-       "description": "request argument parsed via 0x105614e0 (cap 24) and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "u32; impl requires value < 0xffffea60 (unsigned cmplwi) else 402 - effectively unrestricted",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -16920,12 +16980,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "[0,0xffffea5f] per impl cmplwi bound",
+       "range": "[0, 0xffffea5f]",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "cmplwi vs 0xffffea60; >= bound -> 402",
        "evidence": [
         {
          "type": "firmware",
@@ -16942,6 +17002,14 @@
          "status": "confirmed",
          "address": "0x10e71218",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10242dfc",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -17003,24 +17071,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "ret(0x10242e20)",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x102420c4"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x102420c4",
-           "notes": "impl rc passthrough"
+           "address": "0x10242dfc",
+           "notes": "impl head"
           }
          ]
         }
@@ -17031,8 +17099,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x102420c4",
-         "notes": "impl rc passthrough site"
+         "address": "0x10242dfc",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -17134,30 +17202,32 @@
       ],
       "handler_addr": "0x10739878",
       "impl_slot": 12,
-      "impl_notes": "impl->v[+0x0c] writes repeater state; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "strcmp(arg,'On')!=0 && strcmp(arg,'Off')!=0 -> 402; under lock this+0x150: if current state 'Disabled' -> 401; else writes + IR ioctl(fd,0x8004*) -> ioctl==-1 -> 501",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10739878",
-        "notes": "action handler"
+        "address": "0x102424d8",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x102424d8",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {
       "DesiredIRRepeaterState": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "impl does literal strcmp vs 'On' then 'Off' (0x10fe55b8/0x10e739b8); any other value -> 402",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -17169,12 +17239,12 @@
        "semantic_type": "SonosBoolArg",
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "{On,Off} - literal strcmp",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "impl strcmp vs 'On'/'Off' else 402",
        "evidence": [
         {
          "type": "firmware",
@@ -17191,6 +17261,14 @@
          "status": "confirmed",
          "address": "0x10f11bf0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102424d8",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -17252,24 +17330,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(*(r3-in+0x4),+0xc)",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739914"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739914",
-           "notes": "impl rc passthrough"
+           "address": "0x102424d8",
+           "notes": "impl head"
           }
          ]
         }
@@ -17280,8 +17358,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739914",
-         "notes": "impl rc passthrough site"
+         "address": "0x102424d8",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -17383,30 +17461,32 @@
       ],
       "handler_addr": "0x10739a58",
       "impl_slot": 32,
-      "impl_notes": "impl->v[+0x20] writes LED feedback state; impl = *(svc+4) shared_ptr px - class vptr unresolved",
+      "impl_notes": "arg must strcmp 'On' or 'Off' else 402; writes under lock",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10739a58",
-        "notes": "action handler"
+        "address": "0x10242160",
+        "notes": "impl body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10ea61d0",
-        "notes": "installed svc vtable"
+        "address": "0x10ea6254",
+        "notes": "impl vtable; ctor f_102426f0 installs it"
        }
-      ]
+      ],
+      "impl_function": "0x10242160",
+      "impl_vtable": "0x10ea6254"
      },
      "inputs": {
       "LEDFeedbackState": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "impl strcmp vs 'On'/'Off'; else 402",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -17418,12 +17498,12 @@
        "semantic_type": "SonosBoolArg",
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "{On,Off} - literal strcmp",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "impl strcmp vs 'On'/'Off' else 402",
        "evidence": [
         {
          "type": "firmware",
@@ -17440,6 +17520,14 @@
          "status": "confirmed",
          "address": "0x10f11c08",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10242160",
+         "notes": "impl-level validation"
         }
        ],
        "notes": null
@@ -17501,24 +17589,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(*(r3-in+0x4),+0x20)",
-       "meaning": "HT impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level validation/argument rejection (r3=0x192)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739af4"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl arg validation failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739af4",
-           "notes": "impl rc passthrough"
+           "address": "0x10242160",
+           "notes": "impl head"
           }
          ]
         }
@@ -17529,8 +17617,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739af4",
-         "notes": "impl rc passthrough site"
+         "address": "0x10242160",
+         "notes": "addi r3,0x192"
         }
        ],
        "unresolved": {
@@ -54107,7 +54195,7 @@
      }
     ],
     "vptr": "0x10f11ed4",
-    "notes": "svc object embedded at ctx+0x3fa80 (ctor f_1073d65c at init site 0x1018fba0, vptr 0x10f11ed4). impl = *(svc+4) shared_ptr px - line-in transport session object bound post-construction (likely at group-join); class unresolved. Handlers use impl slots: +0x08 StartTransmission, +0x0c StopTransmission, +0x10 Stop, +0x14 Play, +0x18 Pause, +0x1c Next, +0x20 Previous, +0x24 SetVolume."
+    "notes": "impl resolved: session object class vtable 0x10ecbe2c (ctor f_104132a8, ~0x130+ state, invoked once from per-request/session builder f_103fa434); bound as shared_ptr px at svc+4 of embedded svc ctx+0x3fa80 (ctor f_1073d65c). The same object doubles as the UPnP request class (slots for parse/fault/commit) - session and request share one vtable family. All 8 slots mapped: StartTx +0x08=0x10415c58, StopTx +0x0c=0x10415d38 (onVirtualLineInStopSession), Stop +0x10=0x10415f58 (onVirtualLineInSuspendSession), Play +0x14=0x104164b0 ->worker(flag=1), Pause +0x18=0x104164c4 ->worker(flag=0), Next +0x1c=0x10412b6c (3-insn null stub), Previous +0x20=0x1041689c ->0x104168e4(r8=1), SetVolume +0x24=0x10412b78."
    },
    "dispatcher": {
     "addr": "0x1073ccc0",
@@ -54157,30 +54245,32 @@
        }
       ],
       "impl_slot": 28,
-      "impl_notes": "impl->v[+0x1c]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "NULL STUB: 3 instructions (stwu/addi/blr), accepts and returns without work",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073ce94",
-        "notes": "impl call site"
+        "address": "0x10412b6c",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10412b6c",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -54192,12 +54282,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -54275,24 +54365,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x1c)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073ceb0"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073ceb0",
-           "notes": "impl rc passthrough"
+           "address": "0x10412b6c",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -54303,8 +54393,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073ceb0",
-         "notes": "impl rc passthrough site"
+         "address": "0x10412b6c",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -54405,30 +54495,32 @@
        }
       ],
       "impl_slot": 24,
-      "impl_notes": "impl->v[+0x18]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "tail -> shared worker 0x104164e4 with flag r4=0",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073cf80",
-        "notes": "impl call site"
+        "address": "0x104164c4",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x104164c4",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -54440,12 +54532,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -54523,24 +54615,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x18)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073cf9c"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073cf9c",
-           "notes": "impl rc passthrough"
+           "address": "0x104164c4",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -54551,8 +54643,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073cf9c",
-         "notes": "impl rc passthrough site"
+         "address": "0x104164c4",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -54653,30 +54745,32 @@
        }
       ],
       "impl_slot": 20,
-      "impl_notes": "impl->v[+0x14]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "tail -> shared worker 0x104164e4 with flag r4=1",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073d384",
-        "notes": "impl call site"
+        "address": "0x104164b0",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x104164b0",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -54688,12 +54782,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -54715,8 +54809,8 @@
        "notes": null
       },
       "Speed": {
-       "description": "Playback speed string (parsed as text buffer).",
-       "status": "inferred",
+       "description": "string <=0x400 via f_1056157c; passed to impl worker",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -54728,12 +54822,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any string <=0x400 - impl entry does not enumerate it",
+       "range": "string <=0x400",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Playback speed string (parsed as text buffer).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -54811,24 +54905,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x14)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073d3a0"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073d3a0",
-           "notes": "impl rc passthrough"
+           "address": "0x104164b0",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -54839,8 +54933,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073d3a0",
-         "notes": "impl rc passthrough site"
+         "address": "0x104164b0",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -54941,30 +55035,32 @@
        }
       ],
       "impl_slot": 32,
-      "impl_notes": "impl->v[+0x20]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "tail -> shared worker 0x104168e4 with r8=1",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073d06c",
-        "notes": "impl call site"
+        "address": "0x1041689c",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x1041689c",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -54976,12 +55072,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -55059,24 +55155,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x20)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073d088"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073d088",
-           "notes": "impl rc passthrough"
+           "address": "0x1041689c",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -55087,8 +55183,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073d088",
-         "notes": "impl rc passthrough site"
+         "address": "0x1041689c",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -55189,30 +55285,32 @@
        }
       ],
       "impl_slot": 36,
-      "impl_notes": "impl->v[+0x24]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "impl +0x24 = onVirtualLineInGetVolume accessor: locks this+0x130 via mpvlictrl guard; returns lhz vol at this+0x216 in r3 and (if arg2 non-NULL) writes mute byte this+0x214 to out; SetVolume does read-modify-write through this accessor",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073d180",
-        "notes": "impl call site"
+        "address": "0x10412b78",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10412b78",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -55224,12 +55322,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -55251,8 +55349,8 @@
        "notes": null
       },
       "DesiredVolume": {
-       "description": "request argument parsed via 0x105614e0 (cap 24) and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "volume value passed to session impl 0x10412b78 -> this+0x130 member write",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -55264,12 +55362,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "u32 volume; no range check at impl entry (member write path under mpvlictrl guard)",
+       "range": "impl-validated",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Requested volume.",
+       "validation": "impl-validated",
        "evidence": [
         {
          "type": "firmware",
@@ -55347,24 +55445,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x24)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073d19c"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073d19c",
-           "notes": "impl rc passthrough"
+           "address": "0x10412b78",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -55375,8 +55473,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073d19c",
-         "notes": "impl rc passthrough site"
+         "address": "0x10412b78",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -55484,30 +55582,32 @@
       ],
       "handler_addr": "0x1073d440",
       "impl_slot": 8,
-      "impl_notes": "CoordinatorID via req->v[+0x1c]->f_1056157c(0x400); 402 gate; impl->v[+0x08](+arg14, coordbuf, &settings, 0x81); emits CurrentTransportSettings from returned record; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "session impl +0x08; parses CoordinatorID (handler f_1056157c, 402 gate); builds session over this+0x130 member via shared op machinery",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073d4a4",
-        "notes": "impl call site"
+        "address": "0x10415c58",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10415c58",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -55519,12 +55619,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -55546,8 +55646,8 @@
        "notes": null
       },
       "CoordinatorID": {
-       "description": "Target coordinator for the transmission.",
-       "status": "inferred",
+       "description": "coordinator zone UUID string via f_1056157c; parse failure -> 402",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -55559,12 +55659,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "any non-empty string parseable by f_1056157c",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Target coordinator for the transmission.",
+       "validation": "non-empty parse required",
        "evidence": [
         {
          "type": "firmware",
@@ -55588,8 +55688,8 @@
      },
      "outputs": {
       "CurrentTransportSettings": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "emitted from session impl transport settings (this+0x130 family)",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -55603,7 +55703,7 @@
        "special_values": "none observed in this build",
        "required": false,
        "default": "none - boolean decoded from request text",
-       "validation": "written on the success path; contents not traced",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -55620,6 +55720,14 @@
          "status": "confirmed",
          "address": "0x10f098fc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10415c58",
+         "notes": "impl"
         }
        ],
        "notes": null
@@ -55680,24 +55788,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x8)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073d4c0"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073d4c0",
-           "notes": "impl rc passthrough"
+           "address": "0x10415c58",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -55708,8 +55816,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073d4c0",
-         "notes": "impl rc passthrough site"
+         "address": "0x10415c58",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -55810,30 +55918,32 @@
        }
       ],
       "impl_slot": 16,
-      "impl_notes": "impl->v[+0x10]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "session impl +0x10 = onVirtualLineInSuspendSession; suspends session",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073d26c",
-        "notes": "impl call site"
+        "address": "0x10415f58",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10415f58",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -55845,12 +55955,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -55928,24 +56038,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x10)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073d288"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073d288",
-           "notes": "impl rc passthrough"
+           "address": "0x10415f58",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -55956,8 +56066,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073d288",
-         "notes": "impl rc passthrough site"
+         "address": "0x10415f58",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
@@ -56059,30 +56169,32 @@
       ],
       "handler_addr": "0x1073d5ec?",
       "impl_slot": 12,
-      "impl_notes": "impl->v[+0x0c]; impl = *(svc+4) line-in session px - class unresolved",
+      "impl_notes": "session impl +0x0c = onVirtualLineInStopSession; tears down this+0x130 session state",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1073d5ec",
-        "notes": "impl call site"
+        "address": "0x10415d38",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10f11ed4",
-        "notes": "svc vtable"
+        "address": "0x10ecbe2c",
+        "notes": "session impl vtable; ctor f_104132a8 called by per-request op builder f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10415d38",
+      "impl_vtable": "0x10ecbe2c"
      },
      "inputs": {
       "InstanceID": {
-       "description": "Session instance index (0-family convention).",
-       "status": "inferred",
+       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -56094,12 +56206,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Session instance index (0-family convention).",
+       "validation": "parse only at request layer",
        "evidence": [
         {
          "type": "firmware",
@@ -56121,8 +56233,8 @@
        "notes": null
       },
       "CoordinatorID": {
-       "description": "Target coordinator for the transmission.",
-       "status": "inferred",
+       "description": "coordinator zone UUID string via f_1056157c; parse failure -> 402",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -56134,12 +56246,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "any non-empty string parseable by f_1056157c",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Target coordinator for the transmission.",
+       "validation": "non-empty parse required",
        "evidence": [
         {
          "type": "firmware",
@@ -56217,24 +56329,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0xc)",
-       "meaning": "VLI impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-layer parse/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073d608"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "parse or impl arg gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073d608",
-           "notes": "impl rc passthrough"
+           "address": "0x10415d38",
+           "notes": "impl/handler"
           }
          ]
         }
@@ -56245,8 +56357,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073d608",
-         "notes": "impl rc passthrough site"
+         "address": "0x10415d38",
+         "notes": "402 path"
         }
        ],
        "unresolved": {
