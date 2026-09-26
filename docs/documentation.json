@@ -98617,6 +98617,30 @@
           "RoomDetectionStartChirping",
           "RoomDetectionStopChirping (added 86.8)"
         ]
+      },
+      "settings_replication": {
+        "status": "confirmed",
+        "src": "../anacapa-1.0/oc/zone/common/{nodetx,replicated_settings}.cxx",
+        "channels": [
+          "nodetx_chsrc",
+          "nodetx_ht%d (HT NodeTX Blocks)",
+          "Hnodetx",
+          "settingsReplication",
+          "netsettingsReplication"
+        ],
+        "wire_grammar": "<ReplicatedNetSettings LastUpdateDevice=\"%s\" Version=\"%d\" FileSchemaVersion=\"%d\">...</ReplicatedNetSettings>",
+        "accept_policy": "'deciding whether to accept replicated list from: %s; ver: %u format: %u' -> accept on source+ver+format; rejects 'corrupt file','incompatible schema','Replicated SavedQueue file is not valid'",
+        "version_handshake": "informLocalReplicatedSettingVersion setting %u LUD %s version %u (LUD=LastUpdateDevice); 'ReplicatedSettings must be setup before calling informLocalReplicatedSettingVersion'",
+        "events": [
+          "ReplicatedSettingsNeedsUpdateEvent",
+          "ReplicatedSettingsChangedEvent",
+          "SettingsReplicationState"
+        ],
+        "status_doc": [
+          "<ReplicatedSettingsState>",
+          "<NodeTXBuffer>%.3lf sec %s</NodeTXBuffer>"
+        ],
+        "side_effects": "'Settings Replication changed SN Disable from %d to %d (source: %s)'; 'Pending netsettings.json update discarded after replicating'; 'failed to rename offered replicated file'"
       }
     },
     "device_state_store": {
