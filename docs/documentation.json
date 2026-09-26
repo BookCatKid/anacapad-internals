@@ -101156,6 +101156,16 @@
     "extaudiosrc": {
       "status": "confirmed",
       "impl": "extaudiosrc.cxx \u2014 external audio sources (chirp/voice) w/ extaudiosrc_playid; 'extaudiosrc was playing, stopped it' preemption"
+    },
+    "device_registration": {
+      "status": "confirmed",
+      "impl": "register.cxx + regdevicecert.cxx + cloudregistration.cxx",
+      "wire": "RegistrationReqMsg/RegistrationRespMsg pair; registration/{state,status,id,state/transfer} endpoints; <WebsocketRegistration> element",
+      "signing": "registration signing key {set,cleared}; 'signature required/invalid' \u2014 requests signed via IPC-provisioned key",
+      "cert": "R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE \u2014 the registered-device client-cert for curl cloud calls; Loading/Unloading secure reg cert; 'reg cert not available; cannot generate token'; fetchRegDeviceCert/refreshRegDeviceCert; NewCertRegistrationEvent/RegCertUpdateEvent",
+      "states": "during suspend/time expired/success/error/retrying; secureReg/secureRegState/secureRegTransfer; SecureRegistration{State,Change}UpdateEvent",
+      "gating": "'not securely registered' blocks config fetch; 'should be quarantined (secure reg required)'; 'Removing settings denylists after registration' \u2014 registration lifts settings restrictions",
+      "cloud": "makeMuseCloudRegistrationStatus; 'Updating cloud registration due to %s. MuseSessionId %s->%s'; 'defer due to missing required field(s)'; cached event; wifi-monitor jobs; SET_CONFIG sends registration"
     }
   }
 }
