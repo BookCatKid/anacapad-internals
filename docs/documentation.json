@@ -14295,7 +14295,7 @@
    },
    "actions": {
     "AddMember": {
-     "description": "Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. impl->v[+0x1c] on the r4-in impl.",
+     "description": "Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. impl->v[+0x1c] on the r4-in impl. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0x8] -> CurrentTransportSettings + out fields via req->v[+0x24].",
      "status": "strong",
      "visibility": "internal",
      "reachability": null,
@@ -14403,8 +14403,8 @@
      "inputs": {},
      "outputs": {
       "CurrentURI": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "emitted via req->v[+0x24] tagged emitter in handler 0x10738654 after impl->v[+0x08] group-join op",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -14413,12 +14413,12 @@
        "semantic_type": "SonosUriArg",
        "format": "URI text (utf-8) (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "accepted_values": "impl-produced (group-join result)",
+       "range": "impl-produced",
+       "special_values": "impl-produced",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "impl-produced",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -14440,8 +14440,8 @@
        "notes": null
       },
       "GroupUUIDJoined": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "emitted via req->v[+0x24] tagged emitter in handler 0x10738654 after impl->v[+0x08] group-join op",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -14450,12 +14450,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "accepted_values": "impl-produced (group-join result)",
+       "range": "impl-produced",
+       "special_values": "impl-produced",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "impl-produced",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -14477,8 +14477,8 @@
        "notes": null
       },
       "ResetVolumeAfter": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "emitted via req->v[+0x24] tagged emitter in handler 0x10738654 after impl->v[+0x08] group-join op",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -14487,12 +14487,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "value set not traced in the binary",
-       "range": "bounds not traced in the binary",
-       "special_values": "none observed in this build",
+       "accepted_values": "impl-produced (group-join result)",
+       "range": "impl-produced",
+       "special_values": "impl-produced",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "impl-produced",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -14514,8 +14514,8 @@
        "notes": null
       },
       "VolumeAVTransportURI": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "emitted via req->v[+0x24] tagged emitter in handler 0x10738654 after impl->v[+0x08] group-join op",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -14524,12 +14524,12 @@
        "semantic_type": "SonosUriArg",
        "format": "URI text (utf-8) (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "accepted_values": "impl-produced (group-join result)",
+       "range": "impl-produced",
+       "special_values": "impl-produced",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "impl-produced",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -14600,16 +14600,16 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "group impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
+       "status": "confirmed",
        "fault_sites": [
         "0x10738654"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
          "evidence": [
           {
            "type": "firmware",
@@ -14617,7 +14617,7 @@
            "build": "86.10-80260",
            "status": "confirmed",
            "address": "0x10738654",
-           "notes": "impl rc passthrough"
+           "notes": "0x192 literal in handler"
           }
          ]
         }
@@ -14629,7 +14629,7 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10738654",
-         "notes": "impl rc passthrough site"
+         "notes": "402 gate"
         }
        ],
        "unresolved": {
@@ -14640,14 +14640,14 @@
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
        "status": "confirmed",
        "fault_sites": [
         "0x10738654"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
          "evidence": [
           {
            "type": "firmware",
@@ -14655,7 +14655,7 @@
            "build": "86.10-80260",
            "status": "confirmed",
            "address": "0x10738654",
-           "notes": "parse vcalls then fault path"
+           "notes": "0x192 literal in handler"
           }
          ]
         }
@@ -14667,7 +14667,7 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10738654",
-         "notes": "wrapper parse + fault path"
+         "notes": "402 gate"
         }
        ]
       }
@@ -14695,7 +14695,7 @@
      "notes": null
     },
     "RemoveMember": {
-     "description": "Removes MemberID from the group via impl->v[+0xc] on r5-in.",
+     "description": "Removes MemberID from the group via impl->v[+0xc] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0xc] -> empty commit via req->v[+0x0c].",
      "status": "strong",
      "visibility": "internal",
      "reachability": null,
@@ -14754,8 +14754,8 @@
      },
      "inputs": {
       "MemberID": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "string, required, 25-char capacity - parsed by f_1056157c at handler 0x10738460",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -14767,31 +14767,32 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "opaque to handler (impl interprets)",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "required; req->v[+0x1c] lookup + f_1056157c conversion; validate fail -> 402",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x107384a0",
-         "notes": "in-arg access site"
+         "address": "0x10738460",
+         "notes": "handler arg parse"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10f0a5cc",
-         "notes": "argument name string"
+         "address": "0x1056157c",
+         "notes": "parser helper"
         }
        ],
-       "notes": null
+       "notes": null,
+       "capacity": 25
       }
      },
      "outputs": {},
@@ -14850,54 +14851,16 @@
      ],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret(r5-in,+0xc)",
-       "meaning": "group impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
-       "fault_sites": [
-        "0x107384fc"
-       ],
-       "conditions": [
-        {
-         "description": "impl vfunc nonzero",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "status": "confirmed",
-           "address": "0x107384fc",
-           "notes": "impl rc passthrough"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x107384fc",
-         "notes": "impl rc passthrough site"
-        }
-       ],
-       "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
-       }
-      },
-      {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "vret(r5-in,+0xc)",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
        "status": "confirmed",
        "fault_sites": [
         "0x107384fc"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
          "evidence": [
           {
            "type": "firmware",
@@ -14905,7 +14868,7 @@
            "build": "86.10-80260",
            "status": "confirmed",
            "address": "0x10738460",
-           "notes": "parse vcalls then fault path"
+           "notes": "0x192 literal in handler"
           }
          ]
         }
@@ -14917,7 +14880,45 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10738460",
-         "notes": "wrapper parse + fault path"
+         "notes": "402 gate"
+        }
+       ],
+       "unresolved": {
+        "proven": "group impl rc surfaced",
+        "unknown": "codes for membership/validation failures"
+       }
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x107384fc"
+       ],
+       "conditions": [
+        {
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10738460",
+           "notes": "0x192 literal in handler"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738460",
+         "notes": "402 gate"
         }
        ]
       }
@@ -14945,7 +14946,7 @@
      "notes": null
     },
     "ReportTrackBufferingResult": {
-     "description": "Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v[+0x10] on r5-in.",
+     "description": "Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v[+0x10] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0x10] -> empty commit.",
      "status": "strong",
      "visibility": "internal",
      "reachability": null,
@@ -15004,8 +15005,8 @@
      },
      "inputs": {
       "MemberID": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "string, required - parsed by f_1056157c at handler 0x107388a4",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -15017,35 +15018,35 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "opaque to handler (impl interprets)",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "required; req->v[+0x1c] lookup + f_1056157c conversion; validate fail -> 402",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x107388e4",
-         "notes": "in-arg access site"
+         "address": "0x107388a4",
+         "notes": "handler arg parse"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10f0a5cc",
-         "notes": "argument name string"
+         "address": "0x1056157c",
+         "notes": "parser helper"
         }
        ],
        "notes": null
       },
       "ResultCode": {
-       "description": "request argument parsed via 0x10561514 (cap 24) and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "int, required - parsed by f_10561514 at handler 0x107388a4",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -15057,28 +15058,28 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "opaque to handler (impl interprets)",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "required; req->v[+0x1c] lookup + f_10561514 conversion; validate fail -> 402",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073890c",
-         "notes": "in-arg access site"
+         "address": "0x107388a4",
+         "notes": "handler arg parse"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10ef234c",
-         "notes": "argument name string"
+         "address": "0x10561514",
+         "notes": "parser helper"
         }
        ],
        "notes": null
@@ -15140,54 +15141,16 @@
      ],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x10)",
-       "meaning": "group impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
-       "fault_sites": [
-        "0x10738968"
-       ],
-       "conditions": [
-        {
-         "description": "impl vfunc nonzero",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "status": "confirmed",
-           "address": "0x10738968",
-           "notes": "impl rc passthrough"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x10738968",
-         "notes": "impl rc passthrough site"
-        }
-       ],
-       "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
-       }
-      },
-      {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "vret(r5-in,+0x10)",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
        "status": "confirmed",
        "fault_sites": [
         "0x10738968"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
          "evidence": [
           {
            "type": "firmware",
@@ -15195,7 +15158,7 @@
            "build": "86.10-80260",
            "status": "confirmed",
            "address": "0x107388a4",
-           "notes": "parse vcalls then fault path"
+           "notes": "0x192 literal in handler"
           }
          ]
         }
@@ -15207,7 +15170,45 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x107388a4",
-         "notes": "wrapper parse + fault path"
+         "notes": "402 gate"
+        }
+       ],
+       "unresolved": {
+        "proven": "group impl rc surfaced",
+        "unknown": "codes for membership/validation failures"
+       }
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738968"
+       ],
+       "conditions": [
+        {
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x107388a4",
+           "notes": "0x192 literal in handler"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x107388a4",
+         "notes": "402 gate"
         }
        ]
       }
@@ -15235,7 +15236,7 @@
      "notes": null
     },
     "SetSourceAreaIds": {
-     "description": "Sets the group's desired source-area ids via impl->v[+0x14] on r5-in.",
+     "description": "Sets the group's desired source-area ids via impl->v[+0x14] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0x14] -> empty commit.",
      "status": "strong",
      "visibility": "internal",
      "reachability": null,
@@ -15294,8 +15295,8 @@
      },
      "inputs": {
       "DesiredSourceAreaIds": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "string, required - parsed by f_1056157c at handler 0x10738550",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -15307,28 +15308,28 @@
        "semantic_type": "SonosBoolArg",
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "opaque to handler (impl interprets)",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "required; req->v[+0x1c] lookup + f_1056157c conversion; validate fail -> 402",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x107385a0",
-         "notes": "in-arg access site"
+         "address": "0x10738550",
+         "notes": "handler arg parse"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10f0a5ec",
-         "notes": "argument name string"
+         "address": "0x1056157c",
+         "notes": "parser helper"
         }
        ],
        "notes": null
@@ -15390,54 +15391,16 @@
      ],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x14)",
-       "meaning": "group impl rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
-       "fault_sites": [
-        "0x107385fc"
-       ],
-       "conditions": [
-        {
-         "description": "impl vfunc nonzero",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "status": "confirmed",
-           "address": "0x107385fc",
-           "notes": "impl rc passthrough"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x107385fc",
-         "notes": "impl rc passthrough site"
-        }
-       ],
-       "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
-       }
-      },
-      {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "vret(r5-in,+0x14)",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
        "status": "confirmed",
        "fault_sites": [
         "0x107385fc"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
          "evidence": [
           {
            "type": "firmware",
@@ -15445,7 +15408,7 @@
            "build": "86.10-80260",
            "status": "confirmed",
            "address": "0x10738550",
-           "notes": "parse vcalls then fault path"
+           "notes": "0x192 literal in handler"
           }
          ]
         }
@@ -15457,7 +15420,45 @@
          "build": "86.10-80260",
          "status": "confirmed",
          "address": "0x10738550",
-         "notes": "wrapper parse + fault path"
+         "notes": "402 gate"
+        }
+       ],
+       "unresolved": {
+        "proven": "group impl rc surfaced",
+        "unknown": "codes for membership/validation failures"
+       }
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x107385fc"
+       ],
+       "conditions": [
+        {
+         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10738550",
+           "notes": "0x192 literal in handler"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738550",
+         "notes": "402 gate"
         }
        ]
       }
@@ -63772,7 +63773,7 @@
        "notes": null
       },
       "AccountPassword": {
-       "description": "argument AccountPassword",
+       "description": "account password string forwarded to account-add impl",
        "status": "strong",
        "direction": "in",
        "primitive": {
@@ -64218,7 +64219,7 @@
        "notes": null
       },
       "OAuthDeviceID": {
-       "description": "OAuth device id",
+       "description": "OAuth device identifier arg to account-add impl",
        "status": "strong",
        "direction": "in",
        "primitive": {
@@ -64386,7 +64387,7 @@
        "notes": null
       },
       "UserIdHashCode": {
-       "description": "user id hash code",
+       "description": "user id hash arg to account-add impl",
        "status": "strong",
        "direction": "in",
        "primitive": {
@@ -64564,7 +64565,8 @@
        "meaning": "request-validate failure (req->v[+0x08] returned 0)",
        "status": "confirmed",
        "fault_sites": [
-        "0x10732650"
+        "0x10732650",
+        "0x107327c8"
        ],
        "conditions": [
         {
@@ -64962,7 +64964,7 @@
        "notes": null
       },
       "NewAccountMd": {
-       "description": "argument NewAccountMd",
+       "description": "new account metadata payload arg",
        "status": "strong",
        "direction": "in",
        "primitive": {
@@ -66405,7 +66407,7 @@
      },
      "outputs": {
       "WebCode": {
-       "description": "web-code response field",
+       "description": "web-pairing code produced by impl",
        "status": "strong",
        "direction": "out",
        "primitive": {
@@ -68099,7 +68101,7 @@
      },
      "inputs": {
       "AccountUDN": {
-       "description": "account UDN",
+       "description": "device UDN arg",
        "status": "strong",
        "direction": "in",
        "primitive": {
@@ -68155,7 +68157,7 @@
        "notes": null
       },
       "AccountNickname": {
-       "description": "account nickname",
+       "description": "nickname string arg",
        "status": "strong",
        "direction": "in",
        "primitive": {
@@ -69006,24 +69008,32 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "const",
-       "meaning": "worker f_107412ec rc forwarded (own domain incl. 402); note silent charset truncation is NOT a fault",
-       "status": "unresolved",
+       "meaning": "UpdateURL does not begin with \"http\" (strncasecmp 4) -> 402 with detail \"Update URL is malformed\"; on http-URL the request delegates to launcher f_1073f1c8 (rc forwarded verbatim)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10733228"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "strncasecmp(UpdateURL,\"http\",4)!=0 in worker f_107412ec",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10733228",
-           "notes": "impl rc passthrough"
+           "address": "0x10741344",
+           "notes": "strncasecmp http gate"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10741358",
+           "notes": "addi r3,0x192 + \"Update URL is malformed\" out-string"
           }
          ]
         }
@@ -69034,14 +69044,23 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10733228",
-         "notes": "impl rc passthrough site"
+         "address": "0x107412ec",
+         "notes": "impl worker: http-prefix gate"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x107413c4",
+         "notes": "tail into launcher f_1073f1c8"
         }
        ],
        "unresolved": {
         "proven": "topology impl rc surfaced",
         "unknown": "codes for validation/state failures"
-       }
+       },
+       "notes": "launcher f_1073f1c8 performs external-update hook (write+exec); its rc is forwarded verbatim and not statically bounded - operation-submitted semantics, not guaranteed success"
       },
       {
        "code": 402,
@@ -70238,24 +70257,32 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 501,
        "code_expr": "const",
-       "meaning": "alternate-path worker rc (f_10764f40/f_106f5bbc forwarded)",
-       "status": "unresolved",
+       "meaning": "bound impl lacks the alarm-capable vfunc: *(svc+4)->v[+0x24] != f_1012b9b4 -> 501 (polymorphic impl-variant check)",
+       "status": "confirmed",
        "fault_sites": [
         "0x1073382c"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "impl identity check at 0x10733944-0x1073395c fails",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1073382c",
-           "notes": "impl rc passthrough"
+           "address": "0x10733948",
+           "notes": "addi r4,0x1f5"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10733954",
+           "notes": "vfunc compare vs f_1012b9b4"
           }
          ]
         }
@@ -70266,14 +70293,23 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1073382c",
-         "notes": "impl rc passthrough site"
+         "address": "0x107337cc",
+         "notes": "handler"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1011cd78",
+         "notes": "impl: lock this+0x318, ++this+0x11d0, this+0x11d4=1, signal this+8, return 0 unconditionally"
         }
        ],
        "unresolved": {
         "proven": "topology impl rc surfaced",
         "unknown": "codes for validation/state failures"
-       }
+       },
+       "notes": "impl itself cannot fault (unconditional 0). 402 also present for req-validate failure."
       },
       {
        "code": 402,
