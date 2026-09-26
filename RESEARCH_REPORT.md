@@ -67,11 +67,14 @@ native IPC buses.
 - **Hidden/stub actions** — AudioIn dispatcher (`0x1073d8f8`) is a
   reject-all stub emitting 401 in this build; its 6 SCPD-advertised actions
   are unimplemented and the service is absent from `serviceList`.
-- **Advertised vs dispatched** — the SCPD serviceList advertises **207**
-  actions across 17 service instances (ConnectionManager counted once but
-  served by both MediaServer and MediaRenderer); the binary dispatches
-  **199**. The 8-action delta is fully accounted: 6 AudioIn stub actions +
-  2 SystemProperties actions **removed** in 86.10.
+- **Advertised vs dispatched** — the 16 shipped SCPDs advertise **204**
+  unique actions; the DB models **199** dispatched actions. The 8-action
+  advertised-vs-DB delta: 6 AudioIn actions (dispatched to a reject-all
+  401 stub — present in the binary but modelled at the service level, not
+  as individual action entries) + 2 SystemProperties actions absent from
+  the 15-entry dispatch table. Every DB action is advertised; the
+  ConnectionManager SCPD is shared by the MediaServer and MediaRenderer
+  instances.
 - **Service descriptions (SCPD)** — `device_description.xml` (htdocs, the
   served `#TOKEN#` template with 35 substitution tokens) **does** advertise
   16 `<SCPDURL>/xml/<Svc>1.xml` entries. The SCPDs are the authoritative
@@ -79,13 +82,20 @@ native IPC buses.
   actions the extractor could not reach via the parse-descriptor layer.
   ContentDirectory's `serviceType` is a `#CD_NAMESPACE#` runtime token
   (upnp-org vs sonos-com), matching the `firmware_differences` URN records.
-- **Removed actions (firmware diff)** — `ProvisionCredentialedTrialAccountX`
-  (in `{AccountType,AccountID,AccountPassword}`, out `{IsExpired,AccountUDN}`)
-  and `ResetThirdPartyCredentials` are advertised in `SystemProperties1.xml`
-  but absent from the 86.10 dispatch table: the former's name string is
-  entirely missing, the latter's is a dead string (`0x10f184cc`, zero refs).
-  The SystemProperties name-table at `0x10f110f0` (stride `0xc`,
-  `{name_ptr,action_id,0}`) holds the surviving 15 actions.
+- **Firmware-history action matrix** (`docs/crossbuild_matrix.json`) —
+  per-action `dispatched`/`str-only`/`absent` state across 4 binaries
+  (34.16, 57.10, 86.8, 86.10). **Removals**: `ProvisionCredentialedTrialAccountX`
+  dispatched in 34.16 → string absent 57.10+ (hard removal, stale SCPD
+  advert still shipped); `ResetThirdPartyCredentials` dispatched in 34.16
+  → str-only 57.10+ (soft removal, dead string `0x10f184cc` lingers).
+  **Regression**: the 6 AudioIn actions were dispatched to real handlers
+  in 34.16/57.10 but are str-only in 86.x — the implementation was replaced
+  by the reject-all 401 stub. **Additions**: `EndDirectControlSession`,
+  `Set/GetButtonLockState`, `SetSourceAreaIds`, VLI `Start/StopTransmission`
+  (57.10); `RoomDetection{Start,Stop}Chirping` and the 8 HTControl actions
+  going dormant→live (86.8); `DelegateGroupCoordinationTo` gained a
+  `ClearSource` input (86.10). `QPlayAuth` was stubbed in 57.10 then
+  restored in 86.x.
 
 ## 3. Eventing
 
@@ -220,9 +230,24 @@ Three distinct mechanisms:
 
 ## 10. Static-evidence ceiling
 
-The `97` "unresolved error domains" and the `93` material action unknowns are
-**terminal**, not gaps: they are implementation-return-code passthroughs where
-the binary surfaces a delegated worker's return value verbatim and no literal
-exists to extract. They are bounded by worker exit-scan and honestly labeled
-with `proven`/`unknown`/`evidence` — resolving the concrete code set requires
-executing the binary, which is outside static scope.
+The Queue family error domains were resolved to concrete semantics via Ghidra
+decompilation. The leaf store-insert `FUN_10255f64` is an **async transaction
+submitter**: it locks `+0x208`, indexes a `*(+0x32800)` transaction-state table,
+serializes the op-document via `FUN_1032e320`, and posts it to the `chsrc`
+(`RCHSRCReq ... TransactionID %d`) coordination channel — queue mutations are
+coordinated transactions broadcast across group members. The synchronous
+domains are fully bounded: `{0, 402(arg/range), 718(queue-not-found),
+800(txn-submit-fail), 803(queue-full), 804(no-tracks), 1028(UpdateID
+optimistic-concurrency)}`. `FUN_102dff24` (CreateQueue) additionally decodes a
+`0x173c02e` policy-flag bitmask from the flags argument ("bad policy input"→402).
+All queue ops gate on the `*(+0x4654)` readiness counter.
+
+The remaining `97`-ish "unresolved error domains" and `93` material action
+unknowns across the *other* services are **mostly the same shape** — a delegated
+engine/member-vfunc returning a code that the worker surfaces verbatim. Where a
+concrete literal exists (and the queue family shows many do), they are now
+extractable via the same Ghidra-assisted decompile path; where the return value
+is produced inside a genuinely runtime-bound boundary (an async transaction
+completion, an external device/engine RPC, or a passthrough with no in-binary
+literal), the record is honestly labeled `proven`/`unknown`/`evidence` and the
+exact boundary is named rather than the code set.
