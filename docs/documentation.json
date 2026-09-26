@@ -37475,7 +37475,7 @@
               }
             ],
             "notes": "impl = arg5 = *(svc+4); group-impl vfunc block v[+0x08..+0x1c] is sequential across the 6 actions; concrete impl function addresses not yet resolved (vtable anchor not located).",
-            "impl_notes": "impl object is *(svc+4) - the group-impl member resolved by the dispatcher at 0x10738d5c; its vtable is not yet recovered. queries mute state across the group (local zone + member zones) through the group-impl object",
+            "impl_notes": "Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8 \u2014 the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.",
             "evidence": [
               {
                 "type": "firmware",
@@ -37495,7 +37495,10 @@
                 "address": "0x10738cfc",
                 "notes": "handler invoked via table-indirect entry"
               }
-            ]
+            ],
+            "impl_function": "0x103a3f28",
+            "impl_vfunc": "0x08 on impl vtable 0x10ec37b4",
+            "status": "strong"
           },
           "inputs": {
             "InstanceID": {
@@ -37534,6 +37537,14 @@
                   "status": "confirmed",
                   "address": "0x10e9aadc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x103a3f28",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -37541,8 +37552,8 @@
           },
           "outputs": {
             "CurrentMute": {
-              "description": "output populated on success by the impl call; value semantics not traced",
-              "status": "inferred",
+              "description": "Group mute byte produced by impl f_103a3f28 via the shared group-session state acquired by f_106ff3b8",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fc08",
@@ -37573,6 +37584,14 @@
                   "status": "confirmed",
                   "address": "0x10f0b010",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x103a3f28",
+                  "notes": "produced by impl path"
                 }
               ],
               "notes": null
@@ -37726,11 +37745,12 @@
               "unresolved": {
                 "proven": "impl rc propagated verbatim to the fault vfunc",
                 "unknown": "which numeric codes the impl can produce and their SOAP-level meanings"
-              }
+              },
+              "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
             },
             {
               "code": "402",
-              "meaning": "invalid or missing argument; request-layer argument lookup/parse failure surfaces the generic invalid-argument fault",
+              "meaning": "SOAP 402 Invalid Args \u2014 raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
               "conditions": [
                 {
                   "description": "Required argument absent or its lookup through the request-object parse helper fails",
@@ -37749,7 +37769,7 @@
               "fault_sites": [
                 "0x10738f38"
               ],
-              "status": "unresolved",
+              "status": "confirmed",
               "evidence": [
                 {
                   "type": "firmware",
@@ -37758,12 +37778,21 @@
                   "status": "confirmed",
                   "address": "0x10738f38",
                   "notes": "fault site in the GetGroupMute SOAP handler"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x103a3f28",
+                  "notes": "402 gate verified in handler body"
                 }
               ],
               "unresolved": {
                 "proven": "the fault path is reached when the impl call reports failure",
                 "unknown": "concrete error code vocabulary and per-code conditions"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
             }
           ],
           "firmware_differences": [],
@@ -37776,9 +37805,18 @@
               "address": "0x10738e9c",
               "notes": "full wrapper decode",
               "function": "f_10738e9c"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x103a3f28",
+              "notes": "impl vfunc on vtable 0x10ec37b4 +0x08"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8 \u2014 the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4."
         },
         "GetGroupVolume": {
           "description": "Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v[+0x10].",
@@ -37815,7 +37853,7 @@
                 "purpose": "parse"
               }
             ],
-            "impl_notes": "impl object is *(svc+4) - the group-impl member resolved by the dispatcher at 0x10738d5c; its vtable is not yet recovered. queries group volume state via the group-impl object",
+            "impl_notes": "Direct impl on the impl object: 4-insn predicate \u2014 loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.",
             "evidence": [
               {
                 "type": "firmware",
@@ -37835,7 +37873,10 @@
                 "address": "0x10738cfc",
                 "notes": "handler invoked via table-indirect entry"
               }
-            ]
+            ],
+            "impl_function": "0x106fd104",
+            "impl_vfunc": "0x10 on impl vtable 0x10ec37b4",
+            "status": "strong"
           },
           "inputs": {
             "InstanceID": {
@@ -37874,6 +37915,14 @@
                   "status": "confirmed",
                   "address": "0x10e9aadc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106fd104",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -37913,6 +37962,14 @@
                   "status": "confirmed",
                   "address": "0x10f08d18",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106fd104",
+                  "notes": "produced by impl path"
                 }
               ],
               "notes": null
@@ -38066,11 +38123,12 @@
               "unresolved": {
                 "proven": "impl rc propagated to fault vfunc",
                 "unknown": "concrete codes/conditions the group impl produces"
-              }
+              },
+              "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
             },
             {
               "code": "402",
-              "meaning": "invalid or missing argument; request-layer argument lookup/parse failure surfaces the generic invalid-argument fault",
+              "meaning": "SOAP 402 Invalid Args \u2014 raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
               "conditions": [
                 {
                   "description": "Required argument absent or its lookup through the request-object parse helper fails",
@@ -38089,7 +38147,7 @@
               "fault_sites": [
                 "0x10739160"
               ],
-              "status": "unresolved",
+              "status": "confirmed",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38098,12 +38156,21 @@
                   "status": "confirmed",
                   "address": "0x10739160",
                   "notes": "fault site in the GetGroupVolume SOAP handler"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106fd104",
+                  "notes": "402 gate verified in handler body"
                 }
               ],
               "unresolved": {
                 "proven": "the fault path is reached when the impl call reports failure",
                 "unknown": "concrete error code vocabulary and per-code conditions"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
             }
           ],
           "firmware_differences": [],
@@ -38116,9 +38183,18 @@
               "address": "0x107390c4",
               "notes": "full wrapper decode",
               "function": "f_107390c4"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x106fd104",
+              "notes": "impl vfunc on vtable 0x10ec37b4 +0x10"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Direct impl on the impl object: 4-insn predicate \u2014 loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4."
         },
         "SetGroupMute": {
           "description": "Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').",
@@ -38155,7 +38231,7 @@
                 "purpose": "parse"
               }
             ],
-            "impl_notes": "impl object is *(svc+4) - the group-impl member resolved by the dispatcher at 0x10738d5c; its vtable is not yet recovered. worker f_103a1b8c applies the mute locally and builds remote RenderingControl:SetMute UPnP operation records (urn:schemas-upnp-org:service:RenderingControl:1) dispatched to each member zone; logs 'SetGroupMute: local set to %d rc=%d' / '%s set to %d rc=%d'",
+            "impl_notes": "Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740) \u2014 posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.",
             "evidence": [
               {
                 "type": "firmware",
@@ -38175,7 +38251,10 @@
                 "address": "0x10738cfc",
                 "notes": "handler invoked via table-indirect entry"
               }
-            ]
+            ],
+            "impl_function": "0x103a3f40",
+            "impl_vfunc": "0x0c on impl vtable 0x10ec37b4",
+            "status": "strong"
           },
           "inputs": {
             "InstanceID": {
@@ -38214,13 +38293,21 @@
                   "status": "confirmed",
                   "address": "0x10e9aadc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x103a3f40",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
             },
             "DesiredMute": {
               "description": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 1,
@@ -38233,7 +38320,7 @@
               "format": "decimal text",
               "unit": "none - boolean-ish byte",
               "accepted_values": "byte numeric",
-              "range": "bounds not traced in the binary",
+              "range": "boolean: parsed by f_10561444 byte-bool reader \u2014 nonzero literal -> 1; forwarded as the DesiredMute flag to impl f_103a3f40",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -38254,6 +38341,14 @@
                   "status": "confirmed",
                   "address": "0x10ec3ab4",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x103a3f40",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -38478,11 +38573,12 @@
               "unresolved": {
                 "proven": "impl rc propagated to fault vfunc; per-member rc only logged",
                 "unknown": "whether any member failure yields a SOAP fault or is masked; concrete codes"
-              }
+              },
+              "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
             },
             {
               "code": "402",
-              "meaning": "invalid or missing argument; request-layer argument lookup/parse failure surfaces the generic invalid-argument fault",
+              "meaning": "SOAP 402 Invalid Args \u2014 raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
               "conditions": [
                 {
                   "description": "Required argument absent or its lookup through the request-object parse helper fails",
@@ -38501,7 +38597,7 @@
               "fault_sites": [
                 "0x10739070"
               ],
-              "status": "unresolved",
+              "status": "confirmed",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38510,12 +38606,21 @@
                   "status": "confirmed",
                   "address": "0x10739070",
                   "notes": "fault site in the SetGroupMute SOAP handler"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x103a3f40",
+                  "notes": "402 gate verified in handler body"
                 }
               ],
               "unresolved": {
                 "proven": "the fault path is reached when the impl call reports failure",
                 "unknown": "concrete error code vocabulary and per-code conditions"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
             }
           ],
           "firmware_differences": [],
@@ -38528,9 +38633,18 @@
               "address": "0x10738fb0",
               "notes": "full wrapper decode",
               "function": "f_10738fb0"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x103a3f40",
+              "notes": "impl vfunc on vtable 0x10ec37b4 +0x0c"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740) \u2014 posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4."
         },
         "SetGroupVolume": {
           "description": "Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).",
@@ -38567,7 +38681,7 @@
                 "purpose": "parse"
               }
             ],
-            "impl_notes": "impl object is *(svc+4) - the group-impl member resolved by the dispatcher at 0x10738d5c; its vtable is not yet recovered. applies locally then fans out RenderingControl:SetVolume UPnP ops to member zones; bookkeeping via GroupVolumeSetActionEvent records; logs 'SetGroupVolume: local:%d netops:%u zones:%u'",
+            "impl_notes": "Direct impl: reads byte impl+0x22dd then enters the group volume set path on members +0x22c4..+0x22ff. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.",
             "evidence": [
               {
                 "type": "firmware",
@@ -38587,7 +38701,10 @@
                 "address": "0x10738cfc",
                 "notes": "handler invoked via table-indirect entry"
               }
-            ]
+            ],
+            "impl_function": "0x106fd5d4",
+            "impl_vfunc": "0x14 on impl vtable 0x10ec37b4",
+            "status": "strong"
           },
           "inputs": {
             "InstanceID": {
@@ -38626,13 +38743,21 @@
                   "status": "confirmed",
                   "address": "0x10e9aadc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106fd5d4",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
             },
             "DesiredVolume": {
               "description": "Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "in",
               "primitive": {
                 "type_tag": 2,
@@ -38645,7 +38770,7 @@
               "format": "decimal text",
               "unit": "percent volume units (Sonos convention, unproven for group path)",
               "accepted_values": "decimal",
-              "range": "bounds not traced in the binary",
+              "range": "decimal integer parsed by f_10561478 (u16-width numeric reader); no wrapper bound check present",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -38666,6 +38791,14 @@
                   "status": "confirmed",
                   "address": "0x10ec3aa4",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106fd5d4",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -38847,11 +38980,12 @@
               "unresolved": {
                 "proven": "impl rc propagated; member fan-out logged with per-member rc",
                 "unknown": "whether member failures surface as SOAP faults or are masked; concrete codes"
-              }
+              },
+              "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
             },
             {
               "code": "402",
-              "meaning": "invalid or missing argument; request-layer argument lookup/parse failure surfaces the generic invalid-argument fault",
+              "meaning": "SOAP 402 Invalid Args \u2014 raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
               "conditions": [
                 {
                   "description": "Required argument absent or its lookup through the request-object parse helper fails",
@@ -38870,7 +39004,7 @@
               "fault_sites": [
                 "0x10739298"
               ],
-              "status": "unresolved",
+              "status": "confirmed",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38879,12 +39013,21 @@
                   "status": "confirmed",
                   "address": "0x10739298",
                   "notes": "fault site in the SetGroupVolume SOAP handler"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106fd5d4",
+                  "notes": "402 gate verified in handler body"
                 }
               ],
               "unresolved": {
                 "proven": "the fault path is reached when the impl call reports failure",
                 "unknown": "concrete error code vocabulary and per-code conditions"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
             }
           ],
           "firmware_differences": [],
@@ -38897,9 +39040,18 @@
               "address": "0x107391d8",
               "notes": "full wrapper decode",
               "function": "f_107391d8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x106fd5d4",
+              "notes": "impl vfunc on vtable 0x10ec37b4 +0x14"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Direct impl: reads byte impl+0x22dd then enters the group volume set path on members +0x22c4..+0x22ff. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4."
         },
         "SetRelativeGroupVolume": {
           "description": "Adjusts group volume by a signed delta and returns the new group volume. impl->v[+0x18](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.",
@@ -38936,7 +39088,7 @@
                 "purpose": "parse"
               }
             ],
-            "impl_notes": "impl object is *(svc+4) - the group-impl member resolved by the dispatcher at 0x10738d5c; its vtable is not yet recovered. relative adjustment applied through the group-impl object",
+            "impl_notes": "Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.",
             "evidence": [
               {
                 "type": "firmware",
@@ -38956,7 +39108,10 @@
                 "address": "0x10738cfc",
                 "notes": "handler invoked via table-indirect entry"
               }
-            ]
+            ],
+            "impl_function": "0x106ff454",
+            "impl_vfunc": "0x18 on impl vtable 0x10ec37b4",
+            "status": "strong"
           },
           "inputs": {
             "InstanceID": {
@@ -38995,6 +39150,14 @@
                   "status": "confirmed",
                   "address": "0x10e9aadc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106ff454",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -39035,6 +39198,14 @@
                   "status": "confirmed",
                   "address": "0x10f0b048",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106ff454",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -39074,6 +39245,14 @@
                   "status": "confirmed",
                   "address": "0x10f0b054",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106ff454",
+                  "notes": "produced by impl path"
                 }
               ],
               "notes": null
@@ -39228,11 +39407,12 @@
               "unresolved": {
                 "proven": "impl rc propagated to fault vfunc",
                 "unknown": "concrete codes; clamp/bounds failure semantics"
-              }
+              },
+              "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
             },
             {
               "code": "402",
-              "meaning": "invalid or missing argument; request-layer argument lookup/parse failure surfaces the generic invalid-argument fault",
+              "meaning": "SOAP 402 Invalid Args \u2014 raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
               "conditions": [
                 {
                   "description": "Required argument absent or its lookup through the request-object parse helper fails",
@@ -39251,7 +39431,7 @@
               "fault_sites": [
                 "0x107393b0"
               ],
-              "status": "unresolved",
+              "status": "confirmed",
               "evidence": [
                 {
                   "type": "firmware",
@@ -39260,12 +39440,21 @@
                   "status": "confirmed",
                   "address": "0x107393b0",
                   "notes": "fault site in the SetRelativeGroupVolume SOAP handler"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106ff454",
+                  "notes": "402 gate verified in handler body"
                 }
               ],
               "unresolved": {
                 "proven": "the fault path is reached when the impl call reports failure",
                 "unknown": "concrete error code vocabulary and per-code conditions"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
             }
           ],
           "firmware_differences": [],
@@ -39278,9 +39467,18 @@
               "address": "0x107392ec",
               "notes": "full wrapper decode",
               "function": "f_107392ec"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x106ff454",
+              "notes": "impl vfunc on vtable 0x10ec37b4 +0x18"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4."
         },
         "SnapshotGroupVolume": {
           "description": "Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v[+0x1c](impl, InstanceID) only - no outputs.",
@@ -39317,7 +39515,7 @@
                 "purpose": "parse"
               }
             ],
-            "impl_notes": "impl object is *(svc+4) - the group-impl member resolved by the dispatcher at 0x10738d5c; its vtable is not yet recovered. snapshots group volume state via the group-impl object; downstream produces GroupVolumeChangedEvent / 'Sent group volume change %u to eSDK (mute %d)'",
+            "impl_notes": "Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.",
             "evidence": [
               {
                 "type": "firmware",
@@ -39337,7 +39535,10 @@
                 "address": "0x10738cfc",
                 "notes": "handler invoked via table-indirect entry"
               }
-            ]
+            ],
+            "impl_function": "0x106ff898",
+            "impl_vfunc": "0x1c on impl vtable 0x10ec37b4",
+            "status": "strong"
           },
           "inputs": {
             "InstanceID": {
@@ -39376,6 +39577,14 @@
                   "status": "confirmed",
                   "address": "0x10e9aadc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106ff898",
+                  "notes": "consumed at impl boundary"
                 }
               ],
               "notes": null
@@ -39549,11 +39758,12 @@
               "unresolved": {
                 "proven": "impl rc propagated to fault vfunc",
                 "unknown": "concrete codes/conditions"
-              }
+              },
+              "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
             },
             {
               "code": "402",
-              "meaning": "invalid or missing argument; request-layer argument lookup/parse failure surfaces the generic invalid-argument fault",
+              "meaning": "SOAP 402 Invalid Args \u2014 raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
               "conditions": [
                 {
                   "description": "Required argument absent or its lookup through the request-object parse helper fails",
@@ -39572,7 +39782,7 @@
               "fault_sites": [
                 "0x10738e48"
               ],
-              "status": "unresolved",
+              "status": "confirmed",
               "evidence": [
                 {
                   "type": "firmware",
@@ -39581,12 +39791,21 @@
                   "status": "confirmed",
                   "address": "0x10738e48",
                   "notes": "fault site in the SnapshotGroupVolume SOAP handler"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x106ff898",
+                  "notes": "402 gate verified in handler body"
                 }
               ],
               "unresolved": {
                 "proven": "the fault path is reached when the impl call reports failure",
                 "unknown": "concrete error code vocabulary and per-code conditions"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
             }
           ],
           "firmware_differences": [],
@@ -39599,9 +39818,18 @@
               "address": "0x10738db0",
               "notes": "full wrapper decode",
               "function": "f_10738db0"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x106ff898",
+              "notes": "impl vfunc on vtable 0x10ec37b4 +0x1c"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4."
         }
       },
       "state_variables": {},
