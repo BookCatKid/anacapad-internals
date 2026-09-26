@@ -86543,7 +86543,8 @@
             "notes": "name-table"
           }
         ]
-      }
+      },
+      "dispatch note": "name->action_id map; action_id is the SOAP request dispatch key. CORRECTED via ELF code-ref scan: ProvisionCredentialedTrialAccountX string ABSENT in both 86.8 & 86.10 (advertised-but-never-shipped). ResetThirdPartyCredentials IS dispatched \u2014 strcmp-referenced in code (lis+addi code-ref in BOTH builds); SystemProperties mixes a {name_ptr,id} pointer-table (EnableRDM, GetZoneInfo...) AND strcmp-compares for other actions."
     },
     "/ZoneGroupTopology/Control": {
       "name": "ZoneGroupTopology",
@@ -100185,7 +100186,7 @@
       "description": "SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml \u2014 advertised via <SCPDURL> in device_description",
       "files": "21 XML files in opt/htdocs/xml: 16 advertised SCPDs + AudioIn1.xml (unadvertised) + device_description.xml + group_description.xml + musicservices.xml + xsl",
       "advertised_actions": "208 total actions across 16 services; 414 in-args, 206 out-args; state-variable tables per service",
-      "advertised_not_implemented": "ProvisionCredentialedTrialAccountX + ResetThirdPartyCredentials advertised in SystemProperties1.xml but REMOVED from 86.10 dispatch table (dead/absent name); AudioIn1.xml 6 actions advertised but service is a reject-all 401 stub",
+      "advertised_not_implemented": "CORRECTED (was 'REMOVED from 86.10'): ProvisionCredentialedTrialAccountX advertised in SystemProperties1.xml (86.8 AND 86.10) but string ABSENT from BOTH binaries -> advertised-but-never-shipped, stable across builds. ResetThirdPartyCredentials advertised + strcmp-dispatched in BOTH builds -> NOT removed. AudioIn1.xml 6 actions advertised but service is a reject-all 401 stub (both builds).",
       "evidence": [
         {
           "type": "firmware",
@@ -100330,7 +100331,7 @@
       },
       {
         "item": "SystemProperties removed actions",
-        "detail": "ProvisionCredentialedTrialAccountX{in:{AccountType,AccountID,AccountPassword},out:{IsExpired,AccountUDN}} + ResetThirdPartyCredentials{0 args} are advertised in SystemProperties1.xml (shared across all model SCPDs incl 86.10 htdocs) but were REMOVED from the 86.10 binary: ProvisionCredentialedTrialAccountX name is entirely absent; ResetThirdPartyCredentials name string exists at 0x10f184cc but has zero code/table references (dead). Neither is in the SystemProperties action-table at 0x10f110f0 (15 {name,id} entries). Account-provisioning surface reduced in 86.10.",
+        "detail": "ProvisionCredentialedTrialAccountX{in:{AccountType,AccountID,AccountPassword},out:{IsExpired,AccountUDN}} advertised in SystemProperties1.xml (86.8 AND 86.10) but string ABSENT from BOTH binaries -> advertised-but-never-implemented, STABLE across builds, not a removal. ResetThirdPartyCredentials advertised + strcmp-dispatched in both -> not removed. The ONLY real 86.8->86.10 advertised delta is AVTransport.DelegateGroupCoordinationTo gaining 4th input ClearSource (new A_ARG_TYPE_ClearSource).",
         "builds": {
           "SCPD(all)": "advertised",
           "86.10": "removed from dispatch table"
