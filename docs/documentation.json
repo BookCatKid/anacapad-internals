@@ -94612,7 +94612,21 @@
           "f10": 4
         }
       ],
-      "field_notes": "slot idx=0..72; +0x8 aux = monotonic global event-type id (3..355); +0xc u16 = TLV subscription-category tag (grouped: 0xf device-status family, 0x7d-0x89 UPnP-service family, 0x5a-0x60 playback/session, 0x3d trueplay, 0x26 settings, 0x52 zone); +0xe u8 type=0; +0x10 flags/handler"
+      "field_notes": "slot idx=0..72; +0x8 aux = monotonic global event-type id (3..355); +0xc u16 = TLV subscription-category tag (grouped: 0xf device-status family, 0x7d-0x89 UPnP-service family, 0x5a-0x60 playback/session, 0x3d trueplay, 0x26 settings, 0x52 zone); +0xe u8 type=0; +0x10 flags/handler",
+      "protocol": {
+        "frame_format": {
+          "layout": "{u16 tag @+0, s8 type @+2, payload...}",
+          "lookup": "f_109e10d8(tag,type): scans table 0x110b8ce8 stride 0x14 x 0x49 entries matching e+0xc==tag AND (e+0xe==-1 wildcard | type rules); returns entry index or 0x4a=invalid",
+          "evidence": "f_109e10d8; call site 0x1068e6e0"
+        },
+        "subscription_lifecycle": {
+          "create": "f_109e117c: sonos_uuid_generate -> sonos_uuid_unparse = new SID",
+          "record": "subscription obj: frame ptr @+0x30, flag byte @+0x34, state word @+0x38",
+          "renew": "rejected: 'Invalid namespace: UPnP renew not supported' @0x1068e830",
+          "transport": "'Invalid transport: WSS is required' @0x1068e794 - WSS-only"
+        },
+        "f10_field": "entry +0x10 u32 in {0,4} - flag/category; consumer semantics undecoded"
+      }
     },
     "http_status_endpoints": {
       "name": "/status diagnostic web-handler vocabulary",
