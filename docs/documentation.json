@@ -101103,6 +101103,22 @@
       "graph": "source: as-src -> as-srcin -> as-srcin-{chsnk,chsnk0,ext-voice} -> as-srcout -> as-srcout-{chsnk,ext-voice}; dsp: as-dspin -> as-dspin-{tv,ext-voice,ext-chirp} -> as-dspout -> as-dspout-{tv,ext-voice,ext-chirp} \u2014 TV/voice/chirp all tap the DSP chain",
       "asrc": "Async sample-rate converter: 'SoundDevice: setCoefficients to StdQ ASRC Coeffs' default + 'Hi-Res music SRC' quality switch; 'ASRC will be reset. Sample Rate changed from %u to %u'; Audio Rate Controller",
       "impl": "audio_stream{,_local,_dsp}.cxx + mixing_threaded.cxx + sounddev.cxx + audio_fifo.cxx; START/PAUSE_AUDIO_STREAMING events; <SoundDevice><Zones> doc"
+    },
+    "bonded_zones": {
+      "status": "confirmed",
+      "states": [
+        "HT_BONDED_MASTER",
+        "HT_BONDED_SATELLITE",
+        "UNBONDED_DEVICE",
+        "BONDED_STEREOPAIR",
+        "BONDED_TO_SUB",
+        "BONDED_STEREOPAIR_AND_SUB"
+      ],
+      "modes": "ZP_MODE_{UNKNOWN,STANDALONE,HT_SATELLITE,EXCLUSIVE_BT} \u2014 incl. bluetooth-exclusive mode",
+      "consistency": "ValidateBondedState + isBondedZoneConsistent cross-ZP map compare + MissingBondedZoneMemberDetectedEvent; ifBondedZoneGet{Next,Partner}UUID traversal",
+      "ops": "addSatellite(map)/removeHTSatellite + separateBondedZoneKeepPlaying graceful unbond; RemoteHTSwapStateChangedEvent (surround L/R swap); bonded->primary default-loudness",
+      "dsp": "dsp_preset_satellite.xml + dsp_system_satellite.bin + satellite_processor.bin \u2014 satellite-specific DSP chains",
+      "tz": "timezone DB from update-timezone.sonos.com/timezone/timezones.xml"
     }
   }
 }
