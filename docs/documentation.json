@@ -626,7 +626,9 @@
           "address": "0x11090c00",
           "notes": "route table; /Control x23 -> f_105e8274, /Event -> f_105e8290"
         }
-      ]
+      ],
+      "event_handler_semantics": "f_105e8290 = GENA SUBSCRIBE/UNSUBSCRIBE handler: reads headers NT, NTS, content-length, SID, SEQ via f_100a49ac header-lookup; requires NT==upnp:event and NTS==upnp:propchange else 412 (0x19c); missing headers -> 400 (0x190); method check *(r31)==0xa -> 405 (0x195); valid subscription -> singleton at 0x11097680 v[+0x3c] (subscription manager register call)",
+      "control_handler_note": "f_105e8274 loads r3=*(0x11097680) singleton then tails into the SOAP engine (service+action dispatch); same subscription/engine singleton as the GENA path"
     }
   },
   "request_vtable": {
@@ -83925,7 +83927,8 @@
           "notes": "event-name pool; \"RInternalEventSubscriptionTable teardown\" log at 0x10ef5b0c; muse settings-event cap log at 0x10efe46c"
         }
       ],
-      "notes": "Scope: internal-only in this build (not a SOAP surface). Subscriber/publisher mapping per event name not yet decoded - pool documented as a vocabulary anchor for the native-protocol track."
+      "notes": "Scope: internal-only in this build (not a SOAP surface). Subscriber/publisher mapping per event name not yet decoded - pool documented as a vocabulary anchor for the native-protocol track.",
+      "role": " ; subscription-manager singleton at 0x11097680 (referenced by f_105e8274 SOAP entry and f_105e8290 GENA handler; v[+0x3c] = register-subscription call)"
     },
     "alarm_store_object": {
       "status": "confirmed",
