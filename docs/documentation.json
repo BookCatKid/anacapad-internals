@@ -93520,7 +93520,139 @@
       ]
     }
   },
-  "firmware_differences": [],
+  "firmware_differences": {
+    "note": "String-set diff across anacapad 34.16 (fenway), 57.10 (fenway), 86.8-78270 (playbar model9), 86.10-80260 (documented build). Presence = literal exists in binary; literal storage/validation method may differ even when service is present.",
+    "entries": [
+      {
+        "item": "QPlay service URN literal",
+        "detail": "urn:schemas-tencent-com:service:QPlay:1 present in 34.16/57.10, ABSENT in 86.x - but /QPlay/Control route, QPlayAuth action and X_QPlay_SoftwareCapability remain in all builds. 86.x matches QPlay by route-path/action rather than full-URN literal - URN validation relaxed/changed",
+        "builds": {
+          "34.16": "present",
+          "57.10": "present",
+          "86.8": "URN absent/route present",
+          "86.10": "URN absent/route present"
+        }
+      },
+      {
+        "item": "VirtualLineIn service",
+        "detail": "urn:schemas-upnp-org:service:VirtualLineIn:1 absent in 34.16; present 57.10+ with /MediaRenderer/VirtualLineIn/{Control,Event} routes",
+        "builds": {
+          "34.16": "absent",
+          "57.10": "added",
+          "86.8": "present",
+          "86.10": "present"
+        }
+      },
+      {
+        "item": "sonos-com ContentDirectory namespace",
+        "detail": "urn:schemas-sonos-com:service:ContentDirectory:1 absent in 34.16; added 57.10+ alongside the upnp-org URN",
+        "builds": {
+          "34.16": "absent",
+          "57.10": "added",
+          "86.x": "present"
+        }
+      },
+      {
+        "item": "/status/opt/log/mdnsd.log",
+        "detail": "status endpoint added after 34.16",
+        "builds": {
+          "34.16": "absent",
+          "57.10+": "present"
+        }
+      },
+      {
+        "item": "/device_account registration subroutes",
+        "detail": "/device_account/registration{,/id,/state,/status} literals only in 34.16; 86.10 retains single /device_account handler (f_1065bd70)",
+        "builds": {
+          "34.16": "4 subroutes",
+          "57.10+": "removed"
+        }
+      },
+      {
+        "item": "/api route",
+        "detail": "'/api' in 34.16/57.10, '/api/v0/capture' in 57.10, '/api/' provider-root in 86.x - API surface moved to provider-registry model",
+        "builds": {
+          "34.16": "/api",
+          "57.10": "/api + /api/v0/capture",
+          "86.x": "/api/ + provider registry"
+        }
+      },
+      {
+        "item": "FV token grammar",
+        "detail": "'FV:3'/'FV:3/%s' fixed-version literals in <=57.10; parameterized 'FV:%zu' plus 'FV:GC'/'FV:GC-HB' in 57.10+ (GC group-coordinator variants introduced)",
+        "builds": {
+          "34.16": "FV:3, FV:3/%s",
+          "57.10": "FV:%zu, FV:GC, FV:GC-HB",
+          "86.x": "same as 57.10"
+        }
+      },
+      {
+        "item": "x-sonos-* header set",
+        "detail": "x-sonos-action/x-sonos-dock/x-sonos-starttime only in <=57.10 (removed); x-sonos-upnp-loopback-token/x-sonos-upnp-tunnel/insecureUpnpAllowed/x-sonos-target-udn only in 86.x (added: loopback auth + UDN targeting + insecure-mode gate)",
+        "builds": {
+          "<=57.10": "legacy headers",
+          "86.x": "loopback-tunnel model"
+        }
+      },
+      {
+        "item": "x-sonosapi-iqradio scheme",
+        "detail": "x-sonosapi-iqradio:* and x-sonosapi-iqradioinst:* only in 34.16 - iQR radio service scheme removed in 57.10+",
+        "builds": {
+          "34.16": "present",
+          "57.10+": "removed"
+        }
+      },
+      {
+        "item": "x-rincon-stream / x-sonosapi-show / trueroom",
+        "detail": "x-rincon-stream:%s:%s, x-sonosapi-show:, x-rincon-trueroom:, x-rincon-sonarcal:complete_ht.ogg, testtone.ogg only in 86.x; 34.16/57.10 had x-rincon-stream:WAV and sonarcal complete.ogg/testtone.flac variants",
+        "builds": {
+          "<=57.10": "WAV/flac variants",
+          "86.x": "trueplay/show/scheme set"
+        }
+      },
+      {
+        "item": "x-rincon-enc2",
+        "detail": "x-rincon-enc2 scheme literal only in playbar-model9 86.8 - model-specific encrypted-stream variant",
+        "builds": {
+          "86.8-playbar9": "present",
+          "86.10": "absent"
+        }
+      },
+      {
+        "item": "explicitContentFiltering config key",
+        "detail": "config-key literal added in 57.10 (f_106bb20c handler family)",
+        "builds": {
+          "34.16": "absent",
+          "57.10+": "present"
+        }
+      },
+      {
+        "item": "int_setTransferMode",
+        "detail": "transfer-mode key literal only in 86.10-80260",
+        "builds": {
+          "<86.10": "absent",
+          "86.10": "present"
+        }
+      },
+      {
+        "item": "RINCON metadata NS additions",
+        "detail": "metadata-1-0 fields isAd/linkUrl/trackGain added in 86.x; preset only in <=57.10; ~20 fields stable across 57.10-86.x",
+        "builds": {
+          "34.16": "minimal",
+          "57.10": "core set",
+          "86.x": "+isAd/linkUrl/trackGain"
+        }
+      },
+      {
+        "item": "/status route table",
+        "detail": "all ~59 /status paths identical across 57.10-86.x; only mdnsd.log absent in 34.16",
+        "builds": {
+          "34.16": "58 routes",
+          "57.10+": "59 routes"
+        }
+      }
+    ]
+  },
   "shared_primitives": {
     "mega_impl_object": {
       "status": "confirmed",
@@ -95165,6 +95297,11 @@
         "/zp": "f_100bfbac (511i): master status page - device identity, all subsystem states"
       },
       "handler_classes": "3 classes: (a) big inline handler with workers; (b) thin tail-emitter {r3=singleton/member, r4=req, optional r5 selector}; (c) engine-singleton virtual delegate (*(0x11097680)->v[+0x84] -> obj->v[+0xfc])"
+    },
+    "device_account_endpoint": {
+      "handler": "f_1065bd70",
+      "flow": "path claim '/device_account' (f_10655ea4) -> f_106570bc validate -> f_1065b730('int_setTransferMode') transfer-mode int; serialize device-account via f_1065a8dc(strlen+encode)/f_109cd7a4/f_1065e99c; state word *(r30+8) in {3,4} selects account variant; constant block 0x110b9044 (6 bytes) feeds the blob; f_10807034 XML append; stack-canary guarded",
+      "semantics": "device-account provisioning/read endpoint; response is an encoded account blob whose variant depends on registration state (3 vs 4)"
     }
   }
 }
