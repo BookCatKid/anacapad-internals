@@ -83440,10 +83440,10 @@
     },
     "sp_store_object": {
       "name": "shared zone-settings store object (DP+SP)",
-      "role": "*svc+0x4 of /DeviceProperties and /SystemProperties svc objs; single shared impl instance",
+      "role": "*svc+0x4 of /DeviceProperties and /SystemProperties svc objs; single shared impl instance Notify/commit helpers: f_10557d70 appends {key,value} as key\\0value\\0 into a flat change-list buffer at obj+0x14 (capacity check vs 0x1000, returns 1 appended / 0 overflow - flag, not fault). f_10558000 formats numeric value via snprintf(%d) then calls f_10557d70 (numeric-setting notify). f_1055847c conditional notify (skips when key ptr/byte null -> return 0). These close the DP/SP setter residual chain: impl applies change then appends dirty keys to the notify list.",
       "dispatch": "handlers call store->v[slot] directly (SP: GetString +0xc f_1017fbcc, SetString +0x8 f_101939a4, Remove +0x10 f_10188024); SP action impl vfuncs are adjuster thunks into the same worker family (f_101981f0/f_10193708/f_101939a4/f_10188024/f_1017fbcc)",
       "vtable": "0x10e97e10 (slice)",
-      "evidence": "disasm 0x10e97e10 vtable dump; handler impl_calls obj=*(r3-in+0x4)"
+      "evidence": "disasm 0x10e97e10 vtable dump; handler impl_calls obj=*(r3-in+0x4); disasm 0x10557d70/0x10558000/0x1055847c notify-helper family"
     },
     "rmd_op_worker_class": {
       "name": "ZoneGroupTopology client-side outbound-call class",
