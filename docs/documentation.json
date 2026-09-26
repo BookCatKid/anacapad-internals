@@ -666,15 +666,15 @@
       "slots": {
         "+0x00": "f_107313d8 (dtor)",
         "+0x04": "f_10731418 (dtor-delete)",
-        "+0x08": "f_10730364 (validate args)",
-        "+0x0c": "f_10730850 (commit success response: serialize out-doc via writer vtable 0x10f10f70 at req+0x680; set CONTENT-LENGTH, CONTENT-TYPE text/xml; charset=utf-8, EXT; status 200 via f_100b4614; send f_100b4364; log 'UPnP call: %s:%s returned 200 to %s:%d')",
-        "+0x10": "f_10730754",
+        "+0x08": "f_10730364 (body parse+validate: content-length -> strtol -> f_10562d64 body-stream parse into in-arg doc at req+0x14; body-stream wrapper vtable 0x10f10ef4; returns parse bool)",
+        "+0x0c": "f_10730850 (commit success response CONTENT-LENGTH form)",
+        "+0x10": "f_10730754 (commit success response CHUNKED form: TRANSFER-ENCODING: chunked, no CONTENT-LENGTH, status 200)",
         "+0x14": "f_10731560 (raise fault: sth code->req+0x10; log 'UPnP call: %s:%s returned %d to %s:%d' at level 8 if code>=1000 else 4)",
-        "+0x18": "f_10730720",
-        "+0x1c": "f_10731840 (required arg lookup by name)",
-        "+0x20": "f_10731830 (optional arg lookup by name)",
-        "+0x24": "f_1073181c (get/create out-arg)",
-        "+0x28": "f_1073180c",
+        "+0x18": "f_10730720 (raw status responder: f_100b4614(http,r4) + send)",
+        "+0x1c": "f_10731840 -> f_10562fc0(req+0x14 doc, name): get-or-create arg record in 15-slot array (stride 0x38) + dynamic tail; required - no +0x32 flag",
+        "+0x20": "f_10731830 -> f_10563098: same get-or-create but sets +0x32 optional-flag",
+        "+0x24": "f_1073181c -> f_10562388(req+0x680 out-doc, name, 0): get-or-create out-arg record",
+        "+0x28": "f_1073180c -> f_10562468(req+0x680): out-doc record variant (r5 arg differs)",
         "+0x2c": "f_10731614 (*(http+0x6c)+0x178 conn-field accessor)",
         "+0x30": "f_1073162c (lhz *(http+0x2c) accessor)",
         "+0x34": "f_10731640 (http_req accessor = req+0x4)",
@@ -697,7 +697,8 @@
       ],
       "out_doc_writer_vtable": "0x10f10f70",
       "call_log_suppression": "ctor f_10730c3c calls f_10730bc4(action) which walks the runtime {name,level} list at 0x110927c0 (seeded with 'ReportUnresponsiveDevice'); index <0xb suppresses the 'UPnP call: %s:%s from %s:%d' log line",
-      "+0x3c_note": "f_10730a64: if global *(0x110927bc)!=0, tails f_100a7eac(*(http+0x70)+8) \u2014 a peer/debug hook; else no-op"
+      "+0x3c_note": "f_10730a64: if global *(0x110927bc)!=0, tails f_100a7eac(*(http+0x70)+8) \u2014 a peer/debug hook; else no-op",
+      "arg_record_model": "in-args: array at req+0x14 doc, 15 fixed slots stride 0x38 {+0 vptr(type f_1055eb4c), +8 value, +0x30 consumed-flag, +0x31 present-flag, +0x32 optional-flag, +0x31c name} + dynamic tail via element factory v[+0x8]; out-args: same record family in doc at req+0x680"
     }
   },
   "services": {
