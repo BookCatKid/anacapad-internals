@@ -23,7 +23,7 @@ anacapad is a self-contained UPnP control point **and** server plus a cloud
 state machine and coordinates with the rest of the zone-player OS through
 native IPC buses.
 
-- **Server side** — UPnP SOAP control on `:1400` (17 services / 199 actions),
+- **Server side** — UPnP SOAP control on `:1400` (17 services / 205 action records),
   GENA event subscription on `/Event`, a large HTTP diagnostic+admin surface
   (102 routes), SSDP/mDNS discovery, and a local WebSocket endpoint.
 - **Client side** — outbound UPnP GENA subscriptions to other zone players,
@@ -42,7 +42,8 @@ native IPC buses.
   ConnectionManager, GroupRenderingControl, Queue, RenderingControl,
   VirtualLineIn}, MediaServer{ConnectionManager, ContentDirectory},
   MusicServices, QPlay, SystemProperties, ZoneGroupTopology.
-- **199 actions**, **363 inputs**, **208 outputs**, **172 fault paths** —
+- **205 action records** (204 unique advertised + ConnectionManager's
+  dual-service-path), **~420 inputs**, **~210 outputs**, **172 fault paths** —
   all dispatch-mapped and argument-described.
 - **Argument type system** — the shared parse layer builds an
   `arg-descriptor` per input. Type tag at `+0x4`:
@@ -68,11 +69,12 @@ native IPC buses.
   reject-all stub emitting 401 in this build; its 6 SCPD-advertised actions
   are unimplemented and the service is absent from `serviceList`.
 - **Advertised vs dispatched** — the 16 shipped SCPDs advertise **204**
-  unique actions; the DB models **199** dispatched actions. The 8-action
-  advertised-vs-DB delta: 6 AudioIn actions (dispatched to a reject-all
-  401 stub — present in the binary but modelled at the service level, not
-  as individual action entries) + 2 SystemProperties actions absent from
-  the 15-entry dispatch table. Every DB action is advertised; the
+  unique actions; the DB now models **all of them** as individual action
+  records. Dispatch reconciliation: **204 advertised = 195 pointer-table
+  name-entries + 6 AudioIn strcmp reject-all (401 stub) + 1 QPlay strcmp
+  + 2 SystemProperties not-in-table** (`ProvisionCredentialedTrialAccountX`
+  absent-string + `ResetThirdPartyCredentials` dead-string). Every DB action
+  is advertised; the
   ConnectionManager SCPD is shared by the MediaServer and MediaRenderer
   instances.
 - **Service descriptions (SCPD)** — `device_description.xml` (htdocs, the
@@ -116,6 +118,12 @@ Three distinct mechanisms:
   `f_109e10d8`. This is the cloud/Muse event vocabulary — many entries
   (entitlements, settings, topology, trueplay) have no one-to-one local SOAP
   variable.
+- **Declared state surface** — the 16 SCPDs declare **371** state variables:
+  **92 evented** (`sendEvents=yes`, pushed via LastChange/GENA), **115**
+  non-evented (read via action out-args), and **164** `A_ARG_TYPE_*`
+  argument-type declarations (not device state). All are modelled per-service
+  with data-type, allowed-values/range, related actions, and SCPD evidence;
+  the evented subset binds to emit-literal templates where recoverable.
 
 ## 4. HTTP surface
 
