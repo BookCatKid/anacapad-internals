@@ -9693,7 +9693,9 @@
             "notes": "AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8"
           }
         ]
-      }
+      },
+      "implementation": {},
+      "crossbuild": "AudioIn actions dispatched to REAL handlers in 34.16 & 57.10 (name-literals referenced); in 86.8 & 86.10 the same names are str-only (present, no dispatch ref) -> the AudioIn implementation was REPLACED by the reject-all 401 stub (FUN_1073d8f8 -> req->v[+0x14](req,0x191)) in 86.x. Line-in audio in was deprecated for model-9; SCPD still shipped + service omitted from active serviceList."
     },
     "/DeviceProperties/Control": {
       "name": "DeviceProperties",
@@ -86544,7 +86546,7 @@
           }
         ]
       },
-      "dispatch note": "name->action_id map; action_id is the SOAP request dispatch key. CORRECTED via ELF code-ref scan: ProvisionCredentialedTrialAccountX string ABSENT in both 86.8 & 86.10 (advertised-but-never-shipped). ResetThirdPartyCredentials IS dispatched \u2014 strcmp-referenced in code (lis+addi code-ref in BOTH builds); SystemProperties mixes a {name_ptr,id} pointer-table (EnableRDM, GetZoneInfo...) AND strcmp-compares for other actions."
+      "dispatch note": "name->action_id map at 0x10f110f0 (stride 0xc {name_ptr,id,0}); EXACTLY 15 dispatched actions (AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,Remove,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString) matching the DB table. 2 advertised-but-undispatched: ProvisionCredentialedTrialAccountX (string absent -> removed after 34.16, dispatched in 34.16) and ResetThirdPartyCredentials (dead string 0x10f184cc, zero ptr/code refs -> never wired; present in both 86.8 & 86.10 binaries as a leftover)."
     },
     "/ZoneGroupTopology/Control": {
       "name": "ZoneGroupTopology",
@@ -100186,7 +100188,7 @@
       "description": "SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml \u2014 advertised via <SCPDURL> in device_description",
       "files": "21 XML files in opt/htdocs/xml: 16 advertised SCPDs + AudioIn1.xml (unadvertised) + device_description.xml + group_description.xml + musicservices.xml + xsl",
       "advertised_actions": "208 total actions across 16 services; 414 in-args, 206 out-args; state-variable tables per service",
-      "advertised_not_implemented": "ProvisionCredentialedTrialAccountX advertised in SystemProperties1.xml but NOT dispatched in 57.10/86.8/86.10 (dispatched only in 34.16, removed thereafter) -> stale SCPD advertisement. AudioIn1.xml 6 actions dispatched to a reject-all 401 stub in all builds. All other 202 advertised actions dispatched in every build.",
+      "advertised_not_implemented": "8 advertised actions not individually dispatched in 86.10: 6 AudioIn (real impl 34.16/57.10 -> reject-all 401 stub in 86.x) + ProvisionCredentialedTrialAccountX (dispatched 34.16, hard-removed 57.10+, stale ad) + ResetThirdPartyCredentials (dispatched 34.16, soft-removed 57.10+, dead string). All other advertised actions dispatched in every build.",
       "evidence": [
         {
           "type": "firmware",
@@ -100331,7 +100333,7 @@
       },
       {
         "item": "SystemProperties removed actions",
-        "detail": "FIRMWARE-HISTORY DISPATCH EVOLUTION (docs/crossbuild_matrix.json, 4 binaries 34.16/57.10/86.8/86.10): REMOVED ProvisionCredentialedTrialAccountX dispatched in 34.16 -> dropped by 57.10 -> absent 86.8/86.10, but the shipped SCPD still advertises it (STALE ADVERTISEMENT, not cleaned up). ADDED 57.10: AVTransport.EndDirectControlSession, DeviceProperties.Set/GetButtonLockState, GroupManagement.SetSourceAreaIds, VirtualLineIn.Start/StopTransmission. ADDED 86.8: DeviceProperties.RoomDetection{Start,Stop}Chirping (room-tuning chirp). ResetThirdPartyCredentials + all other advertised actions dispatched across all 4 builds. Method: every action-name-literal instance checked for rodata/data pointer-table ref or lis+addi strcmp ref.",
+        "detail": "FIRMWARE-STATE MATRIX (docs/crossbuild_matrix.json, 3-state per action): REMOVED ProvisionCredentialedTrialAccountX dispatched@34.16 -> string-absent 57.10+ (hard removal, stale SCPD ad). REMOVED ResetThirdPartyCredentials dispatched@34.16 -> str-only 57.10+ (soft removal, dead string lingers). REGRESSED AudioIn x6 dispatched 34.16/57.10 -> str-only 86.x (real impl -> reject-all 401 stub). ADDED 57.10: AVTransport.EndDirectControlSession, DeviceProperties.Set/GetButtonLockState, GroupManagement.SetSourceAreaIds, VirtualLineIn.Start/StopTransmission. ADDED 86.8: DeviceProperties.RoomDetection{Start,Stop}Chirping; HTControl x8 went str-only(dormant)->dispatched(live). QPlayAuth dispatched->str-only(57.10)->dispatched(86.x) restored. +AVTransport.DelegateGroupCoordinationTo arg ClearSource (86.10).",
         "builds": {
           "SCPD(all)": "advertised",
           "86.10": "removed from dispatch table"
