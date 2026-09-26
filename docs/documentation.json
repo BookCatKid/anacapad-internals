@@ -82157,7 +82157,7 @@
         "0x10edeea8",
         "0x10ef4adc"
       ],
-      "assessment": "NOT a SOAP dispatcher. Compares an HTTP response line against 'HTTP/1.1 401' and 'HTTP/1.0 401' (strncmp n=0xc at 0x105cd030/0x105cd04c); on match writes literal 0x191 into *(ctx+0x10000-0x7a94) and calls f_1056c310; otherwise falls through to f_10541494 (header/body parse). This is the HTTP client stack's 401-response detector \u2014 no service binding.",
+      "assessment": "NOT a SOAP dispatcher. Compares an HTTP response line against 'HTTP/1.1 401' and 'HTTP/1.0 401' (strncmp n=0xc at 0x105cd030/0x105cd04c); on match writes literal 0x191 into *(ctx+0x10000-0x7a94) and calls f_1056c310; otherwise falls through to f_10541494 (header/body parse). This is the HTTP client stack's 401-response detector \u2014 no service binding. Literals: HTTP/1.1 401 / HTTP/1.0 401 + WWW-Authenticate: header parse + text/json -> outbound HTTP client auth-failure/negotiation path (cloud API client), not a dispatcher.",
       "status": "strong",
       "evidence": [
         {
@@ -82180,7 +82180,7 @@
       "kind": "http-rincon-content-format-dispatch",
       "compares": [],
       "vptr_candidates": [],
-      "assessment": "NOT a SOAP dispatcher \u2014 a native HTTP endpoint. Looks up request header 'x-rincon-content-format' (f_100a49ac), paranoid_atoui parses it, then indexes a handler table at r28+4+4*r29 and calls the selected object's v[+0x08]; bad/missing handler emits 401 via f_100b4614+f_100b4364. Part of the rincon HTTP API surface (binary PUT/POST endpoints), not UPnP SOAP.",
+      "assessment": "NOT a SOAP dispatcher \u2014 a native HTTP endpoint. Looks up request header 'x-rincon-content-format' (f_100a49ac), paranoid_atoui parses it, then indexes a handler table at r28+4+4*r29 and calls the selected object's v[+0x08]; bad/missing handler emits 401 via f_100b4614+f_100b4364. Part of the rincon HTTP API surface (binary PUT/POST endpoints), not UPnP SOAP. Endpoint subsystem identified via in-body literals: x-rincon-content-format header + repset + RINCON_FFFFFFFFFFFF99999 + informLocalReplicatedSettingVersion/ReplicatedSettingsChangedEvent logs -> household replicated-settings (repset) HTTP endpoint serving text/xml.",
       "status": "strong",
       "evidence": [
         {
@@ -82203,7 +82203,7 @@
       "kind": "binary-tlv-protocol-handler",
       "compares": [],
       "vptr_candidates": [],
-      "assessment": "NOT a SOAP dispatcher \u2014 native binary protocol handler. Parses a TLV-ish record via f_109dd184, reads tag byte at buf+2 and u16 at buf+0, f_109e10d8 maps to a command id (compared 0x4a), calls f_1067c700 worker; result stored at r31+0x30 with a 0x34-length path. Same TLV helper family as 0x1068e904/0x1068ec54 \u2014 a non-SOAP native protocol surface (SCI/netstart/zone-bus candidate).",
+      "assessment": "NOT a SOAP dispatcher \u2014 native binary protocol handler. Parses a TLV-ish record via f_109dd184, reads tag byte at buf+2 and u16 at buf+0, f_109e10d8 maps to a command id (compared 0x4a), calls f_1067c700 worker; result stored at r31+0x30 with a 0x34-length path. Same TLV helper family as 0x1068e904/0x1068ec54 \u2014 a non-SOAP native protocol surface (SCI/netstart/zone-bus candidate). Body literals identify the surface: Invalid transport: WSS is required / Invalid namespace: UPnP renew not supported / Invalid namespace: UPnP unsubscribe not supported -> websocket (WSS) eventing handler carrying a binary/TLV-framed command set (cmd 0x4a seen); UPnP-style SUBSCRIBE/RENEW/UNSUBSCRIBE namespaces rejected by name.",
       "status": "strong",
       "evidence": [
         {
@@ -82226,7 +82226,7 @@
       "kind": "binary-tlv-protocol-handler",
       "compares": [],
       "vptr_candidates": [],
-      "assessment": "NOT a SOAP dispatcher \u2014 native binary protocol handler sharing the f_109dd184/f_109e10d8 TLV helpers with 0x1068e65c; additionally f_109dcb6c + inet_aton parse a dotted-quad field out of the TLV record (0x1068e9a0-0x1068e9ac) \u2014 an address-bearing network-config command handler.",
+      "assessment": "NOT a SOAP dispatcher \u2014 native binary protocol handler sharing the f_109dd184/f_109e10d8 TLV helpers with 0x1068e65c; additionally f_109dcb6c + inet_aton parse a dotted-quad field out of the TLV record (0x1068e9a0-0x1068e9ac) \u2014 an address-bearing network-config command handler. Same WSS/TLV surface as 0x1068e65c plus an http:// and inet_aton dotted-quad field -> address-bearing subscribe/register message variant.",
       "status": "strong",
       "evidence": [
         {
@@ -82249,7 +82249,7 @@
       "kind": "binary-protocol-worker",
       "compares": [],
       "vptr_candidates": [],
-      "assessment": "NOT a SOAP dispatcher \u2014 large native protocol worker operating on a message object at r31 with fields +0xec/+0xf0/+0xf4/+0x108/+0x10c; copies spans via f_1068c040 into stack frames. Part of the same non-SOAP binary surface as 0x1068e65c/0x1068e904.",
+      "assessment": "NOT a SOAP dispatcher \u2014 large native protocol worker operating on a message object at r31 with fields +0xec/+0xf0/+0xf4/+0x108/+0x10c; copies spans via f_1068c040 into stack frames. Part of the same non-SOAP binary surface as 0x1068e65c/0x1068e904. Same WSS binary surface; worker on the message object (fields +0xec/+0xf0/+0xf4/+0x108/+0x10c).",
       "status": "strong",
       "evidence": [
         {
@@ -82281,7 +82281,7 @@
         }
       ],
       "vptr_candidates": [],
-      "assessment": "NOT a SOAP dispatcher \u2014 a name-keyed property dispatcher. Reads a key name at *(r5)+0, strcmp's it against 'explicitContentFiltering' (0x106bb274), gates on an object vfunc (*(r4+8)->*; cmplwi 0x12b at 0x106bb288), then calls builder f_106ba850. A config/property set path (explicit-content-filtering toggle), not a UPnP action.",
+      "assessment": "NOT a SOAP dispatcher \u2014 a name-keyed property dispatcher. Reads a key name at *(r5)+0, strcmp's it against 'explicitContentFiltering' (0x106bb274), gates on an object vfunc (*(r4+8)->*; cmplwi 0x12b at 0x106bb288), then calls builder f_106ba850. A config/property set path (explicit-content-filtering toggle), not a UPnP action. Literals: explicitContentFiltering key (x2), Access token is too old, Unsupported Request, text/plain responses, MemFree:/MemAvailable: debug fields -> native config-key HTTP endpoint (parental-control + device-info keys), not SOAP.",
       "status": "strong",
       "evidence": [
         {
