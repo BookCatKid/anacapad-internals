@@ -265,7 +265,8 @@ def lint(doc, api):
             elif (lsvc.get("dispatcher") or {}).get("func") != func:
                 warnings.append("%s: linked service %s does not name it as"
                                 " dispatcher" % (w, linked))
-        elif cand.get("kind") or cand.get("vptr_candidates"):
+        elif not cand.get("non_soap") \
+                and (cand.get("kind") or cand.get("vptr_candidates")):
             warnings.append("%s: dispatcher evidence present but not linked"
                             " to a service" % w)
     for name, var in (doc.get("state_variables") or {}).items():
