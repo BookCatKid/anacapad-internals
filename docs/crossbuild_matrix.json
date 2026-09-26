@@ -1484,5 +1484,31 @@
       "only86.8": {},
       "changed": {}
     }
+  },
+  "binary_behavior_868_vs_8610": {
+    "method": "mapped each action-name to its {name,func,0} table entry in both binaries (124/195 ptr-table actions mapped in 86.8), emulated each wrapper, counted req->v[+0x1c]/[+0x20] arg-fetches",
+    "function_count": {
+      "86.8-78270": 43626,
+      "86.10-80260": 43088,
+      "delta": "86.8 has ~538 more functions (identical advertised surface -> impl/internal code delta)"
+    },
+    "argfetch_diffs": {
+      "DelegateGroupCoordinationTo": {
+        "86.8": 3,
+        "86.10": 4,
+        "delta": "+ClearSource (binary-confirmed; matches SCPD A_ARG_TYPE_ClearSource)"
+      },
+      "Previous": {
+        "86.8": 1,
+        "86.10": 2,
+        "note": "FALSE-POSITIVE name-collision: AVTransport+VirtualLineIn share 'Previous'; compared cross-service wrappers"
+      },
+      "SetVolume": {
+        "86.8": 4,
+        "86.10": 2,
+        "note": "FALSE-POSITIVE name-collision: RenderingControl(3 args)+VirtualLineIn(2 args) share 'SetVolume'"
+      }
+    },
+    "verdict": "ClearSource is the ONLY genuine arg-fetch delta across all shared pointer-table actions \u2014 the 86.8->86.10 binary change is confined to this one input; all other impl wrappers fetch identical arg sets"
   }
 }
