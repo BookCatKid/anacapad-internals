@@ -96119,7 +96119,21 @@
         "framing": "7-byte header {u16 tag @+0, u8 type @+2, u32 len @+3} + MAC-verified payload; reader advances +7 per record (0x10d0b2ac addi r28,0x7)",
         "integrity": "per-packet MAC via f_10d49490/f_10d4a88c -> memcmp -> 'Corrupted packet, invalid MAC' reject (0x10d0b1fc)",
         "transport": "buffered socket read f_10d0ae04: recv buf obj+0x4484/+0x4488 cap/+0x448c fill/+0x4490 off; f_10d0d970 raw read; f_10d0deb0 error -> obj+0x64a4",
-        "errors": "'Failed reading TLV header %d %d/7 oserr %d' (0x10fd7c40), 'Skipped %s(%d) (%d > %d)' oversized-record skip"
+        "errors": "'Failed reading TLV header %d %d/7 oserr %d' (0x10fd7c40), 'Skipped %s(%d) (%d > %d)' oversized-record skip",
+        "frame": "[7B hdr {u16 tag,u8 type,u32 len}][len-4 payload][4B MAC]; consume=len+7; MAC covers pkt+3..pkt+3+len (hdr-word+payload+tag region per 0x10d0b194..0x10d0b1d0)",
+        "mac": {
+          "algorithm": "proprietary rotate-xor stream mixer (NOT md5/sha/hmac): per-byte xor-shift into ctx+0xc8 state with byte-counter at +0xcc; block round over ctx+0x00..0x40 state array every 32 bits (f_10d49504..f_10d49564); final squeeze emits 4 bytes via f_10d4a88c (rlwinm rot-xor rounds: x7|x5, x19|x22 mixing)",
+          "ctx": "reader obj +0x659c MAC context; buffered stream fields +0x4484 base / +0x448c remaining / +0x4490 offset / +0x58 current-pkt len / +0x64a4 oserr / +0x6850 last-result",
+          "verify": "memcmp(computed_tag, pkt+3+len, 4); fail -> 'Corrupted packet, invalid MAC' rc=-13; oversize -> 'Skipped %s(%d) (%d > %d)'",
+          "status": "strong",
+          "evidence": [
+            {
+              "type": "disassembly",
+              "locator": "0x10d0b178-0x10d0b2b4, 0x10d49490, 0x10d4a88c",
+              "note": "full MAC pipeline + consume arithmetic"
+            }
+          ]
+        }
       },
       "wss_tlv": {
         "name": "websocket UPnP event TLV (see wss_event_vocabulary.protocol)",
