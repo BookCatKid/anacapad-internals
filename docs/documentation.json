@@ -83015,7 +83015,392 @@
   }
  },
  "state_variables": {},
- "uri_formats": {},
+ "uri_formats": {
+  "x-rincon-queue": {
+   "status": "strong",
+   "description": "Local queue URI scheme. Variants: \"x-rincon-queue:\" (0x10e93904), \"x-rincon-queue:%s\" (0x10eb1710) - owner/queue selector printf-formatted.",
+   "format": "x-rincon-queue:[RINCON_<mac>[_<zone>]]",
+   "used_by": [
+    "AVTransport queue-backed playback (EnqueueURI/SetAVTransportURI family)"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93904",
+     "notes": "scheme literal"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb1710",
+     "notes": "printf variant in AVT code pool"
+    }
+   ],
+   "notes": "Selector field semantics (room UDN vs queue owner) not yet resolved."
+  },
+  "x-rincon-stream": {
+   "status": "strong",
+   "description": "Rincon inter-room stream URI. Variants: \"x-rincon-stream:\" (0x10eacf20), \"x-rincon-stream:%s\" (0x10e99a5c), \"x-rincon-stream:%s:%s\" (0x10eb1d08) - room-id[:sub] printf forms.",
+   "format": "x-rincon-stream:<room-id>[:<sub>]",
+   "used_by": [
+    "grouped zone playback - slaves pull coordinator stream"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e99a5c",
+     "notes": "%s form"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb1d08",
+     "notes": "%s:%s form"
+    }
+   ]
+  },
+  "x-rincon-mp3radio": {
+   "status": "strong",
+   "description": "MP3-radio stream marker. \"x-rincon-mp3radio://\" (0x10e93918), \"x-rincon-mp3radio:\" (0x10eb8788), bare \"x-rincon-mp3radio\" (0x10ecce84).",
+   "format": "x-rincon-mp3radio://<url>",
+   "used_by": [
+    "AVTransport radio playback"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93918",
+     "notes": "// form"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb8788",
+     "notes": "colon form"
+    }
+   ]
+  },
+  "x-rincon-buzzer": {
+   "status": "strong",
+   "description": "Built-in buzzer/alarm-tone URI. \"x-rincon-buzzer:\" (0x10e93a38), \"x-rincon-buzzer:1\"/\"x-rincon-buzzer:0\" (0x10e99a04/0x10eaaef8), \"x-rincon-buzzer:%u:o\" (0x10eb1958 - %u=tone index, :o suffix).",
+   "format": "x-rincon-buzzer:<n>[:o]",
+   "used_by": [
+    "alarm fallback playback (AVT)"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb1958",
+     "notes": "%u:o printf form - indexed tone + o-flag"
+    }
+   ]
+  },
+  "x-rincon-cpcontainer": {
+   "status": "strong",
+   "description": "ContentDirectory provider container URI. Variants: \"x-rincon-cpcontainer:RDCPA:\" / \"RDCPI:\" (0x10e77970/0x10e7798c - provider-namespace prefixes), \"x-rincon-cpcontainer:%s\" (0x10e77a40), \"x-rincon-cpcontainer:SCPB:%s/%s\" (0x10f0dbd4).",
+   "format": "x-rincon-cpcontainer:<provider-ns>:<id>[/<sub>]",
+   "used_by": [
+    "ContentDirectory object IDs",
+    "AVTransport EnqueueURI container refs"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e77970",
+     "notes": "RDCPA ns"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e7798c",
+     "notes": "RDCPI ns"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f0dbd4",
+     "notes": "SCPB:%s/%s form"
+    }
+   ],
+   "notes": "RDCPA/RDCPI/SCPB namespace semantics unresolved."
+  },
+  "x-sonos-vli": {
+   "status": "strong",
+   "description": "Virtual line-in source URI. \"x-sonos-vli\" / \"x-sonos-vli:\" (0x10ecb64c/0x10ecc20a), \"x-sonos-vli:%s:%u\" (0x10f01804 - member-id:channel printf form).",
+   "format": "x-sonos-vli:<member-id>:<channel>",
+   "used_by": [
+    "VirtualLineIn source routing",
+    "AVTransport line-in playback"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f01804",
+     "notes": "%s:%u printf form"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ecb64c",
+     "notes": "bare token"
+    }
+   ]
+  },
+  "x-sonosapi-*": {
+   "status": "strong",
+   "description": "Cloud/music-service API URI family: x-sonosapi-hls:%s, x-sonosapi-hls-static:, x-sonosapi-radio[:ST:%s], x-sonosapi-stream:, x-sonosapi-iqradio[:], x-sonosapi-rtrecent:, x-sonosapi-show:. These mark stream endpoints fetched through the Sonos cloud services rather than direct URLs.",
+   "format": "x-sonosapi-<service>:[<token>]",
+   "used_by": [
+    "AVTransport external-content playback",
+    "music-service tracks"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e77930",
+     "notes": "x-sonosapi-hls:%s"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e77cf8",
+     "notes": "x-sonosapi-radio:ST:%s"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93968",
+     "notes": "x-sonosapi-rtrecent:"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec11eb",
+     "notes": "x-sonosapi-show:"
+    }
+   ],
+   "notes": "One umbrella record for the family; per-service token grammars unresolved."
+  },
+  "x-sonos-misc": {
+   "status": "strong",
+   "description": "Assorted internal x-sonos schemes: x-sonos-htastream (HT audio stream), x-sonos-http[:], x-sonos-mms/x-sonosprog-mms, x-sonos-spotify/x-sonosprog-spotify, x-sonos-recent[:], x-sonos-dock:, x-sonos-clone-gc/x-sonos-gc-cleared-content (group-coordinator internal), x-sonos-upnp-tunnel/x-sonos-upnp-loopback-token, x-sonos-sync-method/x-sonos-method/x-sonos-uri (sync control), x-sonos-auth-https%s.",
+   "format": "x-sonos-<kind>[:<arg>]",
+   "used_by": [
+    "internal transport/sync/auth plumbing"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e99698",
+     "notes": "x-sonos-htastream"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb36bc",
+     "notes": "x-sonos-clone-gc"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f0258c",
+     "notes": "x-sonos-upnp-tunnel"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f0f044",
+     "notes": "x-sonos-auth-https%s"
+    }
+   ],
+   "notes": "Catch-all record; split into per-scheme records as uses get traced."
+  },
+  "x-rincon-configmode-sonar": {
+   "status": "strong",
+   "description": "Setup/calibration tone URIs: x-rincon-configmode:{sonar-calibrate-tone, sonar-calibrate-complete, speaker-detect(.mp3), trueroom-tone} and x-rincon-sonarcal:{leader.ogg, testtone.ogg, complete_ht.ogg} - local asset playback for Sonar/trueroom calibration.",
+   "format": "x-rincon-configmode:<tone-name>[.mp3] | x-rincon-sonarcal:<asset>.ogg",
+   "used_by": [
+    "speaker-detect/sonar calibration playback"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93df4",
+     "notes": "sonar-calibrate-tone"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93e2c",
+     "notes": "leader.ogg"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93eb0",
+     "notes": "complete_ht.ogg"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93f0c",
+     "notes": "speaker-detect.mp3"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e93f34",
+     "notes": "trueroom-tone"
+    }
+   ]
+  },
+  "x-rincon-playlist": {
+   "status": "strong",
+   "description": "Local playlist URI \"x-rincon-playlist:\" (0x10e89327).",
+   "format": "x-rincon-playlist:<id>",
+   "used_by": [
+    "saved-queue playlists"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e89327",
+     "notes": "scheme literal"
+    }
+   ]
+  },
+  "sonos-schemes": {
+   "status": "strong",
+   "description": "Bare sonos: forms used as printf templates and identifiers: \"sonos:%d\" (0x10ecc3cb), \"sonos:%s\" (0x10f0ec90), \"sonos:hhid:\"/\"sonos:unit-hhid:\" (0x10f9900c/0x10f9901c), plus structured-token prefixes sonos:device/udn/hhid/user/idtype/environment (muse/auth token namespacing, not playback URIs).",
+   "format": "sonos:<kind>[:<value>]",
+   "used_by": [
+    "internal IDs, muse token fields"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ecc3cb",
+     "notes": "sonos:%d"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f9900c",
+     "notes": "sonos:hhid:"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eed968",
+     "notes": "sonos:device token prefix"
+    }
+   ]
+  },
+  "http-endpoints-muse": {
+   "status": "strong",
+   "description": "Outbound muse/HTTP API path templates (client side, plus local /avt.txt persistence): \"v1/households/{householdId}/alarms[/...]\", \"v1/groups/{groupId}/alarms/snooze\", \"v1/players/{playerId}/upnpAlarmClock[/subscription[/{logicalSID}]]\" families - REST CRUD + subscription surfaces consumed/emitted by the cloud bridge.",
+   "format": "v1/<collection>/{id}/<action>",
+   "used_by": [
+    "cloud alarm sync",
+    "UPnP-bridge subscription relay"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e7bf40",
+     "notes": "v1/households/{householdId}/alarms"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e83a3c",
+     "notes": "v1/players/{playerId}/upnpAlarmClock"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e83b68",
+     "notes": "subscription renew path"
+    }
+   ]
+  }
+ },
  "payload_formats": {
   "SonosSeekTime": {
    "description": "Sonos time-position operand produced by f_102ab830: an optional leading '-' sets a separate sign flag, then sscanf('%hhu:%hhu:%hhu') must convert exactly three decimal fields. Each %hhu applies strtoul semantics per component - leading whitespace skipped, own optional +/- sign allowed, result truncated to u8 so >255 wraps mod 256. The ':' separators match literally (no whitespace before them); trailing characters after the third field are ignored. Output is a {seconds_word, fraction_word=0} pair (printed as '%lld.%06lld') plus the sign byte; a leading '-' negates only the seconds word. Total range 0..934575 s (255:255:255); there is no upper-bound check.",
