@@ -193,15 +193,86 @@ def report(api, doc):
             for an_, arg in (da.get("outputs") or {}).items():
                 if arg.get("status") == "unresolved":
                     unresolved_beh += 1
-    p("COVERAGE TIERS")
-    p("  structural coverage (dispatch/args found):   %d / %d actions"
-      % (act_total, act_total))
-    p("  semantic first-pass (fields assessed):       %d / %d actions"
+    # ---------------- honest tiered report ----------------
+    # Every status means what it says: `confirmed` requires every
+    # externally observable child unit confirmed with evidence and no
+    # material unknown. These tiers are computed from the docs'
+    # self-declared statuses, which lint enforces propagate correctly.
+    OBS = ("validation", "requirements", "state_dependencies",
+           "events_triggered", "state_transitions", "return_behavior")
+    RANK = {"confirmed": 3, "strong": 2, "inferred": 1, "unresolved": 0}
+    def weakest_child(act):
+        worst = 3
+        def chk(s):
+            nonlocal worst
+            worst = min(worst, RANK.get(s, 1))
+        for f in OBS:
+            c = act.get(f)
+            if isinstance(c, dict):
+                chk(c.get("status"))
+            elif isinstance(c, list):
+                for e in c:
+                    if isinstance(e, dict):
+                        chk(e.get("status"))
+        for grp in ("inputs", "outputs"):
+            for v in (act.get(grp) or {}).values():
+                if isinstance(v, dict):
+                    chk(v.get("status"))
+        for e in act.get("errors") or []:
+            if isinstance(e, dict):
+                chk(e.get("status"))
+        return worst
+    tiers = {"confirmed": 0, "strong": 0, "inferred": 0, "unresolved": 0}
+    material = unresolved_err = hidden_verified = 0
+    n_internal = n_actions_doc = 0
+    unresolved_children = 0
+    for dsvc in dservices.values():
+        for da in (dsvc.get("actions") or {}).values():
+            n_actions_doc += 1
+            tiers[da.get("status", "unresolved")] = \
+                tiers.get(da.get("status", "unresolved"), 0) + 1
+            unknown = False
+            for e in da.get("errors") or []:
+                if isinstance(e.get("unresolved"), dict) \
+                        and e["unresolved"].get("unknown"):
+                    unresolved_err += 1
+                    unknown = True
+            if weakest_child(da) < 2:
+                unresolved_children += 1
+                unknown = True
+            if unknown:
+                material += 1
+            if da.get("visibility") in ("internal", "hidden"):
+                n_internal += 1
+                if da.get("reachability"):
+                    hidden_verified += 1
+    p("COVERAGE TIERS (docs %d actions; extractor %d)"
+      % (n_actions_doc, act_total))
+    p("  structurally mapped (dispatch+args found):   %d / %d"
+      % (n_actions_doc, n_actions_doc))
+    p("  semantic first-pass (fields assessed):       %d / %d"
       % (act_done, act_total))
-    p("  binary-verified semantics:                   %d / %d actions"
-      % (ver_done, act_total))
-    p("  unresolved observable behavior:              %d entries"
-      % unresolved_beh)
+    p("  strong (evidence-heavy, gaps remain):        %d / %d"
+      % (tiers.get("strong", 0), n_actions_doc))
+    p("  fully binary-confirmed:                      %d / %d"
+      % (tiers.get("confirmed", 0), n_actions_doc))
+    p("  actions with material unknowns:              %d / %d"
+      % (material, n_actions_doc))
+    p("  unresolved error domains:                    %d records"
+      % unresolved_err)
+    p("  actions with unresolved child units:         %d"
+      % unresolved_children)
+    p("  internal/hidden actions reachability-set:    %d / %d"
+      % (hidden_verified, n_internal))
+    n_ev = sum(len(s.get("events") or {}) for s in dservices.values())
+    p("  state variables declared:                    %d"
+      % n_sv)
+    p("  service event models:                        %d services"
+      % n_ev)
+    p("  uri_formats declared:                        %d"
+      % len(doc.get("uri_formats") or {}))
+    p("  payload_formats declared:                    %d"
+      % len(doc.get("payload_formats") or {}))
     return "\n".join(lines), done, units
 
 

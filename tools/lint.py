@@ -52,6 +52,46 @@ def _check_generic_fields(warnings, where, obj, fields):
         _check_generic(warnings, where, f, (obj or {}).get(f))
 
 
+def _weakest_child(act):
+    """Lowest confidence among an action's externally observable child
+    units. A `confirmed` action requires every observable child to be
+    confirmed and free of material unknowns."""
+    obs = ("validation", "requirements", "state_dependencies",
+           "events_triggered", "state_transitions", "return_behavior")
+    rank = {"confirmed": 3, "strong": 2, "inferred": 1, "unresolved": 0}
+    worst = 3
+    def chk(s):
+        nonlocal worst
+        worst = min(worst, rank.get(s, 1))
+    for f in obs:
+        c = act.get(f)
+        if isinstance(c, dict):
+            chk(c.get("status"))
+        elif isinstance(c, list):
+            for e in c:
+                if isinstance(e, dict):
+                    chk(e.get("status"))
+    for grp in ("inputs", "outputs"):
+        for v in (act.get(grp) or {}).values():
+            if isinstance(v, dict):
+                chk(v.get("status"))
+    for e in act.get("errors") or []:
+        if isinstance(e, dict):
+            chk(e.get("status"))
+            if isinstance(e.get("unresolved"), dict) \
+                    and e["unresolved"].get("unknown"):
+                worst = min(worst, 2)
+    imp = act.get("implementation")
+    if isinstance(imp, dict) and "status" in imp:
+        chk(imp["status"])
+    se = act.get("side_effects")
+    if isinstance(se, list):
+        for e in se:
+            if isinstance(e, dict):
+                chk(e.get("status"))
+    return worst
+
+
 def lint(doc, api):
     warnings = []
 
@@ -99,8 +139,29 @@ def lint(doc, api):
                 if not ok:
                     warnings.append("%s: hidden action without reachability"
                                     " status" % wa)
+            if act.get("visibility") == "internal" \
+                    and not act.get("reachability"):
+                warnings.append("%s: internal action without reachability"
+                                % wa)
+            if not act.get("reachability") \
+                    and not (svc.get("dispatcher") or {}):
+                warnings.append("%s: reachability not classified" % wa)
             if act.get("visibility") == "unknown":
                 warnings.append("%s: visibility still 'unknown'" % wa)
+            # status propagation: a confirmed action must not contain any
+            # weaker or unresolved observable child
+            if act.get("status") == "confirmed" \
+                    and _weakest_child(act) < 3:
+                warnings.append("%s: status 'confirmed' but an observable"
+                                " child is weaker/unresolved" % wa)
+            # stale scaffold: impl decoded but arg model still empty
+            impl = act.get("implementation") or {}
+            if (impl.get("impl_function") or impl.get("impl_vfunc")
+                    or impl.get("impl_addr")) \
+                    and not act.get("inputs") and not act.get("outputs") \
+                    and not act.get("args_verified_empty"):
+                warnings.append("%s: impl known but inputs/outputs empty"
+                                " (stale scaffold)" % wa)
             seen_sites = {}
             codes = {}
             for e in act.get("errors") or []:
@@ -162,6 +223,16 @@ def lint(doc, api):
                                 "description", sd)
                     _check_generic(warnings, "%s side_effect[%d]" % (wa, i),
                                    "description", sd)
+        # service status must not exceed its weakest action
+        if svc.get("status") == "confirmed" and any(
+                a.get("status") != "confirmed"
+                for a in (svc.get("actions") or {}).values()):
+            warnings.append("%s: status 'confirmed' but contains "
+                            "non-confirmed actions" % w)
+        # empty state/event models are coverage gaps, not completeness
+        if not svc.get("state_variables") and not svc.get("events"):
+            warnings.append("%s: no state-variable/event model documented"
+                            % w)
 
     # ---- capabilities / internal fns / candidates ----
     for off, cap in (doc.get("capabilities") or {}).items():
@@ -179,9 +250,24 @@ def lint(doc, api):
         if fn.get("required_for_behavior") and not fn.get("why_external"):
             warnings.append("%s: required_for_behavior but why_external empty"
                             % w)
+    # dispatch candidates resolved to a registered service must not stay
+    # orphaned: any candidate with a vptr/install evidence or a reject-all
+    # classification that lacks a 'service' link is a consistency bug
     for func, cand in (doc.get("dispatch_candidates") or {}).items():
         w = "dispatch candidate %s" % func
         _check_text(warnings, w, "assessment", cand.get("assessment"), func)
+        linked = cand.get("service")
+        if linked:
+            lsvc = (doc.get("services") or {}).get(linked)
+            if not lsvc:
+                warnings.append("%s: links to unknown service %s"
+                                % (w, linked))
+            elif (lsvc.get("dispatcher") or {}).get("func") != func:
+                warnings.append("%s: linked service %s does not name it as"
+                                " dispatcher" % (w, linked))
+        elif cand.get("kind") or cand.get("vptr_candidates"):
+            warnings.append("%s: dispatcher evidence present but not linked"
+                            " to a service" % w)
     for name, var in (doc.get("state_variables") or {}).items():
         _check_text(warnings, "state var %s" % name, "description",
                     var.get("description"), name)
