@@ -90820,6 +90820,32 @@
         }
       ],
       "notes": null
+    },
+    "f_1034a224": {
+      "address": "0x1034a224",
+      "role": "named_worker_resolver",
+      "description": "Search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 parse, sonosTrimWhitespace, strpbrk '\\r\\n' reject, fault 0x192/402, settings read via *(0x11096770)).",
+      "why_external": "Resolves named tokens to parse workers inside the ContentDirectory search/filter grammar.",
+      "required_for_behavior": true,
+      "status": "strong",
+      "used_by": [
+        {
+          "arg": "search/filter token",
+          "direction": "in",
+          "site": "0x1034a24c"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "strong",
+          "notes": "strcmp '0' short-circuit -> tail f_10349d00; sibling validator f_1034a294 rejects CR/LF with fault 0x192",
+          "address": "0x1034a224",
+          "pc": "0x1034a24c"
+        }
+      ]
     }
   },
   "dispatch_candidates": {
@@ -95336,6 +95362,13 @@
         "name": "SCI",
         "status": "only 'SCI_BOARD' literal; no sci:// URI or protocol markers in this build - the labeled SCI control surface is not present as a named protocol; the htmesh_tx%d interfaces are the home-theater mesh transport ('send to mesh failed %u')"
       }
+    },
+    "device_state_store": {
+      "model": "embedded settings/state object at member+0x498; key convention: DesiredX (write-intent) / CurrentX (read-back state) / MuseX (household-bound values)",
+      "set_pipeline": "impl -> member vfunc -> f_1035xxxx per-key stub -> f_10562388(store,'DesiredX',value) -> member->v[+0x10] notify -> f_10557d70 dirty-list append (key\\0value\\0 pairs, 0x1000-bounded)",
+      "evidence": "f_103505b4 (DesiredLEDState), f_10350604 (ChannelMapSet), f_10562388 store worker; GetLEDState impl 0x10737b1c reads 'CurrentLEDState'; f_101bc458/f_10507b9c read 'MuseHouseholdID'",
+      "notification": "v[+0x10] = change-notify vfunc on the member interface; dirty keys accumulate until commit/emit",
+      "actions_using": "DeviceProperties setters (SetLEDState, SetButtonLockState, SetAutoplayVolume, SetUseAutoplayVolume, AddBondedZones, AddHTSatellite, SetZoneAttributes) and SystemProperties setters via the same key-store"
     }
   }
 }
