@@ -101628,6 +101628,15 @@
       "status": "confirmed",
       "libs": "libsonos-mdp.so.1 + libflash.so.1",
       "semantics": "MDP = Manufacturing Data Page in flash \u2014 serial/calibration store; sonosMdpSerialToString + hal_flash_get_mdp{,2}{,_wrapper} + mdp_write + mdp2Ver + 'get_mdp failed'"
+    },
+    "tls_stack": {
+      "status": "confirmed",
+      "lib": "libmbedtls.so.21 + libmbedx509.so.7 + libmbedcrypto.so.16 + libsonoscrypto.so.3",
+      "rng": "mbedtls_{entropy_init,entropy_func,ctr_drbg_init,ctr_drbg_seed,ctr_drbg_random,ctr_drbg_set_prediction_resistance}",
+      "session": "full ssl_* lifecycle + SESSION TICKETS (ssl_ticket_{init,write,parse,parse_ex,setup}) + RESUMPTION (ssl_{get,set}_session + ssl_session_{save,load}) \u2014 backs the /ssl_client_cache route",
+      "config": "ssl_conf_{alpn_protocols,authmode,ca_chain,cert_profile,ciphersuites,groups,own_cert,read_timeout,rng,session_tickets{,_cb},verify} \u2014 ALPN + ciphersuite + group + authmode negotiation",
+      "certs": "x509_crt_{init,parse,parse_der} + pk_{init,parse_key{,file},write_pubkey_der,can_do,rsa_check_pub_priv} + ssl_get_{peer_cert,verify_result}",
+      "netio": "mbedtls_net_{send,recv,recv_timeout} + ssl_set_bio + ssl_conf_read_timeout"
     }
   }
 }
