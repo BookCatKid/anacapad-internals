@@ -721,6 +721,12 @@
       "f_107316cc": "lwz req+0x8 : service-URN accessor",
       "f_10730720": "f_100b4614(http)+f_100b4364(http): send-status+flush - +0x18 raw responder internals",
       "f_10730754": "sets CONTENT-TYPE text/xml; charset=utf-8 via f_100b45e8 - header helper for +0x10 chunked commit"
+    },
+    "specialized_parse_clusters": {
+      "model": "two parse-body families: (a) indirect via inner-req vtable +0x1c/+0x20 (e.g. AddAccountX f_10731f28); (b) direct bl f_10562fc0 (required) / f_10563098 (optional) bodies",
+      "direct_family": "105 vtable slots across .rodata point to parse bodies that call f_10562fc0; clusters at 0x10f08a8c.. (12), 0x10f09194.. (5), 0x10f096cc.. (3), 0x10f09ca0.. (18), 0x10f0a0e8.. (12), 0x10f0a4b0/a8c4/ad30.. (15), 0x10f0e594.. (4), 0x10f108f0/10d08.. (4), 0x10f18380/18780/18b34/18ec8/19270.. (24) - per-service parse descriptor tables in f_106e5..f_1078 regions",
+      "optional_family": "f_10563098 has 4 direct callers (0x1077ddf8,0x1077e33c,0x1077e684,0x1077e6a4) - optional args mostly resolved via +0x20 wrapper path",
+      "correction": "earlier 'only AddAccountX specialized' was about the generic-req fast path; parse specialization is actually pervasive - ~105+ actions have generated arg-lookup bodies; RMD remains the proven exception (positional group, no lookups)"
     }
   },
   "services": {
