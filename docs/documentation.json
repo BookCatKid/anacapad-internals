@@ -94800,7 +94800,7 @@
         "Invalid namespace: UPnP renew not supported (0x10f0297c)",
         "Invalid namespace: UPnP unsubscribe not supported (0x10f029a8)"
       ],
-      "entry_layout": "{+0 id/value, +4 name_ptr, +8 ?, +0xc u16 tag, +0xe u8 type, +0x10 ?, +0x14 next-or-handler}",
+      "entry_layout": "{+0x0 id/value, +0x4 name_ptr, +0x8 u32 monotonic event-type id (3..355), +0xc u16 tag, +0xe s8 type, +0x10 u32 kind}",
       "names": [
         "accessorySwapStatus",
         "tvAudioSignalStatus",
@@ -95561,6 +95561,19 @@
         },
         "f10_field": "entry +0x10 u32 in {0,4} - flag/category; consumer semantics undecoded",
         "error_path": "f_1068c138 appends error text into a doc buffer (strlen -> f_1068c040 span-append via doc-writer adaptor) - WSS errors are doc-embedded, not HTTP-status; f_1068c190 namespace strcmp(obj+0x124) matcher used for 'UPnP renew' rejection"
+      },
+      "f10_field": {
+        "field": "entry +0x10 u32 kind/category",
+        "consumer": "f_109e12b0(idx): bounds idx<=0x48, entry=0x110b8ce8+idx*0x14, returns (entry[+0x10]==2) predicate",
+        "writer_semantics": "literal stores of {0,1,2} observed in the f_109d8bxx/f_109d8bxx registration-path region; kind values enumerate entry categories (0/1/2); kind==2 = the service-visible category gated by the predicate accessor",
+        "status": "strong",
+        "evidence": [
+          {
+            "type": "disassembly",
+            "locator": "0x109e12b0..0x109e12e8",
+            "note": "lwz +0x10 -> xori 0x2 -> cntlzw -> rlwinm = ==2 predicate"
+          }
+        ]
       }
     },
     "http_status_endpoints": {
