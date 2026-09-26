@@ -4269,7 +4269,82 @@
       "impl_function": "alarm-store object vfunc +0x08 (request-scoped object at *(req+0xc))"
      },
      "inputs": {},
-     "outputs": {},
+     "outputs": {
+      "CurrentAlarmList": {
+       "description": "serialized XML list of all registered alarms, emitted via req->v[+0x24] inside the alarm-list serializer",
+       "status": "strong",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x102735bc inside f_10273538",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "strong",
+         "address": "0x102735bc",
+         "notes": "arg-name string load in f_10273538"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "strong",
+         "address": "f_10273538",
+         "notes": "worker function"
+        }
+       ],
+       "notes": "producer binding: handler calls *(req+0xc)->v[+0x08] twice; f_10273538 is one of the two binary producers of this arg name \u2014 exact variant not resolved"
+      },
+      "CurrentAlarmListVersion": {
+       "description": "version tag emitted right after CurrentAlarmList by the same serializer",
+       "status": "strong",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x102735e0 inside f_10273538",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "strong",
+         "address": "0x102735e0",
+         "notes": "arg-name string load in f_10273538"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "strong",
+         "address": "f_10273538",
+         "notes": "worker function"
+        }
+       ],
+       "notes": "emitted via req->v[+0x24] at 0x102735e8 inside f_10273538"
+      }
+     },
      "validation": {
       "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
       "status": "confirmed",
@@ -43126,7 +43201,7 @@
       ],
       "req_vcalls": [],
       "impl_vfunc": "0x1046593c",
-      "impl_notes": "impl->vfunc 0x1046593c on queue-manager vtable 0x10ed1bcc (impl = *(svc+4) = singleton 0x11096770); the vfunc is a forwarder: this=*(qm+0x128), the shared queue engine object",
+      "impl_notes": "impl->v[+0x10] on queue-manager vtable 0x10ed1bcc resolves to f_1046593c, a 3-instruction stub that unconditionally returns 0x320 (800) -- Backup is a dead action in this build; every invocation faults 800. Handler 0x10465660 makes no parse calls, so the action is verified argless.",
       "evidence": [
        {
         "type": "firmware",
@@ -43301,9 +43376,19 @@
        "status": "confirmed",
        "address": "0x10ed1a10",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x1046593c",
+       "notes": "impl vfunc: li r3,0x320; blr"
       }
      ],
-     "notes": null
+     "notes": null,
+     "args_verified_empty": true,
+     "implementation_notes": " impl f_1046593c unconditionally returns 0x320."
     },
     "Browse": {
      "description": "Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x28](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
@@ -43347,8 +43432,269 @@
        }
       ]
      },
-     "inputs": {},
-     "outputs": {},
+     "inputs": {
+      "QueueID": {
+       "description": "browse parameter parsed by f_105614e0 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "in",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "request field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-defined",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": true,
+       "default": "none",
+       "validation": "arg-name string 'in' loaded at 0x104662b8 inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x104662b8",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "StartingIndex": {
+       "description": "browse parameter parsed by f_105614e0 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "in",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "request field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-defined",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": true,
+       "default": "none",
+       "validation": "arg-name string 'in' loaded at 0x104662d8 inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x104662d8",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "RequestedCount": {
+       "description": "browse parameter parsed by f_105614e0 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "in",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "request field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-defined",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": true,
+       "default": "none",
+       "validation": "arg-name string 'in' loaded at 0x104662fc inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x104662fc",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      }
+     },
+     "outputs": {
+      "Result": {
+       "description": "browse result field emitted via f_10560608 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x10466434 inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10466434",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "NumberReturned": {
+       "description": "browse result field emitted via f_10560608 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x10466494 inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10466494",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "TotalMatches": {
+       "description": "browse result field emitted via f_10560608 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x104664b8 inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x104664b8",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "UpdateID": {
+       "description": "browse result field emitted via f_10560608 inside impl f_10466280",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x104664dc inside f_10466280",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x104664dc",
+         "notes": "arg-name string load in f_10466280"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10466280",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      }
+     },
      "validation": {
       "description": "Wrapper-proven: args parsed via req->v[+0x1c] named lookup + typed helpers; impl call via impl->v[slot]; rc==0 -> emit, else fault through req->v[+0x14].",
       "status": "confirmed",
@@ -60535,7 +60881,7 @@
       ],
       "req_vcalls": [],
       "handler_addr": "0x10307b70",
-      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
+      "impl_notes": "handler tail-branches to worker 0x10307aa4 which emits 'AlbumArtistDisplayOption' via the response writer",
       "evidence": [
        {
         "type": "firmware",
@@ -60554,12 +60900,50 @@
         "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
       ],
-      "impl_function": "0x10302498",
+      "impl_function": "0x10307aa4",
       "impl_slot": 8,
       "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
-     "outputs": {},
+     "outputs": {
+      "AlbumArtistDisplayOption": {
+       "description": "AlbumArtistDisplayOption capability field emitted by impl 0x10307aa4",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x10307af8 inside f_10307aa4",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10307af8",
+         "notes": "arg-name string load in f_10307aa4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10307aa4",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      }
+     },
      "validation": {
       "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
       "status": "confirmed",
@@ -60704,6 +61088,14 @@
        "status": "confirmed",
        "address": "0x10eb4294",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x10307aa4",
+       "notes": "tail target of handler"
       }
      ],
      "notes": null
@@ -61565,7 +61957,7 @@
       ],
       "req_vcalls": [],
       "handler_addr": "0x10307e10",
-      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
+      "impl_notes": "handler tail-branches to worker 0x10307d44 which emits 'SearchCaps' via the response writer",
       "evidence": [
        {
         "type": "firmware",
@@ -61584,12 +61976,50 @@
         "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
       ],
-      "impl_function": "0x10302498",
+      "impl_function": "0x10307d44",
       "impl_slot": 8,
       "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
-     "outputs": {},
+     "outputs": {
+      "SearchCaps": {
+       "description": "SearchCaps capability field emitted by impl 0x10307d44",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x10307d98 inside f_10307d44",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10307d98",
+         "notes": "arg-name string load in f_10307d44"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10307d44",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      }
+     },
      "validation": {
       "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
       "status": "confirmed",
@@ -61734,6 +62164,14 @@
        "status": "confirmed",
        "address": "0x10eb42c4",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x10307d44",
+       "notes": "tail target of handler"
       }
      ],
      "notes": null
@@ -62009,7 +62447,7 @@
       ],
       "req_vcalls": [],
       "handler_addr": "0x10307cc0",
-      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
+      "impl_notes": "handler tail-branches to worker 0x10307bf4 which emits 'SortCaps' via the response writer",
       "evidence": [
        {
         "type": "firmware",
@@ -62028,12 +62466,50 @@
         "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
       ],
-      "impl_function": "0x10302498",
+      "impl_function": "0x10307bf4",
       "impl_slot": 8,
       "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
-     "outputs": {},
+     "outputs": {
+      "SortCaps": {
+       "description": "SortCaps capability field emitted by impl 0x10307bf4",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x10307c48 inside f_10307bf4",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10307c48",
+         "notes": "arg-name string load in f_10307bf4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_10307bf4",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      }
+     },
      "validation": {
       "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
       "status": "confirmed",
@@ -62178,6 +62654,14 @@
        "status": "confirmed",
        "address": "0x10eb42dc",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x10307bf4",
+       "notes": "tail target of handler"
       }
      ],
      "notes": null
@@ -64051,7 +64535,119 @@
       "status": "confirmed"
      },
      "inputs": {},
-     "outputs": {},
+     "outputs": {
+      "AvailableServiceDescriptorList": {
+       "description": "music-service catalogue field emitted via the response writer inside serializer f_100c6314",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x100c6770 inside f_100c6314",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x100c6770",
+         "notes": "arg-name string load in f_100c6314"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_100c6314",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "AvailableServiceTypeList": {
+       "description": "music-service catalogue field emitted via the response writer inside serializer f_100c6314",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x100c67d0 inside f_100c6314",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x100c67d0",
+         "notes": "arg-name string load in f_100c6314"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_100c6314",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      },
+      "AvailableServiceListVersion": {
+       "description": "music-service catalogue field emitted via the response writer inside serializer f_100c6314",
+       "status": "confirmed",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "response field",
+       "format": "text",
+       "unit": "none",
+       "accepted_values": "impl-produced",
+       "range": "per the parser/emitter",
+       "special_values": "none identified",
+       "required": false,
+       "default": "none; written on success",
+       "validation": "arg-name string 'out' loaded at 0x100c67f4 inside f_100c6314",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x100c67f4",
+         "notes": "arg-name string load in f_100c6314"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "f_100c6314",
+         "notes": "worker function"
+        }
+       ],
+       "notes": null
+      }
+     },
      "validation": {
       "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
       "status": "confirmed",
@@ -64422,10 +65018,19 @@
        "status": "confirmed",
        "function": "0x100c997c",
        "notes": "Impl f_100c997c: the service-list replace worker \u2014 ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x1073a3b4",
+       "notes": "handler body: impl call + fault/commit only; no parse or emit arg sites"
       }
      ],
      "notes": null,
-     "implementation_notes": "Impl f_100c997c: the service-list replace worker \u2014 ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320(800) error constant on one early path; other paths forward inner rc."
+     "implementation_notes": "Impl f_100c997c: the service-list replace worker \u2014 ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320(800) error constant on one early path; other paths forward inner rc.",
+     "args_verified_empty": true
     }
    },
    "state_variables": {},
@@ -66342,9 +66947,18 @@
        "status": "confirmed",
        "address": "0x10f11108",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "status": "confirmed",
+       "address": "0x10732e24",
+       "notes": "handler body: impl call + fault/commit only; no parse or emit arg sites"
       }
      ],
-     "notes": null
+     "notes": null,
+     "args_verified_empty": true
     },
     "EditAccountMd": {
      "description": "Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v[+0x30].",
@@ -71732,7 +72346,8 @@
        "notes": "action table entry"
       }
      ],
-     "notes": null
+     "notes": null,
+     "implementation_notes": " Handler f_10732ebc forwards wholesale to req->v[+0x0c] -- the request objects own commit/worker vfunc; the argument model lives inside that request-scoped vfunc and is not statically resolvable from the handler."
     },
     "ReportAlarmStartedRunning": {
      "description": "Reports that an alarm started running \u2014 feeds the alarm/topology bookkeeping via impl->v[+0x14].",
