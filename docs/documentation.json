@@ -19931,13 +19931,13 @@
        ],
        "unresolved": {
         "proven": "worker f_102b7000 rc returned",
-        "unknown": "impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b7170 entry); remaining paths call-derived"
+        "unknown": "concrete rc domain call-derived; proven: 718 on InstanceID!=0 (impl guard 0x102b7174); 402 on empty/whitespace URI arg \u2014 worker f_102b7000 returns 0x192 when r6==0 or strlen(arg)==0 (0x102b7008/0x102b70dc); remainder tail f_102b6d28"
        }
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "meaning": "Request parse layer rejected an argument before the impl was invoked.; impl-side: worker f_102b7000 returns 402 on null/empty URI strings (strlen gate)",
        "status": "confirmed",
        "fault_sites": [
         "0x102fba68"
@@ -40137,22 +40137,22 @@
       {
        "code": 702,
        "code_expr": "const 0x2be",
-       "meaning": "NULL buffer arg rejected by impl prologue",
+       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
        "status": "confirmed",
        "fault_sites": [
         "0x1039ccbc"
        ],
        "conditions": [
         {
-         "description": "impl arg buffer NULL",
+         "description": "parsed InstanceID != 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1039ccbc",
-           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+           "address": null,
+           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
           }
          ]
         }
@@ -40165,6 +40165,14 @@
          "status": "confirmed",
          "address": "0x1039ccbc",
          "notes": "head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738f0c",
+         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
         }
        ],
        "notes": null
@@ -40552,22 +40560,22 @@
       {
        "code": 702,
        "code_expr": "const 0x2be",
-       "meaning": "NULL buffer arg rejected by impl prologue",
+       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
        "status": "confirmed",
        "fault_sites": [
         "0x1039cbf0"
        ],
        "conditions": [
         {
-         "description": "impl arg buffer NULL",
+         "description": "parsed InstanceID != 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1039cbf0",
-           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+           "address": null,
+           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
           }
          ]
         }
@@ -40580,6 +40588,14 @@
          "status": "confirmed",
          "address": "0x1039cbf0",
          "notes": "head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738f0c",
+         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
         }
        ],
        "notes": null
@@ -40984,7 +41000,7 @@
        ],
        "unresolved": {
         "proven": "impl rc propagated to fault vfunc; per-member rc only logged",
-        "unknown": "proven: {702 on r4-null guard, 701 on f_1075cf7c lookup miss}; remaining exits call-derived (set worker rc unbounded)"
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 701 lookup-miss, 801 reentrancy} proven; remainder f_103a1b8c-derived"
        },
        "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
       },
@@ -41030,29 +41046,29 @@
        ],
        "unresolved": {
         "proven": "the fault path is reached when the impl call reports failure",
-        "unknown": "proven: {702 on r4-null guard, 701 on f_1075cf7c lookup miss}; remaining exits call-derived (set worker rc unbounded)"
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 701 lookup-miss, 801 reentrancy} proven; remainder f_103a1b8c-derived"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
       },
       {
        "code": 702,
        "code_expr": "const 0x2be",
-       "meaning": "NULL buffer arg rejected by impl prologue",
+       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
        "status": "confirmed",
        "fault_sites": [
         "0x103a23b4"
        ],
        "conditions": [
         {
-         "description": "impl arg buffer NULL",
+         "description": "parsed InstanceID != 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103a23b4",
-           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+           "address": null,
+           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
           }
          ]
         }
@@ -41065,9 +41081,54 @@
          "status": "confirmed",
          "address": "0x103a23b4",
          "notes": "head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738f0c",
+         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
         }
        ],
        "notes": null
+      },
+      {
+       "code": 801,
+       "code_expr": "vret(f_103a2160)",
+       "meaning": "reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when already set it returns 0x321 (801) without performing the mutation (operation-in-progress); on first entry it sets the flag and continues into setter worker f_103a1b8c",
+       "status": "strong",
+       "fault_sites": [
+        "0x103a21ac"
+       ],
+       "conditions": [
+        {
+         "description": "*(impl+0x258) flag already set (nested/duplicate invocation while a group-set is active)",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103a2190",
+           "notes": "lbz r9,0x258(r31); beq -> continue; else return 0x321"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103a2160",
+         "notes": "reentrancy-guard worker; blr at 0x103a21c0 returns 0x321 when flag set; else stb 1 -> tail f_103a1b8c"
+        }
+       ],
+       "unresolved": {
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 701 lookup-miss, 801 reentrancy} proven; remainder f_103a1b8c-derived"
+       }
       }
      ],
      "firmware_differences": [],
@@ -41426,7 +41487,7 @@
        ],
        "unresolved": {
         "proven": "impl rc propagated; member fan-out logged with per-member rc",
-        "unknown": "whether member failures surface as SOAP faults or are masked; concrete codes"
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 402 NewGroupVolume>100 range check at impl 0x103a3150, 701 via worker f_103a2c4c} proven; remainder f_103a2430-derived"
        },
        "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
       },
@@ -41472,29 +41533,29 @@
        ],
        "unresolved": {
         "proven": "the fault path is reached when the impl call reports failure",
-        "unknown": "concrete error code vocabulary and per-code conditions"
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 402 NewGroupVolume>100 range check at impl 0x103a3150, 701 via worker f_103a2c4c} proven; remainder f_103a2430-derived"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
       },
       {
        "code": 702,
        "code_expr": "const 0x2be",
-       "meaning": "NULL buffer arg rejected by impl prologue",
+       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
        "status": "confirmed",
        "fault_sites": [
         "0x103a3134"
        ],
        "conditions": [
         {
-         "description": "impl arg buffer NULL",
+         "description": "parsed InstanceID != 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103a3134",
-           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+           "address": null,
+           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
           }
          ]
         }
@@ -41507,6 +41568,14 @@
          "status": "confirmed",
          "address": "0x103a3134",
          "notes": "head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738f0c",
+         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
         }
        ],
        "notes": null
@@ -41888,7 +41957,7 @@
        ],
        "unresolved": {
         "proven": "impl rc propagated to fault vfunc",
-        "unknown": "proven: {702 on r4-null guard, 701 on f_1075cf7c lookup miss}; remaining exits call-derived (set worker rc unbounded)"
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 701 via worker f_103a2c4c} proven; remainder f_103a2d04/f_103a2430-derived"
        },
        "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034 \u2014 vocabulary unresolved"
       },
@@ -41934,29 +42003,29 @@
        ],
        "unresolved": {
         "proven": "the fault path is reached when the impl call reports failure",
-        "unknown": "proven: {702 on r4-null guard, 701 on f_1075cf7c lookup miss}; remaining exits call-derived (set worker rc unbounded)"
+        "unknown": "impl worker rc domain call-derived; {702 InstanceID!=0, 701 via worker f_103a2c4c} proven; remainder f_103a2d04/f_103a2430-derived"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
       },
       {
        "code": 702,
        "code_expr": "const 0x2be",
-       "meaning": "NULL buffer arg rejected by impl prologue",
+       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
        "status": "confirmed",
        "fault_sites": [
         "0x103a30a0"
        ],
        "conditions": [
         {
-         "description": "impl arg buffer NULL",
+         "description": "parsed InstanceID != 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103a30a0",
-           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+           "address": null,
+           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
           }
          ]
         }
@@ -41969,6 +42038,14 @@
          "status": "confirmed",
          "address": "0x103a30a0",
          "notes": "head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738f0c",
+         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
         }
        ],
        "notes": null
@@ -42329,22 +42406,22 @@
       {
        "code": 702,
        "code_expr": "const 0x2be",
-       "meaning": "NULL buffer arg rejected by impl prologue",
+       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
        "status": "confirmed",
        "fault_sites": [
         "0x1039dc74"
        ],
        "conditions": [
         {
-         "description": "impl arg buffer NULL",
+         "description": "parsed InstanceID != 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1039dc74",
-           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+           "address": null,
+           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
           }
          ]
         }
@@ -42357,6 +42434,14 @@
          "status": "confirmed",
          "address": "0x1039dc74",
          "notes": "head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10738f0c",
+         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
         }
        ],
        "notes": null
