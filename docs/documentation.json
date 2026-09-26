@@ -658,7 +658,44 @@
     "0x3c": "arg-binding/parse step (called before +0x08 validate in wrapper f_10732ed8: v[+0x3c] then v[+0x08]->bool then v[+0x14] fault 402)",
     "confidence": "strong",
     "evidence_note": "slot usage measured per-arg in SystemProperties handlers: account credential/metadata fields consistently use +0x20 (optional) while identity fields use +0x1c (required); confirmed again by generated parse f_10731f28: AccountType via +0x1c, AccountID+AccountPassword via +0x20 (both layers)",
-    "architecture": "Two-layer model: (1) generic request object created by the SOAP engine carries the engine vtable (arg-record lookups at +0x1c/+0x20/+0x24, commit +0x0c, fault +0x14, finalize +0x38). (2) Per-action specialized req-classes (e.g. vtable 0x10f110a8 for AddAccountX) installed by impl vfuncs via stw vptr (e.g. f_10732e94); their generated parse methods (e.g. f_10731f28) call the generic layer's +0x1c/+0x20 by arg name - semantics consistent across both layers. Actions without specialized req-classes (e.g. RegisterMobileDevice via f_10732ebc) call the generic +0x0c execute directly -> no per-arg presence checks."
+    "architecture": "Two-layer model: (1) generic request object created by the SOAP engine carries the engine vtable (arg-record lookups at +0x1c/+0x20/+0x24, commit +0x0c, fault +0x14, finalize +0x38). (2) Per-action specialized req-classes (e.g. vtable 0x10f110a8 for AddAccountX) installed by impl vfuncs via stw vptr (e.g. f_10732e94); their generated parse methods (e.g. f_10731f28) call the generic layer's +0x1c/+0x20 by arg name - semantics consistent across both layers. Actions without specialized req-classes (e.g. RegisterMobileDevice via f_10732ebc) call the generic +0x0c execute directly -> no per-arg presence checks.",
+    "generic_vtable": {
+      "address": "0x10f10ea4",
+      "installed_by": "0x10730c3c",
+      "req_layout": "{+0 vptr, +4 http_req, +8 service-part, +0xc action-part, +0x10 u16 flag, +0x14 in-arg doc, +0x680 out-arg doc}",
+      "slots": {
+        "+0x00": "f_107313d8 (dtor)",
+        "+0x04": "f_10731418 (dtor-delete)",
+        "+0x08": "f_10730364 (validate args)",
+        "+0x0c": "f_10730850 (execute)",
+        "+0x10": "f_10730754",
+        "+0x14": "f_10731560 (raise fault r4=code)",
+        "+0x18": "f_10730720",
+        "+0x1c": "f_10731840 (required arg lookup by name)",
+        "+0x20": "f_10731830 (optional arg lookup by name)",
+        "+0x24": "f_1073181c (get/create out-arg)",
+        "+0x28": "f_1073180c",
+        "+0x2c": "f_10731614",
+        "+0x30": "f_1073162c",
+        "+0x34": "f_10731640",
+        "+0x38": "f_10731650 (finalize)",
+        "+0x3c": "f_10730a64 (parse path)",
+        "+0x40": "f_10730998",
+        "+0x44": "f_107309d4"
+      },
+      "status": "confirmed",
+      "note": "All 18 slots resolve to real f_1073* functions. Specialized per-action classes (e.g. AddAccountX 0x10f110a8) subclass this; the ctor f_10730c3c logs 'UPnP call: %s:%s from %s:%d' (category 'upnp') when f_10730bc4(action)!=0xb",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x10f10ea4",
+          "notes": "vptr installed at 0x10730c80; layout from store offsets in ctor"
+        }
+      ]
+    }
   },
   "services": {
     "/AlarmClock/Control": {
