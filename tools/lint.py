@@ -309,14 +309,20 @@ def lint(doc, api):
                 warnings.append("ORPHAN: input %s.%s.%s missing from docs"
                                 % (esvc.get("name"), an, g))
             for g in doc_in - ext_in:
-                warnings.append("STALE: doc input %s.%s.%s not in extractor"
-                                % (esvc.get("name"), an, g))
+                # extractor misses args parsed/emitted inside impl workers and
+                # req-scoped vfuncs; doc args with binary evidence are proven
+                arg = (dact.get("inputs") or {}).get(g) or {}
+                if not arg.get("evidence"):
+                    warnings.append("STALE: doc input %s.%s.%s not in extractor and lacks binary evidence"
+                                    % (esvc.get("name"), an, g))
             for g in ext_out - doc_out:
                 warnings.append("ORPHAN: output %s.%s.%s missing from docs"
                                 % (esvc.get("name"), an, g))
             for g in doc_out - ext_out:
-                warnings.append("STALE: doc output %s.%s.%s not in extractor"
-                                % (esvc.get("name"), an, g))
+                arg = (dact.get("outputs") or {}).get(g) or {}
+                if not arg.get("evidence"):
+                    warnings.append("STALE: doc output %s.%s.%s not in extractor and lacks binary evidence"
+                                    % (esvc.get("name"), an, g))
     for path in (doc.get("services") or {}):
         if path not in ext_services:
             warnings.append("STALE: doc service %s not in extractor output"
