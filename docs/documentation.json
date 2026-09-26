@@ -14379,7 +14379,7 @@
       ],
       "handler_addr": "0x10738654",
       "impl_slot": 8,
-      "impl_notes": "impl f_10394d10 (gm_impl v+0x08): 8-arg out-fill signature matching handler call at 0x1073874c (r3=impl,r4=&MemberIDbuf,r5=BootSeq,r6=&out,stack 0x24/&buf/&buf2/0x401); contains literals 'AddMember' and 'getNotificationData'; reads delegate member this+0x220 and enabled-flag byte this+0xda4; impl class gm_impl (name registered via f_10391210('gm_impl') in ctor f_103938f0); primary vptr 0x10ec2bc0, ~0xda8-byte multi-base object; bound into svc px (ctx+0x3fa48) via shared_ptr copy-assign f_101a20d0 at factory site 0x103fbfe8 inside master impl factory f_103fa434, immediately before the gm_impl publish call",
+      "impl_notes": "impl f_10394d10 (gm_impl v+0x08): 8-arg out-fill signature matching handler call at 0x1073874c (r3=impl,r4=&MemberIDbuf,r5=BootSeq,r6=&out,stack 0x24/&buf/&buf2/0x401); contains literals 'AddMember' and 'getNotificationData'; reads delegate member this+0x220 and enabled-flag byte this+0xda4; impl f_10394d10 fully decoded \u2014 error vocabulary: 402 (0x192) empty MemberID 'invalid argument'; 800 (0x320) incompatible member / proto-compat retrieval failure ('Unable to retrieve invisibility/node proto compatibility for %s', 'Adding member %s failed - incompatible member'); 801 (0x321) MemberID == own/coordinator ID (strcmp this+0x210); 803 (0x323) BootSeq mismatch 'out-of-sync GM'; 804 (0x324) 'Adding member to satellite is not supported'; 808 (0x328) 'GC or new member is an ungroupable player (gcUUID=%s memberID=%s)'. 'Adding member %s that already exists' logs but proceeds to re-join worker f_103929e0 (idempotent). Success: join rc passthrough + 'Add'/'succeeded' notify + member-list recount at this+0x288 (0x19-stride entries, cap 0x20).; impl class gm_impl (ctor f_103938f0 registers 'gm_impl'; vptr 0x10ec2bc0; bound via f_101a20d0 at f_103fa434:0x103fbfe8)",
       "evidence": [
        {
         "type": "firmware",
@@ -14412,6 +14412,14 @@
         "status": "confirmed",
         "address": "0x103938f0",
         "notes": "gm_impl ctor registers name 'gm_impl'; installs primary vptr 0x10ec2bc0 at +0x00"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10395404",
+        "notes": "impl-body semantics decoded"
        }
       ],
       "impl_object": "*(svc+4) -> gm_impl (vptr 0x10ec2bc0)",
@@ -14652,8 +14660,8 @@
         }
        ],
        "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
+        "proven": "impl rc surfaced via req->v[+0x14]",
+        "unknown": null
        }
       },
       {
@@ -14687,6 +14695,176 @@
          "status": "confirmed",
          "address": "0x10738654",
          "notes": "402 gate"
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "code_expr": "vret(gm_impl,+0x08)",
+       "meaning": "gm_impl AddMember impl-level failure",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738768"
+       ],
+       "conditions": [
+        {
+         "description": "incompatible member OR proto-compat retrieval failure ('Unable to retrieve invisibility/node proto compatibility', 'incompatible member')",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103953a0",
+           "notes": "li r31,0x320 in f_10394d10; also compat-fail site 0x103950d4"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103953a0",
+         "notes": "li r31,0x320 in f_10394d10; also compat-fail site 0x103950d4"
+        }
+       ]
+      },
+      {
+       "code": 801,
+       "code_expr": "vret(gm_impl,+0x08)",
+       "meaning": "gm_impl AddMember impl-level failure",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738768"
+       ],
+       "conditions": [
+        {
+         "description": "MemberID equals own/coordinator ID (strcmp this+0x210)",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10395420",
+           "notes": "li r31,0x321 reached from bc 0x10395170 when strcmp hits"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10395420",
+         "notes": "li r31,0x321 reached from bc 0x10395170 when strcmp hits"
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "code_expr": "vret(gm_impl,+0x08)",
+       "meaning": "gm_impl AddMember impl-level failure",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738768"
+       ],
+       "conditions": [
+        {
+         "description": "BootSeq out-of-sync with group manager ('out-of-sync GM')",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10395404",
+           "notes": "li r31,0x323 + log 'Adding member %s with bootseq %u failed - out-of-sync GM'"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10395404",
+         "notes": "li r31,0x323 + log 'Adding member %s with bootseq %u failed - out-of-sync GM'"
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "code_expr": "vret(gm_impl,+0x08)",
+       "meaning": "gm_impl AddMember impl-level failure",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738768"
+       ],
+       "conditions": [
+        {
+         "description": "target member is a satellite ('Adding member to satellite is not supported')",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103950e8",
+           "notes": "li r31,0x324 before satellite log at 0x10395100"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103950e8",
+         "notes": "li r31,0x324 before satellite log at 0x10395100"
+        }
+       ]
+      },
+      {
+       "code": 808,
+       "code_expr": "vret(gm_impl,+0x08)",
+       "meaning": "gm_impl AddMember impl-level failure",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738768"
+       ],
+       "conditions": [
+        {
+         "description": "GC or new member is an ungroupable player",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10395028",
+           "notes": "li r31,0x328 + log 'Rejecting AddMember: GC or new member is an ungroupable player'"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10395028",
+         "notes": "li r31,0x328 + log 'Rejecting AddMember: GC or new member is an ungroupable player'"
         }
        ]
       }
@@ -14750,7 +14928,7 @@
       ],
       "handler_addr": "0x10738460",
       "impl_slot": 12,
-      "impl_notes": "impl f_10395b0c -> tail f_10395854 (r5=0): logs with 'gm_impl' tag; empty MemberID (first byte zero) -> returns 0x192=402 with log 'Removing member failed - invalid argument' (0x10ec32bc); default return r30=0x192; impl class gm_impl (name registered via f_10391210('gm_impl') in ctor f_103938f0); primary vptr 0x10ec2bc0, ~0xda8-byte multi-base object; bound into svc px (ctx+0x3fa48) via shared_ptr copy-assign f_101a20d0 at factory site 0x103fbfe8 inside master impl factory f_103fa434, immediately before the gm_impl publish call",
+      "impl_notes": "impl f_10395b0c -> tail f_10395854 (r5=0): logs with 'gm_impl' tag; empty MemberID (first byte zero) -> returns 0x192=402 with log 'Removing member failed - invalid argument' (0x10ec32bc); default return r30=0x192; impl f_10395b0c -> worker f_10395854 ('localRemoveMember'): empty MemberID -> 402 'Removing member failed - invalid argument'; member list scan (this+0x288, 0x19-stride, max 0x20, strcmp per entry) \u2014 not found -> 800 'failed (not a member before?)'; found -> f_10392b84 index-remove + f_10391dd8(this,0) + 'Remove' notify + recount + zone propagation -> 0.; impl class gm_impl (ctor f_103938f0 registers 'gm_impl'; vptr 0x10ec2bc0; bound via f_101a20d0 at f_103fa434:0x103fbfe8)",
       "evidence": [
        {
         "type": "firmware",
@@ -14783,6 +14961,14 @@
         "status": "confirmed",
         "address": "0x103938f0",
         "notes": "gm_impl ctor registers name 'gm_impl'; installs primary vptr 0x10ec2bc0 at +0x00"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10395aac",
+        "notes": "impl-body semantics decoded"
        }
       ],
       "impl_object": "*(svc+4) -> gm_impl (vptr 0x10ec2bc0)",
@@ -14922,8 +15108,8 @@
         }
        ],
        "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
+        "proven": "impl rc surfaced via req->v[+0x14]",
+        "unknown": null
        }
       },
       {
@@ -14957,6 +15143,74 @@
          "status": "confirmed",
          "address": "0x10738460",
          "notes": "402 gate"
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "code_expr": "vret(gm_impl,+0x0c)",
+       "meaning": "MemberID not in member list ('failed (not a member before?)')",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x107384fc"
+       ],
+       "conditions": [
+        {
+         "description": "member-list scan this+0x288 (0x19-stride, <=0x20) found no strcmp match",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x10395aac",
+           "notes": "li r30,0x320 in f_10395854 after not-found path"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10395aac",
+         "notes": "800 on not-found"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "vret(gm_impl,+0x0c)",
+       "meaning": "empty MemberID ('Removing member failed - invalid argument')",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x107384fc"
+       ],
+       "conditions": [
+        {
+         "description": "*(MemberID)==0 -> return 0x192",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103958ac",
+           "notes": "default rc r30=0x192; empty-arg log site 0x103958bc"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10395854",
+         "notes": "worker entry: empty MemberID -> 402"
         }
        ]
       }
@@ -15020,7 +15274,7 @@
       ],
       "handler_addr": "0x107388a4",
       "impl_slot": 16,
-      "impl_notes": "impl f_105c53d0 is a 4-instruction STUB: unconditionally returns 0x192=402 regardless of args \u2014 action always faults 402 even with valid MemberID/ResultCode; impl class gm_impl (name registered via f_10391210('gm_impl') in ctor f_103938f0); primary vptr 0x10ec2bc0, ~0xda8-byte multi-base object; bound into svc px (ctx+0x3fa48) via shared_ptr copy-assign f_101a20d0 at factory site 0x103fbfe8 inside master impl factory f_103fa434, immediately before the gm_impl publish call",
+      "impl_notes": "impl f_105c53d0 is a 4-instruction STUB: unconditionally returns 0x192=402 regardless of args \u2014 action always faults 402 even with valid MemberID/ResultCode; impl f_105c53d0 is a 4-instruction STUB: unconditionally returns 0x192=402 regardless of args \u2014 action always faults 402 in this build.; impl class gm_impl (ctor f_103938f0 registers 'gm_impl'; vptr 0x10ec2bc0; bound via f_101a20d0 at f_103fa434:0x103fbfe8)",
       "evidence": [
        {
         "type": "firmware",
@@ -15053,6 +15307,14 @@
         "status": "confirmed",
         "address": "0x103938f0",
         "notes": "gm_impl ctor registers name 'gm_impl'; installs primary vptr 0x10ec2bc0 at +0x00"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x105c53d0",
+        "notes": "impl-body semantics decoded"
        }
       ],
       "impl_object": "*(svc+4) -> gm_impl (vptr 0x10ec2bc0)",
@@ -15231,8 +15493,8 @@
         }
        ],
        "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
+        "proven": "impl rc surfaced via req->v[+0x14]",
+        "unknown": null
        }
       },
       {
@@ -15266,6 +15528,40 @@
          "status": "confirmed",
          "address": "0x107388a4",
          "notes": "402 gate"
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "vret(gm_impl,+0x10)",
+       "meaning": "impl stub \u2014 unconditional 402 regardless of args",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x10738968"
+       ],
+       "conditions": [
+        {
+         "description": "impl f_105c53d0 always returns 0x192",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x105c53d0",
+           "notes": "4-instruction stub: li r3,0x192; blr"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x105c53d0",
+         "notes": "unconditional 402"
         }
        ]
       }
@@ -15329,7 +15625,7 @@
       ],
       "handler_addr": "0x10738550",
       "impl_slot": 20,
-      "impl_notes": "impl f_10395564 (gm_impl v+0x14): contains literals 'SetSourceAreaIds' and 'getNotificationData'; impl class gm_impl (name registered via f_10391210('gm_impl') in ctor f_103938f0); primary vptr 0x10ec2bc0, ~0xda8-byte multi-base object; bound into svc px (ctx+0x3fa48) via shared_ptr copy-assign f_101a20d0 at factory site 0x103fbfe8 inside master impl factory f_103fa434, immediately before the gm_impl publish call",
+      "impl_notes": "impl f_10395564 (gm_impl v+0x14): contains literals 'SetSourceAreaIds' and 'getNotificationData'; impl f_10395564 -> worker f_1039549c: strlcpy(this+0x5fc, DesiredSourceAreaIds, 0x4c5); propagate f_1011e9f0(*(this+0x5a8), ids, own-id this+0x210); member op f_106a9cc4(*(this+0x280)) -> f_1013f0f4(this+0x1e8, {rc,3}); sets dirty byte this+0x164=1; signals this+8 via f_1067c6ec; returns 0 unconditionally \u2014 always-success setter, no impl-level fault vocabulary.; impl class gm_impl (ctor f_103938f0 registers 'gm_impl'; vptr 0x10ec2bc0; bound via f_101a20d0 at f_103fa434:0x103fbfe8)",
       "evidence": [
        {
         "type": "firmware",
@@ -15362,6 +15658,14 @@
         "status": "confirmed",
         "address": "0x103938f0",
         "notes": "gm_impl ctor registers name 'gm_impl'; installs primary vptr 0x10ec2bc0 at +0x00"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x103954d8",
+        "notes": "impl-body semantics decoded"
        }
       ],
       "impl_object": "*(svc+4) -> gm_impl (vptr 0x10ec2bc0)",
@@ -15500,8 +15804,8 @@
         }
        ],
        "unresolved": {
-        "proven": "group impl rc surfaced",
-        "unknown": "codes for membership/validation failures"
+        "proven": "impl rc surfaced via req->v[+0x14]",
+        "unknown": null
        }
       },
       {
