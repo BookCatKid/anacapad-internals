@@ -100186,7 +100186,7 @@
       "description": "SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml \u2014 advertised via <SCPDURL> in device_description",
       "files": "21 XML files in opt/htdocs/xml: 16 advertised SCPDs + AudioIn1.xml (unadvertised) + device_description.xml + group_description.xml + musicservices.xml + xsl",
       "advertised_actions": "208 total actions across 16 services; 414 in-args, 206 out-args; state-variable tables per service",
-      "advertised_not_implemented": "CORRECTED (was 'REMOVED from 86.10'): ProvisionCredentialedTrialAccountX advertised in SystemProperties1.xml (86.8 AND 86.10) but string ABSENT from BOTH binaries -> advertised-but-never-shipped, stable across builds. ResetThirdPartyCredentials advertised + strcmp-dispatched in BOTH builds -> NOT removed. AudioIn1.xml 6 actions advertised but service is a reject-all 401 stub (both builds).",
+      "advertised_not_implemented": "ProvisionCredentialedTrialAccountX advertised in SystemProperties1.xml but NOT dispatched in 57.10/86.8/86.10 (dispatched only in 34.16, removed thereafter) -> stale SCPD advertisement. AudioIn1.xml 6 actions dispatched to a reject-all 401 stub in all builds. All other 202 advertised actions dispatched in every build.",
       "evidence": [
         {
           "type": "firmware",
@@ -100331,7 +100331,7 @@
       },
       {
         "item": "SystemProperties removed actions",
-        "detail": "CROSS-BUILD DISPATCH MATRIX (docs/crossbuild_matrix.json): 204 advertised actions, 86.8-78270 & 86.10-80260 each dispatch 203 \u2014 IDENTICAL. Sole undispatchable action in BOTH = ProvisionCredentialedTrialAccountX (name-string absent from both binaries -> never shipped; advertised-but-unimplemented). ResetThirdPartyCredentials IS dispatched in both (strcmp path). AudioIn 6 actions dispatched to a reject-all 401 stub in both. The ONLY advertised-arg delta is AVTransport.DelegateGroupCoordinationTo gaining input ClearSource (new A_ARG_TYPE_ClearSource) in 86.10. Method: per action-name, check every name-literal instance for a rodata/data pointer-table ref or lis+addi strcmp code-ref.",
+        "detail": "FIRMWARE-HISTORY DISPATCH EVOLUTION (docs/crossbuild_matrix.json, 4 binaries 34.16/57.10/86.8/86.10): REMOVED ProvisionCredentialedTrialAccountX dispatched in 34.16 -> dropped by 57.10 -> absent 86.8/86.10, but the shipped SCPD still advertises it (STALE ADVERTISEMENT, not cleaned up). ADDED 57.10: AVTransport.EndDirectControlSession, DeviceProperties.Set/GetButtonLockState, GroupManagement.SetSourceAreaIds, VirtualLineIn.Start/StopTransmission. ADDED 86.8: DeviceProperties.RoomDetection{Start,Stop}Chirping (room-tuning chirp). ResetThirdPartyCredentials + all other advertised actions dispatched across all 4 builds. Method: every action-name-literal instance checked for rodata/data pointer-table ref or lis+addi strcmp ref.",
         "builds": {
           "SCPD(all)": "advertised",
           "86.10": "removed from dispatch table"
@@ -100362,7 +100362,8 @@
       "status": "confirmed",
       "qplay_evolution": "34.16/57.10: urn:schemas-tencent-com:service:QPlay:1 as a serviceType URN. 86.8/86.10: URN removed; QPlay:2 advertised via qq:X_QPlay_SoftwareCapability in the device description; /QPlay/Control + QPlayAuth dispatch retained"
     },
-    "crossbuild_matrix_artifact": "docs/crossbuild_matrix.json"
+    "crossbuild_matrix_artifact": "docs/crossbuild_matrix.json",
+    "matrix_method": "4 binaries {34.16,57.10(fenway-public),86.8(playbar-model9),86.10(1-9)}; per advertised action-name check every literal instance for ptr-table/strcmp ref"
   },
   "shared_primitives": {
     "mega_impl_object": {
