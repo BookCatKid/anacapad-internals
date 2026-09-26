@@ -100137,63 +100137,10 @@
     },
     "upnp_client_stack": {
       "status": "confirmed",
-      "gena_client": {
-        "subscribe_wire": "SUBSCRIBE %s HTTP/1.1\\r\\nUSER-AGENT: %s\\r\\nHOST: %s:%d\\r\\nSID: %s\\r\\nTIMEOUT: Second-%u\\r\\n\\r\\n (renew carries SID; initial omits it)",
-        "unsubscribe_wire": "UNSUBSCRIBE %s HTTP/1.1\\r\\nUSER-AGENT: %s\\r\\nHOST: %s:%d\\r\\nSID: %s\\r\\n\\r\\n",
-        "response_headers": [
-          "sid:",
-          "timeout:"
-        ],
-        "secure_eventing": "'secure ' scheme flag + 'Secure Eventing: %d' log + 'upnpovertls' scheme -> eventing over TLS",
-        "sequencing": "out-of-sequence tracking 'Received OOS %u / %u for SID %s'; HTTP_GONE -> renew timeout forced to max",
-        "lifecycle_src": "../anacapa-1.0/oc/protocol/client/src/renew.cxx",
-        "headers": [
-          "x-sonos-upnp-loopback-token",
-          "X-SONOS-TARGET-UDN: uuid:%s",
-          "X-Sonos-Household-Id",
-          "targetUDN",
-          "sonosApiKey"
-        ],
-        "soap_post_templates": [
-          "POST %s HTTP/1.1 / CONNECTION: close / ACCEPT-ENCODING: gzip / HOST: %s / USER-AGENT: %s / CONTENT-LENGTH / text/xml / SOAPACTION: \"%s%s%s\"",
-          "POST %s HTTP/1.1 / HOST: %d.%d.%d.%d:%d (numeric) / SOAPACTION: \"%s#%s\" (svc#action form)"
-        ]
-      },
-      "zgt_state_vocabulary": [
-        "VanishedDevices",
-        "QuarantinedDevices",
-        "ZoneGroupMember",
-        "ZoneGroup",
-        "LastKnownIP",
-        "LastSeenUTC",
-        "MinCompatibleVersion",
-        "IsZoneBridge",
-        "VoiceConfigState",
-        "TVConfigurationError",
-        "AirPlayEnabled",
-        "VirtualLineInSource",
-        "DeactivationState",
-        "DeactivationTTL",
-        "DeactivationDateTime",
-        "OpenPort",
-        "HHSSLPort"
-      ],
-      "zgt_validation": "'invalid ZoneGroupState XML - missing UDN, Location, Title, or Icon' (4 required fields)",
-      "inbound_devicedesc_keys": [
-        "friendlyName",
-        "deviceList",
-        "serviceList",
-        "audioTxProtocol",
-        "htAudioTxProtocol",
-        "trueplaySDK",
-        "controlAPI",
-        "iconList",
-        "controlURL",
-        "eventSubURL",
-        "width",
-        "height"
-      ],
-      "event_ns": "urn:schemas-upnp-org:event-1-0|propertyset / |property"
+      "lifecycle": "Subscribe{Logical SID,Port,Secure Eventing,srRet} -> SID+UDN assigned -> renew (HTTP result/SR codes) -> 'Unsubscribe in renew' resubscribe-on-4xx -> unsubscribe",
+      "tracking": "dual SID model: wire SID + stable 'logical SID' surviving resubscribe; per-UDN binding; X-RINCON-BOOTSEQ detects publisher reboot",
+      "ordering": "OOS SEQ detection: 'Received OOS %u/%u for SID' + 'last handled: %u'; 'changedMap: 0x%x' per-var changed bitmask",
+      "cloud_mirror": "each service's subscription also exposed as v1/players/{playerId}/upnp<svc>/subscription/{logicalSID} {subscribe,renew,unsubscribe} ops"
     },
     "thread_inventory": {
       "status": "confirmed",
