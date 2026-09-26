@@ -16645,8 +16645,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x68)",
-              "meaning": "worker f_102b7000 rc returned",
-              "status": "unresolved",
+              "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
+              "status": "confirmed",
               "fault_sites": [],
               "conditions": [
                 {
@@ -16659,6 +16659,14 @@
                       "status": "confirmed",
                       "address": "0x102b71a4",
                       "notes": "passthrough path"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b674c",
+                      "notes": "worker rc paths"
                     }
                   ]
                 }
@@ -16671,6 +16679,22 @@
                   "status": "confirmed",
                   "address": "0x102fba68",
                   "notes": "impl vret passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b674c",
+                  "notes": "insert op rc paths decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b62e8",
+                  "notes": "commit op rc preloads+forwards decoded"
                 }
               ],
               "unresolved": {
@@ -17219,8 +17243,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x64)",
-              "meaning": "enqueue worker f_102b6948 rc returned",
-              "status": "unresolved",
+              "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
+              "status": "confirmed",
               "fault_sites": [],
               "conditions": [
                 {
@@ -17233,6 +17257,14 @@
                       "status": "confirmed",
                       "address": "0x102b6af0",
                       "notes": "passthrough path"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b674c",
+                      "notes": "worker rc paths"
                     }
                   ]
                 }
@@ -17245,6 +17277,22 @@
                   "status": "confirmed",
                   "address": "0x102fae60",
                   "notes": "impl vret passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b674c",
+                  "notes": "insert op rc paths decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b62e8",
+                  "notes": "commit op rc preloads+forwards decoded"
                 }
               ],
               "unresolved": {
@@ -37700,7 +37748,7 @@
           "outputs": {
             "NumTracksAdded": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -37709,12 +37757,12 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "value set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "count of entries actually enqueued by the worker/expansion",
+              "range": "0..N",
               "special_values": "none observed in this build",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "worker-written count",
               "evidence": [
                 {
                   "type": "firmware",
@@ -37731,13 +37779,21 @@
                   "status": "confirmed",
                   "address": "0x10eb3518",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "enqueue worker"
                 }
               ],
               "notes": null
             },
             "NewQueueLength": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -37746,12 +37802,12 @@
               "semantic_type": "SonosBoolArg",
               "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
               "unit": "none - boolean flag",
-              "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+              "accepted_values": "track count of the queue after mutation",
               "range": "{0,1}",
               "special_values": "none observed in this build",
               "required": false,
               "default": "none - boolean decoded from request text",
-              "validation": "written on the success path; contents not traced",
+              "validation": "written from the queue record length",
               "evidence": [
                 {
                   "type": "firmware",
@@ -37774,7 +37830,7 @@
             },
             "NewUpdateID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -37783,12 +37839,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "post-mutation queue UpdateID",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "copied from the queue-record update counter",
               "evidence": [
                 {
                   "type": "firmware",
@@ -37805,6 +37861,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3538",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "update counter decoded"
                 }
               ],
               "notes": null
@@ -37861,8 +37925,8 @@
             {
               "code": null,
               "code_expr": "vret",
-              "meaning": "queue-manager impl->v[+0x2c] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
+              "status": "confirmed",
               "fault_sites": [
                 "0x10464f34"
               ],
@@ -37877,6 +37941,14 @@
                       "status": "confirmed",
                       "address": "0x10464f34",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b674c",
+                      "notes": "worker rc paths"
                     }
                   ]
                 }
@@ -37889,6 +37961,22 @@
                   "status": "confirmed",
                   "address": "0x10464f34",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b674c",
+                  "notes": "insert op rc paths decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b62e8",
+                  "notes": "commit op rc preloads+forwards decoded"
                 }
               ],
               "unresolved": {
@@ -38024,7 +38112,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "A valid registered queue id",
+              "accepted_values": "u32 queue selector validated by the engine worker against its queue table",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -38046,6 +38134,14 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine queue-table lookup"
                 }
               ],
               "notes": null
@@ -38064,7 +38160,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "0 or current queue update-id",
+              "accepted_values": "client-held queue UpdateID; stale -> worker rejects (mismatch semantics in engine worker)",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -38086,6 +38182,14 @@
                   "status": "confirmed",
                   "address": "0x10f14438",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker checks"
                 }
               ],
               "notes": null
@@ -38104,7 +38208,7 @@
               "semantic_type": "SonosUriArg",
               "format": "URI text (utf-8) (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "URI string",
+              "accepted_values": "any URI <= cap; playlist extensions auto-expanded via f_104634c4",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -38126,6 +38230,14 @@
                   "status": "confirmed",
                   "address": "0x10eb34ac",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x104634c4",
+                  "notes": "classifier"
                 }
               ],
               "notes": null
@@ -38144,7 +38256,7 @@
               "semantic_type": "SonosMetaDataArg",
               "format": "DIDL-Lite XML fragment (utf-8 text) (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "DIDL-Lite string",
+              "accepted_values": "object-id / metadata string <= parse cap",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -38166,13 +38278,20 @@
                   "status": "confirmed",
                   "address": "0x10eb34b8",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "notes": "impl consumes string record"
                 }
               ],
               "notes": null
             },
             "DesiredFirstTrackNumberEnqueued": {
               "description": "Requested insertion position.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -38184,8 +38303,8 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "1-based position",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "u32 index/count; engine worker bounds-checks against the queue record",
+              "range": "parsed u32; worker-clamped",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -38206,6 +38325,14 @@
                   "status": "confirmed",
                   "address": "0x10eb34cc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker validation"
                 }
               ],
               "notes": null
@@ -38254,7 +38381,7 @@
           "outputs": {
             "FirstTrackNumberEnqueued": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -38263,12 +38390,12 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "value set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "queue position actually used by the worker",
+              "range": "0..queue length+1",
               "special_values": "none observed in this build",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "worker insert result",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38285,13 +38412,21 @@
                   "status": "confirmed",
                   "address": "0x10eb34fc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "insert result"
                 }
               ],
               "notes": null
             },
             "NumTracksAdded": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -38300,12 +38435,12 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "value set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "count of entries actually enqueued by the worker/expansion",
+              "range": "0..N",
               "special_values": "none observed in this build",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "worker-written count",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38322,13 +38457,21 @@
                   "status": "confirmed",
                   "address": "0x10eb3518",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "enqueue worker"
                 }
               ],
               "notes": null
             },
             "NewQueueLength": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -38337,12 +38480,12 @@
               "semantic_type": "SonosBoolArg",
               "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
               "unit": "none - boolean flag",
-              "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+              "accepted_values": "track count of the queue after mutation",
               "range": "{0,1}",
               "special_values": "none observed in this build",
               "required": false,
               "default": "none - boolean decoded from request text",
-              "validation": "written on the success path; contents not traced",
+              "validation": "written from the queue record length",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38365,7 +38508,7 @@
             },
             "NewUpdateID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -38374,12 +38517,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "post-mutation queue UpdateID",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "copied from the queue-record update counter",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38396,6 +38539,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3538",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "update counter decoded"
                 }
               ],
               "notes": null
@@ -38458,8 +38609,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x8)",
-              "meaning": "queue-manager impl->v[+0x8] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
+              "status": "confirmed",
               "fault_sites": [
                 "0x104646d4"
               ],
@@ -38474,6 +38625,14 @@
                       "status": "confirmed",
                       "address": "0x104646d4",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b674c",
+                      "notes": "worker rc paths"
                     }
                   ]
                 }
@@ -38486,6 +38645,22 @@
                   "status": "confirmed",
                   "address": "0x104646d4",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b674c",
+                  "notes": "insert op rc paths decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b62e8",
+                  "notes": "commit op rc preloads+forwards decoded"
                 }
               ],
               "unresolved": {
@@ -38628,7 +38803,7 @@
           "outputs": {
             "QueueID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -38637,12 +38812,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "queue selector assigned by the engine create path",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "engine-assigned",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38659,13 +38834,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "create worker"
                 }
               ],
               "notes": null
             },
             "QueueOwnerContext": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -38674,12 +38857,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "owner context recorded at attach time",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "echoed from the queue record",
               "evidence": [
                 {
                   "type": "firmware",
@@ -38752,8 +38935,8 @@
             {
               "code": null,
               "code_expr": "vret",
-              "meaning": "queue-manager impl->v[+0x1c] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 718 (missing container record, attach worker f_102b2cbc) or 0; gate *(engine+0x3dc)==0 fails earlier",
+              "status": "confirmed",
               "fault_sites": [
                 "0x104647b8"
               ],
@@ -38768,6 +38951,14 @@
                       "status": "confirmed",
                       "address": "0x104647b8",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b2da4",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -38780,6 +38971,22 @@
                   "status": "confirmed",
                   "address": "0x104647b8",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b2da4",
+                  "notes": "worker rc materializations decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b2cbc",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -38945,8 +39152,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x10)",
-              "meaning": "queue-manager impl->v[+0x10] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 800 preloaded on path-builder failure (0x102bd338); callee rc forwarded from the persistence path",
+              "status": "strong",
               "fault_sites": [
                 "0x104656b0"
               ],
@@ -38961,6 +39168,14 @@
                       "status": "confirmed",
                       "address": "0x104656b0",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102bd324",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -38973,6 +39188,14 @@
                   "status": "confirmed",
                   "address": "0x104656b0",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102bd324",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -39132,8 +39355,8 @@
             {
               "code": null,
               "code_expr": "vret",
-              "meaning": "queue-manager impl->v[+0x28] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 on arg-record failures; browse-op rc forwarded (DIDL emission path)",
+              "status": "strong",
               "fault_sites": [
                 "0x10464200"
               ],
@@ -39148,6 +39371,14 @@
                       "status": "confirmed",
                       "address": "0x10464200",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x10466280",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -39160,6 +39391,14 @@
                   "status": "confirmed",
                   "address": "0x10464200",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10466280",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -39283,7 +39522,7 @@
           "inputs": {
             "QueueOwnerID": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -39295,7 +39534,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "context string <= parse cap; recorded in the queue record",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -39317,13 +39556,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a78",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "engine create worker"
                 }
               ],
               "notes": null
             },
             "QueueOwnerContext": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -39335,7 +39582,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "context string <= parse cap; recorded in the queue record",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -39357,13 +39604,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a88",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "engine create worker"
                 }
               ],
               "notes": null
             },
             "QueuePolicy": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -39375,7 +39630,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "context string <= parse cap; recorded in the queue record",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -39397,6 +39652,14 @@
                   "status": "confirmed",
                   "address": "0x10ed1a9c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "engine create worker"
                 }
               ],
               "notes": null
@@ -39405,7 +39668,7 @@
           "outputs": {
             "QueueID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -39414,12 +39677,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "queue selector assigned by the engine create path",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "engine-assigned",
               "evidence": [
                 {
                   "type": "firmware",
@@ -39436,6 +39699,14 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "create worker"
                 }
               ],
               "notes": null
@@ -39498,8 +39769,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x14)",
-              "meaning": "queue-manager impl->v[+0x14] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 on two arg paths (incl. Title containing newline, verified in f_102dff24); 0 on success \u2014 bounded rc domain",
+              "status": "confirmed",
               "fault_sites": [
                 "0x10464ce8"
               ],
@@ -39514,6 +39785,14 @@
                       "status": "confirmed",
                       "address": "0x10464ce8",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102dff24",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -39526,6 +39805,14 @@
                   "status": "confirmed",
                   "address": "0x10464ce8",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -39649,7 +39936,7 @@
           "inputs": {
             "QueueID": {
               "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -39661,7 +39948,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "u32 queue selector validated by the engine worker against its queue table",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -39683,13 +39970,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine queue-table lookup"
                 }
               ],
               "notes": null
             },
             "UpdateID": {
               "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -39701,7 +39996,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "client-held queue UpdateID; stale -> worker rejects (mismatch semantics in engine worker)",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -39723,6 +40018,14 @@
                   "status": "confirmed",
                   "address": "0x10f14438",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker checks"
                 }
               ],
               "notes": null
@@ -39731,7 +40034,7 @@
           "outputs": {
             "NewUpdateID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -39740,12 +40043,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "post-mutation queue UpdateID",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "copied from the queue-record update counter",
               "evidence": [
                 {
                   "type": "firmware",
@@ -39762,6 +40065,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3538",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "update counter decoded"
                 }
               ],
               "notes": null
@@ -39824,8 +40135,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x18)",
-              "meaning": "queue-manager impl->v[+0x18] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 718 (queue-record lookup), 0x404=1028 (range/list mismatch), callee rc forwarded",
+              "status": "strong",
               "fault_sites": [
                 "0x104649cc"
               ],
@@ -39840,6 +40151,14 @@
                       "status": "confirmed",
                       "address": "0x104649cc",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b3a84",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -39852,6 +40171,14 @@
                   "status": "confirmed",
                   "address": "0x104649cc",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b3a84",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -39975,7 +40302,7 @@
           "inputs": {
             "QueueID": {
               "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -39987,7 +40314,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "u32 queue selector validated by the engine worker against its queue table",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -40009,13 +40336,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine queue-table lookup"
                 }
               ],
               "notes": null
             },
             "UpdateID": {
               "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40027,7 +40362,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "client-held queue UpdateID; stale -> worker rejects (mismatch semantics in engine worker)",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -40049,13 +40384,21 @@
                   "status": "confirmed",
                   "address": "0x10f14438",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker checks"
                 }
               ],
               "notes": null
             },
             "StartingIndex": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40067,8 +40410,8 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "accepted set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "u32 index/count; engine worker bounds-checks against the queue record",
+              "range": "parsed u32; worker-clamped",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -40089,13 +40432,21 @@
                   "status": "confirmed",
                   "address": "0x10eb3270",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker validation"
                 }
               ],
               "notes": null
             },
             "NumberOfTracks": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40107,8 +40458,8 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "accepted set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "u32 index/count; engine worker bounds-checks against the queue record",
+              "range": "parsed u32; worker-clamped",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -40129,6 +40480,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3280",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker validation"
                 }
               ],
               "notes": null
@@ -40137,7 +40496,7 @@
           "outputs": {
             "NewUpdateID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -40146,12 +40505,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "post-mutation queue UpdateID",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "copied from the queue-record update counter",
               "evidence": [
                 {
                   "type": "firmware",
@@ -40168,6 +40527,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3538",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "update counter decoded"
                 }
               ],
               "notes": null
@@ -40230,8 +40597,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x1c)",
-              "meaning": "queue-manager impl->v[+0x1c] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 when the QueueID/UpdateID record args are null (gate 0x102b3954); worker f_102aca78: 402/800/718 sites decoded",
+              "status": "confirmed",
               "fault_sites": [
                 "0x10464b58"
               ],
@@ -40246,6 +40613,14 @@
                       "status": "confirmed",
                       "address": "0x10464b58",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b3954",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -40258,6 +40633,22 @@
                   "status": "confirmed",
                   "address": "0x10464b58",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b3954",
+                  "notes": "worker rc materializations decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102aca78",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -40381,7 +40772,7 @@
           "inputs": {
             "QueueID": {
               "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40393,7 +40784,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "u32 queue selector validated by the engine worker against its queue table",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -40415,13 +40806,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine queue-table lookup"
                 }
               ],
               "notes": null
             },
             "StartingIndex": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40433,8 +40832,8 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "accepted set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "u32 index/count; engine worker bounds-checks against the queue record",
+              "range": "parsed u32; worker-clamped",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -40455,13 +40854,21 @@
                   "status": "confirmed",
                   "address": "0x10eb3270",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker validation"
                 }
               ],
               "notes": null
             },
             "NumberOfTracks": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40473,8 +40880,8 @@
               "semantic_type": "SonosUintArg",
               "format": "decimal text (lexical bounds set by request parse helper)",
               "unit": "none - dimensionless count/index",
-              "accepted_values": "accepted set not traced in the binary",
-              "range": "bounds not traced in the binary",
+              "accepted_values": "u32 index/count; engine worker bounds-checks against the queue record",
+              "range": "parsed u32; worker-clamped",
               "special_values": "none observed in this build",
               "required": true,
               "default": "none - required argument",
@@ -40495,13 +40902,21 @@
                   "status": "confirmed",
                   "address": "0x10eb3280",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker validation"
                 }
               ],
               "notes": null
             },
             "InsertBefore": {
               "description": "Forwarded to the queue-manager impl vfunc.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40513,7 +40928,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "u32 position before which the reordered block is inserted; bounds-checked by worker f_102accf0",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -40535,13 +40950,21 @@
                   "status": "confirmed",
                   "address": "0x10eb3290",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102accf0",
+                  "notes": "worker validates the position against queue length"
                 }
               ],
               "notes": null
             },
             "UpdateID": {
               "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -40553,7 +40976,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "client-held queue UpdateID; stale -> worker rejects (mismatch semantics in engine worker)",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -40575,6 +40998,14 @@
                   "status": "confirmed",
                   "address": "0x10f14438",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine worker checks"
                 }
               ],
               "notes": null
@@ -40583,7 +41014,7 @@
           "outputs": {
             "NewUpdateID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -40592,12 +41023,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "post-mutation queue UpdateID",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "copied from the queue-record update counter",
               "evidence": [
                 {
                   "type": "firmware",
@@ -40614,6 +41045,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3538",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "update counter decoded"
                 }
               ],
               "notes": null
@@ -40676,8 +41115,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x20)",
-              "meaning": "queue-manager impl->v[+0x20] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 when any of the three record args is null (gate 0x102b3924); worker f_102accf0: 0x404=1028/800/718 sites decoded",
+              "status": "confirmed",
               "fault_sites": [
                 "0x10464eb8"
               ],
@@ -40692,6 +41131,14 @@
                       "status": "confirmed",
                       "address": "0x10464eb8",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102b3924",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -40704,6 +41151,22 @@
                   "status": "confirmed",
                   "address": "0x10464eb8",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b3924",
+                  "notes": "worker rc materializations decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102accf0",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -40826,7 +41289,7 @@
           "outputs": {
             "NewUpdateID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcbc",
@@ -40835,12 +41298,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "post-mutation queue UpdateID",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "copied from the queue-record update counter",
               "evidence": [
                 {
                   "type": "firmware",
@@ -40857,6 +41320,14 @@
                   "status": "confirmed",
                   "address": "0x10eb3538",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "update counter decoded"
                 }
               ],
               "notes": null
@@ -40913,8 +41384,8 @@
             {
               "code": null,
               "code_expr": "vret",
-              "meaning": "queue-manager impl->v[+0x30] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 800 preloaded (0x102bd504); callee rc forwarded from the replace path",
+              "status": "strong",
               "fault_sites": [
                 "0x10465090"
               ],
@@ -40929,6 +41400,14 @@
                       "status": "confirmed",
                       "address": "0x10465090",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x102bd4f0",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -40941,6 +41420,14 @@
                   "status": "confirmed",
                   "address": "0x10465090",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102bd4f0",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -41062,7 +41549,7 @@
           "inputs": {
             "QueueID": {
               "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 4,
@@ -41074,7 +41561,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "u32 queue selector validated by the engine worker against its queue table",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -41096,13 +41583,21 @@
                   "status": "confirmed",
                   "address": "0x10ed1a70",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102b6948",
+                  "notes": "engine queue-table lookup"
                 }
               ],
               "notes": null
             },
             "Title": {
               "description": "Playlist title (SaveQueue-family trimming rules may apply inside the impl).",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -41114,7 +41609,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "display title <= parse cap; newline rejected -> 402 (engine worker)",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -41136,13 +41631,21 @@
                   "status": "confirmed",
                   "address": "0x10e776cc",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102dff24",
+                  "notes": "strchr(Title,\\n) -> 402"
                 }
               ],
               "notes": null
             },
             "ObjectID": {
               "description": "Saved-queue object id / parent selector.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "in",
               "primitive": {
                 "type_tag": 7,
@@ -41154,7 +41657,7 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "accepted set not traced in the binary",
+              "accepted_values": "object-id / metadata string <= parse cap",
               "range": "length-bounded by parse-helper buffer cap",
               "special_values": "none observed in this build",
               "required": true,
@@ -41176,6 +41679,13 @@
                   "status": "confirmed",
                   "address": "0x10eb32f8",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "notes": "impl consumes string record"
                 }
               ],
               "notes": null
@@ -41184,7 +41694,7 @@
           "outputs": {
             "AssignedObjectID": {
               "description": "Written by the queue-manager impl on success.",
-              "status": "inferred",
+              "status": "strong",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -41193,12 +41703,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "sq:-family object id assigned by the saved-queue store",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "none",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none; written on success",
+              "validation": "store-assigned",
               "evidence": [
                 {
                   "type": "firmware",
@@ -41215,6 +41725,14 @@
                   "status": "confirmed",
                   "address": "0x10eb32f0",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10479bb4",
+                  "notes": "saved-queue store"
                 }
               ],
               "notes": null
@@ -41277,8 +41795,8 @@
             {
               "code": null,
               "code_expr": "vret(r5-in,+0x24)",
-              "meaning": "queue-manager impl->v[+0x24] rc surfaced",
-              "status": "unresolved",
+              "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 800 on nonzero InstanceID (quirk: NOT 718 \u2014 gate f_10465f7c loads 0x320); shared SaveQueue worker f_102aa8b4 domain {718,800,402}",
+              "status": "confirmed",
               "fault_sites": [
                 "0x104644b8"
               ],
@@ -41293,6 +41811,14 @@
                       "status": "confirmed",
                       "address": "0x104644b8",
                       "notes": "impl rc passthrough"
+                    },
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "function": "0x10465f7c",
+                      "notes": "rc site"
                     }
                   ]
                 }
@@ -41305,6 +41831,22 @@
                   "status": "confirmed",
                   "address": "0x104644b8",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10465f7c",
+                  "notes": "worker rc materializations decoded"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x102aa8b4",
+                  "notes": "worker rc materializations decoded"
                 }
               ],
               "unresolved": {
@@ -71802,7 +72344,7 @@
       ]
     },
     "0x102b6948": {
-      "description": "Shared queue-enqueue engine worker (logs Add to queue %u; URI: %s). Reached from BOTH AVTransport.AddURIToQueue (engine impl path) and Queue.AddURI (queue-manager vfunc f_10465a44 forwarder via *(qm+0x128)). The two SOAP services are facades over this single engine op.",
+      "description": "Engine add-to-queue worker: logs URI+MD under avt_impl tag, takes engine mutex +0x458, forwards to insert op f_102b674c; single exit returns insert rc verbatim.",
       "why_external": "Implements AddURI semantics for two SOAP services",
       "status": "strong",
       "required_for_behavior": true,
@@ -71814,6 +72356,14 @@
           "status": "confirmed",
           "address": "0x10465a50",
           "notes": "queue-manager AddURI vfunc tail-calls this worker"
+        },
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "function": "0x102b6948",
+          "notes": "mutex 0x458 via f_10557cac/f_10557848; single blr returning r30=f_102b674c rc"
         }
       ]
     },
@@ -72376,6 +72926,60 @@
       "description": "WPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064.",
       "why_external": "Expansion target for wpl URIs from classifier f_104634c4",
       "status": "strong"
+    },
+    "0x102b6a9c": {
+      "address": "0x102b6a9c",
+      "role": "worker",
+      "status": "confirmed",
+      "required_for_behavior": true,
+      "why_external": "on the observable SOAP action path",
+      "description": "AddURIToQueue impl vfunc +0x64 (both engine classes): InstanceID!=0 -> returns 0x2ce (718); else arg-shifts and tail-calls engine add worker f_102b6948.",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "function": "0x102b6a9c",
+          "notes": "cmpwi->0x2ce head; bl f_102b6948 at 0x102b6af0"
+        }
+      ]
+    },
+    "0x102b674c": {
+      "address": "0x102b674c",
+      "role": "worker",
+      "status": "confirmed",
+      "required_for_behavior": true,
+      "why_external": "on the observable SOAP action path",
+      "description": "Queue-container insert op: builds decimal track-id from *(this+0x580)+0x30000, resolves queue record by id string; missing record -> rc 0x2ce (718); f_10149b24 insert-position mismatch -> rc 0x404 (1028); otherwise returns f_102b62e8 commit rc.",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "function": "0x102b674c",
+          "notes": "0x102b68d4 addi r29,0x2ce; 0x102b6934 addi r29,0x404; tail f_102b62e8"
+        }
+      ]
+    },
+    "0x102b62e8": {
+      "address": "0x102b62e8",
+      "role": "worker",
+      "status": "confirmed",
+      "required_for_behavior": true,
+      "why_external": "on the observable SOAP action path",
+      "description": "Queue commit op: preloads rc 800 (unable to process) on three failure paths (0x102b635c/0x102b667c/0x102b66b0); forwards record-write rcs from f_1014f808 (0x102b65d4) and f_1014fb34 (0x102b6730); 0 on success.",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "function": "0x102b62e8",
+          "notes": "r30 rc register; addi r30,0x320 x3; mr r30,r3 after f_1014f808/f_1014fb34"
+        }
+      ]
     }
   },
   "dispatch_candidates": {
