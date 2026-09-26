@@ -96811,22 +96811,58 @@
     "explore_scheme": {
       "status": "strong",
       "grammar": "explore:<kind>[:<subkind>]::<id> \u2014 'explore:album::alb.%s','explore:artist::{,mainreleases,compilations,singlesandeps,toptracks}::art.%s','explore:playlist::{pp,mp}.%s'",
-      "notes": "music-service browse URI family; IDs prefixed alb./art./pp./mp."
+      "notes": "music-service browse URI family; IDs prefixed alb./art./pp./mp.",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "strong",
+          "notes": "'explore:*' scheme literal adjacent to radio/container schemes"
+        }
+      ]
     },
     "rdradio_scheme": {
       "status": "strong",
       "grammar": "rdradio:<kind>:<prefix>. \u2014 'rdradio:artist:Art.','rdradio:station:ps.' + bare 'rdradio:'",
-      "notes": "radio-service URI family"
+      "notes": "radio-service URI family",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "strong",
+          "notes": "'rdradio:' scheme literal"
+        }
+      ]
     },
     "x-sonosapi-radio": {
       "status": "strong",
       "grammar": "x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d (sn optional: '&sn=%d' variant exists)",
-      "notes": "service-track radio URI carrying station id, flags, serial number"
+      "notes": "service-track radio URI carrying station id, flags, serial number",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "strong",
+          "notes": "'x-sonosapi-radio:ST:%s?sid=&flags=&sn=' format literal + X-Sonos-Api-Key header"
+        }
+      ]
     },
     "spotify_scheme": {
       "status": "strong",
       "grammar": "spotify:{ad,episode,image[:%h],interruption,track}:...",
-      "notes": "native spotify URI passthrough family (image:%h = hex-encoded variant)"
+      "notes": "native spotify URI passthrough family (image:%h = hex-encoded variant)",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "strong",
+          "notes": "'spotify:track:','spotify:episode:','x-spotify://' literals + spotify_smapi.cxx"
+        }
+      ]
     },
     "x-rincon-sonarcal": {
       "status": "confirmed",
@@ -96836,6 +96872,15 @@
         "ATrueplay Complete",
         "ASpeaker Detection",
         "ATrueroom"
+      ],
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "notes": "'x-rincon-sonarcal' scheme literal + sonarctl/route cluster"
+        }
       ]
     },
     "protocol_info_schemes": {
@@ -97735,21 +97780,15 @@
         "true"
       ],
       "notes": "Apple plist-XML grammar keys; importer maps iTunes XML library (Tracks/Playlists/Master structure) into the content index. Adjacent to selthrd.RIRDecoder/RHWEvtHandlerZP thread descriptors",
-      "evidence": {
-        "strings": [
-          "Master",
-          "Playlist Items",
-          "Playlist Persistent ID",
-          "Track ID",
-          "Audiobooks",
-          "TV Shows",
-          "plist",
-          "dict",
-          "integer"
-        ],
-        "addr": "rodata key table 0x11091a24 cluster",
-        "file": "zoneplayer content-index importer"
-      }
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "strong",
+          "notes": "rodata plist-key table 0x11091a24; Master/Track ID/Playlist Persistent ID/Audiobooks literal keys"
+        }
+      ]
     },
     "savedqueues_rsq": {
       "status": "confirmed",
@@ -97770,17 +97809,15 @@
         "'Could not find given playlistId'"
       ],
       "notes": "replicated via nodetx like netsettings; 'Migrated tracks for account sn=%u' migration path; 'Reorder tracks returned %u. QueueID: %d; Tracks: %s; NewPos: %s'",
-      "evidence": {
-        "file": "/jffs/settings/savedqueues.rsq",
-        "strings": [
-          "<SavedQueues LastUpdateDevice=",
-          "SavedQueue Id=",
-          "Curated",
-          "NumTracks",
-          "Next"
-        ],
-        "behavior": "atomic .tmp write + savedqueues.d.rsq dir + gzip"
-      }
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "notes": "'/jffs/settings/savedqueues.rsq' + SavedQueues LastUpdateDevice/Version/Next/SavedQueue Id/Curated/NumTracks literals"
+        }
+      ]
     },
     "trackqueue_rsq": {
       "status": "confirmed",
@@ -97796,18 +97833,15 @@
         "<TrackQueueSummary>"
       ],
       "streaming_proto": "media client accepts 'HTTP/1.0 200 OK' AND 'ICY 200 OK' (Shoutcast ICY) response lines + 'metadata' marker",
-      "evidence": {
-        "file": "trackqueue.rsq",
-        "strings": [
-          "commitAppend",
-          "commitAppend (replace)",
-          "Append transaction ID mismatch. Aborting",
-          "ReplaceAll: search c:%d/%d",
-          "trackQueue",
-          "decoded len %zu exceeds buffer len"
-        ],
-        "uri": "file://%s#%d + /trackqueue.rsq#0"
-      }
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "notes": "'trackqueue.rsq' + commitAppend/commitReplace txn-id + ReplaceAll range-remap literals"
+        }
+      ]
     },
     "gena_event_envelope": {
       "status": "confirmed",
