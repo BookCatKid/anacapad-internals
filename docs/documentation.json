@@ -99868,7 +99868,7 @@
       "chsrc_chsnk": {
         "status": "confirmed",
         "model": "CHSRC (channel source, chsrc.cxx) multicasts group audio to CHSNK (channel sink) receivers via nodetx_chsrc; chsnk refreshes multicast join on NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent",
-        "sync": "'Socket has: %zu bytes (%zu blocks and %zu bytes). CHSRC ms ahead: %ld'; 'chsrc hint:%d, state:%d'; chsrcSync; 'chsrc_behind'; framed/te ('chsrc:framed','chsrc:te' = transfer-encoding variants)",
+        "sync": "chsnkSync + SNTP-aligned play clock: 'chsnk playing remote chsrc at %d.%06d'",
         "transactions": "'RCHSRCReq Current Op: %s, Current TransactionID: %d'; 'RChannelSource Reported Spotify position: %lldms, state: %s, transitionAck: %d'",
         "delegation": "'Chsnk restart requested by the new coordinator to avoid seamless delegation'; 'stop CHSNK to avoid seamless delegation for adaptive bitrate stream'; 'Using CHSRC TX for GM %s'",
         "constraints": "'Count of off box members for VLISrcMgr [%u] must be <= CHSRC [%u]! Aborting'; 'ignore %s playOnCompletion; chsrc is already playing'; 'contacting remote chsnks'/'configuring local chsnk'",
@@ -99877,12 +99877,13 @@
           "as-srcout-chsnk0",
           "chsnk-sat-as"
         ],
-        "events": [
-          "ChsrcEvent",
-          "ChsrcSysSettingsEvt",
-          "chsrc-state-change"
-        ],
-        "log": "/opt/log/anacapa.chsrc.state.log"
+        "events": "chsrc-state-change/ChsrcEvent/ChsrcSysSettingsEvt/CHSRC Fill Level/chsrc_behind; /opt/log/anacapa.chsrc.state.log",
+        "log": "/opt/log/anacapa.chsrc.state.log",
+        "framing": "'chsrc:framed'/'chsrc:te'/'chsnk_framed' block modes; block-buffered w/ ms-precision play-ahead: 'Socket has %zu bytes (%zu blocks). CHSRC ms ahead: %ld'",
+        "control": "RCHSRCReq {Op,TransactionID} request/reply channel ('rchsrcreq','request retry loop timed out')",
+        "transport": "multicast \u2014 'chsnk refreshing multicast join' re-joins on NetworkIfaceBounced/IpAddrAssigned; nodetx_chsrc channel; per-instance chsnk%d audio streams",
+        "modes": "chsnk playing local {chsrc,AI,VLI} / remote chsrc; count of off-box VLISrcMgr members <= CHSRC bound",
+        "errors": "chsnk_lse, chsnk_ch_data_full, chsnk_w_err, chsrc_framer_uflw (framer underflow)"
       },
       "seamless_delegation": {
         "status": "confirmed",
