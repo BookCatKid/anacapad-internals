@@ -95302,6 +95302,34 @@
       "handler": "f_1065bd70",
       "flow": "path claim '/device_account' (f_10655ea4) -> f_106570bc validate -> f_1065b730('int_setTransferMode') transfer-mode int; serialize device-account via f_1065a8dc(strlen+encode)/f_109cd7a4/f_1065e99c; state word *(r30+8) in {3,4} selects account variant; constant block 0x110b9044 (6 bytes) feeds the blob; f_10807034 XML append; stack-canary guarded",
       "semantics": "device-account provisioning/read endpoint; response is an encoded account blob whose variant depends on registration state (3 vs 4)"
+    },
+    "native_protocols": {
+      "sp_tlv": {
+        "name": "secure-pairing TLV stream (log tag 'sp_a5335660d494963ab7b783a270417bb8')",
+        "framing": "7-byte header {u16 tag @+0, u8 type @+2, u32 len @+3} + MAC-verified payload; reader advances +7 per record (0x10d0b2ac addi r28,0x7)",
+        "integrity": "per-packet MAC via f_10d49490/f_10d4a88c -> memcmp -> 'Corrupted packet, invalid MAC' reject (0x10d0b1fc)",
+        "transport": "buffered socket read f_10d0ae04: recv buf obj+0x4484/+0x4488 cap/+0x448c fill/+0x4490 off; f_10d0d970 raw read; f_10d0deb0 error -> obj+0x64a4",
+        "errors": "'Failed reading TLV header %d %d/7 oserr %d' (0x10fd7c40), 'Skipped %s(%d) (%d > %d)' oversized-record skip"
+      },
+      "wss_tlv": {
+        "name": "websocket UPnP event TLV (see wss_event_vocabulary.protocol)",
+        "framing": "{u16 tag, s8 type} selector -> table lookup; 73 entries",
+        "relation": "same tag/type header family as sp_tlv; WSS path carries subscription mgmt"
+      },
+      "netstart_ipc": {
+        "name": "netstartd Unix-socket IPC client (the 'netstart' surface in this build - no 'netstart2' literal exists)",
+        "transport": "/tmp/netstartd.ipc; hello handshake 'netstartd hello'",
+        "files": "/jffs/netstartd_prev.log, /opt/log/netstartd.log, netstartd.dmp, netstartd.properties, netstartd.count, /netstartd-external, /var/run/netstart_mode, /tmp/netstartd.pid",
+        "messages": "settings push ('...settings update to netstartd'), PSK update ('...ushed PSK update to netstartd'), pull ('...ettings update from netstartd'), type update '[%s]', 'SSID, cannot notify netstartd', refusal handling 'netstart refused'/'meshDisable (netstart refused)'"
+      },
+      "mrpc": {
+        "name": "MRPC",
+        "status": "ZERO literals in anacapad-86.10 - no 'mrpc' string anywhere. Either absent from this binary or unlabeled; honest negative result"
+      },
+      "sci": {
+        "name": "SCI",
+        "status": "only 'SCI_BOARD' literal; no sci:// URI or protocol markers in this build - the labeled SCI control surface is not present as a named protocol; the htmesh_tx%d interfaces are the home-theater mesh transport ('send to mesh failed %u')"
+      }
     }
   }
 }
