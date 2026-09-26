@@ -18678,8 +18678,71 @@
               ],
               "unresolved": {
                 "proven": "HT impl rc surfaced",
-                "unknown": "codes for hardware/validation failures"
+                "unknown": "codes for hardware/validation failures",
+                "knowledge": "; impl f_102424d8: literals {402 parse, 401 capability probe, 501 hw-absent}"
               }
+            },
+            {
+              "code": 401,
+              "status": "strong",
+              "meaning": "IR-repeater capability absent (member obj check at impl+0x150)",
+              "conditions": [
+                {
+                  "description": "*(impl+0x150) probe call -> 401 path",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x10242590",
+                      "notes": "addi r30,0x191"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x10242590",
+                  "notes": "addi r30,0x191"
+                }
+              ],
+              "fault_sites": []
+            },
+            {
+              "code": 501,
+              "status": "strong",
+              "meaning": "IR repeater not implemented on this hardware (cntlzw flag from member)",
+              "conditions": [
+                {
+                  "description": "flag null -> 501",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x102425d8",
+                      "notes": "li r30,0x1f5"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x102425d8",
+                  "notes": "li r30,0x1f5"
+                }
+              ],
+              "fault_sites": []
             }
           ],
           "firmware_differences": [],
@@ -18924,7 +18987,8 @@
               ],
               "unresolved": {
                 "proven": "HT impl rc surfaced",
-                "unknown": "impl has exactly two exits: {402,0} -- 402 path follows the input-string strcmp gate, 0 on accept"
+                "unknown": "impl has exactly two exits: {402,0} -- 402 path follows the input-string strcmp gate, 0 on accept",
+                "knowledge": "; impl f_10242160: literal 402 on arg-record lookup miss; 2 exits"
               }
             }
           ],
@@ -66931,9 +66995,41 @@
               ],
               "unresolved": {
                 "proven": "impl->v[+0xc] rc surfaced",
-                "unknown": "code for unknown service/username"
+                "unknown": "code for unknown service/username",
+                "knowledge": "; impl f_100c7fb4 literal paths: 401 on internal flag byte, 402 on numeric arg>=256"
               },
               "condition": "requested index/id >= 0x100 (cmplwi 0x100 in impl); otherwise f_100c7c6c worker rc forwarded (worker domain untraced)"
+            },
+            {
+              "code": 401,
+              "status": "strong",
+              "meaning": "capability/mode flag gate (sp byte flags tested before arg parse)",
+              "conditions": [
+                {
+                  "description": "*(sp+0x18)!=0 then *(sp+0x14)==0 -> 401",
+                  "evidence": [
+                    {
+                      "type": "firmware",
+                      "binary": "anacapad",
+                      "build": "86.10-80260",
+                      "status": "confirmed",
+                      "address": "0x100c800c",
+                      "notes": "lbz flag + cmpwi -> li r3,0x191"
+                    }
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "address": "0x100c800c",
+                  "notes": "lbz flag + cmpwi -> li r3,0x191"
+                }
+              ],
+              "fault_sites": []
             }
           ],
           "firmware_differences": [],
@@ -67386,8 +67482,8 @@
                       "binary": "anacapad",
                       "build": "86.10-80260",
                       "status": "confirmed",
-                      "address": "0x1073a404",
-                      "notes": "impl rc passthrough"
+                      "address": "0x100c997c",
+                      "notes": "literal li r3,0x320 path inside impl"
                     }
                   ]
                 }
@@ -67398,21 +67494,14 @@
                   "binary": "anacapad",
                   "build": "86.10-80260",
                   "status": "confirmed",
-                  "address": "0x1073a404",
-                  "notes": "impl rc passthrough site"
-                },
-                {
-                  "type": "firmware",
-                  "binary": "anacapad",
-                  "build": "86.10-80260",
-                  "status": "confirmed",
-                  "function": "0x100c997c",
-                  "notes": "li 0x320 materialized on early path"
+                  "address": "0x100c997c",
+                  "notes": "literal li r3,0x320 path inside impl"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x8] rc surfaced",
-                "unknown": "none identified"
+                "unknown": "none identified",
+                "knowledge": "; impl n=140 single exit; r29 flag + literal 800; derived residual"
               },
               "condition": "parse/replace table failure path emits 0x320 in impl f_100c997c at 0x100c99fc; other inner rcs forwarded (vocabulary partially resolved)"
             },
