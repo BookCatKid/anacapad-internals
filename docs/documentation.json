@@ -83876,6 +83876,53 @@
     }
    ],
    "notes": "Same RAII shape as alarm-store f_10988558/f_10988984 pair."
+  },
+  "queue_engine_object": {
+   "status": "strong",
+   "description": "Queue engine object held at *(queue-manager+0x128). Three Queue impl forwarders (AddMultipleURIs 0x1046594c, ReplaceAllTracks 0x10465970, SaveAsSonosPlaylist 0x10465f94) dispatch through its vtable at slots +0xd8/+0xdc/+0x7c. The other six mutations call queue-manager methods directly (f_102b6948 AddURI, f_102b2da4 AttachQueue, f_102dff24 CreateQueue {0,402}, f_102b3a84 RemoveAllTracks {718,1028,derived}, f_102b3954 ReorderTracks-gate 402, f_102b3924 variants). Queue svc object ctor f_104656d0 installs vptr 0x10ed19a8 only; the engine member is injected by later init wiring.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465950",
+     "notes": "lwz *(r3+0x128) -> vfunc +0xd8 bctr"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465974",
+     "notes": "lwz *(r3+0x128) -> vfunc +0xdc bctr"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10465f94",
+     "notes": "lwz *(r3+0x128) -> vfunc +0x7c bctr"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1018fb98",
+     "notes": "queue svc ctor call f_104656d0 in zone-init member sequence"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x104656d0",
+     "notes": "ctor body: vptr 0x10ed19a8 + two zeroed fields"
+    }
+   ],
+   "notes": "Engine vtable address not yet resolved - manager+0x128 write site not located in init scan. Engine vfuncs +0x7c/+0xd8/+0xdc rc domains open."
   }
  }
 }
