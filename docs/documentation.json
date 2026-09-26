@@ -57742,49 +57742,42 @@
        }
       ],
       "impl_function": "0x103042f0",
-      "impl_notes": "Handler 0x10306b3c is a shim: calls req->v[+0x3c] then tail-calls real handler f_10304390, which parses the six args, requests a browse object via req->v[+0x34] and context via req->v[+0x40], builds the {callback=f_10305fec, StartingIndex, RequestedCount, 4 string ptrs, vtable 0x10f11cec} record and calls executor f_103042f0.; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "browse: handler calls impl->v[+0x3c] getter 0x10302470 then direct executor 0x103042f0 on record {cb f_10305fec,StartingIndex,RequestedCount,4 strings,vtable 0x10f11cec}",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10306b3c",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x103042f0",
+        "notes": "impl vfunc/exec body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f10",
+        "notes": "CD impl vtable (media-store impl, this+0x168 inner store)"
        }
       ],
-      "handler_addr": "0x10306b3c"
+      "handler_addr": "0x10306b3c",
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "ObjectID": {
-       "description": "Container/item object id to browse",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "status": "confirmed",
        "direction": "in",
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text, capped 0x400 by f_1056157c",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "<=0x400 chars",
        "special_values": "impl-defined roots",
        "required": true,
        "default": "none",
-       "validation": "string arg via bounded request helper; object-id resolution inside the browse object",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -57797,18 +57790,18 @@
        ]
       },
       "BrowseFlag": {
-       "description": "Browse mode selector",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
        "status": "confirmed",
        "direction": "in",
        "semantic_type": "SonosEnumArg",
        "format": "utf-8 literal, capped 0x400",
        "unit": "n/a",
-       "accepted_values": "\"BrowseDirectChildren\" or \"BrowseMetadata\" exactly - other values fault 402",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "2 literals",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "strcmp against both literals inside executor f_103042f0; mismatch returns 0x192 (402)",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -57829,18 +57822,18 @@
        ]
       },
       "Filter": {
-       "description": "DIDL property filter spec",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "status": "confirmed",
        "direction": "in",
        "semantic_type": "SonosStringArg",
        "format": "comma-list filter spec text, capped 0x400",
        "unit": "n/a",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "<=0x400 chars",
        "special_values": "* / empty impl-defined",
        "required": true,
        "default": "none",
-       "validation": "copied through bounded helper; consumed by the enumeration vfunc",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -57853,18 +57846,18 @@
        ]
       },
       "StartingIndex": {
-       "description": "Zero-based result offset",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "status": "confirmed",
        "direction": "in",
        "semantic_type": "SonosUintArg",
        "format": "decimal text via int parse helper",
        "unit": "index",
-       "accepted_values": "0..N",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
+       "range": "see impl 0x103042f0",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "int parse; paging applied by the browse object",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -57877,18 +57870,18 @@
        ]
       },
       "RequestedCount": {
-       "description": "Max items to return",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "status": "confirmed",
        "direction": "in",
        "semantic_type": "SonosUintArg",
        "format": "decimal text via int parse helper",
        "unit": "count",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
+       "range": "see impl 0x103042f0",
        "special_values": "0",
        "required": true,
        "default": "none",
-       "validation": "int parse; paging applied by the browse object",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -57901,18 +57894,18 @@
        ]
       },
       "SortCriteria": {
-       "description": "DIDL sort specification",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "status": "confirmed",
        "direction": "in",
        "semantic_type": "SonosStringArg",
        "format": "sort spec text, capped 0x400",
        "unit": "n/a",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "<=0x400 chars",
        "special_values": "empty string",
        "required": true,
        "default": "none",
-       "validation": "copied through bounded helper; consumed by the enumeration vfunc",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -57927,18 +57920,18 @@
      },
      "outputs": {
       "Result": {
-       "description": "DIDL-Lite XML result fragment emitted via per-item writer callbacks f_10306088/0x10306098/0x103060a8 through request v[+0x24]",
+       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
        "status": "confirmed",
        "direction": "out",
        "semantic_type": "SonosMetaDataArg",
        "format": "DIDL-Lite XML",
        "unit": "n/a",
-       "accepted_values": "serialized container/item set",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "response-sized",
        "special_values": "empty DIDL for empty containers",
        "required": false,
        "default": "populated on success",
-       "validation": "written by emit callbacks, not validated",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -57951,18 +57944,18 @@
        ]
       },
       "NumberReturned": {
-       "description": "Count of items emitted in Result",
-       "status": "strong",
+       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "count",
-       "accepted_values": "0..TotalMatches",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "0..N",
        "special_values": "0 for empty result",
        "required": false,
        "default": "populated by emit path",
-       "validation": "computed by the browse object",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -57975,18 +57968,18 @@
        ]
       },
       "TotalMatches": {
-       "description": "Total items matching regardless of paging",
-       "status": "strong",
+       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "count",
-       "accepted_values": "0..N",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "0..N",
        "special_values": "0",
        "required": false,
        "default": "populated by emit path",
-       "validation": "computed by the browse object",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -57999,18 +57992,18 @@
        ]
       },
       "UpdateID": {
-       "description": "Container update id for the browsed object (fetched via f_1034a224 on browse obj+0x168 with selector 0x2bd)",
-       "status": "strong",
+       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "n/a",
-       "accepted_values": "current container generation",
+       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
        "range": "monotonic counter",
        "special_values": "0",
        "required": false,
        "default": "populated by emit path",
-       "validation": "read from the container record",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -58045,7 +58038,8 @@
      "state_dependencies": "Content-directory index state at browse object +0x168 supplies the UpdateID",
      "side_effects": [
       {
-       "description": "Read-only enumeration; request-scoped browse object built and torn down per call"
+       "description": "media-store op delegated to impl 0x103042f0 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -58066,24 +58060,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl returns 701 when media-store member check fails (preset r30=0x2bd)",
+       "status": "confirmed",
        "fault_sites": [
         "0x10306b3c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10306b3c",
-           "notes": "impl rc passthrough"
+           "address": "0x103042f0",
+           "notes": "impl body"
           }
          ]
         }
@@ -58094,8 +58088,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10306b3c",
-         "notes": "impl rc passthrough site"
+         "address": "0x103042f0",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -58260,38 +58254,33 @@
        }
       ],
       "handler_addr": "0x10306b84",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10306b84",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x103026f8",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x103026f8",
+      "impl_slot": 32,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "ContainerID": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103026f8",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -58303,12 +58292,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -58330,8 +58319,8 @@
        "notes": null
       },
       "Elements": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103026f8",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -58343,12 +58332,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -58372,8 +58361,8 @@
      },
      "outputs": {
       "ObjectID": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x103026f8 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -58382,12 +58371,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "see impl 0x103026f8",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x103026f8",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -58409,8 +58398,8 @@
        "notes": null
       },
       "Result": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x103026f8 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -58419,12 +58408,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "see impl 0x103026f8",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x103026f8",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -58472,8 +58461,8 @@
      },
      "side_effects": [
       {
-       "description": "New object inserted into the index.",
-       "status": "inferred",
+       "description": "media-store op delegated to impl 0x103026f8 on member this+0x168",
+       "status": "strong",
        "evidence": []
       }
      ],
@@ -58501,24 +58490,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x20)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10306c6c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10306c6c",
-           "notes": "impl rc passthrough"
+           "address": "0x103026f8",
+           "notes": "impl"
           }
          ]
         }
@@ -58529,8 +58518,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10306c6c",
-         "notes": "impl rc passthrough site"
+         "address": "0x103026f8",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -58631,38 +58620,33 @@
        }
       ],
       "handler_addr": "0x10306e70",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10306e70",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302834",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302834",
+      "impl_slot": 40,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "ObjectID": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302834",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -58674,12 +58658,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302834",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -58728,8 +58712,8 @@
      },
      "side_effects": [
       {
-       "description": "Object removed from the index.",
-       "status": "inferred",
+       "description": "media-store op delegated to impl 0x10302834 on member this+0x168",
+       "status": "strong",
        "evidence": []
       }
      ],
@@ -58757,24 +58741,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x28)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10306f0c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10306f0c",
-           "notes": "impl rc passthrough"
+           "address": "0x10302834",
+           "notes": "impl"
           }
          ]
         }
@@ -58785,8 +58769,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10306f0c",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302834",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -58887,38 +58871,33 @@
        }
       ],
       "handler_addr": "0x10307140",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307140",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302d78",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302d78",
+      "impl_slot": 24,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "ObjectID": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302d78",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -58930,12 +58909,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -58957,8 +58936,8 @@
        "notes": null
       },
       "Prefix": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302d78",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -58970,12 +58949,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -58999,8 +58978,8 @@
      },
      "outputs": {
       "StartingIndex": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302d78 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -59009,12 +58988,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "value set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
+       "range": "see impl 0x10302d78",
        "special_values": "none observed in this build",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x10302d78",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -59036,8 +59015,8 @@
        "notes": null
       },
       "UpdateID": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302d78 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -59046,12 +59025,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "see impl 0x10302d78",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x10302d78",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -59099,8 +59078,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302d78 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -59127,24 +59106,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x18)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10307210"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10307210",
-           "notes": "impl rc passthrough"
+           "address": "0x10302d78",
+           "notes": "impl"
           }
          ]
         }
@@ -59155,8 +59134,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10307210",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302d78",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -59245,33 +59224,28 @@
       ],
       "req_vcalls": [],
       "handler_addr": "0x10307b70",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307b70",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302498",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302498",
+      "impl_slot": 8,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {},
@@ -59301,8 +59275,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302498 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -59329,24 +59303,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "const",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10307bf0"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10307bf0",
-           "notes": "impl rc passthrough"
+           "address": "0x10302498",
+           "notes": "impl"
           }
          ]
         }
@@ -59357,8 +59331,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10307bf0",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302498",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -59477,39 +59451,34 @@
        }
       ],
       "handler_addr": "0x103072ac",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x103072ac",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302cb4",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302cb4",
+      "impl_slot": 28,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {
       "TotalPrefixes": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302cb4 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -59518,12 +59487,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302cb4",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "see impl 0x10302cb4",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x10302cb4",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -59545,8 +59514,8 @@
        "notes": null
       },
       "PrefixAndIndexCSV": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302cb4 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -59555,12 +59524,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "value set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302cb4",
+       "range": "see impl 0x10302cb4",
        "special_values": "none observed in this build",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x10302cb4",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -59582,8 +59551,8 @@
        "notes": null
       },
       "UpdateID": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302cb4 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -59592,12 +59561,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302cb4",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "see impl 0x10302cb4",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x10302cb4",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -59645,8 +59614,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302cb4 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -59667,24 +59636,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x103072ac"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103072ac",
-           "notes": "impl rc passthrough"
+           "address": "0x10302cb4",
+           "notes": "impl"
           }
          ]
         }
@@ -59695,8 +59664,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x103072ac",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302cb4",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -59803,39 +59772,34 @@
        }
       ],
       "handler_addr": "0x103077d0",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x103077d0",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302470",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302470",
+      "impl_slot": 60,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {
       "IsBrowseable": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302470 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -59844,12 +59808,12 @@
        "semantic_type": "SonosBoolArg",
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
-       "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+       "accepted_values": "unrestricted/impl-validated per 0x10302470",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": false,
        "default": "none - boolean decoded from request text",
-       "validation": "written on the success path; contents not traced",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -59897,8 +59861,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302470 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -59919,24 +59883,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level failure passthrough",
+       "status": "confirmed",
        "fault_sites": [
         "0x103077d0"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103077d0",
-           "notes": "impl rc passthrough"
+           "address": "0x1030259c",
+           "notes": "impl body"
           }
          ]
         }
@@ -59947,8 +59911,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x103077d0",
-         "notes": "impl rc passthrough site"
+         "address": "0x1030259c",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -60061,39 +60025,34 @@
        }
       ],
       "handler_addr": "0x103079a8",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x103079a8",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x1030259c",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x1030259c",
+      "impl_slot": 44,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {
       "LastIndexChange": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x1030259c via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -60102,12 +60061,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "value set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x1030259c",
+       "range": "see impl 0x1030259c",
        "special_values": "none observed in this build",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x1030259c",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -60155,8 +60114,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x1030259c on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -60177,24 +60136,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level failure passthrough",
+       "status": "confirmed",
        "fault_sites": [
         "0x103079a8"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103079a8",
-           "notes": "impl rc passthrough"
+           "address": "0x10302cb4",
+           "notes": "impl body"
           }
          ]
         }
@@ -60205,8 +60164,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x103079a8",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302cb4",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -60295,33 +60254,28 @@
       ],
       "req_vcalls": [],
       "handler_addr": "0x10307e10",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307e10",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302498",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302498",
+      "impl_slot": 8,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {},
@@ -60351,8 +60305,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302498 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -60379,24 +60333,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "const",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10307e90"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10307e90",
-           "notes": "impl rc passthrough"
+           "address": "0x10302498",
+           "notes": "impl"
           }
          ]
         }
@@ -60407,8 +60361,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10307e90",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302498",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -60515,39 +60469,34 @@
        }
       ],
       "handler_addr": "0x103078bc",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x103078bc",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x1030269c",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x1030269c",
+      "impl_slot": 56,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {
       "IsIndexing": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x1030269c via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -60556,12 +60505,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "value set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x1030269c",
+       "range": "see impl 0x1030269c",
        "special_values": "none observed in this build",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x1030269c",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -60609,8 +60558,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x1030269c on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -60631,24 +60580,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level failure passthrough",
+       "status": "confirmed",
        "fault_sites": [
         "0x103078bc"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103078bc",
-           "notes": "impl rc passthrough"
+           "address": "0x10302834",
+           "notes": "impl body"
           }
          ]
         }
@@ -60659,8 +60608,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x103078bc",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302834",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -60749,33 +60698,28 @@
       ],
       "req_vcalls": [],
       "handler_addr": "0x10307cc0",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307cc0",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302498",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302498",
+      "impl_slot": 8,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {},
@@ -60805,8 +60749,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302498 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -60833,24 +60777,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "const",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10307d40"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10307d40",
-           "notes": "impl rc passthrough"
+           "address": "0x10302498",
+           "notes": "impl"
           }
          ]
         }
@@ -60861,8 +60805,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10307d40",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302498",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -60969,39 +60913,34 @@
        }
       ],
       "handler_addr": "0x1030751c",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x1030751c",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302640",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302640",
+      "impl_slot": 16,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {},
      "outputs": {
       "Id": {
-       "description": "output populated on success by the impl call; value semantics not traced",
-       "status": "inferred",
+       "description": "produced by impl 0x10302640 via media-store member this+0x168",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -61010,12 +60949,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "value set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302640",
        "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "not traced in the binary",
+       "special_values": "see impl 0x10302640",
        "required": false,
-       "default": "populated on success; empty-state behavior not traced",
-       "validation": "written on the success path; contents not traced",
+       "default": "see impl 0x10302640",
+       "validation": "impl-produced",
        "evidence": [
         {
          "type": "firmware",
@@ -61063,8 +61002,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302640 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -61085,24 +61024,24 @@
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level failure passthrough",
+       "status": "confirmed",
        "fault_sites": [
         "0x1030751c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x1030751c",
-           "notes": "impl rc passthrough"
+           "address": "0x10305708",
+           "notes": "impl body"
           }
          ]
         }
@@ -61113,8 +61052,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x1030751c",
-         "notes": "impl rc passthrough site"
+         "address": "0x10305708",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -61215,38 +61154,33 @@
        }
       ],
       "handler_addr": "0x10306f60",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10306f60",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302b78",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302b78",
+      "impl_slot": 48,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "AlbumArtistDisplayOption": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302b78",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -61258,12 +61192,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "accepted set not traced in the binary",
-       "range": "bounds not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302b78",
+       "range": "see impl 0x10302b78",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -61312,8 +61246,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302b78 on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -61340,24 +61274,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x30)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level failure passthrough",
+       "status": "confirmed",
        "fault_sites": [
         "0x10306ffc"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10306ffc",
-           "notes": "impl rc passthrough"
+           "address": "0x103026f8",
+           "notes": "impl body"
           }
          ]
         }
@@ -61368,8 +61302,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10306ffc",
-         "notes": "impl rc passthrough site"
+         "address": "0x103026f8",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -61470,38 +61404,33 @@
        }
       ],
       "handler_addr": "0x10307050",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307050",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x103028f0",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x103028f0",
+      "impl_slot": 52,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "SortOrder": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x103028f0",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -61513,12 +61442,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x103028f0",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -61567,8 +61496,8 @@
      },
      "side_effects": [
       {
-       "description": "Content-directory resort job scheduled for the given object ordering",
-       "status": "inferred",
+       "description": "media-store op delegated to impl 0x103028f0 on member this+0x168",
+       "status": "strong",
        "evidence": []
       }
      ],
@@ -61596,24 +61525,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x34)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "impl-level failure passthrough",
+       "status": "confirmed",
        "fault_sites": [
         "0x103070ec"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "impl/store gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103070ec",
-           "notes": "impl rc passthrough"
+           "address": "0x10302e2c",
+           "notes": "impl body"
           }
          ]
         }
@@ -61624,8 +61553,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x103070ec",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302e2c",
+         "notes": "impl rc path"
         }
        ],
        "unresolved": {
@@ -61726,38 +61655,33 @@
        }
       ],
       "handler_addr": "0x10307424",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307424",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302488",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302488",
+      "impl_slot": 64,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "Browseable": {
-       "description": "request argument parsed via 0x10561514 (cap 24) and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302488",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -61769,12 +61693,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302488",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -61823,8 +61747,8 @@
      },
      "side_effects": [
       {
-       "description": "Browseable flag persisted.",
-       "status": "inferred",
+       "description": "media-store op delegated to impl 0x10302488 on member this+0x168",
+       "status": "strong",
        "evidence": []
       }
      ],
@@ -61852,24 +61776,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x40)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x103074c8"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x103074c8",
-           "notes": "impl rc passthrough"
+           "address": "0x10302488",
+           "notes": "impl"
           }
          ]
         }
@@ -61880,8 +61804,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x103074c8",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302488",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
@@ -61982,38 +61906,33 @@
        }
       ],
       "handler_addr": "0x10306d28",
-      "impl_notes": "; impl = *(svc+4) px - class unresolved",
+      "impl_notes": "media-store impl vfunc on session impl (this+0x168 inner store); impl obj built by f_10303de4 inside factory f_103fa434",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10306d28",
-        "notes": "action handler (embedded vtable action table)"
+        "address": "0x10302e2c",
+        "notes": "impl vfunc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "address": "0x10307608",
-        "notes": "dispatcher: unknown action->401; impl NULL->401 at 0x1030777c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "status": "confirmed",
-        "address": "0x10eb4264",
-        "notes": "action table"
+        "address": "0x10eb3f20",
+        "notes": "impl vtable; ctor f_10303de4 called by f_103fa434"
        }
-      ]
+      ],
+      "impl_function": "0x10302e2c",
+      "impl_slot": 36,
+      "impl_vtable": "0x10eb3f20"
      },
      "inputs": {
       "ObjectID": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302e2c",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -62025,12 +61944,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302e2c",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -62052,8 +61971,8 @@
        "notes": null
       },
       "CurrentTagValue": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302e2c",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -62065,12 +61984,12 @@
        "semantic_type": "SonosBoolArg",
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302e2c",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -62092,8 +62011,8 @@
        "notes": null
       },
       "NewTagValue": {
-       "description": "request argument parsed via 0x1056157c and handed to the impl call; semantic role not traced",
-       "status": "inferred",
+       "description": "request-layer string/int parsed and handed to media-store impl 0x10302e2c",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -62105,12 +62024,12 @@
        "semantic_type": "SonosBoolArg",
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
-       "accepted_values": "accepted set not traced in the binary",
+       "accepted_values": "unrestricted/impl-validated per 0x10302e2c",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "request parse proven; impl applies media-store semantics",
        "evidence": [
         {
          "type": "firmware",
@@ -62159,8 +62078,8 @@
      },
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "media-store op delegated to impl 0x10302e2c on member this+0x168",
+       "status": "strong"
       }
      ],
      "events_triggered": {
@@ -62187,24 +62106,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 402,
        "code_expr": "vret(r5-in,+0x24)",
-       "meaning": "impl vfunc rc surfaced; emitted via the request fault path for this action",
-       "status": "unresolved",
+       "meaning": "request/impl gate failure",
+       "status": "confirmed",
        "fault_sites": [
         "0x10306e1c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "req or impl gate failed",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10306e1c",
-           "notes": "impl rc passthrough"
+           "address": "0x10302e2c",
+           "notes": "impl"
           }
          ]
         }
@@ -62215,8 +62134,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10306e1c",
-         "notes": "impl rc passthrough site"
+         "address": "0x10302e2c",
+         "notes": "rc path"
         }
        ],
        "unresolved": {
