@@ -94404,7 +94404,7 @@
       "compares": [],
       "vptr_candidates": [],
       "assessment": "NOT a SOAP dispatcher \u2014 native binary protocol handler. Parses a TLV-ish record via f_109dd184, reads tag byte at buf+2 and u16 at buf+0, f_109e10d8 maps to a command id (compared 0x4a), calls f_1067c700 worker; result stored at r31+0x30 with a 0x34-length path. Same TLV helper family as 0x1068e904/0x1068ec54 \u2014 a non-SOAP native protocol surface (SCI/netstart/zone-bus candidate). Body literals identify the surface: Invalid transport: WSS is required / Invalid namespace: UPnP renew not supported / Invalid namespace: UPnP unsubscribe not supported -> websocket (WSS) eventing handler carrying a binary/TLV-framed command set (cmd 0x4a seen); UPnP-style SUBSCRIBE/RENEW/UNSUBSCRIBE namespaces rejected by name.",
-      "status": "strong",
+      "status": "confirmed",
       "evidence": [
         {
           "type": "firmware",
@@ -94418,7 +94418,8 @@
       ],
       "notes": null,
       "non_soap": true,
-      "service": null
+      "service": null,
+      "resolved_as": "WSS TLV frame processor \u2014 calls f_109e10d8 (WSS registry tag/type lookup); handles {u16 tag,u8 type,u32 len} websocket-event frames"
     },
     "0x1068e904": {
       "func": "0x1068e904",
@@ -94427,7 +94428,7 @@
       "compares": [],
       "vptr_candidates": [],
       "assessment": "RESOLVED: shared WSS SUBSCRIBE completion. ~10 per-service wrappers at stride ~0x308 (0x10610018,0x10610320,...) each resolve 'logicalSID' via f_1060b590 then bl f_1068e904. Uses TLV helpers f_109dd184/f_109e10d8 + f_109dcb6c + inet_aton (callback host resolution). Sibling of f_1068e65c which does the same path for the GENA/SUBSCRIBE request object.",
-      "status": "strong",
+      "status": "confirmed",
       "evidence": [
         {
           "type": "firmware",
@@ -94441,7 +94442,9 @@
       ],
       "notes": null,
       "non_soap": true,
-      "service": null
+      "service": null,
+      "resolved_as": "WSS TLV frame processor \u2014 calls f_109e10d8 (WSS registry tag/type lookup); handles {u16 tag,u8 type,u32 len} websocket-event frames",
+      "detail": "additionally inet_aton (parses subscriber IP) + callback-path work"
     },
     "0x1068ec54": {
       "func": "0x1068ec54",
@@ -94450,7 +94453,7 @@
       "compares": [],
       "vptr_candidates": [],
       "assessment": "RESOLVED: shared WSS event-delivery/UNSUBSCRIBE worker. ~10 per-service wrappers at stride ~0x2cc (0x1060d5a8,0x1060d874,...) call it. Operates on subscription message object fields +0xec/+0xf0/+0xf4/+0x108/+0x10c; span copies via f_1068c040.",
-      "status": "strong",
+      "status": "confirmed",
       "evidence": [
         {
           "type": "firmware",
@@ -94464,7 +94467,9 @@
       ],
       "notes": null,
       "non_soap": true,
-      "service": null
+      "service": null,
+      "resolved_as": "WSS TLV frame processor \u2014 calls f_109e10d8 (WSS registry tag/type lookup); handles {u16 tag,u8 type,u32 len} websocket-event frames",
+      "detail": "builds 'http://'+host+':'+%d callback URL \u2014 the WSS/SUBSCRIBE CALLBACK target"
     },
     "0x106bb20c": {
       "func": "0x106bb20c",
