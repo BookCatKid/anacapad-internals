@@ -36296,7 +36296,7 @@
       "actions": {
         "GetCurrentConnectionIDs": {
           "description": "Returns the CSV list of active connection ids. Wrapper calls impl->v[+0x8] on the r4-in impl object; a NONZERO return means success \u2014 the emit helper f_10735918 then serializes the id list \u2014 while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x107359e0",
@@ -36316,7 +36316,11 @@
                 "arg4": "r4-in"
               }
             ],
-            "req_vcalls": []
+            "req_vcalls": [],
+            "impl_function": "0x10735918",
+            "impl_vfunc": "core ConnectionManagerServer vtable 0x10eb86c8",
+            "impl_notes": "Request-gate req->v[+0x08] (nonzero else 402). Calls core->v[+0x0c] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req->v[+0x0c] commits.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -36346,8 +36350,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "No state mutation -- core vfuncs are read-only stubs/literal copies in this build.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735918",
+                  "notes": "core vfuncs f_1032e710/f_1032e84c perform no stores to shared state"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -36429,10 +36444,10 @@
               ]
             },
             {
-              "code": null,
+              "code": 402,
               "code_expr": "const",
               "meaning": "n/a \u2014 success/failure fully determined by the impl vfunc return",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [],
               "conditions": [
                 {
@@ -36457,12 +36472,22 @@
                   "status": "confirmed",
                   "address": "0x10735a60",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735918",
+                  "notes": "gate-fail path raises 402"
                 }
               ],
               "unresolved": {
                 "proven": "n/a \u2014 success/failure fully determined by the impl vfunc return",
                 "unknown": "none"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails (invalid/unaccepted request state)",
+              "source": "handler fault site via req->v[+0x14] with literal 0x192"
             }
           ],
           "firmware_differences": [],
@@ -36483,13 +36508,30 @@
               "status": "confirmed",
               "address": "0x10f118d4",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "f_107359e0",
+              "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1032e730",
+              "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Request-gate req->v[+0x08] (nonzero else 402). Calls core->v[+0x0c] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req->v[+0x0c] commits."
         },
         "GetCurrentConnectionInfo": {
           "description": "Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v[+0x8], then calls the impl member at svc+4 ->v[+0x1c] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x107356bc",
@@ -36557,13 +36599,17 @@
                 "slot": 12,
                 "purpose": "commit"
               }
-            ]
+            ],
+            "impl_function": "0x10735704",
+            "impl_vfunc": "core ConnectionManagerServer vtable 0x10eb86c8",
+            "impl_notes": "Parses required ConnectionID via req->v[+0x1c]+f_10561514, then req->v[+0x08] gate (else 402). Calls core->v[+0x10] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v[+0x14]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {
             "RcsID": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcf4",
@@ -36572,12 +36618,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36594,13 +36640,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a64",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "AVTransportID": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcf4",
@@ -36609,12 +36664,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36631,13 +36686,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a6c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "ProtocolInfo": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -36646,12 +36710,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36668,13 +36732,22 @@
                   "status": "confirmed",
                   "address": "0x10eb8f3c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "PeerConnectionManager": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -36683,12 +36756,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36705,13 +36778,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a7c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "PeerConnectionID": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcf4",
@@ -36720,12 +36802,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36742,13 +36824,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a94",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "Direction": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -36757,12 +36848,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36779,13 +36870,22 @@
                   "status": "confirmed",
                   "address": "0x10fa4038",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "Status": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -36794,12 +36894,12 @@
               "semantic_type": "SonosBoolArg",
               "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
               "unit": "none - boolean flag",
-              "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "{0,1}",
-              "special_values": "none observed in this build",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "none - boolean decoded from request text",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -36816,9 +36916,18 @@
                   "status": "confirmed",
                   "address": "0x10eae664",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             }
           },
           "validation": {
@@ -36847,8 +36956,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "Always faults before emitting -- no observable effect beyond the SOAP fault.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -36869,10 +36989,10 @@
           "fault_sites": [],
           "errors": [
             {
-              "code": null,
+              "code": 706,
               "code_expr": "vret",
               "meaning": "impl->v[+0x1c] rc surfaced",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x107356bc"
               ],
@@ -36899,12 +37019,21 @@
                   "status": "confirmed",
                   "address": "0x107356bc",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "cmpwi cr7,r4,0; isel r3=402(eq)/706(ne); CR0 return flag forces fault"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x1c] rc surfaced",
                 "unknown": "the specific code for an unknown/inactive ConnectionID"
-              }
+              },
+              "condition": "ConnectionID != 0 (core vfunc isel selects 0x2c2); no connection can ever be found"
             },
             {
               "code": 402,
@@ -36959,13 +37088,30 @@
               "status": "confirmed",
               "address": "0x10f118e0",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "f_107356bc",
+              "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1032e730",
+              "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Parses required ConnectionID via req->v[+0x1c]+f_10561514, then req->v[+0x08] gate (else 402). Calls core->v[+0x10] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v[+0x14]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists."
         },
         "GetProtocolInfo": {
           "description": "Returns the supported protocol info strings (Source/Sink CSVs) via impl->v[+0x8] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x10735b64",
@@ -36985,7 +37131,11 @@
                 "arg4": "r4-in"
               }
             ],
-            "req_vcalls": []
+            "req_vcalls": [],
+            "impl_function": "0x10735a64",
+            "impl_vfunc": "core ConnectionManagerServer vtable 0x10eb86c8",
+            "impl_notes": "Request-gate req->v[+0x08] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v[+0x08] = f_1032e84c, a strlcpy of the literal CSV \"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*\" into a 0x400 stack buffer; emits Sink via core->v[+0x10] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v[+0x0c] commits the response.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -37015,8 +37165,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "No state mutation -- core vfuncs are read-only stubs/literal copies in this build.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735a64",
+                  "notes": "core vfuncs f_1032e710/f_1032e84c perform no stores to shared state"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -37043,10 +37204,10 @@
           ],
           "errors": [
             {
-              "code": null,
+              "code": 402,
               "code_expr": "const",
               "meaning": "impl->v[+0x8] rc gates emit",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x10735be4"
               ],
@@ -37073,12 +37234,22 @@
                   "status": "confirmed",
                   "address": "0x10735be4",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735a64",
+                  "notes": "gate-fail path raises 402"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x8] rc gates emit",
                 "unknown": "whether 0 faults with 402 like its sibling"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails (invalid/unaccepted request state)",
+              "source": "handler fault site via req->v[+0x14] with literal 0x192"
             },
             {
               "code": 402,
@@ -37133,9 +37304,26 @@
               "status": "confirmed",
               "address": "0x10f118ec",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "f_10735b64",
+              "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1032e730",
+              "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Request-gate req->v[+0x08] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v[+0x08] = f_1032e84c, a strlcpy of the literal CSV \"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*\" into a 0x400 stack buffer; emits Sink via core->v[+0x10] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v[+0x0c] commits the response."
         }
       },
       "state_variables": {},
@@ -55369,7 +55557,7 @@
       "actions": {
         "GetCurrentConnectionIDs": {
           "description": "Returns the CSV list of active connection ids. Wrapper calls impl->v[+0x8] on the r4-in impl object; a NONZERO return means success \u2014 the emit helper f_10735918 then serializes the id list \u2014 while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x107359e0",
@@ -55389,7 +55577,11 @@
                 "arg4": "r4-in"
               }
             ],
-            "req_vcalls": []
+            "req_vcalls": [],
+            "impl_function": "0x10735918",
+            "impl_vfunc": "core ConnectionManagerServer vtable 0x10eb86c8",
+            "impl_notes": "Request-gate req->v[+0x08] (nonzero else 402). Calls core->v[+0x0c] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req->v[+0x0c] commits.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -55419,8 +55611,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "No state mutation -- core vfuncs are read-only stubs/literal copies in this build.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735918",
+                  "notes": "core vfuncs f_1032e710/f_1032e84c perform no stores to shared state"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -55502,10 +55705,10 @@
               ]
             },
             {
-              "code": null,
+              "code": 402,
               "code_expr": "const",
               "meaning": "n/a \u2014 success/failure fully determined by the impl vfunc return",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [],
               "conditions": [
                 {
@@ -55530,12 +55733,22 @@
                   "status": "confirmed",
                   "address": "0x10735a60",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735918",
+                  "notes": "gate-fail path raises 402"
                 }
               ],
               "unresolved": {
                 "proven": "n/a \u2014 success/failure fully determined by the impl vfunc return",
                 "unknown": "none"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails (invalid/unaccepted request state)",
+              "source": "handler fault site via req->v[+0x14] with literal 0x192"
             }
           ],
           "firmware_differences": [],
@@ -55556,13 +55769,30 @@
               "status": "confirmed",
               "address": "0x10f118d4",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "f_107359e0",
+              "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1032e730",
+              "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Request-gate req->v[+0x08] (nonzero else 402). Calls core->v[+0x0c] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req->v[+0x0c] commits."
         },
         "GetCurrentConnectionInfo": {
           "description": "Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v[+0x8], then calls the impl member at svc+4 ->v[+0x1c] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x107356bc",
@@ -55630,13 +55860,17 @@
                 "slot": 12,
                 "purpose": "commit"
               }
-            ]
+            ],
+            "impl_function": "0x10735704",
+            "impl_vfunc": "core ConnectionManagerServer vtable 0x10eb86c8",
+            "impl_notes": "Parses required ConnectionID via req->v[+0x1c]+f_10561514, then req->v[+0x08] gate (else 402). Calls core->v[+0x10] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v[+0x14]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {
             "RcsID": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcf4",
@@ -55645,12 +55879,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55667,13 +55901,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a64",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "AVTransportID": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcf4",
@@ -55682,12 +55925,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55704,13 +55947,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a6c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "ProtocolInfo": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -55719,12 +55971,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55741,13 +55993,22 @@
                   "status": "confirmed",
                   "address": "0x10eb8f3c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "PeerConnectionManager": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -55756,12 +56017,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55778,13 +56039,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a7c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "PeerConnectionID": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": "0x1055fcf4",
@@ -55793,12 +56063,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55815,13 +56085,22 @@
                   "status": "confirmed",
                   "address": "0x10f10a94",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "Direction": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -55830,12 +56109,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55852,13 +56131,22 @@
                   "status": "confirmed",
                   "address": "0x10fa4038",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             },
             "Status": {
               "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
-              "status": "inferred",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -55867,12 +56155,12 @@
               "semantic_type": "SonosBoolArg",
               "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
               "unit": "none - boolean flag",
-              "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+              "accepted_values": "n/a (unreachable emit path in this build)",
               "range": "{0,1}",
-              "special_values": "none observed in this build",
+              "special_values": "n/a (unreachable emit path in this build)",
               "required": false,
-              "default": "none - boolean decoded from request text",
-              "validation": "written on the success path; contents not traced",
+              "default": "n/a (unreachable emit path in this build)",
+              "validation": "n/a (unreachable emit path in this build)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -55889,9 +56177,18 @@
                   "status": "confirmed",
                   "address": "0x10eae664",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
             }
           },
           "validation": {
@@ -55920,8 +56217,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "Always faults before emitting -- no observable effect beyond the SOAP fault.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "no success path"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -55942,10 +56250,10 @@
           "fault_sites": [],
           "errors": [
             {
-              "code": null,
+              "code": 706,
               "code_expr": "vret",
               "meaning": "impl->v[+0x1c] rc surfaced",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x107356bc"
               ],
@@ -55972,12 +56280,21 @@
                   "status": "confirmed",
                   "address": "0x107356bc",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1032e730",
+                  "notes": "cmpwi cr7,r4,0; isel r3=402(eq)/706(ne); CR0 return flag forces fault"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x1c] rc surfaced",
                 "unknown": "the specific code for an unknown/inactive ConnectionID"
-              }
+              },
+              "condition": "ConnectionID != 0 (core vfunc isel selects 0x2c2); no connection can ever be found"
             },
             {
               "code": 402,
@@ -56032,13 +56349,30 @@
               "status": "confirmed",
               "address": "0x10f118e0",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "f_107356bc",
+              "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1032e730",
+              "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Parses required ConnectionID via req->v[+0x1c]+f_10561514, then req->v[+0x08] gate (else 402). Calls core->v[+0x10] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v[+0x14]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists."
         },
         "GetProtocolInfo": {
           "description": "Returns the supported protocol info strings (Source/Sink CSVs) via impl->v[+0x8] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x10735b64",
@@ -56058,7 +56392,11 @@
                 "arg4": "r4-in"
               }
             ],
-            "req_vcalls": []
+            "req_vcalls": [],
+            "impl_function": "0x10735a64",
+            "impl_vfunc": "core ConnectionManagerServer vtable 0x10eb86c8",
+            "impl_notes": "Request-gate req->v[+0x08] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v[+0x08] = f_1032e84c, a strlcpy of the literal CSV \"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*\" into a 0x400 stack buffer; emits Sink via core->v[+0x10] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v[+0x0c] commits the response.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -56088,8 +56426,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "No state mutation -- core vfuncs are read-only stubs/literal copies in this build.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735a64",
+                  "notes": "core vfuncs f_1032e710/f_1032e84c perform no stores to shared state"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -56116,10 +56465,10 @@
           ],
           "errors": [
             {
-              "code": null,
+              "code": 402,
               "code_expr": "const",
               "meaning": "impl->v[+0x8] rc gates emit",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x10735be4"
               ],
@@ -56146,12 +56495,22 @@
                   "status": "confirmed",
                   "address": "0x10735be4",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x10735a64",
+                  "notes": "gate-fail path raises 402"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x8] rc gates emit",
                 "unknown": "whether 0 faults with 402 like its sibling"
-              }
+              },
+              "condition": "req->v[+0x08] request gate fails (invalid/unaccepted request state)",
+              "source": "handler fault site via req->v[+0x14] with literal 0x192"
             },
             {
               "code": 402,
@@ -56206,9 +56565,26 @@
               "status": "confirmed",
               "address": "0x10f118ec",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "f_10735b64",
+              "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1032e730",
+              "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Request-gate req->v[+0x08] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v[+0x08] = f_1032e84c, a strlcpy of the literal CSV \"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*\" into a 0x400 stack buffer; emits Sink via core->v[+0x10] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v[+0x0c] commits the response."
         }
       },
       "state_variables": {},
