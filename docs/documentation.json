@@ -18084,7 +18084,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None The saved-queue store file is \"savedqueues.rsq\" (rodata 0x10ed3104), the same .rsq container trackqueue.rsq uses for the live queue backup."
     },
     "BecomeCoordinatorOfStandaloneGroup": {
      "description": "Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs \"avt_impl\" \"BecomeCoordinatorOfStandaloneGroup\", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ \u2014 B is the group-aware variant reached in grouped mode; semantics described are the A path.",
@@ -20572,7 +20572,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": "None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release."
+     "notes": "None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. Persistence: worker builds a job record (vtable 0x10ec7be0 via f_103d1aec), bumps the saved-queue update counter *(state+0xec) by +1, and serializes to \"savedqueues.rsq\" - the same .rsq format the queue playlist classifier loads."
     },
     "DelegateGroupCoordinationTo": {
      "description": "Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 \u2014 that specific code is treated as success \u2014 while every other code passes through verbatim.",
@@ -72561,7 +72561,7 @@
    ]
   },
   "0x10479bb4": {
-   "description": "Saved-queue creation worker (queue-manager `this` = global singleton 0x11096770). Acquires the manager mutex via f_10988558 on this+0x28, reads a state record whose +0xec field is the update counter (new UpdateID = old+1 stored into the request record), and drives table 0x10ed2f88 callbacks f_1047f588/f_1047f590 during list mutation.",
+   "description": "CreateSavedQueue worker on queue-manager singleton 0x11096770 (mutex via f_10988558 on this+0x28). Builds a 0x4040-byte job record through f_103d1aec (job vtable 0x10ec7be0, record +0x403c=-1, +0x4044=flags), copies queue-record fields *(r29+0xb8)/+0xbc/+0xc8, writes the new UpdateID (old *(r29+0xec)+1) into the record, and persists through file \"savedqueues.rsq\" with callback table 0x10ed2f88 (f_1047f588/f_1047f590).",
    "why_external": "CreateSavedQueue (AVTransport v+0xac impl) tail-calls this worker with the full arg vector after the singleton presence gate",
    "status": "strong",
    "required_for_behavior": true,
@@ -73213,6 +73213,22 @@
      "status": "confirmed",
      "address": "0x102da774",
      "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x103d1aec": {
+   "description": "Job-record constructor for queue mutations: stores job vtable 0x10ec7be0 at record+0, +0x403c=-1, +0x4018=0, +0x4044=flags arg.",
+   "why_external": "Builds the asynchronous job objects the queue workers submit",
+   "status": "confirmed",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x103d1aec",
+     "notes": "ctor body writing vptr+sentinels"
     }
    ]
   }
