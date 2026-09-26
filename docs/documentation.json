@@ -98424,6 +98424,23 @@
       "tokens": "#UUID# #HOST# #SW_VERSION# #SW_GENERATION# #SW_MINCOMPATVER# #SW_LEGACYCOMPATVER# \u2014 template substitution into the root descriptor",
       "note": "no SCPDURL \u2014 Sonos omits service descriptions from the served device document (confirmed-absent)",
       "description": "UPnP root device-description template + substitution tokens"
+    },
+    "soap_envelope": {
+      "status": "confirmed",
+      "request_parse": "recognizes http://schemas.xmlsoap.org/soap/envelope/|{Envelope,Header,Body,Fault} ns-qualified paths",
+      "response": "<s:Envelope xmlns:s=\"soap/envelope/\" s:encodingStyle=\"soap/encoding/\"><s:Header>{hdrs}</s:Header><s:Body><u:{action}{suffix} xmlns:u=\"{serviceType}\">...</u:{action}{suffix}></s:Body></s:Envelope>",
+      "generic_elem": "<%s%s xmlns=\"%s\"> \u2014 non-u:-prefixed element form also emitted",
+      "fault": "<s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>%d</errorCode>[<errorDescription>%s</errorDescription>]</UPnPError></detail></s:Fault> \u2014 faultcode always s:Client; detail carries UPnPError{errorCode,errorDescription}",
+      "param_redaction": "SOAP params flagged secure/sensitive/trackIDing \u2014 'not logging %s, sensitive' + 'not logging %s, secure %d, prevent %d, sensitive %d, trackIDing %d' + 'Invalid secure param %s' \u2014 credential/PII params excluded from logging",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "notes": "envelope+fault+redaction literals at strings ~147624"
+        }
+      ]
     }
   },
   "firmware_differences": {
@@ -102012,6 +102029,11 @@
       "status": "confirmed",
       "header": "X-SONOS-TARGET-UDN: uuid:%s + targetUDN param \u2014 directs a SOAP action to a specific bonded-zone member UDN",
       "semantics": "multi-device action routing: the coordinator/group proxy forwards actions to the target member identified by UDN; pairs w/ MobileDeviceUDN/playerUDN/HTPrimaryUDN identity fields"
+    },
+    "soap_param_redaction": {
+      "status": "confirmed",
+      "flags": "secure + sensitive + trackIDing + prevent per-param flags",
+      "semantics": "params (passwords, tokens, account data) flagged to be excluded from SOAP request logging; 'Invalid secure param' when a redacted param is malformed"
     }
   }
 }
