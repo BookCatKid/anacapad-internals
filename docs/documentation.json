@@ -628,7 +628,23 @@
         }
       ],
       "event_handler_semantics": "f_105e8290 = GENA SUBSCRIBE/UNSUBSCRIBE handler: reads headers NT, NTS, content-length, SID, SEQ via f_100a49ac header-lookup; requires NT==upnp:event and NTS==upnp:propchange else 412 (0x19c); missing headers -> 400 (0x190); method check *(r31)==0xa -> 405 (0x195); valid subscription -> singleton at 0x11097680 v[+0x3c] (subscription manager register call)",
-      "control_handler_note": "f_105e8274 loads r3=*(0x11097680) singleton then tails into the SOAP engine (service+action dispatch); same subscription/engine singleton as the GENA path"
+      "control_handler_note": "f_105e8274 loads r3=*(0x11097680) singleton then tails into the SOAP engine (service+action dispatch); same subscription/engine singleton as the GENA path",
+      "soap_engine": {
+        "entry": "0x1069388c",
+        "called_from": "f_105e8274 tail (all /Control routes): f_1069388c(*(0x11097680), http_req, 0)",
+        "semantics": "SOAP engine entry. (1) reads SOAPACTION header via f_100a49ac; (2) f_10c3befc splits it into two 0x80-bounded parts; (3) f_10730c3c constructs the request object from http_req + action parts; (4) x-sonos-target-udn header gate: if present and != local UDN, logs 'unexpected inbound UPnP for UDN=%s method=%s from=%s:%d' and replies 412 (0x19c) via response v[+0x18]; (5) insecureUpnpAllowed settings-key check via f_105580ac; (6) per-dispatch timing log 'UPnP dispatch %s:%s took %u ms'",
+        "status": "confirmed",
+        "evidence": [
+          {
+            "type": "firmware",
+            "binary": "anacapad",
+            "build": "86.10-80260",
+            "status": "confirmed",
+            "address": "0x1069388c",
+            "notes": "engine head: soapaction lookup + split + req build; 0x10693958 x-sonos-target-udn gate; 0x10693d84 insecureUpnpAllowed; 0x10693d60 timing log"
+          }
+        ]
+      }
     }
   },
   "request_vtable": {
