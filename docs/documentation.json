@@ -83385,7 +83385,7 @@
     },
     "queue_engine_object": {
       "status": "strong",
-      "description": "Queue engine object held at *(queue-manager+0x128). Three Queue impl forwarders (AddMultipleURIs 0x1046594c, ReplaceAllTracks 0x10465970, SaveAsSonosPlaylist 0x10465f94) dispatch through its vtable at slots +0xd8/+0xdc/+0x7c. The other six mutations call queue-manager methods directly (f_102b6948 AddURI, f_102b2da4 AttachQueue, f_102dff24 CreateQueue {0,402}, f_102b3a84 RemoveAllTracks {718,1028,derived}, f_102b3954 ReorderTracks-gate 402, f_102b3924 variants). Queue svc object ctor f_104656d0 installs vptr 0x10ed19a8 only; the engine member is injected by later init wiring.",
+      "description": "Queue engine object held at *(queue-manager+0x128). Three Queue impl forwarders (AddMultipleURIs 0x1046594c, ReplaceAllTracks 0x10465970, SaveAsSonosPlaylist 0x10465f94) dispatch through its vtable at slots +0xd8/+0xdc/+0x7c. The other six mutations call queue-manager methods directly (f_102b6948 AddURI, f_102b2da4 AttachQueue, f_102dff24 CreateQueue {0,402}, f_102b3a84 RemoveAllTracks {718,1028,derived}, f_102b3954 ReorderTracks-gate 402, f_102b3924 variants). Queue svc object ctor f_104656d0 installs vptr 0x10ed19a8 only; the engine member is injected by later init wiring. Engine worker f_102b62e8 (281 insns, single exit): per-item URI-insertion aggregator \u2014 iterates item descriptors, calls f_10255f64(*(obj+0x580), doc) per item (queue-store insert), writes per-item results to caller out-pointers, failure paths seed 800. Domain {0,800}; called by f_102b674c, f_102b6b04(x2), f_102d8518, f_102dac20 (AVT queue-mutation family). *(obj+0x4654) state counter gates entry (same member SaveQueue checks for its 800 path).",
       "evidence": [
         {
           "type": "firmware",
@@ -83426,6 +83426,14 @@
           "status": "confirmed",
           "address": "0x104656d0",
           "notes": "ctor body: vptr 0x10ed19a8 + two zeroed fields"
+        },
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x102b62e8",
+          "notes": "queue-insert aggregator, domain {0,800}"
         }
       ],
       "notes": "Engine vtable address not yet resolved - manager+0x128 write site not located in init scan. Engine vfuncs +0x7c/+0xd8/+0xdc rc domains open."
