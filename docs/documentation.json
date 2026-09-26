@@ -83154,7 +83154,7 @@
     },
     "sonos_duration_hhmmss": {
       "status": "strong",
-      "description": "SleepTimer duration argument grammar: sscanf format %02hu:%02hu:%02hu \u2014 HH:MM:SS, three 2-digit unsigned-short fields; parser f_10c3d2c4 returns success only when all 3 fields convert (else 402 upstream)",
+      "description": "SleepTimer duration argument grammar: sscanf format %02hu:%02hu:%02hu \u2014 HH:MM:SS, three 2-digit unsigned-short fields; parser f_10c3d2c4 returns success only when all 3 fields convert (else 402 upstream) (variant %hhu:%hhu:%hhu parser at f_102ab830 \u2014 same grammar, non-zero-padded accepted)",
       "evidence": [
         {
           "type": "firmware",
@@ -83163,12 +83163,91 @@
           "status": "confirmed",
           "address": "0x10c3d2c4",
           "notes": "sscanf call site; fmt string at 0x10fb1618 = %02hu:%02hu:%02hu"
+        },
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x102ab890",
+          "notes": "variant sscanf %hhu:%hhu:%hhu at 0x102ab830; fmt at 0x10f9b47c"
         }
       ],
       "fields": [
         "HH",
         "MM",
         "SS"
+      ]
+    },
+    "sonos_saved_queue_id": {
+      "status": "strong",
+      "description": "Saved-queue object-ID grammar: sscanf SQ:%d \u2014 decimal index after SQ: prefix; parsed by saved-queue workers f_10479fb8, f_1047a3bc, f_10476690, f_104794d4 (AddURIToSavedQueue/ReorderTracksInSavedQueue/queue-engine paths)",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x1047a050",
+          "notes": "sscanf site; fmt at 0x10fea010"
+        }
+      ],
+      "fields": [
+        "SQ prefix",
+        "decimal index"
+      ]
+    },
+    "sonos_favorites_version": {
+      "status": "strong",
+      "description": "Favorites-version token grammar: sscanf FV:%zu \u2014 FV: prefix + size_t; parser f_100e1654 (RenderingControl-region worker)",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x100e18a8",
+          "notes": "sscanf site; fmt at 0x10ea0374"
+        }
+      ],
+      "fields": [
+        "FV prefix",
+        "version int"
+      ]
+    },
+    "sonos_mac_parse": {
+      "status": "strong",
+      "description": "MAC-address parser: sscanf %02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX \u2014 six 2-digit hex octets; parser f_10551d68",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x10551dd4",
+          "notes": "sscanf site; fmt at 0x10fe1064"
+        }
+      ],
+      "fields": [
+        "6 hex octets"
+      ]
+    },
+    "sonos_version_pair": {
+      "status": "strong",
+      "description": "Version-pair grammar: sscanf %d.%d \u2014 major.minor; parsers f_10553e94, f_10554218",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x10553edc",
+          "notes": "sscanf site; fmt at 0x10fe1074"
+        }
+      ],
+      "fields": [
+        "major",
+        "minor"
       ]
     }
   },
