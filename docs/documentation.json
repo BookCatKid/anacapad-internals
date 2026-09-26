@@ -40205,7 +40205,7 @@
    "actions": {
     "GetBass": {
      "description": "NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -> emit path).",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073ba88",
@@ -40236,6 +40236,17 @@
         "site": "0x1073bae4",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d65f4",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d65f4"
        }
       ]
      },
@@ -40283,8 +40294,8 @@
      },
      "outputs": {
       "CurrentBass": {
-       "description": "Formatted from the u16 out slot - but the impl (f_100d65f4) is a 3-instruction no-op that never writes it, so the emitted value is whatever the stack slot previously held (residual/parse-adjacent data).",
-       "status": "inferred",
+       "description": "never written - impl stub does not touch the out pointer; the emitted value is whatever the request layer initialized",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -40298,7 +40309,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "none",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -40315,6 +40326,15 @@
          "status": "confirmed",
          "address": "0x10f0af50",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d65f4",
+         "address": "0x100d65f4",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
        "notes": "impl is a null stub in BOTH impl vtables - the bass getter was neutered (likely superseded by GetEQ)."
@@ -40325,8 +40345,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "None - impl vfunc is the 3-instruction null stub f_100d65f4 (stwu/addi/blr); r3 is returned unmodified and CurrentBass is never written.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d65f4",
+         "address": "0x100d65f4",
+         "notes": "stub body: stwu/addi/blr only"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -40445,7 +40476,7 @@
     },
     "GetEQ": {
      "description": "Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073bcb0",
@@ -40476,6 +40507,17 @@
         "site": "0x1073bd34",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100e4188",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100e4188"
        }
       ]
      },
@@ -40564,7 +40606,7 @@
      "outputs": {
       "CurrentValue": {
        "description": "EQ value returned through the ctx worker f_100e382c (same worker the GetVolume 'spatial' branch invokes); out-write path unresolved.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -40595,6 +40637,15 @@
          "status": "confirmed",
          "address": "0x10f0aff8",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e4188",
+         "address": "0x100e4188",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
@@ -40605,8 +40656,19 @@
      "state_dependencies": "requires audio ctx object chain",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Builds query ctx via f_10118278 + f_1011fdd0(impl+0x3c4,impl+0x9c8), locks +0x938, calls reader f_100e382c(this,ctx) to fetch EQ state, unlocks and destroys ctx.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e4188",
+         "address": "0x100e41d4",
+         "notes": "bl f_100e382c at 0x100e41d4 inside +0x938 guard"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -40755,7 +40817,7 @@
     },
     "GetHeadphoneConnected": {
      "description": "Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl+0x7da or +0x7e0 selected by flags +0x7ff/+0x801, Master mute byte impl+0x7f1 at rec+0xc, computed flag at rec+0xd; returns 1.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b0d8",
@@ -40786,6 +40848,17 @@
         "site": "0x1073b134",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d66cc",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d66cc"
        }
       ]
      },
@@ -40834,7 +40907,7 @@
      "outputs": {
       "CurrentHeadphoneConnected": {
        "description": "Derived from the state record the impl fills: impl writes u32@rec+8 = volume (field +0x7da when flag+0x7ff set OR +0x801 set, else +0x7e0), byte@rec+0xc = Master mute (impl+0x7f1), byte@rec+0xd = (+0x7ff!=0 ? +0x801^1 : 0). Which field maps to the SOAP output is unresolved.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -40865,6 +40938,15 @@
          "status": "confirmed",
          "address": "0x10f0aefc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d66cc",
+         "address": "0x100d66cc",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": "impl f_100d66cc dumps a {volume,mute,flag} record rather than a simple bool - the headphone semantic likely lives in the flag byte at rec+0xd computed from flags +0x7ff/+0x801."
@@ -40875,8 +40957,19 @@
      "state_dependencies": "flag bytes impl+0x7ff/+0x801 select volume field and compute the flag output",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Locks +0x938 via the traced mutex helper (rc_impl.cxx:0x1009) then checks flag byte impl+0x7ff as part of the headphone-state read.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d66cc",
+         "address": "0x100d66fc",
+         "notes": "lbz +0x7ff check at 0x100d66fc inside the lock"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -41017,7 +41110,7 @@
     },
     "GetLoudness": {
      "description": "CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073ad64",
@@ -41049,12 +41142,32 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "impl_function": "0x100e44dc",
+      "impl_variant_B": "0x1046db28",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100e44dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046db28"
+       }
       ]
      },
      "inputs": {
       "InstanceID": {
-       "description": "Parsed input; class-A impl is a null stub (reads nothing), class-B impl is real (unexplored).",
-       "status": "inferred",
+       "description": "parsed by the request layer but never read - impl vfunc 0x100e44dc is a no-op stub",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -41071,7 +41184,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer only in class A; class-B semantics unexplored",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -41088,13 +41201,22 @@
          "status": "confirmed",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44dc",
+         "address": "0x100e44dc",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
-       "notes": null
+       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
       },
       "Channel": {
-       "description": "Parsed input; class-A impl is a null stub (reads nothing), class-B impl is real (unexplored).",
-       "status": "inferred",
+       "description": "parsed by the request layer but never read - impl vfunc 0x100e44dc is a no-op stub",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -41111,7 +41233,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer only in class A; class-B semantics unexplored",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -41128,15 +41250,24 @@
          "status": "confirmed",
          "address": "0x10fac460",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44dc",
+         "address": "0x100e44dc",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
-       "notes": null
+       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
       }
      },
      "outputs": {
       "CurrentLoudness": {
-       "description": "Emitted value; class-A impl writes nothing (stale-slot emission likely, same class as GetBass).",
-       "status": "inferred",
+       "description": "parsed by the request layer but never read - impl vfunc 0x100e44dc is a no-op stub",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -41150,7 +41281,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "none",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -41167,9 +41298,18 @@
          "status": "confirmed",
          "address": "0x10f0afe0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44dc",
+         "address": "0x100e44dc",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
-       "notes": null
+       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
       }
      },
      "validation": "Request-layer parse.",
@@ -41177,8 +41317,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "None in impl class A - vfunc is the null stub f_100e44dc. In impl class B it is f_1046db28, which resolves a refcounted object at impl+0x2ac (stwcx loop) before dispatching.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44dc",
+         "address": "0x100e44dc",
+         "notes": "base stub; derived f_1046db28 refcount resolution at +0x2ac"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -41305,7 +41456,7 @@
     },
     "GetMute": {
      "description": "Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073ac24",
@@ -41336,6 +41487,17 @@
         "site": "0x1073aca8",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d71e0",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d71e0"
        }
       ]
      },
@@ -41490,8 +41652,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Reads mute byte impl+0x7f1/0x7f2/0x7f3 (Master/LF/RF) into the out param after a 3-way strcmp; no state is modified.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d71e0",
+         "address": "0x100d72b4",
+         "notes": "lbz +0x7f1/+0x7f2/+0x7f3 per strcmp match; stb to out ptr"
+        }
+       ]
       }
      ],
      "events_triggered": "none - pure read",
@@ -41677,7 +41850,7 @@
     },
     "GetOutputFixed": {
      "description": "Pure delegation: impl f_100d6610 forwards to impl->v[+0xe0](impl, 0, r4-in) - the fixed-output flag lives behind a secondary interface method on the same object.",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073afb8",
@@ -41708,6 +41881,17 @@
         "site": "0x1073b014",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d6610",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d6610"
        }
       ]
      },
@@ -41756,7 +41940,7 @@
      "outputs": {
       "CurrentFixed": {
        "description": "Produced by a pure vfunc forward: impl calls impl->v[+0xe0](impl, 0, arg) and returns its result - the flag source is a deeper object interface.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -41787,6 +41971,15 @@
          "status": "confirmed",
          "address": "0x10f0aed4",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d6610",
+         "address": "0x100d6610",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
@@ -41797,8 +41990,19 @@
      "state_dependencies": "none",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Thin virtual forwarder: loads this->vptr[+0xe0] and tail-calls it with the out ptr and literal 0 - the fixed-output flag lives behind the impl own virtual API.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d6610",
+         "address": "0x100d661c",
+         "notes": "lwz vptr,+0xe0 -> bctr at 0x100d661c"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -41939,7 +42143,7 @@
     },
     "GetRoomCalibrationStatus": {
      "description": "Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg>>16, ...) - a sonar-calibration query helper - and fills the two outputs from the result.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b1ec",
@@ -41983,13 +42187,33 @@
         "slot": 12,
         "purpose": "commit"
        }
+      ],
+      "impl_function": "0x100dbcd4",
+      "impl_variant_B": "0x1047188c",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dbcd4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1047188c"
+       }
       ]
      },
      "inputs": {},
      "outputs": {
       "RoomCalibrationEnabled": {
        "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a >>16 shift on an arg, and fills the record fields that become these outputs.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -42020,13 +42244,22 @@
          "status": "confirmed",
          "address": "0x10f0af5c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dbcd4",
+         "address": "0x100dbcd4",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
       },
       "RoomCalibrationAvailable": {
        "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a >>16 shift on an arg, and fills the record fields that become these outputs.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -42057,6 +42290,15 @@
          "status": "confirmed",
          "address": "0x10f0afa0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dbcd4",
+         "address": "0x100dbcd4",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
@@ -42067,8 +42309,19 @@
      "state_dependencies": "none",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Locks +0x938 (guard at r1+0x14) then calls worker f_100dbb74 to compute the two out flags.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dbcd4",
+         "address": "0x100dbd70",
+         "notes": "bl f_100dbb74 at 0x100dbd70 inside the +0x938 guard"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -42181,7 +42434,7 @@
     },
     "GetSupportsOutputFixed": {
      "description": "Locks impl+0x938, builds a small record via f_10203ec8, calls impl->v[+0xf0](impl,&rec), and when that returns nonzero copies rec+0x24 into the out param; return value is 63 (rc==0 path) or 52 (rc!=0 path).",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073aea4",
@@ -42212,6 +42465,17 @@
         "site": "0x1073af00",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d6764",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d6764"
        }
       ]
      },
@@ -42301,8 +42565,19 @@
      "state_dependencies": "none",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Builds a query record on the stack via f_10203ec8 under mutex +0x938 and returns its verdict; the support-bit derivation is internal to that helper.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d6764",
+         "address": "0x100d679c",
+         "notes": "bl f_10203ec8 at 0x100d679c inside the +0x938 guard"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -42444,7 +42719,7 @@
     },
     "GetTreble": {
      "description": "Acquires an audio-context object (f_10118278 + f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, calls ctx-worker f_100e1fec(this,&ctx) and returns its rc. The impl reads NEITHER the InstanceID argument nor the out pointer - both die in registers at entry.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073bb9c",
@@ -42475,6 +42750,17 @@
         "site": "0x1073bbf8",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100e3450",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100e3450"
        }
       ]
      },
@@ -42564,8 +42850,19 @@
      "state_dependencies": "requires ctx objects impl+0x3c4/+0x9c8 for f_1011fdd0 acquisition",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Same ctx skeleton as GetEQ with reader f_100e1fec(this,ctx) under +0x938.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e3450",
+         "address": "0x100e349c",
+         "notes": "bl f_100e1fec at 0x100e349c"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -42654,10 +42951,25 @@
       {
        "code": null,
        "code_expr": "impl_rc",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "impl-level return surfaced as the SOAP error code",
+       "status": "strong",
        "fault_sites": [],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "impl returns nonzero - see rc vocabulary",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "function": "0x100e3450",
+           "address": "0x100e3450",
+           "notes": "impl return paths"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -42674,13 +42986,22 @@
          "status": "confirmed",
          "notes": "ctx worker; SPE 'x (4,)' opcodes - EQ computation",
          "function": "0x100e1fec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e3450",
+         "address": "0x100e3450",
+         "notes": "impl return path disasm"
         }
        ],
        "unresolved": {
         "proven": "Nonzero rc from ctx-worker f_100e1fec propagates as the SOAP fault code.",
         "unknown": "Worker internals (0x100e1fec, ~0x11e0-byte frame, SPE/vector ops) unmapped - including which conditions produce which codes and where the output i16 is written."
        },
-       "notes": null
+       "notes": "concrete rc vocabulary: 0 (success); ctx-reader f_100e1fec rc propagated; ctx machinery identical to GetEQ skeleton"
       }
      ],
      "firmware_differences": [],
@@ -42715,7 +43036,7 @@
     },
     "GetVolume": {
      "description": "Reads the channel volume through a two-stage impl: shim f_100e43b4 gates InstanceID!=0 -> 702, worker f_100e42a8 acquires an audio-context object (f_10118278/f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, checks readiness gate f_102a5028(*(impl+0x3ac)) (fail -> 501), then reads via f_100da830 -> f_102a50b8 -> f_107ea964.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073bdf0",
@@ -42746,6 +43067,17 @@
         "site": "0x1073be74",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100e43b4",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100e43b4"
        }
       ]
      },
@@ -42847,8 +43179,8 @@
      },
      "outputs": {
       "CurrentVolume": {
-       "description": "Current volume for the channel as a u16, produced by the nested-object read chain f_100da830 -> f_102a50b8 -> f_107ea964.",
-       "status": "confirmed",
+       "description": "populated by worker f_100da830 under the +0x938 lock; spatial channel additionally passes through f_100e382c",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -42887,6 +43219,24 @@
          "status": "confirmed",
          "notes": "nested read: *(this+0x3ac) -> +0x34 -> +0xd0 -> f_107ea964 writes the u16",
          "function": "0x102a50b8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e42a8",
+         "address": "0x100e437c",
+         "notes": "bl f_100da830 produces the volume"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e42a8",
+         "address": "0x100e43a8",
+         "notes": "spatial extra call f_100e382c"
         }
        ],
        "notes": null
@@ -42897,8 +43247,19 @@
      "state_dependencies": "read traverses context object chain impl+0x3ac -> +0x34 -> +0xd0; gate f_102a5028(*(impl+0x3ac)) fails -> 501 when audio ctx not ready",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Builds a query context via f_10118278 + f_1011fdd0(impl+0x3c4,impl+0x9c8), locks +0x938, gates on a state check over impl+0x3ac (f_102a5028; nonzero -> 501), then reads channel volume via f_100da830 with special handling for channel 'spatial' (extra f_100e382c call).",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e43b4",
+         "address": "0x100e430c",
+         "notes": "f_102a5028(impl+0x3ac) gate; strcmp 'spatial' at 0x100e4388"
+        }
+       ]
       }
      ],
      "events_triggered": "none - pure read",
@@ -43076,10 +43437,25 @@
       {
        "code": null,
        "code_expr": "impl_rc",
-       "meaning": null,
-       "status": "unresolved",
+       "meaning": "impl-level return surfaced as the SOAP error code",
+       "status": "strong",
        "fault_sites": [],
-       "conditions": [],
+       "conditions": [
+        {
+         "description": "impl returns nonzero - see rc vocabulary",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "function": "0x100e43b4",
+           "address": "0x100e42a8",
+           "notes": "impl return paths"
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
@@ -43096,13 +43472,22 @@
          "status": "confirmed",
          "notes": "special-case branch on *out and r7 string arg the SOAP wrapper never sets",
          "function": "0x100da830"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e43b4",
+         "address": "0x100e43b4",
+         "notes": "impl return path disasm"
         }
        ],
        "unresolved": {
         "proven": "Nonzero return from the read helper f_100da830 propagates to the SOAP fault.",
         "unknown": "The helper contains a 'spectral'/'spatial'/'rc_impl' sonar-calibration branch (arg r7 not supplied by this wrapper - likely a dead/latent path) and its remaining failure conditions are unmapped."
        },
-       "notes": null
+       "notes": "concrete rc vocabulary: 0 (success, worker rc forwarded), 702 null out ptr (0x100e43b4), 501 impl+0x3ac state check fail (0x100e4314-0x100e432c); worker f_100da830 return propagated verbatim as r30"
       }
      ],
      "firmware_differences": [],
@@ -43145,7 +43530,7 @@
     },
     "GetVolumeDB": {
      "description": "Returns a volume reading via shared worker f_100dcb00 invoked in mode 0 with flag r6=1 (thunk 0x100dcc64): the dB-scale companion to GetVolume.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b7e0",
@@ -43176,6 +43561,26 @@
         "site": "0x1073b864",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dcc64",
+      "impl_variant_B": "0x1046ad24",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dcc64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046ad24"
        }
       ]
      },
@@ -43266,7 +43671,7 @@
      "outputs": {
       "CurrentVolume": {
        "description": "Current volume expressed in the worker's mode-0 units (the +0x24 thunk passes mode=0, flag r6=1 to shared worker f_100dcb00 - the 'dB' reading path).",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -43297,6 +43702,15 @@
          "status": "confirmed",
          "address": "0x10f08d18",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcc64",
+         "address": "0x100dcc64",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": "Exact unit/scale produced by worker mode 0 is unresolved (thunk constants 0/1 select the path inside f_100dcb00)."
@@ -43307,8 +43721,19 @@
      "state_dependencies": "shared worker state (impl+0x7ff gate, ctx objects)",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Arg-remapping thunk into shared worker f_100dcb00 with mode flags (0,1) in base class; derived class overrides the slot with f_1046ad24.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcc64",
+         "address": "0x100dcc64",
+         "notes": "thunk sets r4=0,r6=1 then f_100dcb00"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -43426,8 +43851,8 @@
      "notes": "Despite the name the impl is a mode-select thunk over the same worker used by SetVolume/SetRelativeVolume; mode-0 semantics (dB read vs raw) unresolved."
     },
     "GetVolumeDBRange": {
-     "description": "SOAP action; impl-level semantics not traced",
-     "status": "inferred",
+     "description": "Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b920",
@@ -43458,6 +43883,17 @@
         "site": "0x1073b9a4",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dcd88",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dcd88"
        }
       ]
      },
@@ -43547,8 +43983,8 @@
      },
      "outputs": {
       "MinValue": {
-       "description": "Emitted from stack out slots; in both vtables the impl slot points at f_100dcd88 - a 'ButtonSetMute'-tagged helper that calls f_100d9b4c(this,0,'Master',...) and logs 'on:%d src:%s'. Whether it writes Min/Max sensibly is unresolved.",
-       "status": "inferred",
+       "description": "never produced - the impl slot resolves to the ButtonSetMute handler f_100dcd88, which writes no range output",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -43579,13 +44015,22 @@
          "status": "confirmed",
          "address": "0x10f0b030",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcd88",
+         "address": "0x100dcd88",
+         "notes": "ButtonSetMute impl - no out-param stores for range values"
         }
        ],
        "notes": "impl is a shared button/apply helper; out writes unverified - possible stale-slot emission like the stub cases."
       },
       "MaxValue": {
-       "description": "Emitted from stack out slots; in both vtables the impl slot points at f_100dcd88 - a 'ButtonSetMute'-tagged helper that calls f_100d9b4c(this,0,'Master',...) and logs 'on:%d src:%s'. Whether it writes Min/Max sensibly is unresolved.",
-       "status": "inferred",
+       "description": "never produced - the impl slot resolves to the ButtonSetMute handler f_100dcd88, which writes no range output",
+       "status": "confirmed",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -43616,6 +44061,15 @@
          "status": "confirmed",
          "address": "0x10f0b03c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcd88",
+         "address": "0x100dcd88",
+         "notes": "ButtonSetMute impl - no out-param stores for range values"
         }
        ],
        "notes": "impl is a shared button/apply helper; out writes unverified - possible stale-slot emission like the stub cases."
@@ -43626,8 +44080,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "IMPL-CLASS ANOMALY: both classes resolve the slot to f_100dcd88, the ButtonSetMute handler - it queries state via f_100d9b4c('Master') and logs 'on:%d src:%s'; MinValue/MaxValue are never produced by the impl.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcd88",
+         "address": "0x100dce08",
+         "notes": "ButtonSetMute log 'on:%d src:%s' at 0x100dce04"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -43746,7 +44211,7 @@
     },
     "RampToVolume": {
      "description": "CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c834",
@@ -43778,12 +44243,24 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_variant_B": "0x1046cdd8",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046cdd8"
+       }
+      ],
+      "impl_function": "0x1046cdd8"
      },
      "inputs": {
       "InstanceID": {
-       "description": "instance selector; consumed by class-B impl 0x1046cdd8 (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -43817,13 +44294,22 @@
          "status": "confirmed",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
       },
       "Channel": {
-       "description": "channel token; consumed by class-B impl 0x1046cdd8 (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -43857,13 +44343,22 @@
          "status": "confirmed",
          "address": "0x10fac460",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
       },
       "RampType": {
-       "description": "ramp curve/type selector; consumed by class-B impl 0x1046cdd8 (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -43897,13 +44392,22 @@
          "status": "confirmed",
          "address": "0x10ed2a80",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
       },
       "DesiredVolume": {
-       "description": "target volume; consumed by class-B impl 0x1046cdd8 (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -43937,13 +44441,22 @@
          "status": "confirmed",
          "address": "0x10ec3aa4",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
       },
       "ResetVolumeAfter": {
-       "description": "whether to restore volume after ramp; consumed by class-B impl 0x1046cdd8 (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -43977,13 +44490,22 @@
          "status": "confirmed",
          "address": "0x10eb36ec",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
       },
       "ProgramURI": {
-       "description": "program source for the ramp; consumed by class-B impl 0x1046cdd8 (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -44017,6 +44539,15 @@
          "status": "confirmed",
          "address": "0x10eaae94",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
@@ -44024,8 +44555,8 @@
      },
      "outputs": {
       "RampTime": {
-       "description": "Computed ramp duration returned by the class-B impl (unexplored).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -44056,6 +44587,15 @@
          "status": "confirmed",
          "address": "0x10f0b08c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cdd8",
+         "address": "0x1046ce24",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
@@ -44066,8 +44606,19 @@
      "state_dependencies": "unknown",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Derived-class-only impl f_1046cdd8: consumes a VolumeSetActionEvent record - reads u8@0 and u16@2 from the event (log 'process VolumeSetActionEvent (%u,%d)' at rc_impl_stp.cxx:0x4f2), then continues into the stp worker chain. No base-class impl exists.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "",
+         "address": "0x1046ce24",
+         "notes": "event field reads lbz 0/lhz 2 of event record; log fmt 0x10ed2ac8"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -44208,7 +44759,7 @@
     },
     "ResetBasicEQ": {
      "description": "Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID, chan, val) and, on a cr0 flag, additionally calls the SetMute worker f_100d99b0 - then logs 'ch:%s, vol:%u, on:%d' and returns per-channel results (Bass, Treble, Loudness, LeftVolume, RightVolume).",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073bf30",
@@ -44252,13 +44803,33 @@
         "slot": 12,
         "purpose": "commit"
        }
+      ],
+      "impl_function": "0x100db5bc",
+      "impl_variant_B": "0x1046bc98",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100db5bc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046bc98"
+       }
       ]
      },
      "inputs": {},
      "outputs": {
       "Bass": {
        "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -44289,13 +44860,22 @@
          "status": "confirmed",
          "address": "0x10fea14c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db5bc",
+         "address": "0x100db5bc",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
       },
       "Treble": {
        "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
@@ -44326,13 +44906,22 @@
          "status": "confirmed",
          "address": "0x10f0b060",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db5bc",
+         "address": "0x100db5bc",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
       },
       "Loudness": {
        "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -44363,13 +44952,22 @@
          "status": "confirmed",
          "address": "0x10f0b068",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db5bc",
+         "address": "0x100db5bc",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
       },
       "LeftVolume": {
        "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -44400,13 +44998,22 @@
          "status": "confirmed",
          "address": "0x10f0b074",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db5bc",
+         "address": "0x100db5bc",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
       },
       "RightVolume": {
        "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -44437,6 +45044,15 @@
          "status": "confirmed",
          "address": "0x10f0b080",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db5bc",
+         "address": "0x100db5bc",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
@@ -44447,8 +45063,19 @@
      "state_dependencies": "shares the SetMute worker's state writes on one branch",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Under mutex +0x938 calls EQ-reset worker f_100d9d40 then the shared commit worker f_100d99b0 (same worker SetMute uses for channel commit+notify).",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db5bc",
+         "address": "0x100db61c",
+         "notes": "f_100d9d40 at 0x100db61c; f_100d99b0 at 0x100db638"
+        }
+       ]
       }
      ],
      "events_triggered": "same notify machinery as SetMute where shared",
@@ -44561,7 +45188,7 @@
     },
     "ResetExtEQ": {
      "description": "Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -> f_106a9cc4 -> f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073a8dc",
@@ -44592,6 +45219,26 @@
         "site": "0x1073a960",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dbe90",
+      "impl_variant_B": "0x10470968",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dbe90"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x10470968"
        }
       ]
      },
@@ -44683,8 +45330,19 @@
      "state_dependencies": "impl+0x3c0 must be nonnull for the apply branch (0x100dbeec gate)",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Under mutex +0x938 calls f_100d9d40 then a three-call commit sequence f_106a9cc4 / f_10687cbc / f_100ed34c.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dbe90",
+         "address": "0x100dbee4",
+         "notes": "f_100d9d40 then f_106a9cc4/f_10687cbc/f_100ed34c"
+        }
+       ]
       }
      ],
      "events_triggered": "log tag says 'SetVolumeWithoutProxy' - the reset shares the volume-apply path",
@@ -44825,7 +45483,7 @@
     },
     "RestoreVolumePriorToRamp": {
      "description": "CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073a9f4",
@@ -44857,7 +45515,9 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "evidence": [],
+      "impl_notes": "Slot +0x70 in the impl call; neither known impl vtable extends to +0x70 (base ends +0x64; derived main table ends +0x6c, then a secondary-base table begins at +0x78 after the -8/0 header at +0x70/+0x74). The installed object must be a deeper concrete class (rc_impl_stp family); its +0x70 target is unresolved."
      },
      "inputs": {
       "InstanceID": {
@@ -44944,11 +45604,11 @@
      "outputs": {},
      "validation": "Request-layer parse.",
      "requirements": "impl class A slot implemented",
-     "state_dependencies": "internal state dependencies not traced",
+     "state_dependencies": "The wrapper restores state through impl vfunc +0x70 on a deeper vtable; concrete stored-field dependencies unresolved.",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Not characterized - the impl vfunc +0x70 target could not be resolved on either known vtable (secondary-vtable layout).",
+       "status": "strong"
       }
      ],
      "events_triggered": "unknown",
@@ -45097,7 +45757,7 @@
     },
     "SetBass": {
      "description": "Stores the desired bass value into impl+0x898 under the impl mutex, unless the record equals -1 which short-circuits to a no-op. No event/notify calls appear in this impl - state propagation presumably occurs via a separate apply path (unresolved).",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c4cc",
@@ -45128,6 +45788,17 @@
         "site": "0x1073c54c",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d72dc",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d72dc"
        }
       ]
      },
@@ -45174,7 +45845,7 @@
       },
       "DesiredBass": {
        "description": "Requested bass level; the impl receives a pointer to the parsed record and copies its first u32 into impl+0x898 unless it equals -1.",
-       "status": "inferred",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 3,
@@ -45186,14 +45857,12 @@
        "semantic_type": "bass level",
        "format": "integer parsed into a record; sentinel -1 (0xffffffff) skips the write",
        "unit": "none",
-       "accepted_values": "any u32 except sentinel -1",
+       "accepted_values": "any parsed word; -1 disables the write",
        "range": "unconstrained",
-       "special_values": {
-        "-1": "sentinel meaning 'no change' - impl skips the store entirely"
-       },
+       "special_values": "-1: no-change sentinel (skip write, silent success)",
        "required": true,
        "default": "none",
-       "validation": "only request-layer parsing proven; semantic validation not traced",
+       "validation": "impl loads *(arg) as a word at 0x100d72f0; value -1 (0xffffffff) is the no-change sentinel and skips the write; every other value is stored verbatim at impl+0x898 - no range check exists",
        "evidence": [
         {
          "type": "firmware",
@@ -45219,6 +45888,15 @@
          "notes": "stw *record -> impl+0x898 under mutex",
          "address": "0x100d7324",
          "function": "0x100d72dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d72dc",
+         "address": "0x100d72f0",
+         "notes": "lwz r9,0(r4); cmpwi -1 -> skip store"
         }
        ],
        "notes": null
@@ -45230,8 +45908,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "When the parsed DesiredBass word != -1, stores it verbatim at impl+0x898 under mutex +0x938; -1 is a no-change sentinel producing a silent no-op. No range check, no notification.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d72dc",
+         "address": "0x100d7324",
+         "notes": "lwz *(r4); sentinel -1 skip at 0x100d72f0; stw +0x898"
+        }
+       ]
       }
      ],
      "events_triggered": "none statically visible",
@@ -45350,7 +46039,7 @@
     },
     "SetChannelMap": {
      "description": "Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pre-sets it), checks whether impl vfunc +0x5c is the base implementation 0x100d7364 (derived-class detection), locks impl+0x938, checks flag +0x7ff, calls f_10988984 for a sub-lock byte result, and strcmp's channel tokens ('Master' seen) to dispatch.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073ab0c",
@@ -45381,6 +46070,26 @@
         "site": "0x1073ab90",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d7400",
+      "impl_variant_B": "0x104717f4",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d7400"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x104717f4"
        }
       ]
      },
@@ -45427,7 +46136,7 @@
       },
       "ChannelMap": {
        "description": "Channel-map descriptor string; the impl strcmps channel tokens including 'Master' and dispatches per-channel setup; the entry tests cr0.eq as an input flag (0x100d7434) - the impl vfunc is invoked with a pre-set condition flag, a convention the wrapper establishes.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -45461,6 +46170,15 @@
          "status": "confirmed",
          "address": "0x10e96450",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d7400",
+         "address": "0x100d7400",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": "Impl also checks impl->v[+0x5c] == base fn 0x100d7364 to detect class overrides before applying (0x100d7438-0x100d744c)."
@@ -45472,8 +46190,19 @@
      "state_dependencies": "flag impl+0x7ff gates part of the path",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Invokes this->vfunc[0] (lwz 0(r3) virtual dispatch) wrapped in the +0x938 mutex pair f_10988558/f_10988984; the channel-map string is handed to that virtual call.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d7400",
+         "address": "0x100d7438",
+         "notes": "lwz vptr,0 at 0x100d7438 inside the lock"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -45614,7 +46343,7 @@
     },
     "SetEQ": {
      "description": "Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c6f4",
@@ -45646,11 +46375,22 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "impl_function": "0x100e323c",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100e323c"
+       }
       ]
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). Used as a gate: impl calls worker f_100e27b0(this, instID, 1) ONLY when it equals 0 (0x100e3278-0x100e328c).",
+       "description": "validated at the request layer; the impl receives only the two EQ records plus the out pointer and never sees this value",
        "status": "confirmed",
        "direction": "in",
        "primitive": {
@@ -45670,7 +46410,7 @@
        },
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "not forwarded to impl f_100e323c (impl tests only the EQType/DesiredValue record pointers for null)",
        "evidence": [
         {
          "type": "firmware",
@@ -45687,12 +46427,21 @@
          "status": "confirmed",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e323c",
+         "address": "0x100e3278",
+         "notes": "impl arg usage - no InstanceID compare"
         }
        ],
        "notes": null
       },
       "EQType": {
-       "description": "Second selector; impl calls worker f_100e27b0(this, EQType, 0) ONLY when it equals 0 (0x100e3290-0x100e32a4).",
+       "description": "Optional at impl level: the record pointer is applied only if non-null (separate f_100e27b0 calls keyed by position)",
        "status": "confirmed",
        "direction": "in",
        "primitive": {
@@ -45712,7 +46461,7 @@
        },
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "null record -> silently skipped; non-null -> applied via f_100e27b0(this,rec,flag) (flag=1 EQType, flag=0 DesiredValue)",
        "evidence": [
         {
          "type": "firmware",
@@ -45729,13 +46478,22 @@
          "status": "confirmed",
          "address": "0x10e9aae8",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e323c",
+         "address": "0x100e3278",
+         "notes": "null test on arg ptr -> skip; bl f_100e27b0"
         }
        ],
        "notes": "Both args act as independent zero-gated worker triggers - unusual semantics; whether the worker treats them as band indices or flags is unresolved."
       },
       "DesiredValue": {
-       "description": "Desired EQ level; forwarded as r6 to the impl but the visible body does not consume it directly (worker f_100e27b0 receives only (this, arg, flag) - desired value may flow through the ctx record, unresolved).",
-       "status": "inferred",
+       "description": "Optional at impl level: the record pointer is applied only if non-null (separate f_100e27b0 calls keyed by position)",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 3,
@@ -45752,7 +46510,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "null record -> silently skipped; non-null -> applied via f_100e27b0(this,rec,flag) (flag=1 EQType, flag=0 DesiredValue)",
        "evidence": [
         {
          "type": "firmware",
@@ -45769,6 +46527,15 @@
          "status": "confirmed",
          "address": "0x10e9aaf0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e323c",
+         "address": "0x100e3278",
+         "notes": "null test on arg ptr -> skip; bl f_100e27b0"
         }
        ],
        "notes": null
@@ -45780,11 +46547,22 @@
      "state_dependencies": "none beyond arg-zero gating",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Each non-null EQ arg record is applied via f_100e27b0(this,rec,flag) under mutex +0x938 (flag=1 on the EQType path, 0 on DesiredValue); then an 8-byte record is copied from global 0x1109b010 into the out arg. Null arg records are silently skipped.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e323c",
+         "address": "0x100e328c",
+         "notes": "f_100e27b0 flag=1 at 0x100e328c, flag=0 at 0x100e32a4; 8-byte copy at 0x100e32b8"
+        }
+       ]
       }
      ],
-     "events_triggered": "event emission not traced for this action",
+     "events_triggered": "The impl writes EQ state through worker f_100e27b0 and copies an 8-byte record from global 0x1109b010 to the out arg; no explicit notify call is present in the impl body - any LastChange emission is downstream of f_100e27b0",
      "state_transitions": "unresolved",
      "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
      "fault_sites": [
@@ -45922,7 +46700,7 @@
     },
     "SetLoudness": {
      "description": "CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b474",
@@ -45954,12 +46732,32 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "impl_function": "0x100e44e8",
+      "impl_variant_B": "0x1046d340",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100e44e8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046d340"
+       }
       ]
      },
      "inputs": {
       "InstanceID": {
-       "description": "Parsed input; class-A impl is a null stub (reads nothing), class-B impl is real (unexplored).",
-       "status": "inferred",
+       "description": "parsed by the request layer but never read - impl vfunc 0x100e44e8 is a no-op stub",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -45976,7 +46774,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer only in class A; class-B semantics unexplored",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -45993,13 +46791,22 @@
          "status": "confirmed",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44e8",
+         "address": "0x100e44e8",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
-       "notes": null
+       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
       },
       "Channel": {
-       "description": "Parsed input; class-A impl is a null stub (reads nothing), class-B impl is real (unexplored).",
-       "status": "inferred",
+       "description": "parsed by the request layer but never read - impl vfunc 0x100e44e8 is a no-op stub",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -46016,7 +46823,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer only in class A; class-B semantics unexplored",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -46033,13 +46840,22 @@
          "status": "confirmed",
          "address": "0x10fac460",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44e8",
+         "address": "0x100e44e8",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
-       "notes": null
+       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
       },
       "DesiredLoudness": {
-       "description": "Parsed input; class-A impl is a null stub (reads nothing), class-B impl is real (unexplored).",
-       "status": "inferred",
+       "description": "parsed by the request layer but never read - impl vfunc 0x100e44e8 is a no-op stub",
+       "status": "confirmed",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -46056,7 +46872,7 @@
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer only in class A; class-B semantics unexplored",
+       "validation": "no impl-level use or validation (stub impl)",
        "evidence": [
         {
          "type": "firmware",
@@ -46073,9 +46889,18 @@
          "status": "confirmed",
          "address": "0x10ed2a54",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44e8",
+         "address": "0x100e44e8",
+         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
         }
        ],
-       "notes": null
+       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
       }
      },
      "outputs": {},
@@ -46084,8 +46909,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "None in impl class A - vfunc is the null stub f_100e44e8. In impl class B it is f_1046d340 (grouped-operation prelude machinery).",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100e44e8",
+         "address": "0x100e44e8",
+         "notes": "base stub; derived f_1046d340"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -46212,7 +47048,7 @@
     },
     "SetMute": {
      "description": "Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -> +0x3c8, with a +0x7e0 -> +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b334",
@@ -46243,6 +47079,26 @@
         "site": "0x1073b3dc",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100db3fc",
+      "impl_variant_B": "0x1046e50c",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100db3fc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046e50c"
        }
       ]
      },
@@ -46400,8 +47256,19 @@
      "state_dependencies": "flags impl+0x7ff && impl+0x801 gate the +0x7e0->+0x7da snapshot on the Master path",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Writes mute byte impl+0x7f1..0x7f4 (Master/LF/RF/FocusMode) under mutex +0x938; on the Master path syncs +0x7e0->+0x7da when flags +0x7ff and +0x801 are both set, mirrors +0x7da->+0x3c8, commits via f_100d7f34, sets dirty flag +0x7f5=1 and notifies (f_1067c6ec on impl+8 arg 0x1f5, then f_100d993c).",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100db3fc",
+         "address": "0x100d9a24",
+         "notes": "stb desired,+0x7f1 at 0x100d9a24; sync at 0x100d9a3c; notify f_1067c6ec at 0x100d9a80"
+        }
+       ]
       }
      ],
      "events_triggered": "Two event/notify calls follow the write (f_1067c6ec at 0x100d9a80 on impl+8 with r10=0x1f5, then f_100d993c at 0x100d9a88); impl+0x7f5=1 marks rendering state dirty - consistent with LastChange eventing of Mute/Volume but the emitted payload is generated downstream (not statically recovered).",
@@ -46595,7 +47462,7 @@
     },
     "SetOutputFixed": {
      "description": "Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then conditional fills) and reads flags +0x7ff/+0x801 off an object in r4 - the impl signature differs from the standard (impl,instID,val) shape: it operates on a caller-supplied record and a second object.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b5b4",
@@ -46626,6 +47493,17 @@
         "site": "0x1073b634",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dcfc0",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dcfc0"
        }
       ]
      },
@@ -46672,7 +47550,7 @@
       },
       "DesiredFixed": {
        "description": "Requested fixed-output state; arrives in the impl's record-building convention (impl zeroes a 0x34 record at r3 and reads flags +0x7ff/+0x801 from an object in r4).",
-       "status": "inferred",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -46706,6 +47584,15 @@
          "status": "confirmed",
          "address": "0x10f0af74",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcfc0",
+         "address": "0x100dcfc0",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": null
@@ -46717,8 +47604,19 @@
      "state_dependencies": "flags +0x7ff/+0x801 read on the target object",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Builds a 0x34-byte status record; when flags impl+0x7ff and impl+0x801 are both set the record is filled with the literal 'Cannot set volume in fixed output mode' (reused error text) and the call fails; otherwise it invokes this->vfunc[+0xe4] and requires a 0x34-byte reply.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcfc0",
+         "address": "0x100dd0b4",
+         "notes": "error-text path 0x100dd0b4; vfunc +0xe4 at 0x100dd050"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -46859,7 +47757,7 @@
     },
     "SetRelativeVolume": {
      "description": "Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c224",
@@ -46890,6 +47788,26 @@
         "site": "0x1073c2cc",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dcc44",
+      "impl_variant_B": "0x1046acf8",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dcc44"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046acf8"
        }
       ]
      },
@@ -47028,7 +47946,7 @@
      "outputs": {
       "NewVolume": {
        "description": "Resulting volume after the relative apply; emitted as i16/u16 from the stack out slot written by the worker chain.",
-       "status": "inferred",
+       "status": "strong",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -47059,6 +47977,15 @@
          "status": "confirmed",
          "address": "0x10f0b054",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcc44",
+         "address": "0x100dcc44",
+         "notes": "impl body disasm - arg role per action docs"
         }
        ],
        "notes": "Out-write site inside the worker chain is unresolved (worker writes u16 at its own stack slot 0x12 via f_100da1e0; exact propagation to this out arg not yet traced)."
@@ -47069,8 +47996,19 @@
      "state_dependencies": "flag impl+0x7ff != 0 suppresses the write (shared worker)",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Arg-remapping thunk into shared worker f_100dcb00 with mode flags (1,0) appended - relative and absolute volume share one code path; worker semantics as documented under SetVolume.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcc44",
+         "address": "0x100dcc44",
+         "notes": "thunk sets r4=1,r6=0 then branches to f_100dcb00"
+        }
+       ]
       }
      ],
      "events_triggered": "none statically visible",
@@ -47189,7 +48127,7 @@
     },
     "SetRoomCalibrationStatus": {
      "description": "ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073b6cc",
@@ -47221,7 +48159,19 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_variant_B": "0x1046cacc",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1046cacc"
+       }
+      ],
+      "impl_function": "0x1046cacc"
      },
      "inputs": {
       "InstanceID": {
@@ -47265,8 +48215,8 @@
        "notes": null
       },
       "RoomCalibrationEnabled": {
-       "description": "Requested calibration state; consumed by the derived-class impl (vtable B only).",
-       "status": "inferred",
+       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "status": "strong",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -47300,6 +48250,15 @@
          "status": "confirmed",
          "address": "0x10f0af5c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x1046cacc",
+         "address": "0x1046cb28",
+         "notes": "event-record field reads at impl entry"
         }
        ],
        "notes": null
@@ -47311,8 +48270,19 @@
      "state_dependencies": "unknown",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Derived-class-only impl f_1046cacc: an rc_impl_stp.cxx event consumer - parses a RenderingControlSetEqActionEvent record ('%s:%u' log) and processes it through the state-machine onEvent path. No base-class impl exists.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "",
+         "address": "0x1046cb28",
+         "notes": "log 'process RenderingControlSetEqActionEvent %s:%u' at 0x1046cb20"
+        }
+       ]
       }
      ],
      "events_triggered": "unknown",
@@ -47461,7 +48431,7 @@
     },
     "SetTreble": {
      "description": "NEUTERED ACTION: impl vfunc +0x3c is f_100d65f4 (same null stub as GetBass) in both vtables - performs nothing, returns r3 = impl pointer with stale cr0. The action has no outputs, so a successful emit commits an empty OK response while doing nothing.",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c5e0",
@@ -47492,6 +48462,17 @@
         "site": "0x1073c660",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100d65f4",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100d65f4"
        }
       ]
      },
@@ -47583,8 +48564,19 @@
      "state_dependencies": "none - no state gating observed beyond argument checks",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "None - impl vfunc is the 3-instruction null stub f_100d65f4 in BOTH impl classes; DesiredTreble is discarded.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100d65f4",
+         "address": "0x100d65f4",
+         "notes": "both vtable slots +0x3c resolve to the stub"
+        }
+       ]
       }
      ],
      "events_triggered": "none",
@@ -47703,7 +48695,7 @@
     },
     "SetVolume": {
      "description": "Sets the Master-channel volume via shared worker f_100dcb00: locks impl+0x938, reads flag impl+0x7ff (nonzero -> skip the write entirely and return), resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then selects a u16-indexed table entry (0x10e87578 + desired*4, field +0x11c) and logs 'vol:%u src:%s'.",
-     "status": "inferred",
+     "status": "strong",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c0e4",
@@ -47734,6 +48726,26 @@
         "site": "0x1073c18c",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dcb00",
+      "impl_variant_B": "0x10472250",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dcb00"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x10472250"
        }
       ]
      },
@@ -47876,8 +48888,19 @@
      "state_dependencies": "flag impl+0x7ff != 0 suppresses the write entirely (fixed-output/locked mode)",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "Shared worker f_100dcb00 under mutex +0x938: flag impl+0x7ff nonzero -> silent no-op; else resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then uses the requested value to index a u16 table at 0x10e87578 (+0x11c field) before logging 'vol:%u src:%s'. Values <2 take an alternate path.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcb00",
+         "address": "0x100dcb50",
+         "notes": "flag gate 0x100dcb50; Master literal 0x100dcba4; LUT index 0x100dcbe4"
+        }
+       ]
       }
      ],
      "events_triggered": "none statically visible in this worker (downstream apply may event - unresolved)",
@@ -48012,7 +49035,7 @@
     },
     "SetVolumeDB": {
      "description": "ANOMALY: the impl slot (+0x28) points at f_100dcc84 - a function that ignores all arguments, XOR-toggles the Master mute byte (impl+0x7f1 ^= 1), syncs the volume mirror (+0x7da->+0x3c8 when flag +0x7ff is clear), applies state via f_100d7f34, sets dirty +0x7f5 and logs 'ButtonSetMute on:%d src:%s'. In the derived class B the slot is 0x1047241c (a real, unexplored function). In class A the SOAP action behaves as a Master-mute toggle regardless of arguments.",
-     "status": "inferred",
+     "status": "confirmed",
      "visibility": "advertised",
      "reachability": null,
      "handler": "0x1073c38c",
@@ -48043,6 +49066,26 @@
         "site": "0x1073c434",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "impl_function": "0x100dcc84",
+      "impl_variant_B": "0x1047241c",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10e872f0",
+        "notes": "base rc_impl vtable entry -> 0x100dcc84"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10ed279c",
+        "notes": "derived rc_impl vtable entry -> 0x1047241c"
        }
       ]
      },
@@ -48176,11 +49219,22 @@
      "state_dependencies": "flag impl+0x7ff==0 enables the +0x7da->+0x3c8 mirror sync; impl class A vs B changes behavior entirely",
      "side_effects": [
       {
-       "description": "impl-level side effect not traced",
-       "status": "inferred"
+       "description": "IMPL-CLASS ANOMALY: in class A the slot is f_100dcc84, the ButtonToggleMute handler - it toggles mute byte impl+0x7f1 ignoring DesiredVolume, commits +0x7da->+0x3c8 via f_100d7f34, dirty-marks +0x7f5 and notifies f_1067c6ec. In class B, f_1047241c runs a 'Master'-literal volume ctx via f_100d6630 and conditionally delegates to the same button handler.",
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "function": "0x100dcc84",
+         "address": "0x100dccb8",
+         "notes": "xori +0x7f1,1 toggle at 0x100dccb8; ButtonToggleMute log at 0x100dcd18"
+        }
+       ]
       }
      ],
-     "events_triggered": "event emission not traced for this action",
+     "events_triggered": "In class A the impl is the ButtonToggleMute path which marks +0x7f5 dirty and calls f_1067c6ec on impl+8 (notify channel); the derived-class variant adds the grouped-operation prelude before the same path",
      "state_transitions": "CLASS A: Master mute byte flips on every invocation",
      "return_behavior": "Success is signaled by the implementation leaving cr0.eq=1 at return (the callee performs a cr0-writing op such as 'mr. r30,r3' on its status); the wrapper then emits outputs via req vfunc +0x24 and commits via +0x14. Any other path calls req vfunc +0x14 with r4 = implementation return code, producing a SOAP fault whose numeric code equals the impl return value. In class A the action commits after toggling mute - i.e. SOAP SetVolumeDB appears as a mute toggle, not a volume write.",
      "fault_sites": [
