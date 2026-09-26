@@ -578,7 +578,56 @@
         ]
       }
     ],
-    "registration_records": "f_101953c8 builds a 0x18-stride record array on its stack: {svc-ptr, control-path ptr, service-name ptr, flags/capability word, capability byte (read from ctx+0x5704/0x571c)}. Confirmed svc members: CD=ctx-0x598, GRC=ctx-0x5b0, VLI=ctx-0x580, HT=ctx-0x2af0, MS=ctx-0x2ff0, plus ctx-0x2d90/-0x2eb8/-0x5a4/-0x58c/-0x5c8."
+    "registration_records": "f_101953c8 builds a 0x18-stride record array on its stack: {svc-ptr, control-path ptr, service-name ptr, flags/capability word, capability byte (read from ctx+0x5704/0x571c)}. Confirmed svc members: CD=ctx-0x598, GRC=ctx-0x5b0, VLI=ctx-0x580, HT=ctx-0x2af0, MS=ctx-0x2ff0, plus ctx-0x2d90/-0x2eb8/-0x5a4/-0x58c/-0x5c8.",
+    "http_route_table": {
+      "status": "confirmed",
+      "address": "0x11090c00",
+      "stride": 28,
+      "layout": "{cstr* path, fn* handler, u32 aux0, u32 aux1, u32 aux2, u32 aux3, u32 aux4}",
+      "description": "Top-level HTTP route registration: native diagnostic endpoints + UPnP catch-alls. All 23 SOAP /Control paths dispatch to the unified handler f_105e8274 (which then does service+action dispatch via the impl-vtable layer); all /Event paths dispatch to GENA subscribe handler f_105e8290.",
+      "routes": [
+        {
+          "path": "/status",
+          "handler": "0x105ebb20",
+          "note": "diagnostic UI dispatcher -> 59-entry sub-table at 0x110908c8"
+        },
+        {
+          "path": "/dsp",
+          "handler": "0x100ba73c"
+        },
+        {
+          "path": "/raw",
+          "handler": "0x105ea98c",
+          "aux": "0x10000000"
+        },
+        {
+          "path": "/api",
+          "handler": "0x100d2cf8",
+          "note": "REST API root"
+        },
+        {
+          "path": "/musedebug",
+          "handler": "0x100ba010"
+        },
+        {
+          "path": "/device_account",
+          "handler": "0x1065bd70",
+          "aux": "0x100"
+        }
+      ],
+      "control_handler": "0x105e8274",
+      "event_handler": "0x105e8290",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x11090c00",
+          "notes": "route table; /Control x23 -> f_105e8274, /Event -> f_105e8290"
+        }
+      ]
+    }
   },
   "request_vtable": {
     "0x08": "parse/validate args (rc -> 402)",
