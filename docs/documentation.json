@@ -101119,6 +101119,16 @@
       "ops": "addSatellite(map)/removeHTSatellite + separateBondedZoneKeepPlaying graceful unbond; RemoteHTSwapStateChangedEvent (surround L/R swap); bonded->primary default-loudness",
       "dsp": "dsp_preset_satellite.xml + dsp_system_satellite.bin + satellite_processor.bin \u2014 satellite-specific DSP chains",
       "tz": "timezone DB from update-timezone.sonos.com/timezone/timezones.xml"
+    },
+    "topology_engine": {
+      "status": "confirmed",
+      "impl": "topology.cxx -> RDeviceTopology",
+      "monitor": "TopologyMonitorProbe \u2014 active member probing: 'Probed wrong device (IP mismatch?)'; 'purge unresponsive ZP %s (%d)' \u2014 evicts dead members",
+      "consistency": "validators: 'invalid topology state, empty pid/gid'; 'inconsistent topology state, invalid gc or pid count'; 'Topology state not consistent, retrying'",
+      "triggers": "monitor starts on: bonded-zone creation, becoming HT primary, coordinator change; stops on zone teardown",
+      "recovery": "'regrouping orphaned secondary', 'recoverBondedZone retrying (ct=%u)', 'reconnectHTSatellites retry in 10 secs as topology hasn't settled'",
+      "state": "ZoneGroupState + 'Total topology members: %zu'; [snapshot] mechanism builds target list from topology",
+      "reports": "topology_events_report.cxx emits ZGT change reports; /topology status endpoint"
     }
   }
 }
