@@ -40149,7 +40149,7 @@
      "notes": "saved-queue shim loads singleton 0x11096770 as worker `this`"
     }
    ],
-   "notes": "None Impl provenance: *(svc+4) resolves to the queue-manager singleton at global 0x11096770 (the same `this` pointer passed to all 0x1047xxxx saved-queue workers by the AVTransport impl shims at 0x102bd048/0x102bd140/0x102bd238). Companion global 0x11096774 holds a refcounted session token: *(token+4) is atomically incremented (stwcx.) before each worker call and released with f_100c5050 afterwards; a null token degrades to a plain tail call. Queue-manager vtable resolved: 0x10ed1bcc (ctor f_10465fac, log tag Queue). All action vfuncs +0x08..+0x30 forward to the shared queue engine at *(qm+0x128) - the same engine workers AVTransport queue ops use (f_102b6948 AddURI, f_102b3a84 RemoveAllTracks): the two services are SOAP facades over one queue engine."
+   "notes": "None Impl provenance: *(svc+4) resolves to the queue-manager singleton at global 0x11096770 (the same `this` pointer passed to all 0x1047xxxx saved-queue workers by the AVTransport impl shims at 0x102bd048/0x102bd140/0x102bd238). Companion global 0x11096774 holds a refcounted session token: *(token+4) is atomically incremented (stwcx.) before each worker call and released with f_100c5050 afterwards; a null token degrades to a plain tail call. Queue-manager vtable resolved: 0x10ed1bcc (ctor f_10465fac, log tag Queue). All action vfuncs +0x08..+0x30 forward to the shared queue engine at *(qm+0x128) - the same engine workers AVTransport queue ops use (f_102b6948 AddURI, f_102b3a84 RemoveAllTracks): the two services are SOAP facades over one queue engine. All four playlist-format workers share one skeleton: playlist log tag + iterateXxxPlayList %s, fetch through the stream abstraction (f_10545064 open / f_10546520 read / f_1054103c close), per-entry job submission on shared delegate machinery. Formats: ASX (asx/wax/wmx), M3U (m3u8/m3u), PLS, WPL (logged as WLP)."
   },
   "/MediaRenderer/RenderingControl/Control": {
    "name": "RenderingControl",
@@ -73342,6 +73342,54 @@
    ],
    "description": "Delegate-object initializer invoked by the per-entry job ctors (0x10ed1750/0x10ed1770 vtables).",
    "why_external": "Shared init of playlist entry job objects",
+   "status": "strong"
+  },
+  "0x10461e04": {
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10461e04",
+     "notes": "function body / call context decoded"
+    }
+   ],
+   "description": "ASX/WAX/WMX playlist expansion worker - same skeleton as the M3U worker: playlist log tag, iterateASXPlayList %s, stream open via f_10545064, per-entry job submission on the shared delegate machinery.",
+   "why_external": "Expansion target for asx/wax/wmx URIs from classifier f_104634c4",
+   "status": "strong"
+  },
+  "0x10463164": {
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10463164",
+     "notes": "function body / call context decoded"
+    }
+   ],
+   "description": "PLS playlist expansion worker - same skeleton: iteratePLSPlayList %s, stream open via f_10545064.",
+   "why_external": "Expansion target for pls URIs from classifier f_104634c4",
+   "status": "strong"
+  },
+  "0x10462f54": {
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10462f54",
+     "notes": "function body / call context decoded"
+    }
+   ],
+   "description": "WPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064.",
+   "why_external": "Expansion target for wpl URIs from classifier f_104634c4",
    "status": "strong"
   }
  },
