@@ -83245,7 +83245,7 @@
     },
     "alarm_store_object": {
       "status": "confirmed",
-      "description": "AlarmClock store object: new(0x8118) multi-base class constructed by f_10276048 during zone-player init (0x1018e8a4 in f_1018d27c), passed to the service via shared_ptr {px=r30-0x5590, pn=r30-0x558c} into svc+0x4 by ctor f_10735460. Ctor writes a stub vtable (0x10eaa78c, all slots -> f_10809540 pure-virtual handler) then overwrites obj+0 with the real primary vtable 0x10eaa99c and installs ~20 secondary sub-vptrs (0x10eaa7dc family at +0x4, +0x11c..+0x7f2c). Primary vtable slots mirror the SOAP op set: +0x08 SetFormat f_1027a410, +0x0c GetFormat f_10272f90, +0x10 SetTimeZone f_1027cf5c, +0x14 GetTimeZone f_10273020, +0x18 GetTimeZoneAndRule f_102731b4, +0x1c GetTimeZoneRule f_10273280, +0x20 SetTimeServer f_1027a64c, +0x24 GetTimeServer f_10273090, +0x28 SetTimeNow f_10272f60 (dead: return 401), +0x2c GetHouseholdTimeAtStamp f_10272f70 (dead: return 401), +0x30 GetTimeNow f_10273340, +0x34 CreateAlarm f_1027a980, +0x38 UpdateAlarm f_1027ac80, +0x3c DestroyAlarm f_1027b134, +0x40 SetDailyIndexRefreshTime f_1027d0c4, +0x44 GetDailyIndexRefreshTime f_102730fc, +0x48 ListAlarms serializer f_10273538, +0x4c f_102764f8. The same object backs the internal alarm engine (m_alarms vector, alarmclock.xml persistence, scheduling workers f_1027b268/f_1027be4c/f_102791f8/f_102794a0/f_102754e4/f_102766c8).",
+      "description": "AlarmClock store object: new(0x8118) multi-base class constructed by f_10276048 during zone-player init (0x1018e8a4 in f_1018d27c), passed to the service via shared_ptr {px=r30-0x5590, pn=r30-0x558c} into svc+0x4 by ctor f_10735460. Ctor writes a stub vtable (0x10eaa78c, all slots -> f_10809540 pure-virtual handler) then overwrites obj+0 with the real primary vtable 0x10eaa99c and installs ~20 secondary sub-vptrs (0x10eaa7dc family at +0x4, +0x11c..+0x7f2c). Primary vtable slots mirror the SOAP op set: +0x08 SetFormat f_1027a410, +0x0c GetFormat f_10272f90, +0x10 SetTimeZone f_1027cf5c, +0x14 GetTimeZone f_10273020, +0x18 GetTimeZoneAndRule f_102731b4, +0x1c GetTimeZoneRule f_10273280, +0x20 SetTimeServer f_1027a64c, +0x24 GetTimeServer f_10273090, +0x28 SetTimeNow f_10272f60 (dead: return 401), +0x2c GetHouseholdTimeAtStamp f_10272f70 (dead: return 401), +0x30 GetTimeNow f_10273340, +0x34 CreateAlarm f_1027a980, +0x38 UpdateAlarm f_1027ac80, +0x3c DestroyAlarm f_1027b134, +0x40 SetDailyIndexRefreshTime f_1027d0c4, +0x44 GetDailyIndexRefreshTime f_102730fc, +0x48 ListAlarms serializer f_10273538, +0x4c f_102764f8. The same object backs the internal alarm engine (m_alarms vector, alarmclock.xml persistence, scheduling workers f_1027b268/f_1027be4c/f_102791f8/f_102794a0/f_102754e4/f_102766c8). Additional internals decoded: f_10279c0c = ac_impl.cxx alarm-record deserializer called by all 10 mutation/read vfuncs (parses the XML alarm doc into the store working buffer at obj+0x170, doc-builder vtable 0x10eaa90c at sp+0x210, iterates m_alarms list head *(store+0x7f08)); m_alarms member confirmed at *(store+0x7f08). f_109b6fe4/f_109b72ac = log-level-gate/log-emit pair; f_10988268 = assert-with-__FILE__+line (source path ../anacapa-1.0/oc/zone/zoneplayer/ac_impl.cxx).",
       "evidence": [
         {
           "type": "firmware",
@@ -83286,6 +83286,14 @@
           "status": "confirmed",
           "address": "0x10735460",
           "notes": "svc ctor: svc+0x4 = shared_ptr px"
+        },
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "address": "0x10279c0c",
+          "notes": "ac_impl.cxx deserializer; 10 callers in store vfuncs; m_alarms at +0x7f08"
         }
       ],
       "notes": "Setter vfuncs use accumulator-rc convention (r27-r31 seeded from args/call results, single shared epilogue). Six getter vfuncs proven always-0 (single blr + li r3,0, no out-branches). Two dead vfuncs proven (401 stubs). SOAP impl vfuncs forward store rc verbatim to req->v[+0x14]."
