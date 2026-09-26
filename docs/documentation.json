@@ -74829,7 +74829,23 @@
                 "address": "0x10f113dc",
                 "notes": "desc entry RegisterMobileDevice id=0x15 -> impl vfunc idx 5"
               }
-            ]
+            ],
+            "worker": {
+              "func": "0x106ea0f8",
+              "via": "impl vfunc f_10732ebc -> req->v[+0x0c] -> bound op worker",
+              "behavior": "builds outbound registration XML via f_106fe328 (doc ctor w/ RegisterMobileDevice+service-type); for each of MobileDeviceName/UDN/MobileIPAndPort: f_10562388 element-lookup + element->v[+0x10] set-value; values arrive pre-bound in r4/r5/r6 with no in-worker presence checks",
+              "worker_class": {
+                "vtable": "0x10f0918c",
+                "group": "0x10f09164",
+                "ctor": "0x106ea5ac",
+                "secondary_vtables": [
+                  "0x10f08fb0",
+                  "0x10f09034",
+                  "0x10f09244"
+                ],
+                "slot": "+0x1c"
+              }
+            }
           },
           "inputs": {
             "MobileDeviceName": {
@@ -74864,7 +74880,8 @@
               "special_values": "none identified",
               "default": "none - required argument",
               "validation": "consumed by the impl vfunc",
-              "accepted_values": "impl-side grammar applies"
+              "accepted_values": "impl-side grammar applies",
+              "knowledge": "; bound positionally into worker f_106ea0f8 (r4/r5/r6) by req layer; no argspec or per-arg required flag exists in binary; worker performs no presence checks"
             },
             "MobileDeviceUDN": {
               "status": "strong",
@@ -74898,7 +74915,8 @@
               "special_values": "none identified",
               "default": "none - required argument",
               "validation": "consumed by the impl vfunc",
-              "accepted_values": "impl-side grammar applies"
+              "accepted_values": "impl-side grammar applies",
+              "knowledge": "; bound positionally into worker f_106ea0f8 (r4/r5/r6) by req layer; no argspec or per-arg required flag exists in binary; worker performs no presence checks"
             },
             "MobileIPAndPort": {
               "status": "strong",
@@ -74932,7 +74950,8 @@
               "special_values": "none identified",
               "default": "none - required argument",
               "validation": "consumed by the impl vfunc",
-              "accepted_values": "impl-side grammar applies"
+              "accepted_values": "impl-side grammar applies",
+              "knowledge": "; bound positionally into worker f_106ea0f8 (r4/r5/r6) by req layer; no argspec or per-arg required flag exists in binary; worker performs no presence checks"
             }
           },
           "outputs": {},
@@ -75882,7 +75901,25 @@
           "notes": "service dispatcher"
         }
       ],
-      "notes": null
+      "notes": null,
+      "implementation": {
+        "impl_vtable": {
+          "addr": "0x10f113b8",
+          "layout": "vfunc offset = action_id - 9; slot+0x00 = dispatcher f_10732ff8",
+          "slots": {
+            "0x00": "f_10732ff8 (dispatcher)",
+            "0x04": "f_1073331c CheckForUpdate (id 0xd)",
+            "0x08": "f_10733140 BeginSoftwareUpdate (id 0x11)",
+            "0x0c": "f_10732ebc RegisterMobileDevice (id 0x15) - req->v[+0x0c] trampoline",
+            "0x10": "f_10733498 ReportUnresponsiveDevice (id 0x19)",
+            "0x14": "f_107337cc ReportAlarmStartedRunning (id 0x1d)",
+            "0x18": "f_1073365c SubmitDiagnostics (id 0x21)",
+            "0x1c": "f_10733878 GetZoneGroupAttributes (id 0x25)",
+            "0x20": "f_10732ed8 GetZoneGroupState (id 0x29)"
+          },
+          "evidence": "disasm dispatcher 0x10732ff8 vtable-index dispatch (id odd -> *(vptr+id-9) vfunc); table dump 0x10f113b8"
+        }
+      }
     }
   },
   "capabilities": {
@@ -83074,6 +83111,14 @@
       "dispatch": "handlers call store->v[slot] directly (SP: GetString +0xc f_1017fbcc, SetString +0x8 f_101939a4, Remove +0x10 f_10188024); SP action impl vfuncs are adjuster thunks into the same worker family (f_101981f0/f_10193708/f_101939a4/f_10188024/f_1017fbcc)",
       "vtable": "0x10e97e10 (slice)",
       "evidence": "disasm 0x10e97e10 vtable dump; handler impl_calls obj=*(r3-in+0x4)"
+    },
+    "rmd_op_worker_class": {
+      "name": "RegisterMobileDevice outbound-op worker class",
+      "vtable": "0x10f0918c (primary); group descriptor 0x10f09164; secondary bases 0x10f08fb0/0x10f09034/0x10f09244",
+      "ctor": "f_106ea5ac",
+      "methods": "+0x00 f_106ea5ac? (ctor-installed table slots: +0x00 f_106ea5ac? no - +0x00 f_106ea5ac is the ctor itself; vtable slots +0x00..+0x2c: f_106ea5ac? see doc)",
+      "note": "slots: +0x00 f_106ea5ac(ctor ref), +0x04 f_106c7ba4, +0x08 f_106ea33c, +0x0c f_106e9ec0, +0x10 f_106e9814, +0x14 f_106e9494, +0x18 f_106e9a24, +0x1c f_106ea0f8 (RMD marshaller), +0x20 f_106e9c50, +0x24 f_1012b9b4, +0x28 f_106e963c, +0x2c f_106e91e4",
+      "evidence": "rodata table dump 0x10f0918c; ctor disasm f_106ea5ac installs vptr"
     }
   }
 }
