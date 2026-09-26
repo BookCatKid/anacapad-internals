@@ -65,7 +65,27 @@ native IPC buses.
   specific bonded-zone member (stereo pair / HT satellite) via the
   coordinator proxy.
 - **Hidden/stub actions** — AudioIn dispatcher (`0x1073d8f8`) is a
-  reject-all stub emitting 401 in this build.
+  reject-all stub emitting 401 in this build; its 6 SCPD-advertised actions
+  are unimplemented and the service is absent from `serviceList`.
+- **Advertised vs dispatched** — the SCPD serviceList advertises **207**
+  actions across 17 service instances (ConnectionManager counted once but
+  served by both MediaServer and MediaRenderer); the binary dispatches
+  **199**. The 8-action delta is fully accounted: 6 AudioIn stub actions +
+  2 SystemProperties actions **removed** in 86.10.
+- **Service descriptions (SCPD)** — `device_description.xml` (htdocs, the
+  served `#TOKEN#` template with 35 substitution tokens) **does** advertise
+  16 `<SCPDURL>/xml/<Svc>1.xml` entries. The SCPDs are the authoritative
+  argument source — they resolved the 41-input gap in the four bulk/group
+  actions the extractor could not reach via the parse-descriptor layer.
+  ContentDirectory's `serviceType` is a `#CD_NAMESPACE#` runtime token
+  (upnp-org vs sonos-com), matching the `firmware_differences` URN records.
+- **Removed actions (firmware diff)** — `ProvisionCredentialedTrialAccountX`
+  (in `{AccountType,AccountID,AccountPassword}`, out `{IsExpired,AccountUDN}`)
+  and `ResetThirdPartyCredentials` are advertised in `SystemProperties1.xml`
+  but absent from the 86.10 dispatch table: the former's name string is
+  entirely missing, the latter's is a dead string (`0x10f184cc`, zero refs).
+  The SystemProperties name-table at `0x10f110f0` (stride `0xc`,
+  `{name_ptr,action_id,0}`) holds the surviving 15 actions.
 
 ## 3. Eventing
 
@@ -187,8 +207,12 @@ Three distinct mechanisms:
 
 ## 9. Confirmed negatives
 
-- **No SCPD** — no `SCPDURL` element; Sonos omits service descriptions from
-  the served device document entirely.
+- **AudioIn not advertised** — `AudioIn1.xml` exists as a file but the service
+  is omitted from `serviceList` and its dispatcher rejects all actions (401).
+  (Correction: the earlier "no SCPDURL" claim was wrong — the served
+  `device_description.xml` htdocs template *does* advertise 16 SCPDs; the
+  error came from grepping the binary's generated-doc path rather than the
+  htdocs file that is actually served.)
 - **No netstart2 / MRPC in anacapad** — the IPC surface is present as a
   client of the separate `netstartd` daemon, not an implementation.
 - **`sp_<md5>` literals** — esdk per-module log-channel hashes, not protocol

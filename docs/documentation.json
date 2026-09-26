@@ -9445,7 +9445,20 @@
         "zoneplayer/ai_impl_base.cxx",
         "zoneplayer/spotify/ai_spotify.cxx",
         "zoneplayer/extaudiosrc.cxx"
-      ]
+      ],
+      "advertised_actions_not_implemented": {
+        "description": "AudioIn1.xml SCPD advertises 6 actions {StartTransmissionToGroup,StopTransmissionToGroup,SetAudioInputAttributes,GetAudioInputAttributes,SetLineInLevel,GetLineInLevel} but the service is NOT in device_description's serviceList and its dispatcher 0x1073d8f8 rejects every action with 401 \u2014 a registered stub (control surface present, impl removed/gated).",
+        "status": "confirmed",
+        "evidence": [
+          {
+            "type": "firmware",
+            "binary": "anacapad",
+            "build": "86.10-80260",
+            "status": "confirmed",
+            "notes": "AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8"
+          }
+        ]
+      }
     },
     "/DeviceProperties/Control": {
       "name": "DeviceProperties",
@@ -51562,7 +51575,7 @@
       },
       "actions": {
         "AddMultipleURIs": {
-          "description": "Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x2c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "description": "Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x2c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).",
           "status": "strong",
           "visibility": "internal",
           "reachability": "hidden-callable",
@@ -51614,7 +51627,7 @@
                 "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
               }
             ],
-            "engine_resolution": "shared_primitives.queue_engine - engine vtable 0x10e97d30 statically bound at zp+0x1934/qm+0x128"
+            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref"
           },
           "inputs": {
             "QueueID": {
@@ -52109,7 +52122,7 @@
             {
               "code": null,
               "code_expr": "vret",
-              "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xd8; engine vtable not yet resolved; impl = 7-insn forwarder",
+              "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xd8; queue-engine vfunc on resolved engine vtable 0x10e97d30; concrete code set is the engine worker's return domain; impl = 7-insn forwarder",
               "status": "strong",
               "fault_sites": [
                 "0x10464f34"
@@ -56435,7 +56448,7 @@
           "notes": null
         },
         "ReplaceAllTracks": {
-          "description": "Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x30](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+          "description": "Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x30](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).",
           "status": "strong",
           "visibility": "internal",
           "reachability": "hidden-callable",
@@ -56487,7 +56500,7 @@
                 "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
               }
             ],
-            "engine_resolution": "shared_primitives.queue_engine - engine vtable 0x10e97d30 statically bound at zp+0x1934/qm+0x128"
+            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref"
           },
           "inputs": {
             "QueueID": {
@@ -56918,7 +56931,7 @@
             {
               "code": null,
               "code_expr": "vret",
-              "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xdc; engine vtable not yet resolved",
+              "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xdc; queue-engine vfunc on resolved engine vtable 0x10e97d30; concrete code set is the engine worker's return domain",
               "status": "strong",
               "fault_sites": [
                 "0x10465090"
@@ -57084,7 +57097,7 @@
                 "notes": "queue-manager vfunc in vtable 0x10ed1bcc"
               }
             ],
-            "engine_resolution": "shared_primitives.queue_engine - engine vtable 0x10e97d30 statically bound at zp+0x1934/qm+0x128"
+            "engine_resolution": "queue-engine sub-object via impl+0x124 (vtable 0x10e98098); engine vptr bounded to 0x10e97dXX/0x10e980XX secondary-vtable family \u2014 exact base pending init-wiring xref"
           },
           "inputs": {
             "QueueID": {
@@ -86120,7 +86133,26 @@
         "common/netsettings_mgr.cxx",
         "oc/common/src/devmode.cxx",
         "zoneplayer/sharelist.cxx"
-      ]
+      ],
+      "dispatch": {
+        "kind": "name-table",
+        "table_addr": "0x10f110f0",
+        "entry_stride": "0xc",
+        "entry_shape": "{name_ptr,action_id,0}",
+        "entries": "15 sorted: AddAccountX=29,AddOAuthAccountX=33,DoPostUpdateTasks=61,EditAccountMd=53,EditAccountPasswordX=41,EnableRDM=65,GetRDM=69,GetString=13,GetWebCode=25,RefreshAccountCredentialsX=49,Remove=21,RemoveAccount=37,ReplaceAccountX=57,SetAccountNicknameX=45,SetString=17",
+        "note": "name->action_id map; action_id is the SOAP request dispatch key; ProvisionCredentialedTrialAccountX+ResetThirdPartyCredentials absent (removed in 86.10)",
+        "status": "confirmed",
+        "evidence": [
+          {
+            "type": "firmware",
+            "binary": "anacapad",
+            "build": "86.10-80260",
+            "status": "confirmed",
+            "address": "0x10f110f0",
+            "notes": "name-table"
+          }
+        ]
+      }
     },
     "/ZoneGroupTopology/Control": {
       "name": "ZoneGroupTopology",
@@ -99711,8 +99743,8 @@
     "device_description": {
       "status": "confirmed",
       "tokens": "#UUID# #HOST# #SW_VERSION# #SW_GENERATION# #SW_MINCOMPATVER# #SW_LEGACYCOMPATVER# \u2014 template substitution into the root descriptor",
-      "note": "no SCPDURL \u2014 Sonos omits service descriptions from the served device document (confirmed-absent)",
-      "description": "UPnP root device-description template + substitution tokens",
+      "note": "device_description.xml (htdocs) IS the served #TOKEN# template \u2014 substitutes 35 tokens (#UUID#,#HOST#,#MODEL#,#SW_VERSION#,#SW_GENERATION#,#SW_MINCOMPATVER#,#SW_LEGACYCOMPATVER#,#MAC_ADDRESS#,#SERIAL_NUM#,#API_VERSION#,#MIN_API_VERSION#,#DISPLAY_VERSION#,#EXTRA_VERSION#,#NS_VERSION#,#HW_VERSION#,#ZONETYPE#,#CD_NAMESPACE#,#MEDIASERVER_NAMESPACE#,#VENDOR_NAME#,#DISPLAY_NAME#,#VARIANT#,#RETAIL_MODE#,#HHSSL_PORT#,#SSL_PORT#,#MUSE_API_VERSIONS#,#NODE_PROTO_VERSIONS#,#HTA_FRAME_VERSIONS#,#TRUEPLAY_SDK_VERSIONS#,#AMP_ONTIME#,#INT_SPEAKER_SIZE#,#MEMORY#,#FLASH#,#QPLAY_SUPPORT#,#API_VERSION#). It DOES advertise SCPDs \u2014 16 <SCPDURL>/xml/<Svc>1.xml elements. AudioIn is NOT in the advertised serviceList (consistent with its reject-all stub). ContentDirectory serviceType is the #CD_NAMESPACE# runtime token (upnp-org vs sonos-com CD namespace substituted per build).",
+      "description": "UPnP root device-description htdocs template + 35 substitution tokens; advertises 16 SCPD service descriptions",
       "evidence": [
         {
           "type": "firmware",
@@ -99721,7 +99753,8 @@
           "status": "confirmed",
           "notes": "rodata template literals"
         }
-      ]
+      ],
+      "advertised_services": "16: AlarmClock,MusicServices,DeviceProperties,SystemProperties,ZoneGroupTopology,GroupManagement,HTControl,QPlay,ContentDirectory(#CD_NAMESPACE#),ConnectionManager(MS),RenderingControl,ConnectionManager(MR),AVTransport,Queue(sonos-com),GroupRenderingControl,VirtualLineIn \u2014 AudioIn absent (internal stub)"
     },
     "soap_envelope": {
       "status": "confirmed",
@@ -99755,6 +99788,22 @@
         }
       ],
       "description": "SOAPACTION HTTP header grammar: SOAPACTION: \"{serviceType}#{action}\" targeting the control endpoint"
+    },
+    "scpd": {
+      "status": "confirmed",
+      "description": "SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml \u2014 advertised via <SCPDURL> in device_description",
+      "files": "21 XML files in opt/htdocs/xml: 16 advertised SCPDs + AudioIn1.xml (unadvertised) + device_description.xml + group_description.xml + musicservices.xml + xsl",
+      "advertised_actions": "208 total actions across 16 services; 414 in-args, 206 out-args; state-variable tables per service",
+      "advertised_not_implemented": "ProvisionCredentialedTrialAccountX + ResetThirdPartyCredentials advertised in SystemProperties1.xml but REMOVED from 86.10 dispatch table (dead/absent name); AudioIn1.xml 6 actions advertised but service is a reject-all 401 stub",
+      "evidence": [
+        {
+          "type": "firmware",
+          "binary": "anacapad",
+          "build": "86.10-80260",
+          "status": "confirmed",
+          "notes": "opt/htdocs/xml/*.xml + device_description.xml SCPDURL"
+        }
+      ]
     }
   },
   "firmware_differences": {
@@ -99886,6 +99935,14 @@
         "builds": {
           "34.16": "58 routes",
           "57.10+": "59 routes"
+        }
+      },
+      {
+        "item": "SystemProperties removed actions",
+        "detail": "ProvisionCredentialedTrialAccountX{in:{AccountType,AccountID,AccountPassword},out:{IsExpired,AccountUDN}} + ResetThirdPartyCredentials{0 args} are advertised in SystemProperties1.xml (shared across all model SCPDs incl 86.10 htdocs) but were REMOVED from the 86.10 binary: ProvisionCredentialedTrialAccountX name is entirely absent; ResetThirdPartyCredentials name string exists at 0x10f184cc but has zero code/table references (dead). Neither is in the SystemProperties action-table at 0x10f110f0 (15 {name,id} entries). Account-provisioning surface reduced in 86.10.",
+        "builds": {
+          "SCPD(all)": "advertised",
+          "86.10": "removed from dispatch table"
         }
       }
     ],
@@ -100296,7 +100353,7 @@
           "notes": "shared_ptr attach helper; chain blocks are {px,pn} handles"
         }
       ],
-      "notes": "Engine vtable address not yet resolved - manager+0x128 write site not located in init scan. Engine vfuncs +0x7c/+0xd8/+0xdc rc domains open."
+      "notes": "Layout resolved: queue impl *(svc+4)=singleton 0x11096770; forwarders do this=*(impl+0x128) then vptr[+0xd8]/[+0xdc]/[+0x7c]. impl+0x128 self-points into the zone-player composite's embedded-base chain (vtable group 0x10e97d5c); the engine dispatch goes through manager+0x124 sub-object vtable 0x10e98098. The concrete engine vptr is bounded to the 0x10e97dXX/0x10e980XX secondary-vtable family; the exact base depends on which embedded base occupies +0x128 (init-wiring xref pending)."
     },
     "sp_store_object": {
       "name": "shared zone-settings store object (DP+SP)",
@@ -102063,7 +102120,7 @@
       "adjacent_surfaces": {
         "muse_async_command": "muse_async_command_handler_impl.cxx; '%s/api/v%d/%s'+'%s/v%d/%s' route formats; Bearer auth; cmdId dedup ('Duplicate cmdId','Invalid cmdId','Command was preempted by a newer command'); queue 'muse-async-cmdq-'; scopeAsyncMuse"
       },
-      "scpd_absent": "NO SCPDURL element \u2014 device description emits only {serviceType,controlURL,eventSubURL}; Sonos omits SCPD docs entirely (actions not self-described on-device); serviceList element present"
+      "scpd_present": "SCPDURL elements present in served device_description.xml \u2014 16 /xml/<Svc>1.xml service descriptions advertised (CORRECTED: earlier 'no SCPDURL' claim was wrong \u2014 it checked the binary's generated-doc path, but the served doc is the htdocs template which has SCPDURL)"
     },
     "upnp_client_stack": {
       "status": "confirmed",
