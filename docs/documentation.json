@@ -588,9 +588,10 @@
     "0x20": "get OPTIONAL in-arg record by name (absent tolerated, returns null/empty) - vs +0x1c required-lookup",
     "0x24": "get/create out-arg record by name",
     "0x38": "finalize",
-    "0x3c": "in-arg fetch (alternate)",
+    "0x3c": "arg-binding/parse step (called before +0x08 validate in wrapper f_10732ed8: v[+0x3c] then v[+0x08]->bool then v[+0x14] fault 402)",
     "confidence": "strong",
-    "evidence_note": "slot usage measured per-arg in SystemProperties handlers: account credential/metadata fields consistently use +0x20 (optional) while identity fields use +0x1c (required)"
+    "evidence_note": "slot usage measured per-arg in SystemProperties handlers: account credential/metadata fields consistently use +0x20 (optional) while identity fields use +0x1c (required); confirmed again by generated parse f_10731f28: AccountType via +0x1c, AccountID+AccountPassword via +0x20 (both layers)",
+    "architecture": "Two-layer model: (1) generic request object created by the SOAP engine carries the engine vtable (arg-record lookups at +0x1c/+0x20/+0x24, commit +0x0c, fault +0x14, finalize +0x38). (2) Per-action specialized req-classes (e.g. vtable 0x10f110a8 for AddAccountX) installed by impl vfuncs via stw vptr (e.g. f_10732e94); their generated parse methods (e.g. f_10731f28) call the generic layer's +0x1c/+0x20 by arg name - semantics consistent across both layers. Actions without specialized req-classes (e.g. RegisterMobileDevice via f_10732ebc) call the generic +0x0c execute directly -> no per-arg presence checks."
   },
   "services": {
     "/AlarmClock/Control": {
