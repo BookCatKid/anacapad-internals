@@ -44205,7 +44205,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
+       "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xd8; engine vtable not yet resolved; impl = 7-insn forwarder",
        "status": "strong",
        "fault_sites": [
         "0x10464f34"
@@ -44257,11 +44257,19 @@
          "status": "confirmed",
          "function": "0x102b62e8",
          "notes": "commit op rc preloads+forwards decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10465950",
+         "notes": "lwz *(r3+0x128) -> vfunc +0xd8 bctr"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x2c] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -44889,7 +44897,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x8)",
-       "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
+       "meaning": "worker f_102b6948 exit r30 - no literal defs; rc fully call-derived (enqueue chain)",
        "status": "strong",
        "fault_sites": [
         "0x104646d4"
@@ -44941,11 +44949,19 @@
          "status": "confirmed",
          "function": "0x102b62e8",
          "notes": "commit op rc preloads+forwards decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b6948",
+         "notes": "worker body; r30 accumulator derived"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x8] rc surfaced",
-        "unknown": "concrete codes for bad QueueID, stale UpdateID, URI validation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -45250,7 +45266,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 718 (missing container record, attach worker f_102b2cbc) or 0; gate *(engine+0x3dc)==0 fails earlier",
+       "meaning": "worker f_102b2da4 - exit producer not r3-adjacent; rc fully call-derived",
        "status": "strong",
        "fault_sites": [
         "0x104647b8"
@@ -45302,11 +45318,19 @@
          "status": "confirmed",
          "function": "0x102b2cbc",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b2da4",
+         "notes": "worker body; derived"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x1c] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -46355,7 +46379,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x14)",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 on two arg paths (incl. Title containing newline, verified in f_102dff24); 0 on success \u2014 bounded rc domain",
+       "meaning": "worker f_102dff24 exit accumulator r30 proven {402 x2 (0x102dff64/0x102e00f0), 0 (0x102e0050)} - fully bounded, no call-derived exits",
        "status": "strong",
        "fault_sites": [
         "0x10464ce8"
@@ -46399,11 +46423,35 @@
          "status": "confirmed",
          "function": "0x102dff24",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102dff64",
+         "notes": "li r30,0x192"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102e00f0",
+         "notes": "li r30,0x192"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102e0050",
+         "notes": "li r30,0"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x14] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "rc domain fully bounded {0,402}",
+        "unknown": null
        }
       },
       {
@@ -46721,7 +46769,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x18)",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 718 (queue-record lookup), 0x404=1028 (range/list mismatch), callee rc forwarded",
+       "meaning": "worker f_102b3a84: r28 accumulator arg-seeded (r4) + literal {718 (0x102b3b88), 1028 (0x102b3be0)}; AVT session lock pair wraps the op",
        "status": "strong",
        "fault_sites": [
         "0x104649cc"
@@ -46765,11 +46813,35 @@
          "status": "confirmed",
          "function": "0x102b3a84",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b3b88",
+         "notes": "li r28,0x2ce=718"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b3be0",
+         "notes": "li r28,0x404=1028"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b3acc",
+         "notes": "f_10557cac session lock acquire"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x18] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -47183,7 +47255,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x1c)",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 when the QueueID/UpdateID record args are null (gate 0x102b3954); worker f_102aca78: 402/800/718 sites decoded",
+       "meaning": "literal gate: r6==0 -> 402 (0x102b3960); else b-tail into worker at 0x102b396c (derived)",
        "status": "strong",
        "fault_sites": [
         "0x10464b58"
@@ -47235,11 +47307,19 @@
          "status": "confirmed",
          "function": "0x102aca78",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b3954",
+         "notes": "cmpwi r6,0 -> li r3,0x192 gate"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x1c] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -47701,7 +47781,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x20)",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 when any of the three record args is null (gate 0x102b3924); worker f_102accf0: 0x404=1028/800/718 sites decoded",
+       "meaning": "literal gate: r5==0 -> 402 (0x102b3930); else b-tail into worker at 0x102b393c (derived)",
        "status": "strong",
        "fault_sites": [
         "0x10464eb8"
@@ -47753,11 +47833,19 @@
          "status": "confirmed",
          "function": "0x102accf0",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102b3924",
+         "notes": "cmpwi r5,0 -> li r3,0x192 gate"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x20] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -48001,7 +48089,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 800 preloaded (0x102bd504); callee rc forwarded from the replace path",
+       "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xdc; engine vtable not yet resolved",
        "status": "strong",
        "fault_sites": [
         "0x10465090"
@@ -48045,11 +48133,19 @@
          "status": "confirmed",
          "function": "0x102bd4f0",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10465974",
+         "notes": "lwz *(r3+0x128) -> vfunc +0xdc bctr"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x30] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -48412,7 +48508,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x24)",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 800 on nonzero InstanceID (quirk: NOT 718 \u2014 gate f_10465f7c loads 0x320); shared SaveQueue worker f_102aa8b4 domain {718,800,402}",
+       "meaning": "literal gate: r4!=0 -> 800 (0x10465f88); r4==0 -> engine vfunc +0x7c on *(svc+0x128)",
        "status": "strong",
        "fault_sites": [
         "0x104644b8"
@@ -48464,11 +48560,27 @@
          "status": "confirmed",
          "function": "0x102aa8b4",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10465f7c",
+         "notes": "cmpwi r4,0; != -> li r3,0x320"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x10465f94",
+         "notes": "== -> engine vfunc +0x7c"
         }
        ],
        "unresolved": {
-        "proven": "queue-manager impl->v[+0x24] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation"
+        "proven": "literal exits bounded",
+        "unknown": "call-derived worker rc"
        }
       },
       {
@@ -75547,7 +75659,7 @@
       "req_vcalls": [],
       "impl_function": "0x10732ebc",
       "impl_slot": null,
-      "impl_notes": "self-contained handler f_10732ebc: 6 instructions, tail-calls req->v[+0x0c] (commit) only - the entire implementation",
+      "impl_notes": "ZGT dispatch: desc table 0x10f113dc entries {name_ptr, id=4i+1, pad}; matched name -> vfunc call *(vptr_of_*(r23+pad) + id-1) i.e. impl vfunc index 5 -> f_10732ebc -> tail-calls req->v[+0x0c]. The RMD request subclass carries the whole op (arg parse + execute) in its +0x0c vfunc; arg required/optional is decided inside that request-class worker, whose vtable has not yet been located (req objects are built by the envelope machinery upstream).",
       "evidence": [
        {
         "type": "firmware",
@@ -75556,6 +75668,22 @@
         "status": "confirmed",
         "address": "0x10732ebc",
         "notes": "handler body: stwu; mr r3,r4; lwz v[+0x0c]; bctr"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x107330fc",
+        "notes": "dispatcher: lwz entry.id(+4), andi. bit0, lwzux *(r23+pad) vptr, *(vptr+id-1) handler"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x10f113dc",
+        "notes": "desc entry RegisterMobileDevice id=0x15 -> impl vfunc idx 5"
        }
       ]
      },
