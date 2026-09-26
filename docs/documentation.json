@@ -101609,6 +101609,25 @@
     "sonarcal": {
       "status": "confirmed",
       "files": "x-rincon-sonarcal:{leader.ogg,testtone.ogg,complete_ht.ogg} calibration audio + 'URI truncated' bounds"
+    },
+    "sqlite_timers": {
+      "status": "confirmed",
+      "file": "timer.db via timers_storage.cxx + libsqlite3.so.0",
+      "schema": "timers(id TEXT PK, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL); paused_timers(id TEXT PK, remaining_seconds INTEGER NOT NULL, paused_utc_time TEXT NOT NULL, total_duration INTEGER NOT NULL)",
+      "semantics": "persistent sleep-timer store w/ pause/resume (utc timestamps) \u2014 survives reboot",
+      "api": "sqlite3_{open_v2,prepare_v2,bind_{text,int},step,column_{text,int,int64},exec,changes,reset,finalize,clear_bindings,busy_timeout,errmsg,errstr,close}"
+    },
+    "bt_sbc": {
+      "status": "confirmed",
+      "libs": "libsbc.so.1 + libsonossbcpacket.so.1",
+      "codec": "sbc_{init,finish,parse,decode,encode,get_codesize,get_frame_length} \u2014 dual decode+encode (sink AND source)",
+      "packets": "'invalid number of frames per sbc packet'; 'unexpected sbc {config,encode} result expected=%u->%u got=%zd->%zd'",
+      "led": "BT-mode LED state: m_bIsInExclusiveBTMode + m_bIsBTConnected + bFlashMode"
+    },
+    "mdp_flash": {
+      "status": "confirmed",
+      "libs": "libsonos-mdp.so.1 + libflash.so.1",
+      "semantics": "MDP = Manufacturing Data Page in flash \u2014 serial/calibration store; sonosMdpSerialToString + hal_flash_get_mdp{,2}{,_wrapper} + mdp_write + mdp2Ver + 'get_mdp failed'"
     }
   }
 }
