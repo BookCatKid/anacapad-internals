@@ -98772,6 +98772,29 @@
         ],
         "side_effects": "'Settings Replication changed SN Disable from %d to %d (source: %s)'; 'Pending netsettings.json update discarded after replicating'; 'failed to rename offered replicated file'",
         "nodetx_generalized": "NodeTX is the generic inter-zone block transport, not just settings: channels nodetx_chsrc, nodetx_ht%d (HT blocks), nodetx_vli (VLI audio blocks, 'NodeTx configured to handle %s audio (qos: %d)', 'VLI NodeTX Blocks'); transport = chunked HTTP (TRANSFER-Encoding: chunked literals in nodetx.cxx)"
+      },
+      "virtual_linein": {
+        "status": "confirmed",
+        "src": "media_player_vli_ctrl.cxx (mpvlictrl), vli_source_manager.cxx, vli_playback_tracker.cxx, vli_sink.cxx",
+        "sessions": "onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated}; action codes AHA_{END,SUSPEND,PAUSE}_VLI_SESSION; group actions JOIN_GROUP_BASED_ON_VLI_STATE / BECOME_STANDALONE_BASED_ON_VLI_STATE",
+        "source_types": [
+          "vli_airplay",
+          "vli_bt (Bluetooth)",
+          "vli_ot (optical?)"
+        ],
+        "transport": "setTransportToVLIStreamURI URI:%s autoplay:%d become-gc:%d + installClock; vliStreamImage(%s %u %u %u %s); blocks over nodetx_vli"
+      },
+      "airplay": {
+        "status": "confirmed",
+        "transport": "AirPlay enters via VLI channel (vli_airplay); RTSP layer present ('RTSP CSeq mismatch or invalid CSeq')",
+        "gates": [
+          "allowAirplay/allowAirplaySetting",
+          "AirPlayEnabled (settings+ZGT var)",
+          "informLocalAirPlay"
+        ],
+        "didl": "object.item.audioItem.linein.airplay; linein.airplay; airplay:; com.sonos.airplay",
+        "grouping": "R_AirplayIncludeLinked; AirplayIncludeGroupedEvt; 'airplay include zones: %d'",
+        "interactions": "SpZeroConfAnnounce{Pause,Resume} \u2014 Spotify Connect announce paused during AirPlay; log /tmp/AirPlay.log"
       }
     },
     "device_state_store": {
