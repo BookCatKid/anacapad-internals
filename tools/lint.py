@@ -40,6 +40,18 @@ def _check_claim_evidence(warnings, where, status, evidence):
                         % (where, status))
 
 
+def _check_generic(warnings, where, field, text):
+    """Generic wrapper-level prose never counts as semantics."""
+    if doclib.is_generic_claim(text):
+        warnings.append("%s: generic %s (not binary-verified semantics):"
+                        " %.60r" % (where, field, text))
+
+
+def _check_generic_fields(warnings, where, obj, fields):
+    for f in fields:
+        _check_generic(warnings, where, f, (obj or {}).get(f))
+
+
 def lint(doc, api):
     warnings = []
 
@@ -77,6 +89,11 @@ def lint(doc, api):
                         act.get("description"), name)
             _check_claim_evidence(warnings, wa, act.get("status"),
                                   act.get("evidence"))
+            _check_generic_fields(warnings, wa, act,
+                                  ("description", "requirements",
+                                   "state_dependencies", "events_triggered",
+                                   "state_transitions", "return_behavior",
+                                   "validation"))
             if act.get("visibility") == "hidden":
                 ok, why = doclib.is_meaningful(act.get("reachability"))
                 if not ok:
@@ -103,6 +120,13 @@ def lint(doc, api):
                             "%s: error %s resolved but no meaning" % (wa, c))
                     _check_text(warnings, wa, "error meaning",
                                 e.get("meaning"))
+                    _check_generic(warnings, "%s error %s" % (wa, c),
+                                   "meaning", e.get("meaning"))
+                    for ci, cond in enumerate(e.get("conditions") or []):
+                        _check_generic(warnings,
+                                       "%s error %s condition[%d]"
+                                       % (wa, c, ci), "description",
+                                       cond.get("description"))
                 _check_claim_evidence(warnings, "%s error %s" % (wa, c),
                                       e.get("status"), e.get("evidence"))
                 for s in e.get("fault_sites") or []:
@@ -121,6 +145,10 @@ def lint(doc, api):
                             arg.get("description"), an)
                 _check_claim_evidence(warnings, wg, arg.get("status"),
                                       arg.get("evidence"))
+                _check_generic_fields(warnings, wg, arg,
+                                      ("description", "accepted_values",
+                                       "range", "special_values",
+                                       "default", "validation"))
             in_names = set(act.get("inputs") or {})
             for an in act.get("outputs") or {}:
                 if an in in_names:
@@ -129,8 +157,11 @@ def lint(doc, api):
             se = act.get("side_effects")
             if isinstance(se, list):
                 for i, s in enumerate(se):
+                    sd = s.get("description") if isinstance(s, dict) else s
                     _check_text(warnings, "%s side_effect[%d]" % (wa, i),
-                                "description", s.get("description"))
+                                "description", sd)
+                    _check_generic(warnings, "%s side_effect[%d]" % (wa, i),
+                                   "description", sd)
 
     # ---- capabilities / internal fns / candidates ----
     for off, cap in (doc.get("capabilities") or {}).items():

@@ -164,8 +164,44 @@ def report(api, doc):
     done = svc_done + act_done + in_done + out_done + fault_done \
         + cap_done + cand_done + fn_done + sv_done
     pct = (100.0 * done / units) if units else 100.0
-    p("OVERALL")
+    p("OVERALL (structural + first-pass semantic)")
     p("%d / %d documentation units complete   (%.1f%%)" % (done, units, pct))
+    p("")
+
+    # ---------------- binary-verified tier ----------------
+    # An action is binary-verified when every claim is confirmed/strong
+    # with evidence and no generic wrapper-level text counts as its
+    # semantics. Anything else lands in one of the honest-lower tiers.
+    ver_done = 0
+    for s in services:
+        dsvc = dservices.get(s["control_path"]) or {}
+        for a in s.get("actions") or []:
+            da = (dsvc.get("actions") or {}).get(a["name"]) or {}
+            if not doclib.action_verified_issues(a["name"], da):
+                ver_done += 1
+    unresolved_beh = 0
+    for s in services:
+        dsvc = dservices.get(s["control_path"]) or {}
+        for a in s.get("actions") or []:
+            da = (dsvc.get("actions") or {}).get(a["name"]) or {}
+            for e in da.get("errors") or []:
+                if e.get("status") == "unresolved":
+                    unresolved_beh += 1
+            for an_, arg in (da.get("inputs") or {}).items():
+                if arg.get("status") == "unresolved":
+                    unresolved_beh += 1
+            for an_, arg in (da.get("outputs") or {}).items():
+                if arg.get("status") == "unresolved":
+                    unresolved_beh += 1
+    p("COVERAGE TIERS")
+    p("  structural coverage (dispatch/args found):   %d / %d actions"
+      % (act_total, act_total))
+    p("  semantic first-pass (fields assessed):       %d / %d actions"
+      % (act_done, act_total))
+    p("  binary-verified semantics:                   %d / %d actions"
+      % (ver_done, act_total))
+    p("  unresolved observable behavior:              %d entries"
+      % unresolved_beh)
     return "\n".join(lines), done, units
 
 
