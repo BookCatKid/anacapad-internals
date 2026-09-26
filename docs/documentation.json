@@ -37709,7 +37709,7 @@
      }
     ],
     "vptr": "0x10f11a9c",
-    "notes": "svc object embedded at ctx+0x3fa50 (ctor f_10739428 at init site 0x1018fb80, vptr 0x10f11a9c - action table embedded: {name,handler} pairs in vtable). impl = *(svc+4) shared_ptr px bound post-construction; class unresolved. Earlier candidates: vtable 0x10ec37b4 (adjustor-thunk layer wrapping vptr 0x10e97d30 interface) - verified the +0x10..+0x1c slots are flag-predicate leaf functions, NOT the real impl; worker f_103a1b8c (SetGroupMute fan-out building remote RenderingControl:SetMute op records per group zone) is reached through the group-op machinery rather than the impl slots directly."
+    "notes": "impl class resolved: vptr 0x10ec3824 (ctor f_1039f004-family; large multiply-inherited object, ~12 secondary vptrs, lock at this+0x1c8, zone-member list at this+0x274/0x278, group volume/mute record at this+0x25c). All 6 impl vfuncs share prologue: NULL arg-buffer -> 702, zone-list check f_1075cf7c -> 701. px bound at svc+4 of embedded svc ctx+0x3fa50 (ctor f_10739428). Candidate vtables 0x10ec37b4 (self-morph->0x10e97d30) and 0x10e97d30 are CONSTRUCTION/destruction states of the same class family, not the impl interface."
    },
    "dispatcher": {
     "addr": "0x10738c58",
@@ -37759,30 +37759,30 @@
        }
       ],
       "notes": "impl = arg5 = *(svc+4); group-impl vfunc block v[+0x08..+0x1c] is sequential across the 6 actions; concrete impl function addresses not yet resolved (vtable anchor not located).",
-      "impl_notes": "Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8 \u2014 the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.; impl = *(svc+4) group-rendering impl px - class unresolved",
+      "impl_notes": "NULL out-buf -> 702 (0x2be); zone-list check f_1075cf7c(*(this+0x274),*(this+0x278)) fail -> 701 (0x2bd); else locks this+0x1c8, reads group mute flags from member record this+0x25c (u16 pair at +0x10000 region, compares flag halves -> byte), writes out, returns 0",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738d5c",
-        "notes": "dispatcher loads impl arg r5 = *(svc+4)"
+        "address": "0x1039ccbc",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738cfc",
-        "notes": "handler invoked via table-indirect entry"
+        "address": "0x10ec3824",
+        "notes": "impl class primary vtable (ctor installs +~12 secondary vptrs)"
        }
       ],
-      "impl_function": "0x103a3f28",
+      "impl_function": "0x1039ccbc",
       "impl_vfunc": "0x08 on impl vtable 0x10ec37b4",
-      "status": "strong"
+      "status": "strong",
+      "impl_slot": 8,
+      "impl_vtable": "0x10ec3824"
      },
      "inputs": {
       "InstanceID": {
@@ -37994,24 +37994,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0x8)",
-       "status": "unresolved",
+       "status": "confirmed",
        "fault_sites": [
         "0x10738f38"
        ],
-       "meaning": "Any non-success impl rc is forwarded to req->v[+0x14]; the emitted SOAP code equals the impl code.",
+       "meaning": "group-zone member list check failed (f_1075cf7c on this+0x274/0x278 pair) - impl returns 0x2bd",
        "conditions": [
         {
-         "description": "impl v[+0x08] returned a non-success rc (cr0.eq clear)",
+         "description": "zone-member list empty/invalid",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10738f38",
-           "notes": "rc -> r4 -> req->v[+0x14]"
+           "address": "0x1039ccbc",
+           "notes": "impl prologue"
           }
          ]
         }
@@ -38022,8 +38022,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10738f38",
-         "notes": "fault propagation site"
+         "address": "0x1039ccbc",
+         "notes": "addi r3,0x2bd path"
         }
        ],
        "unresolved": {
@@ -38077,6 +38077,41 @@
         "unknown": "concrete error code vocabulary and per-code conditions"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
+      },
+      {
+       "code": 702,
+       "code_expr": "const 0x2be",
+       "meaning": "NULL buffer arg rejected by impl prologue",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x1039ccbc"
+       ],
+       "conditions": [
+        {
+         "description": "impl arg buffer NULL",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x1039ccbc",
+           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1039ccbc",
+         "notes": "head"
+        }
+       ],
+       "notes": null
       }
      ],
      "firmware_differences": [],
@@ -38137,30 +38172,30 @@
         "purpose": "parse"
        }
       ],
-      "impl_notes": "Direct impl on the impl object: 4-insn predicate \u2014 loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.; impl = *(svc+4) group-rendering impl px - class unresolved",
+      "impl_notes": "same prologue; locks this+0x1c8, reads member this+0x25c volume record",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738d5c",
-        "notes": "dispatcher loads impl arg r5 = *(svc+4)"
+        "address": "0x1039cbf0",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738cfc",
-        "notes": "handler invoked via table-indirect entry"
+        "address": "0x10ec3824",
+        "notes": "impl class primary vtable (ctor installs +~12 secondary vptrs)"
        }
       ],
-      "impl_function": "0x106fd104",
+      "impl_function": "0x1039cbf0",
       "impl_vfunc": "0x10 on impl vtable 0x10ec37b4",
-      "status": "strong"
+      "status": "strong",
+      "impl_slot": 16,
+      "impl_vtable": "0x10ec3824"
      },
      "inputs": {
       "InstanceID": {
@@ -38372,24 +38407,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0x10)",
-       "status": "unresolved",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739160"
        ],
-       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "meaning": "group-zone member list check failed (f_1075cf7c on this+0x274/0x278 pair) - impl returns 0x2bd",
        "conditions": [
         {
-         "description": "impl v[+0x10] returned non-success rc",
+         "description": "zone-member list empty/invalid",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739160",
-           "notes": "rc propagation"
+           "address": "0x1039cbf0",
+           "notes": "impl prologue"
           }
          ]
         }
@@ -38400,8 +38435,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739160",
-         "notes": "fault propagation site"
+         "address": "0x1039cbf0",
+         "notes": "addi r3,0x2bd path"
         }
        ],
        "unresolved": {
@@ -38455,6 +38490,41 @@
         "unknown": "concrete error code vocabulary and per-code conditions"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
+      },
+      {
+       "code": 702,
+       "code_expr": "const 0x2be",
+       "meaning": "NULL buffer arg rejected by impl prologue",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x1039cbf0"
+       ],
+       "conditions": [
+        {
+         "description": "impl arg buffer NULL",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x1039cbf0",
+           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1039cbf0",
+         "notes": "head"
+        }
+       ],
+       "notes": null
       }
      ],
      "firmware_differences": [],
@@ -38515,30 +38585,30 @@
         "purpose": "parse"
        }
       ],
-      "impl_notes": "Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740) \u2014 posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.; impl = *(svc+4) group-rendering impl px - class unresolved",
+      "impl_notes": "same prologue {702/701}; then writes mute under lock",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738d5c",
-        "notes": "dispatcher loads impl arg r5 = *(svc+4)"
+        "address": "0x103a23b4",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738cfc",
-        "notes": "handler invoked via table-indirect entry"
+        "address": "0x10ec3824",
+        "notes": "impl class primary vtable (ctor installs +~12 secondary vptrs)"
        }
       ],
-      "impl_function": "0x103a3f40",
+      "impl_function": "0x103a23b4",
       "impl_vfunc": "0x0c on impl vtable 0x10ec37b4",
-      "status": "strong"
+      "status": "strong",
+      "impl_slot": 12,
+      "impl_vtable": "0x10ec3824"
      },
      "inputs": {
       "InstanceID": {
@@ -38822,24 +38892,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0xc)",
-       "status": "unresolved",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739070"
        ],
-       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "meaning": "group-zone member list check failed (f_1075cf7c on this+0x274/0x278 pair) - impl returns 0x2bd",
        "conditions": [
         {
-         "description": "impl v[+0x0c] returned non-success rc",
+         "description": "zone-member list empty/invalid",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739070",
-           "notes": "rc -> r4 -> req->v[+0x14]"
+           "address": "0x103a23b4",
+           "notes": "impl prologue"
           }
          ]
         }
@@ -38850,8 +38920,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739070",
-         "notes": "fault propagation site"
+         "address": "0x103a23b4",
+         "notes": "addi r3,0x2bd path"
         }
        ],
        "unresolved": {
@@ -38905,6 +38975,41 @@
         "unknown": "concrete error code vocabulary and per-code conditions"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
+      },
+      {
+       "code": 702,
+       "code_expr": "const 0x2be",
+       "meaning": "NULL buffer arg rejected by impl prologue",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x103a23b4"
+       ],
+       "conditions": [
+        {
+         "description": "impl arg buffer NULL",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103a23b4",
+           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103a23b4",
+         "notes": "head"
+        }
+       ],
+       "notes": null
       }
      ],
      "firmware_differences": [],
@@ -38965,30 +39070,30 @@
         "purpose": "parse"
        }
       ],
-      "impl_notes": "Direct impl: reads byte impl+0x22dd then enters the group volume set path on members +0x22c4..+0x22ff. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.; impl = *(svc+4) group-rendering impl px - class unresolved",
+      "impl_notes": "same prologue on arg; fan-out via per-zone op records (f_103fa434 remote op builder, \"GroupRenderingControl\" service name)",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738d5c",
-        "notes": "dispatcher loads impl arg r5 = *(svc+4)"
+        "address": "0x103a3134",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738cfc",
-        "notes": "handler invoked via table-indirect entry"
+        "address": "0x10ec3824",
+        "notes": "impl class primary vtable (ctor installs +~12 secondary vptrs)"
        }
       ],
-      "impl_function": "0x106fd5d4",
+      "impl_function": "0x103a3134",
       "impl_vfunc": "0x14 on impl vtable 0x10ec37b4",
-      "status": "strong"
+      "status": "strong",
+      "impl_slot": 20,
+      "impl_vtable": "0x10ec3824"
      },
      "inputs": {
       "InstanceID": {
@@ -39229,24 +39334,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0x14)",
-       "status": "unresolved",
+       "status": "confirmed",
        "fault_sites": [
         "0x10739298"
        ],
-       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "meaning": "group-zone member list check failed (f_1075cf7c on this+0x274/0x278 pair) - impl returns 0x2bd",
        "conditions": [
         {
-         "description": "impl v[+0x14] returned non-success rc",
+         "description": "zone-member list empty/invalid",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10739298",
-           "notes": "rc propagation"
+           "address": "0x103a3134",
+           "notes": "impl prologue"
           }
          ]
         }
@@ -39257,8 +39362,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10739298",
-         "notes": "fault propagation site"
+         "address": "0x103a3134",
+         "notes": "addi r3,0x2bd path"
         }
        ],
        "unresolved": {
@@ -39312,6 +39417,41 @@
         "unknown": "concrete error code vocabulary and per-code conditions"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
+      },
+      {
+       "code": 702,
+       "code_expr": "const 0x2be",
+       "meaning": "NULL buffer arg rejected by impl prologue",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x103a3134"
+       ],
+       "conditions": [
+        {
+         "description": "impl arg buffer NULL",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103a3134",
+           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103a3134",
+         "notes": "head"
+        }
+       ],
+       "notes": null
       }
      ],
      "firmware_differences": [],
@@ -39372,30 +39512,30 @@
         "purpose": "parse"
        }
       ],
-      "impl_notes": "Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.; impl = *(svc+4) group-rendering impl px - class unresolved",
+      "impl_notes": "same prologue {702/701}",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738d5c",
-        "notes": "dispatcher loads impl arg r5 = *(svc+4)"
+        "address": "0x103a30a0",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738cfc",
-        "notes": "handler invoked via table-indirect entry"
+        "address": "0x10ec3824",
+        "notes": "impl class primary vtable (ctor installs +~12 secondary vptrs)"
        }
       ],
-      "impl_function": "0x106ff454",
+      "impl_function": "0x103a30a0",
       "impl_vfunc": "0x18 on impl vtable 0x10ec37b4",
-      "status": "strong"
+      "status": "strong",
+      "impl_slot": 24,
+      "impl_vtable": "0x10ec3824"
      },
      "inputs": {
       "InstanceID": {
@@ -39656,24 +39796,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0x18)",
-       "status": "unresolved",
+       "status": "confirmed",
        "fault_sites": [
         "0x107393b0"
        ],
-       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "meaning": "group-zone member list check failed (f_1075cf7c on this+0x274/0x278 pair) - impl returns 0x2bd",
        "conditions": [
         {
-         "description": "impl v[+0x18] returned non-success rc",
+         "description": "zone-member list empty/invalid",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x107393b0",
-           "notes": "rc propagation"
+           "address": "0x103a30a0",
+           "notes": "impl prologue"
           }
          ]
         }
@@ -39684,8 +39824,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x107393b0",
-         "notes": "fault propagation site"
+         "address": "0x103a30a0",
+         "notes": "addi r3,0x2bd path"
         }
        ],
        "unresolved": {
@@ -39739,6 +39879,41 @@
         "unknown": "concrete error code vocabulary and per-code conditions"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
+      },
+      {
+       "code": 702,
+       "code_expr": "const 0x2be",
+       "meaning": "NULL buffer arg rejected by impl prologue",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x103a30a0"
+       ],
+       "conditions": [
+        {
+         "description": "impl arg buffer NULL",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x103a30a0",
+           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x103a30a0",
+         "notes": "head"
+        }
+       ],
+       "notes": null
       }
      ],
      "firmware_differences": [],
@@ -39799,30 +39974,30 @@
         "purpose": "parse"
        }
       ],
-      "impl_notes": "Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. NOTE: vtable 0x10ec37b4 slots are adjustor thunks that install interface vptr 0x10e97d30 then enter shared group-op workers; the terminal op-post path f_108094fc/f_10807034 resolves to delete semantics -- the true impl-object vtable remains unresolved.; impl = *(svc+4) group-rendering impl px - class unresolved",
+      "impl_notes": "same prologue; locks this+0x1c8, snapshots this+0x25c record",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738d5c",
-        "notes": "dispatcher loads impl arg r5 = *(svc+4)"
+        "address": "0x1039dc74",
+        "notes": "impl vfunc body"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "status": "confirmed",
-        "function": "0x10738c58",
-        "address": "0x10738cfc",
-        "notes": "handler invoked via table-indirect entry"
+        "address": "0x10ec3824",
+        "notes": "impl class primary vtable (ctor installs +~12 secondary vptrs)"
        }
       ],
-      "impl_function": "0x106ff898",
+      "impl_function": "0x1039dc74",
       "impl_vfunc": "0x1c on impl vtable 0x10ec37b4",
-      "status": "strong"
+      "status": "strong",
+      "impl_slot": 28,
+      "impl_vtable": "0x10ec3824"
      },
      "inputs": {
       "InstanceID": {
@@ -40007,24 +40182,24 @@
      ],
      "errors": [
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0x1c)",
-       "status": "unresolved",
+       "status": "confirmed",
        "fault_sites": [
         "0x10738e48"
        ],
-       "meaning": "Non-success impl rc forwarded to req->v[+0x14].",
+       "meaning": "group-zone member list check failed (f_1075cf7c on this+0x274/0x278 pair) - impl returns 0x2bd",
        "conditions": [
         {
-         "description": "impl v[+0x1c] returned non-success rc",
+         "description": "zone-member list empty/invalid",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "status": "confirmed",
-           "address": "0x10738e48",
-           "notes": "rc propagation"
+           "address": "0x1039dc74",
+           "notes": "impl prologue"
           }
          ]
         }
@@ -40035,8 +40210,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "status": "confirmed",
-         "address": "0x10738e48",
-         "notes": "fault propagation site"
+         "address": "0x1039dc74",
+         "notes": "addi r3,0x2bd path"
         }
        ],
        "unresolved": {
@@ -40090,6 +40265,41 @@
         "unknown": "concrete error code vocabulary and per-code conditions"
        },
        "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
+      },
+      {
+       "code": 702,
+       "code_expr": "const 0x2be",
+       "meaning": "NULL buffer arg rejected by impl prologue",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x1039dc74"
+       ],
+       "conditions": [
+        {
+         "description": "impl arg buffer NULL",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x1039dc74",
+           "notes": "cmpwi r4,0 -> addi r3,0x2be"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1039dc74",
+         "notes": "head"
+        }
+       ],
+       "notes": null
       }
      ],
      "firmware_differences": [],
