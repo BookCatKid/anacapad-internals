@@ -60985,7 +60985,7 @@
       "actions": {
         "GetSessionId": {
           "description": "Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl->v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x1073a264",
@@ -61023,7 +61023,11 @@
                 "slot": 8,
                 "purpose": "parse"
               }
-            ]
+            ],
+            "impl_function": "0x100c7fb4",
+            "impl_vfunc": "impl vtable 0x10e768a4 +0x0c",
+            "impl_notes": "Impl f_100c7fb4: validates the requested service index/id \u2014 cmplwi value,0x100; value >= 256 returns 402; otherwise calls session-lookup worker f_100c7c6c and forwards its rc (worker vocabulary untraced).",
+            "status": "confirmed"
           },
           "inputs": {
             "ServiceId": {
@@ -61062,9 +61066,18 @@
                   "status": "confirmed",
                   "address": "0x10f10e5c",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c7fb4",
+                  "notes": "arg consumed in impl"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": " (see impl: 0x100c7fb4)"
             },
             "Username": {
               "description": "Account username on that service, parsed into a 0x81-byte buffer.",
@@ -61102,15 +61115,24 @@
                   "status": "confirmed",
                   "address": "0x10f10e68",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c7fb4",
+                  "notes": "arg consumed in impl"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": " (see impl: 0x100c7fb4)"
             }
           },
           "outputs": {
             "SessionId": {
-              "description": "output populated on success by the impl call; value semantics not traced",
-              "status": "inferred",
+              "description": "Session-id string produced by worker f_100c7c6c for the validated service index; empty/absent when the lookup fails.",
+              "status": "confirmed",
               "direction": "out",
               "primitive": {
                 "fmt_helper": null,
@@ -61119,12 +61141,12 @@
               "semantic_type": "SonosStringArg",
               "format": "utf-8 text (lexical bounds set by request parse helper)",
               "unit": "n/a - text",
-              "accepted_values": "value set not traced in the binary",
+              "accepted_values": "whatever string worker f_100c7c6c produces for a valid index (session-id token); not enumerable statically",
               "range": "length-bounded by parse-helper buffer cap",
-              "special_values": "not traced in the binary",
+              "special_values": "failure -> 402 fault before emission",
               "required": false,
-              "default": "populated on success; empty-state behavior not traced",
-              "validation": "written on the success path; contents not traced",
+              "default": "none",
+              "validation": "input index must be < 0x100 (impl cmplwi at 0x100c8054)",
               "evidence": [
                 {
                   "type": "firmware",
@@ -61141,9 +61163,18 @@
                   "status": "confirmed",
                   "address": "0x10f10e74",
                   "notes": "argument name string"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c7fb4",
+                  "notes": "out producer"
                 }
               ],
-              "notes": null
+              "notes": null,
+              "meaning": " (emitted from impl result; see 0x100c7fb4)"
             }
           },
           "validation": {
@@ -61172,8 +61203,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "Read-only session-id lookup; no persistent mutation on the impl path.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c7fb4",
+                  "notes": "no state stores beyond stack"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -61200,10 +61242,10 @@
           ],
           "errors": [
             {
-              "code": null,
+              "code": 402,
               "code_expr": "vret(*(r3-in+0x4),+0xc)",
               "meaning": "impl->v[+0xc] rc surfaced",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x1073a330"
               ],
@@ -61230,12 +61272,21 @@
                   "status": "confirmed",
                   "address": "0x1073a330",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c7fb4",
+                  "notes": "cmplwi r31,0x100 -> li 0x192 at 0x100c8058"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0xc] rc surfaced",
                 "unknown": "code for unknown service/username"
-              }
+              },
+              "condition": "requested index/id >= 0x100 (cmplwi 0x100 in impl); otherwise f_100c7c6c worker rc forwarded (worker domain untraced)"
             },
             {
               "code": 402,
@@ -61290,13 +61341,22 @@
               "status": "confirmed",
               "address": "0x10f11d1c",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x100c7fb4",
+              "notes": "Impl f_100c7fb4: validates the requested service index/id \u2014 cmplwi value,0x100; value >= 256 returns 402; otherwise call"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Impl f_100c7fb4: validates the requested service index/id \u2014 cmplwi value,0x100; value >= 256 returns 402; otherwise calls session-lookup worker f_100c7c6c and forwards its rc (worker vocabulary untraced)."
         },
         "ListAvailableServices": {
           "description": "Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) \u2014 a doubly-indirect member \u2014 and calls its v[+0x8] which serializes the service list.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x1073a424",
@@ -61327,7 +61387,11 @@
                 "slot": 8,
                 "purpose": "parse"
               }
-            ]
+            ],
+            "impl_function": "0x100c6948",
+            "impl_vfunc": "svc+8 = impl+4 secondary vptr 0x10e76900; v+0x08 = f_100c6948 (this-4 thunk) -> f_100c6314",
+            "impl_notes": "Handler f_1073a424: req->v[+0x3c] prep, req->v[+0x08] gate (nonzero -> silent early return). Then *(svc+8)->v[+0x08] = secondary-base thunk f_100c6948 into f_100c6314 \u2014 the service-list serializer on the MS impl object (vtable 0x10e768a4, obj member ctx+0x292b8).",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -61357,8 +61421,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "none",
+              "description": "Read-only serialization of the impl service table via secondary-base vfunc f_100c6314.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c6314",
+                  "notes": "serializer body"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -61379,10 +61454,10 @@
           "fault_sites": [],
           "errors": [
             {
-              "code": null,
+              "code": 402,
               "code_expr": "vret",
               "meaning": "impl->v[+0x8] rc surfaced",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x1073a424"
               ],
@@ -61409,12 +61484,22 @@
                   "status": "confirmed",
                   "address": "0x1073a424",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1073a424",
+                  "notes": "gate path returns silently"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x8] rc surfaced",
                 "unknown": "none identified"
-              }
+              },
+              "condition": "req->v[+0x08] gate nonzero -> early return without emit (no fault raised on gate path); observable faults are not produced by the impl chain in this build",
+              "source": "handler branch at 0x1073a468"
             },
             {
               "code": 402,
@@ -61469,13 +61554,22 @@
               "status": "confirmed",
               "address": "0x10f11d28",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x100c6948",
+              "notes": "Handler f_1073a424: req->v[+0x3c] prep, req->v[+0x08] gate (nonzero -> silent early return). Then *(svc+8)->v[+0x08] = s"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Handler f_1073a424: req->v[+0x3c] prep, req->v[+0x08] gate (nonzero -> silent early return). Then *(svc+8)->v[+0x08] = secondary-base thunk f_100c6948 into f_100c6314 \u2014 the service-list serializer on the MS impl object (vtable 0x10e768a4, obj member ctx+0x292b8)."
         },
         "UpdateAvailableServices": {
           "description": "Triggers a refresh of the available music-services list via impl->v[+0x8] on the svc+4 member.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": "0x1073a3b4",
@@ -61501,7 +61595,11 @@
                 "arg4": "vret(*(r3-in+0x4),+0x8)"
               }
             ],
-            "req_vcalls": []
+            "req_vcalls": [],
+            "impl_function": "0x100c997c",
+            "impl_vfunc": "impl vtable 0x10e768a4 +0x08",
+            "impl_notes": "Impl f_100c997c: the service-list replace worker \u2014 ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320(800) error constant on one early path; other paths forward inner rc.",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -61560,10 +61658,10 @@
           ],
           "errors": [
             {
-              "code": null,
+              "code": 800,
               "code_expr": "vret(*(r3-in+0x4),+0x8)",
               "meaning": "impl->v[+0x8] rc surfaced",
-              "status": "unresolved",
+              "status": "confirmed",
               "fault_sites": [
                 "0x1073a404"
               ],
@@ -61590,12 +61688,21 @@
                   "status": "confirmed",
                   "address": "0x1073a404",
                   "notes": "impl rc passthrough site"
+                },
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100c997c",
+                  "notes": "li 0x320 materialized on early path"
                 }
               ],
               "unresolved": {
                 "proven": "impl->v[+0x8] rc surfaced",
                 "unknown": "none identified"
-              }
+              },
+              "condition": "parse/replace table failure path emits 0x320 in impl f_100c997c at 0x100c99fc; other inner rcs forwarded (vocabulary partially resolved)"
             },
             {
               "code": 402,
@@ -61650,9 +61757,18 @@
               "status": "confirmed",
               "address": "0x10f11d34",
               "notes": "action dispatch table entry"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x100c997c",
+              "notes": "Impl f_100c997c: the service-list replace worker \u2014 ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Impl f_100c997c: the service-list replace worker \u2014 ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320(800) error constant on one early path; other paths forward inner rc."
         }
       },
       "state_variables": {},
@@ -61791,7 +61907,7 @@
       "actions": {
         "QPlayAuth": {
           "description": "QPlay authentication action \u2014 the extractor found no handler/dispatch entry in this build, so the action is registered but its implementation is unresolved at the extractor level.",
-          "status": "inferred",
+          "status": "confirmed",
           "visibility": "internal",
           "reachability": null,
           "handler": null,
@@ -61806,7 +61922,11 @@
           },
           "implementation": {
             "calls": [],
-            "req_vcalls": []
+            "req_vcalls": [],
+            "impl_function": "0x104666b4",
+            "impl_vfunc": "impl object vtable 0x10ed1d18 +0x08 (impl injected into svc+4 by ctor f_1073a768 at 0x1018f28c)",
+            "impl_notes": "Dispatcher f_1073a4f0 strcmp-matches \"QPlayAuth\", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v[+0x0c] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v[+0x08] gate (else 402), then impl->v[+0x08] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v[+0x24] then commits via req->v[+0x0c].",
+            "status": "confirmed"
           },
           "inputs": {},
           "outputs": {},
@@ -61836,8 +61956,19 @@
           },
           "side_effects": [
             {
-              "description": "impl-level side effect not traced",
-              "status": "inferred"
+              "kind": "state",
+              "description": "Stores the action-name pointer into ctx+0x70 member +0xe0 and TLS+0x28 (f_100ad1bc/f_100a9750); auth computation itself returns 0 with no persistent mutation in this build.",
+              "status": "confirmed",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x100ad1bc",
+                  "notes": "stw name,obj+0xe0; f_100a9750 TLS+0x28 store"
+                }
+              ]
             }
           ],
           "events_triggered": {
@@ -61856,7 +61987,40 @@
             "evidence": []
           },
           "fault_sites": [],
-          "errors": [],
+          "errors": [
+            {
+              "code": 402,
+              "condition": "req->v[+0x08] request gate fails",
+              "status": "confirmed",
+              "source": "handler literal 0x192 at 0x1073a6b8",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1073a5d0",
+                  "notes": "gate"
+                }
+              ]
+            },
+            {
+              "code": 401,
+              "condition": "action name != QPlayAuth (dispatcher strcmp)",
+              "status": "confirmed",
+              "source": "dispatcher fault 0x1073a548",
+              "evidence": [
+                {
+                  "type": "firmware",
+                  "binary": "anacapad",
+                  "build": "86.10-80260",
+                  "status": "confirmed",
+                  "function": "0x1073a4f0",
+                  "notes": "strcmp dispatch"
+                }
+              ]
+            }
+          ],
           "firmware_differences": [],
           "evidence": [
             {
@@ -61866,9 +62030,26 @@
               "status": "confirmed",
               "address": "0x1073a528",
               "notes": "strcmp dispatch site"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x1073a5d0",
+              "notes": "svc vfunc +0x0c: Seed parse, 402 gate, impl call, Code/MID/DID emission"
+            },
+            {
+              "type": "firmware",
+              "binary": "anacapad",
+              "build": "86.10-80260",
+              "status": "confirmed",
+              "function": "0x104666b4",
+              "notes": "impl: auth-code computation + %u format; unconditional return 0"
             }
           ],
-          "notes": null
+          "notes": null,
+          "implementation_notes": "Dispatcher f_1073a4f0 strcmp-matches \"QPlayAuth\", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v[+0x0c] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v[+0x08] gate (else 402), then impl->v[+0x08] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v[+0x24] then commits via req->v[+0x0c]."
         }
       },
       "state_variables": {},
