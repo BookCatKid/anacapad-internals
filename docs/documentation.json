@@ -28503,6 +28503,18 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "impl_vfunc": "0x102e1d68",
+      "impl_function": "0x102e17dc",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102e1d68",
+        "notes": "impl vfunc in engine vtable 0x10eaf2ec"
+       }
       ]
      },
      "inputs": {
@@ -29047,7 +29059,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm state through the duration/time helper family (0x1108b284/f_10c3eb60)."
     },
     "SaveQueue": {
      "description": "Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \\r or \\n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) \u2014 the same persistence/path helper BackupQueue uses \u2014 storing the queue under the given ObjectID and writing the assigned object id.",
@@ -32255,6 +32267,18 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "impl_vfunc": "0x102e17a8",
+      "impl_function": "0x102e14e0",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "status": "confirmed",
+        "address": "0x102e17a8",
+        "notes": "impl vfunc in engine vtable 0x10eaf2ec"
+       }
       ]
      },
      "inputs": {
@@ -32678,6 +32702,37 @@
         "proven": "autoplay worker f_102e14e0 rc surfaced",
         "unknown": "session/submission codes inside the worker"
        }
+      },
+      {
+       "code": "810",
+       "meaning": "operation overridden: autoplay suppressed because an explicit transport operation overrode it (engine+0x465c flag set)",
+       "conditions": [
+        {
+         "description": "engine suppression flag +0x465c nonzero; worker logs \"preventing autoplay because operation is overridden\" and returns 0x32a",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x102e1574",
+           "notes": "suppression log + 0x32a return"
+          }
+         ]
+        }
+       ],
+       "status": "confirmed",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x102e1590",
+         "notes": "r31=0x32a preset on suppression path"
+        }
+       ],
+       "fault_sites": []
       }
      ],
      "firmware_differences": [],
@@ -32700,7 +32755,7 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": "None Suppression: engine+0x465c \"operation overridden\" flag returns 0x32a (810) with avt_impl log \"preventing autoplay because operation is overridden\". Mode(engine+0x4654)==0 runs a full session reset before installing the stored autoplay URI via f_102da774."
     },
     "Stop": {
      "description": "Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -> 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.",
@@ -71786,10 +71841,10 @@
    ]
   },
   "0x10557cac": {
-   "description": "Lock acquisition on the engine mutex at impl+0x458 (non-RAII form).",
-   "status": "confirmed",
+   "description": "Time/session precondition helper called at the top of the autoplay worker before the suppression check.",
+   "why_external": "Entry gate of f_102e14e0",
+   "status": "strong",
    "required_for_behavior": true,
-   "why_external": "Every AVTransport command impl serializes through this mutex - defines the atomicity boundary for transport commands.",
    "evidence": [
     {
      "type": "firmware",
@@ -71797,7 +71852,7 @@
      "build": "86.10-80260",
      "status": "confirmed",
      "address": "0x10557cac",
-     "notes": "Lock acquisition on the engine mutex at impl+0x458 (non-RAII form)."
+     "notes": "function body / vtable slot decoded"
     }
    ]
   },
@@ -72998,6 +73053,166 @@
      "status": "confirmed",
      "address": "0x10304548",
      "notes": "callback ptr in the request record"
+    }
+   ]
+  },
+  "0x102e17a8": {
+   "description": "StartAutoplay impl (engine v+0x9c): null arg-vector gate returns 0x2ce (718), then tail-calls the autoplay installer f_102e14e0.",
+   "why_external": "Impl for StartAutoplay",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102e17a8",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102e14e0": {
+   "description": "Autoplay-install worker (engine mutex +0x458). Reads suppression flag engine+0x465c: set -> logs \"preventing autoplay because operation is overridden\" (avt_impl) and returns 0x32a (810). Builds the stored autoplay URI into a 0x1000 buffer via f_10424ac4, then if mode(engine+0x4654)==0 does a full session reset (f_102d4e80 zero-arg + f_10688070) before installing the URI via f_102da774 with descriptor 0x10ea6a2c; nonzero mode installs through per-member path f_102e0fb0.",
+   "why_external": "Worker behind StartAutoplay; decides whether autoplay proceeds and returns 810 when suppressed",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102e14e0",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102e1d68": {
+   "description": "RunAlarm impl (engine v+0x98): null arg-vector gate returns 0x2ce (718), then tail-calls alarm worker f_102e17dc.",
+   "why_external": "Impl for RunAlarm",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102e1d68",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102e17dc": {
+   "description": "Alarm-run worker (0x1300 frame): requires r6 non-null else 0x102e1928 path; uses time/duration helper table 0x1108b284 (f_10c3eb60) to resolve the pending alarm into a URI/mode install similar to the autoplay path.",
+   "why_external": "Worker behind RunAlarm",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102e17dc",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102d1fc4": {
+   "description": "SnoozeAlarm impl (engine v+0xa4).",
+   "why_external": "Impl for SnoozeAlarm",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102d1fc4",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102ad8fc": {
+   "description": "GetRunningAlarmProperties impl (engine v+0xa0).",
+   "why_external": "Impl for GetRunningAlarmProperties",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102ad8fc",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102ada98": {
+   "description": "GetRemainingSleepTimerDuration impl (engine v+0x94).",
+   "why_external": "Impl for GetRemainingSleepTimerDuration",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102ada98",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102b4de8": {
+   "description": "ConfigureSleepTimer impl (engine v+0x90).",
+   "why_external": "Impl for ConfigureSleepTimer",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102b4de8",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x10424ac4": {
+   "description": "Stored-URI/path formatter: fills a 0x1000-byte destination with the autoplay/alarm source spec read from saved state.",
+   "why_external": "Builds the URI the autoplay/alarm workers install",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10424ac4",
+     "notes": "function body / vtable slot decoded"
+    }
+   ]
+  },
+  "0x102da774": {
+   "description": "URI-install helper shared with the class-B SetAVTransportURI path (same descriptor 0x10ea6a2c); applies a URI+metadata to the engine session.",
+   "why_external": "Final install step of autoplay and group URI-set paths",
+   "status": "strong",
+   "required_for_behavior": true,
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x102da774",
+     "notes": "function body / vtable slot decoded"
     }
    ]
   }
