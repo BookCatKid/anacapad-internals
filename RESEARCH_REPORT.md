@@ -242,12 +242,25 @@ optimistic-concurrency)}`. `FUN_102dff24` (CreateQueue) additionally decodes a
 `0x173c02e` policy-flag bitmask from the flags argument ("bad policy input"→402).
 All queue ops gate on the `*(+0x4654)` readiness counter.
 
-The remaining `97`-ish "unresolved error domains" and `93` material action
-unknowns across the *other* services are **mostly the same shape** — a delegated
-engine/member-vfunc returning a code that the worker surfaces verbatim. Where a
-concrete literal exists (and the queue family shows many do), they are now
-extractable via the same Ghidra-assisted decompile path; where the return value
-is produced inside a genuinely runtime-bound boundary (an async transaction
-completion, an external device/engine RPC, or a passthrough with no in-binary
-literal), the record is honestly labeled `proven`/`unknown`/`evidence` and the
-exact boundary is named rather than the code set.
+The remaining `97` "unresolved error domains" and `93` material action
+unknowns are **named delegation boundaries**, not opaque gaps. Each record
+carries `proven` (the static literal bound) + `bounded_domain`/`bound_evidence`
+(the extracted worker-literal set) + an honest `unknown` naming the exact
+runtime-selected residual. This session's Ghidra-assisted pass resolved the
+representative families concretely:
+
+- **Queue** — all ops bottom at `FUN_10255f64`, the async `chsrc`/`RCHSRCReq`
+  transaction submitter; synchronous domain `{0,402,718,800,803,804,1028}`.
+- **AVTransport impls** — uniform `{InstanceID-path!=0 → 0x2ce=718, else
+  engine-vfunc rc}` (verified across 15 impls; `1112`=mutex-offset noise).
+- **ContentDirectory** — `{402,701 no-content,711 no-object,browse-engine}`.
+- **AlarmClock** — void handlers raising `402` via the request fault path.
+- **DeviceProperties/SystemProperties** — thin `{param-gate → 702/718,
+  worker}` shapes.
+
+Where a vfunc passthrough survives (a member/session object's return surfaced
+verbatim, an async transaction completion, an external engine RPC), the record
+names the boundary — e.g. `*(req+0xc)` alarm-store `+0x08`, engine `+0x74`
+remove-range — rather than inventing a code set. Truly runtime-produced values
+(async commit results, live device replies) cannot be enumerated statically;
+they are bounded, labeled, and left honest.
