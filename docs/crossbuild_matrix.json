@@ -2077,5 +2077,11 @@
   "evidence": "Extracted 86.8 surface with extract_soap_api.py vs shipped soap_api-86.10-80260.json: all 16 services identical, identical action names+counts (AVT 42, RC 27, DeviceProperties 27, AlarmClock 17, ContentDirectory 16, HTControl 8, ...), and the 13-record soap_path_router table is SEMANTICALLY IDENTICAL (same paths, names, cap_flags 0x10-0x10000, enabled-gate kinds const/field/field_inverted).",
   "interpretation": "All JSON 'diffs' are pure recompilation address/offset shifts (same routers at 0x1019a31c vs 0x101953c8; same zp cap-fields at 0x5434/0x544c vs 0x5704/0x571c). The ONLY behavioral delta is below the SOAP surface: the ClearSource arg-descriptor addition documented separately. Dispatch layer frozen across 86.8->86.10.",
   "confidence": "proven (surface-level)"
+ },
+ "svc_ctx_route_registration": {
+  "claim": "svc_ctx objects are wired to routes via a registration builder, not compile-time linkage; worker field is bound indirectly",
+  "evidence": "m8: 7 svc_ctx objects at zp+0x2d50..0x2d98 (12B stride, ctors 0x10357788/0x10751144/0x10751b48/0x10754790/0x103626ac/0x1049194c/0x10755340, each storing {vtable, worker=0, ref=0}). Route-builder 0x101877c0 materializes all svc_ctx addrs (r10+11600/+11624/+11636/+11648/+11660/+11672) + path/name/cap records into a stack table -> bl 0x10665ffc registers into router r28+840. Registration fn builds {argName,typecode} descriptor records (codes 1,2,4,8) on stack and calls service-virtual getters r29->vtable[108,120,124,136].",
+  "worker_binding": "EXHAUSTIVE: every stw to the exact svc_ctx+4 offsets (0x2d54/0x2d60/0x2d6c/0x2d78/0x2d84/0x2d90/0x2d9c) across the binary hits only r1 stack spills - NO constant-offset object store exists. Combined with worker=0 in ctor + DSPControl objects being product-selected, the worker pointer is injected via the svc_ctx object pointer passed to a runtime binding routine, not a statically-visible store.",
+  "confidence": "proven (mechanism); per-service sibling still runtime-selected"
  }
 }
