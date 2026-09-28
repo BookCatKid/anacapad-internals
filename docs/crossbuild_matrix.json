@@ -1695,7 +1695,9 @@
     "request_vtable": "IDENTICAL across m8-fenway & m9-limelight & m9-86.10 \u2014 req-object vfunc slots: +0x08 parse/validate, +0x0c commit-response, +0x14 raise-fault, +0x1c required-input-lookup, +0x20 optional-input-lookup, +0x24 output-creation. Same SOAP request lifecycle on all products/builds.",
     "dispatch": "ptr-table {name,C-fn,0} for big services; id-table {name,vfunc-offset,0} binary-searched for C++-object services; AudioIn/QPlay via strcmp fallback \u2014 all shared",
     "unified_dispatcher": "all /Control routes funnel to ONE per-service dispatcher that does name->action resolution, then req-object drives parse/commit",
-    "workers": "impls delegate to engine-vfuncs + chsrc/CHSNK transactions (shared core in both models)"
+    "workers": "impls delegate to engine-vfuncs + chsrc/CHSNK transactions (shared core in both models)",
+    "master_upnp_dispatcher": "FUN_10670ee4 = central UPnP dispatch for all /Control routes. Parses SOAPAction -> FUN_10a35560; secure-mode/loopback/403 gates; service_obj->vfunc+0x40 = per-service action dispatch (virtual). 'x-sonos-target-udn' header -> PROXY/forwards request to another device (group-coordinator tunnel, fault 0x19c=412 on fail); 'x-sonos-upnp-tunnel' + 'X-Sonos-Corr-Id' headers; 'UPnP dispatch %s:%s took %u ms' metrics -> zpUpnpSrv/controlOp event sink. FUN_1066bc50 = Eventing dispatcher (/DeviceProperties/Event, /GroupManagement/Event, 403-denied path).",
+    "update_manifest_parser": "FUN_1056b658 (m8) parses .upd XML manifest: image/model/submodel_min/submodel_max/fromver_min/fromver_max/version/flags/milestone_index/app_baseline/arch, supported_models, update_list, model_list, swgen, description_url \u2014 the update-validation grammar (NOT the runtime product gate)."
   },
   "extraction_inventory": {
     "binaries_available": {
@@ -1738,7 +1740,8 @@
     },
     "conclusion": "SOAP action layer compiled from SAME source in fenway and limelight. Model differences are confined to dispatch wiring (HTControl table not linked) + product subsystems (DSPControlPlay1/3/Sub vs limelight DSP/Dolby/IR). Shared-action argument/error/statevar semantics are therefore identical-by-construction for the 134 ptr-table impls.",
     "id_table_proof": "all 48 shared {name,id,0} actions have IDENTICAL vfunc-offset id in m8 and m9 (e.g. GetZoneGroupState=41) -> same service-object vtable layout -> shared impl source for id-table services too. Combined with 134 ptr-table impls identical profiles, the ENTIRE 204-action SOAP surface is compiled from the same source; sole exception = HTControl table not linked on fenway.",
-    "id_table_delta": "m9-only id actions = exactly the 8 HTControl actions (CommitLearnedIRCodes,GetIRRepeaterState,GetLEDFeedbackState,IdentifyIRRemote,IsRemoteConfigured,LearnIRCode,SetIRRepeaterState,SetLEDFeedbackState). No other id-table divergence."
+    "id_table_delta": "m9-only id actions = exactly the 8 HTControl actions (CommitLearnedIRCodes,GetIRRepeaterState,GetLEDFeedbackState,IdentifyIRRemote,IsRemoteConfigured,LearnIRCode,SetIRRepeaterState,SetLEDFeedbackState). No other id-table divergence.",
+    "decompiled_proof": "Ghidra-decompiled SetVolume in m8 (FUN_10753c48) vs m9 (FUN_1082ca5c): SEMANTICALLY IDENTICAL. Both fetch InstanceID/Channel/DesiredVolume via req->vfunc+0x1c, gate on req->vfunc+0x8 (else 402/0x192), delegate work via resp->vfunc+0x1c(InstanceID,Channel,DesiredVolume), commit req->vfunc+0xc else fault req->vfunc+0x14. Only diff = m9 stack-canary (__stack_chk_fail) hardening. Shared source confirmed at C-code level."
   },
   "http_api_surface": {
     "structure": "household REST API {householdId}/players/{playerId}/... + legacy /status,/dsp,/raw,/api,/musedebug,/device_account top-level. ~3992 route-template+path strings scanned.",
