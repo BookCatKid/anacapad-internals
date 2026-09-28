@@ -133,8 +133,19 @@ HTTP req → route table (enable byte) → handler->vfunc+0x08
 ```
 
 The shared request-object vtable contract (in-arg parse at `+0x8`, commit at
-`+0xc`, fault-raise at `+0x14`, input-lookup at `+0x1c`, output at `+0x24`) is
-identical across models — the same SOAP plumbing under both products.
+`+0xc`, fault-raise at `+0x14`, input-lookup at `+0x1c`, output at `+0x24`,
+finalize at `+0x38`, begin/telemetry at `+0x3c`) is identical across models —
+the same SOAP plumbing under both products. The request-object vtable was
+resolved in `.rodata` (m8 address-point `0x10c334d8`) by anchoring `+0x24` =
+`0x104999c4`, which builds an arg descriptor against the parsed-body list at
+`req+0x994`. Decompiled semantics: **`vfunc+0x08` is an
+authorization/precondition gate**, not a per-arg type parser — it returns
+status `0x33`(ok)/`0x3e`(denied)/`0x3fe`(mode) and enforces a
+group-`"Master"`-coordinator check (`FUN_100ca658` → `req->vfunc+0x1c`/`+0xc`
+`"Master"` + session sub-object `vfunc+0x5c`). Per-arg type conversion is done
+by the descriptor machinery (`vfunc+0x1c` accessor + typed helpers), so the
+`0x192` "Invalid Args" fault can be raised for **authorization denial** as well
+as malformed arguments.
 
 ### Dispatch-mechanism evolution
 

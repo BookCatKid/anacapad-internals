@@ -1961,5 +1961,19 @@
    "identical": "instruction-identical shape in both binaries: req->vfunc+0x3c begin/telemetry -> req->vfunc+0x8 parse (0x192 on fail) -> worker->vfunc+0x28 builds ZoneGroupState XML -> req->vfunc+0x24('ZoneGroupState') out-arg -> out->vfunc+0x10 write -> req->vfunc+0xc commit. Same worker slot +0x28 = same ZGT backend interface = same source.",
    "status": "confirmed decompiled/disasm"
   }
+ },
+ "request_object_vtable": {
+  "address_point": "0x10c334d8 (m8, .rodata); resolved by anchoring vfunc+0x24=0x104999c4 (out-arg accessor, queries req+0x994 parsed-body arg list)",
+  "slots": {
+   "+0x08": "0x1049e9e8 validate/authorize -> delegates to FUN_100ca658",
+   "+0x0c": "0x100c8f84 commit",
+   "+0x14": "0x100c859c raise fault (SOAP fault XML via 0x1049eb68 <s:Fault> builder)",
+   "+0x1c": "0x1049eb68 in-arg accessor / fault-body builder",
+   "+0x24": "0x104999c4 out-arg accessor (builds descriptor vs req+0x994)",
+   "+0x38": "0x100b9444 finalize/flush",
+   "+0x3c": "0x100c8534 begin/telemetry"
+  },
+  "validator_semantics": "vfunc+0x08 = FUN_1049e9e8 -> FUN_100ca658. Returns status codes 0x33(ok)/0x3e(denied)/0x3fe(mode). Enforces a group-'Master'-coordinator authorization gate (req->vfunc+0x1c/+0xc 'Master' checks) + session sub-object capability query (vfunc+0x5c). It is a precondition/authorization gate, NOT a per-arg type parser - type conversion is done by the descriptor machinery (vfunc+0x1c accessor + typed helpers FUN_1055a768 int/FUN_1055a7c0 string) reading req+0x994.",
+  "note": "0x192 'Invalid Args' can therefore be raised for authorization/precondition denial, not only malformed args. Whether this exact vtable is universal or an AVTransport/RC-specific request subclass is unresolved - the 'Master' gating is consistent with group-coordinator enforcement but may be service-scoped."
  }
 }
