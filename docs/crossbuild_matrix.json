@@ -2100,5 +2100,12 @@
   "confidence": "proven (library + enum tables decoded)",
   "mrpc_tlv_sonosnet": "MRPC/SonosNet resolve to anacapad-internal naming + libwifi SonosNet mesh config (39 hits anacapad = enum/job names, 2 libwifi). TLV = anacapad-internal serialization (7-field header 'TLV header %d %d/7 oserr %d'); 0 TLV refs in ANY rootfs lib - not a shared wire protocol. The hwmessage netlink bus is the real kernel/hw transport these all ride on.",
   "wire_format": "generic netlink via libnl-genl-3.so.200: genl_connect + genl_ctrl_resolve(family) + genl_ctrl_resolve_grp(multicast group); messages built by genlmsg_put/hdr, parsed by genlmsg_valid_hdr + nla_parse against hwevtq_policy (an nla_policy[] table returned via GOT). Attributes read nla_get_u16 (event source) / nla_get_u64 (event info/value) / nla_put_string (source name on TX). Required-field bitmask validated ('not all fields found [0x%04X]') + IS_VALID_HWEVENT(). The '7-field TLV header' in anacapad is the netlink-attribute (nla_len/nla_type) encoding - same TLV grammar."
+ },
+ "ssdp_discovery_layer": {
+  "claim": "UPnP SSDP discovery is fully in anacapad, with Sonos HMAC-signed M-SEARCH and custom location headers",
+  "evidence": "NOTIFY alive/byebye templates to 239.255.255.250:1900 (NTS:ssdp:alive/ssdp:byebye, CACHE-CONTROL max-age, LOCATION, SERVER 'Linux UPnP/1.0 Sonos/'). M-SEARCH * HTTP/1.1 with MAN:'ssdp:discover', targets upnp:rootdevice + ssdp:all.",
+  "security": "M-SEARCH requests are HMAC-signed ('M-SEARCH signature HMAC init failed','base64 encoding failed','Failed to calculate M-SEARCH signature') - authenticated discovery anti-spoofing. Custom SSDP headers: X-RINCON-VARIANT:%u, SECURELOCATION.UPNP.ORG:%s, X-SONOS-HHSECURELOCATION:%s, LOCATION.SMARTSPEAKER.AUDIO:. ERROR_SONOS_BAD_LOCATION validates device location.",
+  "lifecycle": "vanished-object tracking ('Vanished object %s: byebye reason %s', byebyereason, zp byebye, TRANS_NEW_LOCATION/NEW_LOCATION/F_UPDATE_LOCATION) + config flags ssdpAdvertiseConfig/ssdpCacheControlDivisor/ssdpBroadcastOnlyZonePlayer1/ssdpAdvertiseOnlyEssentialServices. GENA event NOTIFY (NT:upnp:event) shares the NOTIFY transport but is separate from SSDP.",
+  "confidence": "proven"
  }
 }
