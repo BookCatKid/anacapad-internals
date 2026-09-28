@@ -1761,5 +1761,13 @@
     "str_only": "HTControl x8 + Play/Pause/Stop/Next (transport controls unwired in tables \u2014 reduced/diagnostic AVT wiring or different dispatch path)",
     "absent": "18 (34.x-era set + OAuth accts, EnterConfigMode/ExitConfigMode, GetButtonState, RefreshAccountCredentialsX, QPlayAuth)",
     "note": "diagnostic jffs image; transport controls may use a different dispatch path or be intentionally reduced in the diag build"
+  },
+  "product_arch": {
+    "capability_gate": {
+      "mechanism": "fenway reads hwmodel/submodel at boot via HAL/config call (fn 0x10571730 logs 'hwmodel'), then matches it against a 'model_list'/'update_list' config list (supported_models at fn 0x1056b658 reads obj+2388 index)",
+      "dispatch": "3-way switch on submodel index (values 1/2/3 = Play1/Play3/Sub) at 0x1056b6a8/0x1056b6b4/0x1056b6c0; each case does product-specific getProperty(0x1056b978 /282687956) lookups",
+      "fallback": "fn 0x10b84ce8 returns error + logs 'Unsupported Fenway Submodel' for unrecognized model",
+      "conclusion": "product capability is a RUNTIME data-driven gate (model_list config + hwmodel read), not compile-time \u2014 confirms one binary serves all fenway submodels, behavior selected by detected hardware"
+    }
   }
 }
