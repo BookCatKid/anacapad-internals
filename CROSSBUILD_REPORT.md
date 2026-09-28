@@ -55,7 +55,7 @@ by decompiling the per-service dispatcher in both binaries (m8 `FUN_10752428`,
 m9 `FUN_1082b0fc` — semantically identical C):
 
 ```c
-dispatch(svc_ctx, p2, req, p4, action_name):
+dispatch(svc_ctx, p2, req, p4, action_name):        // ptr-table services
     binary-search table[27] of {name_ptr, fn_or_id, ctx_off}   // stride 3 words
     on match:
         worker = *(svc_ctx + 4)                 // delegate/impl object
@@ -69,6 +69,18 @@ dispatch(svc_ctx, p2, req, p4, action_name):
     always   → req->vfunc(+0x38)(req)            // finalize/flush
 ```
 
+For **id-table services** (ZGT `FUN_1074ba18` / AlarmClock etc.) the same
+search+discriminator runs but with a **2-arg call** — the impl is a *virtual
+method on the impl object* and there is no dispatcher-side worker check:
+
+```c
+method = *( (*(impl_obj + ctx_off)).vtable + (id & ~1) );
+method(impl_obj + ctx_off, req)                  // the method reads this->worker itself
+```
+
+because the method is a member of the impl object it reaches the backend via
+`*(this+4)` directly (below).
+
 - **Pointer-table entries** (`fn_or_id` low bit clear): direct C handler call.
   Used by AVTransport, RenderingControl, Queue, VirtualLineIn, ContentDirectory,
   DeviceProperties, GroupManagement, GroupRenderingControl and misc families.
@@ -78,8 +90,10 @@ dispatch(svc_ctx, p2, req, p4, action_name):
   HTControl on limelight.
 - `ctx_off` (record word 3, usually 0) selects which sub-object of the service
   context receives the call — for virtual entries it also supplies the vtable.
-- A **null worker pointer** (`svc_ctx+4`) produces the `0x191`/401 fault — a
-  proven code path for services whose table exists but impl object is absent.
+- In the **ptr-table** dispatcher a **null worker** (`svc_ctx+4`) produces the
+  `0x191`/401 fault — a proven code path for services whose table exists but
+  impl object is absent. The id-table dispatcher performs no worker check
+  (each virtual method reads `this->worker` itself).
 - On 86.x both AudioIn and HTControl (fenway) have **no action table at all** —
   their action names are dead strings, so calls reach the dispatcher's
   not-found path → `0x191`/401 (or a service-level rejection upstream; the
@@ -101,10 +115,15 @@ runtime **enable byte** — most share one global UPnP-enable flag
 **Object model**: the zone-player aggregate (~28 KB) embeds 16 `UpnpService`
 objects at a fixed `0x680`-byte stride (`DeviceProperties@+0x714` …
 `VirtualLineIn@+0x6954`, wired by `FUN_10771084`). Each service object
-(`vfunc+0x40` = dispatch) delegates to a small `svc_ctx` impl descriptor
-`{vtable, worker@+4, x@+8}` whose 3-slot vtable (`+0x08` = the table
-dispatcher) sits in `.rodata` directly before that service's action table. The
-full chain:
+(`vfunc+0x40` = dispatch) delegates to an impl object
+`{vtable, worker@+4, refcounted@+8, …}` whose vtable sits in `.rodata`
+directly before that service's action table. The vtable layout is
+`{dtor, deleting-dtor, dispatch@+0x08, [virtual action methods]}` — it is only
+3 slots for all-ptr-table services (the action impls live in the table, not the
+vtable), but grows for id-table services: the ZGT impl vtable
+(m8 `0x10c6f618`, m9 `0x10f0d1e0`) has 11 slots, the 8 action methods at
+slots 3–10 matching ids 13→41 byte-for-byte. `worker@+4` is the
+product-selected backend delegate in *both* dispatch styles. The full chain:
 
 ```
 HTTP req → route table (enable byte) → handler->vfunc+0x08
@@ -159,6 +178,15 @@ delegates via `worker->vfunc(+0x1c)(InstanceID,Channel,DesiredVolume)`, commits
 `req->vfunc(+0xc)` on success, faults `req->vfunc(+0x14)` on failure. The only
 difference is a stack-canary epilogue in the m9 build — compiler hardening, not
 behaviour.
+
+The proof extends to a **virtual (id-table) impl**: `GetZoneGroupState`
+(id `0x29` → impl-object vtable slot 10) was resolved through the ZGT vtable in
+both binaries — m8 `FUN_1074b910`, m9 `FUN_10823850`. The two are
+instruction-identical in shape: `req->vfunc(+0x3c)` begin/telemetry →
+`req->vfunc(+0x8)` input parse (`0x192` on fail) → `worker->vfunc(+0x28)` builds
+the ZoneGroupState XML → `req->vfunc(+0x24)`("ZoneGroupState") output accessor →
+`out->vfunc(+0x10)` writes the string → `req->vfunc(+0xc)` commit. Identical
+worker slot `+0x28` ⇒ identical ZGT backend interface ⇒ same compiled source.
 
 The **only** structural SOAP difference:
 
