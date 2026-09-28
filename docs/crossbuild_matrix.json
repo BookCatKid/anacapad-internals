@@ -1975,5 +1975,12 @@
   },
   "validator_semantics": "vfunc+0x08 = FUN_1049e9e8 -> FUN_100ca658. Returns status codes 0x33(ok)/0x3e(denied)/0x3fe(mode). Enforces a group-'Master'-coordinator authorization gate (req->vfunc+0x1c/+0xc 'Master' checks) + session sub-object capability query (vfunc+0x5c). It is a precondition/authorization gate, NOT a per-arg type parser - type conversion is done by the descriptor machinery (vfunc+0x1c accessor + typed helpers FUN_1055a768 int/FUN_1055a7c0 string) reading req+0x994.",
   "note": "0x192 'Invalid Args' can therefore be raised for authorization/precondition denial, not only malformed args. Whether this exact vtable is universal or an AVTransport/RC-specific request subclass is unresolved - the 'Master' gating is consistent with group-coordinator enforcement but may be service-scoped."
+ },
+ "request_context_class": {
+  "finding": "the 'req' object passed to every impl is a polymorphic per-service request-context subclass sharing ONE SOAP-request base vtable. 3 sibling vtables confirmed (0x10be20b8, 0x10c3a640, 0x10c334d8) with identical base-class methods in fixed slots and differing subclass overrides.",
+  "shared_base_vfuncs": "0x1049e9e8@+0x08 validate/authorize; 0x100c8f84 commit; 0x100c859c fault; 0x1049eb68 in-accessor; 0x104999c4@+0x24 out-accessor; 0x100b9444@+0x38 finalize; 0x100c8534@+0x3c begin; shared 0x100ca658(Master-gate), 0x100c8e90, 0x100e0958, 0x10657af0, 0x100c8d60, 0x10657b74",
+  "implication": "uniform vfunc-offset contract across all 204 impls exists because every service's request context derives from the same SOAP base; the +0x08 validator is a Master-coordinator authorization gate inherited by all services",
+  "volume_backend": "FUN_100cef4c (clamp[0,100], 'Cannot set volume in fixed output mode', audio obj vfunc+0xe0/+0xe4) is a shared volume backend method present in all 3 sibling vtables - base-class audio-volume op",
+  "worker_identity": "the product backend (worker@svc_ctx+4) remains bound post-construction at runtime - not statically resolvable; subclass vtables differ in override slots (e.g. 0x10505xxx vs 0x100d9xxx) suggesting per-service request subclasses"
  }
 }
