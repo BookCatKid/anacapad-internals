@@ -164,10 +164,20 @@ the separate product audio/zone backend. `worker` is `NULL` in the ctor and
 bound post-construction in device-init; it is not produced by an
 `operator_new`+`store` pattern (likely an embedded aggregate member bound via
 computed offsets), and `DSPControl{Play1,Play3,Sub}` names appear only as log
-strings with no ctor/factory xref — so the concrete worker class is
-**runtime-bound and not statically resolvable**. What is proven: a uniform
-`worker->vfunc+SLOT` backend interface (`SetVolume`→`+0x1c`, `Play`→`+0x2c`,
-`GetZoneGroupState`→`+0x28`).
+strings with no ctor/factory xref — so which concrete sibling backs each
+service is **runtime-bound and not statically resolvable**.
+
+**The worker class family *is* statically located.** A `.rodata` vtable scan
+(`0x10d28xxx`–`0x10d2fxxx` on m8) finds many sibling classes that share one
+large audio-backend method block and differ only in leading override slots —
+the `DSPControl{Play1,Play3,Sub,HT}` siblings on a common DSP-control base.
+Their methods are thin facade trampolines (e.g. slot `+0x1c` at `0x10b914a4`:
+`this->sub@0x158 -> inner@0x714 -> vfunc+0x10`) that forward into deeper
+audio/DSP objects. m9 carries the same architecture (466 vtable runs incl.
+39/17/8-member shared-tail families). So the worker is one of this facade
+family, delegating to the real DSP objects — but the per-service sibling is
+product-selected at runtime. What is proven: a uniform `worker->vfunc+SLOT`
+backend interface (`SetVolume`→`+0x1c`, `Play`→`+0x2c`, `GetZoneGroupState`→`+0x28`).
 
 ### Dispatch-mechanism evolution
 
@@ -346,6 +356,15 @@ confirmed**: the 86.8 wrapper fetches 3 args (`InstanceID`, `NewCoordinator`,
 `RejoinGroup`), the 86.10 wrapper fetches 4. A whole-surface sweep found this is
 the *only* arg-fetch delta across 124 shared pointer-table actions, and the
 fault-code vocabulary is unchanged — the impl delta is confined to `ClearSource`.
+
+**The dispatch surface itself is frozen.** Extracting the 86.8 surface and
+diffing it against the shipped `86.10` JSON shows all 16 services, every action
+name + count, and the 13-record `soap_path_router` table are *semantically
+identical* — same paths, cap_flags and enabled-gate kinds. The only JSON diffs
+are recompilation address/offset shifts (same router at `0x1019a31c` vs
+`0x101953c8`; same zp cap-fields at `0x5434`/`0x544c` vs `0x5704`/`0x571c`).
+Between 86.8 and 86.10 limelight changed nothing above the arg-descriptor
+layer — `ClearSource` is the sole surface-visible behavioral delta.
 
 ---
 
@@ -552,7 +571,7 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 |-----|-------------------------|
 | `57.23-74170` ×12 models + recovery model20/model28 | recipient private keys not in vault (have 1,8,9,12,16,17 only) — need the per-model RSA keys |
 | model-2 25.2 dispatch | flat image has no reloc info — need ELF-headered 25.x binary or symbols |
-| deeper worker/object-graph tracing | the `worker` backend (`svc_ctx+4`) is `NULL` in the ctor and bound post-construction in device-init — not an `operator_new`+`store` site (likely embedded aggregate members via computed offsets); `DSPControl{Play1,Play3,Sub}` names are log strings with no ctor xref. The backend *interface* (`worker->vfunc+SLOT`) is proven; the concrete class per service is runtime-bound. Request-context object graphs are now statically mapped (per-service subclasses of one SOAP-request base) |
+| per-service worker-sibling binding | the `worker` (`svc_ctx+4`) is `NULL` in the ctor and bound post-construction in device-init — not an `operator_new`+`store` site. The worker **family is located**: `.rodata` `0x10d28xxx`–`0x10d2fxxx` holds the `DSPControl{Play1,Play3,Sub,HT}` facade siblings (shared backend block, thin `sub@0x158→inner@0x714→vfunc` trampolines; m9 same). What remains runtime-bound is *which sibling* backs each service — a device-init/hwmodel decision. Request-context object graphs are statically mapped |
 | per-arg `buf_cap` bounds | caps live in heap descriptors built by generated init code — needs per-init-function emulation (documented extractor limitation) |
 | error-condition passthroughs | runtime-produced residuals inside named transaction boundaries — runtime-bound, not statically provable |
 | runtime/live verification | explicitly out of scope (frozen at static ceiling) |
