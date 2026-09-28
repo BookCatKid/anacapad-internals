@@ -1839,10 +1839,11 @@
     },
     "service_struct": "0x680-byte UpnpService object; +0x00 vtable (dispatch at vfunc+0x40, called by master dispatcher); delegates to embedded svc_ctx impl descriptor",
     "svc_ctx": {
-      "layout": "{vtable@+0, worker@+4, x@+8}",
-      "vtable": "+0x00=FUN_10754518 non-deleting dtor, +0x04=FUN_10754650 deleting dtor (operator_delete(obj,0xc)), +0x08=table dispatcher (FUN_10752428 RC). Member +8 = refcounted impl wrapper (atomic lwarx/stwcx release via vfunc+8/+0xc).",
-      "ctor": "FUN_10754790 zeroes worker/+8, stores descriptor vtable",
-      "worker": "delegate/impl object set at runtime (registration); null -> 401 stub; called as worker->vfunc+0x1c(...) for SetVolume-class actions"
+      "layout": "12-byte object {vtable@+0, worker@+4, refcounted_impl@+8}; vtable = {+0 dtor, +4 deleting-dtor(operator_delete(obj,0xc)), +8 table-dispatcher}",
+      "placement": "members of zp aggregate at consecutive word-offsets 0xcb54..0xcb66 stride 3 (bytes 0x32d50,0x32d68,0x32d74,0x32d8c,0x32d98...) = the ROUTE HANDLER objects; route dispatcher calls handler->vfunc+0x08 = the table dispatcher",
+      "ctor": "FUN_10754790 (RC instance) zeroes worker/+8, stores 3-slot descriptor vtable (located in .rodata immediately before the service's action table)",
+      "worker": "delegate/impl object \u2014 NOT set in ctor; bound post-construction during device init (runtime-dependent). null -> 0x191(401) at dispatch. Called as worker->vfunc+0x1c(...) by SetVolume-class impls.",
+      "dispatch_chain": "HTTP req -> FUN_101875f4 route table (enable byte) -> svc_ctx->vfunc+0x08 = FUN_10752428 binary-search {name,fn_or_id,ctx_off} -> impl(svc_ctx+ctx_off, req, worker=svc_ctx+4). FUN_10670ee4 = separate UPnP/secure/proxy dispatcher on the 0x680-byte UpnpService objects (vfunc+0x40) for the device-description/eventing hierarchy."
     },
     "dispatch_chain": "route thunk -> FUN_10670ee4 (master: SOAPAction parse, secure checks, x-sonos-target-udn proxy) -> service_obj->vfunc+0x40 -> svc_ctx->vfunc+0x08 (FUN_10752428 table dispatch) -> impl(svc_ctx+ctx_off, req, worker)",
     "fault_codes": "req->vfunc+0x14(code) raises a SOAP fault whose numeric code IS the UPnP error code: 0x191=401 'Invalid Action' (unknown/missed action), 0x192=402 'Invalid Args' (arg-parse failure, e.g. SetVolume bad input). HTTP/GENA layer reuses same constants: 0x193=403, 0x19a=410, 0x19c=412, 0x1f5=501, 0x1f7=503."
