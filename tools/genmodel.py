@@ -707,6 +707,7 @@ def normalize(doc, client_text=None):
     m.routing = doc.get("routing") or {}
     m.request_vtable = doc.get("request_vtable") or {}
     m.shared_primitives = doc.get("shared_primitives") or {}
+    m.subsystems = doc.get("subsystems") or {}
     m.internal_functions = doc.get("internal_functions") or {}
     m.dispatch_candidates = doc.get("dispatch_candidates") or {}
 

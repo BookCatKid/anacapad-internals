@@ -300,6 +300,8 @@ def render_index(m):
             "grammars",
             "- [HTTP API](http-api.md) — non-SOAP HTTP endpoints and "
             "diagnostics",
+            "- [Subsystems](subsystems.md) — non-SOAP protocols and "
+            "engines with coverage levels",
             "- [Firmware differences](firmware-differences.md) — "
             "cross-build/cross-model deltas",
             ""]
@@ -918,6 +920,14 @@ _HTTP_KEYS = [
     "device_auth", "noncehandler", "circuitbreaker", "hls_radio",
     "cloud_request", "cloud_registration", "service_accounts",
     "device_registration", "assoctracker", "target_udn_routing",
+    "http_extra_endpoints", "csrf_protection",
+    "device_description_variants", "gena_internals",
+    "didl_classes_ext", "protocol_info_full", "icy_metadata",
+    "alert_engine", "household_psk_vocabulary",
+    "replication_elements", "token_refresh_state_machine",
+    "xml_schema_clusters", "internal_error_families",
+    "system_property_keys", "internal_result_namespace",
+    "smapi_capability_vocabulary",
 ]
 
 
@@ -967,6 +977,45 @@ def render_firmware(m):
         if e.extra:
             _generic(out, e.extra)
             out.append("")
+    return "\n".join(out)
+
+
+_STATUS_ORDER = {"absent": 0, "vocab": 1, "partial": 2,
+                 "documented": 3}
+
+
+def render_subsystems(m):
+    out = ["# Non-SOAP subsystems", "",
+           "Self-contained protocols/engines living in the same binary "
+           "beside or below the UPnP layer. `absent` = no coverage, "
+           "`vocab` = names/strings catalogued but semantics "
+           "undecoded, `partial` = some real documentation exists. "
+           "Evidence addresses are the rodata anchor strings.",
+           ""]
+    subs = sorted(m.subsystems.items(),
+                  key=lambda kv: (_STATUS_ORDER.get(
+                      kv[1].get("status"), 9), kv[0]))
+    rows = [["`%s`" % n, "**%s**" % _e(s.get("status") or "?"),
+             _e(s.get("summary") or "")]
+            for n, s in subs]
+    _table(out, ["Subsystem", "Coverage", "Summary"], rows)
+    for n, s in subs:
+        out += ["## `%s`" % n, ""]
+        out.append("**coverage** `%s`" % _e(s.get("status") or "?"))
+        out.append("")
+        if s.get("summary"):
+            out.append(_para(s["summary"]))
+            out.append("")
+        if s.get("anchors"):
+            out.append("- binary anchors: %s"
+                       % ", ".join("`%s`" % _e(a)
+                                   for a in s["anchors"]))
+            out.append("")
+        _generic(out, {k: v for k, v in s.items()
+                       if k not in ("summary", "status", "anchors",
+                                    "evidence")})
+        _ev_details([genmodel.Evidence.from_raw(e)
+                     for e in s.get("evidence") or []], out)
     return "\n".join(out)
 
 
@@ -1020,6 +1069,7 @@ def render_all(m, outdir):
                  "Opaque payload/field grammars recovered from sscanf/"
                  "printf templates and parser functions."),
              "http-api.md": render_http_api(m),
+             "subsystems.md": render_subsystems(m),
              "firmware-differences.md": render_firmware(m),
              "availability-matrix.md": render_availability(m)}
     svc_dir = os.path.join(outdir, "services")

@@ -54,4 +54,5 @@ Binary `anacapad`, build `86.10-80260` — model-9 (Playbar/limelight). Generate
 - [URI formats](uri-formats.md) — URI scheme grammars
 - [Payload formats](payload-formats.md) — opaque field/payload grammars
 - [HTTP API](http-api.md) — non-SOAP HTTP endpoints and diagnostics
+- [Subsystems](subsystems.md) — non-SOAP protocols and engines with coverage levels
 - [Firmware differences](firmware-differences.md) — cross-build/cross-model deltas

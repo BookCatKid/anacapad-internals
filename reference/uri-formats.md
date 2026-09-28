@@ -61,6 +61,45 @@ music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 </details>
 
+## `hls_aac` `strong`
+
+HLS AAC variant scheme token in the protocol vocabulary.
+
+- **name:** hls-aac
+- **pattern:** hls-aac
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e939c0 — rodata scheme literal
+
+</details>
+
+## `hls_radio` `strong`
+
+HLS radio variant scheme token in the protocol vocabulary.
+
+- **name:** hls-radio
+- **pattern:** hls-radio
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e939cc — rodata scheme literal
+
+</details>
+
+## `hm_scheme` `strong`
+
+Scheme token in the streamer URI vocabulary; semantics unresolved.
+
+- **name:** hm:
+- **pattern:** hm:
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fd6244 — rodata scheme literal
+
+</details>
+
 ## `http-endpoints-muse` `strong`
 
 Outbound muse/HTTP API path templates (client side, plus local /avt.txt persistence): "v1/households/{householdId}/alarms\[/...\]", "v1/groups/{groupId}/alarms/snooze", "v1/players/{playerId}/upnpAlarmClock\[/subscription\[/{logicalSID}\]\]" families - REST CRUD + subscription surfaces consumed/emitted by the cloud bridge.
@@ -76,6 +115,47 @@ Used by: cloud alarm sync; UPnP-bridge subscription relay
 - @ 0x10e7bf40 — v1/households/{householdId}/alarms
 - @ 0x10e83a3c — v1/players/{playerId}/upnpAlarmClock
 - @ 0x10e83b68 — subscription renew path
+
+</details>
+
+## `misc_schemes` `strong`
+
+URI schemes missed by the main sweep: pndrradioad:// (Pandora ad-insertion transport), pndrradio-http://, hls-radio://, hls-aac://, last.fm-radio-http, skd://, stub://, hm://, file://, rtsp://, mms:// — plus the urn:dev:ops:44974-zp- UDN prefix, urn:ietf:params:oauth:grant-type:jwt-bearer grant, urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1 WMP-registrar advertisement and urn:schemas-rinconnetworks-com:{metadata,update}-1-0 namespaces.
+
+- **schemes:** `pndrradioad://`, `pndrradio-http://`, `hls-radio://`, `hls-aac://`, `last.fm-radio-http`, `skd://`, `stub://`, `hm://`, `file://`, `rtsp://`, `mms://`
+- **urns:** `urn:dev:ops:44974-zp-`, `urn:ietf:params:oauth:grant-type:jwt-bearer`, `urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1`, `urn:schemas-rinconnetworks-com:metadata-1-0`, `urn:schemas-rinconnetworks-com:update-1-0`
+
+<details><summary>Evidence (3)</summary>
+
+- @ 0x10ecd058 — pndrradioad://
+- @ 0x10f99030 — urn:ietf:params:oauth:grant-type
+- @ 0x10f0a9f6 — X_MS_MediaReceiverRegistrar
+
+</details>
+
+## `oauth_jwt_urn` `strong`
+
+IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabulary; also listed under misc_schemes.
+
+- **name:** urn:ietf:params:oauth:grant-type:jwt-bearer
+- **pattern:** urn:ietf:params:oauth:grant-type:jwt-bearer
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f99030 — rodata URN literal
+
+</details>
+
+## `pndrradioad` `strong`
+
+Pandora ad-insertion stream marker; scheme strings embedded in the streamer URI dispatch vocabulary.
+
+- **name:** pndrradioad://
+- **pattern:** pndrradioad://
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ecd058 — rodata scheme literal
 
 </details>
 
@@ -107,6 +187,32 @@ radio-service URI family
 <details><summary>Evidence (1)</summary>
 
 - firmware — 'rdradio:' scheme literal
+
+</details>
+
+## `rinconnetworks_urn` `strong`
+
+RinconNetworks URN namespace prefix observed in service/URN vocabulary.
+
+- **name:** urn:schemas-rinconnetworks-com
+- **pattern:** urn:schemas-rinconnetworks-com
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e7761c — rodata scheme literal
+
+</details>
+
+## `skd` `strong`
+
+Scheme token in the streamer URI vocabulary; semantics unresolved.
+
+- **name:** skd:
+- **pattern:** skd:
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f1032c — rodata scheme literal
 
 </details>
 
@@ -175,6 +281,19 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 <details><summary>Evidence (1)</summary>
 
 - firmware — 'spotify:track:','spotify:episode:','x-spotify://' literals + spotify_smapi.cxx
+
+</details>
+
+## `stub_scheme` `strong`
+
+Stub scheme token; likely a placeholder/no-op transport marker.
+
+- **name:** stub:
+- **pattern:** stub:
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f06b88 — rodata scheme literal
 
 </details>
 
