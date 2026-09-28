@@ -147,6 +147,28 @@ by the descriptor machinery (`vfunc+0x1c` accessor + typed helpers), so the
 `0x192` "Invalid Args" fault can be raised for **authorization denial** as well
 as malformed arguments.
 
+The `req` object is a **polymorphic per-service request-context subclass**:
+three sibling vtables (m8 `0x10be20b8`, `0x10c3a640`, `0x10c334d8`) share one
+SOAP-request base — fixed slots `+0x08`(Master-gate), `+0x0c`, `+0x14`, `+0x24`,
+`+0x38`, `+0x3c` — and differ only in subclass overrides (`0x10c334d8` carries
+`rc_impl.cxx`/`ButtonSetMute`/primary-only checks ⇒ the RenderingControl
+context; m9 additionally compiles an `rc_impl_stp.cxx` submodule). The shared
+volume backend `FUN_100cef4c` (m8) / `0x100dc8e8` (m9) — `[0,100]` clamp,
+`Cannot set volume in fixed output mode`, audio object `vfunc+0xe0`/`+0xe4` —
+is a base-class method inherited across the siblings. This single base contract
+is exactly why all 204 impls use identical vfunc offsets.
+
+**Two objects, kept distinct:** the `req` object is the SOAP plumbing
+(request-context subclass, statically mappable); the `worker` (`svc_ctx+4`) is
+the separate product audio/zone backend. `worker` is `NULL` in the ctor and
+bound post-construction in device-init; it is not produced by an
+`operator_new`+`store` pattern (likely an embedded aggregate member bound via
+computed offsets), and `DSPControl{Play1,Play3,Sub}` names appear only as log
+strings with no ctor/factory xref — so the concrete worker class is
+**runtime-bound and not statically resolvable**. What is proven: a uniform
+`worker->vfunc+SLOT` backend interface (`SetVolume`→`+0x1c`, `Play`→`+0x2c`,
+`GetZoneGroupState`→`+0x28`).
+
 ### Dispatch-mechanism evolution
 
 | build | ptr-table | id-table | str-only | absent |
@@ -484,7 +506,7 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 |-----|-------------------------|
 | `57.23-74170` ×12 models + recovery model20/model28 | recipient private keys not in vault (have 1,8,9,12,16,17 only) — need the per-model RSA keys |
 | model-2 25.2 dispatch | flat image has no reloc info — need ELF-headered 25.x binary or symbols |
-| deeper worker/object-graph tracing | Ghidra projects exist (`ghidra_proj_m8`, `ghidra_proj_868`) and yielded the dispatcher/gate/`SetVolume` decodes; service-object vtables are runtime-allocated (sentinel `0x40000bd`), so per-service object graphs need runtime or constructor tracing |
+| deeper worker/object-graph tracing | the `worker` backend (`svc_ctx+4`) is `NULL` in the ctor and bound post-construction in device-init — not an `operator_new`+`store` site (likely embedded aggregate members via computed offsets); `DSPControl{Play1,Play3,Sub}` names are log strings with no ctor xref. The backend *interface* (`worker->vfunc+SLOT`) is proven; the concrete class per service is runtime-bound. Request-context object graphs are now statically mapped (per-service subclasses of one SOAP-request base) |
 | per-arg `buf_cap` bounds | caps live in heap descriptors built by generated init code — needs per-init-function emulation (documented extractor limitation) |
 | error-condition passthroughs | runtime-produced residuals inside named transaction boundaries — runtime-bound, not statically provable |
 | runtime/live verification | explicitly out of scope (frozen at static ceiling) |
