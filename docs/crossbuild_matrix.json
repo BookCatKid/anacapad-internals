@@ -1695,5 +1695,33 @@
     "dispatch": "ptr-table {name,C-fn,0} for big services; id-table {name,vfunc-offset,0} binary-searched for C++-object services; AudioIn/QPlay via strcmp fallback \u2014 all shared",
     "unified_dispatcher": "all /Control routes funnel to ONE per-service dispatcher that does name->action resolution, then req-object drives parse/commit",
     "workers": "impls delegate to engine-vfuncs + chsrc/CHSNK transactions (shared core in both models)"
+  },
+  "extraction_inventory": {
+    "binaries_available": {
+      "model2_fenway_25.2": "flat cramfs image (no ELF hdr) \u2014 proto-anacapad",
+      "fenway_34.16": "extracted (public)",
+      "fenway_57.10": "extracted (public)",
+      "fenway_diag": "extracted (public)",
+      "model8_fenway_86.8": "extracted .upd type-23 unencrypted bin/ section",
+      "model9_limelight_86.8": "rootfs squashfs",
+      "model9_limelight_86.10": "rootfs (frozen baseline)"
+    },
+    "upd_crypto": "sections flagged enc use envelope 0x886499ca: RSA-unwrap AES key (recipient_id = key fingerprint) -> AES-CBC payload. decrypt_envelope() in src/sonos_firmware/extract.py works.",
+    "vault_keys": "models 1,8,9,12,16,17 only. Decryptable .upd = ONLY the 3 already-owned builds (86.8-1-8,86.8-1-9,86.10-1-9).",
+    "blocked": "57.23-74170 x12 models (recipients 0cfddc3f..,83fb98ff..,etc \u2014 no keys); recovery model20@34.16/model28@57.5 (enc); m8-86.10 (-1-8 .upd absent). Need additional model RSA keys to expand.",
+    "device_payload": "m9 device-payload = Xilinx Spartan-3 FPGA bitstream (3s50avq100, audio fabric doing optical/IR/TDM routing) \u2014 the HW behind limelight-only HTControl/IR/Dolby. Identical 86.8 vs 86.10."
+  },
+  "static_gaps": {
+    "ghidra_m8": "model-8 decompile blocked by disk at 100% (needs ~350MB project + headroom; died 3x). Mitigated via tools/disas.py in-process PPC disasm+emulation (arg-fetch sweeps, error domains, vfunc-call analysis all work). Need ~1GB free to run analyzeHeadless.",
+    "impl_worker_semantics": "worker/vtable/object-graph diffs done via disas.py structural comparison + string anchors rather than full Ghidra decompile"
+  },
+  "impl_worker_diff": {
+    "method": "per-impl profile (calls/cmpwi/vfunc-offsets/string-refs, stop at first blr) across all 134 shared ptr-table impls m8-86.8 vs m9-86.8",
+    "result": "calls+cmpwi counts identical on ~128/134 impls. vfunc-offset diffs are stack-frame allocation noise (same request-object members at shifted offsets; m9's -28680 = relative vtable arg). String-refs identical on all.",
+    "real_diffs": {
+      "RoomDetectionStartChirping/StopChirping": "m8 uses nested RUNTIME dispatcher (extra calls + .bss sub-table at 0x10c7fb6c) vs m9 direct impl \u2014 different dispatch plumbing, same arg surface (all arg-name strings present in m8)",
+      "Backup/BecomeCoordinatorOfStandaloneGroup/SetBrowseable": "\u00b11 call/cmp \u2014 tail-call bctr + codegen artifacts; disasm confirms identical vfunc structure"
+    },
+    "conclusion": "SOAP action layer compiled from SAME source in fenway and limelight. Model differences are confined to dispatch wiring (HTControl table not linked) + product subsystems (DSPControlPlay1/3/Sub vs limelight DSP/Dolby/IR). Shared-action argument/error/statevar semantics are therefore identical-by-construction for the 134 ptr-table impls."
   }
 }
