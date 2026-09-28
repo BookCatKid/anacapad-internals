@@ -403,6 +403,19 @@ multi-product source gated at runtime.
   `complete_ht.ogg`; limelight-only IR-upload `ir.ws.sonos.com/IRCode/` and
   buzzer `file://%s/buzzers/0.mp3`.
 
+  The **URI→source-type classifier** is decompiled (`FUN_1012a590`): it first
+  rejects streaming schemes — `x-rincon-mp3radio://`, `mms://`, `rtsp://`,
+  `aac://`, `x-sonosapi-stream:`/`x-sonosapi-hls:`/`x-sonosapi-rtrecent:` —
+  then extracts the scheme token (`FUN_10593e94`) and validates it against a
+  `{name,type}` **codec table** (`FUN_1044ca58` over `0x10c2db80`). Codec type
+  codes: `0`=MP3, `1`=WAV/PCM, `2`=WMA, `3`=MP4/AAC (m4a/m4b/m4p/mp4/m4s),
+  `4`=ADTS/AAC, `5`=AIFF, `6`=FLAC, `7`=OGG, `8`=M3U, `9`=M3U8/HLS,
+  `10`=Spotify-OGG, `11`=DASH/MPD, `12`=Spotify (`audio/x-spotify`),
+  `0xfffffffe`=L16 raw PCM (`audio/L16`). Recognized scheme family:
+  `x-rincon:`/`x-rincon-queue:`/`x-rincon-cpcontainer:`/`x-rincon-stream:`/
+  `x-rincon-mp3radio:`/`x-file-cifs:`/`x-sonosapi-*:`/`mms:`/`rtsp:`/`aac:` —
+  a shared audio-source grammar under both products.
+
 ---
 
 ## 8. Native protocols
