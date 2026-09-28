@@ -97,9 +97,18 @@ source**, proven two ways:
   same compiled impl. The only id-table divergence is exactly the 8 HTControl
   actions.
 
-So across the **entire 204-action surface** the impl code is shared source; the
-single exception is HTControl, whose dispatch table is simply not linked on
-fenway.
+So the **196 shared actions** are shared impl source (proven below at the
+decompiled-C level); the remaining 8 — HTControl — are limelight-only compiled
+code that simply does not exist in the fenway binary.
+
+**Decompiled-C proof** — `SetVolume` was decompiled in both binaries (m8
+`FUN_10753c48`, m9 `FUN_1082ca5c`). The two functions are semantically
+identical: each fetches `InstanceID`/`Channel`/`DesiredVolume` via
+`req->vfunc(+0x1c)`, gates on `req->vfunc(+0x8)` (else raises `0x192`=402),
+delegates via `worker->vfunc(+0x1c)(InstanceID,Channel,DesiredVolume)`, commits
+`req->vfunc(+0xc)` on success, faults `req->vfunc(+0x14)` on failure. The only
+difference is a stack-canary epilogue in the m9 build — compiler hardening, not
+behaviour.
 
 The **only** structural SOAP difference:
 
@@ -117,6 +126,18 @@ the service route is bound but no `{name,id}` table is linked, so all eight
 fault at dispatch — a *product-capability* gate expressed by **not linking the
 action table**, not by removing the service.
 
+Deeper binary check (string+code-ref sweep): the IR **implementation is absent
+from the fenway binary outright** — `irdecoder.cxx`, the whole learn-state
+machine (`Entered one button learn`, `Pass %d length %d learn count`, `Learn
+summary`, timeout/mismatch paths) and the IRCode cloud client
+(`ir.ws.sonos.com/IRCode/`) have **no** presence. Only the action names and
+shared constants (`IR_SENSOR`, `IR_TRANSMITTER`, `IRCode`,
+`O_IR_DB_WS_IRCODE_URL`) survive as dead strings in shared registration data.
+On limelight all of it is live code (6 refs to `irdecoder.cxx`, 8 action impls
+wired). So HTControl is not "shared impl, unwired" — it is a **limelight-only
+compiled subsystem**; the shared-source claim covers the 196 genuinely shared
+actions.
+
 ---
 
 ## 4. Product architecture — one binary, many roles
@@ -133,14 +154,28 @@ The fenway `anacapad` is a **multi-product** binary, not Play:1-only:
   `htSatelliteStats`, `starting the satellite run loop`. A fenway box becomes a
   Playbar's bonded surround satellite.
 
-**The product gate is runtime and data-driven**, not compile-time. At boot the
-binary reads `hwmodel`/`submodel` via a HAL call (`0x10571730`), matches it
-against a `model_list`/`update_list` config (`supported_models`, `0x1056b658`
-reads `obj+2388`), then a **3-way switch** (`0x1056b6a8/b4/c0`, values 1/2/3 =
-Play1/Play3/Sub) runs product-specific `getProperty` setup; an unrecognized
-model logs `Unsupported Fenway Submodel` (`0x10b84ce8`). One binary serves all
-fenway submodels — behaviour is selected by the detected hardware and a config
-model-list.
+**The product gate is a hardware-descriptor probe** (Ghidra-decompiled,
+`FUN_10b84ce8`). A lazily-initialised singleton (guard-acquired via
+`__cxa_guard_acquire`, built by `FUN_108d3fb8`) carries the detected hardware;
+three ordered probes inspect it:
+
+```c
+probe FUN_108d2e44: desc[+0x10c]==8 && (desc[+0x110] & ~4)==2   → index 1
+probe FUN_108d2e70: desc[+0x10c]==8 && (desc[+0x110] & ~4)==3   → index 2
+probe FUN_108d2e1c: desc[+0x10c]==8 &&  desc[+0x110]     ==1    → index 3
+no match            → returns 0, logs "Unsupported Fenway Submodel"
+```
+
+`desc[+0x10c]==8` is the **fenway family** tag; `desc[+0x110]` is the submodel
+ID with bit 2 masked as a variant flag on the Play:1/Play:3 probes. First match
+wins — one binary serves all fenway submodels, selected by the detected
+hardware descriptor.
+
+(An earlier reading attributed the gate to `FUN_1056b658`; decompilation shows
+that function is the **update-manifest XML parser** — `image`, `model`,
+`submodel_min/max`, `fromver_min/max`, `flags`, `milestone_index`,
+`app_baseline`, `arch`, `supported_models`, `update_list`, `swgen` — used for
+`.upd` validation, not runtime product selection.)
 
 The limelight `anacapad` is the **HT-master** side: IR decoder+learning
 (`irdecoder.cxx`, `hal_ir_*`, `IRCode`, `/jffs/irconfig.txt`), Dolby/optical
@@ -277,6 +312,16 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 - **SOAP impl source is shared** across fenway/limelight — identical per-impl
   profiles; products differ by table-linking, not code.
 - **Request-object vtable contract** identical across models.
+- **Master UPnP dispatcher decoded** (Ghidra): `FUN_10670ee4` is the single
+  entry all `/Control` routes funnel into. It parses the `soapaction` header,
+  enforces secure-mode/loopback checks (403), then calls the service object via
+  `service->vfunc(+0x40)`. It also implements **`x-sonos-target-udn` request
+  proxying** — a request addressed at a target UDN is forwarded to that device
+  (group-coordinator tunnelling; forwarding failure → `0x19c`/412 fault), and
+  emits `zpUpnpSrv` dispatch-timing metrics. `FUN_1066bc50` is the parallel
+  eventing dispatcher (`/DeviceProperties/Event`, `/GroupManagement/Event`).
+- **Decompiled shared-source proof** — `SetVolume` decompiles to identical C in
+  m8/m9 (see §3).
 - **Multi-product single binary** — fenway serves Play:1/Play:3/Sub +
   HT-satellite; limelight is the HT-master/optical product. Capability =
   runtime + dispatch wiring.
@@ -291,7 +336,7 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 |-----|-------------------------|
 | `57.23-74170` ×12 models + recovery model20/model28 | recipient private keys not in vault (have 1,8,9,12,16,17 only) — need the per-model RSA keys |
 | model-2 25.2 dispatch | flat image has no reloc info — need ELF-headered 25.x binary or symbols |
-| model-8 Ghidra decompile | disk was at 100% (died 3×); now relaunched with headroom — enables deeper id-table-impl + native-protocol worker tracing |
+| deeper worker/object-graph tracing | Ghidra projects exist (`ghidra_proj_m8`, `ghidra_proj_868`) and yielded the dispatcher/gate/`SetVolume` decodes; service-object vtables are runtime-allocated (sentinel `0x40000bd`), so per-service object graphs need runtime or constructor tracing |
 | per-arg `buf_cap` bounds | caps live in heap descriptors built by generated init code — needs per-init-function emulation (documented extractor limitation) |
 | error-condition passthroughs | runtime-produced residuals inside named transaction boundaries — runtime-bound, not statically provable |
 | runtime/live verification | explicitly out of scope (frozen at static ceiling) |
