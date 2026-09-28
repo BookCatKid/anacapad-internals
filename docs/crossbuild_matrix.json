@@ -1850,5 +1850,32 @@
     "fenway": "FUN_10b95dec = Play:1 EQ-variant selector driven by the hardware descriptor: 0xe->ROYALE (or 'BEACON RollBack' if hwrev(FUN_108d2d70)>=7), {0xf,0x14,0x18,0x28,0x2d}->BOOTLEG, 0x16->MARQUEE, 0x17->LARGO, default->AMOEBA. Internal codenames = per-hardware-revision DSP tuning curves.",
     "limelight": "ABSENT \u2014 no EQ-variant selector or codenames; Playbar uses a single fixed equalization (only generic 'Bad equalizer band' error string exists).",
     "sub_backend": "FUN_10b968e4 DSPControlSub 'Updating subwoofer level': writes level to obj+0x1540 + flag +0x1544, commits via vfunc+0x15c \u2014 the Sub volume path behind the SOAP worker delegate."
+  },
+  "http_route_table": {
+    "dispatcher": {
+      "m8": "FUN_101875f4 (12 entries)",
+      "m9": "FUN_1019a58c-ish (13 entries)"
+    },
+    "entry_layout": "{handler_obj, path, svc_name, flag_bit, enable_byte} stride 5 words; loop strcmp path; skipped when enable_byte==0 -> default handler (404); flag_bit & *(zp+telemetry_mask) -> emits {service,method} metrics",
+    "m8_entries": {
+      "/AlarmClock/Control": "obj zp+0xa730 flag 0x80 enable=1",
+      "/AudioIn/Control": "flag 0x100 enable=*(zp+0x53cc) runtime",
+      "/MusicServices/Control": "zp+0x30350 flag 0x200 enable=*(zp+0x53e4)^1",
+      "/QPlay/Control": "zp+0x1c3b8 flag 0x800",
+      "/MediaServer/ConnectionManager/Control": "zp+0x30488 flag 0x10",
+      "/MediaServer/ContentDirectory/Control": "zp+0x32d74 flag 0x20",
+      "/MediaRenderer/ConnectionManager/Control": "zp+0x305b0 flag 0x40",
+      "/MediaRenderer/RenderingControl/Control": "flag 0x1000 enable=1",
+      "/MediaRenderer/AVTransport/Control": "zp+0x32d50 flag 0x2000",
+      "/MediaRenderer/GroupRenderingControl/Control": "zp+0x32d68 flag 0x4000",
+      "/MediaRenderer/Queue/Control": "zp+0x32d8c flag 0x8000",
+      "/MediaRenderer/VirtualLineIn/Control": "zp+0x32d98 flag 0x10000"
+    },
+    "htcontrol_route": {
+      "m9": "13th entry: handler zp+0x28da4, flag 0x400, enable=*(zp+0x544c)^1",
+      "m8": "ABSENT \u2014 '/HTControl/Control' string exists but has zero code refs; not in the route table -> HTTP 404 at route layer"
+    },
+    "correction": "HTControl on fenway is fully absent: no route binding (404, not even SOAP 401), no action table, no impl code. Only the service object (zp-member +0x3b14) and advertised URN/SCPD persist via shared device-description data.",
+    "shared_enable_byte": "most routes share a single global UPnP-enable flag (*(zp+0x53e4)^1 on m8, *(zp+0x544c)^1 on m9); AudioIn has its own runtime byte *(zp+0x53cc)"
   }
 }
