@@ -462,6 +462,18 @@ sends a `hello` handshake via `obj->vfunc+0x40` (fail → status `5`).
 `/var/run/netstart_mode` as the operating-mode int. Identical strings in both
 binaries — shared subsystem.
 
+The **nodetx** telemetry path is also decompiled (`FUN_106992d8` = `nodetx_vli`
+sender): a *named node-request* on the SonosNet/hwmessage node-comm object
+(`obj+0x6c`). The sender builds a protobuf-style buffer (`FUN_1061e5c0` on
+`obj+0x740`), serializes a message via `comm->vfunc+0x4c`, then sends the named
+request via `comm->vfunc+0x08("nodetx_vli")`. `nodetx_chsrc`/`nodetx_vli`/
+`nodetx_ht` are per-audio-source `<NodeTXBuffer>` request names (chsrc = the
+limelight HT-master transmitter, vli = line-in, ht = home-theatre) — a shared
+telemetry mechanism carrying product-specific payload names. The `"TLV header
+%d %d/7 oserr %d"` reader is present but reached only via a log-descriptor
+table (no direct code xref) — its 7-field header format is confirmed by the
+format string, the reader itself not statically anchored.
+
 **DSP internals**: fenway-only `FUN_10b95dec` selects per-hwrev Play:1 EQ
 curves by codename (`0xe`→ROYALE/`BEACON RollBack`, `0xf/0x14/0x18/0x28/0x2d`→
 BOOTLEG, `0x16`→MARQUEE, `0x17`→LARGO, default→AMOEBA) — absent on limelight.
