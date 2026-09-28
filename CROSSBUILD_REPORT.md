@@ -474,6 +474,18 @@ telemetry mechanism carrying product-specific payload names. The `"TLV header
 table (no direct code xref) — its 7-field header format is confirmed by the
 format string, the reader itself not statically anchored.
 
+The **internalevts** in-process event bus is decompiled (`FUN_105bbeac`
+destructor, `subject.h` observer pattern): an event-manager object holding 7
+event-type slots (`obj+0xb..+0x18`), each a doubly-linked list of 12-byte
+subscriber nodes `{vtable, prev, next, flag@+0x14}` torn down via
+`node->vfunc+0x04` + `operator_delete(node,0x18)` with a `"%u leaked
+subscriptions"` audit. Event-name table (`0x10c509dc`): `invalid`,
+`deferred_event_sub`, `generic_update`, `sat`, `sonar_cal_mode_changed`,
+`avt_device_feedback`, `entitlements_changed` — the internal observer layer
+that propagates state changes into GENA `LastChange` and cross-module signals
+(satellite, Trueplay/sonar calibration, transport feedback, service
+entitlements).
+
 **DSP internals**: fenway-only `FUN_10b95dec` selects per-hwrev Play:1 EQ
 curves by codename (`0xe`→ROYALE/`BEACON RollBack`, `0xf/0x14/0x18/0x28/0x2d`→
 BOOTLEG, `0x16`→MARQUEE, `0x17`→LARGO, default→AMOEBA) — absent on limelight.

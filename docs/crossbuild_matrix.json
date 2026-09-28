@@ -2021,5 +2021,20 @@
   ],
   "meaning": "NodeTXBuffer protobuf req/resp telemetry - per-audio-source node-transmit stats (chsrc=HT-master tx, vli=line-in, ht=home-theatre)",
   "channel": "comm->vfunc+0x08(name) = the send/node-request entry point; +0x4c = message serialize. Same node-comm object used for hwmessage events."
+ },
+ "internalevts_bus": {
+  "purpose": "in-process publish/subscribe event bus (observer pattern, subject.h) that propagates internal state changes - feeds GENA LastChange and cross-module notification",
+  "structure": "FUN_105bbeac destructor: an event-manager object with 7 event-type slots (obj+0xb..+0x18, stride 3). Each event type = a doubly-linked list of 12-byte subscriber nodes {vtable, prev, next, flag@+0x14}. Teardown unlinks nodes, calls node->vfunc+0x04 (unsubscribe), operator_delete(node,0x18), and logs '%u leaked subscriptions for event %s'.",
+  "event_types": [
+   "invalid",
+   "deferred_event_sub",
+   "generic_update",
+   "sat",
+   "sonar_cal_mode_changed",
+   "avt_device_feedback",
+   "entitlements_changed"
+  ],
+  "meaning": "sat=satellite events, sonar_cal_mode_changed=Trueplay/sonar calibration, avt_device_feedback=AVTransport device feedback, entitlements_changed=music-service entitlement updates - the internal counterpart to the SOAP/GENA external surface",
+  "vtable": "manager obj vtable at 0x10c504b8; event-name table at 0x10c509dc"
  }
 }
