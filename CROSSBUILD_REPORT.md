@@ -543,6 +543,7 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 | per-arg `buf_cap` bounds | caps live in heap descriptors built by generated init code — needs per-init-function emulation (documented extractor limitation) |
 | error-condition passthroughs | runtime-produced residuals inside named transaction boundaries — runtime-bound, not statically provable |
 | runtime/live verification | explicitly out of scope (frozen at static ceiling) |
+| SCI/SonosNet/MRPC/TLV handler internals | strings are hardware-enum/job names (`SCI_BOARD`, `PSOC`, `UART`, `PMU`, `checkSonosNetDisableTestTimedJob`) with **no code xref and no data-pointer ref** — apparent `.rodata` hits are ASCII false-positives inside GENA error strings. Handlers dispatch through vtables/descriptor tables (the binary's pervasive virtual-call style), not statically linkable. Needs a full virtual-call call-graph reconstruction and/or runtime. netstart/nodetx/internalevts *are* decoded; these are not |
 
 ---
 
