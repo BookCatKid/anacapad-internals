@@ -1581,6 +1581,13 @@
       "result": "NO proven arg-name delta \u2014 all arg-name strings incl. chirp params (Channel/ChirpIfPlayingSwappableAudio/DurationMilliseconds/PlayId) present in both binaries.",
       "roomdetection_note": "m8 wires RoomDetectionStart/StopChirping through a runtime-built (.bss) sub-dispatch table rather than a direct arg-fetch wrapper like m9 \u2014 STRUCTURAL difference, semantically equivalent at string level (arg vocab identical). SonarControl subsystem present on fenway (42 sonar strings vs 38; m8-only 'SonarControl').",
       "honest": "runtime-built table couldn't be followed statically \u2014 m8's chirp impl NOT reached; can't prove identical param handling, only identical vocabulary"
+    },
+    "eventing_lastchange": {
+      "method": "event-template/diagnostic-field string diff (LastChange payloads + /status telemetry)",
+      "m9_only_fields": "<SPDIFParser><State><InputBitstreamStride><Anomalies>; <ActiveDecoder>DTS/PCM/None,<ACMOD>,<DTSProfile>,<Decoder>,<AudioMode>; <DialNorm>,<DialNormGainDB>,<DialogLevel>,<SupportsMaxDialogLevel>; <NightMode>,<SpeechEnhanceEnabled> (DRC); <AudioDelay[LeftRear|RightRear]>,<HeightChannelLevel>,<MusicSurroundLevel>,<SURRMOD>; <SPDIFTap>; <Satellite><Channel><Delay><Gain><IP><Eth><WiEna> per-satellite + <SatelliteVersion/Total/Subs>; <HTConfig>,<StartupLatency>,<FrontSatDelay>; <IRCode>; GroupVolume/VolumeSet/VolumeChanged/VliVolumeProcessingComplete event instrumentation",
+      "m8_only_fields": "<HTSNKPipelineVer> (satellite sink pipeline version); <SubLeveldB><InvertSub><ConstrainSubLevelToVolume> (Sub bonding); DSP gain-trim debug",
+      "verdict": "Playbar emits the HT-master telemetry (optical decode, dialog normalization, night mode, surround config, per-satellite stats); Play:1 emits only satellite-receiver + Sub params. Queue LastChange (<Event xmlns=...Queue/>) shared.",
+      "shared": "Queue LastChange + volume/group event names exist in both (different log format strings)"
     }
   },
   "dispatch_architecture": {
@@ -1589,5 +1596,53 @@
     "id_table_shared_service_object": "the SystemProperties+ZGT id-table at 0x10f0d20c mixes BOTH services' actions (BeginSoftwareUpdate..SubmitDiagnostics + GetZoneGroupAttributes/GetZoneGroupState) \u2014 these services are facades onto ONE player-level C++ object; different SCPD/XML faces, same vtable.",
     "strcmp_dispatch": "AudioIn (6) + QPlayAuth handled by name-comparison fallback, not a table",
     "availability_states": "compiled=code/string in binary; registered=route+service object exists; advertised=in SCPD; callable=dispatch path reaches impl; stubbed=dispatched to reject-all/stub; removed=no compiled string/table"
+  },
+  "action_availability_matrix": {
+    "note": "dispatch mechanism per build; 'id'=callable C++ vfunc, 'ptr'=callable C fn, 'str'=dead string (advertised but not callable), 'absent'=not compiled",
+    "AudioIn_x6": {
+      "34.16": "id/live",
+      "57.10": "id/live",
+      "86.8-fenway": "stub (reject-all)",
+      "86.8-limelight": "stub (reject-all)",
+      "86.10": "stub",
+      "verdict": "REAL line-in service in old firmware; became reject-all 401 stub in 86.x on BOTH models"
+    },
+    "QPlayAuth": {
+      "34.16": "id=9 live",
+      "57.10": "dead str",
+      "86.8": "dead str",
+      "verdict": "removed 34.16->57.10"
+    },
+    "ResetThirdPartyCredentials": {
+      "34.16": "id=77 live",
+      "57.10": "dead str",
+      "86.8": "dead str",
+      "verdict": "soft-removed 34.16->57.10 (dead string retained)"
+    },
+    "ProvisionCredentialedTrialAccountX": {
+      "34.16": "id=29 live",
+      "57.10": "absent",
+      "86.8": "absent",
+      "verdict": "hard-removed 34.16->57.10 (no string)"
+    },
+    "HTControl_x8": {
+      "34.16-fenway": "dead str",
+      "57.10-fenway": "dead str",
+      "86.8-fenway": "dead str",
+      "86.8-limelight": "id-table LIVE",
+      "86.10": "LIVE",
+      "verdict": "never callable on fenway (Play1/Play3/Sub lack IR/optical HT input); live only on limelight Playbar \u2014 product capability gate, constant across versions"
+    },
+    "RoomDetectionChirp_x2": {
+      "34.16": "absent",
+      "57.10": "absent",
+      "86.8": "present",
+      "verdict": "sonar room-calibration added in 86.x"
+    },
+    "DirectControl_ButtonLock": {
+      "detail": "EndDirectControlSession/SetSourceAreaIds/StartTransmission/StopTransmission absent in 34.16, present 57.10; Get/SetButtonLockState absent 34.16, present 57.10",
+      "verdict": "added 57.x"
+    },
+    "arch_evolution": "34.16&57.10: ~all id-table (C++ vfunc); 86.8: 134 ptr + 46 id \u2014 major services migrated to C-function dispatch between 57.x and 86.x; advertised surface stable ~197 actions across all builds"
   }
 }
