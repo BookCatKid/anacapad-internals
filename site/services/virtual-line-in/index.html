@@ -3111,7 +3111,8 @@
 
 <h1 id="virtuallinein-mediarenderervirtuallineincontrol"><code>VirtualLineIn</code> — <code>/MediaRenderer/VirtualLineIn/Control</code><a class="headerlink" href="#virtuallinein-mediarenderervirtuallineincontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).</p>
+<p>Treats a networked line-in source as a virtual transport on this player - transport-style control (Play/Pause/Stop/Next/Previous/SetVolume) plus Start/StopTransmission to run the session. It's the 'line-in from another player' surface.</p>
+<p><strong>Technical description:</strong> Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x10000</code></li>
@@ -3205,7 +3206,8 @@
 </table>
 <h3 id="next"><code>Next</code><a class="headerlink" href="#next" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Next-track in the VLI session via impl-&gt;v[+0x1c].</p>
+<p>Advances the virtual line-in transport (context-dependent).</p>
+<p><strong>Technical description:</strong> Next-track in the VLI session via impl-&gt;v[+0x1c].</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3306,7 +3308,8 @@
 
 <h3 id="pause"><code>Pause</code><a class="headerlink" href="#pause" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Pauses VLI playback via impl-&gt;v[+0x18].</p>
+<p>Pauses the virtual line-in source.</p>
+<p><strong>Technical description:</strong> Pauses VLI playback via impl-&gt;v[+0x18].</p>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3407,7 +3410,8 @@
 
 <h3 id="play"><code>Play</code><a class="headerlink" href="#play" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl-&gt;v[+0x14] on the r5-in VLI session impl.</p>
+<p>Starts/resumes the virtual line-in source at the given Speed ('1' normal).</p>
+<p><strong>Technical description:</strong> Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl-&gt;v[+0x14] on the r5-in VLI session impl.</p>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3518,7 +3522,8 @@
 
 <h3 id="previous"><code>Previous</code><a class="headerlink" href="#previous" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Previous-track via impl-&gt;v[+0x20].</p>
+<p>Steps the virtual line-in transport back.</p>
+<p><strong>Technical description:</strong> Previous-track via impl-&gt;v[+0x20].</p>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3619,7 +3624,8 @@
 
 <h3 id="setvolume"><code>SetVolume</code><a class="headerlink" href="#setvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets VLI-session volume (DesiredVolume) via impl-&gt;v[+0x24].</p>
+<p>Sets the playback volume for the line-in session.</p>
+<p><strong>Technical description:</strong> Sets VLI-session volume (DesiredVolume) via impl-&gt;v[+0x24].</p>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3730,7 +3736,8 @@
 
 <h3 id="starttransmission"><code>StartTransmission</code><a class="headerlink" href="#starttransmission" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl-&gt;v[+0x8].</p>
+<p>Begins receiving the line-in stream from the given CoordinatorID; returns the resulting transport settings.</p>
+<p><strong>Technical description:</strong> Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl-&gt;v[+0x8].</p>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3863,7 +3870,8 @@
 
 <h3 id="stop"><code>Stop</code><a class="headerlink" href="#stop" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Stops VLI playback via impl-&gt;v[+0x10].</p>
+<p>Stops the virtual line-in transport.</p>
+<p><strong>Technical description:</strong> Stops VLI playback via impl-&gt;v[+0x10].</p>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3966,7 +3974,8 @@
 
 <h3 id="stoptransmission"><code>StopTransmission</code><a class="headerlink" href="#stoptransmission" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Stops the VLI transmission to CoordinatorID via impl-&gt;v[+0xc].</p>
+<p>Ends the line-in transmission from the given coordinator.</p>
+<p><strong>Technical description:</strong> Stops the VLI transmission to CoordinatorID via impl-&gt;v[+0xc].</p>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

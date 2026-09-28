@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.
+Alarm scheduler for the zone. Lets a client create, list, update and delete alarms, and read/set the household clock settings those alarms run against (current time, time zone, time server, 12/24h and date formats, and the daily music-index refresh time). Alarms target a single room by UUID and can play a stream URI or a library playlist at a fixed volume, optionally grouping linked zones. Changes are announced through the evented AlarmListVersion.
+
+**Technical description:** Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.
 
 ## Availability
 
@@ -42,7 +44,9 @@ Alarm and clock service: alarm CRUD plus household time/timezone/settings getter
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -> impl->v\[+0x34\], returning AssignedID.
+Creates a new alarm and returns its AssignedID, which is needed for UpdateAlarm and DestroyAlarm. StartLocalTime and Duration use 'HH:MM:SS'; Recurrence is a keyword such as ONCE, EVERYDAY, WEEKDAYS or WEEKENDS. RoomUUID selects the player, ProgramURI/ProgramMetaData choose what plays (a stream URI, or a Sonos playlist/library URI), PlayMode picks e.g. NORMAL or SHUFFLE_NOREPEAT, Volume is 0-100, and IncludeLinkedZones controls whether bonded players join in.
+
+**Technical description:** Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -> impl->v\[+0x34\], returning AssignedID.
 
 #### Inputs
 
@@ -200,7 +204,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Deletes alarm ID via impl->v\[+0x3c\].
+Deletes the alarm with the given ID (an AssignedID previously returned by CreateAlarm, or an id from ListAlarms). Returns nothing; the change shows up in AlarmListVersion.
+
+**Technical description:** Deletes alarm ID via impl->v\[+0x3c\].
 
 #### Inputs
 
@@ -313,7 +319,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
+Returns the 'HH:MM:SS' local time at which the player rebuilds the local music-library index each day.
+
+**Technical description:** Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -423,7 +431,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
+Returns the player's time and date display preferences (e.g. 12h vs 24h clock).
+
+**Technical description:** Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -537,7 +547,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
+Converts a monotonically-increasing household timestamp (as used in event and queue bookkeeping) into an absolute UTC time.
+
+**Technical description:** Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
 
 #### Inputs
 
@@ -656,7 +668,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl->v\[+0x8\].
+Returns the player's current UTC time, local time, time zone and TimeGeneration (a counter that increments whenever the household clock is set - useful for detecting clock changes).
+
+**Technical description:** Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -781,7 +795,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns CurrentTimeServer via impl->v\[+0x8\].
+Returns the configured household time-server address used to keep zone clocks in sync.
+
+**Technical description:** Returns CurrentTimeServer via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -891,7 +907,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns Index/AutoAdjustDst via impl->v\[+0x8\].
+Returns the current time zone index and whether DST is auto-adjusted. Use GetTimeZoneRule to resolve the index to a tz rule string.
+
+**Technical description:** Returns Index/AutoAdjustDst via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1003,7 +1021,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
+Same as GetTimeZone but also returns the resolved CurrentTimeZone rule string in one call.
+
+**Technical description:** Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1119,7 +1139,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the TimeZone rule for Index via impl->v\[+0x1c\].
+Looks up a time zone rule string (POSIX-style TZ spec) by Index.
+
+**Technical description:** Returns the TimeZone rule for Index via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -1238,7 +1260,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Lists all alarms via impl->v\[+0x8\].
+Returns the full alarm list as an XML document plus CurrentAlarmListVersion. The version counter is the cheap way to poll for changes; it is also evented.
+
+**Technical description:** Lists all alarms via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1351,7 +1375,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the daily music-index refresh time via impl->v\[+0x40\].
+Changes the daily library-index refresh time ('HH:MM:SS').
+
+**Technical description:** Sets the daily music-index refresh time via impl->v\[+0x40\].
 
 #### Inputs
 
@@ -1464,7 +1490,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
+Sets the 12/24-hour time format and the date format.
+
+**Technical description:** Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
 
 #### Inputs
 
@@ -1587,7 +1615,9 @@ format-string validation gate
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x28\].
+Sets the player's clock: DesiredTime is UTC 'HH:MM:SS'-style time plus a time zone so the local offset can be derived. Setting the clock bumps TimeGeneration.
+
+**Technical description:** Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x28\].
 
 #### Inputs
 
@@ -1700,7 +1730,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the NTP time server via impl->v\[+0x20\].
+Sets the address of the household time server (host/IP used for clock sync).
+
+**Technical description:** Sets the NTP time server via impl->v\[+0x20\].
 
 #### Inputs
 
@@ -1813,7 +1845,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
+Selects the time zone by Index and toggles automatic DST adjustment.
+
+**Technical description:** Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
 
 #### Inputs
 
@@ -1930,7 +1964,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
+Edits an existing alarm in place. ID is the AssignedID from CreateAlarm or ListAlarms; the remaining arguments carry the complete replacement definition (same fields as CreateAlarm), so callers should send the full record rather than a diff.
+
+**Technical description:** Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
 
 #### Inputs
 

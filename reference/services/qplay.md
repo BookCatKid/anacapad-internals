@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `confirmed`
 
-QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.
+Tencent QPlay handshake - the single-action auth protocol used by QQ Music clients on Chinese-market zones. The device description advertises QPlay:2 capability via qq:X_QPlay_SoftwareCapability rather than a serviceType.
+
+**Technical description:** QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.
 
 ## Availability
 
@@ -25,7 +27,9 @@ QPlay (QQ Music) authentication service stub; the extractor resolved no handler 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp-dispatched`
 
-QPlay authentication: parses required Seed, computes a device-bound auth Code plus MID/DID device identifiers, and returns them. Fully decoded: dispatcher f_1073a4f0 strcmp-matches the action name -> svc->v\[+0x0c\]=f_1073a5d0 parses Seed (cap 0x80, f_1056157c) -> req->v\[+0x08\] gate (402 on fail) -> impl->v\[+0x08\]=f_104666b4 computes Code via f_10906304 over Seed + device material -> emits Code/MID/DID via req->v\[+0x24\] -> commits via req->v\[+0x0c\]. Impl unconditionally returns 0.
+Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode.
+
+**Technical description:** QPlay authentication: parses required Seed, computes a device-bound auth Code plus MID/DID device identifiers, and returns them. Fully decoded: dispatcher f_1073a4f0 strcmp-matches the action name -> svc->v\[+0x0c\]=f_1073a5d0 parses Seed (cap 0x80, f_1056157c) -> req->v\[+0x08\] gate (402 on fail) -> impl->v\[+0x08\]=f_104666b4 computes Code via f_10906304 over Seed + device material -> emits Code/MID/DID via req->v\[+0x24\] -> commits via req->v\[+0x0c\]. Impl unconditionally returns 0.
 
 #### Inputs
 

@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v\[+0x08..+0x1c\]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.
+Group-level volume control. These actions apply to the whole group coordinated by this player - SetGroupVolume applies the same absolute volume to every member, while SetRelativeGroupVolume keeps the members' relative offsets (that's the action Sonos apps call for the group volume slider). SnapshotGroupVolume exists so a ramp/group adjustment can later be balanced.
+
+**Technical description:** Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v\[+0x08..+0x1c\]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.
 
 ## Availability
 
@@ -32,7 +34,9 @@ Group-scoped rendering control service. Each action delegates to a shared group-
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).
+Returns the group mute state (any/all-muted semantics per the coordinator).
+
+**Technical description:** Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).
 
 #### Inputs
 
@@ -161,7 +165,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v\[+0x10\].
+Returns the current group volume.
+
+**Technical description:** Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v\[+0x10\].
 
 #### Inputs
 
@@ -291,7 +297,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').
+Mutes or unmutes every player in the group.
+
+**Technical description:** Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').
 
 #### Inputs
 
@@ -427,7 +435,9 @@ reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when alre
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).
+Sets every member of the group to the same absolute DesiredVolume (0-100).
+
+**Technical description:** Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).
 
 #### Inputs
 
@@ -561,7 +571,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adjusts group volume by a signed delta and returns the new group volume. impl->v\[+0x18\](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.
+Adjusts group volume by a signed Adjustment while preserving per-player offsets; returns the resulting NewVolume. Prefer this over SetGroupVolume for slider UIs.
+
+**Technical description:** Adjusts group volume by a signed delta and returns the new group volume. impl->v\[+0x18\](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.
 
 #### Inputs
 
@@ -703,7 +715,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v\[+0x1c\](impl, InstanceID) only - no outputs.
+Captures per-member volumes so a subsequent group adjustment can be made consistently.
+
+**Technical description:** Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v\[+0x1c\](impl, InstanceID) only - no outputs.
 
 #### Inputs
 

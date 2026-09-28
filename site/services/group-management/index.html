@@ -2205,7 +2205,8 @@
 
 <h1 id="groupmanagement-groupmanagementcontrol"><code>GroupManagement</code> — <code>/GroupManagement/Control</code><a class="headerlink" href="#groupmanagement-groupmanagementcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.</p>
+<p>Coordinator-facing group-membership service. Group members use these actions to join/leave a coordinator and to report buffering state; normal clients rarely call it, but it is advertised. Everything here operates on group members identified by MemberID.</p>
+<p><strong>Technical description:</strong> Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x2</code></li>
@@ -2267,7 +2268,8 @@
 </table>
 <h3 id="addmember"><code>AddMember</code><a class="headerlink" href="#addmember" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x8] -&gt; CurrentTransportSettings + out fields via req-&gt;v[+0x24].</p>
+<p>Joins the calling member (MemberID + BootSeq) to this group. Returns the coordinator's current URI, the joined group UUID, volume/reset hints and transport settings so the new member can align playback.</p>
+<p><strong>Technical description:</strong> Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x8] -&gt; CurrentTransportSettings + out fields via req-&gt;v[+0x24].</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2462,7 +2464,8 @@
 
 <h3 id="removemember"><code>RemoveMember</code><a class="headerlink" href="#removemember" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Removes MemberID from the group via impl-&gt;v[+0xc] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0xc] -&gt; empty commit via req-&gt;v[+0x0c].</p>
+<p>Removes MemberID from the group.</p>
+<p><strong>Technical description:</strong> Removes MemberID from the group via impl-&gt;v[+0xc] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0xc] -&gt; empty commit via req-&gt;v[+0x0c].</p>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2568,7 +2571,8 @@
 
 <h3 id="reporttrackbufferingresult"><code>ReportTrackBufferingResult</code><a class="headerlink" href="#reporttrackbufferingresult" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl-&gt;v[+0x10] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x10] -&gt; empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.</p>
+<p>Member-to-coordinator feedback of a buffering ResultCode for a track fetch. NOTE: the implementation unconditionally returns 402 in this build - effectively a non-functional stub.</p>
+<p><strong>Technical description:</strong> Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl-&gt;v[+0x10] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x10] -&gt; empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.</p>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2679,7 +2683,8 @@
 
 <h3 id="setsourceareaids"><code>SetSourceAreaIds</code><a class="headerlink" href="#setsourceareaids" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets the group's desired source-area ids via impl-&gt;v[+0x14] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x14] -&gt; empty commit.</p>
+<p>Sets the group's desired source-area ids (used to steer which zone's content the group plays).</p>
+<p><strong>Technical description:</strong> Sets the group's desired source-area ids via impl-&gt;v[+0x14] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x14] -&gt; empty commit.</p>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

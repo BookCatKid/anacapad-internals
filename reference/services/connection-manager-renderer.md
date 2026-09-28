@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.
+Standard UPnP ConnectionManager for the renderer half of the device. On Sonos this is mostly vestigial (playback isn't pull-pushed through UPnP connections), so connection ids are typically empty - but the three actions are the real spec.
+
+**Technical description:** Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.
 
 ## Availability
 
@@ -28,7 +30,9 @@ Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/C
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.
+Returns the CSV list of active connection ids (usually empty on a zone player).
+
+**Technical description:** Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.
 
 #### Outputs
 
@@ -136,7 +140,9 @@ The impl->v\[+0x8\] call returned 0 — no usable connection list. | n/a — suc
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v\[+0x8\], then calls the impl member at svc+4 ->v\[+0x1c\] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.
+Returns per-connection detail (peer manager, protocol info, direction, status) for a ConnectionID previously returned by GetCurrentConnectionIDs.
+
+**Technical description:** Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v\[+0x8\], then calls the impl member at svc+4 ->v\[+0x1c\] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.
 
 #### Inputs
 
@@ -269,7 +275,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the supported protocol info strings (Source/Sink CSVs) via impl->v\[+0x8\] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.
+Returns the Source and Sink protocol-info CSVs - the MIME-type/protocol strings this renderer can play.
+
+**Technical description:** Returns the supported protocol info strings (Source/Sink CSVs) via impl->v\[+0x8\] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.
 
 #### Outputs
 

@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.
+Zone topology and household management. GetZoneGroupState is the famous one: a single XML snapshot listing every group, member, coordinator and source - the fastest way to map a household. The rest covers software update control, mobile-device registration, diagnostics upload and coordinator callbacks for alarms/unresponsive members.
+
+**Technical description:** Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.
 
 ## Availability
 
@@ -33,7 +35,9 @@ Zone-group topology service: group membership state, attributes, software update
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl->v\[+0xc\] on the svc+4 member.
+Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (e.g. forced downgrade), ExtraOptions for transport options.
+
+**Technical description:** Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl->v\[+0xc\] on the svc+4 member.
 
 #### Inputs
 
@@ -147,7 +151,9 @@ launcher f_1073f1c8 performs external-update hook (write+exec); its rc is forwar
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl->v\[+0x8\] on the doubly-indirect member.
+Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.
+
+**Technical description:** Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl->v\[+0x8\] on the doubly-indirect member.
 
 #### Inputs
 
@@ -279,7 +285,9 @@ Software update requested but capability flag impl+0x5f4 clear (feature-gated)
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns zone-group identity fields. Wrapper calls impl->v\[+0x34\] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).
+Returns the household's group name/id, the member UUIDs, and the Muse household id.
+
+**Technical description:** Returns zone-group identity fields. Wrapper calls impl->v\[+0x34\] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).
 
 #### Outputs
 
@@ -405,7 +413,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Serializes the full zone-group state XML via impl->v\[+0x28\] on the doubly-indirect member.
+Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.
+
+**Technical description:** Serializes the full zone-group state XML via impl->v\[+0x28\] on the doubly-indirect member.
 
 #### Outputs
 
@@ -515,7 +525,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change
+Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.
+
+**Technical description:** accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change
 
 #### Inputs
 
@@ -626,7 +638,9 @@ no action-level fault path exists - handler commits unconditionally (request-env
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl->v\[+0x14\].
+Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).
+
+**Technical description:** Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl->v\[+0x14\].
 
 #### Validation `confirmed`
 
@@ -732,7 +746,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reports DeviceUUID unresponsive with DesiredAction via impl->v\[+0x10\] on the svc+4 member.
+Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.
+
+**Technical description:** Reports DeviceUUID unresponsive with DesiredAction via impl->v\[+0x10\] on the svc+4 member.
 
 #### Inputs
 
@@ -845,7 +861,9 @@ DeviceID lacks RINCON_ prefix (strncmp,7) - f_10121310 returns 402 | Wrapper par
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl->v\[+0x18\] on the doubly-indirect member.
+Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support.
+
+**Technical description:** Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl->v\[+0x18\] on the doubly-indirect member.
 
 #### Inputs
 

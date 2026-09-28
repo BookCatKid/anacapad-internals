@@ -1487,7 +1487,8 @@
 
 <h1 id="qplay-qplaycontrol"><code>QPlay</code> — <code>/QPlay/Control</code><a class="headerlink" href="#qplay-qplaycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>confirmed</code></p>
-<p>QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.</p>
+<p>Tencent QPlay handshake - the single-action auth protocol used by QQ Music clients on Chinese-market zones. The device description advertises QPlay:2 capability via qq:X_QPlay_SoftwareCapability rather than a serviceType.</p>
+<p><strong>Technical description:</strong> QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x800</code></li>
@@ -1524,7 +1525,8 @@
 </table>
 <h3 id="qplayauth"><code>QPlayAuth</code><a class="headerlink" href="#qplayauth" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp-dispatched</code></p>
-<p>QPlay authentication: parses required Seed, computes a device-bound auth Code plus MID/DID device identifiers, and returns them. Fully decoded: dispatcher f_1073a4f0 strcmp-matches the action name -&gt; svc-&gt;v[+0x0c]=f_1073a5d0 parses Seed (cap 0x80, f_1056157c) -&gt; req-&gt;v[+0x08] gate (402 on fail) -&gt; impl-&gt;v[+0x08]=f_104666b4 computes Code via f_10906304 over Seed + device material -&gt; emits Code/MID/DID via req-&gt;v[+0x24] -&gt; commits via req-&gt;v[+0x0c]. Impl unconditionally returns 0.</p>
+<p>Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode.</p>
+<p><strong>Technical description:</strong> QPlay authentication: parses required Seed, computes a device-bound auth Code plus MID/DID device identifiers, and returns them. Fully decoded: dispatcher f_1073a4f0 strcmp-matches the action name -&gt; svc-&gt;v[+0x0c]=f_1073a5d0 parses Seed (cap 0x80, f_1056157c) -&gt; req-&gt;v[+0x08] gate (402 on fail) -&gt; impl-&gt;v[+0x08]=f_104666b4 computes Code via f_10906304 over Seed + device material -&gt; emits Code/MID/DID via req-&gt;v[+0x24] -&gt; commits via req-&gt;v[+0x0c]. Impl unconditionally returns 0.</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

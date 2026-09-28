@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.
+SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.
+
+**Technical description:** Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.
 
 ## Availability
 
@@ -28,7 +30,9 @@ Sonos music-service account/session service; impl member at svc+4 for the sessio
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl->v\[+0xc\] on the svc+4 member with an output buffer (cap 0x101) for SessionId.
+Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.
+
+**Technical description:** Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl->v\[+0xc\] on the svc+4 member with an output buffer (cap 0x101) for SessionId.
 
 #### Inputs
 
@@ -152,7 +156,9 @@ capability/mode flag gate (sp byte flags tested before arg parse)
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) — a doubly-indirect member — and calls its v\[+0x8\] which serializes the service list.
+Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.
+
+**Technical description:** Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) — a doubly-indirect member — and calls its v\[+0x8\] which serializes the service list.
 
 #### Outputs
 
@@ -266,7 +272,9 @@ impl->v\[+0x8\] rc surfaced | Wrapper parse layer rejected an argument before th
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Triggers a refresh of the available music-services list via impl->v\[+0x8\] on the svc+4 member.
+Forces a refresh of the cached service descriptor list from the cloud/catalog.
+
+**Technical description:** Triggers a refresh of the available music-services list via impl->v\[+0x8\] on the svc+4 member.
 
 #### Validation `confirmed`
 

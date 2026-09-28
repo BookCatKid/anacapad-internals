@@ -1,0 +1,295 @@
+{
+ "_about": "Hand-authored, client-facing summaries for every service and action. Merged over documentation.json by tools/genmodel.py - the analysis fields remain the ground truth; this layer explains the wire contract to someone implementing a client. Keys: service = control path, action = action name.",
+ "services": {
+  "/AlarmClock/Control": {
+   "summary": "Alarm scheduler for the zone. Lets a client create, list, update and delete alarms, and read/set the household clock settings those alarms run against (current time, time zone, time server, 12/24h and date formats, and the daily music-index refresh time). Alarms target a single room by UUID and can play a stream URI or a library playlist at a fixed volume, optionally grouping linked zones. Changes are announced through the evented AlarmListVersion.",
+   "actions": {
+    "CreateAlarm": "Creates a new alarm and returns its AssignedID, which is needed for UpdateAlarm and DestroyAlarm. StartLocalTime and Duration use 'HH:MM:SS'; Recurrence is a keyword such as ONCE, EVERYDAY, WEEKDAYS or WEEKENDS. RoomUUID selects the player, ProgramURI/ProgramMetaData choose what plays (a stream URI, or a Sonos playlist/library URI), PlayMode picks e.g. NORMAL or SHUFFLE_NOREPEAT, Volume is 0-100, and IncludeLinkedZones controls whether bonded players join in.",
+    "DestroyAlarm": "Deletes the alarm with the given ID (an AssignedID previously returned by CreateAlarm, or an id from ListAlarms). Returns nothing; the change shows up in AlarmListVersion.",
+    "GetDailyIndexRefreshTime": "Returns the 'HH:MM:SS' local time at which the player rebuilds the local music-library index each day.",
+    "GetFormat": "Returns the player's time and date display preferences (e.g. 12h vs 24h clock).",
+    "GetHouseholdTimeAtStamp": "Converts a monotonically-increasing household timestamp (as used in event and queue bookkeeping) into an absolute UTC time.",
+    "GetTimeNow": "Returns the player's current UTC time, local time, time zone and TimeGeneration (a counter that increments whenever the household clock is set - useful for detecting clock changes).",
+    "GetTimeServer": "Returns the configured household time-server address used to keep zone clocks in sync.",
+    "GetTimeZone": "Returns the current time zone index and whether DST is auto-adjusted. Use GetTimeZoneRule to resolve the index to a tz rule string.",
+    "GetTimeZoneAndRule": "Same as GetTimeZone but also returns the resolved CurrentTimeZone rule string in one call.",
+    "GetTimeZoneRule": "Looks up a time zone rule string (POSIX-style TZ spec) by Index.",
+    "ListAlarms": "Returns the full alarm list as an XML document plus CurrentAlarmListVersion. The version counter is the cheap way to poll for changes; it is also evented.",
+    "SetDailyIndexRefreshTime": "Changes the daily library-index refresh time ('HH:MM:SS').",
+    "SetFormat": "Sets the 12/24-hour time format and the date format.",
+    "SetTimeNow": "Sets the player's clock: DesiredTime is UTC 'HH:MM:SS'-style time plus a time zone so the local offset can be derived. Setting the clock bumps TimeGeneration.",
+    "SetTimeServer": "Sets the address of the household time server (host/IP used for clock sync).",
+    "SetTimeZone": "Selects the time zone by Index and toggles automatic DST adjustment.",
+    "UpdateAlarm": "Edits an existing alarm in place. ID is the AssignedID from CreateAlarm or ListAlarms; the remaining arguments carry the complete replacement definition (same fields as CreateAlarm), so callers should send the full record rather than a diff."
+   }
+  },
+  "/AudioIn/Control": {
+   "summary": "The legacy hardware line-in service. Its SCPD (AudioIn1.xml) still ships and its route is still registered, but the service is not listed in the device description and every action dispatches to a stub that unconditionally faults 401. The feature was removed on this model; treat all six actions as dead surface - documented here so clients can recognise the fault. The actions below describe what the API used to do.",
+   "actions": {
+    "StartTransmissionToGroup": "Historically started streaming this player's analog line-in to the group identified by CoordinatorID, returning the resulting transport settings. In this build it always faults 401.",
+    "StopTransmissionToGroup": "Historically stopped line-in transmission to the group. In this build it always faults 401.",
+    "SetAudioInputAttributes": "Historically renamed the line-in source and set its icon. In this build it always faults 401.",
+    "GetAudioInputAttributes": "Historically returned the line-in source name and icon. In this build it always faults 401.",
+    "SetLineInLevel": "Historically set left/right line-in gain levels. In this build it always faults 401.",
+    "GetLineInLevel": "Historically returned the left/right line-in gain levels. In this build it always faults 401."
+   }
+  },
+  "/DeviceProperties/Control": {
+   "summary": "Player identity, hardware features and local configuration: zone name/icon, serial/software/hardware versions, LED and button state, button lock, autoplay preferences (which room's line-in or TV input auto-plays here and at what volume), stereo-pair and home-theater satellite management, household id, config mode, and the room-detection chirp used during setup.",
+   "actions": {
+    "AddBondedZones": "Bonds additional players to this player via a ChannelMapSet (which member plays which channel).",
+    "AddHTSatellite": "Adds a surround/sub satellite to a home-theater group via HTSatChanMapSet.",
+    "CreateStereoPair": "Creates a stereo pair from two players, describing left/right assignment in ChannelMapSet.",
+    "EnterConfigMode": "Puts the player into a configuration mode (used during setup/registration); returns the resulting State.",
+    "ExitConfigMode": "Leaves configuration mode.",
+    "GetAutoplayLinkedZones": "For a given autoplay Source, returns whether linked zones are grouped when autoplay triggers.",
+    "GetAutoplayRoomUUID": "For a given autoplay Source, returns the UUID of the room that will take over playback.",
+    "GetAutoplayVolume": "Returns the volume the player jumps to when the given autoplay Source activates.",
+    "GetButtonLockState": "Returns whether the player's physical buttons are locked (child-lock).",
+    "GetButtonState": "Returns the current physical button state (e.g. which buttons are pressed).",
+    "GetHouseholdID": "Returns the household identifier this player is registered to.",
+    "GetLEDState": "Returns whether the status LED is on or off.",
+    "GetUseAutoplayVolume": "Returns whether autoplay applies the configured autoplay volume (vs. keeping current volume).",
+    "GetZoneAttributes": "Returns the player's configured room name, icon and room configuration.",
+    "GetZoneInfo": "Returns identity and version info: serial number, software/hardware versions, IP and MAC addresses, flags and build metadata.",
+    "RemoveBondedZones": "Un-bonds zones described by ChannelMapSet; KeepGrouped controls whether playback grouping is preserved.",
+    "RemoveHTSatellite": "Removes a home-theater satellite by room UUID.",
+    "RoomDetectionStartChirping": "Plays the ultrasonic chirp used by Sonos room/speaker detection during setup; returns a PlayId to stop it.",
+    "RoomDetectionStopChirping": "Stops a chirp previously started by RoomDetectionStartChirping.",
+    "SeparateStereoPair": "Breaks a stereo pair described by ChannelMapSet back into two independent players.",
+    "SetAutoplayLinkedZones": "Sets whether autoplay groups linked zones for a Source.",
+    "SetAutoplayRoomUUID": "Sets which room UUID autoplay for a Source should target.",
+    "SetAutoplayVolume": "Sets the autoplay volume for a Source.",
+    "SetButtonLockState": "Locks or unlocks the player's physical buttons.",
+    "SetLEDState": "Turns the status LED on or off.",
+    "SetUseAutoplayVolume": "Enables or disables applying the autoplay volume.",
+    "SetZoneAttributes": "Sets the room name, icon and configuration shown to users."
+   }
+  },
+  "/GroupManagement/Control": {
+   "summary": "Coordinator-facing group-membership service. Group members use these actions to join/leave a coordinator and to report buffering state; normal clients rarely call it, but it is advertised. Everything here operates on group members identified by MemberID.",
+   "actions": {
+    "AddMember": "Joins the calling member (MemberID + BootSeq) to this group. Returns the coordinator's current URI, the joined group UUID, volume/reset hints and transport settings so the new member can align playback.",
+    "RemoveMember": "Removes MemberID from the group.",
+    "ReportTrackBufferingResult": "Member-to-coordinator feedback of a buffering ResultCode for a track fetch. NOTE: the implementation unconditionally returns 402 in this build - effectively a non-functional stub.",
+    "SetSourceAreaIds": "Sets the group's desired source-area ids (used to steer which zone's content the group plays)."
+   }
+  },
+  "/HTControl/Control": {
+   "summary": "Home-theater control: IR repeater passthrough, LED feedback, and IR-remote learning so a TV remote can drive volume on the soundbar. Relevant to playbar-family hardware with an IR receiver.",
+   "actions": {
+    "CommitLearnedIRCodes": "Stores the codes captured by LearnIRCode under a remote Name.",
+    "GetIRRepeaterState": "Returns whether IR commands are retransmitted to the AV equipment.",
+    "GetLEDFeedbackState": "Returns the LED feedback state used to acknowledge IR-learned volume presses.",
+    "IdentifyIRRemote": "Asks the user to press buttons so the player can identify the remote layout, bounded by Timeout (seconds).",
+    "IsRemoteConfigured": "Returns whether an IR remote has been configured.",
+    "LearnIRCode": "Captures a single IRCode within Timeout during remote setup.",
+    "SetIRRepeaterState": "Enables or disables IR repeater passthrough.",
+    "SetLEDFeedbackState": "Sets the LED feedback pattern for IR volume presses."
+   }
+  },
+  "/MediaRenderer/AVTransport/Control": {
+   "summary": "The playback engine of the zone - the largest service. Covers transport control (Play/Pause/Stop/Next/Previous), seeking, source selection via URIs and metadata, play modes and crossfade, the implicit playback queue (add/remove/reorder/clear), saved queues, group coordination transfer (one player handing the coordinator role to another, with full state snapshots), alarms/sleep timers, and Sonos-specific extras like autoplay and direct-control sessions. InstanceID is always 0. Many mutating actions take UpdateID for optimistic concurrency: pass the last queue UpdateID you saw and the call fails if the queue changed underneath you.",
+   "actions": {
+    "AddMultipleURIsToQueue": "Bulk-enqueues tracks into the implicit playback queue. EnqueuedURIs and EnqueuedURIMetaData are parallel lists (count must equal NumberOfURIs); DesiredFirstTrackNumberEnqueued positions them, EnqueueAsNext inserts after the current track. ContainerURI/ContainerMetaData describe the source list itself. UpdateID guards against concurrent queue edits. Returns where the tracks landed, how many were added, and the new length/UpdateID.",
+    "AddURIToQueue": "Adds one track URI (+DIDL-Lite metadata) to the playback queue. DesiredFirstTrackNumberEnqueued picks the position (0 = append), EnqueueAsNext inserts right after the current track. Returns the 1-based position where it landed and tracks actually added.",
+    "AddURIToSavedQueue": "Adds a track to a saved queue identified by ObjectID at AddAtIndex. Returns counts and a NewUpdateID for that queue.",
+    "BackupQueue": "Persists the current playback queue to flash so it survives reboot.",
+    "BecomeCoordinatorOfStandaloneGroup": "Makes this player coordinate the standalone group it belongs to; returns the coordinator id and new group id. Used in group rebuild flows.",
+    "BecomeGroupCoordinator": "Bulk state-transfer: this player takes over as group coordinator, receiving the previous coordinator's complete transport/queue/alarm/sleep state in the arguments (TransportSettings, CurrentQueueTrackList, member list, etc.). Nothing is read from arg descriptors - the handler forwards the whole blob.",
+    "BecomeGroupCoordinatorAndSource": "Like BecomeGroupCoordinator but also transfers the audio source state (CurrentAVTTrackList, CurrentSourceState, ResumePlayback flag) so the new coordinator continues the same source.",
+    "ChangeCoordinator": "Asks this coordinator to hand coordination to NewCoordinator, carrying the current transport settings and URI so playback continues; RestartSink controls whether the sink restarts.",
+    "ChangeTransportSettings": "Applies a new TransportSettings blob (play state, mode, etc.) to the current URI - used when a group coordinator pushes state to members.",
+    "ConfigureSleepTimer": "Sets a sleep timer that fades playback out after NewSleepTimerDuration ('HH:MM:SS').",
+    "CreateSavedQueue": "Creates a new named saved queue containing one initial track (EnqueuedURI + metadata) and returns its AssignedObjectID plus queue stats.",
+    "DelegateGroupCoordinationTo": "Hands the coordinator role to NewCoordinator. RejoinGroup controls whether this player stays as a member; ClearSource (added in 86.10) controls whether it drops the source.",
+    "EndDirectControlSession": "Ends a cloud/direct-control playback session, returning the player to normal UPnP control.",
+    "GetCrossfadeMode": "Returns whether crossfade between tracks is enabled.",
+    "GetCurrentTransportActions": "Returns the actions currently legal for this source as a CSV (e.g. 'Play,Pause,Stop,Seek') - depends on the stream type and capabilities, so poll it rather than assuming.",
+    "GetDeviceCapabilities": "Returns what media this player can play/record and its recording quality modes.",
+    "GetMediaInfo": "Returns metadata about the current media source: track count and duration, current/next URIs + metadata, and the medium (queue, stream, line-in) - i.e. what container is loaded rather than where playback is within it (use GetPositionInfo for that).",
+    "GetPositionInfo": "Returns where playback sits inside the media: current track number/URI/metadata, track duration, relative and absolute position times, and track counts.",
+    "GetRemainingSleepTimerDuration": "Returns the time left on the sleep timer and the timer generation counter.",
+    "GetRunningAlarmProperties": "If an alarm is currently ringing, returns its ID, group and the logged start time.",
+    "GetTransportInfo": "Returns transport state (PLAYING/PAUSED_PLAYBACK/STOPPED/TRANSITIONING), status and speed.",
+    "GetTransportSettings": "Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quality mode.",
+    "Next": "Skips to the next track in the queue. Faults (typically 711/701 family) if the current source doesn't support skipping.",
+    "NotifyDeletedURI": "Tells the player a URI it may have queued has been deleted from the server so it can drop or skip it.",
+    "Pause": "Pauses playback. Only valid while playing; faults on sources that can't pause.",
+    "Play": "Starts or resumes playback. Speed selects the rate - '1' is normal; fractional rate strings select slower/faster trick-play on sources that support it.",
+    "Previous": "Skips back to the previous track.",
+    "RemoveAllTracksFromQueue": "Clears the implicit playback queue entirely.",
+    "RemoveTrackFromQueue": "Removes the queued track identified by ObjectID (track object id), guarded by UpdateID for optimistic concurrency.",
+    "RemoveTrackRangeFromQueue": "Removes NumberOfTracks consecutive tracks starting at 1-based StartingIndex; returns the NewUpdateID.",
+    "ReorderTracksInQueue": "Moves a run of tracks (StartingIndex + NumberOfTracks) to InsertBefore within the queue, UpdateID-guarded.",
+    "ReorderTracksInSavedQueue": "Rewrites a saved queue's ordering from TrackList/NewPositionList; returns length change and new UpdateID.",
+    "RunAlarm": "Server-driven 'fire this alarm now' trigger carrying the full alarm definition - used internally when an alarm goes off; also useful for testing alarm playback.",
+    "SaveQueue": "Saves the current playback queue as a named saved queue (Title); ObjectID selects an existing saved queue to overwrite. Returns AssignedObjectID.",
+    "Seek": "Repositions playback. Unit selects the seek mode: TRACK_NR jumps to a track number, REL_TIME seeks to 'HH:MM:SS' from track start, TIME_DELTA does a relative jump. Parsing is lenient (numeric prefixes accepted, trailing junk ignored) but the accepted Unit set and the semantics depend on whether the source is indexed or streamed - a request can be accepted yet ignored downstream, so check GetPositionInfo after seeking.",
+    "SetAVTransportURI": "Loads a new source: a track/stream URI plus its DIDL-Lite metadata. This is how a client starts a radio stream or a file URI - the previous queue position is not implied; you typically call Play afterwards.",
+    "SetCrossfadeMode": "Turns crossfade on or off.",
+    "SetNextAVTransportURI": "Sets up gapless playback: the URI + metadata that should follow the current track, so the decoder can pre-buffer it.",
+    "SetPlayMode": "Sets play mode: NORMAL, REPEAT_ALL, REPEAT_ONE, SHUFFLE, SHUFFLE_NOREPEAT, SHUFFLE_REPEAT_ONE (exact accepted set is enforced).",
+    "SnoozeAlarm": "Snoozes the currently ringing alarm by Duration ('HH:MM:SS').",
+    "StartAutoplay": "Starts autoplay for a source: plays ProgramURI (+metadata) at the configured autoplay volume, optionally grouping linked zones; ResetVolumeAfter restores volume afterwards.",
+    "Stop": "Stops playback and clears transport position."
+   }
+  },
+  "/MediaRenderer/ConnectionManager/Control": {
+   "summary": "Standard UPnP ConnectionManager for the renderer half of the device. On Sonos this is mostly vestigial (playback isn't pull-pushed through UPnP connections), so connection ids are typically empty - but the three actions are the real spec.",
+   "actions": {
+    "GetCurrentConnectionIDs": "Returns the CSV list of active connection ids (usually empty on a zone player).",
+    "GetCurrentConnectionInfo": "Returns per-connection detail (peer manager, protocol info, direction, status) for a ConnectionID previously returned by GetCurrentConnectionIDs.",
+    "GetProtocolInfo": "Returns the Source and Sink protocol-info CSVs - the MIME-type/protocol strings this renderer can play."
+   }
+  },
+  "/MediaRenderer/GroupRenderingControl/Control": {
+   "summary": "Group-level volume control. These actions apply to the whole group coordinated by this player - SetGroupVolume applies the same absolute volume to every member, while SetRelativeGroupVolume keeps the members' relative offsets (that's the action Sonos apps call for the group volume slider). SnapshotGroupVolume exists so a ramp/group adjustment can later be balanced.",
+   "actions": {
+    "GetGroupMute": "Returns the group mute state (any/all-muted semantics per the coordinator).",
+    "GetGroupVolume": "Returns the current group volume.",
+    "SetGroupMute": "Mutes or unmutes every player in the group.",
+    "SetGroupVolume": "Sets every member of the group to the same absolute DesiredVolume (0-100).",
+    "SetRelativeGroupVolume": "Adjusts group volume by a signed Adjustment while preserving per-player offsets; returns the resulting NewVolume. Prefer this over SetGroupVolume for slider UIs.",
+    "SnapshotGroupVolume": "Captures per-member volumes so a subsequent group adjustment can be made consistently."
+   }
+  },
+  "/MediaRenderer/Queue/Control": {
+   "summary": "The multi-queue registry: explicit saved/independent queues addressed by QueueID, separate from the implicit playback queue AVTransport edits. Provides create/attach/browse/mutate operations with optimistic concurrency - every mutating action takes the queue's last UpdateID and returns the new one, and a stale UpdateID faults. AttachQueue is how a client adopts a queue owned by another context.",
+   "actions": {
+    "AddMultipleURIs": "Bulk-adds tracks to an explicit queue: EnqueuedURIsAndMetaData holds NumberOfURIs packed URI+metadata entries; positioning via DesiredFirstTrackNumberEnqueued or EnqueueAsNext. UpdateID-guarded.",
+    "AddURI": "Adds a single track (+DIDL-Lite metadata) to the queue at DesiredFirstTrackNumberEnqueued (or after the current track with EnqueueAsNext). Returns its position, count added and the new UpdateID.",
+    "AttachQueue": "Attaches to a queue owned by QueueOwnerID, returning the QueueID to use in subsequent calls plus the owner context.",
+    "Backup": "Persists the queue registry to flash (trackqueue.rsq) so queues survive reboot.",
+    "Browse": "Reads back a queue's contents: starting at StartingIndex, up to RequestedCount tracks, returned as a DIDL-Lite Result document with NumberReturned/TotalMatches and the queue's UpdateID.",
+    "CreateQueue": "Creates a new queue owned by QueueOwnerID with a policy (QueuePolicy), returning its QueueID.",
+    "RemoveAllTracks": "Empties the queue; UpdateID-guarded.",
+    "RemoveTrackRange": "Removes NumberOfTracks consecutive tracks starting at StartingIndex; returns NewUpdateID.",
+    "ReorderTracks": "Moves a run of tracks to InsertBefore within the queue; UpdateID-guarded.",
+    "ReplaceAllTracks": "Atomically replaces the whole queue contents: new tracks from ContainerURI/ContainerMetaData plus packed EnqueuedURIsAndMetaData, with CurrentTrackIndex/NewCurrentTrackIndices pointing at what should be playing. Bulk transfer - no per-arg capacity limits.",
+    "SaveAsSonosPlaylist": "Saves the queue as a Sonos playlist (Title); ObjectID selects an existing playlist to overwrite. Returns AssignedObjectID."
+   }
+  },
+  "/MediaRenderer/RenderingControl/Control": {
+   "summary": "Per-player audio rendering: volume (linear 0-100 and dB), mute, bass/treble/loudness and extended EQ, fixed (line-out level) output mode, headphone detection, room-calibration enable, and volume ramps used by alarms/sleep timers. Channel is 'Master' or 'LF'/'RF' for stereo pairs. NOTE: several actions are deliberately neutered on this hardware (e.g. GetBass is a confirmed no-op) - check each action's status before trusting it.",
+   "actions": {
+    "GetBass": "Returns bass level - BUT it is neutered on this build: the implementation is a confirmed no-op stub, so the returned CurrentBass is meaningless. GetEQ(EQType='Bass') is the working path.",
+    "GetEQ": "Reads an EQ parameter by EQType (e.g. Bass/Treble/Loudness-style ids) from the audio pipeline.",
+    "GetHeadphoneConnected": "Returns whether headphones are plugged in (players with a headphone jack).",
+    "GetLoudness": "Returns the loudness-compensation setting for a Channel.",
+    "GetMute": "Returns mute state for a Channel ('Master' unless addressing a stereo-pair side).",
+    "GetOutputFixed": "Returns whether output is at fixed level (for line-out/receiver use) vs. variable.",
+    "GetRoomCalibrationStatus": "Returns whether room calibration (Trueplay) is enabled and available on this player.",
+    "GetSupportsOutputFixed": "Returns whether this hardware supports fixed-level output mode at all.",
+    "GetTreble": "Returns treble level - same neutering caveat as GetBass may apply; GetEQ is the reliable path.",
+    "GetVolume": "Returns the linear volume for a Channel (0-100).",
+    "GetVolumeDB": "Returns the volume in decibels (scaled; see GetVolumeDBRange for this player's range).",
+    "GetVolumeDBRange": "Returns the dB volume range this player supports.",
+    "RampToVolume": "Starts a timed volume ramp to DesiredVolume of type RampType (used for alarm/sleep-timer fades); returns RampTime.",
+    "ResetBasicEQ": "Resets bass/treble/loudness and stereo balance to neutral; returns the resulting values.",
+    "ResetExtEQ": "Resets the extended EQ band EQType.",
+    "RestoreVolumePriorToRamp": "Undoes a previous RampToVolume, restoring the earlier volume.",
+    "SetBass": "Sets the bass level - neutered like GetBass on this build; use SetEQ with the bass EQType instead.",
+    "SetChannelMap": "Assigns left/right channels to players in a stereo pair via ChannelMap.",
+    "SetEQ": "Sets an EQ parameter (EQType, e.g. bass/treble/loudness id) to DesiredValue - the working EQ path.",
+    "SetLoudness": "Enables or disables loudness compensation for a Channel.",
+    "SetMute": "Mutes or unmutes a Channel.",
+    "SetOutputFixed": "Switches between fixed and variable output level where supported.",
+    "SetRelativeVolume": "Adjusts volume by a signed Adjustment; returns NewVolume. Safer than absolute SetVolume for slider deltas.",
+    "SetRoomCalibrationStatus": "Enables or disables Trueplay room calibration.",
+    "SetTreble": "Sets treble level - same neuter caveat; prefer SetEQ.",
+    "SetVolume": "Sets the linear volume for a Channel (0-100).",
+    "SetVolumeDB": "Sets the volume in decibels within the range reported by GetVolumeDBRange."
+   }
+  },
+  "/MediaRenderer/VirtualLineIn/Control": {
+   "summary": "Treats a networked line-in source as a virtual transport on this player - transport-style control (Play/Pause/Stop/Next/Previous/SetVolume) plus Start/StopTransmission to run the session. It's the 'line-in from another player' surface.",
+   "actions": {
+    "Next": "Advances the virtual line-in transport (context-dependent).",
+    "Pause": "Pauses the virtual line-in source.",
+    "Play": "Starts/resumes the virtual line-in source at the given Speed ('1' normal).",
+    "Previous": "Steps the virtual line-in transport back.",
+    "SetVolume": "Sets the playback volume for the line-in session.",
+    "StartTransmission": "Begins receiving the line-in stream from the given CoordinatorID; returns the resulting transport settings.",
+    "Stop": "Stops the virtual line-in transport.",
+    "StopTransmission": "Ends the line-in transmission from the given coordinator."
+   }
+  },
+  "/MediaServer/ConnectionManager/Control": {
+   "summary": "Standard UPnP ConnectionManager for the embedded MediaServer (the side that serves the local library). Same three actions as the renderer variant.",
+   "actions": {
+    "GetCurrentConnectionIDs": "Returns the CSV list of active connection ids (normally empty).",
+    "GetCurrentConnectionInfo": "Returns per-connection detail for the media-server side. Unlike the renderer twin it takes no ConnectionID argument and reports the single active/default connection.",
+    "GetProtocolInfo": "Returns the Source/Sink protocol-info CSVs the media server supports."
+   }
+  },
+  "/MediaServer/ContentDirectory/Control": {
+   "summary": "The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.",
+   "actions": {
+    "Browse": "Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.",
+    "CreateObject": "Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.",
+    "DestroyObject": "Deletes ObjectID from the library.",
+    "FindPrefix": "Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).",
+    "GetAlbumArtistDisplayOption": "Returns whether the library groups by album artist or contributing artist.",
+    "GetAllPrefixLocations": "Returns all container prefixes that contain ObjectID (an item can live under several indices).",
+    "GetBrowseable": "Returns whether the local library share is currently marked browseable.",
+    "GetLastIndexChange": "Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.",
+    "GetSearchCapabilities": "Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.",
+    "GetShareIndexInProgress": "Returns whether a library reindex is currently running.",
+    "GetSortCapabilities": "Returns which DIDL properties can be used in Browse SortCriteria.",
+    "GetSystemUpdateID": "Returns the global library UpdateID - compare before/after to detect any change.",
+    "RefreshShareIndex": "Triggers a rescan of the configured music shares.",
+    "RequestResort": "Re-sorts the library index using SortOrder.",
+    "SetBrowseable": "Marks the library share browseable or not.",
+    "UpdateObject": "Rewrites an object's metadata: CurrentTagValue -> NewTagValue DIDL fragments for ObjectID."
+   }
+  },
+  "/MusicServices/Control": {
+   "summary": "SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.",
+   "actions": {
+    "GetSessionId": "Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.",
+    "ListAvailableServices": "Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.",
+    "UpdateAvailableServices": "Forces a refresh of the cached service descriptor list from the cloud/catalog."
+   }
+  },
+  "/QPlay/Control": {
+   "summary": "Tencent QPlay handshake - the single-action auth protocol used by QQ Music clients on Chinese-market zones. The device description advertises QPlay:2 capability via qq:X_QPlay_SoftwareCapability rather than a serviceType.",
+   "actions": {
+    "QPlayAuth": "Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode."
+   }
+  },
+  "/SystemProperties/Control": {
+   "summary": "A generic key/value store plus the music-service account manager. SetString/GetString/Remove are a free-form property bag that many features lean on (client-facing settings ride through it). The account actions manage per-service credentials: legacy login (AddAccountX), OAuth (AddOAuthAccountX and friends keyed by AccountUDN), nickname/edit/remove, and credential refresh. Two SCPD-advertised actions are dead in this build: ProvisionCredentialedTrialAccountX (name string absent - hard-removed) and ResetThirdPartyCredentials (string present but unreferenced - soft-removed); both fault 401 on the wire.",
+   "actions": {
+    "AddAccountX": "Registers a music-service account with legacy credentials (AccountType id, AccountID username, AccountPassword); returns the AccountUDN used by all other account actions.",
+    "AddOAuthAccountX": "Registers an OAuth music-service account: AccountType plus token/key/device-id/authorization-code/redirect metadata and optional UserIdHashCode/AccountTier. Returns AccountUDN and the service-provided AccountNickname.",
+    "DoPostUpdateTasks": "Runs bookkeeping that should execute after a firmware update (data migration, cached-state rebuild).",
+    "EditAccountMd": "Replaces the metadata (Md) blob for an account.",
+    "EditAccountPasswordX": "Changes the password on a legacy-credential account.",
+    "EnableRDM": "Enables or disables Retail Demo Mode on the player.",
+    "GetRDM": "Returns whether Retail Demo Mode is enabled.",
+    "GetString": "Reads a property value by VariableName from the key/value store.",
+    "GetWebCode": "Returns a short WebCode for the given AccountType - used to link an account via the provider's web flow.",
+    "RefreshAccountCredentialsX": "Refreshes OAuth credentials (token/key) for an existing AccountUID.",
+    "Remove": "Deletes VariableName from the key/value store.",
+    "RemoveAccount": "Deletes a music-service account by AccountType + AccountID.",
+    "ReplaceAccountX": "Swaps the account behind AccountUDN for new credentials (NewAccountID/password or OAuth token set), returning NewAccountUDN.",
+    "SetAccountNicknameX": "Sets the display nickname for an AccountUDN.",
+    "SetString": "Writes VariableName=StringValue into the property store."
+   }
+  },
+  "/ZoneGroupTopology/Control": {
+   "summary": "Zone topology and household management. GetZoneGroupState is the famous one: a single XML snapshot listing every group, member, coordinator and source - the fastest way to map a household. The rest covers software update control, mobile-device registration, diagnostics upload and coordinator callbacks for alarms/unresponsive members.",
+   "actions": {
+    "BeginSoftwareUpdate": "Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (e.g. forced downgrade), ExtraOptions for transport options.",
+    "CheckForUpdate": "Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.",
+    "GetZoneGroupAttributes": "Returns the household's group name/id, the member UUIDs, and the Muse household id.",
+    "GetZoneGroupState": "Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.",
+    "RegisterMobileDevice": "Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.",
+    "ReportAlarmStartedRunning": "Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).",
+    "ReportUnresponsiveDevice": "Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.",
+    "SubmitDiagnostics": "Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support."
+   }
+  }
+ }
+}

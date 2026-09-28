@@ -4071,7 +4071,8 @@
 
 <h1 id="queue-mediarendererqueuecontrol"><code>Queue</code> — <code>/MediaRenderer/Queue/Control</code><a class="headerlink" href="#queue-mediarendererqueuecontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -&gt; req-&gt;v[+0x14](req,401). Matched entries tail-call svc-&gt;v[+0x38] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.</p>
+<p>The multi-queue registry: explicit saved/independent queues addressed by QueueID, separate from the implicit playback queue AVTransport edits. Provides create/attach/browse/mutate operations with optimistic concurrency - every mutating action takes the queue's last UpdateID and returns the new one, and a stale UpdateID faults. AttachQueue is how a client adopts a queue owned by another context.</p>
+<p><strong>Technical description:</strong> Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -&gt; req-&gt;v[+0x14](req,401). Matched entries tail-call svc-&gt;v[+0x38] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x8000</code></li>
@@ -4189,7 +4190,8 @@
 </table>
 <h3 id="addmultipleuris"><code>AddMultipleURIs</code><a class="headerlink" href="#addmultipleuris" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x2c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).</p>
+<p>Bulk-adds tracks to an explicit queue: EnqueuedURIsAndMetaData holds NumberOfURIs packed URI+metadata entries; positioning via DesiredFirstTrackNumberEnqueued or EnqueueAsNext. UpdateID-guarded.</p>
+<p><strong>Technical description:</strong> Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x2c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -4413,7 +4415,8 @@
 
 <h3 id="adduri"><code>AddURI</code><a class="headerlink" href="#adduri" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl-&gt;v[+0x8](impl, QueueID, UpdateID, &amp;URI, &amp;MD, DesiredFirst, EnqueueAsNext, &amp;out1,&amp;out2,&amp;out3,&amp;out4) on the queue-manager — rc==0 emits the four outputs, nonzero goes to req-&gt;v[+0x14] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.</p>
+<p>Adds a single track (+DIDL-Lite metadata) to the queue at DesiredFirstTrackNumberEnqueued (or after the current track with EnqueueAsNext). Returns its position, count added and the new UpdateID.</p>
+<p><strong>Technical description:</strong> Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl-&gt;v[+0x8](impl, QueueID, UpdateID, &amp;URI, &amp;MD, DesiredFirst, EnqueueAsNext, &amp;out1,&amp;out2,&amp;out3,&amp;out4) on the queue-manager — rc==0 emits the four outputs, nonzero goes to req-&gt;v[+0x14] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.</p>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -4608,7 +4611,8 @@
 
 <h3 id="attachqueue"><code>AttachQueue</code><a class="headerlink" href="#attachqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in — the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Attaches to a queue owned by QueueOwnerID, returning the QueueID to use in subsequent calls plus the owner context.</p>
+<p><strong>Technical description:</strong> Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in — the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -4747,7 +4751,8 @@
 
 <h3 id="backup"><code>Backup</code><a class="headerlink" href="#backup" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Backs up queue state — the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x10](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Persists the queue registry to flash (trackqueue.rsq) so queues survive reboot.</p>
+<p><strong>Technical description:</strong> Backs up queue state — the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x10](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper-proven: args parsed via req-&gt;v[+0x1c] named lookup + typed helpers; impl call via impl-&gt;v[slot]; rc==0 -&gt; emit, else fault through req-&gt;v[+0x14].</p>
 <details><summary>Evidence (1)</summary>
@@ -4827,7 +4832,8 @@
 
 <h3 id="browse"><code>Browse</code><a class="headerlink" href="#browse" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x28](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Reads back a queue's contents: starting at StartingIndex, up to RequestedCount tracks, returned as a DIDL-Lite Result document with NumberReturned/TotalMatches and the queue's UpdateID.</p>
+<p><strong>Technical description:</strong> Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x28](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -4992,7 +4998,8 @@
 
 <h3 id="createqueue"><code>CreateQueue</code><a class="headerlink" href="#createqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x14](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Creates a new queue owned by QueueOwnerID with a policy (QueuePolicy), returning its QueueID.</p>
+<p><strong>Technical description:</strong> Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x14](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5135,7 +5142,8 @@
 
 <h3 id="removealltracks"><code>RemoveAllTracks</code><a class="headerlink" href="#removealltracks" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Removes all tracks from the queue identified by QueueID — explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x18](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Empties the queue; UpdateID-guarded.</p>
+<p><strong>Technical description:</strong> Removes all tracks from the queue identified by QueueID — explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x18](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5271,7 +5279,8 @@
 
 <h3 id="removetrackrange"><code>RemoveTrackRange</code><a class="headerlink" href="#removetrackrange" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Removes a contiguous range from QueueID — explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Removes NumberOfTracks consecutive tracks starting at StartingIndex; returns NewUpdateID.</p>
+<p><strong>Technical description:</strong> Removes a contiguous range from QueueID — explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5425,7 +5434,8 @@
 
 <h3 id="reordertracks"><code>ReorderTracks</code><a class="headerlink" href="#reordertracks" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Reorders a block within QueueID — explicit-id twin of AVTransport.ReorderTracksInQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x20](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Moves a run of tracks to InsertBefore within the queue; UpdateID-guarded.</p>
+<p><strong>Technical description:</strong> Reorders a block within QueueID — explicit-id twin of AVTransport.ReorderTracksInQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x20](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5588,7 +5598,8 @@
 
 <h3 id="replacealltracks"><code>ReplaceAllTracks</code><a class="headerlink" href="#replacealltracks" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x30](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).</p>
+<p>Atomically replaces the whole queue contents: new tracks from ContainerURI/ContainerMetaData plus packed EnqueuedURIsAndMetaData, with CurrentTrackIndex/NewCurrentTrackIndices pointing at what should be playing. Bulk transfer - no per-arg capacity limits.</p>
+<p><strong>Technical description:</strong> Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x30](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).</p>
 <h4 id="inputs_8">Inputs<a class="headerlink" href="#inputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5794,7 +5805,8 @@
 
 <h3 id="saveassonosplaylist"><code>SaveAsSonosPlaylist</code><a class="headerlink" href="#saveassonosplaylist" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Saves QueueID as a Sonos playlist under Title/ObjectID — explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x24](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
+<p>Saves the queue as a Sonos playlist (Title); ObjectID selects an existing playlist to overwrite. Returns AssignedObjectID.</p>
+<p><strong>Technical description:</strong> Saves QueueID as a Sonos playlist under Title/ObjectID — explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl-&gt;v[+0x24](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.</p>
 <h4 id="inputs_9">Inputs<a class="headerlink" href="#inputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

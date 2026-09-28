@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.
+The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.
+
+**Technical description:** UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.
 
 ## Availability
 
@@ -41,7 +43,9 @@ UPnP ContentDirectory for the local music index: browse, object create/destroy/u
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -> children enumeration vfunc v\[+0x28\] on the browse object, BrowseMetadata -> metadata path, anything else -> 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v\[+0x24\].
+Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.
+
+**Technical description:** Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -> children enumeration vfunc v\[+0x28\] on the browse object, BrowseMetadata -> metadata path, anything else -> 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v\[+0x24\].
 
 #### Inputs
 
@@ -202,7 +206,9 @@ invalid BrowseFlag: value is neither "BrowseDirectChildren" nor "BrowseMetadata"
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Creates a CDS object: ContainerID/Elements -> impl->v\[+0x20\], returning ObjectID/Result.
+Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.
+
+**Technical description:** Creates a CDS object: ContainerID/Elements -> impl->v\[+0x20\], returning ObjectID/Result.
 
 #### Inputs
 
@@ -325,7 +331,9 @@ impl accumulator r29: {710 literal (0x10302800), arg r7-seeded, call/lwz-derived
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Destroys ObjectID via impl->v\[+0x28\].
+Deletes ObjectID from the library.
+
+**Technical description:** Destroys ObjectID via impl->v\[+0x28\].
 
 #### Inputs
 
@@ -428,7 +436,9 @@ impl accumulator r30: {701 on object-resolve failure (0x10302858), call/lwz-deri
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl->v\[+0x18\].
+Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).
+
+**Technical description:** Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl->v\[+0x18\].
 
 #### Inputs
 
@@ -552,7 +562,9 @@ impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the album-artist display option via impl->v\[+0x8\].
+Returns whether the library groups by album artist or contributing artist.
+
+**Technical description:** Returns the album-artist display option via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -657,7 +669,9 @@ impl single-call impl: rc = worker call result verbatim (mr r3 at 0x10307ab8 is 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl->v\[+0x1c\].
+Returns all container prefixes that contain ObjectID (an item can live under several indices).
+
+**Technical description:** Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -783,7 +797,9 @@ impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns IsBrowseable via impl->v\[+0x8\].
+Returns whether the local library share is currently marked browseable.
+
+**Technical description:** Returns IsBrowseable via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -886,7 +902,9 @@ impl 0x10302470: writes byte 1 to out then returns 0; the action never faults fr
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns LastIndexChange timestamp via impl->v\[+0x8\].
+Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.
+
+**Technical description:** Returns LastIndexChange timestamp via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -990,7 +1008,9 @@ impl 0x1030259c: single exit returns 0; the action never faults from the impl --
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns search capabilities via impl->v\[+0x8\].
+Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.
+
+**Technical description:** Returns search capabilities via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1095,7 +1115,9 @@ impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim v
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns IsIndexing flag via impl->v\[+0x8\].
+Returns whether a library reindex is currently running.
+
+**Technical description:** Returns IsIndexing flag via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1198,7 +1220,9 @@ impl 0x1030269c: single exit returns 0; the action never faults from the impl --
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns sort capabilities via impl->v\[+0x8\].
+Returns which DIDL properties can be used in Browse SortCriteria.
+
+**Technical description:** Returns sort capabilities via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1303,7 +1327,9 @@ impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim v
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the system update Id via impl->v\[+0x8\].
+Returns the global library UpdateID - compare before/after to detect any change.
+
+**Technical description:** Returns the system update Id via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1407,7 +1433,9 @@ impl 0x10302640: single exit returns 0; the action never faults from the impl --
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Triggers a share-index refresh (AlbumArtistDisplayOption) via impl->v\[+0x30\].
+Triggers a rescan of the configured music shares.
+
+**Technical description:** Triggers a share-index refresh (AlbumArtistDisplayOption) via impl->v\[+0x30\].
 
 #### Inputs
 
@@ -1514,7 +1542,9 @@ impl impl literal exit returns 0; two out-branches tail into sched thunks -> f_1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Requests an index resort (SortOrder) via impl->v\[+0x34\].
+Re-sorts the library index using SortOrder.
+
+**Technical description:** Requests an index resort (SortOrder) via impl->v\[+0x34\].
 
 #### Inputs
 
@@ -1617,7 +1647,9 @@ impl impl literal exit returns 0; one out-branch tail into sched thunk -> f_1010
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets Browseable flag via impl->v\[+0x40\].
+Marks the library share browseable or not.
+
+**Technical description:** Sets Browseable flag via impl->v\[+0x40\].
 
 #### Inputs
 
@@ -1726,7 +1758,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Updates ObjectID: CurrentTagValue -> NewTagValue via impl->v\[+0x24\].
+Rewrites an object's metadata: CurrentTagValue -> NewTagValue DIDL fragments for ObjectID.
+
+**Technical description:** Updates ObjectID: CurrentTagValue -> NewTagValue via impl->v\[+0x24\].
 
 #### Inputs
 

@@ -15,6 +15,9 @@ extract_soap_api.py            binary-only structural extractor
 soap_api-86.10-80260.json      extractor output (structure + evidence)
 docs/documentation.schema.json contract for documentation.json
 docs/documentation.json        the documentation database (generated + human)
+docs/client_text.json          hand-authored client-facing summaries overlaid
+                               on services/actions at generation time (never
+                               replaces the technical description fields)
 tools/doclib.py                shared model + completeness rules
 tools/import_extract.py        extractor JSON -> doc skeletons (never overwrites)
 tools/worksheet.py             per-action RE worksheet
@@ -147,6 +150,16 @@ normalization — `unresolved` blocks, bounded unknowns, `removed/stale`
 records, hidden-callable reachability, runtime-bound error domains and
 firmware/model diffs are all first-class IR state and must be visible in the
 output.
+
+Every service and action carries two prose layers. `docs/client_text.json`
+holds hand-authored, client-facing `summary` text keyed by control path and
+action name; `normalize()` merges it onto `Service.summary`/`Action.summary`
+and the renderer prints it first. The technical `description` field stays
+intact and renders immediately afterwards labelled "Technical description".
+Overlay keys that resolve to no record are QA errors, so the authored layer
+cannot silently drift when the dataset changes. Write summaries for the
+reader implementing a client (what it does, argument semantics, quirks);
+never delete technical detail to make prose read better.
 
 Generation doubles as a consistency QA pass (`genmodel.qa()`):
 

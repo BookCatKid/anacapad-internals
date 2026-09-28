@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.
+Home-theater control: IR repeater passthrough, LED feedback, and IR-remote learning so a TV remote can drive volume on the soundbar. Relevant to playbar-family hardware with an IR receiver.
+
+**Technical description:** Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.
 
 ## Availability
 
@@ -33,7 +35,9 @@ Home-theater control service: IR repeater state, LED feedback, and IR-remote lea
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Commits learned codes under Name via impl->v\[+0x18\] on the svc+4 member.
+Stores the codes captured by LearnIRCode under a remote Name.
+
+**Technical description:** Commits learned codes under Name via impl->v\[+0x18\] on the svc+4 member.
 
 #### Inputs
 
@@ -140,7 +144,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the IR-repeater enabled state via impl->v\[+0x8\] on r4-in.
+Returns whether IR commands are retransmitted to the AV equipment.
+
+**Technical description:** Returns the IR-repeater enabled state via impl->v\[+0x8\] on r4-in.
 
 #### Outputs
 
@@ -244,7 +250,9 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the LED-feedback state via impl->v\[+0x8\] on r4-in.
+Returns the LED feedback state used to acknowledge IR-learned volume presses.
+
+**Technical description:** Returns the LED-feedback state via impl->v\[+0x8\] on r4-in.
 
 #### Outputs
 
@@ -352,7 +360,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Identifies an IR remote with a Timeout via impl->v\[+0xc\] on the sp+0x2c member.
+Asks the user to press buttons so the player can identify the remote layout, bounded by Timeout (seconds).
+
+**Technical description:** Identifies an IR remote with a Timeout via impl->v\[+0xc\] on the sp+0x2c member.
 
 #### Inputs
 
@@ -458,7 +468,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns whether an IR remote is configured via impl->v\[+0x8\] on r4-in.
+Returns whether an IR remote has been configured.
+
+**Technical description:** Returns whether an IR remote is configured via impl->v\[+0x8\] on r4-in.
 
 #### Outputs
 
@@ -561,7 +573,9 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Captures an IRCode within Timeout via impl->v\[+0xc\] on the sp+0x4c member.
+Captures a single IRCode within Timeout during remote setup.
+
+**Technical description:** Captures an IRCode within Timeout via impl->v\[+0xc\] on the sp+0x4c member.
 
 #### Inputs
 
@@ -671,7 +685,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v\[+0xc\] on the svc+4 member.
+Enables or disables IR repeater passthrough.
+
+**Technical description:** Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v\[+0xc\] on the svc+4 member.
 
 #### Inputs
 
@@ -790,7 +806,9 @@ IR repeater not implemented on this hardware (cntlzw flag from member)
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets LED feedback (LEDFeedbackState) via impl->v\[+0x20\] on the svc+4 member.
+Sets the LED feedback pattern for IR volume presses.
+
+**Technical description:** Sets LED feedback (LEDFeedbackState) via impl->v\[+0x20\] on the svc+4 member.
 
 #### Inputs
 

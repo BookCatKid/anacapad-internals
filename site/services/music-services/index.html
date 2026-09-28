@@ -1929,7 +1929,8 @@
 
 <h1 id="musicservices-musicservicescontrol"><code>MusicServices</code> — <code>/MusicServices/Control</code><a class="headerlink" href="#musicservices-musicservicescontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.</p>
+<p>SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.</p>
+<p><strong>Technical description:</strong> Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x200</code></li>
@@ -1983,7 +1984,8 @@
 </table>
 <h3 id="getsessionid"><code>GetSessionId</code><a class="headerlink" href="#getsessionid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl-&gt;v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.</p>
+<p>Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.</p>
+<p><strong>Technical description:</strong> Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl-&gt;v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2122,7 +2124,8 @@
 
 <h3 id="listavailableservices"><code>ListAvailableServices</code><a class="headerlink" href="#listavailableservices" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the list of available music services. Wrapper reaches the impl through <em>(</em>(sp+0x18)+0x8) — a doubly-indirect member — and calls its v[+0x8] which serializes the service list.</p>
+<p>Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.</p>
+<p><strong>Technical description:</strong> Returns the list of available music services. Wrapper reaches the impl through <em>(</em>(sp+0x18)+0x8) — a doubly-indirect member — and calls its v[+0x8] which serializes the service list.</p>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2236,7 +2239,8 @@
 
 <h3 id="updateavailableservices"><code>UpdateAvailableServices</code><a class="headerlink" href="#updateavailableservices" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Triggers a refresh of the available music-services list via impl-&gt;v[+0x8] on the svc+4 member.</p>
+<p>Forces a refresh of the cached service descriptor list from the cloud/catalog.</p>
+<p><strong>Technical description:</strong> Triggers a refresh of the available music-services list via impl-&gt;v[+0x8] on the svc+4 member.</p>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details><summary>Evidence (1)</summary>

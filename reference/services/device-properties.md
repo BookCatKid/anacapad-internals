@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Device properties service: LED/button state, zone attributes, stereo-pair and home-theater satellite bonding, config mode, and autoplay defaults.
+Player identity, hardware features and local configuration: zone name/icon, serial/software/hardware versions, LED and button state, button lock, autoplay preferences (which room's line-in or TV input auto-plays here and at what volume), stereo-pair and home-theater satellite management, household id, config mode, and the room-detection chirp used during setup.
+
+**Technical description:** Device properties service: LED/button state, zone attributes, stereo-pair and home-theater satellite bonding, config mode, and autoplay defaults.
 
 ## Availability
 
@@ -52,7 +54,9 @@ Device properties service: LED/button state, zone attributes, stereo-pair and ho
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds bonded zones (ChannelMapSet) via impl->v\[+0x18\].
+Bonds additional players to this player via a ChannelMapSet (which member plays which channel).
+
+**Technical description:** Adds bonded zones (ChannelMapSet) via impl->v\[+0x18\].
 
 #### Inputs
 
@@ -162,7 +166,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds a home-theater satellite with HTSatChanMapSet via impl->v\[+0x48\].
+Adds a surround/sub satellite to a home-theater group via HTSatChanMapSet.
+
+**Technical description:** Adds a home-theater satellite with HTSatChanMapSet via impl->v\[+0x48\].
 
 #### Inputs
 
@@ -274,7 +280,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Bonds two players into a stereo pair with ChannelMapSet via impl->v\[+0x20\].
+Creates a stereo pair from two players, describing left/right assignment in ChannelMapSet.
+
+**Technical description:** Bonds two players into a stereo pair with ChannelMapSet via impl->v\[+0x20\].
 
 #### Inputs
 
@@ -384,7 +392,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
+Puts the player into a configuration mode (used during setup/registration); returns the resulting State.
+
+**Technical description:** Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
 
 #### Inputs
 
@@ -508,7 +518,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Exits config mode with Options via impl->v\[+0x64\].
+Leaves configuration mode.
+
+**Technical description:** Exits config mode with Options via impl->v\[+0x64\].
 
 #### Inputs
 
@@ -618,7 +630,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
+For a given autoplay Source, returns whether linked zones are grouped when autoplay triggers.
+
+**Technical description:** Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -736,7 +750,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
+For a given autoplay Source, returns the UUID of the room that will take over playback.
+
+**Technical description:** Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -855,7 +871,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
+Returns the volume the player jumps to when the given autoplay Source activates.
+
+**Technical description:** Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -973,7 +991,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns CurrentButtonLockState via impl->v\[+0x8\].
+Returns whether the player's physical buttons are locked (child-lock).
+
+**Technical description:** Returns CurrentButtonLockState via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1084,7 +1104,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns button state via impl->v\[+0x8\].
+Returns the current physical button state (e.g. which buttons are pressed).
+
+**Technical description:** Returns button state via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1192,7 +1214,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns CurrentHouseholdID via impl->v\[+0x8\].
+Returns the household identifier this player is registered to.
+
+**Technical description:** Returns CurrentHouseholdID via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1303,7 +1327,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns CurrentLEDState via impl->v\[+0x8\].
+Returns whether the status LED is on or off.
+
+**Technical description:** Returns CurrentLEDState via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1410,7 +1436,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns UseVolume flag via impl->v\[+0x1c\].
+Returns whether autoplay applies the configured autoplay volume (vs. keeping current volume).
+
+**Technical description:** Returns UseVolume flag via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -1532,7 +1560,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns zone attributes via impl->v\[+0x8\].
+Returns the player's configured room name, icon and room configuration.
+
+**Technical description:** Returns zone attributes via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1649,7 +1679,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns zone info via impl->v\[+0x8\].
+Returns identity and version info: serial number, software/hardware versions, IP and MAC addresses, flags and build metadata.
+
+**Technical description:** Returns zone info via impl->v\[+0x8\].
 
 #### Outputs
 
@@ -1784,7 +1816,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v\[+0x1c\].
+Un-bonds zones described by ChannelMapSet; KeepGrouped controls whether playback grouping is preserved.
+
+**Technical description:** Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -1898,7 +1932,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes HT satellite SatRoomUUID via impl->v\[+0x4c\].
+Removes a home-theater satellite by room UUID.
+
+**Technical description:** Removes HT satellite SatRoomUUID via impl->v\[+0x4c\].
 
 #### Inputs
 
@@ -2006,7 +2042,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwappableAudio -> impl->v\[+0x50\], returning PlayId.
+Plays the ultrasonic chirp used by Sonos room/speaker detection during setup; returns a PlayId to stop it.
+
+**Technical description:** Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwappableAudio -> impl->v\[+0x50\], returning PlayId.
 
 #### Inputs
 
@@ -2133,7 +2171,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops chirping for PlayId via impl->v\[+0x54\].
+Stops a chirp previously started by RoomDetectionStartChirping.
+
+**Technical description:** Stops chirping for PlayId via impl->v\[+0x54\].
 
 #### Inputs
 
@@ -2243,7 +2283,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Parses inputs, then calls impl->v\[+0x24\] = null stub f_1019d288. In this build, separating a stereo pair is a binary-proven no-op: the request is accepted and success emitted without any operation or state change.
+Breaks a stereo pair described by ChannelMapSet back into two independent players.
+
+**Technical description:** Parses inputs, then calls impl->v\[+0x24\] = null stub f_1019d288. In this build, separating a stereo pair is a binary-proven no-op: the request is accepted and success emitted without any operation or state change.
 
 #### Inputs
 
@@ -2348,7 +2390,9 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets IncludeLinkedZones (+Source) via impl->v\[+0x28\].
+Sets whether autoplay groups linked zones for a Source.
+
+**Technical description:** Sets IncludeLinkedZones (+Source) via impl->v\[+0x28\].
 
 #### Inputs
 
@@ -2462,7 +2506,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the autoplay RoomUUID (+Source selector) via impl->v\[+0x30\].
+Sets which room UUID autoplay for a Source should target.
+
+**Technical description:** Sets the autoplay RoomUUID (+Source selector) via impl->v\[+0x30\].
 
 #### Inputs
 
@@ -2576,7 +2622,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the autoplay Volume (+Source) via impl->v\[+0x38\].
+Sets the autoplay volume for a Source.
+
+**Technical description:** Sets the autoplay Volume (+Source) via impl->v\[+0x38\].
 
 #### Inputs
 
@@ -2686,7 +2734,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets DesiredButtonLockState via impl->v\[+0x6c\].
+Locks or unlocks the player's physical buttons.
+
+**Technical description:** Sets DesiredButtonLockState via impl->v\[+0x6c\].
 
 #### Inputs
 
@@ -2796,7 +2846,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets DesiredLEDState via impl->v\[+0x10\].
+Turns the status LED on or off.
+
+**Technical description:** Sets DesiredLEDState via impl->v\[+0x10\].
 
 #### Inputs
 
@@ -2905,7 +2957,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets UseVolume flag (+Source) via impl->v\[+0x40\].
+Enables or disables applying the autoplay volume.
+
+**Technical description:** Sets UseVolume flag (+Source) via impl->v\[+0x40\].
 
 #### Inputs
 
@@ -3015,7 +3069,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via impl->v\[+0x8\].
+Sets the room name, icon and configuration shown to users.
+
+**Technical description:** Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via impl->v\[+0x8\].
 
 #### Inputs
 

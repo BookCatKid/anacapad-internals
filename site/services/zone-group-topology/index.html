@@ -3187,7 +3187,8 @@
 
 <h1 id="zonegrouptopology-zonegrouptopologycontrol"><code>ZoneGroupTopology</code> — <code>/ZoneGroupTopology/Control</code><a class="headerlink" href="#zonegrouptopology-zonegrouptopologycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.</p>
+<p>Zone topology and household management. GetZoneGroupState is the famous one: a single XML snapshot listing every group, member, coordinator and source - the fastest way to map a household. The rest covers software update control, mobile-device registration, diagnostics upload and coordinator callbacks for alarms/unresponsive members.</p>
+<p><strong>Technical description:</strong> Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x8</code></li>
@@ -3281,7 +3282,8 @@
 </table>
 <h3 id="beginsoftwareupdate"><code>BeginSoftwareUpdate</code><a class="headerlink" href="#beginsoftwareupdate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl-&gt;v[+0xc] on the svc+4 member.</p>
+<p>Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (e.g. forced downgrade), ExtraOptions for transport options.</p>
+<p><strong>Technical description:</strong> Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl-&gt;v[+0xc] on the svc+4 member.</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3404,7 +3406,8 @@
 
 <h3 id="checkforupdate"><code>CheckForUpdate</code><a class="headerlink" href="#checkforupdate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl-&gt;v[+0x8] on the doubly-indirect member.</p>
+<p>Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.</p>
+<p><strong>Technical description:</strong> Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl-&gt;v[+0x8] on the doubly-indirect member.</p>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3555,7 +3558,8 @@
 
 <h3 id="getzonegroupattributes"><code>GetZoneGroupAttributes</code><a class="headerlink" href="#getzonegroupattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns zone-group identity fields. Wrapper calls impl-&gt;v[+0x34] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).</p>
+<p>Returns the household's group name/id, the member UUIDs, and the Muse household id.</p>
+<p><strong>Technical description:</strong> Returns zone-group identity fields. Wrapper calls impl-&gt;v[+0x34] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).</p>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3686,7 +3690,8 @@
 
 <h3 id="getzonegroupstate"><code>GetZoneGroupState</code><a class="headerlink" href="#getzonegroupstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Serializes the full zone-group state XML via impl-&gt;v[+0x28] on the doubly-indirect member.</p>
+<p>Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.</p>
+<p><strong>Technical description:</strong> Serializes the full zone-group state XML via impl-&gt;v[+0x28] on the doubly-indirect member.</p>
 <h4 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3789,7 +3794,8 @@
 
 <h3 id="registermobiledevice"><code>RegisterMobileDevice</code><a class="headerlink" href="#registermobiledevice" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change</p>
+<p>Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.</p>
+<p><strong>Technical description:</strong> accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change</p>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3910,7 +3916,8 @@
 
 <h3 id="reportalarmstartedrunning"><code>ReportAlarmStartedRunning</code><a class="headerlink" href="#reportalarmstartedrunning" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl-&gt;v[+0x14].</p>
+<p>Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).</p>
+<p><strong>Technical description:</strong> Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl-&gt;v[+0x14].</p>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details><summary>Evidence (1)</summary>
@@ -3994,7 +4001,8 @@
 
 <h3 id="reportunresponsivedevice"><code>ReportUnresponsiveDevice</code><a class="headerlink" href="#reportunresponsivedevice" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Reports DeviceUUID unresponsive with DesiredAction via impl-&gt;v[+0x10] on the svc+4 member.</p>
+<p>Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.</p>
+<p><strong>Technical description:</strong> Reports DeviceUUID unresponsive with DesiredAction via impl-&gt;v[+0x10] on the svc+4 member.</p>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -4109,7 +4117,8 @@
 
 <h3 id="submitdiagnostics"><code>SubmitDiagnostics</code><a class="headerlink" href="#submitdiagnostics" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl-&gt;v[+0x18] on the doubly-indirect member.</p>
+<p>Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support.</p>
+<p><strong>Technical description:</strong> Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl-&gt;v[+0x18] on the doubly-indirect member.</p>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).
+Treats a networked line-in source as a virtual transport on this player - transport-style control (Play/Pause/Stop/Next/Previous/SetVolume) plus Start/StopTransmission to run the session. It's the 'line-in from another player' surface.
+
+**Technical description:** Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).
 
 ## Availability
 
@@ -33,7 +35,9 @@ Virtual Line-In sink service: a VLI playback session exposes transport-like cont
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Next-track in the VLI session via impl->v\[+0x1c\].
+Advances the virtual line-in transport (context-dependent).
+
+**Technical description:** Next-track in the VLI session via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -136,7 +140,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Pauses VLI playback via impl->v\[+0x18\].
+Pauses the virtual line-in source.
+
+**Technical description:** Pauses VLI playback via impl->v\[+0x18\].
 
 #### Inputs
 
@@ -239,7 +245,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v\[+0x14\] on the r5-in VLI session impl.
+Starts/resumes the virtual line-in source at the given Speed ('1' normal).
+
+**Technical description:** Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v\[+0x14\] on the r5-in VLI session impl.
 
 #### Inputs
 
@@ -346,7 +354,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Previous-track via impl->v\[+0x20\].
+Steps the virtual line-in transport back.
+
+**Technical description:** Previous-track via impl->v\[+0x20\].
 
 #### Inputs
 
@@ -449,7 +459,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets VLI-session volume (DesiredVolume) via impl->v\[+0x24\].
+Sets the playback volume for the line-in session.
+
+**Technical description:** Sets VLI-session volume (DesiredVolume) via impl->v\[+0x24\].
 
 #### Inputs
 
@@ -556,7 +568,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl->v\[+0x8\].
+Begins receiving the line-in stream from the given CoordinatorID; returns the resulting transport settings.
+
+**Technical description:** Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl->v\[+0x8\].
 
 #### Inputs
 
@@ -673,7 +687,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops VLI playback via impl->v\[+0x10\].
+Stops the virtual line-in transport.
+
+**Technical description:** Stops VLI playback via impl->v\[+0x10\].
 
 #### Inputs
 
@@ -780,7 +796,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops the VLI transmission to CoordinatorID via impl->v\[+0xc\].
+Ends the line-in transmission from the given coordinator.
+
+**Technical description:** Stops the VLI transmission to CoordinatorID via impl->v\[+0xc\].
 
 #### Inputs
 

@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit*/Remove*/Replace*/Refresh*/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.
+A generic key/value store plus the music-service account manager. SetString/GetString/Remove are a free-form property bag that many features lean on (client-facing settings ride through it). The account actions manage per-service credentials: legacy login (AddAccountX), OAuth (AddOAuthAccountX and friends keyed by AccountUDN), nickname/edit/remove, and credential refresh. Two SCPD-advertised actions are dead in this build: ProvisionCredentialedTrialAccountX (name string absent - hard-removed) and ResetThirdPartyCredentials (string present but unreferenced - soft-removed); both fault 401 on the wire.
+
+**Technical description:** System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit*/Remove*/Replace*/Refresh*/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.
 
 ## Availability
 
@@ -40,7 +42,9 @@ System properties service: generic config string store (Get/Set/Remove) plus the
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18\].
+Registers a music-service account with legacy credentials (AccountType id, AccountID username, AccountPassword); returns the AccountUDN used by all other account actions.
+
+**Technical description:** Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18\].
 
 #### Inputs
 
@@ -173,7 +177,9 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
+Registers an OAuth music-service account: AccountType plus token/key/device-id/authorization-code/redirect metadata and optional UserIdHashCode/AccountTier. Returns AccountUDN and the service-provided AccountNickname.
+
+**Technical description:** Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
 
 #### Inputs
 
@@ -330,7 +336,9 @@ None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Runs post-update migration/cleanup tasks via impl->v\[+0x14\].
+Runs bookkeeping that should execute after a firmware update (data migration, cached-state rebuild).
+
+**Technical description:** Runs post-update migration/cleanup tasks via impl->v\[+0x14\].
 
 #### Validation `confirmed`
 
@@ -430,7 +438,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
+Replaces the metadata (Md) blob for an account.
+
+**Technical description:** Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
 
 #### Inputs
 
@@ -544,7 +554,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.
+Changes the password on a legacy-credential account.
+
+**Technical description:** Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.
 
 #### Inputs
 
@@ -661,7 +673,9 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
+Enables or disables Retail Demo Mode on the player.
+
+**Technical description:** Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
 
 #### Inputs
 
@@ -767,7 +781,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reads the RDM flag via impl->v\[+0x40\].
+Returns whether Retail Demo Mode is enabled.
+
+**Technical description:** Reads the RDM flag via impl->v\[+0x40\].
 
 #### Outputs
 
@@ -877,7 +893,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reads config VariableName -> StringValue via impl->v\[+0xc\].
+Reads a property value by VariableName from the key/value store.
+
+**Technical description:** Reads config VariableName -> StringValue via impl->v\[+0xc\].
 
 #### Inputs
 
@@ -997,7 +1015,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns a WebCode for AccountType via impl->v\[+0x14\].
+Returns a short WebCode for the given AccountType - used to link an account via the provider's web flow.
+
+**Technical description:** Returns a WebCode for AccountType via impl->v\[+0x14\].
 
 #### Inputs
 
@@ -1113,7 +1133,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl->v\[+0x14\].
+Refreshes OAuth credentials (token/key) for an existing AccountUID.
+
+**Technical description:** Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl->v\[+0x14\].
 
 #### Inputs
 
@@ -1240,7 +1262,9 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Deletes config VariableName via impl->v\[+0x10\].
+Deletes VariableName from the key/value store.
+
+**Technical description:** Deletes config VariableName via impl->v\[+0x10\].
 
 #### Inputs
 
@@ -1350,7 +1374,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Removes AccountType/AccountID via impl->v\[+0x20\].
+Deletes a music-service account by AccountType + AccountID.
+
+**Technical description:** Removes AccountType/AccountID via impl->v\[+0x20\].
 
 #### Inputs
 
@@ -1464,7 +1490,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[+0x34\].
+Swaps the account behind AccountUDN for new credentials (NewAccountID/password or OAuth token set), returning NewAccountUDN.
+
+**Technical description:** Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[+0x34\].
 
 #### Inputs
 
@@ -1606,7 +1634,9 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
+Sets the display nickname for an AccountUDN.
+
+**Technical description:** Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
 
 #### Inputs
 
@@ -1724,7 +1754,9 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Writes VariableName=StringValue via impl->v\[+0x8\].
+Writes VariableName=StringValue into the property store.
+
+**Technical description:** Writes VariableName=StringValue via impl->v\[+0x8\].
 
 #### Inputs
 

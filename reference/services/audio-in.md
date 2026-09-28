@@ -2,7 +2,9 @@
 
 **visibility** `hidden` · **status** `confirmed`
 
-AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.
+The legacy hardware line-in service. Its SCPD (AudioIn1.xml) still ships and its route is still registered, but the service is not listed in the device description and every action dispatches to a stub that unconditionally faults 401. The feature was removed on this model; treat all six actions as dead surface - documented here so clients can recognise the fault. The actions below describe what the API used to do.
+
+**Technical description:** AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.
 
 ## Availability
 
@@ -29,7 +31,9 @@ AudioIn service on the zone player — registered, but its service object is a 4
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub — faults 401**
 
-Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+Historically started streaming this player's analog line-in to the group identified by CoordinatorID, returning the resulting transport settings. In this build it always faults 401.
+
+**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
 #### Inputs
 
@@ -146,7 +150,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub — faults 401**
 
-Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+Historically stopped line-in transmission to the group. In this build it always faults 401.
+
+**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
 #### Inputs
 
@@ -249,7 +255,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub — faults 401**
 
-Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+Historically renamed the line-in source and set its icon. In this build it always faults 401.
+
+**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
 #### Inputs
 
@@ -356,7 +364,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub — faults 401**
 
-Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+Historically returned the line-in source name and icon. In this build it always faults 401.
+
+**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
 #### Outputs
 
@@ -463,7 +473,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub — faults 401**
 
-Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+Historically set left/right line-in gain levels. In this build it always faults 401.
+
+**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
 #### Inputs
 
@@ -570,7 +582,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub — faults 401**
 
-Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+Historically returned the left/right line-in gain levels. In this build it always faults 401.
+
+**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
 #### Outputs
 

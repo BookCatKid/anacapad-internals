@@ -545,8 +545,11 @@ def render_action(a):
         badges.append("**removed/stub — faults 401**")
     out.append(" · ".join(badges))
     out.append("")
+    if a.summary:
+        out.append(_para(a.summary))
+        out.append("")
     if a.description:
-        out.append(_para(a.description))
+        out.append("**Technical description:** %s" % _para(a.description))
         out.append("")
     if a.inputs:
         out.append("#### Inputs")
@@ -642,8 +645,11 @@ def render_service(s):
     out.append("**visibility** `%s` · **status** %s"
                % (s.visibility, _status(s.status)))
     out.append("")
+    if s.summary:
+        out.append(_para(s.summary))
+        out.append("")
     if s.description:
-        out.append(_para(s.description))
+        out.append("**Technical description:** %s" % _para(s.description))
         out.append("")
     if s.availability and (s.availability.notes or s.availability.status
                            or s.availability.enabled_source):
@@ -1041,7 +1047,10 @@ def main():
     args = ap.parse_args()
 
     doc = json.load(open(args.docs))
-    model = genmodel.normalize(doc)
+    ct_path = os.path.join(os.path.dirname(args.docs), "client_text.json")
+    client_text = (json.load(open(ct_path))
+                   if os.path.exists(ct_path) else None)
+    model = genmodel.normalize(doc, client_text)
 
     api_total = None
     if os.path.exists(args.api):

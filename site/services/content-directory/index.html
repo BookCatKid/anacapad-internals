@@ -5055,7 +5055,8 @@
 
 <h1 id="contentdirectory-mediaservercontentdirectorycontrol"><code>ContentDirectory</code> — <code>/MediaServer/ContentDirectory/Control</code><a class="headerlink" href="#contentdirectory-mediaservercontentdirectorycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.</p>
+<p>The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.</p>
+<p><strong>Technical description:</strong> UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.</p>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x20</code></li>
@@ -5213,7 +5214,8 @@
 </table>
 <h3 id="browse"><code>Browse</code><a class="headerlink" href="#browse" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -&gt; children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -&gt; metadata path, anything else -&gt; 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].</p>
+<p>Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.</p>
+<p><strong>Technical description:</strong> Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -&gt; children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -&gt; metadata path, anything else -&gt; 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].</p>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5422,7 +5424,8 @@
 
 <h3 id="createobject"><code>CreateObject</code><a class="headerlink" href="#createobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Creates a CDS object: ContainerID/Elements -&gt; impl-&gt;v[+0x20], returning ObjectID/Result.</p>
+<p>Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.</p>
+<p><strong>Technical description:</strong> Creates a CDS object: ContainerID/Elements -&gt; impl-&gt;v[+0x20], returning ObjectID/Result.</p>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5565,7 +5568,8 @@
 
 <h3 id="destroyobject"><code>DestroyObject</code><a class="headerlink" href="#destroyobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Destroys ObjectID via impl-&gt;v[+0x28].</p>
+<p>Deletes ObjectID from the library.</p>
+<p><strong>Technical description:</strong> Destroys ObjectID via impl-&gt;v[+0x28].</p>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5666,7 +5670,8 @@
 
 <h3 id="findprefix"><code>FindPrefix</code><a class="headerlink" href="#findprefix" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl-&gt;v[+0x18].</p>
+<p>Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).</p>
+<p><strong>Technical description:</strong> Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl-&gt;v[+0x18].</p>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5808,7 +5813,8 @@
 
 <h3 id="getalbumartistdisplayoption"><code>GetAlbumArtistDisplayOption</code><a class="headerlink" href="#getalbumartistdisplayoption" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the album-artist display option via impl-&gt;v[+0x8].</p>
+<p>Returns whether the library groups by album artist or contributing artist.</p>
+<p><strong>Technical description:</strong> Returns the album-artist display option via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_3">Outputs<a class="headerlink" href="#outputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5905,7 +5911,8 @@
 
 <h3 id="getallprefixlocations"><code>GetAllPrefixLocations</code><a class="headerlink" href="#getallprefixlocations" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl-&gt;v[+0x1c].</p>
+<p>Returns all container prefixes that contain ObjectID (an item can live under several indices).</p>
+<p><strong>Technical description:</strong> Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl-&gt;v[+0x1c].</p>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6047,7 +6054,8 @@
 
 <h3 id="getbrowseable"><code>GetBrowseable</code><a class="headerlink" href="#getbrowseable" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns IsBrowseable via impl-&gt;v[+0x8].</p>
+<p>Returns whether the local library share is currently marked browseable.</p>
+<p><strong>Technical description:</strong> Returns IsBrowseable via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_5">Outputs<a class="headerlink" href="#outputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6144,7 +6152,8 @@
 
 <h3 id="getlastindexchange"><code>GetLastIndexChange</code><a class="headerlink" href="#getlastindexchange" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns LastIndexChange timestamp via impl-&gt;v[+0x8].</p>
+<p>Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.</p>
+<p><strong>Technical description:</strong> Returns LastIndexChange timestamp via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_6">Outputs<a class="headerlink" href="#outputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6242,7 +6251,8 @@
 
 <h3 id="getsearchcapabilities"><code>GetSearchCapabilities</code><a class="headerlink" href="#getsearchcapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns search capabilities via impl-&gt;v[+0x8].</p>
+<p>Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.</p>
+<p><strong>Technical description:</strong> Returns search capabilities via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_7">Outputs<a class="headerlink" href="#outputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6339,7 +6349,8 @@
 
 <h3 id="getshareindexinprogress"><code>GetShareIndexInProgress</code><a class="headerlink" href="#getshareindexinprogress" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns IsIndexing flag via impl-&gt;v[+0x8].</p>
+<p>Returns whether a library reindex is currently running.</p>
+<p><strong>Technical description:</strong> Returns IsIndexing flag via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_8">Outputs<a class="headerlink" href="#outputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6436,7 +6447,8 @@
 
 <h3 id="getsortcapabilities"><code>GetSortCapabilities</code><a class="headerlink" href="#getsortcapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns sort capabilities via impl-&gt;v[+0x8].</p>
+<p>Returns which DIDL properties can be used in Browse SortCriteria.</p>
+<p><strong>Technical description:</strong> Returns sort capabilities via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_9">Outputs<a class="headerlink" href="#outputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6533,7 +6545,8 @@
 
 <h3 id="getsystemupdateid"><code>GetSystemUpdateID</code><a class="headerlink" href="#getsystemupdateid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the system update Id via impl-&gt;v[+0x8].</p>
+<p>Returns the global library UpdateID - compare before/after to detect any change.</p>
+<p><strong>Technical description:</strong> Returns the system update Id via impl-&gt;v[+0x8].</p>
 <h4 id="outputs_10">Outputs<a class="headerlink" href="#outputs_10" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6631,7 +6644,8 @@
 
 <h3 id="refreshshareindex"><code>RefreshShareIndex</code><a class="headerlink" href="#refreshshareindex" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Triggers a share-index refresh (AlbumArtistDisplayOption) via impl-&gt;v[+0x30].</p>
+<p>Triggers a rescan of the configured music shares.</p>
+<p><strong>Technical description:</strong> Triggers a share-index refresh (AlbumArtistDisplayOption) via impl-&gt;v[+0x30].</p>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6734,7 +6748,8 @@
 
 <h3 id="requestresort"><code>RequestResort</code><a class="headerlink" href="#requestresort" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Requests an index resort (SortOrder) via impl-&gt;v[+0x34].</p>
+<p>Re-sorts the library index using SortOrder.</p>
+<p><strong>Technical description:</strong> Requests an index resort (SortOrder) via impl-&gt;v[+0x34].</p>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6835,7 +6850,8 @@
 
 <h3 id="setbrowseable"><code>SetBrowseable</code><a class="headerlink" href="#setbrowseable" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets Browseable flag via impl-&gt;v[+0x40].</p>
+<p>Marks the library share browseable or not.</p>
+<p><strong>Technical description:</strong> Sets Browseable flag via impl-&gt;v[+0x40].</p>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6941,7 +6957,8 @@
 
 <h3 id="updateobject"><code>UpdateObject</code><a class="headerlink" href="#updateobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Updates ObjectID: CurrentTagValue -&gt; NewTagValue via impl-&gt;v[+0x24].</p>
+<p>Rewrites an object's metadata: CurrentTagValue -&gt; NewTagValue DIDL fragments for ObjectID.</p>
+<p><strong>Technical description:</strong> Updates ObjectID: CurrentTagValue -&gt; NewTagValue via impl-&gt;v[+0x24].</p>
 <h4 id="inputs_8">Inputs<a class="headerlink" href="#inputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

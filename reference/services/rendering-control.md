@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-UPnP RenderingControl for the zone player: per-channel volume, mute, loudness and EQ state held in a large implementation object (fields through at least +0x9c8) guarded by a recursive mutex at impl+0x938. Two implementation classes share the same SOAP vtable layout: a base 'without proxy' class (vtable 0x10e872f0, methods 0x100dxxxx-0x100exxxx, e.g. SetMute logs 'SetMuteWithoutProxy') and a derived class (vtable 0x10ed279c, overrides at 0x1046xxxx) that performs a grouped-operation prelude (object built from impl+0xbc8 and impl+0x9c8 via f_1046dff0, submitted via f_1046c3cc) before tail-calling the base implementation - i.e. the proxy/grouped variant. Which class is installed at *(svc+4) is decided at rc_impl construction (selection condition unresolved); several actions are 3-instruction null stubs in one or both classes and are documented per-class below.
+Per-player audio rendering: volume (linear 0-100 and dB), mute, bass/treble/loudness and extended EQ, fixed (line-out level) output mode, headphone detection, room-calibration enable, and volume ramps used by alarms/sleep timers. Channel is 'Master' or 'LF'/'RF' for stereo pairs. NOTE: several actions are deliberately neutered on this hardware (e.g. GetBass is a confirmed no-op) - check each action's status before trusting it.
+
+**Technical description:** UPnP RenderingControl for the zone player: per-channel volume, mute, loudness and EQ state held in a large implementation object (fields through at least +0x9c8) guarded by a recursive mutex at impl+0x938. Two implementation classes share the same SOAP vtable layout: a base 'without proxy' class (vtable 0x10e872f0, methods 0x100dxxxx-0x100exxxx, e.g. SetMute logs 'SetMuteWithoutProxy') and a derived class (vtable 0x10ed279c, overrides at 0x1046xxxx) that performs a grouped-operation prelude (object built from impl+0xbc8 and impl+0x9c8 via f_1046dff0, submitted via f_1046c3cc) before tail-calling the base implementation - i.e. the proxy/grouped variant. Which class is installed at *(svc+4) is decided at rc_impl construction (selection condition unresolved); several actions are 3-instruction null stubs in one or both classes and are documented per-class below.
 
 ## Availability
 
@@ -52,7 +54,9 @@ UPnP RenderingControl for the zone player: per-channel volume, mute, loudness an
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -> emit path).
+Returns bass level - BUT it is neutered on this build: the implementation is a confirmed no-op stub, so the returned CurrentBass is meaningless. GetEQ(EQType='Bass') is the working path.
+
+**Technical description:** NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -> emit path).
 
 #### Inputs
 
@@ -139,7 +143,9 @@ Sonos neutered GetBass while leaving GetTreble (+0x38 -> real impl f_100e3450) f
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.
+Reads an EQ parameter by EQType (e.g. Bass/Treble/Loudness-style ids) from the audio pipeline.
+
+**Technical description:** Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.
 
 #### Inputs
 
@@ -232,7 +238,9 @@ f_100e382c is the shared EQ-read worker - GetEQ, GetTreble's f_100e1fec sibling,
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl+0x7da or +0x7e0 selected by flags +0x7ff/+0x801, Master mute byte impl+0x7f1 at rec+0xc, computed flag at rec+0xd; returns 1.
+Returns whether headphones are plugged in (players with a headphone jack).
+
+**Technical description:** Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl+0x7da or +0x7e0 selected by flags +0x7ff/+0x801, Master mute byte impl+0x7f1 at rec+0xc, computed flag at rec+0xd; returns 1.
 
 #### Inputs
 
@@ -320,7 +328,9 @@ Field semantics of +0x7ff/+0x801 remain the key unknown: they appear in SetMute'
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).
+Returns the loudness-compensation setting for a Channel.
+
+**Technical description:** CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).
 
 #### Inputs
 
@@ -414,7 +424,9 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.
+Returns mute state for a Channel ('Master' unless addressing a stereo-pair side).
+
+**Technical description:** Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.
 
 #### Inputs
 
@@ -510,7 +522,9 @@ GetMute accepts only 3 channels although the mute field array has a 4th entry (+
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Pure delegation: impl f_100d6610 forwards to impl->v\[+0xe0\](impl, 0, r4-in) - the fixed-output flag lives behind a secondary interface method on the same object.
+Returns whether output is at fixed level (for line-out/receiver use) vs. variable.
+
+**Technical description:** Pure delegation: impl f_100d6610 forwards to impl->v\[+0xe0\](impl, 0, r4-in) - the fixed-output flag lives behind a secondary interface method on the same object.
 
 #### Inputs
 
@@ -597,7 +611,9 @@ Reading flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixe
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg>>16, ...) - a sonar-calibration query helper - and fills the two outputs from the result.
+Returns whether room calibration (Trueplay) is enabled and available on this player.
+
+**Technical description:** Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg>>16, ...) - a sonar-calibration query helper - and fills the two outputs from the result.
 
 #### Inputs
 
@@ -688,7 +704,9 @@ Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Locks impl+0x938, builds a small record via f_10203ec8, calls impl->v\[+0xf0\](impl,&rec), and when that returns nonzero copies rec+0x24 into the out param; return value is 63 (rc==0 path) or 52 (rc!=0 path).
+Returns whether this hardware supports fixed-level output mode at all.
+
+**Technical description:** Locks impl+0x938, builds a small record via f_10203ec8, calls impl->v\[+0xf0\](impl,&rec), and when that returns nonzero copies rec+0x24 into the out param; return value is 63 (rc==0 path) or 52 (rc!=0 path).
 
 #### Inputs
 
@@ -776,7 +794,9 @@ Verify at runtime: the 63/52 returns suggest this getter may fault or emit disti
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Acquires an audio-context object (f_10118278 + f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, calls ctx-worker f_100e1fec(this,&ctx) and returns its rc. The impl reads NEITHER the InstanceID argument nor the out pointer - both die in registers at entry.
+Returns treble level - same neutering caveat as GetBass may apply; GetEQ is the reliable path.
+
+**Technical description:** Acquires an audio-context object (f_10118278 + f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, calls ctx-worker f_100e1fec(this,&ctx) and returns its rc. The impl reads NEITHER the InstanceID argument nor the out pointer - both die in registers at entry.
 
 #### Inputs
 
@@ -870,7 +890,9 @@ Largest unresolved piece: the CurrentTreble out path. Worth a focused pass on f_
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reads the channel volume through a two-stage impl: shim f_100e43b4 gates InstanceID!=0 -> 702, worker f_100e42a8 acquires an audio-context object (f_10118278/f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, checks readiness gate f_102a5028(*(impl+0x3ac)) (fail -> 501), then reads via f_100da830 -> f_102a50b8 -> f_107ea964.
+Returns the linear volume for a Channel (0-100).
+
+**Technical description:** Reads the channel volume through a two-stage impl: shim f_100e43b4 gates InstanceID!=0 -> 702, worker f_100e42a8 acquires an audio-context object (f_10118278/f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, checks readiness gate f_102a5028(*(impl+0x3ac)) (fail -> 501), then reads via f_100da830 -> f_102a50b8 -> f_107ea964.
 
 #### Inputs
 
@@ -984,7 +1006,9 @@ Error code differs from AVTransport: nonzero InstanceID yields 702 here vs 718 i
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns a volume reading via shared worker f_100dcb00 invoked in mode 0 with flag r6=1 (thunk 0x100dcc64): the dB-scale companion to GetVolume.
+Returns the volume in decibels (scaled; see GetVolumeDBRange for this player's range).
+
+**Technical description:** Returns a volume reading via shared worker f_100dcb00 invoked in mode 0 with flag r6=1 (thunk 0x100dcc64): the dB-scale companion to GetVolume.
 
 #### Inputs
 
@@ -1075,7 +1099,9 @@ Despite the name the impl is a mode-select thunk over the same worker used by Se
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range
+Returns the dB volume range this player supports.
+
+**Technical description:** Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range
 
 #### Inputs
 
@@ -1169,7 +1195,9 @@ Flag for live-object verification: the installed impl may differ if a derived cl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.
+Starts a timed volume ramp to DesiredVolume of type RampType (used for alarm/sleep-timer fades); returns RampTime.
+
+**Technical description:** CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.
 
 #### Inputs
 
@@ -1277,7 +1305,9 @@ Feature-gated by impl class like SetRoomCalibrationStatus.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID, chan, val) and, on a cr0 flag, additionally calls the SetMute worker f_100d99b0 - then logs 'ch:%s, vol:%u, on:%d' and returns per-channel results (Bass, Treble, Loudness, LeftVolume, RightVolume).
+Resets bass/treble/loudness and stereo balance to neutral; returns the resulting values.
+
+**Technical description:** Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID, chan, val) and, on a cr0 flag, additionally calls the SetMute worker f_100d99b0 - then logs 'ch:%s, vol:%u, on:%d' and returns per-channel results (Bass, Treble, Loudness, LeftVolume, RightVolume).
 
 #### Inputs
 
@@ -1377,7 +1407,9 @@ f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -> f_106a9cc4 -> f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.
+Resets the extended EQ band EQType.
+
+**Technical description:** Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -> f_106a9cc4 -> f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.
 
 #### Inputs
 
@@ -1459,7 +1491,9 @@ The 'SetVolumeWithoutProxy' tag inside ResetExtEQ confirms f_100d9d40/f_100d99b0
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.
+Undoes a previous RampToVolume, restoring the earlier volume.
+
+**Technical description:** CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.
 
 #### Inputs
 
@@ -1544,7 +1578,9 @@ Inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Stores the desired bass value into impl+0x898 under the impl mutex, unless the record equals -1 which short-circuits to a no-op. No event/notify calls appear in this impl - state propagation presumably occurs via a separate apply path (unresolved).
+Sets the bass level - neutered like GetBass on this build; use SetEQ with the bass EQType instead.
+
+**Technical description:** Stores the desired bass value into impl+0x898 under the impl mutex, unless the record equals -1 which short-circuits to a no-op. No event/notify calls appear in this impl - state propagation presumably occurs via a separate apply path (unresolved).
 
 #### Inputs
 
@@ -1626,7 +1662,9 @@ Impl signature is (impl, recordptr) - a different convention than the channel/va
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pre-sets it), checks whether impl vfunc +0x5c is the base implementation 0x100d7364 (derived-class detection), locks impl+0x938, checks flag +0x7ff, calls f_10988984 for a sub-lock byte result, and strcmp's channel tokens ('Master' seen) to dispatch.
+Assigns left/right channels to players in a stereo pair via ChannelMap.
+
+**Technical description:** Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pre-sets it), checks whether impl vfunc +0x5c is the base implementation 0x100d7364 (derived-class detection), locks impl+0x938, checks flag +0x7ff, calls f_10988984 for a sub-lock byte result, and strcmp's channel tokens ('Master' seen) to dispatch.
 
 #### Inputs
 
@@ -1709,7 +1747,9 @@ Derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.
+Sets an EQ parameter (EQType, e.g. bass/treble/loudness id) to DesiredValue - the working EQ path.
+
+**Technical description:** Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.
 
 #### Inputs
 
@@ -1798,7 +1838,9 @@ Zero-gated dual worker calls are an unusual pattern - possibly 'apply defaults w
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).
+Enables or disables loudness compensation for a Channel.
+
+**Technical description:** CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).
 
 #### Inputs
 
@@ -1887,7 +1929,9 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -> +0x3c8, with a +0x7e0 -> +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).
+Mutes or unmutes a Channel.
+
+**Technical description:** Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -> +0x3c8, with a +0x7e0 -> +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).
 
 #### Inputs
 
@@ -1982,7 +2026,9 @@ InstanceID nonzero; checked inside worker f_100d99b0 under the mutex.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then conditional fills) and reads flags +0x7ff/+0x801 off an object in r4 - the impl signature differs from the standard (impl,instID,val) shape: it operates on a caller-supplied record and a second object.
+Switches between fixed and variable output level where supported.
+
+**Technical description:** Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then conditional fills) and reads flags +0x7ff/+0x801 off an object in r4 - the impl signature differs from the standard (impl,instID,val) shape: it operates on a caller-supplied record and a second object.
 
 #### Inputs
 
@@ -2064,7 +2110,9 @@ Flag +0x7ff is the same byte that gates SetVolume's write and selects volume fie
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.
+Adjusts volume by a signed Adjustment; returns NewVolume. Safer than absolute SetVolume for slider deltas.
+
+**Technical description:** Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.
 
 #### Inputs
 
@@ -2159,7 +2207,9 @@ Shares all worker caveats with SetVolume (dead InstanceID check, hardcoded 'Mast
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.
+Enables or disables Trueplay room calibration.
+
+**Technical description:** ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.
 
 #### Inputs
 
@@ -2242,7 +2292,9 @@ One of three actions missing from the base vtable (with RampToVolume and Restore
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-NEUTERED ACTION: impl vfunc +0x3c is f_100d65f4 (same null stub as GetBass) in both vtables - performs nothing, returns r3 = impl pointer with stale cr0. The action has no outputs, so a successful emit commits an empty OK response while doing nothing.
+Sets treble level - same neuter caveat; prefer SetEQ.
+
+**Technical description:** NEUTERED ACTION: impl vfunc +0x3c is f_100d65f4 (same null stub as GetBass) in both vtables - performs nothing, returns r3 = impl pointer with stale cr0. The action has no outputs, so a successful emit commits an empty OK response while doing nothing.
 
 #### Inputs
 
@@ -2323,7 +2375,9 @@ Asymmetric with SetBass (+0x34 -> real impl f_100d72dc): bass can be written but
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Sets the Master-channel volume via shared worker f_100dcb00: locks impl+0x938, reads flag impl+0x7ff (nonzero -> skip the write entirely and return), resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then selects a u16-indexed table entry (0x10e87578 + desired*4, field +0x11c) and logs 'vol:%u src:%s'.
+Sets the linear volume for a Channel (0-100).
+
+**Technical description:** Sets the Master-channel volume via shared worker f_100dcb00: locks impl+0x938, reads flag impl+0x7ff (nonzero -> skip the write entirely and return), resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then selects a u16-indexed table entry (0x10e87578 + desired*4, field +0x11c) and logs 'vol:%u src:%s'.
 
 #### Inputs
 
@@ -2411,7 +2465,9 @@ Shared worker for three SOAP actions via arg-remapping thunks; the 'desired<2' s
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-ANOMALY: the impl slot (+0x28) points at f_100dcc84 - a function that ignores all arguments, XOR-toggles the Master mute byte (impl+0x7f1 ^= 1), syncs the volume mirror (+0x7da->+0x3c8 when flag +0x7ff is clear), applies state via f_100d7f34, sets dirty +0x7f5 and logs 'ButtonSetMute on:%d src:%s'. In the derived class B the slot is 0x1047241c (a real, unexplored function). In class A the SOAP action behaves as a Master-mute toggle regardless of arguments.
+Sets the volume in decibels within the range reported by GetVolumeDBRange.
+
+**Technical description:** ANOMALY: the impl slot (+0x28) points at f_100dcc84 - a function that ignores all arguments, XOR-toggles the Master mute byte (impl+0x7f1 ^= 1), syncs the volume mirror (+0x7da->+0x3c8 when flag +0x7ff is clear), applies state via f_100d7f34, sets dirty +0x7f5 and logs 'ButtonSetMute on:%d src:%s'. In the derived class B the slot is 0x1047241c (a real, unexplored function). In class A the SOAP action behaves as a Master-mute toggle regardless of arguments.
 
 #### Inputs
 

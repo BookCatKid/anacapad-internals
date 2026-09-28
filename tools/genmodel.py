@@ -293,6 +293,7 @@ class Action:
     control_path: str = ""
     name: str = ""
     description: Optional[str] = None
+    summary: Optional[str] = None     # hand-authored client-facing text
     status: Optional[str] = None
     visibility: Optional[str] = None
     reachability: Optional[str] = None
@@ -554,6 +555,7 @@ class Service:
     name: str = ""
     control_path: str = ""
     description: Optional[str] = None
+    summary: Optional[str] = None     # hand-authored client-facing text
     status: Optional[str] = None
     visibility: Optional[str] = None
     registration: Optional[dict] = None
@@ -698,8 +700,8 @@ def _compute_counts(model):
     return c
 
 
-def normalize(doc):
-    """documentation.json dict -> Model IR."""
+def normalize(doc, client_text=None):
+    """documentation.json dict (+ client_text.json overlay) -> Model IR."""
     m = Model()
     m.meta = doc.get("meta") or {}
     m.routing = doc.get("routing") or {}
@@ -754,7 +756,35 @@ def normalize(doc):
         for k, v in (doc.get("capabilities") or {}).items()}
 
     m.counts = _compute_counts(m)
+    m.client_text_unmatched = _apply_client_text(m, client_text)
     return m
+
+
+def _apply_client_text(model, overlay):
+    """Merge hand-authored summaries from docs/client_text.json onto the IR.
+
+    Returns overlay keys that resolved to no service/action - kept on the
+    model so qa() can flag stale authored text loudly.
+    """
+    unmatched = []
+    if not overlay:
+        return unmatched
+    by_path = {s.control_path: s for s in model.services}
+    for path, blk in (overlay.get("services") or {}).items():
+        svc = by_path.get(path)
+        if svc is None:
+            unmatched.append("service %s" % path)
+            continue
+        if blk.get("summary"):
+            svc.summary = blk["summary"]
+        for an, txt in (blk.get("actions") or {}).items():
+            a = svc.actions.get(an)
+            if a is None:
+                unmatched.append("%s.%s" % (path, an))
+                continue
+            if txt:
+                a.summary = txt
+    return unmatched
 
 
 # --------------------------------------------------------------------------
@@ -1056,4 +1086,6 @@ def qa(model, api_total=None):
     _check_ownership(r, model)
     _check_crosslinks(r, model)
     _check_fault_coverage(r, model)
+    for key in getattr(model, "client_text_unmatched", []):
+        r.error("client_text key matches no record: %s" % key)
     return r

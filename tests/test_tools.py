@@ -427,6 +427,28 @@ class GenModelTests(unittest.TestCase):
         self.assertIn("removed/stub", md)
         self.assertIn("strcmp_stub", md)
 
+    def test_client_text_overlay(self):
+        a = _gen_action(description="dispatch table entry")
+        doc = _gen_doc({"/A/Control": _gen_service(
+            "/A/Control", "A", description="svc impl detail",
+            actions={"Play": a})})
+        overlay = {"services": {"/A/Control": {
+            "summary": "Friendly service blurb.",
+            "actions": {"Play": "Friendly action blurb.",
+                        "Ghost": "stale"}}}}
+        m = genmodel.normalize(doc, overlay)
+        s = m.services[0]
+        self.assertEqual(s.summary, "Friendly service blurb.")
+        self.assertEqual(s.actions["Play"].summary,
+                         "Friendly action blurb.")
+        md = gendocs.render_service(s)
+        self.assertIn("Friendly action blurb.", md)
+        self.assertIn("**Technical description:** dispatch table entry",
+                      md)
+        r = genmodel.qa(m)
+        self.assertTrue(any("/A/Control.Ghost" in e
+                            for e in r.errors))
+
     def test_type_mismatch_warns(self):
         a = _gen_action(inputs={"ID": {
             "direction": "in", "status": "confirmed",

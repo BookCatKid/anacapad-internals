@@ -2,7 +2,9 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.
+Coordinator-facing group-membership service. Group members use these actions to join/leave a coordinator and to report buffering state; normal clients rarely call it, but it is advertised. Everything here operates on group members identified by MemberID.
+
+**Technical description:** Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.
 
 ## Availability
 
@@ -29,7 +31,9 @@ Coordinator-internal group membership service: members join/leave and report buf
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x8\] -> CurrentTransportSettings + out fields via req->v\[+0x24\].
+Joins the calling member (MemberID + BootSeq) to this group. Returns the coordinator's current URI, the joined group UUID, volume/reset hints and transport settings so the new member can align playback.
+
+**Technical description:** Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x8\] -> CurrentTransportSettings + out fields via req->v\[+0x24\].
 
 #### Inputs
 
@@ -197,7 +201,9 @@ gm_impl AddMember impl-level failure
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0xc\] -> empty commit via req->v\[+0x0c\].
+Removes MemberID from the group.
+
+**Technical description:** Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0xc\] -> empty commit via req->v\[+0x0c\].
 
 #### Inputs
 
@@ -306,7 +312,9 @@ MemberID not in member list ('failed (not a member before?)')
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v\[+0x10\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x10\] -> empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.
+Member-to-coordinator feedback of a buffering ResultCode for a track fetch. NOTE: the implementation unconditionally returns 402 in this build - effectively a non-functional stub.
+
+**Technical description:** Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v\[+0x10\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x10\] -> empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.
 
 #### Inputs
 
@@ -413,7 +421,9 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x14\] -> empty commit.
+Sets the group's desired source-area ids (used to steer which zone's content the group plays).
+
+**Technical description:** Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x14\] -> empty commit.
 
 #### Inputs
 
