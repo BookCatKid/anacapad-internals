@@ -158,6 +158,25 @@ as malformed arguments.
 Between 57.x and 86.x the large services migrated from all-C++-vtable (id) to
 C-function (ptr) dispatch — an architecture evolution, not a model difference.
 
+The **request plumbing** evolved independently of the dispatch mechanism.
+Across all three builds the backend architecture is conserved —
+`worker@this+4` → `worker->vfunc+SLOT` delegate, `0x191`/`0x192` fault
+constants, `out->vfunc+0x10` output write, and an impl-object vtable
+`{lifecycle, dispatch@slot2, action-methods}` ending just before the
+`{name,id,ctx}` table. What changed is how the impls reach the request ops:
+
+| build | action lookup | request ops |
+|-------|---------------|-------------|
+| 34.16 | libc `bsearch` + low-bit id | direct free-function calls |
+| 57.10 | inline binary search + low-bit id | direct calls (`parse FUN_10380aa4`, `fault FUN_10380fc8`, `out-accessor FUN_10366098` on `req+0x5fc`, `commit FUN_10380c24`) |
+| 86.x | inline binary search + low-bit id | **`req->vfunc` virtual calls** (`+0x08/+0x14/+0x24/+0x0c/+0x38/+0x3c`) |
+
+57.10 `GetZoneGroupState` (`0x10384a44`, id 41 → impl-vtable slot 10) is the
+same impl shape as 86.x but calls these ops directly rather than through the
+request object. So the **request-object vtable abstraction (and its per-service
+subclasses) was introduced between 57.10 and 86.x** — the delegate/action/
+output architecture is far older (≥34.x).
+
 ---
 
 ## 3. The model-8 ↔ model-9 delta (same firmware, 86.8)
