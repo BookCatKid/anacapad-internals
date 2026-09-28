@@ -1697,7 +1697,8 @@
     "unified_dispatcher": "all /Control routes funnel to ONE per-service dispatcher that does name->action resolution, then req-object drives parse/commit",
     "workers": "impls delegate to engine-vfuncs + chsrc/CHSNK transactions (shared core in both models)",
     "master_upnp_dispatcher": "FUN_10670ee4 = central UPnP dispatch for all /Control routes. Parses SOAPAction -> FUN_10a35560; secure-mode/loopback/403 gates; service_obj->vfunc+0x40 = per-service action dispatch (virtual). 'x-sonos-target-udn' header -> PROXY/forwards request to another device (group-coordinator tunnel, fault 0x19c=412 on fail); 'x-sonos-upnp-tunnel' + 'X-Sonos-Corr-Id' headers; 'UPnP dispatch %s:%s took %u ms' metrics -> zpUpnpSrv/controlOp event sink. FUN_1066bc50 = Eventing dispatcher (/DeviceProperties/Event, /GroupManagement/Event, 403-denied path).",
-    "update_manifest_parser": "FUN_1056b658 (m8) parses .upd XML manifest: image/model/submodel_min/submodel_max/fromver_min/fromver_max/version/flags/milestone_index/app_baseline/arch, supported_models, update_list, model_list, swgen, description_url \u2014 the update-validation grammar (NOT the runtime product gate)."
+    "update_manifest_parser": "FUN_1056b658 (m8) parses .upd XML manifest: image/model/submodel_min/submodel_max/fromver_min/fromver_max/version/flags/milestone_index/app_baseline/arch, supported_models, update_list, model_list, swgen, description_url \u2014 the update-validation grammar (NOT the runtime product gate).",
+    "dispatcher_shared": "Universal per-service dispatcher decompiled identical in m8/m9 (FUN_10752428/FUN_1082b0fc): binary search {name,fn_or_id,ctx_off}, worker=svc+4, null->401, low-bit selects ptr vs vtable-id call, req->vfunc+0x38 finalize."
   },
   "extraction_inventory": {
     "binaries_available": {
@@ -1799,5 +1800,21 @@
     "limelight_state": "LIVE \u2014 irdecoder.cxx (6 refs), full multi-pass IR-learning FSM, IRCode cloud DB (ir.ws.sonos.com/IRCode/), /opt/ir/irconfig.txt, all 8 action impls wired via id-table.",
     "correction": "HTControl impl is NOT shared source \u2014 it is limelight-compiled-only code absent from the fenway binary. The 'same source' claim applies to the 196 SHARED actions (134 ptr + 48 id + strcmp/stub); HTControl is a product-specific subsystem compiled into limelight and not present in fenway at all.",
     "stub_semantics": "fenway HTControl call -> shared dispatcher -> no action table/impl -> unknown-action fault"
+  },
+  "universal_dispatcher": {
+    "functions": {
+      "m8": "FUN_10752428 (RC instance, table 0x10c6fe60, 27 entries)",
+      "m9": "FUN_1082b0fc (RC instance, table 0x10f0dbb8, 27 entries)"
+    },
+    "decompiled_proof": "m8 and m9 per-service dispatchers are semantically identical C. The 'two dispatch formats' resolve to ONE polymorphic record format {name_ptr, fn_or_id, ctx_off}, stride 3, binary-searched.",
+    "semantics": {
+      "worker": "*(svc_ctx + 4) \u2014 delegate/impl object",
+      "stub_path": "worker==0 OR action-name not found -> req->vfunc(+0x14)(req, 0x191=401). This is the AudioIn/HTControl stub mechanism.",
+      "discriminator": "rec[1]&1: clear -> C fn ptr; set -> vtable-id (impl = *( *(svc_ctx+rec[2]).vtable + (rec[1]&~1) ))",
+      "call_sig": "impl(svc_ctx + rec[2], req, worker) \u2014 rec[2] selects sub-object 'this' within service context",
+      "finalize": "req->vfunc(+0x38)(req) after every dispatch",
+      "trace_hook": "FUN_100a422c/FUN_100acad4(*(param_2+0x70), action_name) \u2014 dispatch instrumentation"
+    },
+    "note": "vtable-ids are ODD byte-offsets (e.g. 41) because low bit is the flag; actual slot = id>>1 in pointer units (id is byte offset |1)"
   }
 }

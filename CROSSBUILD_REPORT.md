@@ -47,21 +47,47 @@ Dolby surface.
 
 ---
 
-## 2. Dispatch architecture (shared, two mechanisms)
+## 2. Dispatch architecture (shared, one polymorphic mechanism)
 
-Both fenway and limelight use the same two action-dispatch schemes.
+Both fenway and limelight use the same action-dispatch machinery. The two
+"apparent" table formats resolve to **one polymorphic record format**, proven
+by decompiling the per-service dispatcher in both binaries (m8 `FUN_10752428`,
+m9 `FUN_1082b0fc` — semantically identical C):
 
-**Pointer-table dispatch** — `{name_ptr, func_ptr, flags}` triples, direct
-C-style handler call. Used by AVTransport, RenderingControl, Queue,
-VirtualLineIn, ContentDirectory, DeviceProperties, GroupManagement,
-GroupRenderingControl and the misc/ZGT-adjacent families.
+```c
+dispatch(svc_ctx, p2, req, p4, action_name):
+    binary-search table[27] of {name_ptr, fn_or_id, ctx_off}   // stride 3 words
+    on match:
+        worker = *(svc_ctx + 4)                 // delegate/impl object
+        if (worker == 0)  → req->vfunc(+0x14)(req, 0x191)   // 401 — the STUB path
+        if (fn_or_id & 1)                        // low bit = vtable-id flag
+            impl = *( (*(svc_ctx+ctx_off)).vtable + (fn_or_id & ~1) )
+        else
+            impl = fn_or_id                      // direct C function pointer
+        impl(svc_ctx + ctx_off, req, worker)     // ctx_off selects 'this' sub-object
+    no match → req->vfunc(+0x14)(req, 0x191)     // 401 unknown action
+    always   → req->vfunc(+0x38)(req)            // finalize/flush
+```
 
-**ID-table (vtable-offset) dispatch** — `{name_ptr, id, flags}` where `id` is a
-virtual-method slot offset. A dispatcher **binary-searches** the sorted table,
-reads the `id`, then calls `*(object.vtable + id)` (the low bit selects the
-virtual-call path). Used by AlarmClock, SystemProperties, ZoneGroupTopology,
-MusicServices, ConnectionManager — and HTControl on limelight. Confirmed by
-`GetZoneGroupState` = `{name, id=41, 0}` in `.rodata`, identical in m8 and m9.
+- **Pointer-table entries** (`fn_or_id` low bit clear): direct C handler call.
+  Used by AVTransport, RenderingControl, Queue, VirtualLineIn, ContentDirectory,
+  DeviceProperties, GroupManagement, GroupRenderingControl and misc families.
+- **ID-table entries** (`fn_or_id` odd): the value is a vtable byte-offset; the
+  call target is `*(sub_object->vtable + id)`. Used by AlarmClock,
+  SystemProperties, ZoneGroupTopology, MusicServices, ConnectionManager — and
+  HTControl on limelight.
+- `ctx_off` (record word 3, usually 0) selects which sub-object of the service
+  context receives the call — for virtual entries it also supplies the vtable.
+- A **null worker pointer** (`svc_ctx+4`) produces the `0x191`/401 fault — a
+  proven code path for services whose table exists but impl object is absent.
+- On 86.x both AudioIn and HTControl (fenway) have **no action table at all** —
+  their action names are dead strings, so calls reach the dispatcher's
+  not-found path → `0x191`/401 (or a service-level rejection upstream; the
+  service objects are runtime-allocated, so which of the two applies is
+  runtime-dependent). This is exactly why "reject-all 401" was observed for
+  AudioIn.
+- `req->vfunc(+0x38)` finalizes/flushes the response after every dispatch; a
+  trace hook logs the matched action name via `*(param_2+0x70)`.
 
 The shared request-object vtable contract (in-arg parse at `+0x8`, commit at
 `+0xc`, fault-raise at `+0x14`, input-lookup at `+0x1c`, output at `+0x24`) is
@@ -307,8 +333,9 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 
 ## 10. Shared architecture discovered
 
-- **Two dispatch mechanisms** (ptr-table + vfunc-offset id-table) are
-  model-invariant.
+- **One polymorphic dispatch mechanism** (§2) is model-invariant: a
+  binary-searched `{name, fn_or_id, ctx_off}` table where `fn_or_id&1` selects
+  C-call vs vtable-id call, `worker = svc_ctx+4`, null/miss → `0x191` (401).
 - **SOAP impl source is shared** across fenway/limelight — identical per-impl
   profiles; products differ by table-linking, not code.
 - **Request-object vtable contract** identical across models.
