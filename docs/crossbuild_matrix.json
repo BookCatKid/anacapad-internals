@@ -1723,5 +1723,19 @@
       "Backup/BecomeCoordinatorOfStandaloneGroup/SetBrowseable": "\u00b11 call/cmp \u2014 tail-call bctr + codegen artifacts; disasm confirms identical vfunc structure"
     },
     "conclusion": "SOAP action layer compiled from SAME source in fenway and limelight. Model differences are confined to dispatch wiring (HTControl table not linked) + product subsystems (DSPControlPlay1/3/Sub vs limelight DSP/Dolby/IR). Shared-action argument/error/statevar semantics are therefore identical-by-construction for the 134 ptr-table impls."
+  },
+  "http_api_surface": {
+    "structure": "household REST API {householdId}/players/{playerId}/... + legacy /status,/dsp,/raw,/api,/musedebug,/device_account top-level. ~3992 route-template+path strings scanned.",
+    "key_routes": {
+      "upnp": "upnp{AVTransport,AlarmClock,AudioIn,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology} + /subscription + /subscription/{logicalSID} \u2014 subscription routes exist for ALL services incl stubbed HTControl",
+      "homeTheater": "accessoryList,accessorySwapStatus,addAccessoryWifi,connectedAccessoryList,disconnectAccessory,options,removeAccessory,swapModelInfo,tvAudioSignalStatus,tvPowerState \u2014 present in m8 despite HTControl SOAP stub",
+      "hdmi": "edid,powercycle,status",
+      "pinewood": "back,dpad,home,loadResource,mute,play,power,settings,volumeDown,volumeUp (remote-control)",
+      "positioning+roomDetection": "action,deviceMeasurements,deviceStatus,measurementCapabilities,measurements,playStimulus,session*,stimulusTuning,telemetryLevel + roomDetection/chirp/{playId} (sonar calibration)",
+      "trueplay+trueroom": "config/{id},discovery,presenceDiscovery,presenceRate,status + trueroom adaptation,calibrationStatus,estimatorConfiguration,successTone,swapInputMute",
+      "hardwareStatus": "battery,batteryCells,bluetooth,bluetoothPairing,ethernet,lineIn,lineInStatuses,microphoneSwitch,poe,shipMode,shutdown,water,wiredSub,wirelessNetworkStatus",
+      "misc": "virtualLineIn (selectSource,sendBackChannelCmd,startAudio,startTransmission,stopAudio,stopTransmission), voice (accounts,amazonChallenge,setup), zones (join/unjoin/definition/...), timers, playbackSession, networkTest, management (factoryReset,reboot), systemReporting, settings"
+    },
+    "conclusion": "HTTP REST layer is shared multi-product source, product-gated at RUNTIME (homeTheater/hdmi/pinewood present in fenway binary that has no such HW). Parallel to the shared-SOAP-impl-source finding: capability split is runtime + dispatch-wiring, not compile-time."
   }
 }
