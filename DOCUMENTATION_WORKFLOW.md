@@ -21,6 +21,11 @@ tools/worksheet.py             per-action RE worksheet
 tools/validate.py              structural + semantic validation
 tools/lint.py                  weak-documentation linter
 tools/coverage.py              coverage report
+tools/genmodel.py              normalized generator IR + consistency QA
+tools/gendocs.py               Markdown reference renderer (consumes the IR)
+tools/gensite.py               static HTML renderer for reference/
+reference/                     generated Markdown reference tree
+site/                          generated static HTML site
 tests/                         unittest suite + synthetic fixture
 ```
 
@@ -130,6 +135,59 @@ flagged `STALE` by lint, never deleted.
 percentage computed as (complete units)/(all units), where a unit is one
 service, action, argument, fault path, capability field, dispatch
 candidate, required internal function, or declared state variable.
+
+## Generating reference docs
+
+`gendocs.py` renders `reference/` from `documentation.json`. It never reads
+the raw JSON directly: `genmodel.normalize()` first maps every object into a
+stable typed IR (`Service`, `Action`, `Argument`, `Error`, `StateVariable`,
+`Event`, `Availability`, `FirmwareDifference`, `Format`, `Evidence`,
+`Dispatch`, `Implementation`, `SemanticBlock`). Uncertainty survives
+normalization — `unresolved` blocks, bounded unknowns, `removed/stale`
+records, hidden-callable reachability, runtime-bound error domains and
+firmware/model diffs are all first-class IR state and must be visible in the
+output.
+
+Generation doubles as a consistency QA pass (`genmodel.qa()`):
+
+- declared `meta.counts` vs normalized-record counts (the declared totals
+  may legitimately include non-canonical SCPD advertisements — see
+  `meta.counts.removed_stale.undispatched` and `meta.terminology`)
+- extractor action totals vs documented implemented records
+- duplicated or conflicting action definitions across same-named services
+- prose that references arguments absent from the argument model
+- implementation text saying "unresolved" after an engine was resolved
+- `type_tag`/`format`/`buf_cap` mismatches
+- `confirmed`/`strong` claims without evidence
+- state-variable `related_action` links and argument/state-variable
+  cross-links
+
+Errors abort generation; warnings (e.g. SystemProperties state variables
+whose SCPD `related_action` names a removed action) print but do not fail —
+they preserve real staleness rather than hiding it.
+
+```
+python3 tools/gendocs.py            # regenerate reference/ + QA report
+python3 tools/gensite.py            # regenerate site/ (static HTML mirror)
+python3 -m http.server -d site      # serve the HTML site locally
+```
+
+`gensite.py` renders `reference/` with Zensical (the modern MkDocs
+successor; MkDocs+Material is the fallback). It auto-writes `mkdocs.yml`
+(nav is derived from the reference tree, so new service pages are picked up
+automatically) and builds into `site/`. Requires a one-time venv setup:
+
+```
+python3 -m venv .venv && .venv/bin/pip install zensical
+```
+
+The site build is a second QA layer on the generated Markdown — broken
+links and other doc defects fail the build.
+
+Terminology for counts lives in `meta.terminology`/`meta.counts`:
+`device_advertised` vs `scpd_defined` vs `binary_dispatched` vs
+`removed_stale` vs `canonical_action_records` are distinct sets; do not
+collapse them (SCPD can advertise actions with no dispatch record).
 
 ## Internal functions
 

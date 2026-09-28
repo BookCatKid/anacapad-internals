@@ -1,0 +1,433 @@
+# URI formats
+
+URI scheme grammars recovered from literal tables and parser call sites.
+
+## `cloud_api_routes` `confirmed`
+
+Complete outbound cloud API route+dispatch map — 533 route literals, 324 {scope,path,cmd} op tuples over 7 id scopes
+
+- **count:** 282
+- **dispatch:** comma-tuple 'householdId,<resource>,<method>\[,<param>\]' strings select the REST call; base path 'v1/households/{householdId}/...' (one variant uses {HHID})
+- **resources:**
+  - **households/{householdId}** (22):
+  
+    ```
+    alarms, areas, authorization, devices, devicesExtended, entitlements, favorites, groups, history, localContentLibrary, musicServiceAccounts, platformInternal, playbackSessions, players, playlists, services, settings, smartplay, systemReporting, systemTime, users, zones
+    ```
+  - **players/{playerId}** (31):
+  
+    ```
+    audioClip, authorization, devices, diagnostics, effectiveSettings, hardwareStatus, hdmi, homeTheater, info, ircontrol, localContentLibrary, management, networkTest, pinewood, platformInternal, playerVolume, positioning, power, roomDetection, settings, soundSwap, svc, time, timers, trueplay, trueroom, update, virtualLineIn, virtualRemoteControl, voice, zones
+    ```
+  - **upnp_mirrors:** all 15 services proxied: upnpAlarmClock,upnpAudioIn,upnpAVTransport,upnpConnectionManager,upnpContentDirectory,upnpDeviceProperties,upnpGroupManagement,upnpGroupRenderingControl,upnpHTControl,upnpMusicServices,upnpQueue,upnpRenderingControl,upnpSystemProperties,upnpVirtualLineIn,upnpZoneGroupTopology
+  - **other_scopes:** `playbackSessions/{sessionId}`, `users/{userId}`, `groups/{groupId}`, `devices/{deviceId}`, `services/{serviceId}`
+- **note:** outbound cloud client surface; 'upnp<Service>' + '/subscription\[/{logicalSID}\]' resources mirror every SOAP service's GENA eventing into the cloud (all 17 services present)
+- **sample:** `v1/households/{HHID}/settings/protected-admin/{setting}`, `v1/households/{HHID}/settings/protected-admin`, `v1/households/{HHID}/settings/protected/{setting}`, `v1/households/{HHID}/settings/protected`, `v1/households/{householdId}/alarms`, `v1/households/{householdId}/alarms/{alarmId}`, `v1/households/{householdId}/groups/{groupId}/alarms/snooze`, `v1/households/{householdId}/areas`, `v1/households/{householdId}/areas/{areaId}`, `v1/households/{householdId}/players/{playerId}/audioClip`, `v1/households/{householdId}/players/{playerId}/audioClip/{id}`, `v1/households/{householdId}/authorization/tokens`, `v1/households/{householdId}/authorization/policy/{policyKey}`, `v1/households/{householdId}/authorization/permissions/{role}`, `v1/households/{householdId}/authorization/invite`, `v1/households/{householdId}/authorization/redeem`, `v1/households/{householdId}/authorization/users`, `v1/households/{householdId}/players/{playerId}/authorization/authorizeDevice`, `v1/households/{householdId}/players/{playerId}/authorization/authenticateClient`, `v1/households/{householdId}/services/{serviceId}/catalog/id/{objectId}`
+- **operation_tuples:**
+  - **count:** 324
+  - **grammar:** <scopeId>,<resourcePath>,<operation>\[,<param>...\] — the outbound client's dispatch tuples pairing route templates to named ops
+  - **scopes:**
+    - **playerId:** 46
+    - **householdId:** 18
+    - **groupId:** 11
+    - **userId:** 3
+    - **deviceId:** 1
+    - **serviceId:** 1
+    - **sessionId:** 1
+  - **operations** (324):
+  
+    ```
+    deviceId,householdUpdate,beginHouseholdSoftwareUpdate, deviceId,householdUpdate,getHouseholdUpdateStatus, groupId,alarms,snoozeAlarm, groupId,favorites,loadFavorite, groupId,groups,modifyGroupMembers, groupId,groups,setGroupMembers, groupId,groupVolume,getVolume, groupId,groupVolume,setMute, groupId,groupVolume,setRelativeVolume, groupId,groupVolume,setVolume, groupId,musicServiceAccounts,endDirectControl, groupId,musicServiceAccounts,startDirectControlEx, groupId,playback,getPlaybackStatus, groupId,playback,loadContainer, groupId,playback,loadContent, groupId,playback,loadLineIn, groupId,playback,loadStream, groupId,playback,loadTrackList, groupId,playback,pause, groupId,playback,play, groupId,playback,seek, groupId,playback,seekRelative, groupId,playback,setPlayModes, groupId,playback,skipBack, groupId,playback,skipToNextTrack, groupId,playback,skipToPreviousTrack, groupId,playback,skipToTrack, groupId,playback,togglePlayPause, groupId,playbackExtended,getExtendedPlaybackStatus, groupId,playbackMetadata,getMetadataStatus, groupId,playbackMetadata,rate, groupId,playbackSession,createSession, groupId,playbackSession,joinOrCreateSession, groupId,playbackSession,joinSession, groupId,playlists,loadPlaylist, groupId,sleepTimer,configureSleepTimer, groupId,sleepTimer,getSleepTimer, householdId,alarms,createAlarm, householdId,alarms,fetchAlarm,alarmId, householdId,alarms,getAlarms, householdId,alarms,removeAlarm,alarmId, householdId,alarms,updateAlarm,alarmId, householdId,areas,createArea, householdId,areas,getAreas, householdId,areas,removeArea,areaId, householdId,areas,updateArea,areaId, householdId,authorization,getPermissions,role, householdId,authorization,getPolicyKey,policyKey, householdId,authorization,resolveToken, householdId,devices,completeDeviceRegistration,deviceId, householdId,devices,deregisterDevice,deviceId, householdId,devices,getDeviceRegistrations, householdId,devices,getDevices, householdId,devices,getLocalDevices, householdId,devices,initDeviceRegistration, householdId,devices,refreshDeviceRegistration,deviceId, householdId,devices,removeDevice,playerId, householdId,devicesExtended,getExtendedDeviceStatus, householdId,entitlements,getEntitlements, householdId,favorites,getFavorites, householdId,groups,createGroup, householdId,groups,getGroups, householdId,groups,getGroupsEx, householdId,history,clearHistory, householdId,history,getHistory, householdId,history,postHistory, householdId,history,removeHistoryItem,id, householdId,households,getHouseholdLocation, householdId,households,setLocation, householdId,households,setName, householdId,localContentLibrary,addShare, householdId,localContentLibrary,getShares, householdId,localContentLibrary,reindex, householdId,localContentLibrary,removeShare,shareId, householdId,musicServiceAccounts,getPreferredMusicServiceAccount, householdId,musicServiceAccounts,match, householdId,musicServiceAccounts,setPreferredMusicServiceAccount, householdId,platformInternal,invalidateCache, householdId,platformInternal,sync, householdId,playlists,getPlaylist,playlistId, householdId,playlists,getPlaylists, householdId,playlists,postPlaylist, householdId,settings,getProtectedAdminSettings, householdId,settings,getProtectedAdminSettings,setting, householdId,settings,getProtectedSettings, householdId,settings,getProtectedSettings,setting, householdId,settings,getPublicSettings, householdId,settings,getRestrictedAdminSettings, householdId,settings,setProtectedAdminSettings, householdId,settings,setRestrictedAdminSettings, householdId,settings,setUserMetricsTracking, householdId,smartplay,getContent, householdId,systemTime,getTimeZoneInfo, householdId,systemTime,setTimeZoneInfo, householdId,zones,activateZone,zoneId, householdId,zones,addMissingZoneDefinition, householdId,zones,addZoneDefinition, householdId,zones,deactivateZone,zoneId, householdId,zones,getActiveZoneList, householdId,zones,getZoneDefinition,zoneId, householdId,zones,getZoneDefinitionList, householdId,zones,removeZoneDefinition,zoneId, householdId,zones,updateActiveZone,zoneId, householdId,zones,updateZoneDefinition,zoneId, householdId,zones,updateZoneMemberSettings,zoneId, playerId,audioClip,cancelAudioClip,id, playerId,audioClip,loadAudioClip, playerId,authorization,authenticateClient, playerId,authorization,authorizeDevice, playerId,devices,getRegistrationStatus, playerId,devices,setRegistrationState, playerId,devices,transferDeviceRegistration, playerId,diagnostics,getMetadata, playerId,diagnostics,reportStatus, playerId,diagnostics,submitDiagnostics, playerId,effectiveSettings,getAllSettings, playerId,effectiveSettings,getSettingsGroup,groupName, playerId,effectiveSettings,updateAllSettings, playerId,effectiveSettings,updateSettingsGroup,groupName, playerId,hardwareStatus,activatePairedBluetoothDevice,bluetoothAddress, playerId,hardwareStatus,changeBatteryStatus, playerId,hardwareStatus,getBatteryCells, playerId,hardwareStatus,getBatteryStatus, playerId,hardwareStatus,getBluetoothStatus, playerId,hardwareStatus,getEthernetStatus, playerId,hardwareStatus,getLineInStatus, playerId,hardwareStatus,getLineInStatuses, playerId,hardwareStatus,getMicrophoneSwitchState, playerId,hardwareStatus,getPoeStatus, playerId,hardwareStatus,getWaterStatus, playerId,hardwareStatus,getWiredSubStatus, playerId,hardwareStatus,getWirelessNetworkStatus, playerId,hardwareStatus,initiateOrderlyShutdown, playerId,hardwareStatus,removePairedBluetoothDevice,bluetoothAddress, playerId,hardwareStatus,setBluetoothPairing, playerId,hardwareStatus,transitionToShipMode, playerId,hdmi,edid, playerId,hdmi,powercycle, playerId,hdmi,status, playerId,homeTheater,addAccessoryWifi, playerId,homeTheater,disconnectAccessory, playerId,homeTheater,getAccessoryList, playerId,homeTheater,getAccessorySwapStatus, playerId,homeTheater,getConnectedAccessoryList, playerId,homeTheater,getOptions, playerId,homeTheater,getSwapModelInfo, playerId,homeTheater,getTVAudioSignalStatus, playerId,homeTheater,loadHomeTheaterPlayback, playerId,homeTheater,removeAccessory, playerId,homeTheater,setOptions, playerId,homeTheater,setTvPowerState, playerId,info,getInfo, playerId,ircontrol,getIRControl, playerId,ircontrol,setIRControl, playerId,localContentLibrary,getIndexerStatus, playerId,management,factoryReset, playerId,management,reboot, playerId,networkTest,getNetworkTestResults,networkTestId, playerId,networkTest,startNetworkTests, playerId,networkTest,temporarilyDisableNetwork, playerId,pinewood,back, playerId,pinewood,dpad, playerId,pinewood,home, playerId,pinewood,loadResource, playerId,pinewood,power, playerId,pinewood,settings, playerId,pinewood,toggleMute, playerId,pinewood,togglePlay, playerId,pinewood,volumeDown, playerId,pinewood,volumeUp, playerId,platformInternal,reboot, playerId,playerVolume,duck, playerId,playerVolume,getVolume, playerId,playerVolume,setMute, playerId,playerVolume,setRelativeVolume, playerId,playerVolume,setVolume, playerId,playerVolume,unduck, playerId,positioning,applyAction, playerId,positioning,cancelSession, playerId,positioning,getDeviceMeasurements, playerId,positioning,getMeasurementCapabilities, playerId,positioning,getSessionMap, playerId,positioning,getStimulusTuning, playerId,positioning,notifyDeviceStatus, playerId,positioning,notifySessionError, playerId,positioning,notifySessionStatus, playerId,positioning,playStimulus, playerId,positioning,sendMeasurements, playerId,positioning,setStimulusTuning, playerId,positioning,setTelemetryLevel, playerId,positioning,startSession, playerId,power,setPowerPolicy, playerId,roomDetection,startSignalling, playerId,roomDetection,stopSignalling,playId, playerId,settings,getAllSettings, playerId,settings,getPlayerSettings, playerId,settings,getSettingsGroup,groupName, playerId,settings,setAllowMicrophone, playerId,settings,setEnablePositioningMeasurement, playerId,settings,setPlayerSettings, playerId,settings,setSelfTruePlay, playerId,settings,setSonosNetChannel, playerId,settings,updateAllSettings, playerId,settings,updateSettingsGroup,groupName, playerId,soundSwap,requestSwap, playerId,soundSwap,triggerSwap, playerId,svc,getWeatherConfig, playerId,svc,setWeatherConfig, playerId,svc,voiceCommand, playerId,time,getRelativeTime, playerId,timers,abortTimer,timerId, playerId,timers,createTimer, playerId,timers,getTimers, playerId,timers,pauseTimer,timerId, playerId,timers,resumeTimer,timerId, playerId,timers,setDuration,timerId, playerId,timers,setRelativeDuration,timerId, playerId,trueplay,detectSpeakerPresence, playerId,trueplay,detectSpeakers, playerId,trueplay,getConfiguration,id, playerId,trueplay,getTrueplayStatus, playerId,trueplay,resetDetectedSpeaker, playerId,trueplay,setConfiguration,id, playerId,trueplay,setSpeakerPresenceRate, playerId,trueroom,adaptation, playerId,trueroom,estimatorConfiguration, playerId,trueroom,getCalibrationStatus, playerId,trueroom,playSuccessTone, playerId,trueroom,setSwapInputMute, playerId,update,beginSoftwareUpdate, playerId,update,checkForUpdate, playerId,update,getUpdateStatus, playerId,upnpAlarmClock,call, playerId,upnpAlarmClock,renew,logicalSID, playerId,upnpAlarmClock,subscribe, playerId,upnpAlarmClock,unsubscribe,logicalSID, playerId,upnpAudioIn,call, playerId,upnpAudioIn,renew,logicalSID, playerId,upnpAudioIn,subscribe, playerId,upnpAudioIn,unsubscribe,logicalSID, playerId,upnpAVTransport,call, playerId,upnpAVTransport,renew,logicalSID, playerId,upnpAVTransport,subscribe, playerId,upnpAVTransport,unsubscribe,logicalSID, playerId,upnpConnectionManager,call, playerId,upnpConnectionManager,renew,logicalSID, playerId,upnpConnectionManager,subscribe, playerId,upnpConnectionManager,unsubscribe,logicalSID, playerId,upnpContentDirectory,call, playerId,upnpContentDirectory,renew,logicalSID, playerId,upnpContentDirectory,subscribe, playerId,upnpContentDirectory,unsubscribe,logicalSID, playerId,upnpDeviceProperties,call, playerId,upnpDeviceProperties,renew,logicalSID, playerId,upnpDeviceProperties,subscribe, playerId,upnpDeviceProperties,unsubscribe,logicalSID, playerId,upnpGroupManagement,call, playerId,upnpGroupManagement,renew,logicalSID, playerId,upnpGroupManagement,subscribe, playerId,upnpGroupManagement,unsubscribe,logicalSID, playerId,upnpGroupRenderingControl,call, playerId,upnpGroupRenderingControl,renew,logicalSID, playerId,upnpGroupRenderingControl,subscribe, playerId,upnpGroupRenderingControl,unsubscribe,logicalSID, playerId,upnpHTControl,call, playerId,upnpHTControl,renew,logicalSID, playerId,upnpHTControl,subscribe, playerId,upnpHTControl,unsubscribe,logicalSID, playerId,upnpMusicServices,call, playerId,upnpMusicServices,renew,logicalSID, playerId,upnpMusicServices,subscribe, playerId,upnpMusicServices,unsubscribe,logicalSID, playerId,upnpQueue,call, playerId,upnpQueue,renew,logicalSID, playerId,upnpQueue,subscribe, playerId,upnpQueue,unsubscribe,logicalSID, playerId,upnpRenderingControl,call, playerId,upnpRenderingControl,renew,logicalSID, playerId,upnpRenderingControl,subscribe, playerId,upnpRenderingControl,unsubscribe,logicalSID, playerId,upnpSystemProperties,call, playerId,upnpSystemProperties,renew,logicalSID, playerId,upnpSystemProperties,subscribe, playerId,upnpSystemProperties,unsubscribe,logicalSID, playerId,upnpVirtualLineIn,call, playerId,upnpVirtualLineIn,renew,logicalSID, playerId,upnpVirtualLineIn,subscribe, playerId,upnpVirtualLineIn,unsubscribe,logicalSID, playerId,upnpZoneGroupTopology,call, playerId,upnpZoneGroupTopology,renew,logicalSID, playerId,upnpZoneGroupTopology,subscribe, playerId,upnpZoneGroupTopology,unsubscribe,logicalSID, playerId,virtualLineIn,selectSource, playerId,virtualLineIn,sendBackChannelCmd, playerId,virtualLineIn,startAudio, playerId,virtualLineIn,startTransmission, playerId,virtualLineIn,stopAudio, playerId,virtualLineIn,stopTransmission, playerId,virtualRemoteControl,sendButtonCommand, playerId,voice,createAmazonChallenge, playerId,voice,createVoiceAccount, playerId,voice,getVoiceAccounts, playerId,voice,notifyInitiateOnboarding, playerId,voice,removeVoiceAccount,accountId, playerId,voice,updateVoiceAccount,accountId, playerId,zones,joinZone,zoneId, playerId,zones,unjoinZone,zoneId, serviceId,catalog,batchTranslate, serviceId,catalog,translate,objectId, sessionId,playbackSession,leaveSession, sessionId,playbackSession,loadCloudQueue, sessionId,playbackSession,loadCloudQueueWithWindow, sessionId,playbackSession,loadStreamUrl, sessionId,playbackSession,loadStreamUrlWithContext, sessionId,playbackSession,refreshCloudQueue, sessionId,playbackSession,rejoinSession, sessionId,playbackSession,seek, sessionId,playbackSession,seekRelative, sessionId,playbackSession,skipToItem, sessionId,playbackSession,skipToItemWithWindow, sessionId,playbackSession,suspend, userId,devices,getUserDeviceRegistrations, userId,entitlements,getUserEntitlements, userId,settings,getSettings
+    ```
+- **route_count:** 533
+
+<details><summary>Evidence (1)</summary>
+
+- fn locSetUpdMgr/cloud client @ 0x10e7bd84 — rodata 0x10e7bd84..0x10e867f0 contiguous route+tuple table
+
+</details>
+
+## `explore_scheme` `strong`
+
+explore:* container URI scheme — sibling to radio/container schemes for explorable content
+
+music-service browse URI family; IDs prefixed alb./art./pp./mp.
+
+- **grammar:** explore:<kind>\[:<subkind>\]::<id> — 'explore:album::alb.%s','explore:artist::{,mainreleases,compilations,singlesandeps,toptracks}::art.%s','explore:playlist::{pp,mp}.%s'
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — 'explore:*' scheme literal adjacent to radio/container schemes
+
+</details>
+
+## `http-endpoints-muse` `strong`
+
+Outbound muse/HTTP API path templates (client side, plus local /avt.txt persistence): "v1/households/{householdId}/alarms\[/...\]", "v1/groups/{groupId}/alarms/snooze", "v1/players/{playerId}/upnpAlarmClock\[/subscription\[/{logicalSID}\]\]" families - REST CRUD + subscription surfaces consumed/emitted by the cloud bridge.
+
+```
+v1/<collection>/{id}/<action>
+```
+
+Used by: cloud alarm sync; UPnP-bridge subscription relay
+
+<details><summary>Evidence (3)</summary>
+
+- @ 0x10e7bf40 — v1/households/{householdId}/alarms
+- @ 0x10e83a3c — v1/players/{playerId}/upnpAlarmClock
+- @ 0x10e83b68 — subscription renew path
+
+</details>
+
+## `protocol_info_schemes` `confirmed`
+
+protocolInfo URI scheme vocabulary — the GetProtocolInfo capability set across sink/source
+
+- **grammar:** ConnectionManager Source/SinkProtocolInfo vocabulary — transport:mimetype:extra triples
+- **schemes:**
+  - **standard:** http-get/file/x-file-cifs over audio{mp3,mp4,m4a,mpeg*,wma,aiff,flac,ogg,wav}+mpegurl/dash
+  - **sonos:** sonos.com-{mms,http}:<mime>; sonos.com-spotify:*:audio/x-spotify; sonos.com-rtrecent:*:audio/x-sonos-recent
+  - **rincon:** x-rincon{,-mp3radio,-playlist,-queue,-stream,-cpcontainer}:*:*:* — private wire schemes
+  - **api:** x-sonosapi-{stream,hls,hls-static}:*:*; x-sonosapi-radio:*:audio/x-sonosapi-radio
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e8xxxx — single rodata literal enumerating all protocolInfo triples
+
+</details>
+
+## `rdradio_scheme` `strong`
+
+rdradio: radio-station URI scheme — streaming radio source selector
+
+radio-service URI family
+
+- **grammar:** rdradio:<kind>:<prefix>. — 'rdradio:artist:Art.','rdradio:station:ps.' + bare 'rdradio:'
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — 'rdradio:' scheme literal
+
+</details>
+
+## `sonos-schemes` `strong`
+
+Bare sonos: forms used as printf templates and identifiers: "sonos:%d" (0x10ecc3cb), "sonos:%s" (0x10f0ec90), "sonos:hhid:"/"sonos:unit-hhid:" (0x10f9900c/0x10f9901c), plus structured-token prefixes sonos:device/udn/hhid/user/idtype/environment (muse/auth token namespacing, not playback URIs).
+
+```
+sonos:<kind>[:<value>]
+```
+
+Used by: internal IDs, muse token fields
+
+<details><summary>Evidence (3)</summary>
+
+- @ 0x10ecc3cb — sonos:%d
+- @ 0x10f9900c — sonos:hhid:
+- @ 0x10eed968 — sonos:device token prefix
+
+</details>
+
+## `sonos_albumart_path` `strong`
+
+Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg — GUID-braced filename emitted by f_10421e70
+
+- **grammar:** <base>/AlbumArt_{GUID}_Large.jpg
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10421e70 — fmt site
+
+</details>
+
+## `sonos_queue_track_uri` `strong`
+
+Queue URI emit form: x-rincon-queue:%s#%u — device selector + #track fragment (1-based position); %s#0 emits queue head; emitted by f_102d5974, f_102d8518, f_102dac20
+
+- **grammar:** x-rincon-queue:<selector>#<track-index>
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x102d5974 — fmt sites
+
+</details>
+
+## `sonos_settings_rest` `strong`
+
+Household settings REST paths: /settings/api/v1/locations/%s/effectiveSettings and .../%s — emitted by f_105dd808, f_105de198 (outbound settings client)
+
+- **grammar:** /settings/api/v1/locations/<id>/effectiveSettings\[/<sub>\]
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x105dd808 — fmt sites
+
+</details>
+
+## `spotify_scheme` `strong`
+
+spotify:{track,episode}: + x-spotify:// — Spotify content URI schemes routed via spotify_smapi
+
+native spotify URI passthrough family (image:%h = hex-encoded variant)
+
+- **grammar:** spotify:{ad,episode,image\[:%h\],interruption,track}:...
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — 'spotify:track:','spotify:episode:','x-spotify://' literals + spotify_smapi.cxx
+
+</details>
+
+## `x-rincon-buzzer` `strong`
+
+Built-in buzzer/alarm-tone URI. "x-rincon-buzzer:" (0x10e93a38), "x-rincon-buzzer:1"/"x-rincon-buzzer:0" (0x10e99a04/0x10eaaef8), "x-rincon-buzzer:%u:o" (0x10eb1958 - %u=tone index, :o suffix).
+
+```
+x-rincon-buzzer:<n>[:o]
+```
+
+Used by: alarm fallback playback (AVT)
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb1958 — %u:o printf form - indexed tone + o-flag
+
+</details>
+
+## `x-rincon-configmode-sonar` `strong`
+
+Setup/calibration tone URIs: x-rincon-configmode:{sonar-calibrate-tone, sonar-calibrate-complete, speaker-detect(.mp3), trueroom-tone} and x-rincon-sonarcal:{leader.ogg, testtone.ogg, complete_ht.ogg} - local asset playback for Sonar/trueroom calibration.
+
+```
+x-rincon-configmode:<tone-name>[.mp3] | x-rincon-sonarcal:<asset>.ogg
+```
+
+Used by: speaker-detect/sonar calibration playback
+
+<details><summary>Evidence (5)</summary>
+
+- @ 0x10e93df4 — sonar-calibrate-tone
+- @ 0x10e93e2c — leader.ogg
+- @ 0x10e93eb0 — complete_ht.ogg
+- @ 0x10e93f0c — speaker-detect.mp3
+- @ 0x10e93f34 — trueroom-tone
+
+</details>
+
+## `x-rincon-cpcontainer` `strong`
+
+ContentDirectory provider container URI. Variants: "x-rincon-cpcontainer:RDCPA:" / "RDCPI:" (0x10e77970/0x10e7798c - provider-namespace prefixes), "x-rincon-cpcontainer:%s" (0x10e77a40), "x-rincon-cpcontainer:SCPB:%s/%s" (0x10f0dbd4).
+
+```
+x-rincon-cpcontainer:<provider-ns>:<id>[/<sub>]
+```
+
+Used by: ContentDirectory object IDs; AVTransport EnqueueURI container refs
+
+RDCPA/RDCPI/SCPB namespace semantics unresolved.
+
+<details><summary>Evidence (3)</summary>
+
+- @ 0x10e77970 — RDCPA ns
+- @ 0x10e7798c — RDCPI ns
+- @ 0x10f0dbd4 — SCPB:%s/%s form
+
+</details>
+
+## `x-rincon-mp3radio` `strong`
+
+MP3-radio stream marker. "x-rincon-mp3radio://" (0x10e93918), "x-rincon-mp3radio:" (0x10eb8788), bare "x-rincon-mp3radio" (0x10ecce84).
+
+```
+x-rincon-mp3radio://<url>
+```
+
+Used by: AVTransport radio playback
+
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10e93918 — // form
+- @ 0x10eb8788 — colon form
+
+</details>
+
+## `x-rincon-playlist` `strong`
+
+Local playlist URI "x-rincon-playlist:" (0x10e89327).
+
+```
+x-rincon-playlist:<id>
+```
+
+Used by: saved-queue playlists
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e89327 — scheme literal
+
+</details>
+
+## `x-rincon-queue` `strong`
+
+Local queue URI scheme. Variants: "x-rincon-queue:" (0x10e93904), "x-rincon-queue:%s" (0x10eb1710) - owner/queue selector printf-formatted.
+
+```
+x-rincon-queue:[RINCON_<mac>[_<zone>]]
+```
+
+Used by: AVTransport queue-backed playback (EnqueueURI/SetAVTransportURI family)
+
+Selector field semantics (room UDN vs queue owner) not yet resolved.
+
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10e93904 — scheme literal
+- @ 0x10eb1710 — printf variant in AVT code pool
+
+</details>
+
+## `x-rincon-sonarcal` `confirmed`
+
+x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg — sonar-calibration audio URI scheme
+
+- **grammar:** x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg; x-rincon-configmode:{sonar-calibrate-complete,speaker-detect,speaker-detect.mp3,trueroom-tone}; sonar-calibrate-tone
+- **titles:** `ATrueplay`, `ATrueplay Complete`, `ASpeaker Detection`, `ATrueroom`
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — 'x-rincon-sonarcal' scheme literal + sonarctl/route cluster
+
+</details>
+
+## `x-rincon-stream` `strong`
+
+Rincon inter-room stream URI. Variants: "x-rincon-stream:" (0x10eacf20), "x-rincon-stream:%s" (0x10e99a5c), "x-rincon-stream:%s:%s" (0x10eb1d08) - room-id\[:sub\] printf forms.
+
+```
+x-rincon-stream:<room-id>[:<sub>]
+```
+
+Used by: grouped zone playback - slaves pull coordinator stream
+
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10e99a5c — %s form
+- @ 0x10eb1d08 — %s:%s form
+
+</details>
+
+## `x-sonos-misc` `strong`
+
+Assorted internal x-sonos schemes: x-sonos-htastream (HT audio stream), x-sonos-http\[:\], x-sonos-mms/x-sonosprog-mms, x-sonos-spotify/x-sonosprog-spotify, x-sonos-recent\[:\], x-sonos-dock:, x-sonos-clone-gc/x-sonos-gc-cleared-content (group-coordinator internal), x-sonos-upnp-tunnel/x-sonos-upnp-loopback-token, x-sonos-sync-method/x-sonos-method/x-sonos-uri (sync control), x-sonos-auth-https%s.
+
+```
+x-sonos-<kind>[:<arg>]
+```
+
+Used by: internal transport/sync/auth plumbing
+
+Catch-all record; split into per-scheme records as uses get traced.
+
+<details><summary>Evidence (4)</summary>
+
+- @ 0x10e99698 — x-sonos-htastream
+- @ 0x10eb36bc — x-sonos-clone-gc
+- @ 0x10f0258c — x-sonos-upnp-tunnel
+- @ 0x10f0f044 — x-sonos-auth-https%s
+
+</details>
+
+## `x-sonos-vli` `strong`
+
+Virtual line-in source URI. "x-sonos-vli" / "x-sonos-vli:" (0x10ecb64c/0x10ecc20a), "x-sonos-vli:%s:%u" (0x10f01804 - member-id:channel printf form).
+
+```
+x-sonos-vli:<member-id>:<channel>
+```
+
+Used by: VirtualLineIn source routing; AVTransport line-in playback
+
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10f01804 — %s:%u printf form
+- @ 0x10ecb64c — bare token
+
+</details>
+
+## `x-sonosapi-*` `strong`
+
+Cloud/music-service API URI family: x-sonosapi-hls:%s, x-sonosapi-hls-static:, x-sonosapi-radio\[:ST:%s\], x-sonosapi-stream:, x-sonosapi-iqradio\[:\], x-sonosapi-rtrecent:, x-sonosapi-show:. These mark stream endpoints fetched through the Sonos cloud services rather than direct URLs.
+
+```
+x-sonosapi-<service>:[<token>]
+```
+
+Used by: AVTransport external-content playback; music-service tracks
+
+One umbrella record for the family; per-service token grammars unresolved.
+
+<details><summary>Evidence (4)</summary>
+
+- @ 0x10e77930 — x-sonosapi-hls:%s
+- @ 0x10e77cf8 — x-sonosapi-radio:ST:%s
+- @ 0x10e93968 — x-sonosapi-rtrecent:
+- @ 0x10ec11eb — x-sonosapi-show:
+
+</details>
+
+## `x-sonosapi-radio` `strong`
+
+x-sonosapi-radio:ST:%s?sid=&flags=&sn= — Sonos Radio station URI w/ sid/flags/sn params + X-Sonos-Api-Key
+
+service-track radio URI carrying station id, flags, serial number
+
+- **grammar:** x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d (sn optional: '&sn=%d' variant exists)
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — 'x-sonosapi-radio:ST:%s?sid=&flags=&sn=' format literal + X-Sonos-Api-Key header
+
+</details>
+
+## `x_rincon_schemes` `confirmed`
+
+x-rincon* URI scheme family — queue/mp3radio/buzzer/configmode/sonarcal/trueroom/cpcontainer
+
+- **schemes:**
+  - **x-rincon-cpcontainer:{RDCPA,RDCPI,...}:** ContentProvider container refs ('Unknown old Rhapsody x-rincon-cpcontainer' legacy)
+  - **x-rincon-playlist::** DIDL res protocolInfo for playlist items
+  - **x-rincon-queue::** queue references
+  - **x-rincon-mp3radio://:** mp3 radio
+  - **x-rincon-stream::** generic stream
+  - **x-rincon-buzzer::** buzzer/chime audio
+  - **x-rincon-configmode:{sonar-calibrate-tone,...}:** config-mode tones
+  - **x-rincon-sonarcal:{leader,testtone}.ogg:** sonar/Trueplay calibration audio files
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10edxxxx — rodata scheme literals
+
+</details>
+
+## `x_sonos_schemes` `confirmed`
+
+x-sonos* URI scheme family — htastream/prog/api/service schemes + associated headers
+
+- **schemes:**
+  - **x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d:** station-type + service-id + flags + service-number
+  - **x-sonosapi-hls:%s?sid=%u&flags=288:** HLS stream w/ sid+flags
+  - **x-sonosapi-{stream,hls,hls-static}:** api streams
+  - **x-sonosapi-rtrecent:** recently-played feed
+  - **x-sonos{,-http,-mms}:** base sonos streams
+  - **x-sonosprog-{http,mms,spotify}:** program/progressive variants
+  - **x-sonos-spotify:** spotify wrapper
+  - **x-sonos-htastream:** home-theater audio stream
+  - **x-sonos-clone-gc / x-sonos-gc-cleared-content:** group-coordinator clone/clear ops
+  - **x-sonos-unknown:** fallback
+- **headers:** `X-Sonos-Api-Key`, `X-Sonos-Corr-Id`, `X-RINCON-BOOTSEQ`, `X-RINCON-VARIANT`, `x-rincon-last-update-device`, `x-rincon-content-version`, `x-rincon-range`
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10edxxxx — rodata scheme templates + fmt params
+
+</details>

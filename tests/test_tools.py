@@ -21,6 +21,9 @@ import validate
 import lint
 import coverage
 import worksheet
+import genmodel
+import gendocs
+import gensite
 
 FIXTURE = os.path.join(ROOT, "tests", "fixture_api.json")
 
@@ -324,6 +327,205 @@ class WorksheetTests(unittest.TestCase):
     def test_ambiguous_action_rejected(self):
         svc = worksheet.find_service(self.api, "TestSvc")
         self.assertIsNone(worksheet.find_action(svc, "D"))
+
+
+def _gen_action(name="DoThing", **over):
+    a = {
+        "description": "Does a documented thing.",
+        "status": "strong",
+        "visibility": "advertised",
+        "reachability": "callable",
+        "handler": "0x8000",
+        "dispatch": {"kind": "direct", "entry_addr": "0x9000",
+                     "voff": None},
+        "inputs": {}, "outputs": {}, "errors": [], "fault_sites": [],
+        "evidence": [doclib.ev(address="0x8000", notes="handler")],
+        "notes": None,
+    }
+    a.update(over)
+    return a
+
+
+def _gen_service(path="/X/Control", name="SvcX", actions=None, **over):
+    s = {
+        "name": name, "control_path": path,
+        "description": "Test service.",
+        "status": "strong", "visibility": "advertised",
+        "availability": {"notes": "always registered"},
+        "actions": actions or {"DoThing": _gen_action()},
+        "evidence": [doclib.ev(address="0x7000", notes="svc")],
+    }
+    s.update(over)
+    return s
+
+
+def _gen_doc(services, counts=None):
+    doc = {"meta": {"binary": "anacapad", "build": "T-1",
+                    "schema_version": 1},
+           "services": services}
+    if counts:
+        doc["meta"]["counts"] = counts
+    return doc
+
+
+class GenModelTests(unittest.TestCase):
+    def test_counts(self):
+        doc = _gen_doc({
+            "/A/Control": _gen_service("/A/Control", "SvcA",
+                                       actions={"X": _gen_action("X")}),
+            "/B/Control": _gen_service("/B/Control", "SvcB",
+                                       visibility="internal",
+                                       actions={
+                                           "Y": _gen_action(
+                                               "Y", visibility="internal",
+                                               reachability="hidden-callable")}),
+        })
+        m = genmodel.normalize(doc)
+        self.assertEqual(m.counts.canonical_action_records, 2)
+        self.assertEqual(m.counts.implemented_actions, 2)
+        self.assertEqual(m.counts.scpd_defined, 1)
+        self.assertEqual(m.counts.internal_or_hidden_callable, 1)
+
+    def test_count_contradiction_errors(self):
+        doc = _gen_doc({"/A/Control": _gen_service()},
+                       counts={"canonical_action_records": {"value": 99}})
+        m = genmodel.normalize(doc)
+        r = genmodel.qa(m)
+        self.assertTrue(any("canonical_action_records" in e
+                            for e in r.errors))
+
+    def test_conflicting_duplicate_action(self):
+        a1 = _gen_action("Get", handler="0x1000")
+        a2 = _gen_action("Get", handler="0x2000")
+        doc = _gen_doc({
+            "/R/ConnectionManager/Control": _gen_service(
+                "/R/ConnectionManager/Control", "ConnectionManager",
+                actions={"Get": a1}),
+            "/S/ConnectionManager/Control": _gen_service(
+                "/S/ConnectionManager/Control", "ConnectionManager",
+                actions={"Get": a2}),
+        })
+        m = genmodel.normalize(doc)
+        self.assertNotEqual(m.services[0].slug, m.services[1].slug)
+        r = genmodel.qa(m)
+        self.assertTrue(any("conflicting definitions" in e
+                            for e in r.errors))
+
+    def test_stub_flag_and_render(self):
+        stub = _gen_action("StartTransmission", status="confirmed",
+                           dispatch={"kind": "strcmp_stub",
+                                     "entry_addr": "0x1", "voff": 8})
+        doc = _gen_doc({"/AudioIn/Control": _gen_service(
+            "/AudioIn/Control", "AudioIn", visibility="hidden",
+            actions={"StartTransmission": stub})})
+        m = genmodel.normalize(doc)
+        a = m.services[0].actions["StartTransmission"]
+        self.assertTrue(a.is_stub)
+        self.assertFalse(a.is_implemented)
+        self.assertEqual(m.counts.removed_stale, 1)
+        md = gendocs.render_service(m.services[0])
+        self.assertIn("removed/stub", md)
+        self.assertIn("strcmp_stub", md)
+
+    def test_type_mismatch_warns(self):
+        a = _gen_action(inputs={"ID": {
+            "direction": "in", "status": "confirmed",
+            "description": "numeric id",
+            "primitive": {"type_tag": 4, "parse_helper": "0x1",
+                          "buf_cap": 24},
+            "format": "utf-8 text", "evidence": []}})
+        m = genmodel.normalize(_gen_doc({"/A/Control":
+                                         _gen_service(actions={"A": a})}))
+        r = genmodel.qa(m)
+        self.assertTrue(any("type_tag 4" in w for w in r.warnings))
+
+    def test_bounded_unknown_survives(self):
+        a = _gen_action(errors=[{
+            "code": None, "code_expr": "vret(r5,+0x34)",
+            "meaning": "computed rc passthrough",
+            "status": "strong", "fault_sites": ["0x1234"],
+            "conditions": [{"description": "impl rc forwarded",
+                            "evidence": [doclib.ev(address="0x1234")]}],
+            "evidence": [doclib.ev(address="0x1234")],
+            "unresolved": {"proven": "rc is returned",
+                           "unknown": "which rc each state produces"}}])
+        m = genmodel.normalize(_gen_doc({"/A/Control":
+                                         _gen_service(actions={"A": a})}))
+        e = m.services[0].actions["A"].errors[0]
+        self.assertTrue(e.is_bounded_unknown)
+        self.assertEqual(e.unresolved["unknown"],
+                         "which rc each state produces")
+        md = gendocs.render_service(m.services[0])
+        self.assertIn("Bounded unknown", md)
+
+    def test_arg_prose_empty_model(self):
+        # prose references InstanceID but the action declares no args
+        # (and another action declares it, seeding the vocabulary)
+        declares = _gen_action("Other", inputs={"InstanceID": {
+            "direction": "in", "status": "confirmed",
+            "description": "instance",
+            "primitive": {"type_tag": 4, "parse_helper": "0x1",
+                          "buf_cap": 24},
+            "format": "decimal integer", "evidence": []}})
+        empty = _gen_action("NoArgs",
+                            description="Seeks to InstanceID position.",
+                            args_verified_empty=None)
+        m = genmodel.normalize(_gen_doc({"/A/Control": _gen_service(
+            actions={"Other": declares, "NoArgs": empty})}))
+        r = genmodel.qa(m)
+        self.assertTrue(any("empty argument model" in e
+                            for e in r.errors))
+
+    def test_stale_unresolved_after_resolution(self):
+        a = _gen_action(implementation={
+            "engine_resolution": {"status": "resolved",
+                                  "impl_func": "0x999"},
+            "notes": "worker sibling unresolved"})
+        m = genmodel.normalize(_gen_doc({"/A/Control":
+                                         _gen_service(actions={"A": a})}))
+        r = genmodel.qa(m)
+        self.assertTrue(any("still says" in e for e in r.errors))
+
+
+class GenSiteTests(unittest.TestCase):
+    """gensite.py drives MkDocs; we test the nav/config generation only
+    (the build itself requires the .venv mkdocs install)."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.ref = os.path.join(self.tmp, "reference")
+        os.makedirs(os.path.join(self.ref, "services"))
+        for f in ("index.md", "architecture.md"):
+            with open(os.path.join(self.ref, f), "w") as fh:
+                fh.write("# Page\n")
+        with open(os.path.join(self.ref, "services", "av-transport.md"),
+                  "w") as fh:
+            fh.write("# `AVTransport` — `/MediaRenderer/AVTransport/Control`\n")
+        self._src, self._yml = gensite.SRC, gensite.MKDOCS_YML
+        gensite.SRC = self.ref
+        gensite.MKDOCS_YML = os.path.join(self.tmp, "mkdocs.yml")
+
+    def tearDown(self):
+        gensite.SRC, gensite.MKDOCS_YML = self._src, self._yml
+        shutil.rmtree(self.tmp)
+
+    def test_nav_picks_up_services(self):
+        nav, services = gensite.build_nav()
+        self.assertEqual(dict(nav)["Architecture"], "architecture.md")
+        self.assertEqual(services,
+                         [("AVTransport", "services/av-transport.md")])
+
+    def test_config_is_valid_yaml(self):
+        try:
+            import yaml
+        except ImportError:
+            self.skipTest("pyyaml not installed")
+        nav, services = gensite.build_nav()
+        gensite.write_config(nav, services)
+        with open(gensite.MKDOCS_YML) as f:
+            cfg = yaml.safe_load(f)
+        self.assertEqual(cfg["docs_dir"], "reference")
+        self.assertIn({"Architecture": "architecture.md"}, cfg["nav"])
 
 
 if __name__ == "__main__":
