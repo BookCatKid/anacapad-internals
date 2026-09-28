@@ -2083,5 +2083,11 @@
   "evidence": "m8: 7 svc_ctx objects at zp+0x2d50..0x2d98 (12B stride, ctors 0x10357788/0x10751144/0x10751b48/0x10754790/0x103626ac/0x1049194c/0x10755340, each storing {vtable, worker=0, ref=0}). Route-builder 0x101877c0 materializes all svc_ctx addrs (r10+11600/+11624/+11636/+11648/+11660/+11672) + path/name/cap records into a stack table -> bl 0x10665ffc registers into router r28+840. Registration fn builds {argName,typecode} descriptor records (codes 1,2,4,8) on stack and calls service-virtual getters r29->vtable[108,120,124,136].",
   "worker_binding": "EXHAUSTIVE: every stw to the exact svc_ctx+4 offsets (0x2d54/0x2d60/0x2d6c/0x2d78/0x2d84/0x2d90/0x2d9c) across the binary hits only r1 stack spills - NO constant-offset object store exists. Combined with worker=0 in ctor + DSPControl objects being product-selected, the worker pointer is injected via the svc_ctx object pointer passed to a runtime binding routine, not a statically-visible store.",
   "confidence": "proven (mechanism); per-service sibling still runtime-selected"
+ },
+ "buf_cap_resolved": {
+  "claim": "arg buffer capacities fully resolved - string cap is caller-supplied r5 at the FUN_1055a7c0 call site",
+  "evidence": "m9 86.10: string-descriptor helper FUN_1055a7c0 stores rec+0x10 = r5 (caller's 5th arg). Extractor now reads the call-site r5 -> 332/332 parseable args resolved. Scalar types use 24B inline buf; strings span 64B-1025B up to bulk payloads EnqueuedURIsMetaData=40970B, ContentDirectory.Elements=16384B, RedirectURI=8194B.",
+  "residual": "null buf_cap remains only for non-descriptor arg paths: id-table virtual-method args, bulk-state-transfer actions (BecomeGroupCoordinator/AddMultipleURIs/ReplaceAllTracks move whole snapshots not per-arg bufs), and reject-all stubs where the arg is never parsed.",
+  "confidence": "proven"
  }
 }

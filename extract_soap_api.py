@@ -1058,9 +1058,16 @@ def analyze_handler(elf, text, starts, extents, hva, plt, helper_cache,
             if on_req and slot in REQ_IN_SLOTS and s4:
                 # following helper call consumes the returned rec
                 tag = cap = fmt = helper = None
+                cap_arg = None
                 for pc2, k2, e2 in evs[idx + 1:idx + 6]:
                     if k2 == "call":
                         helper = e2["target"]
+                        # string descriptors take the caller's buffer
+                        # capacity as the 5th argument (r5) at the call
+                        # site - not a constant inside the helper
+                        c5 = e2.get("args", {}).get(5)
+                        if isinstance(c5, int) and 0 < c5 < 0x10000:
+                            cap_arg = c5
                         hi_ = classify_helper(elf, text, starts, extents,
                                               helper, plt, helper_cache)
                         if hi_:
@@ -1069,6 +1076,8 @@ def analyze_handler(elf, text, starts, extents, hva, plt, helper_cache,
                         break
                     if k2 == "vcall":
                         break
+                if cap is None:
+                    cap = cap_arg
                 res["in_args"].append({
                     "name": s4, "name_va": a4, "site": pc,
                     "slot": slot, "helper": helper,
