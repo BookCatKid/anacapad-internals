@@ -305,6 +305,19 @@ multi-product source gated at runtime.
   fenway emits ~10 satellite/Sub fields (`<HTSNKPipelineVer>`, `<SubLeveldB>`,
   `<InvertSub>`, `<ConstrainSubLevelToVolume>`) — the satellite-receiver/Sub
   side.
+- **GENA dispatcher decoded** (`FUN_1066bc50`): method `0xb`=SUBSCRIBE /
+  `0xc`=UNSUBSCRIBE / other→`0x1f5`(501). `/DeviceProperties/Event` and
+  `/GroupManagement/Event` are **exempt** from the secure-mode gate; all other
+  event paths 403 (`0x193`) when denied. Timeout `Second-N` default+max
+  `0x15180`=86400s, capped by a runtime global. New-sub requires
+  `callback=<url>` (≤1024) + `nt=upnp:event` + no `sid` → 200 + SID + TIMEOUT +
+  initial-burst; RENEW = `sid`-only; errors: 400 missing-headers, `0x19c`=412
+  bad/missing `sid`, `0x1f7`=503 service-miss.
+- **State-var model** — workers hold a named-node tree at `+0x498`;
+  `FUN_1055b0cc(tree,name,0)` find-or-creates nodes, `node->vfunc+0x10` sets
+  values; serialized into `e:propertyset`/`LastChange`. Output args on the
+  request object: `req->vfunc+0x24` returns the out-arg handle, whose
+  `vfunc+0x10` writes the value.
 - **URI/payload grammars** — shared `x-rincon-*` grammar; fenway sonar-cal
   completion `x-rincon-sonarcal:complete.ogg` vs limelight
   `complete_ht.ogg`; limelight-only IR-upload `ir.ws.sonos.com/IRCode/` and
@@ -339,6 +352,32 @@ limelight-only and the **RX** side is fenway-only — the Playbar decodes optica
 and pushes audio to bonded satellites, which receive and render it. netstart,
 SonosNet, SCI, TLV, nodetx, hwmessage, protobuf, internalevts are all present in
 both binaries.
+
+**CHSNK state machine decoded** (`FUN_1036b340`, `chsnk.cxx`): the sink object
+(~0x29c0 bytes) loops on a state word at `+0x2880` (values 1–9) dispatched via
+handler table `DAT_10c18b68` — `3`=`playing local chsrc`, `5`=`playing local
+AI`, plus `local VLI` and `remote chsrc at %d.%06d` branches; stopped state
+logs `Channel Sink in stopped state` and waits on a condvar at `+0x218`. Each
+play branch calls `FUN_104c0e18(obj+0x2b8)` + `FUN_103697f0(obj,state)` +
+`FUN_1061a4ac(&sub, obj+0x2b0, srctype)` + `FUN_10479988(obj+0x1be8, sub)`.
+Notable: **local AI (AudioIn) is a live internal CHSNK source** in fenway even
+though its SOAP surface is stubbed — the audio path exists in the shared
+codebase. `Chsnk restart is requested by the new coordinator to avoid seamless
+delegation` documents coordinator-handoff semantics; multicast joins refresh on
+interface/IP events.
+
+**Native infra (both)**: `netstartd` IPC (`/tmp/netstartd.ipc`,
+`/var/run/netstart_mode`, SSID set/clear, satellite-add notify); SonosNet mesh
+(`NETMODE_SONOSNET_WIRED/WIRELESS`, `Muse` enabled-state, disable test-mode
+with auto-revert); `hwmessagelib` event channel; protobuf node req/resp for
+nodetx telemetry (`nodetx_chsrc`/`nodetx_vli`/`nodetx_ht`,
+`<NodeTXBuffer>`); 7-field TLV header reader.
+
+**DSP internals**: fenway-only `FUN_10b95dec` selects per-hwrev Play:1 EQ
+curves by codename (`0xe`→ROYALE/`BEACON RollBack`, `0xf/0x14/0x18/0x28/0x2d`→
+BOOTLEG, `0x16`→MARQUEE, `0x17`→LARGO, default→AMOEBA) — absent on limelight.
+`DSPControlSub` (`FUN_10b968e4`) writes subwoofer level to `+0x1540` and commits
+via `vfunc+0x15c`.
 
 ---
 
