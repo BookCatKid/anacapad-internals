@@ -1981,7 +1981,9 @@
   "shared_base_vfuncs": "0x1049e9e8@+0x08 validate/authorize; 0x100c8f84 commit; 0x100c859c fault; 0x1049eb68 in-accessor; 0x104999c4@+0x24 out-accessor; 0x100b9444@+0x38 finalize; 0x100c8534@+0x3c begin; shared 0x100ca658(Master-gate), 0x100c8e90, 0x100e0958, 0x10657af0, 0x100c8d60, 0x10657b74",
   "implication": "uniform vfunc-offset contract across all 204 impls exists because every service's request context derives from the same SOAP base; the +0x08 validator is a Master-coordinator authorization gate inherited by all services",
   "volume_backend": "FUN_100cef4c (clamp[0,100], 'Cannot set volume in fixed output mode', audio obj vfunc+0xe0/+0xe4) is a shared volume backend method present in all 3 sibling vtables - base-class audio-volume op",
-  "worker_identity": "the product backend (worker@svc_ctx+4) remains bound post-construction at runtime - not statically resolvable; subclass vtables differ in override slots (e.g. 0x10505xxx vs 0x100d9xxx) suggesting per-service request subclasses"
+  "worker_identity": "the product backend (worker@svc_ctx+4) remains bound post-construction at runtime - not statically resolvable; subclass vtables differ in override slots (e.g. 0x10505xxx vs 0x100d9xxx) suggesting per-service request subclasses",
+  "m9_parity": "m9 volume backend 0x100dc8e8 == m8 FUN_100cef4c (same 'fixed output mode' check, same audio-object vfunc+0xe0 get / +0xe4 interface). Request-context subclass architecture is cross-model identical.",
+  "m9_extra": "m9 carries an extra source unit rc_impl_stp.cxx / rc_impl_stp (state-template variant) alongside rc_impl.cxx; m8 has only rc_impl.cxx - a limelight-only RC submodule consistent with its HT/group-master role"
  },
  "request_plumbing_evolution": {
   "finding": "the SOAP request-object vtable abstraction (req->vfunc+0x08/+0x14/+0x24/+0x0c/+0x38/+0x3c) was introduced BETWEEN 57.10 and 86.x. In 57.10 the equivalent ops are direct free-function calls (parse FUN_10380aa4, fault FUN_10380fc8, out-accessor FUN_10366098 on req+0x5fc, commit FUN_10380c24).",
@@ -1993,5 +1995,11 @@
    "86.x": "inline binary search + low-bit id + virtualized request-object vfuncs"
   },
   "interpretation": "backend-delegate + action-method + output-arg architecture is ancient (>=34.x); only the request plumbing was virtualized into a polymorphic request-context class by 86.x (enabling per-service request subclasses)"
+ },
+ "worker_identity_unresolved": {
+  "status": "runtime-bound, not statically resolvable",
+  "evidence": "worker@svc_ctx+4 is NULL in the svc_ctx ctor (FUN_10754790) and bound post-construction during device init. No operator_new+store@+4 pattern found (workers are likely embedded members of the zone-player aggregate or device objects, bound via computed offsets in init code). DSPControlPlay1/Play3/Sub class names appear only as log/registration strings with no code xrefs to a ctor/factory.",
+  "what_is_proven": "the backend-delegate interface is uniform: impls call worker->vfunc+SLOT (SetVolume->+0x1c, Play->+0x2c, GetZoneGroupState->+0x28). The shared volume backend FUN_100cef4c(m8)/0x100dc8e8(m9) calls the audio object via vfunc+0xe0/+0xe4. Whether all services share one ZonePlayer backend or per-service workers is unresolved statically.",
+  "distinction": "the 'req' object (SOAP plumbing, per-service request-context subclass) and the 'worker' (product audio/zone backend) are SEPARATE objects - conflating them is an error; only the former is statically mappable"
  }
 }
