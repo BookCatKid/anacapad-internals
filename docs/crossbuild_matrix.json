@@ -1815,7 +1815,9 @@
       "finalize": "req->vfunc(+0x38)(req) after every dispatch",
       "trace_hook": "FUN_100a422c/FUN_100acad4(*(param_2+0x70), action_name) \u2014 dispatch instrumentation"
     },
-    "note": "vtable-ids are ODD byte-offsets (e.g. 41) because low bit is the flag; actual slot = id>>1 in pointer units (id is byte offset |1)"
+    "note": "vtable-ids are ODD byte-offsets (e.g. 41) because low bit is the flag; actual slot = id>>1 in pointer units (id is byte offset |1)",
+    "evolution": "Same mechanism since 34.16: 12-byte {name,fn_or_id,ctx_off} records, &1 discriminator (clear=direct C call; set=vtable-id via *(base+ctx_off).vtable[id]), 0x191 not-found fault. Difference: 34.16/57.x used libc bsearch(nmemb,size=12,cmp) + service-URN-keyed lookup; 86.x uses a hand-rolled inline binary search with identical semantics (m8 FUN_10752428 / m9 FUN_1082b0fc).",
+    "34.16_proof": "ZGT dispatcher @0x101b0ccc: bsearch(0x103a2f30,8,12,cmp=0x101b0444); then lwz rec[1],rec[2]; andi. &1 -> direct or vtable call; 0x191 fault on miss. GetZoneGroupState id=0x25 (vs 41 in 86.x \u2014 different vtable layout, same mechanism)."
   },
   "object_model": {
     "aggregate": "zone-player C++ object (~28KB) embeds 16 UPnP service objects at a fixed 0x680-byte stride; wired by FUN_10771084 (strcmp on service URN -> member offset) and controlURL lookup FUN_1075c668",
