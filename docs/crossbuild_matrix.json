@@ -1816,5 +1816,34 @@
       "trace_hook": "FUN_100a422c/FUN_100acad4(*(param_2+0x70), action_name) \u2014 dispatch instrumentation"
     },
     "note": "vtable-ids are ODD byte-offsets (e.g. 41) because low bit is the flag; actual slot = id>>1 in pointer units (id is byte offset |1)"
+  },
+  "object_model": {
+    "aggregate": "zone-player C++ object (~28KB) embeds 16 UPnP service objects at a fixed 0x680-byte stride; wired by FUN_10771084 (strcmp on service URN -> member offset) and controlURL lookup FUN_1075c668",
+    "member_offsets": {
+      "DeviceProperties": "+0x714",
+      "SystemProperties": "+0xd94",
+      "ZoneGroupTopology": "+0x1414",
+      "GroupManagement": "+0x1a94",
+      "AlarmClock": "+0x2114",
+      "AudioIn": "+0x2794",
+      "MusicServices": "+0x2e14",
+      "VirtualLineIn_a": "+0x3494",
+      "HTControl": "+0x3b14",
+      "AVTransport": "+0x4194",
+      "ContentDirectory": "+0x4814",
+      "ConnectionManager_a": "+0x4f54",
+      "ConnectionManager_b": "+0x55d4",
+      "RenderingControl": "+0x5c54",
+      "GroupRenderingControl": "+0x62d4",
+      "VirtualLineIn_b": "+0x6954"
+    },
+    "service_struct": "0x680-byte UpnpService object; +0x00 vtable (dispatch at vfunc+0x40, called by master dispatcher); delegates to embedded svc_ctx impl descriptor",
+    "svc_ctx": {
+      "layout": "{vtable@+0, worker@+4, x@+8}",
+      "vtable": "3 slots in .rodata directly before the service's action table; +0x08 = binary-search dispatcher (FUN_10752428 for RC)",
+      "ctor": "FUN_10754790 zeroes worker/+8, stores descriptor vtable",
+      "worker": "delegate/impl object set at runtime (registration); null -> 401 stub; called as worker->vfunc+0x1c(...) for SetVolume-class actions"
+    },
+    "dispatch_chain": "route thunk -> FUN_10670ee4 (master: SOAPAction parse, secure checks, x-sonos-target-udn proxy) -> service_obj->vfunc+0x40 -> svc_ctx->vfunc+0x08 (FUN_10752428 table dispatch) -> impl(svc_ctx+ctx_off, req, worker)"
   }
 }
