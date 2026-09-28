@@ -1753,6 +1753,13 @@
       "shared": "chsnk playing local chsrc + chsnk stopped log-sites live in both (m8 0x1036bbf4/0x1036be48, m9 0x103af568/0x103af7c0) \u2014 same CHSNK state machine",
       "m8_only": "chsnk playing local VLI live (0x1036b5fc) \u2014 fenway binds VirtualLineIn source into the CHSNK fabric (satellite line-in relay); no live ref in m9",
       "conclusion": "CHSNK core shared; VLI-source binding differs (fenway satellite uses it, limelight routes VLI differently or gates it)"
+    },
+    "ht_master_satellite_split": {
+      "shared_base": "chsnk.cxx + chsrc.cxx in BOTH \u2014 the base channel source/sink fabric for general group audio",
+      "limelight_m9_CHSRC_TX": "htaudio_satellite_tx.cxx; Using CHSRC TX for GM; RCHSRCReq(op,txnID); chsrc_state_events; as-srcin-chsnk{,0}; as-srcout-chsnk{,0}; chsnk-sat-as; chsnk_proc{.select.read}; nodetx_ht%d; HT NodeTX Blocks; SatelliteSwitcher; addSatellite/removeHTSatellite/HTSatelliteChecker; satelliteChannelMap; requestedSatelliteMap; satellite Spatial/Spectral Tuning; EnterConfigMode/ExitConfigMode on satellite; satellites active[0x%x]",
+      "limelight_optical_dolby": "spdif-input; SPDIFTap; /downloadspdiftap; /snapshotspdiftap; protocolInfo=spdif; tv_spdif_16/32; audiotap.spdif; Dolby Atmos(DD+/MAT/TrueHD),Dolby Digital/Plus/Surround/TrueHD/MAT; dolby decoder; dolby_config.json; sonosdolbyconfig; /proc/driver/fpga/{circ,data,reg/all}; /proc/driver/tdm/rxring; Got connection type update from netstartd; meshDisable",
+      "fenway_m8_HTSNK_RX": "htsnk.cxx; as-dspin-htsnk; as-dspout-htsnk; as-srcin-htsnk; as-srcout-htsnk; htsnk-as; HTSNKPipelineVer; HTSNK is using the v%u pipeline; HTSNK Latency/Consecutive Missed Frames/Rx Time To Play/Totals; htSatelliteStats; satellite run loop; satellite audio disabled/led/mute; setting orientation to vertical for satellite; Faking satellite removal in shared sat mode",
+      "conclusion": "The home-theatre group-audio protocol is ASYMMETRIC: limelight is the CHSRC transmitter decoding optical/SPDIF and pushing audio to satellites via nodetx_ht + satellite TX processors; fenway is the HTSNK receiver rendering satellite audio with per-satellite pipeline stats. Base chsnk/chsrc shared; HT-specific TX (m9) and RX (m8) are complementary halves of one protocol."
     }
   },
   "route_handler_identity": "AudioIn + HTControl + QPlay /Control routes all bind the SAME shared route-dispatcher thunk (load service-object global, tail-call common SOAP handler) in both m8 and m9. Service stubs therefore share the identical mechanism \u2014 product gating is 'which action table is linked', not separate stub code.",
