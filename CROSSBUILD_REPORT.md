@@ -138,7 +138,15 @@ finalize at `+0x38`, begin/telemetry at `+0x3c`) is identical across models —
 the same SOAP plumbing under both products. The request-object vtable was
 resolved in `.rodata` (m8 address-point `0x10c334d8`) by anchoring `+0x24` =
 `0x104999c4`, which builds an arg descriptor against the parsed-body list at
-`req+0x994`. Decompiled semantics: **`vfunc+0x08` is an
+`req+0x994`. The parsed-body "list" is in fact a **`std::map<argName,value>`**
+rooted at `req+0x900` — the insert path (`0x100db9c4`) writes the
+`_Rb_tree` header `{root@+0x990, leftmost/tail@+0x994, count@+0x998}` via tree
+ops `0x108d84b4`(insert/balance)/`0x100d2e8c`(find). So the inbound SOAP body
+is parsed into a name-keyed ordered map, and `vfunc+0x1c`/`+0x24` look each
+argument up by name and materialize a `{type,storage,cap}` descriptor on demand
+— which is why every action shares one arg-fetch contract.
+
+Decompiled semantics: **`vfunc+0x08` is an
 authorization/precondition gate**, not a per-arg type parser — it returns
 status `0x33`(ok)/`0x3e`(denied)/`0x3fe`(mode) and enforces a
 group-`"Master"`-coordinator check (`FUN_100ca658` → `req->vfunc+0x1c`/`+0xc`
@@ -146,6 +154,12 @@ group-`"Master"`-coordinator check (`FUN_100ca658` → `req->vfunc+0x1c`/`+0xc`
 by the descriptor machinery (`vfunc+0x1c` accessor + typed helpers), so the
 `0x192` "Invalid Args" fault can be raised for **authorization denial** as well
 as malformed arguments.
+
+**Arg buffer capacities** are caller-supplied, not descriptor constants: the
+string-descriptor helper `FUN_1055a7c0` writes `rec+0x10 = r5` (the caller's
+5th arg) — the extractor reads the call-site `r5` to resolve all 338 parseable
+arg capacities (`24B` scalar inline, `64–1025B` strings, up to `40970B`
+`EnqueuedURIsMetaData`/`16384B` `Elements`/`8194B` `RedirectURI` bulk payloads).
 
 The `req` object is a **polymorphic per-service request-context subclass**:
 three sibling vtables (m8 `0x10be20b8`, `0x10c3a640`, `0x10c334d8`) share one
@@ -501,10 +515,33 @@ sender): a *named node-request* on the SonosNet/hwmessage node-comm object
 request via `comm->vfunc+0x08("nodetx_vli")`. `nodetx_chsrc`/`nodetx_vli`/
 `nodetx_ht` are per-audio-source `<NodeTXBuffer>` request names (chsrc = the
 limelight HT-master transmitter, vli = line-in, ht = home-theatre) — a shared
-telemetry mechanism carrying product-specific payload names. The `"TLV header
-%d %d/7 oserr %d"` reader is present but reached only via a log-descriptor
-table (no direct code xref) — its 7-field header format is confirmed by the
-format string, the reader itself not statically anchored.
+telemetry mechanism carrying product-specific payload names.
+
+**The hw-message bus is `libhwmessagelib.so.1` — Linux generic netlink**, not a
+custom wire format. It uses `libnl-genl-3`: `connection_init` → `genl_connect` +
+`genl_ctrl_resolve`(family) + `genl_ctrl_resolve_grp`(multicast group); messages
+built by `genlmsg_put`, validated by `genlmsg_valid_hdr` + `nla_parse` against
+`hwevtq_policy` (an `nla_policy[]` table). Attributes read via `nla_get_u16`
+(event source) / `nla_get_u64` (event info) / `nla_put_string`. Message types
+`U_HWMT`: `NOOP`/`OVERFLOW`/`EVENT`. **`SCI_BOARD`, `PSOC`, `CEC`, `UART`, `PMU`
+are hardware event-source IDs** in its ~60-source enum (`U_HWES`) — buttons,
+capzones, MCU-amps, HDMI/NFC/BLE/WIFI — which is why anacapad only *names* them:
+they're source identifiers on this bus, not anacapad protocol handlers. Event
+IDs cover volume-wheel, orientation, thermal warn/fault, amp clipping,
+battery, motion and the micmute switch; multicast groups AUDIO/BATTERY/BUTTON/
+CAPZONE/HT/LED/SENSOR/TEMP/WAKEUP/SWITCH. The anacapad `"TLV header %d %d/7"`
+format is the netlink-attribute (`nla_len`/`nla_type`) encoding — the same TLV
+grammar, not a separate protocol.
+
+**SSDP discovery is entirely in anacapad** with Sonos extensions: standard
+`NOTIFY`/`M-SEARCH` to `239.255.255.250:1900` (`ssdp:alive`/`byebye`,
+`MAN:"ssdp:discover"`, `upnp:rootdevice`/`ssdp:all`), but **`M-SEARCH` is
+HMAC-signed** (`M-SEARCH signature HMAC init failed`, `Failed to calculate
+M-SEARCH signature`) — authenticated discovery. Custom headers
+`X-RINCON-VARIANT:%u`, `SECURELOCATION.UPNP.ORG`, `X-SONOS-HHSECURELOCATION`,
+`LOCATION.SMARTSPEAKER.AUDIO`, plus vanished-object byebye tracking and
+advertise config flags (`ssdpAdvertiseConfig`, `ssdpCacheControlDivisor`,
+`ssdpBroadcastOnlyZonePlayer1`, `ssdpAdvertiseOnlyEssentialServices`).
 
 The **internalevts** in-process event bus is decompiled (`FUN_105bbeac`
 destructor, `subject.h` observer pattern): an event-manager object holding 7
