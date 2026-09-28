@@ -22,7 +22,7 @@ unresolvable. Weird/dead/removed behaviour is preserved, not smoothed over.
 | 25.2-50130 | model-2 (proto) | `recovery-work/candidates/model2` cramfs | flat raw image `hh.anacapad` (no ELF hdr) |
 | 34.16 | fenway (multi-product) | `sonos-research/fenway-public` | ELF `anacapad-34.16` |
 | 57.10 | fenway | `sonos-research/fenway-public` | ELF `anacapad-57.10` |
-| diag | fenway | `sonos-research/fenway-public` | ELF `anacapad-diag-jffs` |
+| diag | fenway (diagnostic jffs) | `sonos-research/fenway-public` | ELF `anacapad-diag-jffs` — 167 id-table actions, HTControl str-only, transport controls unwired, 18 absent (~34.x-era reduced build) |
 | 86.8-78270 | **model-8** fenway (Play:1/3/Sub) | `.upd` type-23 `bin/` section | ELF `anacapad-m8-86.8.extracted` (~42.7k funcs) |
 | 86.8-78270 | **model-9** limelight (Playbar) | rootfs squashfs | ELF `anacapad` (17.26MB) |
 | 86.10-80260 | model-9 limelight | rootfs | ELF `anacapad` (frozen baseline) |
@@ -133,6 +133,15 @@ The fenway `anacapad` is a **multi-product** binary, not Play:1-only:
   `htSatelliteStats`, `starting the satellite run loop`. A fenway box becomes a
   Playbar's bonded surround satellite.
 
+**The product gate is runtime and data-driven**, not compile-time. At boot the
+binary reads `hwmodel`/`submodel` via a HAL call (`0x10571730`), matches it
+against a `model_list`/`update_list` config (`supported_models`, `0x1056b658`
+reads `obj+2388`), then a **3-way switch** (`0x1056b6a8/b4/c0`, values 1/2/3 =
+Play1/Play3/Sub) runs product-specific `getProperty` setup; an unrecognized
+model logs `Unsupported Fenway Submodel` (`0x10b84ce8`). One binary serves all
+fenway submodels — behaviour is selected by the detected hardware and a config
+model-list.
+
 The limelight `anacapad` is the **HT-master** side: IR decoder+learning
 (`irdecoder.cxx`, `hal_ir_*`, `IRCode`, `/jffs/irconfig.txt`), Dolby/optical
 decode (`dolby_config.json`, `ActiveDecoder`, `DTS`, `SPDIFParser`, `ACMOD`,
@@ -220,12 +229,31 @@ multi-product source gated at runtime.
 
 ## 8. Native protocols
 
-CHSRC/CHSNK core is **shared** (`chsrc.cxx`, `chsnk.cxx`, `CHSNK`, `CHSNK_SAT`,
-`chsnk%d-as`, chsnk playing/stopped states) — group-audio source/sink fabric.
-limelight adds the HT-specific processors (`htaudio_chsnk_processor_stream.cxx`,
-`as-srcin/out-chsnk`, CHSRC TX for group master, `chsnk drain time`) — the
-optical/TV source into the sink. fenway has the satellite-sink side. Shared
-request/vtable plumbing (§2) underlies both.
+CHSRC/CHSNK core is **shared** (`chsrc.cxx`, `chsnk.cxx`, chsnk state-machine
+log-sites `local chsrc`/`stopped` live in both) — the base channel source/sink
+fabric for general group audio. The **home-theatre flow is asymmetric** —
+complementary halves of one protocol:
+
+- **limelight = CHSRC transmitter / HT-master.** `htaudio_satellite_tx.cxx`,
+  `Using CHSRC TX for GM`, `RCHSRCReq(op,txnID)`, `chsrc_state_events`,
+  `as-srcin/out-chsnk`, `chsnk-sat-as`, `nodetx_ht%d`, `HT NodeTX Blocks`,
+  `SatelliteSwitcher`, `addSatellite`/`removeHTSatellite`/`HTSatelliteChecker`,
+  `satelliteChannelMap`, satellite Spatial/Spectral Tuning, `EnterConfigMode`/
+  `ExitConfigMode on satellite`. Plus the optical decode front-end:
+  `spdif-input`, `SPDIFTap`, `Dolby Atmos(DD+/MAT/TrueHD)`, `dolby_config.json`,
+  `/proc/driver/fpga`, `/proc/driver/tdm/rxring`.
+- **fenway = HTSNK receiver / satellite.** `htsnk.cxx`, `as-*-htsnk`,
+  `htsnk-as`, `HTSNKPipelineVer`, `HTSNK Latency/Missed Frames/Rx Time To Play`,
+  `htSatelliteStats`, `satellite run loop`, `satellite audio disabled/mute/led`,
+  `setting orientation to vertical for satellite`. fenway also has a live
+  `chsnk playing local VLI` binding (VLI→chsnk relay) that limelight routes
+  differently.
+
+So `chsnk`/`chsrc` is the shared base; the HT-specific **TX** side is
+limelight-only and the **RX** side is fenway-only — the Playbar decodes optical
+and pushes audio to bonded satellites, which receive and render it. netstart,
+SonosNet, SCI, TLV, nodetx, hwmessage, protobuf, internalevts are all present in
+both binaries.
 
 ---
 
