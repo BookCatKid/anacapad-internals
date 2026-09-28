@@ -1784,10 +1784,11 @@
   },
   "product_arch": {
     "capability_gate": {
-      "mechanism": "fenway reads hwmodel/submodel at boot via HAL/config call (fn 0x10571730 logs 'hwmodel'), then matches it against a 'model_list'/'update_list' config list (supported_models at fn 0x1056b658 reads obj+2388 index)",
-      "dispatch": "3-way switch on submodel index (values 1/2/3 = Play1/Play3/Sub) at 0x1056b6a8/0x1056b6b4/0x1056b6c0; each case does product-specific getProperty(0x1056b978 /282687956) lookups",
-      "fallback": "fn 0x10b84ce8 returns error + logs 'Unsupported Fenway Submodel' for unrecognized model",
-      "conclusion": "product capability is a RUNTIME data-driven gate (model_list config + hwmodel read), not compile-time \u2014 confirms one binary serves all fenway submodels, behavior selected by detected hardware"
+      "CORRECTED_mechanism": "FUN_10b84ce8 probes a lazily-initialized hardware-descriptor singleton (DAT_10db8758, init via FUN_108d3fb8/__cxa_guard_acquire->FUN_108d3f64). Three predicates read field@+0x10c and submodel@+0x110: [family==8 && (sub&~4)==2]->idx1; [family==8 && (sub&~4)==3]->idx2; [family==8 && sub==1]->idx3. First match returns internal model index 1/2/3; none -> 0 + log 'Unsupported Fenway Submodel'.",
+      "fields": "+0x10c = model family (8 = fenway); +0x110 = submodel ID (bit2/0x4 masked = variant flag). submodel values 1/2/3 = the 3 fenway products (Play1/Play3/Sub)",
+      "update_manifest_parser": "FUN_1056b658 is a separate XML parser for the .upd manifest \u2014 handles image/model/submodel_min/submodel_max/fromver_min/fromver_max/version/flags/milestone_index/app_baseline/arch, supported_models, update_list, model_list, swgen (used by firmware-update validation, NOT runtime product gating)",
+      "evidence": "Ghidra-decompiled from ghidra_proj_m8 (committed)",
+      "conclusion": "fenway product capability = runtime hardware-descriptor probe -> internal model index; data-driven, single binary serves all fenway submodels"
     }
   }
 }
