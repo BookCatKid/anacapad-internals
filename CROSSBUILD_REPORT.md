@@ -19,7 +19,7 @@ unresolvable. Weird/dead/removed behaviour is preserved, not smoothed over.
 
 | Build | Model / arch | Source | anacapad recovered as |
 |-------|--------------|--------|------------------------|
-| 25.2-50130 | model-2 (proto) | `recovery-work/candidates/model2` cramfs | flat raw image `hh.anacapad` (no ELF hdr) |
+| 25.2-50130 | model-2 (proto) | `recovery-work/candidates/model2` cramfs | ELF `hh.anacapad` — Renesas SH, earlier generation (§9) |
 | 34.16 | fenway (multi-product) | `sonos-research/fenway-public` | ELF `anacapad-34.16` |
 | 57.10 | fenway | `sonos-research/fenway-public` | ELF `anacapad-57.10` |
 | diag | fenway (diagnostic jffs) | `sonos-research/fenway-public` | ELF `anacapad-diag-jffs` — 167 id-table actions, HTControl str-only, transport controls unwired, 18 absent (~34.x-era reduced build) |
@@ -368,8 +368,10 @@ source; products differ by which dispatch tables/subsystems get linked.
 `DelegateGroupCoordinationTo` gains a 4th in-arg `ClearSource` — **binary
 confirmed**: the 86.8 wrapper fetches 3 args (`InstanceID`, `NewCoordinator`,
 `RejoinGroup`), the 86.10 wrapper fetches 4. A whole-surface sweep found this is
-the *only* arg-fetch delta across 124 shared pointer-table actions, and the
-fault-code vocabulary is unchanged — the impl delta is confined to `ClearSource`.
+the *only* arg-fetch delta across 124 shared pointer-table actions, and no
+fault-code vocabulary delta was observed — the impl delta is confined to
+`ClearSource`. (Vocabulary equality alone does not prove identical error
+behaviour; here it is backed by the shared-source control-flow evidence.)
 
 **The dispatch surface itself is frozen.** Extracting the 86.8 surface and
 diffing it against the shipped `86.10` JSON shows all 16 services, every action
@@ -543,6 +545,41 @@ M-SEARCH signature`) — authenticated discovery. Custom headers
 advertise config flags (`ssdpAdvertiseConfig`, `ssdpCacheControlDivisor`,
 `ssdpBroadcastOnlyZonePlayer1`, `ssdpAdvertiseOnlyEssentialServices`).
 
+**`libsonossbcpacket.so.1` is a Bluetooth A2DP SBC media-packet framer**, not
+SonosNet. anacapad imports all 13 `SBCPacket` methods. Wire format decoded by
+disassembly: header byte0 = `{frag:1(0x80), first:1(0x40), last:1(0x20),
+rfa:1(0x10) | numFrames:4}` — the A2DP SBC Media Payload Header layout. RX
+validity rejects `rfa`-set packets and requires a nonzero frame-count nibble
+when `frag` is set; status enum `{0=invalid, 1=ok, 2=trunc}`
+(`flags: [%s%s%s%s]` labels ` rfa`/` last`/` 1st`/` frag`). Object layout
+`{buf@+0, hdr@+4, bufsize@+8, numTruncated@+0xc, writeOff@+0x10}` with
+`commitBufferWrite`/`getPayloadFrame(i)`/`setFrameSize`/`zeroAvailableBuffer`.
+Two anacapad call sites pair it with `libsbc.so.1` (`sbc_init`, `sbc_parse`,
+`sbc_get_frame_length`, `sbc_get_codesize`, log `params: freq=%u blks=%u sb=%u
+mode=%u alloc=%u bitpool=%u`) — it re-packetizes Bluetooth SBC codec frames for
+transport: the BT-audio ingest path shared across products.
+
+**The full userspace→hardware boundary is mapped.** `libsyslib_hal.so.1` is
+the board-peripheral HAL anacapad sits on: `hal_events_open`/`hal_events_get_fd`
+(the hwmessage netlink fd), `hal_amps_{open,power,mute,mics,get_amp_type,
+get_rail,hipower}` (the MCU amp sources), `hal_inputs_*` (buttons/captouch/GPIO
+switches/orientation), `hal_ir_*` (IR remote), `hal_detect_get_cable_states`,
+`hal_thermal_get_temps`, `hal_orient_get_orientation`. Chain:
+`anacapad → libsyslib_hal → libhwmessagelib → kernel genl driver → MCU/SCI
+peripherals` — SCI itself is below the kernel driver boundary.
+
+**SonosNet lives in the wifi driver, not userspace.** `libwifi.so.1` exports
+the mesh *configuration* surface only — `WifiFuncsSetHHID`,
+`SetHHIDWEPKeyChannel` (household-keyed WEP), `StartScanForSonosNetPrimary`,
+`SendNetstartProbe`, `EnableNetstartIndication`, `IgnoreProbesFromBoost`,
+`IgnoreNonSatProbes`, `EnableHtAPMode`, `AddBridgeMcastAddrForPort`,
+`NetSettingsUpdate{PrimaryUUID,DemoMode,NFWSSIDFile}` — all via
+`__WifiFuncsDoIoctl` + `rtnl_open`/`rtnl_close`. The mesh wire protocol is in
+the kernel/driver, the same boundary as the hwmessage netlink bus. MRPC stays
+anacapad-internal naming (absent from all 30 rootfs libs). `libsonos-mdp.so.1`
+is manufacturing identity (`sonosGetSeriesID`, `sonosGetColorVariantString`,
+`sonosMdpSerialToString`), not a protocol.
+
 The **internalevts** in-process event bus is decompiled (`FUN_105bbeac`
 destructor, `subject.h` observer pattern): an event-manager object holding 7
 event-type slots (`obj+0xb..+0x18`), each a doubly-linked list of 12-byte
@@ -563,16 +600,100 @@ via `vfunc+0x15c`.
 
 ---
 
-## 9. model-2 `25.2` proto anchor
+## 9. model-2 `25.2` proto anchor — a different architecture generation
 
-The flat `hh.anacapad` image carries **178/197** action names and **13**
-service URNs — a mature proto-surface. Absent: Queue, VirtualLineIn, QPlay
-services entirely, plus `SetNextAVTransportURI`, `EnterConfigMode`/`ExitConfigMode`
-(no HT satellite config), OAuth accounts, button-lock, sonar, direct-control
-names. Its dispatch **cannot be resolved from the flat image** — no consistent
-load base makes action names pointer-referenced, so it predates/differs from
-the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
-25.x-era binary to decode its dispatch.
+`hh.anacapad` **is a proper ELF**, not a flat image (the earlier "no ELF hdr"
+note was an extraction artifact): 32-bit LSB **Renesas SH** (SuperH — a
+different CPU from every PPC build), stripped, 3.3 MB in the model-2 cramfs
+rootfs. Its SOAP surface is fully recoverable from `.rodata`.
+
+It carries **13 service URNs**: AlarmClock, RenderingControl, AVTransport,
+ZoneGroupTopology, SystemProperties, MusicServices, ContentDirectory,
+ConnectionManager, DeviceProperties, GroupManagement, **AudioIn**, **HTControl**,
+GroupRenderingControl. **Absent as services: Queue, VirtualLineIn, QPlay** —
+queue operations were AVTransport methods (`addURIToQueue`, `saveQueue`,
+`removeTrackFromQueue`), not a separate service; the service decomposition
+evolved later.
+
+Crucially this is a **different, earlier generation of the SOAP/UPnP stack** —
+the `{name,fn_or_id,ctx_off}` dispatch mechanism does not exist yet. Instead
+there is a direct **camelCase C++ method API** (`createAlarm`, `updateAlarm`,
+`setVolume`, `setMute`, `addURIToQueue`,
+`becomeCoordinatorOfStandaloneGroup`, `play`, `pause`, `seek`,
+`setAVTransportURI`) on `UPNP*`/`R*` classes (`UPNPAlarmClock`, `UPNPAVTransport`,
+`UPNPContentProvider`, `UPNPAudioInput`, `UpnpDeviceDiscovery`, `UpnpOp`,
+`RZoneVolume`, `RBrowseCacheMgr`) with a **listener/callback event model**
+(`onAlarmsChanged`, `onVolumeChanged`, `onZoneGroupsChanged`,
+`OnChangeAssociatedZP`) rather than GENA `LastChange`. The dispatch/request
+object model was **rewritten between 25.2 and 34.16**.
+
+**Dispatch mechanism decoded** (SH4 literal-pool xrefs + minimal disassembler —
+the string-scan ceiling turned out to be tooling, not the binary). Each action
+gets a **generated registration wrapper** that calls
+`registerAction(svc+8, serviceURN, actionName, ctx{17936, 2000, 0,0,0})`
+(`0x57a560`), then binds every SOAP arg by name —
+`lookupArg(ctx+10828, "DesiredName")` (`0x55d280`/`0x55ed80`) →
+`arg->vfunc+0x10(member-binder)` — and finalizes via `0x57a720`+`0x57a660`. A
+declarative `UpnpOp` registration model; there is no binary-search action
+table at all. Pairing each wrapper's URN literal with its action-name literal
+yields the complete surface: **185 service→action registrations** (full map in
+`docs/model2_25.2_surface.json`): AVTransport 43, RenderingControl 25,
+DeviceProperties 23, SystemProperties 21, ContentDirectory 18, AlarmClock 17,
+HTControl 8, ZoneGroupTopology 8, AudioIn 7, GroupRenderingControl 6,
+ConnectionManager 3, GroupManagement 3, MusicServices 3.
+
+**AudioIn is fully implemented in 25.2** with the same action set that is
+reject-all-stubbed in 86.x: `StartTransmissionToGroup`,
+`StopTransmissionToGroup`, `SetAudioInputAttributes`, `GetAudioInputAttributes`,
+`SetLineInLevel`(`DesiredLeft/RightLineInLevel`),
+`GetLineInLevel`(`CurrentLeft/RightLineInLevel`) — the "dead" 86.x surface is a
+stub over a formerly-live service. Early-era sources: Rhapsody/Napster/Pandora/
+Sirius/Last.fm + `SONOS_DOCK`, `x-sonos-dock`/`lfmtrack`/`pndrradio` URIs.
+
+**Action-surface conservation across the rewrite.** String-diffing the two
+binaries shows **170/188 (90%)** of the 86.x UPnP action names already present
+in 25.2. The 18 added-later names cluster into: OAuth music accounts
+(`AddOAuthAccountX`/`ReplaceAccountX`/`SetAccountNicknameX` — 25.2 used
+`AddAccountWithCredentialsX`/`ProvisionTrialAccountX`), HT satellite config mode
+(`EnterConfigMode`/`ExitConfigMode`), physical button lock
+(`Get/SetButtonLockState`, `GetButtonState`), Trueplay/sonar room calibration
+(`Get/SetRoomCalibrationStatus`, `RoomDetectionStart/StopChirping`), and
+gapless/direct-control transport (`SetNextAVTransportURI`,
+`EndDirectControlSession`, `SetSourceAreaIds`,
+`ReorderTracksInSavedQueue` — 25.2 had singular `ReorderTrackInSavedQueue`).
+Removed after 25.2: the pre-OAuth account family (`AddAccount`,
+`ProvisionTrialAccountX`, `ReauthorizeAccount`, `ResetThirdPartyCredentials`),
+`ReportAlarmStartedRunning`, `SetInvisible`.
+
+**Monolithic household binary.** `hh.anacapad` ("household") embeds subsystems
+split into separate processes by 86.x: a **Flash ActionScript VM** (the
+controller UI — `ActionGotoFrame`, `ActionDefineFunction`, `ActionGetURL2`,
+`SwfObj*` proxy classes), font glyph tables, and embedded music-service catalog
+clients (`RhapsodyDirect*`, SMAPI-style `TracksForArtistInLibrary`/
+`AlbumsForArtistInLibrary` browse methods). In 86.x `anacapad` is server-only.
+
+**HTTP/API surface** (the monolith is also the device's web+diag front-end):
+admin/diag endpoints `/diag` (shells out to `dmesg`/`netstat`/`ifconfig`/
+`route`/`ps`/`uptime`/`date`), `/diaglevel`, `/support`, `/topology`, `/upnp`,
+`/aggregate`, `/notify`, `/unlock`, `/region`, `/screenshot` (dumps `/dev/fb`),
+`/getassoc`, `/hibernate`, `/sonosSerial`/`/cpuSerial`/`/audioSerial`,
+`/mfgdata`, `/udn`, `/sid`, `/seq`, `/ver`; config endpoints
+`/set-local-setting`, `/set-zp-netstart-src-mac`, `/get-cr-netstart-dest-mac`,
+`/localsettings`, `/groupsettings`, `/boundalarms`; media endpoints
+`/getaa?r=1&u=%s` (+`&album=`/`&artist=`/`&tr=` variants — the album-art
+getter), `/msprox?`, `/msmetrics`, `/trackplay`, `/tuner`,
+`/system-api{,-pos,-tracking}`; and the **Rhapsody Direct XML-RPC client**
+surface (`/services/xmlrpc`, `/methodCall`/`/methodName`,
+`{account,library,metadata,search}/services/RhapsodyDirect*`). SOAP fault
+machinery (`/soap/envelope`, `UPnPError`, `errorCode`) already exists.
+
+**Environment.** This is a **development ZP-emulator build**, not shipped
+device firmware: `hh.anacapactl` launches `hh.anacapad` under `gdbserver`
+on `sh4`; `hh.anacapa.conf` carries `#HackModel 8.1` ("Override the default
+Model[.Submodel] of the ZP emulator"), `ZPMusicServicesBackstop` paths into a
+dev source tree, `Port 3400`, `MaxConn 4`, `SWFFilePath /opt/swf/MainUI.swf`,
+`OnlineUpdateBaseURL http://update.sonos.com/firmware/latest/` and
+`ZPMusicServicesList http://service-catalog.ws.sonos.com/catalog/services`.
 
 ---
 
@@ -607,12 +728,12 @@ the `{name,func}/{name,id}` table format. Need an ELF-headered or relocatable
 | Gap | Blocker / what's needed |
 |-----|-------------------------|
 | `57.23-74170` ×12 models + recovery model20/model28 | recipient private keys not in vault (have 1,8,9,12,16,17 only) — need the per-model RSA keys |
-| model-2 25.2 dispatch | flat image has no reloc info — need ELF-headered 25.x binary or symbols |
+| model-2 25.2 per-action impl bindings | **dispatch model + full 185-action surface extracted** (§9, `model2_25.2_surface.json`). Remaining depth: mapping each registered action to its impl function would need fuller SH4 arg-flow tracing through the `arg->vfunc+0x10` member binders — tractable but low-yield vs. the proven generation finding |
 | per-service worker-sibling binding | the `worker` (`svc_ctx+4`) is `NULL` in the ctor and bound post-construction in device-init — not an `operator_new`+`store` site. The worker **family is located**: `.rodata` `0x10d28xxx`–`0x10d2fxxx` holds the `DSPControl{Play1,Play3,Sub,HT}` facade siblings (shared backend block, thin `sub@0x158→inner@0x714→vfunc` trampolines; m9 same). What remains runtime-bound is *which sibling* backs each service — a device-init/hwmodel decision. Request-context object graphs are statically mapped |
 | per-arg `buf_cap` bounds | **resolved** — string descriptors take the caller's buffer capacity in `r5` at the `FUN_1055a7c0` call site (`rec+0x10=r5`, not a descriptor constant). Reading the call-site `r5` resolves 332/332 parseable args: `24B` scalar inline bufs, `64–1025B` strings, up to `40970B` (`EnqueuedURIsMetaData`) / `16384B` (`Elements`) / `8194B` (`RedirectURI`) bulk payloads. Residual nulls are architecturally different: id-table virtual-method args, bulk-state-transfer actions (`BecomeGroupCoordinator`/`AddMultipleURIs`/`ReplaceAllTracks` move whole snapshots), and reject-all stubs — not missing constants |
 | error-condition passthroughs | runtime-produced residuals inside named transaction boundaries — runtime-bound, not statically provable |
 | runtime/live verification | explicitly out of scope (frozen at static ceiling) |
-| SCI/SonosNet/MRPC/TLV "handler internals" | **resolved by relocation** — they were never in `anacapad`. The hw-message bus is `libhwmessagelib.so.1` (generic **netlink**: `connection_init/readNextMsg/sendMsgToKernel`, `genlmsg_hdr`, `nl_send_auto`). `SCI_BOARD`/`PSOC`/`CEC`/`UART`/`PMU` are **hardware event-source IDs** in its enum, alongside ~60 sources (buttons, capzones, MCU-amps, HDMI/NFC/BLE/WIFI). Message types `U_HWMT`: NOOP/OVERFLOW/EVENT; event IDs cover volume-wheel/orientation/thermal/amp-clip/battery/motion/switch; multicast groups AUDIO/BATTERY/BUTTON/CAPZONE/HT/LED/SENSOR/TEMP/WAKEUP/SWITCH. `anacapad` only *names* sources/types (via `nodetx_*` requests on this bus); the codec/handlers live in the kernel netlink driver + this lib — hence no anacapad code xref |
+| SCI/SonosNet/MRPC/TLV "handler internals" | **resolved by relocation** — they were never in `anacapad`. The hw-message bus is `libhwmessagelib.so.1` (generic **netlink**: `connection_init/readNextMsg/sendMsgToKernel`, `genlmsg_hdr`, `nl_send_auto`). `SCI_BOARD`/`PSOC`/`CEC`/`UART`/`PMU` are **hardware event-source IDs** in its enum, alongside ~60 sources (buttons, capzones, MCU-amps, HDMI/NFC/BLE/WIFI). Message types `U_HWMT`: NOOP/OVERFLOW/EVENT; event IDs cover volume-wheel/orientation/thermal/amp-clip/battery/motion/switch; multicast groups AUDIO/BATTERY/BUTTON/CAPZONE/HT/LED/SENSOR/TEMP/WAKEUP/SWITCH. `anacapad` only *names* sources/types (via `nodetx_*` requests on this bus); the codec/handlers live in the kernel netlink driver + this lib — hence no anacapad code xref. Rest of the boundary (§8): SonosNet mesh = wifi-driver ioctls via `libwifi` (no userspace codec); `libsonossbcpacket` = A2DP SBC audio framer (header `{frag,1st,last,rfa|numFrames:4}`); `libsyslib_hal` = the `hal_events`/`hal_amps`/`hal_inputs`/`hal_ir` board HAL feeding that netlink fd; `libsonos-mdp` = manufacturing identity. MRPC = anacapad-internal naming only (0 hits in all 30 libs) |
 
 ---
 

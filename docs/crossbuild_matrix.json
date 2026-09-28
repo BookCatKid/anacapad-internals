@@ -1513,7 +1513,7 @@
   "verdict": "ClearSource is the ONLY genuine arg-fetch delta across all shared pointer-table actions \u2014 the 86.8->86.10 binary change is confined to this one input; all other impl wrappers fetch identical arg sets",
   "fault_code_vocab": {
    "note": "whole-binary r3=immediate scan, UPnP band 100-1300 + -1/-2",
-   "verdict": "fault-code vocabularies are IDENTICAL for all real UPnP codes (400s/500s/600s/700s/800s/1000s); the few differing low literals are struct-offset noise (multiples of 4), not error codes \u2014 impl error behavior is unchanged between 86.8 and 86.10"
+   "verdict": "no fault-code vocabulary delta was observed between 86.8 and 86.10 for real UPnP codes (400s/500s/600s/700s/800s/1000s); the few differing low literals are struct-offset noise (multiples of 4), not error codes. Caveat: an identical fault-code vocabulary alone does not prove identical error behavior \u2014 behavior claims for this pair rest on the control-flow evidence (identical vfunc-id impls, per-impl instruction profiles, SetVolume decompiled parity), not on the vocabulary comparison"
   }
  },
  "model8_play1_fenway_868": {
@@ -2113,5 +2113,187 @@
   "evidence": "m8 0x100db940: arg-insert builds nodes at req+0x900 region - stw r20,req+0x990 (root), stw r9,req+0x994 (leftmost/tail), next slot req+0x998 (count) = _Rb_tree_header layout. Insert calls 0x108d84b4 (tree insert/balance) + 0x100d2e8c (node find with compare). Inbound XML body is parsed into this name-keyed map; req->vfunc+0x1c (in-arg lookup) and +0x24 (out-arg accessor) find/insert entries by name.",
   "implication": "arg fetch is a std::map lookup - explains the uniform req->vfunc+0x1c(name)->rec contract: every action's in/out args live in one ordered map built at parse time, then each arg is materialized into a {type,storage,cap} descriptor on demand.",
   "confidence": "proven"
+ },
+ "model2_25.2_generation": {
+  "claim": "25.2-50130 model-2 is a completely different, earlier SOAP/UPnP architecture generation - pre-dating the {name,fn,id} dispatch mechanism entirely. Surface IS extractable despite being 'flat'.",
+  "arch": "hh.anacapad is a proper ELF (NOT flat): 32-bit LSB Renesas SH (SuperH), stripped, 3.3MB, in cramfs rootfs. Different CPU arch from all PPC builds.",
+  "object_model": "NO {name,fn_or_id,ctx_off} dispatch tables - those don't exist yet. Instead a direct camelCase C++ method API (createAlarm/updateAlarm/setVolume/setMute/addURIToQueue/becomeCoordinatorOfStandaloneGroup/play/pause/seek/setAVTransportURI) on UPNP*/R* classes: UPNPAlarmClock, UPNPAVTransport, UPNPContentProvider, UPNPAudioInput, UpnpDeviceDiscovery, UpnpOp, RZoneVolume, RBrowseCacheMgr, RAsyncBrowseCacheMgr. Events are a listener/callback model (onAlarmsChanged/onVolumeChanged/onZoneGroupsChanged/OnChangeAssociatedZP), not GENA LastChange.",
+  "services": "13 UPnP services (urn:schemas-upnp-org:service:X:1): AlarmClock, RenderingControl, AVTransport, ZoneGroupTopology, SystemProperties, MusicServices, ContentDirectory, ConnectionManager, DeviceProperties, GroupManagement, AudioIn, HTControl, GroupRenderingControl. ABSENT: Queue, VirtualLineIn, QPlay - queue ops were AVTransport methods (addURIToQueue/saveQueue/removeTrackFromQueue), not a separate service; service decomposition evolved later.",
+  "audioin_live": "AudioIn is FULLY IMPLEMENTED in 25.2 with the same action set that's reject-all-stubbed in 86.x: StartTransmissionToGroup, StopTransmissionToGroup, SetAudioInputAttributes, GetAudioInputAttributes, SetLineInLevel(DesiredLeft/RightLineInLevel), GetLineInLevel(CurrentLeft/RightLineInLevel) + UPNPAudioInput/HTAudioIn/LineIn.comp.uncomp.sec.err/R_AudioInEncodeType. The 86.x 'dead' surface is a stub applied over a formerly-live service.",
+  "era_sources": "early music-service set: RHAPSODY_RADIO/NAPSODY/PANDORA_RADIO/SIRIUS_RADIO/LASTFM_RADIO/SONOS_PROGRADIO + SONOS_DOCK_ZP/SONOS_DOCK + x-sonos-dock/lfmtrack/radio-radea/pndrradio/radio-npsdy URI schemes; HT present (HT_AUDIO_SOURCE/HTSatChanMapSet/x-sonos-htastream).",
+  "confidence": "proven (ELF + string surface extracted)"
+ },
+ "model2_25.2_vs_86x_surface_diff": {
+  "claim": "Quantitative action-surface comparison 25.2 vs 86.10: 170/188 (90%) of 86.x UPnP action names already exist in the 25.2 binary - the surface is remarkably conserved across the full stack rewrite.",
+  "added_in_86x": [
+   "AddOAuthAccountX",
+   "ReplaceAccountX",
+   "SetAccountNicknameX",
+   "EnterConfigMode",
+   "ExitConfigMode",
+   "GetButtonLockState",
+   "GetButtonState",
+   "SetButtonLockState",
+   "GetRoomCalibrationStatus",
+   "SetRoomCalibrationStatus",
+   "RoomDetectionStartChirping",
+   "RoomDetectionStopChirping",
+   "SetNextAVTransportURI",
+   "EndDirectControlSession",
+   "SetSourceAreaIds",
+   "ReorderTracksInSavedQueue",
+   "StartTransmission",
+   "StopTransmission"
+  ],
+  "added_clusters": "OAuth music accounts (AddOAuthAccountX/ReplaceAccountX/SetAccountNicknameX - 25.2 used AddAccountWithCredentialsX/ProvisionTrialAccountX instead), HT satellite config mode, physical button lock, Trueplay/sonar room calibration + chirp detection, gapless SetNextAVTransportURI + direct-control session, source-area ids",
+  "removed_after_25.2": "pre-OAuth account actions (AddAccount, AddAccountWithCredentialsX, ProvisionTrialAccountX, ProvisionCredentialedTrialAccountX, ReauthorizeAccount, ResetThirdPartyCredentials), ReportAlarmStartedRunning, ReorderTrackInSavedQueue (singular, renamed to plural in 86.x), SetInvisible",
+  "monolith": "25.2 hh.anacapad ('household' binary) embeds subsystems split into separate processes by 86.x: a Flash ActionScript VM (ActionGotoFrame/ActionDefineFunction/ActionGetURL2/SwfObj* classes - the controller UI), font glyph tables, and embedded music-service catalog clients (RhapsodyDirect*, TracksForArtistInLibrary/AlbumsForArtistInLibrary SMAPI-style browse). In 86.x anacapad is server-only; UI/catalog live elsewhere.",
+  "confidence": "proven for counts/added names (string presence in both binaries); removed list is representative (noisy reverse-diff filtered manually)"
+ },
+ "sbc_packet_codec_decoded": {
+  "claim": "libsonossbcpacket.so.1 = Bluetooth A2DP SBC media-packet framer, NOT SonosNet ('SBC' = Low-Complexity Subband Coding audio codec). anacapad imports all 13 SBCPacket methods.",
+  "wire_format": "SBCPacketHeader byte0 = { frag:1(0x80), first:1(0x40/' 1st'), last:1(0x20/' last'), rfa:1(0x10/' rfa'), numFrames:4(low nibble) } - mirrors the A2DP SBC Media Payload Header layout. Validity: byte&0x10 \u2192 invalid on RX (rfa rejected); frag set requires nonzero frame-count nibble; fragment flags constrain legal combos (1st/last encode fragment position).",
+  "object_layout": "SBCPacket(buf,size): {bufptr@+0, hdrptr@+4, bufsize@+8, numTruncatedFrames@+0xc, writeOff@+0x10}; API: commitBufferWrite, getPayloadFrame(i), setFrameSize, setNumFrames, zeroAvailableBuffer, getNumTruncatedFrames; status enum {0 invalid,1 ok,2 trunc} (' ok'/' trunc'/' invalid'/UNKNOWN); fmt 'numFrames: %u flags: [%s%s%s%s ]' + 'status: %s frameSize: %zu payloadSize: %zu bufferSize: %zu'.",
+  "callers": "anacapad uses it via one {sbc_ctx@+0, SBCPacket@+0x404} object at 2 sites: ENCODE path 0x104eebxx (sbc_get_codesize \u2192 getPayloadFrame(hdr>>4=numFrames) \u2192 sbc_encode writes 69-byte frames \u2192 setFrameSize(0x45); PCM\u2192SBC\u2192packet = A2DP-source TX direction) and packet-mux path 0x1052c7xx (sbc_init/sbc_parse/sbc_get_frame_length/sbc_finish + commitBufferWrite + validate/toString logging 'params: freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u','Invalid packet: %s','frame size changed %zu->%zu'). Function: packetize libsbc encoder output into A2DP SBC media payloads - the BT-audio source path shared across products.",
+  "sonosnet_libwifi": "libwifi.so.1 exports the SonosNet *config* surface only: WifiFuncsSetHHID/SetHHIDWEPKeyChannel (household WEP keying), StartScanForSonosNetPrimary, SendNetstartProbe, EnableNetstartIndication, IgnoreProbesFromBoost, IgnoreNonSatProbes, EnableHtAPMode, AddBridgeMcastAddrForPort, SetNetworkSettingsIE, NetSettingsUpdate{PrimaryUUID,DemoMode,NFWSSIDFile}. Implemented via __WifiFuncsDoIoctl + rtnl_open/rtnl_close \u2192 mesh protocol is in the wifi driver/kernel, not userspace - same boundary as hwmessage bus.",
+  "libsonos_mdp": "libsonos-mdp.so.1 = manufacturing/device-identity, not a protocol: sonosGetSeriesID, sonosGetColorVariantString, sonosGetCertColorVariant, sonosMdpSerialToString, sonosSetSeriesID.",
+  "mrpc": "MRPC remains anacapad-internal naming - absent from all 30 rootfs libraries; no userspace wire codec.",
+  "confidence": "proven (dynsym exports + PPC disasm of validate/toString/callers + reloc-resolved label strings)"
+ },
+ "hardware_stack_fully_mapped": {
+  "claim": "The complete anacapad->hardware stack is now mapped across all rootfs libs. 'SCI' resolves: SCI_BOARD/PSOC/UART/MCU-amps are kernel-side event sources whose events reach userspace via the hwmessage generic-netlink bus; the userspace boundary is libsyslib_hal.",
+  "stack": [
+   "anacapad -> libsyslib_hal (hal_events_open/hal_events_get_fd = the hwmessage netlink fd; hal_amps_{open,power,mute,mics,get_amp_type,get_rail,hipower}; hal_inputs_{get_buttons_state,get_captouch_state,get_gpio_switches,orientation}; hal_ir_{open,read,get_fd}; hal_detect_get_cable_states; hal_thermal_get_temps; hal_orient_get_orientation)",
+   "-> libhwmessagelib (genl codec, hwevtq_policy nla schema) -> kernel generic-netlink driver -> MCU/SCI board peripherals",
+   "anacapad -> libwifi WifiFuncs* -> wifi driver ioctls + rtnetlink -> SonosNet mesh (in-driver)",
+   "anacapad -> libsonossbcpacket + libsbc.so.1 -> A2DP SBC audio packet path",
+   "anacapad -> libsonos-mdp (series/color variant), libflash (SPI flash), libsonosutils, libsonos-time-c, libsonoseventreporter (telemetry ctx)"
+  ],
+  "consequence": "No userspace SCI/MRPC/SonosNet wire codec exists in anacapad or any of the 30 rootfs libs - hardware comms terminate at kernel drivers; userspace sees only event fds and config ioctls. The 'handler internals' question is closed: nothing further is statically reachable.",
+  "confidence": "proven (dynsym export tables of all relevant libs)"
+ },
+ "model2_25.2_environment": {
+  "claim": "25.2-50130 model-2 is a development/ZP-emulator build, not shipped device firmware.",
+  "evidence": "opt/bin/hh.anacapactl is a launcher script: on arch sh4 it runs 'gdbserver 10.10.1.237:1234 hh.anacapad -c conf -d 10' (remote-debug dev harness); on other archs 'gdb --args'. opt/conf/hh.anacapa.conf: '#HackModel 8.1' comments 'Override the default Model[.Submodel] of the ZP emulator'; ZPMusicServicesBackstop/ZPTimeZonesBackstop point into a dev source tree ('../../../../cc/anacapa/anacapa/pkg/htdocs/xml/').",
+  "server_config": "hh.anacapa.conf: Port 3400, ServerRoot /opt, Path htdocs, MaxConn 4, TimeOut 10, DiagLevel default=1,docked=3, PidFile log/hh.anacapa.pid, SWFFilePath /opt/swf/MainUI.swf (Flash UI served by the monolith), JFFSRoot /tmp/jffs_3400, OnlineUpdateBaseURL http://update.sonos.com/firmware/latest/, ZPMusicServicesList http://service-catalog.ws.sonos.com/catalog/services",
+  "confidence": "proven (config + launcher script contents)"
+ },
+ "model2_25.2_dispatch_decoded": {
+  "claim": "25.2 dispatch mechanism decoded via SH4 literal-pool xrefs + minimal disasm: NOT {name,fn,id} tables. Each action has a generated registration wrapper that calls registerAction(obj+8, serviceURN, actionName, ctx{17936,2000,0,0,0})@0x57a560 then binds each SOAP arg by name via lookupArg(ctx+10828,'ArgName')@0x55d280/0x55ed80 -> arg->vfunc+0x10(member-binder), finalized by 0x57a720+0x57a660. A declarative UpnpOp registration model predating the binary-search dispatch.",
+  "extraction": "185 service->action registrations recovered by pairing each wrapper's URN literal (r6/r7) with its action-name literal. Full per-service inventory in matrix: AVTransport 43, RenderingControl 25, DeviceProperties 23, SystemProperties 21, ContentDirectory 18, AlarmClock 17, HTControl 8, ZoneGroupTopology 8, AudioIn 7, GroupRenderingControl 6, ConnectionManager 3, GroupManagement 3, MusicServices 3.",
+  "removed_after_25.2": {
+   "AudioIn": [
+    "StartTransmissionToGroup",
+    "StopTransmissionToGroup",
+    "SetAudioInputAttributes",
+    "GetAudioInputAttributes",
+    "SetLineInLevel",
+    "GetLineInLevel",
+    "SelectAudio (extra 25.2-only action)"
+   ],
+   "SystemProperties": [
+    "AddAccountWithCredentialsX",
+    "MigrateTrialAccountX",
+    "ProvisionCredentialedTrialAccountX",
+    "ProvisionTrialAccount",
+    "ResetThirdPartyCredentials",
+    "ApplyRDMDefaultSettings",
+    "GetStringX",
+    "SetStringX",
+    "RemoveX"
+   ],
+   "AVTransport": [
+    "NextProgrammedRadioTracks",
+    "NextSection",
+    "PreviousSection",
+    "ReorderTrackInSavedQueue (renamed ReorderTracksInSavedQueue)"
+   ],
+   "ContentDirectory": [
+    "Search",
+    "RefreshShareList"
+   ],
+   "DeviceProperties": [
+    "GetInvisible",
+    "SetInvisible",
+    "ImportSetting"
+   ]
+  },
+  "added_by_86x": [
+   "OAuth family (AddOAuthAccountX/ReplaceAccountX/SetAccountNicknameX)",
+   "Queue service split: AddURI/AddMultipleURIs/AttachQueue/Backup/CreateQueue/RemoveAllTracks/RemoveTrackRange/ReorderTracks/ReplaceAllTracks/SaveAsSonosPlaylist (25.2 kept these as AVTransport XxxFromQueue methods)",
+   "SetNextAVTransportURI",
+   "EndDirectControlSession",
+   "SetSourceAreaIds",
+   "EnterConfigMode/ExitConfigMode",
+   "GetButtonState",
+   "Get/SetButtonLockState",
+   "Get/SetRoomCalibrationStatus",
+   "RoomDetectionStart/StopChirping",
+   "StartTransmission/StopTransmission (Queue/QPlay-side)"
+  ],
+  "confidence": "proven (SH4 disasm of registration wrappers + literal-pair extraction across all 13 URNs)"
+ },
+ "model2_25.2_http_surface": {
+  "claim": "hh.anacapad's custom HTTP endpoint surface (beyond SOAP control) extracted from .rodata - the 25.2 server is also the device's web/diag front-end (monolith).",
+  "admin_diag_endpoints": [
+   "/diag (shells out: /bin/dmesg, /bin/netstat -an, /sbin/ifconfig, /sbin/route -n, /bin/ps -ef, /usr/bin/uptime, /bin/date)",
+   "/diaglevel",
+   "/support",
+   "/topology",
+   "/upnp",
+   "/aggregate",
+   "/notify",
+   "/unlock",
+   "/region",
+   "/screenshot (dumps /dev/fb via /tmp/hh-screen-%d.dmp; /dev/hhkbd input dev)",
+   "/getassoc (/wifi/G/athconfig getassoc ath0)",
+   "/hibernate (/usr/bin/hhdevutil sleep hibernate)",
+   "/sonosSerial",
+   "/cpuSerial",
+   "/audioSerial",
+   "/mfgdata (/jffs/diags/dumpmfgdata.sh)",
+   "/udn",
+   "/sid",
+   "/seq",
+   "/ver",
+   "/all"
+  ],
+  "config_endpoints": [
+   "/set-local-setting",
+   "/set-zp-netstart-src-mac",
+   "/get-cr-netstart-dest-mac",
+   "/localsettings",
+   "/groupsettings",
+   "/globaltags",
+   "/boundalarms"
+  ],
+  "media_endpoints": [
+   "/getaa?r=1&u=%s (+&album=|&artist=|&al=|&ar=|&tr=), /getaa?s=1&u=%s, /getaa?m=1&u=%s - album-art getter with mode+id params",
+   "/msprox? (media-server proxy)",
+   "/msmetrics",
+   "/trackplay",
+   "/tuner",
+   "/system-api",
+   "/system-api-pos",
+   "/system-api-tracking"
+  ],
+  "music_service_client": "Rhapsody Direct XML-RPC client paths: /services/xmlrpc + /methodCall//methodName elements + /account/services/RhapsodyDirectAccountMgmt, /library/services/RhapsodyDirectLibrary, /metadata/services/RhapsodyDirectMetadata, /search/services/RhapsodyDirectSearch, /services/RhapsodyDirectPlayback; also /cfc/trq.cfc?wsdl (ColdFusion WSDL) and /xml/review.xsl",
+  "soap_elements": [
+   "/soap/envelope",
+   "/soap/encoding",
+   "/faultcode",
+   "/faultstring",
+   "/detail",
+   "/errorCode + urn:schemas-upnp-org:control-1-0|UPnPError - the UPnP fault machinery exists in 25.2"
+  ],
+  "misc": [
+   "/opt/anacapa//conf/anacapa.conf default path; /opt/htdocs_locked + /tmp/device_unlocked_flag = locked-state UI; toolchain stamp /usr/local/toolchain/sh4-20040827/gcc-3.2.3; ConnectionManager protocolInfo incl x-file-cifs (SMB), audio/audible, real.com-rhapsody"
+  ],
+  "confidence": "proven (string-table extraction; glyph-noise filtered)"
+ },
+ "model2_25.2_no_scpd": {
+  "claim": "25.2 embeds NO standard UPnP SCPD XML: zero hits for <scpd/serviceStateTable/actionList/argumentList/<stateVariable/sendEvents/<dataType/direction=. Only device-description elements exist (serviceType, controlURL, eventSubURL).",
+  "implication": "Argument metadata lives only in the generated registration wrappers (lookupArg->vfunc+0x10 member binders); the SCPD schema layer either isn't served or is synthesized differently in this pre-86.x generation. Arg types/directions for 25.2 actions are therefore not directly recoverable from string tables - they'd need fuller SH4 dataflow through the binder args.",
+  "confidence": "proven (absence verified across the whole rodata)"
  }
 }
