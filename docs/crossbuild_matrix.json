@@ -2107,5 +2107,11 @@
   "security": "M-SEARCH requests are HMAC-signed ('M-SEARCH signature HMAC init failed','base64 encoding failed','Failed to calculate M-SEARCH signature') - authenticated discovery anti-spoofing. Custom SSDP headers: X-RINCON-VARIANT:%u, SECURELOCATION.UPNP.ORG:%s, X-SONOS-HHSECURELOCATION:%s, LOCATION.SMARTSPEAKER.AUDIO:. ERROR_SONOS_BAD_LOCATION validates device location.",
   "lifecycle": "vanished-object tracking ('Vanished object %s: byebye reason %s', byebyereason, zp byebye, TRANS_NEW_LOCATION/NEW_LOCATION/F_UPDATE_LOCATION) + config flags ssdpAdvertiseConfig/ssdpCacheControlDivisor/ssdpBroadcastOnlyZonePlayer1/ssdpAdvertiseOnlyEssentialServices. GENA event NOTIFY (NT:upnp:event) shares the NOTIFY transport but is separate from SSDP.",
   "confidence": "proven"
+ },
+ "req_arg_map_model": {
+  "claim": "the SOAP request object stores parsed arguments in a std::map<argName,value> at req+0x900",
+  "evidence": "m8 0x100db940: arg-insert builds nodes at req+0x900 region - stw r20,req+0x990 (root), stw r9,req+0x994 (leftmost/tail), next slot req+0x998 (count) = _Rb_tree_header layout. Insert calls 0x108d84b4 (tree insert/balance) + 0x100d2e8c (node find with compare). Inbound XML body is parsed into this name-keyed map; req->vfunc+0x1c (in-arg lookup) and +0x24 (out-arg accessor) find/insert entries by name.",
+  "implication": "arg fetch is a std::map lookup - explains the uniform req->vfunc+0x1c(name)->rec contract: every action's in/out args live in one ordered map built at parse time, then each arg is materialized into a {type,storage,cap} descriptor on demand.",
+  "confidence": "proven"
  }
 }
