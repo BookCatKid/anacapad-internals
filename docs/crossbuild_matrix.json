@@ -1588,7 +1588,8 @@
       "m8_only_fields": "<HTSNKPipelineVer> (satellite sink pipeline version); <SubLeveldB><InvertSub><ConstrainSubLevelToVolume> (Sub bonding); DSP gain-trim debug",
       "verdict": "Playbar emits the HT-master telemetry (optical decode, dialog normalization, night mode, surround config, per-satellite stats); Play:1 emits only satellite-receiver + Sub params. Queue LastChange (<Event xmlns=...Queue/>) shared.",
       "shared": "Queue LastChange + volume/group event names exist in both (different log format strings)"
-    }
+    },
+    "uri_payload": "protocolInfo string (file:*:audio/mpegurl,x-file-cifs,x-rincon,x-rincon-mp3radio,x-rincon-playlist,x-rincon-queue,x-rincon-cpcontainer) SHARED with m9. Deltas: m8 x-rincon-sonarcal:complete.ogg vs m9 complete_ht.ogg (HT-aware calibration chime); m9-only http://ir.ws.sonos.com/IRCode/ upload + file://%s/buzzers/0.mp3."
   },
   "dispatch_architecture": {
     "ptr_table": "{name_ptr, func_ptr, 0} stride-12; dispatcher resolves name->C function. Used by AVTransport, RenderingControl, DeviceProperties, GroupRenderingControl, ContentDirectory, Queue, GroupManagement, VirtualLineIn.",
@@ -1644,5 +1645,55 @@
       "verdict": "added 57.x"
     },
     "arch_evolution": "34.16&57.10: ~all id-table (C++ vfunc); 86.8: 134 ptr + 46 id \u2014 major services migrated to C-function dispatch between 57.x and 86.x; advertised surface stable ~197 actions across all builds"
+  },
+  "model2_fenway_25.2": {
+    "binary": "/tmp/hh.anacapad-25.2 (cramfs /opt/bin/hh.anacapad, extracted via custom cramfs reader; FLAT image, no ELF headers \u2014 preprocessed raw binary, strings+datas intact, addresses are file offsets)",
+    "build": "25.2-50130-1-2",
+    "era": "~2004-2005 proto-anacapad ('hh.'=household prefix)",
+    "service_urns": [
+      "AVTransport",
+      "AlarmClock",
+      "AudioIn",
+      "ConnectionManager",
+      "ContentDirectory",
+      "DeviceProperties",
+      "GroupManagement",
+      "GroupRenderingControl",
+      "HTControl",
+      "MusicServices",
+      "RenderingControl",
+      "SystemProperties",
+      "ZoneGroupTopology"
+    ],
+    "services_absent_vs_86x": "NO Queue, VirtualLineIn, QPlay service URNs",
+    "actions_present": 178,
+    "actions_absent": [
+      "AddOAuthAccountX",
+      "EndDirectControlSession",
+      "EnterConfigMode",
+      "ExitConfigMode",
+      "GetButtonLockState",
+      "GetButtonState",
+      "GetRoomCalibrationStatus",
+      "QPlayAuth",
+      "ReorderTracksInSavedQueue",
+      "ReplaceAccountX",
+      "RoomDetectionStartChirping",
+      "RoomDetectionStopChirping",
+      "SetAccountNicknameX",
+      "SetButtonLockState",
+      "SetNextAVTransportURI",
+      "SetRoomCalibrationStatus",
+      "SetSourceAreaIds",
+      "StartTransmission",
+      "StopTransmission"
+    ],
+    "historical_findings": "predates Queue svc, VirtualLineIn, QPlay, OAuth accounts, button-lock, sonar room-calibration, HT-satellite config-mode, direct-control. SetNextAVTransportURI not yet present. HTControl URN already advertised (dead here too)."
+  },
+  "shared_architecture": {
+    "request_vtable": "IDENTICAL across m8-fenway & m9-limelight & m9-86.10 \u2014 req-object vfunc slots: +0x08 parse/validate, +0x0c commit-response, +0x14 raise-fault, +0x1c required-input-lookup, +0x20 optional-input-lookup, +0x24 output-creation. Same SOAP request lifecycle on all products/builds.",
+    "dispatch": "ptr-table {name,C-fn,0} for big services; id-table {name,vfunc-offset,0} binary-searched for C++-object services; AudioIn/QPlay via strcmp fallback \u2014 all shared",
+    "unified_dispatcher": "all /Control routes funnel to ONE per-service dispatcher that does name->action resolution, then req-object drives parse/commit",
+    "workers": "impls delegate to engine-vfuncs + chsrc/CHSNK transactions (shared core in both models)"
   }
 }
