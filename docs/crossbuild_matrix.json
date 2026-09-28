@@ -1514,5 +1514,80 @@
       "note": "whole-binary r3=immediate scan, UPnP band 100-1300 + -1/-2",
       "verdict": "fault-code vocabularies are IDENTICAL for all real UPnP codes (400s/500s/600s/700s/800s/1000s); the few differing low literals are struct-offset noise (multiples of 4), not error codes \u2014 impl error behavior is unchanged between 86.8 and 86.10"
     }
+  },
+  "model8_play1_fenway_868": {
+    "binary": "sonos-research/play1-model8/anacapad-m8-86.8.extracted (recovered from 86.8-78270-1-8.upd @0x24dbf; was absent from extracted rootfs \u2014 installs to /jffs/app/install/bin)",
+    "arch": "fenway",
+    "build": "86.8-78270-1-8",
+    "functions": 42735,
+    "dispatch": {
+      "ptr_table": 134,
+      "id_table": 46,
+      "strcmp": 1,
+      "dead_str": 16,
+      "absent": 1,
+      "total_advertised": 204
+    },
+    "key_delta_vs_model9": {
+      "HTControl": {
+        "m9": "8/8 actions dispatched (live IR/home-theater service)",
+        "m8": "all 8 dead strings, 0 code-refs -> service is a stub (registered route /HTControl/Control -> unified dispatcher f_10670ee4, but no action table)",
+        "reason": "Play:1 model-8 has no HDMI/optical home-theater hardware -> HTControl capability-gated off"
+      },
+      "AudioIn": {
+        "m9": "reject-all 401 stub (service-level)",
+        "m8": "6 dead strings; route registered -> unified dispatcher; same stub behaviour expected",
+        "note": "verify dispatcher parity"
+      },
+      "QPlay": {
+        "m8": "QPlayAuth strcmp-dispatched (1 code-ref) \u2014 same as m9"
+      },
+      "everything_else": "identical dispatch (AVTransport 42, RenderingControl 27, DeviceProperties 27, Queue 11, ContentDirectory 16, AlarmClock 17, SystemProperties 15, ZoneGroupTopology 8, GroupManagement 4, GroupRenderingControl 6, MusicServices 3, ConnectionManager 3, VirtualLineIn 8)"
+    },
+    "error_vocab_diff": {
+      "method": "whole-binary r3=immediate UPnP-band scan",
+      "m8_only": "251,405,411,413,415,416,508,552,640,821,840,1022 \u2014 the 405/411/413/415/416 cluster suggests model-8 surfaces more HTTP-level method/range fault codes",
+      "m9_only": "178,182,336,470,576,592,604,706,823,872,904,912,1007,1008,1010,1019,1026,1028,1029,1030,1033,1049,1050,1116,1184 \u2014 the 1026-1050 cluster is the queue/transaction concurrency-code family (richer queue/coordination error surface on model-9); 706 is an AVT transition code",
+      "shared": "~115 real UPnP codes identical",
+      "verdict": "model-9 has a RICHER queue-transaction/concurrency error domain (1026-1050); model-8 exposes more HTTP-level fault codes \u2014 impl error surfaces differ beyond the advertised surface"
+    },
+    "product_features": {
+      "multi_product_binary": {
+        "evidence": "DSPControlPlay1/DSPPlay1 + DSPControlPlay3/DSPPlay3 + DSPControlSub/DSPSub/DSPSysSub classes; 'Unsupported Fenway Submodel'/'Unsupported fenway Submodel'; 'ConfigParam lookup from player model %d failed'; hwmodel/model_list/supported_models/submodel_min/submodel_max",
+        "meaning": "ONE fenway anacapad runs Play:1, Play:3, and Sub \u2014 per-product behavior gated by runtime submodel detection, NOT by compile-time model split"
+      },
+      "ht_satellite_receiver": {
+        "evidence": "ZP_MODE_HT_SATELLITE; NETMODE_SATELLITE_V1/V1_WIRED/V2; /xml/satellite_device.xml (separate device description for satellite mode); AddHTSatellite/RemoveHTSatellite/sendGroupAddHTSatelliteCmd/reconnectHTSatellites; 'starting the satellite run loop'; 'satellite audio disabled/mute/led'; as-dspin-htsnk/as-dspout-htsnk; dsp_preset_satellite.xml/dsp_system_satellite.bin/satellite_processor.bin; 'setting orientation to vertical for satellite'; Faking satellite removal in shared sat mode; enable3ChannelSatellites flag; SONOSNET_SATELLITE_STATION_PRIMARY_MODE",
+        "meaning": "fenway devices are the RECEIVER side of home-theater satellite protocol (surround speakers / bonded Sub of a Playbar master). satellite mode changes device XML advertised + runs separate DSP config"
+      },
+      "subwoofer_bonding": {
+        "evidence": "uuid:%s_sub%010u; zpUpnpSub/upnpSub; BONDED_TO_SUB/BONDED_STEREOPAIR_AND_SUB; 'Sub 4'/'Sub Mini' strings; sub xfer/wiredsub/swapModelInfo; v1/players/{id}/hardwareStatus/wiredSub cloud path",
+        "meaning": "sub is a distinct UPnP device instance (suffixed UDN); 86.8 already knows Sub 4 and Sub Mini"
+      },
+      "per_product_audio": {
+        "evidence": "system/play3loudness flag; SonarControl + chirp room-calibration (x-rincon-sonarcal:complete.ogg \u2014 m9 uses complete_ht.ogg); dsptherm thermal strings; 'This arch does not support DynamicDSP'",
+        "meaning": "room-calibration + per-model DSP tuning present on fenway; no DynamicDSP on this arch"
+      },
+      "absent_vs_model9": "no irdecoder/hal_ir/IRCode/dolby_config/DECODER_DSP/PlaybarBassManager/Upmixer/htaudio_satellite_tx/SatelliteSwitcher/DRCVoiceBoost/nightmode/speechExtraction/HDMI CEC/informLocalAirPlay/informLocalMicStateChange/informLocalVoiceStateChange \u2014 the HT-Master side of the satellite protocol plus all IR/optical/Dolby decode lives only in limelight (Playbar)"
+    },
+    "native_protocols": {
+      "chsrc_chsnk": "shared core protocol present in both (chsrc.cxx/chsnk.cxx, %s-chsnk%zu, chsnk playing local AI/chsrc/VLI, multicast join refresh, 'Chsnk restart requested by new coordinator'). m9-only extras: as-srcin-chsnk/as-srcout-chsnk endpoints + htaudio_chsnk_processor_stream.cxx + 'chsnk drain time' instrumentation = HT source processors feeding TV audio into the sink \u2014 limelight-only.",
+      "netstart": "identical IPC surface (/tmp/netstartd.ipc, SSID set/clear, SonosNet Disable/Frequency, netstartd logs). m9-only: meshDisable/set-to-mesh strings.",
+      "MRPC": "0 occurrences in EITHER 86.8 binary \u2014 MRPC is pre-86.x or lives in a different daemon; drop MRPC claims for 86.8+",
+      "SCI": "1 shared SCI_ occurrence \u2014 thin; SCI surface mostly elsewhere"
+    },
+    "args_parsers": {
+      "method": "emulated arg-name materialization in ptr-table wrappers, m8-86.8 vs m9-86.8 (identical SCPDs)",
+      "result": "NO proven arg-name delta \u2014 all arg-name strings incl. chirp params (Channel/ChirpIfPlayingSwappableAudio/DurationMilliseconds/PlayId) present in both binaries.",
+      "roomdetection_note": "m8 wires RoomDetectionStart/StopChirping through a runtime-built (.bss) sub-dispatch table rather than a direct arg-fetch wrapper like m9 \u2014 STRUCTURAL difference, semantically equivalent at string level (arg vocab identical). SonarControl subsystem present on fenway (42 sonar strings vs 38; m8-only 'SonarControl').",
+      "honest": "runtime-built table couldn't be followed statically \u2014 m8's chirp impl NOT reached; can't prove identical param handling, only identical vocabulary"
+    }
+  },
+  "dispatch_architecture": {
+    "ptr_table": "{name_ptr, func_ptr, 0} stride-12; dispatcher resolves name->C function. Used by AVTransport, RenderingControl, DeviceProperties, GroupRenderingControl, ContentDirectory, Queue, GroupManagement, VirtualLineIn.",
+    "id_table": "{name_ptr, vfunc_offset, 0} stride-12, SORTED by name; dispatcher binary-searches name, then calls *(service_obj.vtable + id) via bctrl (m9 dispatcher @0x10823970; id&1 selects the virtual path, all observed ids odd). Actions are C++ virtual methods on the service object \u2014 a DIFFERENT mechanism than ptr-table. Used by SystemProperties, ZoneGroupTopology, AlarmClock, ConnectionManager, MusicServices (and HTControl on model-9).",
+    "id_table_shared_service_object": "the SystemProperties+ZGT id-table at 0x10f0d20c mixes BOTH services' actions (BeginSoftwareUpdate..SubmitDiagnostics + GetZoneGroupAttributes/GetZoneGroupState) \u2014 these services are facades onto ONE player-level C++ object; different SCPD/XML faces, same vtable.",
+    "strcmp_dispatch": "AudioIn (6) + QPlayAuth handled by name-comparison fallback, not a table",
+    "availability_states": "compiled=code/string in binary; registered=route+service object exists; advertised=in SCPD; callable=dispatch path reaches impl; stubbed=dispatched to reject-all/stub; removed=no compiled string/table"
   }
 }
