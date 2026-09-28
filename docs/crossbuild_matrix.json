@@ -2001,5 +2001,15 @@
   "evidence": "worker@svc_ctx+4 is NULL in the svc_ctx ctor (FUN_10754790) and bound post-construction during device init. No operator_new+store@+4 pattern found (workers are likely embedded members of the zone-player aggregate or device objects, bound via computed offsets in init code). DSPControlPlay1/Play3/Sub class names appear only as log/registration strings with no code xrefs to a ctor/factory.",
   "what_is_proven": "the backend-delegate interface is uniform: impls call worker->vfunc+SLOT (SetVolume->+0x1c, Play->+0x2c, GetZoneGroupState->+0x28). The shared volume backend FUN_100cef4c(m8)/0x100dc8e8(m9) calls the audio object via vfunc+0xe0/+0xe4. Whether all services share one ZonePlayer backend or per-service workers is unresolved statically.",
   "distinction": "the 'req' object (SOAP plumbing, per-service request-context subclass) and the 'worker' (product audio/zone backend) are SEPARATE objects - conflating them is an error; only the former is statically mappable"
+ },
+ "netstart_ipc_protocol": {
+  "transport": "custom Sonos IPC over Unix socket /tmp/netstartd.ipc via InitializeIPCContext(ctx,2,name)/CloseIPCContext (ipc_msg.cxx). Not a raw socket - an internal IPC framework.",
+  "connection": "FUN_105be44c establishes: InitializeIPCContext -> on success log 'IPC established for %s', status=0x3c(60), send 'hello' handshake via obj->vfunc+0x40; on fail status=5 'Error starting IPC for %s (rc=%d)'. IPC fd at obj[99], -1=closed.",
+  "request_shape": "FUN_105be618: writes method name to obj+0x1a (strlcpy cap 0x6c), locks mutex at obj+0x88, FUN_105be44c does the call, then async callback arg->vfunc+0x08(result).",
+  "mode_query": "FUN_106697f0 reads /var/run/netstart_mode as int via sonosFileReadInt (the netstart operating mode flag).",
+  "status_codes": {
+   "0x3c": "IPC established/hello sent",
+   "5": "InitializeIPCContext failed"
+  }
  }
 }

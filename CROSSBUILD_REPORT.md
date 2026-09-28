@@ -453,6 +453,15 @@ with auto-revert); `hwmessagelib` event channel; protobuf node req/resp for
 nodetx telemetry (`nodetx_chsrc`/`nodetx_vli`/`nodetx_ht`,
 `<NodeTXBuffer>`); 7-field TLV header reader.
 
+The `netstartd` IPC protocol is decompiled (`ipc_msg.cxx`): a custom IPC over
+`/tmp/netstartd.ipc` via `InitializeIPCContext`/`CloseIPCContext` —
+`FUN_105be44c` connects, logs `IPC established for %s`, sets status `0x3c` and
+sends a `hello` handshake via `obj->vfunc+0x40` (fail → status `5`).
+`FUN_105be618` shapes a request (method name at `obj+0x1a` cap `0x6c`, mutex at
+`+0x88`, async callback `vfunc+0x08`); `FUN_106697f0` reads
+`/var/run/netstart_mode` as the operating-mode int. Identical strings in both
+binaries — shared subsystem.
+
 **DSP internals**: fenway-only `FUN_10b95dec` selects per-hwrev Play:1 EQ
 curves by codename (`0xe`→ROYALE/`BEACON RollBack`, `0xf/0x14/0x18/0x28/0x2d`→
 BOOTLEG, `0x16`→MARQUEE, `0x17`→LARGO, default→AMOEBA) — absent on limelight.
