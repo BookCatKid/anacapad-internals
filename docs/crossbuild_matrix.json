@@ -1877,5 +1877,23 @@
     },
     "correction": "HTControl on fenway is fully absent: no route binding (404, not even SOAP 401), no action table, no impl code. Only the service object (zp-member +0x3b14) and advertised URN/SCPD persist via shared device-description data.",
     "shared_enable_byte": "most routes share a single global UPnP-enable flag (*(zp+0x53e4)^1 on m8, *(zp+0x544c)^1 on m9); AudioIn has its own runtime byte *(zp+0x53cc)"
+  },
+  "gena_eventing": {
+    "dispatcher": "FUN_1066bc50 \u2014 all /.../Event endpoints; method codes: 0xb=SUBSCRIBE, 0xc=UNSUBSCRIBE, other->0x1f5(501)",
+    "secure_gate": "DeviceProperties/Event and GroupManagement/Event EXEMPT from security check; all other event paths require FUN_1066bb58 + ctx field -> else 'UPnP Eventing denied. 403 Forbidden' = 0x193",
+    "subscribe": {
+      "new": "requires callback '<url>' (<=0x400 bytes) + nt='upnp:event' + no sid -> FUN_1065bd74 creates sub -> 200 + SID + 'TIMEOUT: Second-%u' + initial event burst via vfunc+0xa0->FUN_10656010",
+      "renew": "sid present, no nt/callback -> FUN_10659514 -> 200 + TIMEOUT; missing/invalid sid -> 0x19c(412)"
+    },
+    "unsubscribe": "no nt/callback + sid -> FUN_10658d58 -> 200; bad form -> 400 or 0x19c",
+    "timeout": "default & max 0x15180=86400s (24h); 'Second-N' clamped 1..86400 then capped by global DAT_10d9645c",
+    "error_map": {
+      "400": "bad request (missing headers)",
+      "0x193": "403 forbidden (secure mode)",
+      "0x19a": "410",
+      "0x19c": "412 precondition failed (bad/missing sid, sub-create fail)",
+      "0x1f5": "501 unknown method",
+      "0x1f7": "503 service not found"
+    }
   }
 }
