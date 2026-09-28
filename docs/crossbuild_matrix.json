@@ -1722,7 +1722,9 @@
       "RoomDetectionStartChirping/StopChirping": "m8 uses nested RUNTIME dispatcher (extra calls + .bss sub-table at 0x10c7fb6c) vs m9 direct impl \u2014 different dispatch plumbing, same arg surface (all arg-name strings present in m8)",
       "Backup/BecomeCoordinatorOfStandaloneGroup/SetBrowseable": "\u00b11 call/cmp \u2014 tail-call bctr + codegen artifacts; disasm confirms identical vfunc structure"
     },
-    "conclusion": "SOAP action layer compiled from SAME source in fenway and limelight. Model differences are confined to dispatch wiring (HTControl table not linked) + product subsystems (DSPControlPlay1/3/Sub vs limelight DSP/Dolby/IR). Shared-action argument/error/statevar semantics are therefore identical-by-construction for the 134 ptr-table impls."
+    "conclusion": "SOAP action layer compiled from SAME source in fenway and limelight. Model differences are confined to dispatch wiring (HTControl table not linked) + product subsystems (DSPControlPlay1/3/Sub vs limelight DSP/Dolby/IR). Shared-action argument/error/statevar semantics are therefore identical-by-construction for the 134 ptr-table impls.",
+    "id_table_proof": "all 48 shared {name,id,0} actions have IDENTICAL vfunc-offset id in m8 and m9 (e.g. GetZoneGroupState=41) -> same service-object vtable layout -> shared impl source for id-table services too. Combined with 134 ptr-table impls identical profiles, the ENTIRE 204-action SOAP surface is compiled from the same source; sole exception = HTControl table not linked on fenway.",
+    "id_table_delta": "m9-only id actions = exactly the 8 HTControl actions (CommitLearnedIRCodes,GetIRRepeaterState,GetLEDFeedbackState,IdentifyIRRemote,IsRemoteConfigured,LearnIRCode,SetIRRepeaterState,SetLEDFeedbackState). No other id-table divergence."
   },
   "http_api_surface": {
     "structure": "household REST API {householdId}/players/{playerId}/... + legacy /status,/dsp,/raw,/api,/musedebug,/device_account top-level. ~3992 route-template+path strings scanned.",

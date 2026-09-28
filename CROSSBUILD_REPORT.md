@@ -84,10 +84,22 @@ C-function (ptr) dispatch — an architecture evolution, not a model difference.
 
 The advertised surface is **identical**: 204 action entries / 197 unique names,
 same per-service counts. The SOAP impl layer is **compiled from the same
-source** — a per-impl profile sweep (calls/cmpwi/vfunc-offsets/string-refs)
-across all 134 shared pointer-table impls shows identical call+compare counts
-on ~128/134; the residual diffs are stack-frame/codegen noise and tail-call
-scan bleed, confirmed by direct disassembly of `Backup`, `GetSearchCapabilities`.
+source**, proven two ways:
+
+- **Pointer-table impls** — a per-impl profile sweep
+  (calls/cmpwi/vfunc-offsets/string-refs) across all 134 shared ptr-table impls
+  shows identical call+compare counts on ~128/134; the residual diffs are
+  stack-frame/codegen noise and tail-call scan bleed, confirmed by direct
+  disassembly of `Backup`, `GetSearchCapabilities`.
+- **ID-table impls** — all 48 shared `{name,id,0}` actions carry the *identical*
+  vfunc-offset id in both binaries (e.g. `GetZoneGroupState`=41, `CreateAlarm`=
+  57). Identical vtable slot numbers ⇒ identical service-object class layout ⇒
+  same compiled impl. The only id-table divergence is exactly the 8 HTControl
+  actions.
+
+So across the **entire 204-action surface** the impl code is shared source; the
+single exception is HTControl, whose dispatch table is simply not linked on
+fenway.
 
 The **only** structural SOAP difference:
 
