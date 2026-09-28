@@ -1918,5 +1918,14 @@
       "watchdog heartbeat at +0x29ac(time)/+0x29b0(line)"
     ],
     "infra": "netstartd IPC (/tmp/netstartd.ipc, /var/run/netstart_mode), SonosNet mesh mgmt (NETMODE_SONOSNET_WIRED/WIRELESS, disable test-mode auto-revert), hwmessagelib event channel, protobuf node req/resp (nodetx telemetry: nodetx_chsrc/nodetx_vli, <NodeTXBuffer>), 7-field TLV header"
+  },
+  "impl_convention": {
+    "pattern": "Every ptr-table action impl is a thin wrapper: for each in-arg v=req->vfunc+0x1c(name) + typed parse helper (FUN_1055a768=int, FUN_1055a7c0=string-into-0x400-buf, FUN_1055a710=scalar); then req->vfunc+0x8 parse-gate -> 0x192(402 Invalid Args) on fail; else worker->vfunc+SLOT(parsed...) delegate; fault==0 -> req->vfunc+0xc commit else req->vfunc+0x14(fault) raise.",
+    "worker_slots": "per-service worker vtable layout: RC SetVolume=+0x1c, AVT Play=+0x2c, GetTransportSettings=+0x20 (multi-out); output args via req->vfunc+0x24->outarg->vfunc+0x10",
+    "verified_on": [
+      "RenderingControl SetVolume (m8 FUN_10753c48 == m9 FUN_1082ca5c semantically identical)",
+      "AVTransport Play (FUN_10353fc0)",
+      "GetTransportSettings-class (FUN_10353170)"
+    ]
   }
 }
