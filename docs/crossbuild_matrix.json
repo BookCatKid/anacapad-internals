@@ -1840,11 +1840,12 @@
     "service_struct": "0x680-byte UpnpService object; +0x00 vtable (dispatch at vfunc+0x40, called by master dispatcher); delegates to embedded svc_ctx impl descriptor",
     "svc_ctx": {
       "layout": "{vtable@+0, worker@+4, x@+8}",
-      "vtable": "3 slots in .rodata directly before the service's action table; +0x08 = binary-search dispatcher (FUN_10752428 for RC)",
+      "vtable": "+0x00=FUN_10754518 non-deleting dtor, +0x04=FUN_10754650 deleting dtor (operator_delete(obj,0xc)), +0x08=table dispatcher (FUN_10752428 RC). Member +8 = refcounted impl wrapper (atomic lwarx/stwcx release via vfunc+8/+0xc).",
       "ctor": "FUN_10754790 zeroes worker/+8, stores descriptor vtable",
       "worker": "delegate/impl object set at runtime (registration); null -> 401 stub; called as worker->vfunc+0x1c(...) for SetVolume-class actions"
     },
-    "dispatch_chain": "route thunk -> FUN_10670ee4 (master: SOAPAction parse, secure checks, x-sonos-target-udn proxy) -> service_obj->vfunc+0x40 -> svc_ctx->vfunc+0x08 (FUN_10752428 table dispatch) -> impl(svc_ctx+ctx_off, req, worker)"
+    "dispatch_chain": "route thunk -> FUN_10670ee4 (master: SOAPAction parse, secure checks, x-sonos-target-udn proxy) -> service_obj->vfunc+0x40 -> svc_ctx->vfunc+0x08 (FUN_10752428 table dispatch) -> impl(svc_ctx+ctx_off, req, worker)",
+    "fault_codes": "req->vfunc+0x14(code) raises a SOAP fault whose numeric code IS the UPnP error code: 0x191=401 'Invalid Action' (unknown/missed action), 0x192=402 'Invalid Args' (arg-parse failure, e.g. SetVolume bad input). HTTP/GENA layer reuses same constants: 0x193=403, 0x19a=410, 0x19c=412, 0x1f5=501, 0x1f7=503."
   },
   "dsp_eq_variants": {
     "fenway": "FUN_10b95dec = Play:1 EQ-variant selector driven by the hardware descriptor: 0xe->ROYALE (or 'BEACON RollBack' if hwrev(FUN_108d2d70)>=7), {0xf,0x14,0x18,0x28,0x2d}->BOOTLEG, 0x16->MARQUEE, 0x17->LARGO, default->AMOEBA. Internal codenames = per-hardware-revision DSP tuning curves.",
