@@ -89,6 +89,30 @@ dispatch(svc_ctx, p2, req, p4, action_name):
 - `req->vfunc(+0x38)` finalizes/flushes the response after every dispatch; a
   trace hook logs the matched action name via `*(param_2+0x70)`.
 
+**HTTP route layer** (decompiled `FUN_101875f4` / m9 `0x1019a58c` region): a
+static 12-entry (fenway) / 13-entry (limelight) table of
+`{handler_obj, path, svc_name, flag_bit, enable_byte}` maps each
+`/…/Control` path to a handler object called via `vfunc+0x08`. Each entry has a
+per-service **flag bit** (`0x10`…`0x10000`) that masks a telemetry field and a
+runtime **enable byte** — most share one global UPnP-enable flag
+(`*(zp+0x53e4)^1` m8 / `*(zp+0x544c)^1` m9); AudioIn has its own
+(`*(zp+0x53cc)`). A `0` enable skips the entry → default 404 handler.
+
+**Object model**: the zone-player aggregate (~28 KB) embeds 16 `UpnpService`
+objects at a fixed `0x680`-byte stride (`DeviceProperties@+0x714` …
+`VirtualLineIn@+0x6954`, wired by `FUN_10771084`). Each service object
+(`vfunc+0x40` = dispatch) delegates to a small `svc_ctx` impl descriptor
+`{vtable, worker@+4, x@+8}` whose 3-slot vtable (`+0x08` = the table
+dispatcher) sits in `.rodata` directly before that service's action table. The
+full chain:
+
+```
+HTTP req → route table (enable byte) → handler->vfunc+0x08
+  → FUN_10670ee4 master (SOAPAction parse, secure checks, target-udn proxy)
+  → service_obj->vfunc+0x40 → svc_ctx->vfunc+0x08 (table dispatch)
+  → impl(svc_ctx+ctx_off, req, worker=svc_ctx+4) → worker->vfunc+0x1c (backend)
+```
+
 The shared request-object vtable contract (in-arg parse at `+0x8`, commit at
 `+0xc`, fault-raise at `+0x14`, input-lookup at `+0x1c`, output at `+0x24`) is
 identical across models — the same SOAP plumbing under both products.
@@ -140,17 +164,17 @@ The **only** structural SOAP difference:
 
 | Service | model-8 fenway | model-9 limelight |
 |---------|----------------|-------------------|
-| HTControl | **registered + advertised + stubbed** (8 action names are dead strings, 0 code refs; `/HTControl/Control` route still bound to the shared dispatcher) | **live** (all 8 actions id-table-dispatched) |
+| HTControl | **fully absent at every layer** — no `/HTControl/Control` route entry (HTTP 404 at the route table), no action table, no impl code (`irdecoder.cxx`, learn FSM, IRCode-DB client all missing). Only the service object (zp member `+0x3b14`) and advertised URN/SCPD persist via shared device-description data | **live** — 13th route entry (handler `zp+0x28da4`, enable `*(zp+0x544c)^1`), all 8 actions id-table-dispatched into real IR code |
 | AudioIn | dead/stub (reject-all `401`) | dead/stub (reject-all `401`) |
 | QPlay | strcmp-dispatched | strcmp-dispatched |
 | everything else | identical | identical |
 
 HTControl actions: `SetIRRepeaterState`, `GetIRRepeaterState`,
 `IdentifyIRRemote`, `LearnIRCode`, `CommitLearnedIRCodes`,
-`IsRemoteConfigured`, `SetLEDFeedbackState`, `GetLEDFeedbackState`. On fenway
-the service route is bound but no `{name,id}` table is linked, so all eight
-fault at dispatch — a *product-capability* gate expressed by **not linking the
-action table**, not by removing the service.
+`IsRemoteConfigured`, `SetLEDFeedbackState`, `GetLEDFeedbackState`. On fenway the
+product-capability gate is expressed by **omitting the route-table entry
+entirely** — the fenway router has 12 entries to limelight's 13, so HTControl
+requests die with HTTP 404 at the route layer, before SOAP dispatch.
 
 Deeper binary check (string+code-ref sweep): the IR **implementation is absent
 from the fenway binary outright** — `irdecoder.cxx`, the whole learn-state
