@@ -2089,5 +2089,15 @@
   "evidence": "m9 86.10: string-descriptor helper FUN_1055a7c0 stores rec+0x10 = r5 (caller's 5th arg). Extractor now reads the call-site r5 -> 332/332 parseable args resolved. Scalar types use 24B inline buf; strings span 64B-1025B up to bulk payloads EnqueuedURIsMetaData=40970B, ContentDirectory.Elements=16384B, RedirectURI=8194B.",
   "residual": "null buf_cap remains only for non-descriptor arg paths: id-table virtual-method args, bulk-state-transfer actions (BecomeGroupCoordinator/AddMultipleURIs/ReplaceAllTracks move whole snapshots not per-arg bufs), and reject-all stubs where the arg is never parsed.",
   "confidence": "proven"
+ },
+ "hwmessage_netlink_bus": {
+  "claim": "the native hw-message bus is Linux generic netlink; SCI/SonosNet/UART/PMU/CEC are hardware EVENT-SOURCE IDs, not protocol handlers",
+  "evidence": "libhwmessagelib.so.1 (present m8+m9+86.10): exported API hwmessagelib_connection_init/destroy/getReadFD/readNextMsg/sendMsgToKernel/parseRawNetlinkMessage over GENERIC NETLINK (genlmsg_hdr, nl_socket_disable_seq_check, nl_send_auto). RCV format 'len:%d type:0x%04X flags:0x%04X seq:%d pid:%d' = standard netlink header. Message-type enum (U_HWMT): NOOP/OVERFLOW/EVENT.",
+  "event_sources": "~60-component hardware event-source enum (U_HWES): buttons (PLAYPAUSE/VOL_UP/DN/JOIN/MODE/POWER/MICMUTE/PAIRING), capacitive zones (CAPZONEA/B/C/M/CAT), amps (MCU1-4_AMP_L/R), and the board interfaces SCI_BOARD, PSOC, CEC, UART, PMU + HDMI/NFC/BLE/WIFI/LAN/DAC/ADC/LINEIN/SPDIF_OUT/LIGHT_SENSOR/FUEL_GAUGE/RTC/MICMUTE_SWITCH/LEAN_UI_*.",
+  "event_ids": "V_VLWL/V_VRWL(volume wheels), O_FDWN/O_INVR/O_INVA(orientation), Q_OVRN(overrun), TIME_O, _CLIP_(amp clip), HW_ERR/HW_OK_, T_WARN/T_FALT/T_OK__(thermal), AMP_HR/AMP_LR/AMP_OF, MOTDET/MOTSET(motion), ON_BAT/ON_CHG/LOWBAT/CRTBAT, INVCHG, SW_ON_/SW_OFF(micmute switch), M_LEFT/MRIGHT(slider).",
+  "multicast_groups": "AUDIO BATTERY BUTTON BUTTON_POWER CAPZONE HT LED SENSOR TEMP WAKEUP SWITCH - the hwmessage subscriber channels.",
+  "reinterpretation": "This EXPLAINS the anacapad-side boundary: SCI/SonosNet/TLV strings are enum names in this event-source/type table (registered via nodetx named requests over the same bus), not anacapad code anchors. The protocol 'handlers' live in the kernel netlink driver + libhwmessagelib, which is why anacapad has no code xref - it only names sources/types.",
+  "confidence": "proven (library + enum tables decoded)",
+  "mrpc_tlv_sonosnet": "MRPC/SonosNet resolve to anacapad-internal naming + libwifi SonosNet mesh config (39 hits anacapad = enum/job names, 2 libwifi). TLV = anacapad-internal serialization (7-field header 'TLV header %d %d/7 oserr %d'); 0 TLV refs in ANY rootfs lib - not a shared wire protocol. The hwmessage netlink bus is the real kernel/hw transport these all ride on."
  }
 }
