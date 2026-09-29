@@ -1344,14 +1344,8 @@ The two device-description XML variants — with and without AudioIn — proving
 
 **Technical description:**
 
-- **status:** confirmed
-- **name:** Alternate device-description documents
-- **description:** Three device descriptions exist: device_description.xml (served, 16 services), device_description_no_ai.xml (alternate without AudioIn — proves the omission is a switchable variant, not conditional assembly), and group_description.xml (SpeakerGroup:1 satellite doc). satellite_device.xml also exists for bonded sub/surrounds.
-- **files:** `/xml/device_description.xml`, `/xml/device_description_no_ai.xml`, `/xml/group_description.xml`, `/xml/satellite_device.xml`
-- **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ef2590, notes: /xml/device_description_no_ai.xml
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ef25b4, notes: /xml/satellite_device.xml
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ef2574, notes: /xml/group_description.xml
+- **status:** strong
+- **description:** \["/xml/device_description.xml", "/xml/group_description.xml", "/xml/satellite_device.xml", "/xml/device_description_no_ai.xml"\]
 
 ## `gena_internals`
 
