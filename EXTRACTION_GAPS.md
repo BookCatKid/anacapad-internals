@@ -180,12 +180,18 @@ pages (`/jffs/settings/*.json|xml`, `/opt/log/anacapa.*.log`,
 `/proc/ath_rincon*/*`), and 62 module-rendered pages with `.text`
 handlers. Flag values `1,2,6,a,b,e,43,46,82` undecoded (likely
 content-type/auth bitmask; `0x82` on `/api`,`/cloudqueue`,`/leds`).
-What remains: per-handler *output schemas* — most module handlers
-haven't had their emit-call field lists written (only ZPInfo,
-location-engine, `DeviceCertInfo`, `<Registration>`, muse event
-fields are decoded). `setstring`/`removestring`/`ranges` raw
-settings-write endpoints and `sonarctl`/`mdnsannounce` params still
-unwalked.
+Per-handler output schemas recovered for ~30 pages via emit-literal
+harvest through the delegate chain (ZPInfo, DeviceInfo, Alarm,
+UpdateInfo, LedPatternInfo, ThirdPartyLibraryInfo,
+RoomCalibrationInfo, Shares, ZoneExperiments, ssl_client_cache
+entries, Playmode, TemperatureHistograms, TrackSummary, EnetPorts,
+Registration, DeviceCertInfo — see `page_schemas`). Remaining ~22
+pages use member-dump renderers with no literal emit strings
+(`/accounts`, `/audiocore`, `/cloud`, `/decoder`, `/topology`,
+`/wireless`, `/policy`, `/settings/*`...) — each needs its module
+render vfunc chased individually. `setstring`/`removestring`/`ranges`
+raw settings-write endpoints and `sonarctl`/`mdnsannounce` params
+still unwalked.
 
 ### Device description variants
 `/xml/device_description_no_ai.xml` exists — a second device
