@@ -269,24 +269,26 @@ members with no RTTI and no static ctor refs — static ceiling.
 `/downloadspdiftap`, `/snapshotspdiftap` params + response literals
 all decoded into `decoded_handlers` (incl. `csrfToken` requirements).
 
-### Device description variants
-`/xml/device_description_no_ai.xml` exists — a second device
-description proving AudioIn omission is deliberate and switchable —
-plus `/xml/satellite_device.xml` and `/xml/group_description.xml`.
-Only the group description variant is noted; the no-AI variant is not.
+### Device description variants — covered
+`/xml/device_description_no_ai.xml` — a second device description
+proving AudioIn omission is deliberate and switchable — plus
+`/xml/satellite_device.xml` and `/xml/group_description.xml`; all
+three variants catalogued.
 
-### GENA/eventing internals
-Present but undocumented: SID preinstall (`Attempting to preinstall
-SID=%u`, `?sid=0`), `SubscribedEvents`/`LogicalSID`/`UPnPSID`/
-`NotifyErrors` status fields, renewal handling, `upnpeventing_sender`/
-`upnpeventing_source` sender machinery, `AVTStateLastChangedEvent`
-name. `LastChange` is referenced 280× in the dataset but the
-per-service LastChange payload schema (which XML envelope each service
-emits) is not spelled out.
+### GENA/eventing internals — covered
+`upnp_eventing` record: renew FSM (`Unsubscribe in renew`,
+`Successfully renewed`, `Failed to renew ... HTTP Result`,
+OOS sequence tracking, secure-eventing flag, `Second-/%u` SID form,
+`sourceHasEventsToSend` initial event), `/status/subrenew` schema
+(`<Outgoing>{LogicalSID,UPnPSID,EventURI,FailureCount,NextRenew,
+ExpectedSeq}`), the 16-endpoint `/X/Event` inventory, and the muse
+mirror (`upnp<Svc>/subscription/{logicalSID}` subscribe/renew/
+unsubscribe verbs). The `preinstall SID=%u` strings are SMAPI
+service-id preinstall (Sonos Radio), not GENA SIDs — corrected.
 
-### `/QPlay/Control` has no `/QPlay/Event`
+### `/QPlay/Control` has no `/QPlay/Event` — noted
 Every service has a Control+Event route pair except QPlay — Control
-only. Route-pairing anomaly worth a note.
+only; recorded in `qplay_protocol`.
 
 ### GetProtocolInfo source/sink contents — RESOLVED
 Both CSVs frozen verbatim in `protocol_info_schemes`: the 1855-byte
@@ -295,15 +297,16 @@ at `0x10eb8750`, plus per-service extras (`real.com-rhapsody-direct`,
 `pandora.com-pndrradio`, `x-sonosapi-radio`) that are appended per
 registration, not in the base CSV.
 
-### Proprietary headers
+### Proprietary headers — covered
 `X-Sonos-Playback-Id`, `X-Sonos-SWGen`, `X-RINCON-BOOTSEQ`,
 `X-RINCON-VARIANT`, `WMPNSSv` (fake Windows Media Player NSS service
 header Sonos sends), `?sonosId=`/`&sonosid=`/`householdid=` query
-params — vocabulary only.
+params — catalogued in `shared_primitives`/`payload_formats`/
+`uri_formats` plus the Cloud Queue outbound header set.
 
-### ICY/Shoutcast metadata
-`@icy-metaint:` — inline ICY metadata parsing for mp3radio streams;
-not documented as a payload format.
+### ICY/Shoutcast metadata — covered
+`@icy-metaint:` — inline ICY metadata parsing for mp3radio streams
+documented in `shared_primitives`/`payload_formats`.
 
 ### URI schemes missed — RESOLVED
 All now in `uri_formats`: `pndrradioad://`, `pndrradio-http://`,
@@ -324,10 +327,11 @@ interrupt/ducking engine with priority policy surfaced through the
 `audioClip` muse resource and `/duck` `/unduck` endpoints. SOAP-visible
 edge only.
 
-### Non-SOAP error families
+### Non-SOAP error families — covered
 `ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,NO_CONTENT,
-BAD_ACCOUNT}`, `ERROR_DOCK_INTERRUPT` — fault-code families outside
-the UPnP 4xx/7xx/8xx vocabulary; uncatalogued.
+BAD_ACCOUNT}`, `ERROR_DOCK_INTERRUPT` — catalogued in
+`shared_primitives` error tables + `media_service_errors` (71-entry
+indexed table incl. LASTFM and CLOUD_QUEUE ranges).
 
 ### The `R_*` internal status namespace — RESOLVED (with corrections)
 Most names previously catalogued as `R_*` families were **substring
