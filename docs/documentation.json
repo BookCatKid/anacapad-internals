@@ -121113,7 +121113,8 @@
    "ops_counters": "ops {schedResyncX,immedResync,schedResync,endTX}; ITBTT types {ITBTT_UNKNOWN,ITBTT_CHSRC,ITBTT_LINEIN,ITBTT_VLI}; crossfade state for packetId {lPacketNum-1/lPacketNum-2 fallback,no frames,crossfade on/off}; \"checkAndMarkFrameDiscontinuity: %lldus\"; \"getLocationAtTime earlier than oldest valid packet\"; NACK {\"nack from %s count=%u, min=%u, max=%u\",\"not transmitting %u stale packets\",\"ignore NACK packet with incompatible protocol version\"}; perf-counters {rsend=DataBlock sends,nackr=resync NACK,nackd=data NACK,nacku=unsendable NACK} + \"Histogram of transmitted packet info\"; params {transmit port,dstaddr unicast/multicast,lastpktid}"
   },
   "muse": {
-   "auth_errors": "auth helper errors {\"Player is not securely registered\",\"Access token's user does not match registered user\",\"Access token does not have adequate permissions\",\"Command scopes could not be determined\",\"Invalid user\",\"Scope is insufficient\",\"Error reading scopes\",\"Error matching scopes\"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {\"Response code: %d, Access token is invalid\"/\"Scope is insufficient\"}"
+   "auth_errors": "auth helper errors {\"Player is not securely registered\",\"Access token's user does not match registered user\",\"Access token does not have adequate permissions\",\"Command scopes could not be determined\",\"Invalid user\",\"Scope is insufficient\",\"Error reading scopes\",\"Error matching scopes\"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {\"Response code: %d, Access token is invalid\"/\"Scope is insufficient\"}",
+   "service_bindings": "musezpactor UPnP service URIs {AlarmClock:1,AudioIn:1,ConnectionManager:1,MusicServices:1,SystemProperties:1,ZoneGroupTopology:1,HTControl:1,GroupManagement:1,GroupRenderingControl:1(urn:schemas-upnp-org) + Queue:1(urn:schemas-sonos-com),VirtualLineIn:1}; \"zp already set\"/\"zp not set\""
   },
   "registration": {
    "secreg_fsm": "endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {\"Invalid registration signing key in IPC payload\",\"Registration signing key set/cleared\"}; \"Household customer ID [%s] in conflict with local device [%s]\"; \"regState changed %d -> %d\"; \"Transfer mode old (e:%d) new (e:%d)\" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; \"removed invalid cert\"; \"Unexpected 401 response\"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}"
@@ -121247,6 +121248,73 @@
      "status": "confirmed",
      "address": "0x10e9b28c",
      "notes": "zpserviceaccounts block"
+    }
+   ]
+  },
+  "mntmgr": {
+   "name": "mntmgr \u2014 SMB mount manager",
+   "status": "partial",
+   "summary": "mount points /tmp/smb/%d_%d + trial /tmp/smb/tmp%d_%u; \"already mounted unc=%s share=%s loc=%s\"; \"too many shares mounted\"; trial mount \"Trial mount found unsupported protocol: %s (strike %d/%d)\" + \"flagging %s as failed\"; \"not http mounting %s as %s\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ece5d0",
+     "notes": "mntmgr block"
+    }
+   ]
+  },
+  "mp3_decoder": {
+   "name": "mp3 stream decoder (xing/VBR)",
+   "status": "partial",
+   "summary": "normalization {id3,lame}; \"WMA radio not supported on this platform\"; resync bound \"20 resync required: corrupt file\"; frame errors {illegal sample rate,read frame header/sync/data overflow/data failed}; xing {\"No size in xing header\",\"xing we can't load\",VBR dur \"%zukb/%ukbps = %llds\",CBR dur,\"Assume that VBR file without a ToC has constant bitrate of %d\"}; ID3v2 skip; \"Found valid header after searching %zu bytes\"; seekSeconds duration bound",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ece800",
+     "notes": "mp3 block"
+    }
+   ]
+  },
+  "load_content": {
+   "name": "favorites + loadContent resolution",
+   "status": "partial",
+   "summary": "verbs {loadContainer,loadStream,loadFavorite,loadPlaylist,loadTrackList} with guidance \"Use playback#loadTrackList to load tracks\"/\"Use playback#loadStream to load streams\"; item types {spotify.connect,linein.homeTheater.spdif,linein.airplay,trackList.program,episode.podcast,chapter.audiobook,homeTheater-input,TV Audio}; meta json paths {/containerType,/containerName,/name,/explicit,/durationMs,/artist,/imageUrl,/releaseDate,/mimetype}; errors {Invalid favorites directory state,Invalid content resolver state,Account error,Invalid serviceId,Could not find default account for serviceId,SID mismatch lookupAccountByUDN vs RMuseUniversalMusicObjectId,Could not find UDN,serviceId is not associated with accountId}; \"cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued)\" + \"item.id tracking is out of memory\"; local-library + r:contentService + /getaa? art; sn_%u/mhhid_ id prefixes; \"RadioShow name/Id truncated\"; shared|private visibility; protocolInfo http-get:*:%s:*",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ecf310",
+     "notes": "favorites/loadContent block"
+    }
+   ]
+  },
+  "noderx": {
+   "name": "noderx \u2014 inter-player RX transport",
+   "status": "partial",
+   "summary": "indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight rec \" %u r:%d.%06d s:%c p:%d.%06d\"; startup {\"Starting up; id:%u, delayPkts:%u, delayFrms:%u\",\"Startup large packet gap:%u, don't NACK\",bFinalStartPacket,allowing NACK resend of LCG,ignoring discontig NACK resend,ignoring partial frames}; NACK \"out of order packet; send nack immediately\" + \"NACKed for %u IDs, %u packets, ob/lr/lcg/lrx\"; pause/resume {thread pausing/resuming, state validation p/sp/pr/ip}; frame layer {wFirstFrameOffset,wBytesOfDataLeftToRead,pwLen,Playtime} + errors {expected frame not found,frame length conflict,Packet stream framing error,frame too large,bufferNextProtocolFrame WOULDBLOCK/E_WOULDBLOCK,readNextDataBlock timeout,forcing decoder reset}; skipAhead entries {immed,shifted,released blocks,too many}; resync {\"resynchronization flushing packets %u-%u\",resynchronization message}; \"Ignore packet with incorrect protocol version\"; \"Received dup packet id with different class\"/oob/mismatch replace; \"RX buffer full\"/\"RX discontig\"; threads {noderx-data,noderx-pause,noderx.rxd.usleep,noderx.loc.usleep}; \"failing noderx for io error (c=%u t=%lld)\"",
+   "histogram": {
+    "rxPacketInfo": {
+     "NoneAvailable": "no DataBlock available",
+     "TooOld": "expired packet received",
+     "DupId": "duplicate packet ID received",
+     "TooFarAhead": "packet too far into future",
+     "NackReq": "NACK request transmitted",
+     "Ignored": "packet ignored on startup"
+    },
+    "gauges": {
+     "oldestBufferedPkt": "Oldest buffered packet ID",
+     "lastReadPkt": "Last read packet ID",
+     "lastConsecutiveGoodPkt": "Last good consecutive packet ID"
+    }
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ecfae4",
+     "notes": "noderx block"
     }
    ]
   }
