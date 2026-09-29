@@ -2731,6 +2731,13 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **dispatch:** \[dispatch\] dispatched (%s) to target (%s), result \[%s\]; \[dispatch\] unsupported IBT command (%s); X-Sonos-Type header; group ops {\[group\] adding player,\[group\] forwarding player,\[group\] created new group \[%s, %s\],\[group\] created new group but no GC!,\[group\] no players or areas were specified}; validateProtocolVersionCompatibility + {has repeated player id,Grouping ungroupable player to other players is not supported,Effective player id set is empty,has too many player ids,contains invalid player ids,Protocol versions that do not match,protocol versions are incompatible}; audio proto {Audio TX,HT Audio,cannot evaluate audio protocol compatibility: type unknown,trying to compare unknown audio protocol type}
+- **upnp_bridge:**
+  - **pattern:** v1/players/{playerId}/upnp{Service}\[/subscription\[/{logicalSID}\]\] + v1/households/{householdId}/players/{playerId}/upnp{Service}\[/subscription\[/{logicalSID}\]\]
+  - **bindings:** {playerId,upnpX,call} / {playerId,upnpX,subscribe} / {playerId,upnpX,renew,logicalSID} / {playerId,upnpX,unsubscribe,logicalSID}
+  - **services:** `upnpDeviceProperties`, `upnpGroupManagement`, `upnpGroupRenderingControl`, `upnpHTControl`, `upnpMusicServices`, `upnpQueue`, `upnpRenderingControl`, `upnpSystemProperties`, `upnpVirtualLineIn`, `upnpZoneGroupTopology`
+  - **vli_verbs:** `selectSource`, `startTransmission`, `stopTransmission`, `sendBackChannelCmd`
+  - **evidence:**
+    - type: firmware, status: confirmed, address: 0x10e8462c, notes: bridge bindings
 ## `music_accounts`
 
 **coverage** `?`
