@@ -144,7 +144,6 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `sound_device` | **partial** | syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample width inconsistency}; system/src_disable + StdQ ASRC Coeffs + "Running with SRC bypassed"; orientation sensing; "reset vcxo"; health flags {AMP_CURRENT_WARN,AMP_FAULT_WARN,AUDIO_WARN_TEMP,CPU_WARN_TEMP,CPU2_WARN_TEMP,SOC_WARN_TEMP,AMP_CURRENT_FAULT,AMP_FAULT,AUDIO_FAULT_TEMP,CPU_FAULT_TEMP,CPU2_FAULT_TEMP,SOC_FAULT_TEMP,PS36_FAULT,UV36_FAULT,UV14_FAULT,POWER_WARN_TEMP,POWER_FAULT_TEMP,MOTION_FAULT_TEMP,MOTION_WARN_TEMP}_STATUS |
 | `sound_swap` | **partial** | sound_swap/audio_swap; queue audioSwapEventQueue + progress audioSwapProgress; behaviors SWAP_BEHAVIOR_{DO_NOTHING,PUSH_SWAP,PULL_SWAP,UNDEFINED}; push/pull disband target\|initiator group; HTSatelliteChecker gates (isFound,isHTSat,playerUDN,HTPrimaryUDN + topology/group-props/GC-AVT lookups); FSM "New state: %i"/"Event %i not handled in state %i"/transition-failure -> reset; result fields {swapResult,swapType,swapTarget,swapGC,initAction,candCount,respCount}; gates {bonded zone,HT Satellite,unknown state,unswappable audio,already in progress}; muse calls museCmdSetGroupMembers/museCmdModifyGroupMembers via groups/%s/groups/modifyGroupMembers |
 | `spdif_detect` | **partial** | detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3),NULL Burst,Pause Burst}; unsupported taxonomy {AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1/2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1-3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA,Unsupported} |
-| `spotify_esdk` | **partial** | endpoints {apresolve.spotify.com,ap.spotify.com} + local apresolve + fallback; connect "Connecting (%s) %s:%d timeout: %d sec"; handshake {"Sending Hello message to AP","Writing apresolve request","logging in, type %d sz %d user %s","Failed to decode ApWelcome","ApWelcome failed"}; health {"SpPumpEvents() is called too slowly: %d ms for 100 calls","Too long without response from server","ap os error code: %d"}; login4 {"login failed (error code %d)",SHA1+2xSIG+MODPOW buffers,"no memory to check signature","Platform identifier: %s","logging in with client ID %s"}; ap_send "Sent %s(%d) to ap Size %d" + ap_list + .spotify.com + HTTP/1.; protobuf sp_* markers throughout |
 | `spotify_vli_session` | **partial** | session verbs {start,suspendSession,startAudio,pauseAudio,stopAudio,playModesChanged}; power {Spotify eSDK source power suspend/resume (e=0x%08x)}; delegation {"Ignoring audio flush/track changed/seeks (pos %u)/pause/became inactive while setting state / delegating","Spotify eSDK source selected, isDelegating %d, isActive %d","source not selected","Source Deselected, from sender %d"}; cookies {"%s:%d spotify old cookie: %d new: %d","Ignoring stale stopSession due to cookie mismatch"}; callbacks onVirtualLineIn{SuspendSession,StartAudio,StopAudio,PlayModesChanged} cookie %d; metadata {track,artist,album,playback_source_uri,bitrate} + Next Metadata; "Error event in VLI mode, e=0x%08x"; R_SPOT_EVT_AUDIO_TIMEOUT; RSpotifyVLIControl deactivate |
 | `ssh_keys` | **partial** | params {ssh_key,button,remove_keys}; ops {"SSH auth key added to authorized keys file","SSH authorized keys file removed"}; dropbearkey /usr/bin/dropbearkey + host key /jffs/persist/ssh/dropbear_ecdsa_host_key + ecdsa-sha2-nistp256; fingerprint formats {pubkey,sha256-base64,md5-hex}; gated by R_ALLOW_SSH_PUBKEY_INSTALL (per gap audit) |
 | `stream_fetcher` | **partial** | notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey (encrypted HLS); "New bitrate: %d, Old bitrate: %d" adaptive switch; playlist FSM {"Timed out looking for playlist","Playlist failure with no time to recover (%ld buffer)","fetch empty","Too many empty playlists and no audio left"/"(still %ldms ahead)","Switching source due to empty playlists","end of static list","Unable to select another DS"/"waiting to fetch new playlist"}; "Startup ahead: %ld"; "URIs for %g seconds, wake up in %d"; "prebuffering %u bytes within %ld msec"; open fmt "open: %s (0x%x) %d len %llu offset %llu"; "stopping decoding while sleeping" |
@@ -215,6 +214,8 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `sntp` | **?** |  |
 | `spotify` | **?** |  |
 | `spotify_connect` | **?** |  |
+| `spotify_esdk` | **strong** | cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}; NTS callbacks {ConnectionMessage,ConnectionNewCreds,StreamStart(id,fmt,drm,size,gain),PlaybackNotify,StreamFlush,StreamGetPosition(id),Error}; mDNS {"Registering Spotify Connect mDNS service \[%s\]","Unregistering","Updating ... event %d","new cert updating mDNS"}; seamless delegation {"Seeking to %ims in support of seamless delegation","Timed out waiting for AudioStart from eSDK during seamless delegation","%s failed to become active","set seek time to %u ms, byte offset: %zu"}; VLI transition matrix {"VLI source switch logout - async","Normal logout - blocking","VLI deselected, last id: %u, pos: %u, bLogout: %d","Detected VLI source switch","Connect mode toggled during transition - allowing login to proceed","Account matches ... skipping login","Already logged in with same user","username may have changed","mismatch ... regular logout","mismatch ... async logout","Already logged out"}; dual tracking "pos: %u (VLI: %d \[%d\], SMAPI: %d \[%d\])"; track FSM {AwaitingCurrentTrackAck,AwaitingNextTrackAck,CurrentTrackPlayed}; metadata {bitrate,track_uri,original_track_uri,playback id,audio_quality,hifi_status} New/Next Track Metadata; URIs spotify:track:/spotify:episode: "Bogus track URI"; media delivery {"unsupported DRM format: %d","stream start (id:%u, type:%s, size:%u)","stream data ... size: %u, offset: %u","stream end","stream flush ... pos: %u","getPosition (id=%u): result %u",performFlush}; events {GroupVolumeChangedEvent,SpotifyDelegationNotification,SpotifyMDNSRequest}; "Sent group volume change %u to eSDK (mute %d)"; TPM legacy "Spotify setPositionInfo ... uri=%s, playbackId=%s, position=%.3f, isFinalReport=%d"; init {SpInit supported media formats: %llu,devid,remoteName,deviceType,libraryVer,resolverVer,productId}; R_ServiceBitrate |
+| `spotify_zeroconf` | **strong** | URIs x-spotify:// + x-spotify-file://; Content-Type application/json; charset=utf-8; ver 2.9.0; client types {Partner,Spotify}; results {SpotZc_Failure,SpotZc_Success}; GC gate "Non-GC returning 404 from getInfo" + "reject zc req %s"; getInfo schema {deviceID,publicKey,deviceType,libraryVersion,resolverVersion,groupStatus,authorization_code,tokenType,clientID,productID,scope,availability,supported_drm_media_formats,supported_capabilities,modelDisplayName,brandDisplayName,remoteName,deviceName,statusString,spotifyError,responseCode}; errors {ERROR-INVALID-ARGUMENTS,ERROR-LOGIN-FAILED,ERROR-SPOTIFY-ERROR,ERROR-UNKNOWN}; addUser/resetUsers/resetUser/userName; "addUser with userName %s; player uuid %s" fmt %s@%s; client GUID 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac + embedded key 9b377073ea334637b1406f329ce005de; DC enum {SONOS_DC_UNKNOWN,OK,NO_ACCOUNT,STALE_ACCOUNT,LOGIN_FAILED,UNSUPPORTED_SERVICE,UNEXPECTED}; account fields {isGuest,accountTier,loginMS,failedLoginMS,refreshAuthMS}; ops {spotifyTransferZeroConf,Using SID %d} |
 | `spotifyzc` | **?** |  |
 | `stream_metadata` | **?** |  |
 | `sync` | **?** |  |
@@ -2845,25 +2846,6 @@ detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (D
 
 </details>
 
-## `spotify_esdk`
-
-**coverage** `partial`
-
-A full embedded libspotify (the old Spotify eSDK — mercury/hermes protocol stack) lives in the binary, plus Sonos's bridge modules and mDNS Spotify-Connect discovery. This is the actual Spotify client implementation inside the speaker.
-
-**Technical description:**
-
-endpoints {apresolve.spotify.com,ap.spotify.com} + local apresolve + fallback; connect "Connecting (%s) %s:%d timeout: %d sec"; handshake {"Sending Hello message to AP","Writing apresolve request","logging in, type %d sz %d user %s","Failed to decode ApWelcome","ApWelcome failed"}; health {"SpPumpEvents() is called too slowly: %d ms for 100 calls","Too long without response from server","ap os error code: %d"}; login4 {"login failed (error code %d)",SHA1+2xSIG+MODPOW buffers,"no memory to check signature","Platform identifier: %s","logging in with client ID %s"}; ap_send "Sent %s(%d) to ap Size %d" + ap_list + .spotify.com + HTTP/1.; protobuf sp_* markers throughout
-
-- **name:** Spotify eSDK internals (apresolve/AP/login4/track_pipeline)
-- **track_pipeline:** states {NOT_STARTED,UPCOMING,PLAYING}; "id: %u : -> UPCOMING"/"id: %u : UPCOMING -> PLAYING"/"id: %u : %s ->"; "Clearing/Shifting track data pipeline"; record "%s : id: %u, DELIVERY:%s, DOWNLOAD:%s, length_ms: %u file.size: %d file.has_key: %d playback_id: %s uri: %s drm_format: %d media_format: %d error: %d"; "start_track_delivery() called"; "No PLAYING track when delivery started"
-- **api:** Sp{Free,RegisterConnectionCallbacks,RegisterDeviceAliasCallbacks,RegisterPlaybackCallbacks,RegisterStreamCallbacks,RegisterDebugCallbacks,PlaybackPlay,PlaybackPause,PlaybackSkipToNext,PlaybackSkipToPrev}
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10fd7d54 — esdk blocks
-
-</details>
-
 ## `spotify_vli_session`
 
 **coverage** `partial`
@@ -3743,6 +3725,38 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
   - **smapi_vli:** "SMAPI to VLI transition detected. Forcing loginZC to switch modes and clean eSDK state"; resume-VLI shortcut "already in connect mode - likely resuming VLI (e.g., after AirPlay)"; "Already logged in with same account, skipping loginZC"; TransitionAck tracking \[pos,preLogout pos,transAck\] + "Begin AwaitingTransitionAck"; "Notified we are receiving delegation. Resetting track queue info."; SWPBL-259788 pullContext skip when delegated session not playing; SMAPI mediaType/curTrkStatus/nextTrkStatus tracking
   - **accounts:** auth-token expiry detection -> refresh via upnp; "Login failed with E_SONOS_BAD_ACCOUNT"; service descriptor lookup {sid,g,sn}; "Treating auth token as expired"
   - **telemetry:** ecode mapping "error: %s ecode=%d (%s), mapped to 0x%08x"; fatal-error report rate limit ("restricting excessive fatal error reporting"/"spotify telemetry rate limit exceeded!" spotrl); underrun counter; "Radio:" prefix stripped from restart token
+## `spotify_esdk`
+
+**coverage** `strong`
+
+A full embedded libspotify (the old Spotify eSDK — mercury/hermes protocol stack) lives in the binary, plus Sonos's bridge modules and mDNS Spotify-Connect discovery. This is the actual Spotify client implementation inside the speaker.
+
+**Technical description:**
+
+cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}; NTS callbacks {ConnectionMessage,ConnectionNewCreds,StreamStart(id,fmt,drm,size,gain),PlaybackNotify,StreamFlush,StreamGetPosition(id),Error}; mDNS {"Registering Spotify Connect mDNS service \[%s\]","Unregistering","Updating ... event %d","new cert updating mDNS"}; seamless delegation {"Seeking to %ims in support of seamless delegation","Timed out waiting for AudioStart from eSDK during seamless delegation","%s failed to become active","set seek time to %u ms, byte offset: %zu"}; VLI transition matrix {"VLI source switch logout - async","Normal logout - blocking","VLI deselected, last id: %u, pos: %u, bLogout: %d","Detected VLI source switch","Connect mode toggled during transition - allowing login to proceed","Account matches ... skipping login","Already logged in with same user","username may have changed","mismatch ... regular logout","mismatch ... async logout","Already logged out"}; dual tracking "pos: %u (VLI: %d \[%d\], SMAPI: %d \[%d\])"; track FSM {AwaitingCurrentTrackAck,AwaitingNextTrackAck,CurrentTrackPlayed}; metadata {bitrate,track_uri,original_track_uri,playback id,audio_quality,hifi_status} New/Next Track Metadata; URIs spotify:track:/spotify:episode: "Bogus track URI"; media delivery {"unsupported DRM format: %d","stream start (id:%u, type:%s, size:%u)","stream data ... size: %u, offset: %u","stream end","stream flush ... pos: %u","getPosition (id=%u): result %u",performFlush}; events {GroupVolumeChangedEvent,SpotifyDelegationNotification,SpotifyMDNSRequest}; "Sent group volume change %u to eSDK (mute %d)"; TPM legacy "Spotify setPositionInfo ... uri=%s, playbackId=%s, position=%.3f, isFinalReport=%d"; init {SpInit supported media formats: %llu,devid,remoteName,deviceType,libraryVer,resolverVer,productId}; R_ServiceBitrate
+
+- **name:** eSDK playback session
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ea23a0 — spotify esdk block
+
+</details>
+
+## `spotify_zeroconf`
+
+**coverage** `strong`
+
+**Technical description:**
+
+URIs x-spotify:// + x-spotify-file://; Content-Type application/json; charset=utf-8; ver 2.9.0; client types {Partner,Spotify}; results {SpotZc_Failure,SpotZc_Success}; GC gate "Non-GC returning 404 from getInfo" + "reject zc req %s"; getInfo schema {deviceID,publicKey,deviceType,libraryVersion,resolverVersion,groupStatus,authorization_code,tokenType,clientID,productID,scope,availability,supported_drm_media_formats,supported_capabilities,modelDisplayName,brandDisplayName,remoteName,deviceName,statusString,spotifyError,responseCode}; errors {ERROR-INVALID-ARGUMENTS,ERROR-LOGIN-FAILED,ERROR-SPOTIFY-ERROR,ERROR-UNKNOWN}; addUser/resetUsers/resetUser/userName; "addUser with userName %s; player uuid %s" fmt %s@%s; client GUID 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac + embedded key 9b377073ea334637b1406f329ce005de; DC enum {SONOS_DC_UNKNOWN,OK,NO_ACCOUNT,STALE_ACCOUNT,LOGIN_FAILED,UNSUPPORTED_SERVICE,UNEXPECTED}; account fields {isGuest,accountTier,loginMS,failedLoginMS,refreshAuthMS}; ops {spotifyTransferZeroConf,Using SID %d}
+
+- **name:** Spotify ZeroConf endpoint /spotifyzc
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ea14c4 — spotify.cxx zc block
+
+</details>
+
 ## `spotifyzc`
 
 **coverage** `?`
