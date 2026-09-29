@@ -493,6 +493,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `zoneplayers_status_schema` | /status |  | ? | `strong` |
 | `zp_support_info` | /status support info |  | ? | `strong` |
 | `zpinfo_schema` | mod_zp /status |  | ? | `strong` |
+| `zps_page` | /ZPs |  | ? | `strong` |
 
 ### `AC.AlarmListVersion`
 
@@ -3494,4 +3495,9 @@ ZPSupportInfo schema
 ### `zpinfo_schema`
 
 ZPInfo + DeviceInfo + Playmode
+
+
+### `zps_page`
+
+household update status page fields
 
