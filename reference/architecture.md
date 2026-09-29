@@ -55,6 +55,7 @@ Every action wrapper interacts with the request through these vfunc slots (confi
 | `0x24` | get/create out-arg record by name |
 | `0x38` | finalize |
 | `0x3c` | in-arg fetch (alternate) |
+| `0x34` | request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0 |
 
 ## Capability fields
 
@@ -549,6 +550,7 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
   UUID, HOST, DISPLAY_VERSION, SW_VERSION, SW_GENERATION, NODE_PROTO_VERSIONS, HTA_FRAME_VERSIONS, MUSE_API_VERSIONS, TRUEPLAY_SDK_VERSIONS, HW_VERSION, EXTRA_VERSION, SERIAL_NUM, MAC_ADDRESS, SW_MINCOMPATVER, SW_LEGACYCOMPATVER, API_VERSION, MIN_API_VERSION, MODEL, ZONETYPE, NAME, DISPLAY_NAME, VENDOR_NAME, FEATURE1, FEATURE2, FEATURE3, FEATURE4, SERIESID, VARIANT, INT_SPEAKER_SIZE, QPLAY_SUPPORT, AMP_ONTIME, MEMORY, FLASH, FLASH_REPARTITIONED, RETAIL_MODE, SSL_PORT, HHSSL_PORT, MEDIASERVER_NAMESPACE, CD_NAMESPACE, NS_VERSION
   ```
 - **qplay:** <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</qq:X_QPlay_SoftwareCapability> — QPlay v2 advertised in description
+- **note:** Confirmed absence: no 'scpd','stateVariable','serviceStateTable','sendEvents','allowedValue','dataType' literal exists anywhere in the image - this build never emits SCPD/service-description XML; the state-variable registry lives only inside the eventing engine.
 
 ### `svcmanifest`
 
