@@ -51278,7 +51278,21 @@
     "zoneplayer/trackplay{monitor,recorder}.cxx",
     "zoneplayer/play_state_mgr.cxx"
    ],
-   "impl_return_pattern": "AVT impl universal shape (Ghidra-verified across 15 impls): param_2(InstanceID-path)!=0 -> return 0x2ce=718; else return uVar(engine-vfunc rc). literals 1112=0x458 mutex-offset + 53/56/40/16=struct offsets are noise, not codes. real code vocab {402,718,1024,1025,1028} + engine-passthrough."
+   "impl_return_pattern": "AVT impl universal shape (Ghidra-verified across 15 impls): param_2(InstanceID-path)!=0 -> return 0x2ce=718; else return uVar(engine-vfunc rc). literals 1112=0x458 mutex-offset + 53/56/40/16=struct offsets are noise, not codes. real code vocab {402,718,1024,1025,1028} + engine-passthrough.",
+   "implementation_notes": {
+    "source": "avt_impl.cxx literal block 0x10eafc0c-0x10eb1fcc; object RAVTMediaRenderer; locks rwlW_avt/rwlR_avt; scope scopeAvt; persistence avt.txt + avt-backup-restore; queues trackqueue/ai_tracker/load_operation_manager",
+    "uri_type_enum": [
+     "rincon_uri",
+     "line_in",
+     "regular_uri",
+     "undefined"
+    ],
+    "seek_units": [
+     "TRACK_NR",
+     "REL_TIME",
+     "TIME_DELTA"
+    ]
+   }
   },
   "/MediaRenderer/ConnectionManager/Control": {
    "name": "ConnectionManager",
@@ -105843,6 +105857,14 @@
      "notes": "rodata scheme literal"
     }
    ]
+  },
+  "schemes": {
+   "x-rincon-queue": "x-rincon-queue:<hhid>#<idx|hex> \u2014 zone-queue URIs; #0 = shared queue root",
+   "x-rincon-buzzer": "x-rincon-buzzer:%u:o \u2014 alarm/buzzer chime source",
+   "x-rincon-stream": "x-rincon-stream:%s:%s \u2014 remote line-in stream URI",
+   "x-rincon": "group URI (rejected when \"source or target is an ungroupable player\")",
+   "x-sonos-vli": "x-sonos-vli:%s:%u,%s (see vli_grouping)",
+   "stub": "stub://stub:%u \u2014 mdns stub target"
   }
  },
  "payload_formats": {
@@ -116540,6 +116562,27 @@
   "vli_playback_tracker": {
    "name": "vli_playback_tracker/VLIPlaybackTracker",
    "telemetry": "session {start,reset,end} w/ clock; fields SampleFreq, framerType, zpVLISession; \"report - secs:%d\", \"upld evt #%d\"; wifi tracking \"Wifi discon %s\",\"Updt WiFi frq: %s->%u\" on ath%zu; \"skip spotify\"; err_max bound"
+  },
+  "avt_session": {
+   "session": "muse sessions: sessionId-bound (\"The sessionId does not match the session on this player\"/\"There is no session\"); MUSE_ERROR_SESSION_EVICTED on evict; states Destroyed/Preserved; \"cancel tear down; user started new session\"; resume semantics \"Received play while waiting to be resumed\"; leave/disconnect ops",
+   "restart_policy": [
+    "Playback halt must be respected. NOT attempting to restart",
+    "Fatal playback error. NOT attempting to restart",
+    "Nothing played. NOT attempting to restart",
+    "Multiple restart attempts have failed. NOT attempting to restart again",
+    "Playback stopped unexpectedly. Attempting to restart"
+   ],
+   "chime_restore": "pause/stop/end chime (x-rincon-buzzer) captures and restores playback: \"restoring after pause chime: ret=%d ar=%d wrca=%d pavt=%d\"; Business schedule alarm end handled",
+   "timers": "sleep timer set (d:%d r:%d p:%d c:%d)/fired (r:%ld)/reached (p:%d); alarm timer reached -> dispatch play; suspending cloud queue during snooze|alarm",
+   "limits": "\"exceeded internal set AVT URI limit\" \u2014 URI change rate cap; \"set AVT aborted because operation is overridden\"; Operational Override mask 0x%x",
+   "capability": "endpoint switch on capChange: \"Current groupcaps: 0x%08x, required: 0x%08x\"; groupSize/curCaps/requiredCaps; play-mode flags warnings for VLI",
+   "coordinator": "ChangeCoordinator: uses local VLI txs or CHSRC/HTAudio TV TX per GM type; seamless delegation refused for HT audio (\"Chsnk restart is requested by the new coordinator\"); \"off box members for VLISrcMgr [%u] must be <= CHSRC [%u]\"; group moves \"Attempting to move player %s to group coordinated by %s ... rejoin status %d\"; BecomeCoordinatorOfStandaloneGroup path",
+   "vli": "setTransportToVLIStreamURI {URI,autoplay,become gc}; VliGroupID activation; X-Sonos-Api-Key header on VLI fetch; corr ctx \"bootSeq %u gcUUID %s\"; StartTransmissionToGroup",
+   "queue": "enqueueEvent Add to queue %u {URI|MD DIDL}; qLength/trackIndex/tracksAdded; loadTrackList; \"Tracks added ... non-playable\" guard",
+   "radio": "station metadata: TYPE=SNG/TITLE; desc cdudn urn:schemas-rinconnetworks-com:metadata-1-0 {r:tags,r:tiid}; \"Reporting radio failure\"; stream metadata discard on track-found match",
+   "tunein": "\"Successfully converted TuneIn while settingAVT. old: %s, new: %s\" \u2014 legacy URI rewrite",
+   "amp": "preemptive amp warm \"prem-amp turn on at %d.%06d; start up time: %dms\"",
+   "autoplay": "autoplaying %d %s; Spotify SMAPI via VLI autoplay; ProgramURI; TV-proxy VLI refused; HT-capability gate"
   }
  },
  "subsystems": {

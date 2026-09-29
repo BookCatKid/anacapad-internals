@@ -251,6 +251,15 @@ RinconNetworks URN namespace prefix observed in service/URN vocabulary.
 
 </details>
 
+## `schemes` _unassessed_
+
+- **x-rincon-queue:** x-rincon-queue:<hhid>#<idx\|hex> — zone-queue URIs; #0 = shared queue root
+- **x-rincon-buzzer:** x-rincon-buzzer:%u:o — alarm/buzzer chime source
+- **x-rincon-stream:** x-rincon-stream:%s:%s — remote line-in stream URI
+- **x-rincon:** group URI (rejected when "source or target is an ungroupable player")
+- **x-sonos-vli:** x-sonos-vli:%s:%u,%s (see vli_grouping)
+- **stub:** stub://stub:%u — mdns stub target
+
 ## `skd` `strong`
 
 skd: — a streamer vocabulary token; semantics unresolved (plausibly a secure-key-delivery or SDK marker).

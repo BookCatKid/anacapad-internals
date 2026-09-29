@@ -5839,6 +5839,14 @@ AVT impl universal shape (Ghidra-verified across 15 impls): param_2(InstanceID-p
 - Engine impl object fields recovered: +0x458 command mutex; +0x3dc name string (nonzero gates scoped logging); +0x580 indexed/chsrc session manager (f_10255f64 submit, f_10256a84 ops); +0x5a0 streamer session object (vfuncs f_106a7880 pause, f_106a7a34 next, f_106a7930 seek, f_106a9e88 mode); +0x5dc source/URI control target (cap queries f_10147928/f_101471f0/f_101475dc/f_10148308/f_10688070, precondition f_102931f0); +0x5d4 default state source; +0x4654 transport-source mode enum {0,1,2} (2=indexed/queue); +0x6ed8 pending-op field cleared on successful track/mode ops; +0x7778 cleared by Stop; +0x1a03 shuffle-capable flag; +0x5a86/+0x5a7f/+0x7764/+0x7766/+0x776c chime-restore flags; +0xaaa0 member object touched by Stop. Engine vtables: A=0x10eaf2ec, B=0x10edfbb8 - identical for all actions except SetAVTransportURI and the three Become*Coordinator* ops (B overrides to 0x10513230/0x10513244/0x105133e4/0x105134a8, the group-aware class).
 - Two engine classes implement every action: standalone (vtable 0x10eaf2ec, ctor f_102cc070) and group-capable (vtable 0x10edfbb8, ctor f_104000c4). They share all 54 vfunc slots except ctor/dtor and the four coordinator-sensitive impls (+0x08 SetAVTransportURI, +0x54 BecomeCoordinatorOfStandaloneGroup, +0xd0 BecomeGroupCoordinator, +0xd4 BecomeGroupCoordinatorAndSource). B impls gate on the zonegroup-topology singleton (global 0x110c8478 via f_1090ad44 + state predicate f_109089f0 on obj+0xcc); when ungrouped the B Become* impls tail-call the A impls verbatim.
 
+## Additional records
+
+### `implementation_notes`
+
+- **source:** avt_impl.cxx literal block 0x10eafc0c-0x10eb1fcc; object RAVTMediaRenderer; locks rwlW_avt/rwlR_avt; scope scopeAvt; persistence avt.txt + avt-backup-restore; queues trackqueue/ai_tracker/load_operation_manager
+- **uri_type_enum:** `rincon_uri`, `line_in`, `regular_uri`, `undefined`
+- **seek_units:** `TRACK_NR`, `REL_TIME`, `TIME_DELTA`
+
 Implementation sources (recovered): `zoneplayer/avt_impl.cxx`, `zoneplayer/trackplay{monitor,recorder}.cxx`, `zoneplayer/play_state_mgr.cxx`
 
 <details><summary>Service evidence (3)</summary>
