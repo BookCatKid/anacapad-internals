@@ -120795,7 +120795,8 @@
   },
   "device_props": {
    "idle_shutdown": "idle events LineInStateChangedEvent/ReplicatedSettingsChangedEvent; vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; dpimpl/dpUpdateIdleState \"idle state is %sidle, changing to %sidle\"",
-   "enetport_schemas": "<EnetPorts><Port port=\"%d\"><Link>%d</Link><Speed>%d%s</Speed></Port>; EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u"
+   "enetport_schemas": "<EnetPorts><Port port=\"%d\"><Link>%d</Link><Speed>%d%s</Speed></Port>; EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u",
+   "fields2": "{oldAddr,newAddr,playingAudio,zoneRole,lineInBusy,ipAddrChange,network,PrimarySupportsFlexSurrounds}; soapaction + text/xml; charset=\"utf-8\""
   },
   "feature_config": {
    "name": "RFeatureConfigManager \u2014 cloud feature flags",
@@ -120941,6 +120942,24 @@
     "informLocalOrientation",
     "setLocalTransportStateChanged",
     "informLocalPlayerZPChange"
+   ],
+   "zp_events": [
+    "LocalIpChangedEvent",
+    "RequestTVTransitionEvent",
+    "WakeOnLANRequestEvent",
+    "PortableWifiReconnectEvent",
+    "PlaybackCorrelationEvt",
+    "HouseholdSettingsChangeEvent",
+    "TVInputSelectedEvent",
+    "ZonePlayerConfigurationEvent",
+    "SystemPropertiesChangeEvent",
+    "CloudConnectionChangedEvent",
+    "NewCertRegistrationEvent",
+    "RegCertUpdateEvent",
+    "VoiceAccountTransactionEvent",
+    "SecureRegistrationStateUpdateEvent",
+    "PlaybackStateChangedEvent",
+    "RemoteHTSwapStateChangedEvent(source,swap active,are we satellite)"
    ]
   },
   "upgrade": {
@@ -120998,7 +121017,8 @@
     "pollRadioShowMD",
     "preemptiveAmp"
    ],
-   "secondary_guards": "improper-call guards on secondary ZPs {\"AVTransportURI cannot be set to non-group URI on secondary ZPs\",\"BecomeCoordinatorOfStandaloneGroup improperly called on secondary ZP\",\"BecomeGroupCoordinator improperly called\",\"BecomeGroupCoordinatorAndSource improperly called\"}"
+   "secondary_guards": "improper-call guards on secondary ZPs {\"AVTransportURI cannot be set to non-group URI on secondary ZPs\",\"BecomeCoordinatorOfStandaloneGroup improperly called on secondary ZP\",\"BecomeGroupCoordinator improperly called\",\"BecomeGroupCoordinatorAndSource improperly called\"}",
+   "uris_ht": "x-sonos-htastream:%s HT audio stream + demo line-in uri + \"Demo mode update available (%s)\" + x-rincon-buzzer:1 custom alarm + x-rincon-stream:%s; spdif source"
   },
   "content_directory": {
    "container_classes": "browse classes {object.container.album.musicAlbum,.compilation,playlistContainer.sameArtist,playlistContainer,albumlist,person.musicArtist,genre.musicGenre,person.composer}; fields {dc:creator,upnp:albumArtURI}; category keys {ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS}; dirObjAttr; <AudioCore> page + OrientationChangeEvent",
@@ -121033,7 +121053,8 @@
   },
   "rendering_control": {
    "volume_engine": "per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math \"DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)\" + \"Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)\"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl",
-   "rc_impl_stp": "SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate \"This command is allowed only on primary\" + \"Muse command forwarding failed\"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber"
+   "rc_impl_stp": "SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate \"This command is allowed only on primary\" + \"Muse command forwarding failed\"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber",
+   "led_feedback": "button feedback {\"in start music play feedback from 0x%x\",\"led feedback for timeout waiting to start play/pause\",\"waiting-to-play-music feedback:%d\",\"waiting-to-pause-music feedback\",\"unsupported/unhandled play feedback action:%d\",\"cleared fast volume zero after %s\",\"pause confirmed by PlaybackStateChangedEvent\"}; LocalPlayURI errors {RC control URI,mute+volume state,restore default volume,set AVTransportURI,start playback,coordinator transport state}; PLAYING/TRANSITIONING states"
   },
   "audio_rate_ctrl": {
    "name": "Audio Rate Controller (ASRC) + timesync drift",
@@ -121685,6 +121706,51 @@
      "status": "confirmed",
      "address": "0x10e95d24",
      "notes": "zones_mgr block"
+    }
+   ]
+  },
+  "zones_storage": {
+   "name": "zones_storage \u2014 zone-def persistence",
+   "status": "partial",
+   "summary": "zone defs {name,id,channelMapSet} + \"reached maximum zone definitions\"/\"too many zones defined in the config file [max=%d]\" + \"zone def full: %s removed\"; ops {create,update id,remove (active-guard \"zone currently active\")}; replication {\"received replicated file\",\"failed to rename offered replicated file\",\"failed to load offered replicated file\",\"ignoring replicated file: incompatible schema\"}; JSON load errors {missing value,zones data array,root not object,incorrect schema [%d != %d],parsing offset,open errno} + RapidJSON vocab; gainTrimDB remote apply; forwarding {activateZone,updateActiveZone,joinZone,updateZoneMemberSettings cmd to %s} + \"primary %s not found\" + \"output buffer full\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e96cd8",
+     "notes": "zones_storage block"
+    }
+   ]
+  },
+  "thermal": {
+   "name": "thermal monitor + HW fault state",
+   "status": "partial",
+   "summary": "syslib thermal {open,get_temp,close} + \"cpu:%d, amp:%d, soc:%d\" + temperature_volume + ampstate + hardware fields; \"Hardware %s; clamping volume to %d%%\"; state transitions {Entering/Leaving hardware warning state,Entering/Leaving hardware fault state} + hw:st + \"Warning/Fault Code(s):%s\" + fullSync; satsw \"Error %d from uploadSatSwitchTimeReport\" + satSwitch; lmrep \"Error %d from WifiFuncsGetLmChangeStats\" + {lmChannel,lmNeighbor,roamEvent,beaconLostEvent}",
+   "status_schemas": {
+    "led": "<LedPatternInfo><LedPatternEntry time led_ids=\"%08x\" repeats steps><LedStepEntry rgb=\"%06X\" hold fade/></LedPatternEntry></LedPatternInfo>",
+    "libs": "<ThirdPartyLibraryInfo><Library Name=\"Spotify eSDK\"><Version/></Library></ThirdPartyLibraryInfo>",
+    "roomcal": "<RoomCalibrationInfo><RoomCalibrationActiveState>Inactive|\u2026</><RoomCalibrationUserIntent/><RoomCalibrationAvailCalID/><RoomCalibrationOrientation/></RoomCalibrationInfo>",
+    "faults": "<Faults Name=\"WarningsAndFaults\"><FaultState><WarningState><LastBitmask><LastBitmask2></Faults>"
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e98e30",
+     "notes": "thermal/status blocks"
+    }
+   ]
+  },
+  "capability_guards": {
+   "name": "settings capability guards",
+   "status": "partial",
+   "summary": "\"Supported only for devices that support power over ethernet and have ethernet support\"; \"Supported only for devices with a water sensor\"; \"Supported only on devices with a microphone switch\"; \"Device is not a subwoofer\"; \"Supported only on suspendable devices\" + {requiredMinimumBatteryPercentage,requiredMaximumBatteryPercentage,durationSeconds}; \"Supported only on devices with a battery\"; \"Supported only on devices with bluetooth\" + \"Unable to set bluetooth pairing, unsupported\"; \"target is not a home theater source\"/\"target does not support HDMI CEC\" + tvPowerState; \"Setting is not valid\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e99764",
+     "notes": "capability guards"
     }
    ]
   }
