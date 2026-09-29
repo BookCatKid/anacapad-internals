@@ -991,6 +991,7 @@ HTTP Range-request support — used for seeking in streams and resuming download
 
 - **status:** confirmed
 - **grammar:** Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu} — 64-bit
+- **status_line:** 0x10ee6bcc 'HTTP/1.0 206' - range responses are emitted on the HTTP/1.0 status line (HTTP/1.1 variant not separately templated)
 
 ## `muse_authhelper`
 
@@ -1146,6 +1147,12 @@ The SSDP responder/advertiser — answers M-SEARCH, announces the player on boot
 - **handler:** RMSearchNotifyHandler thread + disHandleMSearchAsync dispatch; 'Failed to setup MSearchNotifyHandler'
 - **dedup:** dual-discovery: 'handleDefunctZP %s reason %s IGNORED from MDNS - discovered by SSDP'/'from SSDP - discovered by MDNS but not SSDP'
 - **containers:** x-rincon-cpcontainer:{RDCPA,RDCPI,*}:* grammar; 'Unknown old Rhapsody x-rincon-cpcontainer'
+- **outbound_templates:**
+  - **alive:** 0x10eef678: NOTIFY * HTTP/1.1 \| HOST: 239.255.255.250:1900 \| CACHE-CONTROL: max-age = %u \| LOCATION: %s \| NT: %s \| NTS: ssdp:alive \| SERVER: %s \| USN: %s \| %s(trailer)
+  - **byebye:** 0x10eef5fc: NOTIFY * HTTP/1.1 \| HOST: 239.255.255.250:1900 \| NT: %s \| NTS: ssdp:byebye \| SERVER: %s \| USN: %s \| %s(trailer) - note: byebye omits CACHE-CONTROL/LOCATION
+  - **msearch_response:** 0x10eef97c: HTTP/1.1 200 OK \| CACHE-CONTROL: max-age = %u \| EXT: \| LOCATION: %s \| SERVER: %s \| ST: %s \| USN: %s \| %s(trailer) - the unicast reply to inbound M-SEARCH
+  - **outbound_msearch:** 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)
+  - **notes:** alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses
 
 ## `ssdp_signed_msearch`
 

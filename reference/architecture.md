@@ -833,6 +833,7 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
   - **role:** cloud transport — REST/ws API sessions over HTTP/2
   - **surface:** nghttp2_session_{send,upgrade2}; nghttp2_submit_{request,ping,goaway,settings,window_update}; nghttp2_{set_,session_set_}local_window_size
   - **behavior:** h1->h2 upgrade ('(via h1 upgrade)','(upgraded to SSL)','session_upgrade2'); ping/goaway keepalive; per-stream window mgmt; 'send request NOT allowed (via nghttp2)' gating; 'PRIORITY: stream_id == 0' frame error; 'pack_settings_payload' path
+  - **headers_frame_validation:** nghttp2 HEADERS-state literals: 'HEADERS: stream closed' / 'HEADERS: no HEADERS allowed from client in reserved state' / 'HEADERS: could not unpack' / 'HEADERS: insufficient padding space' / 'HEADERS: invalid padding' (@0x10f89708-0x10f89dbc) - frame-parser validation layer beyond the documented PRIORITY/RST_STREAM surface
 - **status:** strong
 
 ### `hwmessagelib`
@@ -873,6 +874,12 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
 - **handler:** RMSearchNotifyHandler thread + disHandleMSearchAsync dispatch; 'Failed to setup MSearchNotifyHandler'
 - **dedup:** dual-discovery: 'handleDefunctZP %s reason %s IGNORED from MDNS - discovered by SSDP'/'from SSDP - discovered by MDNS but not SSDP'
 - **containers:** x-rincon-cpcontainer:{RDCPA,RDCPI,*}:* grammar; 'Unknown old Rhapsody x-rincon-cpcontainer'
+- **outbound_templates:**
+  - **alive:** 0x10eef678: NOTIFY * HTTP/1.1 \| HOST: 239.255.255.250:1900 \| CACHE-CONTROL: max-age = %u \| LOCATION: %s \| NT: %s \| NTS: ssdp:alive \| SERVER: %s \| USN: %s \| %s(trailer)
+  - **byebye:** 0x10eef5fc: NOTIFY * HTTP/1.1 \| HOST: 239.255.255.250:1900 \| NT: %s \| NTS: ssdp:byebye \| SERVER: %s \| USN: %s \| %s(trailer) - note: byebye omits CACHE-CONTROL/LOCATION
+  - **msearch_response:** 0x10eef97c: HTTP/1.1 200 OK \| CACHE-CONTROL: max-age = %u \| EXT: \| LOCATION: %s \| SERVER: %s \| ST: %s \| USN: %s \| %s(trailer) - the unicast reply to inbound M-SEARCH
+  - **outbound_msearch:** 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)
+  - **notes:** alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses
 
 ### `ssdp_signed_msearch`
 
