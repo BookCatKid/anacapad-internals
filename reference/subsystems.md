@@ -339,6 +339,8 @@ production A/B experiment framework: a /experiments local endpoint plus a replic
 
 - **schema:** <ZoneExperiments><ZoneExperiment id="%llu" name="%s" value="%u" defaultValue="%u" /></ZoneExperiments> — numeric value vs defaultValue, keyed by 64-bit id and name
 - **keys:** featureConfigZoneExperiment, zoneExperiments, experimentId, experiment
+- **fetch_pipeline:** RFeatureConfigManager/FeatureConfigManager (featureconfig.cxx region): fetches '/features/v1/config?' with query params {swVersion,hwVersion} over HTTPS with 'cache-control: no-cache'. Cache precedence: cloudconfig_override.json > cloudconfig.json (cloud-cached) > cloud-persisted — 'Using override config' / 'Using %s cloud-cached config' / 'Using cloud-persisted config'. Lifecycle: 'stale' marker, 'Already have fresh data. Skipping Fetch.', 'failed to fetch config: not securely registered', connect failure -> 'rescheduling in 1 hour'. Parse failure paths for each tier ('Error parsing feature config' / 'Error parsing cached config').
+- **assignment_model:** NO on-device bucketing exists: the device sends only {swVersion,hwVersion} and receives per-experiment {id(%llu),name,value(%u),defaultValue(%u)} rows — cohort assignment happens entirely in the cloud config service; the device applies value-vs-defaultValue. The 'number of labels not equal to number of buckets' string is third-party (libbpf/perf), unrelated.
 <details><summary>Evidence (4)</summary>
 
 - @ 0x10ef3d0d — <ZoneExperiment

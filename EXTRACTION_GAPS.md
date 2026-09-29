@@ -861,11 +861,18 @@ undocumented (see also Part 1).
 `SsdpAdvertiseConfig`, `ZoneExperiment`) — the feature map of this
 build, complementing `capabilities` hardware gates.
 
-### A/B experiments framework — PARTIAL
+### A/B experiments framework — RESOLVED (device side)
 `<ZoneExperiments>` doc + `<ZoneExperiment id name value
 defaultValue>` + `experimentId` + `/experiments` /status endpoint +
-`featureConfigZoneExperiment` — catalogued; assignment/bucketing
-undocumented.
+`featureConfigZoneExperiment`. **Assignment/bucketing decoded:**
+there is no on-device bucketing — `RFeatureConfigManager` fetches
+`/features/v1/config?swVersion=…&hwVersion=…` with
+`cache-control: no-cache` and applies the returned
+`{id,name,value,defaultValue}` rows; cohort selection is entirely
+cloud-side. Cache precedence: `cloudconfig_override.json` >
+`cloudconfig.json` > cloud-persisted, with a 'stale' marker,
+"Already have fresh data. Skipping Fetch.", a 'not securely
+registered' gate, and 1-hour retry on connect failure.
 
 ---
 
