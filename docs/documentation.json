@@ -125641,7 +125641,7 @@
   "spec_pair_stream": {
    "name": "muse spec-pair descriptor stream",
    "status": "partial",
-   "summary": "Byte-oriented spec stream in .rodata (e.g. blob @0x10fa51b3): sequence of 4-byte tag-words {u8 tag, u24 operand}. Tag 0x82 = reference into spec_object_table (operand = index 0-330; proven by consecutive semantic groups 44/45/46 = authorizationGrantHeader/Payload/Response). Other observed tags: 0xae (operand often 0x34), 0x0f, 0x34, 0x4c, 0x84, 0xcb, 0xcd, 0xd0, 0xd6 \u2014 tag semantics undecoded (hypothesis: field-name refs where operand indexes the same name table, plus property/cardinality markers). Streams are not pointer-referenced; probably reached via sequential scan or descriptor vtables in .data.rel.ro. Parser function not yet identified (no immediate-compare on 0x82 found).",
+   "summary": "RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs \u2014 high bytes were index values <331). Each descriptor holds a ptr into a packed rodata pool; list = [root-idx] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established \u2014 likely via registration order or the verb table.",
    "evidence": [
     {
      "type": "firmware",
@@ -125661,6 +125661,4491 @@
      "status": "confirmed",
      "address": "0x110941d8",
      "notes": "ns->verb pair table"
+    }
+   ]
+  },
+  "spec_descriptors": {
+   "name": "muse/lechmere spec-object descriptor registry",
+   "status": "confirmed",
+   "summary": "383 object-spec descriptors in 2 contiguous tables: @.rodata 0x10e9ba80 (96 records) and 0x10f9f87c (287 records). Each 0x80-byte record = C++ descriptor object: ctor @+0x00 installs vtable (0x10f9496c family); +0x20 accessor fn (shape stwu/lis/addi/addi-r3-classId/addi-ofs/stw/blr) returns {classId 1-12, spec-list ptr}; +0x24 = ffffff88 marker; +0x2c/+0x30/+0x4c-0x54 = per-object ops (10b1xxxx range); +0x58..+0x7c = shared thunk tail (101c06xx). Spec-list = packed u32 index list into spec_object_table (0x10f97088): [rootIdx, (member/marker pairs)*] \u2014 markers 52(authzTokenStatus) & 130(featureConfigZoneExperiment) recur as envelope/gate flags; exact pair grammar unproven. Root names recovered for all 383: 151 root networkTestId (correlation-id first field), 45 upnpError (UPnP-bridge ops), plus real object types (group, alarm, playlist, deviceInfo, content, service, sharesList, translatedObjectIds, authorizationGrantResponse, waterState, loopbackTimeoutControl...). classId distribution suggests msg-kind (request/response/event/struct/error).",
+   "count": 383,
+   "tables": [
+    {
+     "base": "0x10e9ba80",
+     "n": 96
+    },
+    {
+     "base": "0x10f9f87c",
+     "n": 287
+    }
+   ],
+   "entries": [
+    {
+     "address": "0x10e9ba80",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10e9bb00",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9bb80",
+     "class": 3,
+     "root": "eqSettings",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9bcdc",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10e9bd5c",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9bddc",
+     "class": 3,
+     "root": "globalError",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9be5c",
+     "class": 3,
+     "root": "globalError",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9bedc",
+     "class": 6,
+     "root": "group",
+     "members": [
+      "authzTokenStatus",
+      "playerAnyOneSettingsGroup",
+      "book",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "allowDirectControlSetting"
+     ]
+    },
+    {
+     "address": "0x10e9bf5c",
+     "class": 6,
+     "root": "group",
+     "members": [
+      "authzTokenStatus",
+      "playerAnyOneSettingsGroup",
+      "book",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "allowDirectControlSetting"
+     ]
+    },
+    {
+     "address": "0x10e9bfdc",
+     "class": 6,
+     "root": "group",
+     "members": [
+      "authzTokenStatus",
+      "playerAnyOneSettingsGroup",
+      "book",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "allowDirectControlSetting"
+     ]
+    },
+    {
+     "address": "0x10e9c2e0",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10e9c360",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9c3e0",
+     "class": 2,
+     "root": "extendedPlaybackStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9c460",
+     "class": 10,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "alarmList",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "actuator",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "activeZoneMember"
+     ]
+    },
+    {
+     "address": "0x10e9c4e0",
+     "class": 10,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "alarmList",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "actuator",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "activeZoneMember"
+     ]
+    },
+    {
+     "address": "0x10e9c6a0",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10e9c720",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9c7a0",
+     "class": 3,
+     "root": "lineInStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9c820",
+     "class": 4,
+     "root": "authzUser",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9c8a0",
+     "class": 1,
+     "root": "authzUser",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9c920",
+     "class": 4,
+     "root": "availableSoftwareUpdate",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9c9a0",
+     "class": 7,
+     "root": "tokenStatus",
+     "members": [
+      "authzTokenStatus",
+      "tokenStatus",
+      "bluetooth",
+      "tokenStatus",
+      "devices",
+      "tokenStatus",
+      "bluetoothPolicySettings",
+      "tokenStatus",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10e9ca20",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9caa0",
+     "class": 3,
+     "root": "entitlementsList",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9cb20",
+     "class": 3,
+     "root": "waterState",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9cba0",
+     "class": 3,
+     "root": "battery",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9cc20",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9cca0",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9cd20",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9cda0",
+     "class": 3,
+     "root": "loopbackTimeoutControl",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9ce20",
+     "class": 3,
+     "root": "versionChanged",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9cea0",
+     "class": 3,
+     "root": "playlistTrack",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9cf20",
+     "class": 3,
+     "root": "bluetoothPairing",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9cfa0",
+     "class": 3,
+     "root": "lineInSettings",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10e9d3fc",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10e9d47c",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9d4fc",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10e9d57c",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d5fc",
+     "class": 3,
+     "root": "hdmiStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10e9d67c",
+     "class": 3,
+     "root": "hdmiStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10e9d6fc",
+     "class": 3,
+     "root": "accessorySwap",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d77c",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d7fc",
+     "class": 3,
+     "root": "trueroomStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d87c",
+     "class": 3,
+     "root": "",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d8fc",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d97c",
+     "class": 3,
+     "root": "trueroomStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9d9fc",
+     "class": 3,
+     "root": "speakerPresenceResult",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9da7c",
+     "class": 3,
+     "root": "accessoryId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9df80",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10e9e000",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e080",
+     "class": 3,
+     "root": "metadataStatus",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "allowAirplaySetting"
+     ]
+    },
+    {
+     "address": "0x10e9e100",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "activeZoneMember",
+      "playbackPolicy",
+      "actuator",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e180",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e200",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "cloudRegistrationStatus",
+      "playbackPolicy",
+      "activeZoneMember",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e280",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e300",
+     "class": 7,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "playbackPolicy",
+      "album",
+      "playbackPolicy",
+      "bluetooth",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e380",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "playbackPolicy",
+      "album",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e400",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "playbackPolicy",
+      "album",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e480",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e500",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e580",
+     "class": 10,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "accessoryWifiPsk",
+      "battery",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "alarmDescription",
+      "featureConfigZoneExperiment",
+      "alarmList",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "activeZoneMember",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10e9e600",
+     "class": 7,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "actuator",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "activeZoneMember"
+     ]
+    },
+    {
+     "address": "0x10e9e680",
+     "class": 9,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "accessoryWifiPsk",
+      "battery",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "actuator",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "activeZoneMember"
+     ]
+    },
+    {
+     "address": "0x10e9e700",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "activeZoneMember",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10e9e780",
+     "class": 12,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "accessoryWifiPsk",
+      "battery",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "alarmDescription",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus",
+      "featureConfigZoneExperiment",
+      "activeZoneMember",
+      "featureConfigZoneExperiment",
+      "actuator",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "alarmList",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9e800",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "album",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetooth",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9f568",
+     "class": 2,
+     "root": "",
+     "members": [
+      ""
+     ]
+    },
+    {
+     "address": "0x10e9f5e8",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9f668",
+     "class": 3,
+     "root": "ethernetPorts",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "allowAirplaySetting"
+     ]
+    },
+    {
+     "address": "0x10e9f7b8",
+     "class": 3,
+     "root": "globalSettings",
+     "members": [
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "album",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9f838",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9f8b8",
+     "class": 7,
+     "root": "accessoryWifiPsk",
+     "members": [
+      "battery",
+      "service",
+      "authzTokenStatus",
+      "secureRegCert",
+      "areas",
+      "secureRegCert",
+      "area",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9f938",
+     "class": 6,
+     "root": "service",
+     "members": [
+      "authzTokenStatus",
+      "secureRegCert",
+      "areas",
+      "secureRegCert",
+      "area",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9f9b8",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "secureRegCert",
+      "areas",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9fa38",
+     "class": 7,
+     "root": "accessoryWifiPsk",
+     "members": [
+      "battery",
+      "service",
+      "authzTokenStatus",
+      "secureRegCert",
+      "areas",
+      "secureRegCert",
+      "area",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9fab8",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9fb38",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9fbb8",
+     "class": 7,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "album",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9fc38",
+     "class": 7,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10e9fcb8",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "activeZoneMember"
+     ]
+    },
+    {
+     "address": "0x10e9fd38",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "activeZoneMember",
+      "featureConfigZoneExperiment",
+      "book",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10e9fdb8",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "playbackPolicy",
+      "album",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10e9fe38",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "album",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetooth",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9feb8",
+     "class": 7,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "album",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetooth",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9ff38",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10e9ffb8",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "actuator",
+      "playbackPolicy",
+      "bluetoothPolicySettings",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10ea0038",
+     "class": 7,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "album",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10ea00b8",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "playbackPolicy",
+      "album",
+      "playbackPolicy",
+      "lineInStatus",
+      "playbackPolicy",
+      "bluetooth",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10ea05b8",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10ea0638",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10ea06b8",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10ea0738",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10ea07b8",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10ea0838",
+     "class": 1,
+     "root": "playerSettings",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10ea08b8",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10ea0938",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10f9f87c",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10f9f8fc",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10f9f97c",
+     "class": 1,
+     "root": "alarm",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10f9f9fc",
+     "class": 2,
+     "root": "activeZoneMember",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10f9fa7c",
+     "class": 5,
+     "root": "activeZoneMember",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "",
+      "featureConfigZoneExperiment",
+      "",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10f9fafc",
+     "class": 5,
+     "root": "activeZoneMember",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10f9fb7c",
+     "class": 4,
+     "root": "activeZoneMember",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10f9fbfc",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10f9fde4",
+     "class": 1,
+     "root": "",
+     "members": [
+      ""
+     ]
+    },
+    {
+     "address": "0x10f9fe64",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10f9fee4",
+     "class": 1,
+     "root": "amazonAlexaSetup",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10f9ff64",
+     "class": 5,
+     "root": "amazonAlexaAccount",
+     "members": [
+      "authzTokenStatus",
+      "playerAnyOneSettingsGroup",
+      "book",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10f9ffe4",
+     "class": 6,
+     "root": "amazonAlexaAccount",
+     "members": [
+      "authzTokenStatus",
+      "playerAnyOneSettingsGroup",
+      "book",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "none"
+     ]
+    },
+    {
+     "address": "0x10fa0064",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "none",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa020c",
+     "class": 3,
+     "root": "featureConfigZoneExperiment",
+     "members": [
+      "activeZonesChange"
+     ]
+    },
+    {
+     "address": "0x10fa028c",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa030c",
+     "class": 9,
+     "root": "versionChanged",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "accessorySwap",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "tvAudioSignalStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa038c",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "accessoryId",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa0558",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa05d8",
+     "class": 1,
+     "root": "authzModifier",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa0658",
+     "class": 2,
+     "root": "authorizationGrantResponse",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa06d8",
+     "class": 5,
+     "root": "upnpEvent",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus"
+     ]
+    },
+    {
+     "address": "0x10fa0758",
+     "class": 6,
+     "root": "upnpEvent",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deviceInfo",
+      "featureConfigZoneExperiment",
+      "commandHeader",
+      "featureConfigZoneExperiment",
+      "bridgeContext"
+     ]
+    },
+    {
+     "address": "0x10fa093c",
+     "class": 1,
+     "root": "",
+     "members": [
+      ""
+     ]
+    },
+    {
+     "address": "0x10fa09bc",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa0a3c",
+     "class": 1,
+     "root": "recurrenceRule",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa0abc",
+     "class": 8,
+     "root": "networkTestId",
+     "members": [
+      "availableSoftwareUpdate",
+      "featureConfigZoneExperiment",
+      "bleMeasurement",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "channelMapPair",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "activeZone",
+      "featureConfigZoneExperiment",
+      "contentMetadataBlob",
+      "featureConfigZoneExperiment",
+      "activeZonesChange"
+     ]
+    },
+    {
+     "address": "0x10fa0b3c",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "availableSoftwareUpdate",
+      "featureConfigZoneExperiment",
+      "activeZonesChange"
+     ]
+    },
+    {
+     "address": "0x10fa0bbc",
+     "class": 2,
+     "root": "lineInSettingsGroup",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa0dd0",
+     "class": 1,
+     "root": "authzTokenStatus",
+     "members": []
+    },
+    {
+     "address": "0x10fa0e50",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa0ed0",
+     "class": 3,
+     "root": "deviceInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "content"
+     ]
+    },
+    {
+     "address": "0x10fa0f50",
+     "class": 3,
+     "root": "upnpEvent",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus"
+     ]
+    },
+    {
+     "address": "0x10fa0fd0",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1158",
+     "class": 1,
+     "root": "",
+     "members": []
+    },
+    {
+     "address": "0x10fa11d8",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa1258",
+     "class": 4,
+     "root": "playbackStatus",
+     "members": [
+      "authzTokenStatus",
+      "networkTestId",
+      "battery",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa12d8",
+     "class": 4,
+     "root": "playbackError",
+     "members": [
+      "authzTokenStatus",
+      "networkTestId",
+      "battery",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa1358",
+     "class": 6,
+     "root": "playbackStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "poeState",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bridgeContext"
+     ]
+    },
+    {
+     "address": "0x10fa13d8",
+     "class": 6,
+     "root": "playbackError",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "poeState",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bridgeContext"
+     ]
+    },
+    {
+     "address": "0x10fa15e0",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa1660",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa16e0",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa1760",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa17e0",
+     "class": 2,
+     "root": "enableContentAccessSetting",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1860",
+     "class": 2,
+     "root": "enableContentAccessSetting",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1a68",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa1ae8",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10fa1b68",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1be8",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1c68",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1ce8",
+     "class": 3,
+     "root": "groupInfo",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa1e60",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa1ee0",
+     "class": 1,
+     "root": "networkTestId",
+     "members": []
+    },
+    {
+     "address": "0x10fa1f60",
+     "class": 2,
+     "root": "upnpEvent",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa1fe0",
+     "class": 2,
+     "root": "directControl",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa2060",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa2224",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa22a4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "lineInStatus"
+     ]
+    },
+    {
+     "address": "0x10fa2324",
+     "class": 3,
+     "root": "content",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "bleMeasurement"
+     ]
+    },
+    {
+     "address": "0x10fa23a4",
+     "class": 1,
+     "root": "content",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa2424",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "lineInStatus"
+     ]
+    },
+    {
+     "address": "0x10fa24a4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "lineInStatus"
+     ]
+    },
+    {
+     "address": "0x10fa25f4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa26dc",
+     "class": 2,
+     "root": "featureConfigZoneExperiment",
+     "members": [
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa275c",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa27dc",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "availableSoftwareUpdate",
+      "featureConfigZoneExperiment",
+      "authzPolicyKeyLechmere",
+      "households",
+      "entitlement",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus"
+     ]
+    },
+    {
+     "address": "0x10fa285c",
+     "class": 1,
+     "root": "household",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa2a04",
+     "class": 2,
+     "root": "diagnosticSubmissionResults",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa2adc",
+     "class": 2,
+     "root": "featureConfigZoneExperiment",
+     "members": [
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa2b5c",
+     "class": 2,
+     "root": "image",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa2c68",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa2ce8",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa2d68",
+     "class": 2,
+     "root": "settingsChanged",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa2de8",
+     "class": 7,
+     "root": "versionChanged",
+     "members": [
+      "availableSoftwareUpdate",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "audioClip",
+      "featureConfigZoneExperiment",
+      "audioClipStatus",
+      "featureConfigZoneExperiment",
+      "artist"
+     ]
+    },
+    {
+     "address": "0x10fa2e68",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "audioClipStatus",
+      "featureConfigZoneExperiment",
+      "asyncRequestAck"
+     ]
+    },
+    {
+     "address": "0x10fa2ee8",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "availableSoftwareUpdate",
+      "featureConfigZoneExperiment",
+      "audioClipStatus"
+     ]
+    },
+    {
+     "address": "0x10fa2f68",
+     "class": 2,
+     "root": "upnpEvent",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3130",
+     "class": 2,
+     "root": "authzTokenStatus",
+     "members": [
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "lineInStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa31b0",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa32a4",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa3324",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa33a4",
+     "class": 3,
+     "root": "microphoneSwitch",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3424",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa34a4",
+     "class": 3,
+     "root": "microphoneSwitch",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "amazonAlexaAccount",
+      "featureConfigZoneExperiment",
+      "allowLineInSetting"
+     ]
+    },
+    {
+     "address": "0x10fa3524",
+     "class": 4,
+     "root": "microphoneSwitch",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa35a4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10fa37c4",
+     "class": 3,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa3844",
+     "class": 3,
+     "root": "musicServiceAccount",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "area"
+     ]
+    },
+    {
+     "address": "0x10fa38c4",
+     "class": 3,
+     "root": "network",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "area"
+     ]
+    },
+    {
+     "address": "0x10fa3a44",
+     "class": 2,
+     "root": "accessoryId",
+     "members": [
+      "accessoryId",
+      "accessoryId"
+     ]
+    },
+    {
+     "address": "0x10fa3ac4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3b44",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3bc4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "authzPolicyKey"
+     ]
+    },
+    {
+     "address": "0x10fa3c44",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3cc4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3d44",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3dc4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3e44",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa3ec4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa4098",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa4118",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa4198",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice"
+     ]
+    },
+    {
+     "address": "0x10fa42cc",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa434c",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10fa43cc",
+     "class": 2,
+     "root": "localVoiceSettings",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10fa444c",
+     "class": 4,
+     "root": "queueItem",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa4584",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa4604",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa4684",
+     "class": 2,
+     "root": "playerSetError",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa4704",
+     "class": 3,
+     "root": "playlist",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa4784",
+     "class": 3,
+     "root": "playlist",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa4804",
+     "class": 9,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "alarmRunningState",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "actuator",
+      "featureConfigZoneExperiment",
+      "advertisingInfo",
+      "featureConfigZoneExperiment",
+      "activeZoneMember"
+     ]
+    },
+    {
+     "address": "0x10fa49c0",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa4a40",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa4ac0",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "audioConnectorStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4b40",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa4bc0",
+     "class": 4,
+     "root": "speakerPresenceEffectiveRate",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4c40",
+     "class": 6,
+     "root": "positioningSessionStatusInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices",
+      "featureConfigZoneExperiment",
+      "authorizationGrantResponse",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa4cc0",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4d40",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4dc0",
+     "class": 6,
+     "root": "positioningDevice",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "area",
+      "featureConfigZoneExperiment",
+      "authorizationGrantPayload",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4e40",
+     "class": 6,
+     "root": "poeState",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "area",
+      "featureConfigZoneExperiment",
+      "authorizationGrantPayload",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4ec0",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4f40",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa4fc0",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "authorizationGrantHeader",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa5040",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa50c0",
+     "class": 3,
+     "root": "positioningMap",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa5140",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "devices"
+     ]
+    },
+    {
+     "address": "0x10fa55a0",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa5690",
+     "class": 6,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa5710",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa584c",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa58cc",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa594c",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa59cc",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa5a4c",
+     "class": 3,
+     "root": "sessionError",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa5acc",
+     "class": 3,
+     "root": "player",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa5b4c",
+     "class": 6,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "lineInStatus"
+     ]
+    },
+    {
+     "address": "0x10fa5bcc",
+     "class": 5,
+     "root": "networkTestId",
+     "members": []
+    },
+    {
+     "address": "0x10fa5c4c",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa5ccc",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "upnpEvent"
+     ]
+    },
+    {
+     "address": "0x10fa5d4c",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "availableSoftwareUpdate",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa5dcc",
+     "class": 4,
+     "root": "playbackStatus",
+     "members": [
+      "authzTokenStatus",
+      "networkTestId",
+      "battery",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa5e4c",
+     "class": 4,
+     "root": "playbackError",
+     "members": [
+      "authzTokenStatus",
+      "networkTestId",
+      "battery",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa5ecc",
+     "class": 6,
+     "root": "playbackStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "poeState",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bridgeContext"
+     ]
+    },
+    {
+     "address": "0x10fa5f4c",
+     "class": 6,
+     "root": "playbackError",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "poeState",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bridgeContext"
+     ]
+    },
+    {
+     "address": "0x10fa5fcc",
+     "class": 1,
+     "root": "upnpEvent",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa604c",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa60cc",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa614c",
+     "class": 2,
+     "root": "preferredLanguageSetting",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "diagnosticInfo"
+     ]
+    },
+    {
+     "address": "0x10fa61cc",
+     "class": 4,
+     "root": "postHistoryConfig",
+     "members": [
+      "authzTokenStatus",
+      "networksList",
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "devices",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa624c",
+     "class": 7,
+     "root": "positionInformation",
+     "members": [
+      "authzTokenStatus",
+      "softwareUpdate",
+      "authzTokenStatus",
+      "smartplayContentResource",
+      "authzTokenStatus",
+      "musicServicesChanged",
+      "authzTokenStatus",
+      "networksList",
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "devices",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa62cc",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa6868",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa68e8",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus"
+     ]
+    },
+    {
+     "address": "0x10fa6968",
+     "class": 4,
+     "root": "sharesList",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa69e8",
+     "class": 3,
+     "root": "sharesList",
+     "members": [
+      "authzTokenStatus",
+      "globalSettings",
+      "wiredSubStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa6b6c",
+     "class": 2,
+     "root": "shareListStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa6c50",
+     "class": 3,
+     "root": "",
+     "members": []
+    },
+    {
+     "address": "0x10fa6cd0",
+     "class": 2,
+     "root": "sonosnet",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa6ddc",
+     "class": 4,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa6e5c",
+     "class": 4,
+     "root": "voiceAccountProfile",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "authzModifier",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa6edc",
+     "class": 5,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "authzModifier",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fa7084",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa7104",
+     "class": 3,
+     "root": "timer",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7218",
+     "class": 2,
+     "root": "RegistrationToken",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus"
+     ]
+    },
+    {
+     "address": "0x10fa7300",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa7380",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa7400",
+     "class": 1,
+     "root": "systemNameSetting",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa7480",
+     "class": 4,
+     "root": "swapModelInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa7500",
+     "class": 5,
+     "root": "swapModelInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "authzPermission",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa7580",
+     "class": 5,
+     "root": "swapModelInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudDevice",
+      "featureConfigZoneExperiment",
+      "authzPermission",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa7600",
+     "class": 3,
+     "root": "swapModelInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "authzPermission",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7680",
+     "class": 3,
+     "root": "swapModelInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "authzPermission",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7700",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "authzPermission",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7950",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa79d0",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa7a50",
+     "class": 2,
+     "root": "sonosnetEnabled",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7ad0",
+     "class": 2,
+     "root": "speakerDetectionStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7b50",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7bd0",
+     "class": 2,
+     "root": "sonosDeviceNonce",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa7c50",
+     "class": 1,
+     "root": "translatedObjectIds",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa7cd0",
+     "class": 1,
+     "root": "translatedObjectIds",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa7d50",
+     "class": 2,
+     "root": "translation",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa7f58",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa7fd8",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fa8058",
+     "class": 3,
+     "root": "trueroomAdaptationStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa80d8",
+     "class": 4,
+     "root": "trueplayStatus",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fa8158",
+     "class": 2,
+     "root": "speakerPresenceEffectiveRate",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa81d8",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa8258",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa8444",
+     "class": 1,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa84c4",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fa8544",
+     "class": 6,
+     "root": "uniqueSetTestData",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "accessPolicySetting",
+      "featureConfigZoneExperiment",
+      "accountError",
+      "featureConfigZoneExperiment",
+      "acousticMeasurement",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fa85c4",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "acousticMetrics",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus"
+     ]
+    },
+    {
+     "address": "0x10fa8644",
+     "class": 2,
+     "root": "deviceInfo",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "cloudRegistrationStatus"
+     ]
+    },
+    {
+     "address": "0x10fa87a8",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa8828",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa88a8",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8928",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8a64",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa8ae4",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8b64",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8be4",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8d10",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa8d90",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8e10",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8e90",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa8fbc",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa903c",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa90bc",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa913c",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9268",
+     "class": 2,
+     "root": "",
+     "members": []
+    },
+    {
+     "address": "0x10fa92e8",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9368",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa93e8",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9514",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa9594",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9614",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9694",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa97c0",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa9840",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa98c0",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9940",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9a6c",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa9aec",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9b6c",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9bec",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9d18",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fa9d98",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9e18",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9e98",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10fa9fc4",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10faa044",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa0c4",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa144",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa270",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10faa2f0",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa370",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa3f0",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa51c",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10faa59c",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa61c",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa69c",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa7c8",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10faa848",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa8c8",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faa948",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faaa74",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10faaaf4",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faab74",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faabf4",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faad20",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10faada0",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faae20",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faaea0",
+     "class": 3,
+     "root": "upnpError",
+     "members": [
+      "authzTokenStatus",
+      "uniqueSetTestItem",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "duration"
+     ]
+    },
+    {
+     "address": "0x10faafcc",
+     "class": 4,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fab04c",
+     "class": 4,
+     "root": "translatedObjectId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fab0cc",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fab14c",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "upnpEvent",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fab1cc",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fab24c",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fab3e4",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fab4dc",
+     "class": 2,
+     "root": null,
+     "members": []
+    },
+    {
+     "address": "0x10fab55c",
+     "class": 6,
+     "root": "accessoryWifiPsk",
+     "members": [
+      "batteryCells",
+      "accessoryWifiPsk",
+      "book",
+      "accessoryWifiPsk",
+      "bluetooth",
+      "accessoryWifiPsk",
+      "lineInStatus",
+      "videoContent",
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fab5dc",
+     "class": 6,
+     "root": "accessoryWifiPsk",
+     "members": [
+      "battery",
+      "accessoryWifiPsk",
+      "book",
+      "accessoryWifiPsk",
+      "bluetooth",
+      "accessoryWifiPsk",
+      "lineInStatus",
+      "videoContent",
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fab65c",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "accessoryWifiPsk",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fab6dc",
+     "class": 3,
+     "root": "allowLineInSetting",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink",
+      "featureConfigZoneExperiment",
+      "bleMeasurement"
+     ]
+    },
+    {
+     "address": "0x10fab75c",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fab7dc",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fab85c",
+     "class": 2,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "deeplink"
+     ]
+    },
+    {
+     "address": "0x10fabac8",
+     "class": 1,
+     "root": "",
+     "members": [
+      "",
+      ""
+     ]
+    },
+    {
+     "address": "0x10fabb48",
+     "class": 1,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus"
+     ]
+    },
+    {
+     "address": "0x10fabbc8",
+     "class": 2,
+     "root": "activeZonesChange",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fabc48",
+     "class": 3,
+     "root": "weatherConfig",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fabcc8",
+     "class": 2,
+     "root": "wifiDisable",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth"
+     ]
+    },
+    {
+     "address": "0x10fabd48",
+     "class": 4,
+     "root": "weatherConfig",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "zoneDefinitionsChange"
+     ]
+    },
+    {
+     "address": "0x10fabdc8",
+     "class": 4,
+     "root": "weatherConfig",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "zoneDefinitionsChange"
+     ]
+    },
+    {
+     "address": "0x10fabe48",
+     "class": 4,
+     "root": "weatherConfig",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "zoneDefinitionsChange"
+     ]
+    },
+    {
+     "address": "0x10fabec8",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "zoneDefinitionsChange"
+     ]
+    },
+    {
+     "address": "0x10fabf48",
+     "class": 3,
+     "root": "weatherConfig",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fabfc8",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fac048",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fac0c8",
+     "class": 3,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book"
+     ]
+    },
+    {
+     "address": "0x10fac148",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    },
+    {
+     "address": "0x10fac1c8",
+     "class": 4,
+     "root": "networkTestId",
+     "members": [
+      "authzTokenStatus",
+      "featureConfigZoneExperiment",
+      "bluetooth",
+      "featureConfigZoneExperiment",
+      "book",
+      "featureConfigZoneExperiment",
+      "bluetoothPolicySettings"
+     ]
+    }
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e9ba80/0x10f9f87c",
+     "notes": "383 0x80-byte descriptor records; accessor+fffff88 signature; root names resolved via spec_object_table"
     }
    ]
   }

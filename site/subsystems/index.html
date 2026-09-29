@@ -3733,6 +3733,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#spec_descriptors" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>spec_descriptors</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#spec_object_table" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -7840,6 +7851,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#spec_descriptors" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>spec_descriptors</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#spec_object_table" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -8942,7 +8964,7 @@
 <tr>
 <td><code>spec_pair_stream</code></td>
 <td><strong>partial</strong></td>
-<td>Byte-oriented spec stream in .rodata (e.g. blob @0x10fa51b3): sequence of 4-byte tag-words {u8 tag, u24 operand}. Tag 0x82 = reference into spec_object_table (operand = index 0-330; proven by consecutive semantic groups 44/45/46 = authorizationGrantHeader/Payload/Response). Other observed tags: 0xae (operand often 0x34), 0x0f, 0x34, 0x4c, 0x84, 0xcb, 0xcd, 0xd0, 0xd6 — tag semantics undecoded (hypothesis: field-name refs where operand indexes the same name table, plus property/cardinality markers). Streams are not pointer-referenced; probably reached via sequential scan or descriptor vtables in .data.rel.ro. Parser function not yet identified (no immediate-compare on 0x82 found).</td>
+<td>RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs — high bytes were index values &lt;331). Each descriptor holds a ptr into a packed rodata pool; list = [root-idx] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established — likely via registration order or the verb table.</td>
 </tr>
 <tr>
 <td><code>spotify_smapi_ctrl</code></td>
@@ -9593,6 +9615,11 @@
 <td><code>spdif_burst</code></td>
 <td><strong>strong</strong></td>
 <td>supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3)}; unsupported enum {NULL Burst,Pause Burst,AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1,MPEG1 Layer 2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1/2/3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA} all prefixed "Unsupported "</td>
+</tr>
+<tr>
+<td><code>spec_descriptors</code></td>
+<td><strong>confirmed</strong></td>
+<td>383 object-spec descriptors in 2 contiguous tables: @.rodata 0x10e9ba80 (96 records) and 0x10f9f87c (287 records). Each 0x80-byte record = C++ descriptor object: ctor @+0x00 installs vtable (0x10f9496c family); +0x20 accessor fn (shape stwu/lis/addi/addi-r3-classId/addi-ofs/stw/blr) returns {classId 1-12, spec-list ptr}; +0x24 = ffffff88 marker; +0x2c/+0x30/+0x4c-0x54 = per-object ops (10b1xxxx range); +0x58..+0x7c = shared thunk tail (101c06xx). Spec-list = packed u32 index list into spec_object_table (0x10f97088): [rootIdx, (member/marker pairs)*] — markers 52(authzTokenStatus) &amp; 130(featureConfigZoneExperiment) recur as envelope/gate flags; exact pair grammar unproven. Root names recovered for all 383: 151 root networkTestId (correlation-id first field), 45 upnpError (UPnP-bridge ops), plus real object types (group, alarm, playlist, deviceInfo, content, service, sharesList, translatedObjectIds, authorizationGrantResponse, waterState, loopbackTimeoutControl...). classId distribution suggests msg-kind (request/response/event/struct/error).</td>
 </tr>
 <tr>
 <td><code>spec_object_table</code></td>
@@ -12555,7 +12582,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <h2 id="spec_pair_stream"><code>spec_pair_stream</code><a class="headerlink" href="#spec_pair_stream" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
 <p><strong>Technical description:</strong></p>
-<p>Byte-oriented spec stream in .rodata (e.g. blob @0x10fa51b3): sequence of 4-byte tag-words {u8 tag, u24 operand}. Tag 0x82 = reference into spec_object_table (operand = index 0-330; proven by consecutive semantic groups 44/45/46 = authorizationGrantHeader/Payload/Response). Other observed tags: 0xae (operand often 0x34), 0x0f, 0x34, 0x4c, 0x84, 0xcb, 0xcd, 0xd0, 0xd6 — tag semantics undecoded (hypothesis: field-name refs where operand indexes the same name table, plus property/cardinality markers). Streams are not pointer-referenced; probably reached via sequential scan or descriptor vtables in .data.rel.ro. Parser function not yet identified (no immediate-compare on 0x82 found).</p>
+<p>RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs — high bytes were index values &lt;331). Each descriptor holds a ptr into a packed rodata pool; list = [root-idx] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established — likely via registration order or the verb table.</p>
 <ul>
 <li><strong>name:</strong> muse spec-pair descriptor stream</li>
 </ul>
@@ -14329,6 +14356,1897 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ee650c — burst enum
+
+</details>
+
+<h2 id="spec_descriptors"><code>spec_descriptors</code><a class="headerlink" href="#spec_descriptors" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>confirmed</code></p>
+<p><strong>Technical description:</strong></p>
+<p>383 object-spec descriptors in 2 contiguous tables: @.rodata 0x10e9ba80 (96 records) and 0x10f9f87c (287 records). Each 0x80-byte record = C++ descriptor object: ctor @+0x00 installs vtable (0x10f9496c family); +0x20 accessor fn (shape stwu/lis/addi/addi-r3-classId/addi-ofs/stw/blr) returns {classId 1-12, spec-list ptr}; +0x24 = ffffff88 marker; +0x2c/+0x30/+0x4c-0x54 = per-object ops (10b1xxxx range); +0x58..+0x7c = shared thunk tail (101c06xx). Spec-list = packed u32 index list into spec_object_table (0x10f97088): [rootIdx, (member/marker pairs)*] — markers 52(authzTokenStatus) &amp; 130(featureConfigZoneExperiment) recur as envelope/gate flags; exact pair grammar unproven. Root names recovered for all 383: 151 root networkTestId (correlation-id first field), 45 upnpError (UPnP-bridge ops), plus real object types (group, alarm, playlist, deviceInfo, content, service, sharesList, translatedObjectIds, authorizationGrantResponse, waterState, loopbackTimeoutControl...). classId distribution suggests msg-kind (request/response/event/struct/error).</p>
+<ul>
+<li><strong>name:</strong> muse/lechmere spec-object descriptor registry</li>
+<li><strong>count:</strong> 383</li>
+<li><strong>tables:</strong></li>
+<li>base: 0x10e9ba80, n: 96</li>
+<li>base: 0x10f9f87c, n: 287</li>
+<li>
+<p><strong>entries:</strong>
+  -</p>
+<ul>
+<li><strong>address:</strong> 0x10e9ba80</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>members:</strong> 
+  -</li>
+<li><strong>address:</strong> 0x10e9bb00</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9bb80</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> eqSettings</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9bcdc</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>members:</strong> 
+  -</li>
+<li><strong>address:</strong> 0x10e9bd5c</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9bddc</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> globalError</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9be5c</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> globalError</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9bedc</li>
+<li><strong>class:</strong> 6</li>
+<li><strong>root:</strong> group</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playerAnyOneSettingsGroup</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>allowDirectControlSetting</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9bf5c</li>
+<li><strong>class:</strong> 6</li>
+<li><strong>root:</strong> group</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playerAnyOneSettingsGroup</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>allowDirectControlSetting</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9bfdc</li>
+<li><strong>class:</strong> 6</li>
+<li><strong>root:</strong> group</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playerAnyOneSettingsGroup</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>allowDirectControlSetting</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c2e0</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>members:</strong> 
+  -</li>
+<li><strong>address:</strong> 0x10e9c360</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c3e0</li>
+<li><strong>class:</strong> 2</li>
+<li><strong>root:</strong> extendedPlaybackStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c460</li>
+<li><strong>class:</strong> 10</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>alarmList</code>, <code>featureConfigZoneExperiment</code>, <code>alarmRunningState</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>actuator</code>, <code>featureConfigZoneExperiment</code>, <code>advertisingInfo</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c4e0</li>
+<li><strong>class:</strong> 10</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>alarmList</code>, <code>featureConfigZoneExperiment</code>, <code>alarmRunningState</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>actuator</code>, <code>featureConfigZoneExperiment</code>, <code>advertisingInfo</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c6a0</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>members:</strong> 
+  -</li>
+<li><strong>address:</strong> 0x10e9c720</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c7a0</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> lineInStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c820</li>
+<li><strong>class:</strong> 4</li>
+<li><strong>root:</strong> authzUser</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c8a0</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> authzUser</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c920</li>
+<li><strong>class:</strong> 4</li>
+<li><strong>root:</strong> availableSoftwareUpdate</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9c9a0</li>
+<li><strong>class:</strong> 7</li>
+<li><strong>root:</strong> tokenStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>tokenStatus</code>, <code>bluetooth</code>, <code>tokenStatus</code>, <code>devices</code>, <code>tokenStatus</code>, <code>bluetoothPolicySettings</code>, <code>tokenStatus</code>, <code>lineInStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9ca20</li>
+<li><strong>class:</strong> 5</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9caa0</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> entitlementsList</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cb20</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> waterState</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cba0</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> battery</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cc20</li>
+<li><strong>class:</strong> 2</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cca0</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cd20</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cda0</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> loopbackTimeoutControl</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9ce20</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> versionChanged</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cea0</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> playlistTrack</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cf20</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> bluetoothPairing</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9cfa0</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> lineInSettings</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d3fc</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>members:</strong> 
+  -</li>
+<li><strong>address:</strong> 0x10e9d47c</li>
+<li><strong>class:</strong> 1</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d4fc</li>
+<li><strong>class:</strong> 2</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d57c</li>
+<li><strong>class:</strong> 5</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d5fc</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> hdmiStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d67c</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> hdmiStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d6fc</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> accessorySwap</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d77c</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d7fc</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> trueroomStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d87c</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> </li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d8fc</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d97c</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> trueroomStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9d9fc</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> speakerPresenceResult</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9da7c</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> accessoryId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9df80</li>
+<li><strong>class:</strong> 2</li>
+<li><strong>members:</strong> 
+  -</li>
+<li><strong>address:</strong> 0x10e9e000</li>
+<li><strong>class:</strong> 2</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e080</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> metadataStatus</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>allowAirplaySetting</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e100</li>
+<li><strong>class:</strong> 4</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>activeZoneMember</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e180</li>
+<li><strong>class:</strong> 3</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e200</li>
+<li><strong>class:</strong> 5</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>cloudRegistrationStatus</code>, <code>playbackPolicy</code>, <code>activeZoneMember</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e280</li>
+<li><strong>class:</strong> 2</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e300</li>
+<li><strong>class:</strong> 7</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>lineInStatus</code>, <code>playbackPolicy</code>, <code>bluetoothPolicySettings</code>, <code>playbackPolicy</code>, <code>album</code>, <code>playbackPolicy</code>, <code>bluetooth</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e380</li>
+<li><strong>class:</strong> 6</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>lineInStatus</code>, <code>playbackPolicy</code>, <code>bluetoothPolicySettings</code>, <code>playbackPolicy</code>, <code>album</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e400</li>
+<li><strong>class:</strong> 6</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>lineInStatus</code>, <code>playbackPolicy</code>, <code>bluetoothPolicySettings</code>, <code>playbackPolicy</code>, <code>album</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e480</li>
+<li><strong>class:</strong> 5</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>lineInStatus</code>, <code>playbackPolicy</code>, <code>bluetoothPolicySettings</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e500</li>
+<li><strong>class:</strong> 5</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>lineInStatus</code>, <code>playbackPolicy</code>, <code>bluetoothPolicySettings</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e580</li>
+<li><strong>class:</strong> 10</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>accessoryWifiPsk</code>, <code>battery</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>alarmDescription</code>, <code>featureConfigZoneExperiment</code>, <code>alarmList</code>, <code>featureConfigZoneExperiment</code>, <code>alarmRunningState</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>, <code>featureConfigZoneExperiment</code>, <code>advertisingInfo</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e600</li>
+<li><strong>class:</strong> 7</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>alarmRunningState</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>actuator</code>, <code>featureConfigZoneExperiment</code>, <code>advertisingInfo</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e680</li>
+<li><strong>class:</strong> 9</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>accessoryWifiPsk</code>, <code>battery</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>alarmRunningState</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>actuator</code>, <code>featureConfigZoneExperiment</code>, <code>advertisingInfo</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e700</li>
+<li><strong>class:</strong> 5</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -</li>
+<li><strong>address:</strong> 0x10e9e780</li>
+<li><strong>class:</strong> 12</li>
+<li><strong>root:</strong> networkTestId</li>
+<li><strong>members</strong> (23):</li>
+</ul>
+<p><code>authzTokenStatus, accessoryWifiPsk, battery, featureConfigZoneExperiment, alarmRunningState, featureConfigZoneExperiment, bluetoothPolicySettings, featureConfigZoneExperiment, book, featureConfigZoneExperiment, alarmDescription, featureConfigZoneExperiment, cloudRegistrationStatus, featureConfigZoneExperiment, activeZoneMember, featureConfigZoneExperiment, actuator, featureConfigZoneExperiment, advertisingInfo, featureConfigZoneExperiment, alarmList, globalSettings, wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10e9e800
+- <strong>class:</strong> 6
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>playbackPolicy</code>, <code>actuator</code>, <code>playbackPolicy</code>, <code>album</code>, <code>playbackPolicy</code>, <code>lineInStatus</code>, <code>playbackPolicy</code>, <code>bluetooth</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10e9f568
+- <strong>class:</strong> 2
+- <strong>root:</strong> 
+- <strong>members:</strong> <code>-
+- **address:** 0x10e9f5e8
+- **class:** 2
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`
+  -
+- **address:** 0x10e9f668
+- **class:** 3
+- **root:** ethernetPorts
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `allowAirplaySetting`
+  -
+- **address:** 0x10e9f7b8
+- **class:** 3
+- **root:** globalSettings
+- **members:** `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `album`, `featureConfigZoneExperiment`, `lineInStatus`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10e9f838
+- **class:** 3
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10e9f8b8
+- **class:** 7
+- **root:** accessoryWifiPsk
+- **members:** `battery`, `service`, `authzTokenStatus`, `secureRegCert`, `areas`, `secureRegCert`, `area`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10e9f938
+- **class:** 6
+- **root:** service
+- **members:** `authzTokenStatus`, `secureRegCert`, `areas`, `secureRegCert`, `area`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10e9f9b8
+- **class:** 4
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `secureRegCert`, `areas`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10e9fa38
+- **class:** 7
+- **root:** accessoryWifiPsk
+- **members:** `battery`, `service`, `authzTokenStatus`, `secureRegCert`, `areas`, `secureRegCert`, `area`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10e9fab8
+- **class:** 4
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10e9fb38
+- **class:** 3
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10e9fbb8
+- **class:** 7
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `album`, `featureConfigZoneExperiment`, `lineInStatus`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10e9fc38
+- **class:** 7
+- **root:** networkTestId
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10e9fcb8
+- **class:** 5
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `activeZoneMember`
+  -
+- **address:** 0x10e9fd38
+- **class:** 5
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `activeZoneMember`, `featureConfigZoneExperiment`, `book`, `globalSettings`, `wiredSubStatus`
+  -
+- **address:** 0x10e9fdb8
+- **class:** 6
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `playbackPolicy`, `album`, `playbackPolicy`, `lineInStatus`, `playbackPolicy`, `bluetooth`
+  -
+- **address:** 0x10e9fe38
+- **class:** 6
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `playbackPolicy`, `album`, `playbackPolicy`, `lineInStatus`, `playbackPolicy`, `bluetooth`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10e9feb8
+- **class:** 7
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `playbackPolicy`, `album`, `playbackPolicy`, `lineInStatus`, `playbackPolicy`, `bluetooth`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10e9ff38
+- **class:** 6
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `playbackPolicy`, `lineInStatus`, `playbackPolicy`, `actuator`, `playbackPolicy`, `bluetoothPolicySettings`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10e9ffb8
+- **class:** 6
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `playbackPolicy`, `lineInStatus`, `playbackPolicy`, `actuator`, `playbackPolicy`, `bluetoothPolicySettings`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10ea0038
+- **class:** 7
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `album`, `featureConfigZoneExperiment`, `lineInStatus`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10ea00b8
+- **class:** 6
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `playbackPolicy`, `album`, `playbackPolicy`, `lineInStatus`, `playbackPolicy`, `bluetooth`, `globalSettings`, `wiredSubStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10ea05b8
+- **class:** 1
+- **members:** 
+  -
+- **address:** 0x10ea0638
+- **class:** 1
+- **root:** networkTestId
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10ea06b8
+- **class:** 3
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `cloudDevice`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10ea0738
+- **class:** 4
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `cloudDevice`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10ea07b8
+- **class:** 4
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `cloudDevice`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10ea0838
+- **class:** 1
+- **root:** playerSettings
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10ea08b8
+- **class:** 1
+- **root:** networkTestId
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10ea0938
+- **class:** 1
+- **root:** networkTestId
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10f9f87c
+- **class:** 1
+- **members:** 
+  -
+- **address:** 0x10f9f8fc
+- **class:** 1
+- **root:** networkTestId
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10f9f97c
+- **class:** 1
+- **root:** alarm
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10f9f9fc
+- **class:** 2
+- **root:** activeZoneMember
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
+  -
+- **address:** 0x10f9fa7c
+- **class:** 5
+- **root:** activeZoneMember
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`,</code>, <code>featureConfigZoneExperiment</code>, <code>, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10f9fafc
+- **class:** 5
+- **root:** activeZoneMember
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`,</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10f9fb7c
+- <strong>class:</strong> 4
+- <strong>root:</strong> activeZoneMember
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10f9fbfc
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10f9fde4
+- <strong>class:</strong> 1
+- <strong>root:</strong> 
+- <strong>members:</strong> <code>-
+- **address:** 0x10f9fe64
+- **class:** 1
+- **root:** networkTestId
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10f9fee4
+- **class:** 1
+- **root:** amazonAlexaSetup
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10f9ff64
+- **class:** 5
+- **root:** amazonAlexaAccount
+- **members:** `authzTokenStatus`, `playerAnyOneSettingsGroup`, `book`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `bluetooth`
+  -
+- **address:** 0x10f9ffe4
+- **class:** 6
+- **root:** amazonAlexaAccount
+- **members:** `authzTokenStatus`, `playerAnyOneSettingsGroup`, `book`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `none`
+  -
+- **address:** 0x10fa0064
+- **class:** 3
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `none`, `featureConfigZoneExperiment`, `book`
+  -
+- **address:** 0x10fa020c
+- **class:** 3
+- **root:** featureConfigZoneExperiment
+- **members:** `activeZonesChange`
+  -
+- **address:** 0x10fa028c
+- **class:** 2
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `upnpEvent`
+  -
+- **address:** 0x10fa030c
+- **class:** 9
+- **root:** versionChanged
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `cloudDevice`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `accessorySwap`, `featureConfigZoneExperiment`, `lineInStatus`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `tvAudioSignalStatus`, `featureConfigZoneExperiment`, `upnpEvent`
+  -
+- **address:** 0x10fa038c
+- **class:** 5
+- **root:** networkTestId
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`, `featureConfigZoneExperiment`, `accessoryId`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `upnpEvent`
+  -
+- **address:** 0x10fa0558
+- **class:** 1
+- **members:** 
+  -
+- **address:** 0x10fa05d8
+- **class:** 1
+- **root:** authzModifier
+- **members:** `authzTokenStatus`
+  -
+- **address:** 0x10fa0658
+- **class:** 2
+- **root:** authorizationGrantResponse
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `book`
+  -
+- **address:** 0x10fa06d8
+- **class:** 5
+- **root:** upnpEvent
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `cloudDevice`, `featureConfigZoneExperiment`, `cloudRegistrationStatus`
+  -
+- **address:** 0x10fa0758
+- **class:** 6
+- **root:** upnpEvent
+- **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `deviceInfo`, `featureConfigZoneExperiment`, `commandHeader`, `featureConfigZoneExperiment`, `bridgeContext`
+  -
+- **address:** 0x10fa093c
+- **class:** 1
+- **root:** 
+- **members:**</code>
+  -
+- <strong>address:</strong> 0x10fa09bc
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa0a3c
+- <strong>class:</strong> 1
+- <strong>root:</strong> recurrenceRule
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa0abc
+- <strong>class:</strong> 8
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>availableSoftwareUpdate</code>, <code>featureConfigZoneExperiment</code>, <code>bleMeasurement</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>channelMapPair</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>activeZone</code>, <code>featureConfigZoneExperiment</code>, <code>contentMetadataBlob</code>, <code>featureConfigZoneExperiment</code>, <code>activeZonesChange</code>
+  -
+- <strong>address:</strong> 0x10fa0b3c
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>availableSoftwareUpdate</code>, <code>featureConfigZoneExperiment</code>, <code>activeZonesChange</code>
+  -
+- <strong>address:</strong> 0x10fa0bbc
+- <strong>class:</strong> 2
+- <strong>root:</strong> lineInSettingsGroup
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa0dd0
+- <strong>class:</strong> 1
+- <strong>root:</strong> authzTokenStatus
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa0e50
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa0ed0
+- <strong>class:</strong> 3
+- <strong>root:</strong> deviceInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>content</code>
+  -
+- <strong>address:</strong> 0x10fa0f50
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpEvent
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>
+  -
+- <strong>address:</strong> 0x10fa0fd0
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1158
+- <strong>class:</strong> 1
+- <strong>root:</strong> 
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa11d8
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa1258
+- <strong>class:</strong> 4
+- <strong>root:</strong> playbackStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>networkTestId</code>, <code>battery</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa12d8
+- <strong>class:</strong> 4
+- <strong>root:</strong> playbackError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>networkTestId</code>, <code>battery</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa1358
+- <strong>class:</strong> 6
+- <strong>root:</strong> playbackStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>poeState</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bridgeContext</code>
+  -
+- <strong>address:</strong> 0x10fa13d8
+- <strong>class:</strong> 6
+- <strong>root:</strong> playbackError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>poeState</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bridgeContext</code>
+  -
+- <strong>address:</strong> 0x10fa15e0
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa1660
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa16e0
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa1760
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa17e0
+- <strong>class:</strong> 2
+- <strong>root:</strong> enableContentAccessSetting
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1860
+- <strong>class:</strong> 2
+- <strong>root:</strong> enableContentAccessSetting
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1a68
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa1ae8
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10fa1b68
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1be8
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1c68
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1ce8
+- <strong>class:</strong> 3
+- <strong>root:</strong> groupInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa1e60
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa1ee0
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa1f60
+- <strong>class:</strong> 2
+- <strong>root:</strong> upnpEvent
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa1fe0
+- <strong>class:</strong> 2
+- <strong>root:</strong> directControl
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa2060
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa2224
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa22a4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>
+  -
+- <strong>address:</strong> 0x10fa2324
+- <strong>class:</strong> 3
+- <strong>root:</strong> content
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bleMeasurement</code>
+  -
+- <strong>address:</strong> 0x10fa23a4
+- <strong>class:</strong> 1
+- <strong>root:</strong> content
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa2424
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>
+  -
+- <strong>address:</strong> 0x10fa24a4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>
+  -
+- <strong>address:</strong> 0x10fa25f4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa26dc
+- <strong>class:</strong> 2
+- <strong>root:</strong> featureConfigZoneExperiment
+- <strong>members:</strong> <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa275c
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa27dc
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>availableSoftwareUpdate</code>, <code>featureConfigZoneExperiment</code>, <code>authzPolicyKeyLechmere</code>, <code>households</code>, <code>entitlement</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>
+  -
+- <strong>address:</strong> 0x10fa285c
+- <strong>class:</strong> 1
+- <strong>root:</strong> household
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa2a04
+- <strong>class:</strong> 2
+- <strong>root:</strong> diagnosticSubmissionResults
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa2adc
+- <strong>class:</strong> 2
+- <strong>root:</strong> featureConfigZoneExperiment
+- <strong>members:</strong> <code>lineInStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa2b5c
+- <strong>class:</strong> 2
+- <strong>root:</strong> image
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa2c68
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa2ce8
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa2d68
+- <strong>class:</strong> 2
+- <strong>root:</strong> settingsChanged
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa2de8
+- <strong>class:</strong> 7
+- <strong>root:</strong> versionChanged
+- <strong>members:</strong> <code>availableSoftwareUpdate</code>, <code>featureConfigZoneExperiment</code>, <code>cloudDevice</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>audioClip</code>, <code>featureConfigZoneExperiment</code>, <code>audioClipStatus</code>, <code>featureConfigZoneExperiment</code>, <code>artist</code>
+  -
+- <strong>address:</strong> 0x10fa2e68
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudDevice</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>audioClipStatus</code>, <code>featureConfigZoneExperiment</code>, <code>asyncRequestAck</code>
+  -
+- <strong>address:</strong> 0x10fa2ee8
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>availableSoftwareUpdate</code>, <code>featureConfigZoneExperiment</code>, <code>audioClipStatus</code>
+  -
+- <strong>address:</strong> 0x10fa2f68
+- <strong>class:</strong> 2
+- <strong>root:</strong> upnpEvent
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3130
+- <strong>class:</strong> 2
+- <strong>root:</strong> authzTokenStatus
+- <strong>members:</strong> <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa31b0
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa32a4
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa3324
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa33a4
+- <strong>class:</strong> 3
+- <strong>root:</strong> microphoneSwitch
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3424
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fa34a4
+- <strong>class:</strong> 3
+- <strong>root:</strong> microphoneSwitch
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>amazonAlexaAccount</code>, <code>featureConfigZoneExperiment</code>, <code>allowLineInSetting</code>
+  -
+- <strong>address:</strong> 0x10fa3524
+- <strong>class:</strong> 4
+- <strong>root:</strong> microphoneSwitch
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fa35a4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10fa37c4
+- <strong>class:</strong> 3
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa3844
+- <strong>class:</strong> 3
+- <strong>root:</strong> musicServiceAccount
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>area</code>
+  -
+- <strong>address:</strong> 0x10fa38c4
+- <strong>class:</strong> 3
+- <strong>root:</strong> network
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>area</code>
+  -
+- <strong>address:</strong> 0x10fa3a44
+- <strong>class:</strong> 2
+- <strong>root:</strong> accessoryId
+- <strong>members:</strong> <code>accessoryId</code>, <code>accessoryId</code>
+  -
+- <strong>address:</strong> 0x10fa3ac4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3b44
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3bc4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>authzPolicyKey</code>
+  -
+- <strong>address:</strong> 0x10fa3c44
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3cc4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3d44
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3dc4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3e44
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa3ec4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa4098
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa4118
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa4198
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudDevice</code>
+  -
+- <strong>address:</strong> 0x10fa42cc
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa434c
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10fa43cc
+- <strong>class:</strong> 2
+- <strong>root:</strong> localVoiceSettings
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10fa444c
+- <strong>class:</strong> 4
+- <strong>root:</strong> queueItem
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa4584
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa4604
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa4684
+- <strong>class:</strong> 2
+- <strong>root:</strong> playerSetError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa4704
+- <strong>class:</strong> 3
+- <strong>root:</strong> playlist
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa4784
+- <strong>class:</strong> 3
+- <strong>root:</strong> playlist
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa4804
+- <strong>class:</strong> 9
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>alarmRunningState</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>actuator</code>, <code>featureConfigZoneExperiment</code>, <code>advertisingInfo</code>, <code>featureConfigZoneExperiment</code>, <code>activeZoneMember</code>
+  -
+- <strong>address:</strong> 0x10fa49c0
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa4a40
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa4ac0
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>audioConnectorStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4b40
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa4bc0
+- <strong>class:</strong> 4
+- <strong>root:</strong> speakerPresenceEffectiveRate
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4c40
+- <strong>class:</strong> 6
+- <strong>root:</strong> positioningSessionStatusInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantResponse</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa4cc0
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4d40
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4dc0
+- <strong>class:</strong> 6
+- <strong>root:</strong> positioningDevice
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>area</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantPayload</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4e40
+- <strong>class:</strong> 6
+- <strong>root:</strong> poeState
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>area</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantPayload</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4ec0
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4f40
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa4fc0
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>authorizationGrantHeader</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa5040
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa50c0
+- <strong>class:</strong> 3
+- <strong>root:</strong> positioningMap
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa5140
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>
+  -
+- <strong>address:</strong> 0x10fa55a0
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa5690
+- <strong>class:</strong> 6
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa5710
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa584c
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa58cc
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa594c
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa59cc
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa5a4c
+- <strong>class:</strong> 3
+- <strong>root:</strong> sessionError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa5acc
+- <strong>class:</strong> 3
+- <strong>root:</strong> player
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa5b4c
+- <strong>class:</strong> 6
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>lineInStatus</code>
+  -
+- <strong>address:</strong> 0x10fa5bcc
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa5c4c
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa5ccc
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>
+  -
+- <strong>address:</strong> 0x10fa5d4c
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>availableSoftwareUpdate</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa5dcc
+- <strong>class:</strong> 4
+- <strong>root:</strong> playbackStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>networkTestId</code>, <code>battery</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa5e4c
+- <strong>class:</strong> 4
+- <strong>root:</strong> playbackError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>networkTestId</code>, <code>battery</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa5ecc
+- <strong>class:</strong> 6
+- <strong>root:</strong> playbackStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>poeState</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bridgeContext</code>
+  -
+- <strong>address:</strong> 0x10fa5f4c
+- <strong>class:</strong> 6
+- <strong>root:</strong> playbackError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>poeState</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bridgeContext</code>
+  -
+- <strong>address:</strong> 0x10fa5fcc
+- <strong>class:</strong> 1
+- <strong>root:</strong> upnpEvent
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa604c
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa60cc
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa614c
+- <strong>class:</strong> 2
+- <strong>root:</strong> preferredLanguageSetting
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>diagnosticInfo</code>
+  -
+- <strong>address:</strong> 0x10fa61cc
+- <strong>class:</strong> 4
+- <strong>root:</strong> postHistoryConfig
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>networksList</code>, <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa624c
+- <strong>class:</strong> 7
+- <strong>root:</strong> positionInformation
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>softwareUpdate</code>, <code>authzTokenStatus</code>, <code>smartplayContentResource</code>, <code>authzTokenStatus</code>, <code>musicServicesChanged</code>, <code>authzTokenStatus</code>, <code>networksList</code>, <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>devices</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa62cc
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa6868
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa68e8
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>
+  -
+- <strong>address:</strong> 0x10fa6968
+- <strong>class:</strong> 4
+- <strong>root:</strong> sharesList
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa69e8
+- <strong>class:</strong> 3
+- <strong>root:</strong> sharesList
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>globalSettings</code>, <code>wiredSubStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa6b6c
+- <strong>class:</strong> 2
+- <strong>root:</strong> shareListStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa6c50
+- <strong>class:</strong> 3
+- <strong>root:</strong> 
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa6cd0
+- <strong>class:</strong> 2
+- <strong>root:</strong> sonosnet
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa6ddc
+- <strong>class:</strong> 4
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa6e5c
+- <strong>class:</strong> 4
+- <strong>root:</strong> voiceAccountProfile
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>authzModifier</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa6edc
+- <strong>class:</strong> 5
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>authzModifier</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fa7084
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa7104
+- <strong>class:</strong> 3
+- <strong>root:</strong> timer
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7218
+- <strong>class:</strong> 2
+- <strong>root:</strong> RegistrationToken
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>
+  -
+- <strong>address:</strong> 0x10fa7300
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa7380
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa7400
+- <strong>class:</strong> 1
+- <strong>root:</strong> systemNameSetting
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa7480
+- <strong>class:</strong> 4
+- <strong>root:</strong> swapModelInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudDevice</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fa7500
+- <strong>class:</strong> 5
+- <strong>root:</strong> swapModelInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudDevice</code>, <code>featureConfigZoneExperiment</code>, <code>authzPermission</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fa7580
+- <strong>class:</strong> 5
+- <strong>root:</strong> swapModelInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudDevice</code>, <code>featureConfigZoneExperiment</code>, <code>authzPermission</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fa7600
+- <strong>class:</strong> 3
+- <strong>root:</strong> swapModelInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>authzPermission</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7680
+- <strong>class:</strong> 3
+- <strong>root:</strong> swapModelInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>authzPermission</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7700
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>authzPermission</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7950
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa79d0
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa7a50
+- <strong>class:</strong> 2
+- <strong>root:</strong> sonosnetEnabled
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7ad0
+- <strong>class:</strong> 2
+- <strong>root:</strong> speakerDetectionStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7b50
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7bd0
+- <strong>class:</strong> 2
+- <strong>root:</strong> sonosDeviceNonce
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa7c50
+- <strong>class:</strong> 1
+- <strong>root:</strong> translatedObjectIds
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa7cd0
+- <strong>class:</strong> 1
+- <strong>root:</strong> translatedObjectIds
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa7d50
+- <strong>class:</strong> 2
+- <strong>root:</strong> translation
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa7f58
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa7fd8
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fa8058
+- <strong>class:</strong> 3
+- <strong>root:</strong> trueroomAdaptationStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa80d8
+- <strong>class:</strong> 4
+- <strong>root:</strong> trueplayStatus
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fa8158
+- <strong>class:</strong> 2
+- <strong>root:</strong> speakerPresenceEffectiveRate
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa81d8
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa8258
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa8444
+- <strong>class:</strong> 1
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa84c4
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fa8544
+- <strong>class:</strong> 6
+- <strong>root:</strong> uniqueSetTestData
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>accessPolicySetting</code>, <code>featureConfigZoneExperiment</code>, <code>accountError</code>, <code>featureConfigZoneExperiment</code>, <code>acousticMeasurement</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fa85c4
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>acousticMetrics</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>
+  -
+- <strong>address:</strong> 0x10fa8644
+- <strong>class:</strong> 2
+- <strong>root:</strong> deviceInfo
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>cloudRegistrationStatus</code>
+  -
+- <strong>address:</strong> 0x10fa87a8
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa8828
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa88a8
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8928
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8a64
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa8ae4
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8b64
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8be4
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8d10
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa8d90
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8e10
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8e90
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa8fbc
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa903c
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa90bc
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa913c
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9268
+- <strong>class:</strong> 2
+- <strong>root:</strong> 
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa92e8
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9368
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa93e8
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9514
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa9594
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9614
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9694
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa97c0
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa9840
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa98c0
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9940
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9a6c
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa9aec
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9b6c
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9bec
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9d18
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fa9d98
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9e18
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9e98
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10fa9fc4
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10faa044
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa0c4
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa144
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa270
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10faa2f0
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa370
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa3f0
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa51c
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10faa59c
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa61c
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa69c
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa7c8
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10faa848
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa8c8
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faa948
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faaa74
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10faaaf4
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faab74
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faabf4
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faad20
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10faada0
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faae20
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faaea0
+- <strong>class:</strong> 3
+- <strong>root:</strong> upnpError
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>uniqueSetTestItem</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>duration</code>
+  -
+- <strong>address:</strong> 0x10faafcc
+- <strong>class:</strong> 4
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fab04c
+- <strong>class:</strong> 4
+- <strong>root:</strong> translatedObjectId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fab0cc
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fab14c
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>upnpEvent</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fab1cc
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fab24c
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fab3e4
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fab4dc
+- <strong>class:</strong> 2
+- <strong>members:</strong> 
+  -
+- <strong>address:</strong> 0x10fab55c
+- <strong>class:</strong> 6
+- <strong>root:</strong> accessoryWifiPsk
+- <strong>members:</strong> <code>batteryCells</code>, <code>accessoryWifiPsk</code>, <code>book</code>, <code>accessoryWifiPsk</code>, <code>bluetooth</code>, <code>accessoryWifiPsk</code>, <code>lineInStatus</code>, <code>videoContent</code>, <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fab5dc
+- <strong>class:</strong> 6
+- <strong>root:</strong> accessoryWifiPsk
+- <strong>members:</strong> <code>battery</code>, <code>accessoryWifiPsk</code>, <code>book</code>, <code>accessoryWifiPsk</code>, <code>bluetooth</code>, <code>accessoryWifiPsk</code>, <code>lineInStatus</code>, <code>videoContent</code>, <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fab65c
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>accessoryWifiPsk</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fab6dc
+- <strong>class:</strong> 3
+- <strong>root:</strong> allowLineInSetting
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>, <code>featureConfigZoneExperiment</code>, <code>bleMeasurement</code>
+  -
+- <strong>address:</strong> 0x10fab75c
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fab7dc
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fab85c
+- <strong>class:</strong> 2
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>deeplink</code>
+  -
+- <strong>address:</strong> 0x10fabac8
+- <strong>class:</strong> 1
+- <strong>root:</strong> 
+- <strong>members:</strong> <code>,</code>
+  -
+- <strong>address:</strong> 0x10fabb48
+- <strong>class:</strong> 1
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>
+  -
+- <strong>address:</strong> 0x10fabbc8
+- <strong>class:</strong> 2
+- <strong>root:</strong> activeZonesChange
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fabc48
+- <strong>class:</strong> 3
+- <strong>root:</strong> weatherConfig
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fabcc8
+- <strong>class:</strong> 2
+- <strong>root:</strong> wifiDisable
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>
+  -
+- <strong>address:</strong> 0x10fabd48
+- <strong>class:</strong> 4
+- <strong>root:</strong> weatherConfig
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>zoneDefinitionsChange</code>
+  -
+- <strong>address:</strong> 0x10fabdc8
+- <strong>class:</strong> 4
+- <strong>root:</strong> weatherConfig
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>zoneDefinitionsChange</code>
+  -
+- <strong>address:</strong> 0x10fabe48
+- <strong>class:</strong> 4
+- <strong>root:</strong> weatherConfig
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>zoneDefinitionsChange</code>
+  -
+- <strong>address:</strong> 0x10fabec8
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>zoneDefinitionsChange</code>
+  -
+- <strong>address:</strong> 0x10fabf48
+- <strong>class:</strong> 3
+- <strong>root:</strong> weatherConfig
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fabfc8
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fac048
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fac0c8
+- <strong>class:</strong> 3
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>
+  -
+- <strong>address:</strong> 0x10fac148
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code>
+  -
+- <strong>address:</strong> 0x10fac1c8
+- <strong>class:</strong> 4
+- <strong>root:</strong> networkTestId
+- <strong>members:</strong> <code>authzTokenStatus</code>, <code>featureConfigZoneExperiment</code>, <code>bluetooth</code>, <code>featureConfigZoneExperiment</code>, <code>book</code>, <code>featureConfigZoneExperiment</code>, <code>bluetoothPolicySettings</code></p>
+</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e9ba80/0x10f9f87c — 383 0x80-byte descriptor records; accessor+fffff88 signature; root names resolved via spec_object_table
 
 </details>
 
