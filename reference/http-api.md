@@ -841,6 +841,9 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/ethportstatistics:**
       - **schema:** EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions} + EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr} read from /sys/class/net/eth0 (eth%u)
       - **confidence:** PROVEN literals (dp_impl 0x10ef34e0-0x10ef35e8)
+    - **/root_cert_bundles:**
+      - **schema:** <RootCertBundleInfo><Bundles><CurrentBundle><BundleVersion/><BundleID/><IsFallback/></CurrentBundle><CachedCloudBundle><BundleVersion/><BundleID/><ETag/></CachedCloudBundle><PreviousBundle><BundleVersion/><BundleID/></PreviousBundle></Bundles></RootCertBundleInfo>
+      - **confidence:** PROVEN (reportuploader 0x10eeb9b4+)
   - **unresolved_pages:** /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /hls /htconfig /renderingcontrol /settings/* /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
 - **admin_post_endpoints:**
   - **provenance:** master route table {name*,handler*} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
