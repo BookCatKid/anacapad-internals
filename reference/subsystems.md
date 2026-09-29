@@ -1441,6 +1441,7 @@ Sonos-side licensing: each account/household can carry <Entitlement> records (ty
 /entitlements/api + "using cloud URL: %s" + X-Sonos-User-Id header + cache {cache-control,etag} + "cloud entitlements: rc %d, http %d"; internals {savePendingEntitlementsLocked,entmt,"unable to fire internal changed event","calling notifyClients","triggering version changed muse event",entitlements_manager,entitlements_mgr,"failed to get valid userId","Failed to get Entitlements Cache","No valid HTTPCacheManager","entitlements for "%s" changed","scheduled job to consider updating Sonos Radio"}; "Insufficient buffer for header line \[%s\]"
 
 - **name:** EntitlementsManager — cloud entitlements
+- **consumers:** entitlements feed RRuntimeZPPolicy (ctor 'Cannot construct RRuntimeZPPolicy \[localSettingsMgr=%s,entitlementsMgr=%s\]' -- the runtime authz policy consults them); the SBiz entitlement gates Sonos Radio preinstall ('no SBiz entitlement; preinstalling Sonos Radio' vs 'found SBiz entitlement; blocking preinstall'); staleness triggers a refresh job ('stale entitlements; scheduling job to refresh'); on ENTITLEMENTS_CHANGED the old set is stashed for diffing ('stashed existing entitlements to compare later').
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ebf80c — entitlements block
