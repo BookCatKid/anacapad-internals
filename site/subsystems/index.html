@@ -9712,6 +9712,7 @@
 
 <h2 id="account_migration"><code>account_migration</code><a class="headerlink" href="#account_migration" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The migration machinery that converts pre-OAuth music-service accounts to OAuth: reauth flow, token generation, per-service retries, and a cloud-connectivity gate that delays migration until the device is online. There's also a last.fm email→username fixup and a Sonos Radio (SBiz) capability gate. Explains accounts that silently flip auth schemes after an update.</p>
 <p><strong>Technical description:</strong></p>
 <p>OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthResult}: "migrated account to OAuth, type:%u, sn: %u" + retry {res,retry count,"delay migration until cloud connection","expected ouath account; reset to retry migration"}; "failed to replace email with username for last.fm"; sonos-radio gate {"no SBiz entitlement; preinstalling Sonos Radio","found SBiz entitlement; blocking preinstall"} + "stale entitlements; scheduling job to refresh"; preinstall SID=%u attempts; SA_RINCON65031_ service-account prefix; settings {R_HideTuneIn,R_MigratedTuneIn}; maintenance {"failed to download manifest file for account sid/sn","received empty hash","failed to update userInfo and clean up user hash","Failed to getUserInfo during SvcMaintenance","failed to migrate built-in accounts","failed to migrate pre cloud replication accounts"}</p>
 <ul>
@@ -9974,6 +9975,7 @@
 
 <h2 id="browse_prefixes"><code>browse_prefixes</code><a class="headerlink" href="#browse_prefixes" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The object-id prefix grammar used in browse and queue items: <code>newrelease:album:genre:</code>, <code>staffpick:album:genre:</code>, <code>top:album:genre:</code>, <code>playlist:</code>, <code>favorite:track</code>, <code>artist_tracks:</code>, plus the <code>urn:schemas-rinconnetworks-com:metadata-1-0/</code> namespace marker. Matching on these prefixes is how the player knows what an opaque service ID actually contains.</p>
 <p><strong>Technical description:</strong></p>
 <p>{newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:} + urn:schemas-rinconnetworks-com:metadata-1-0/|total</p>
 <ul>
@@ -10061,6 +10063,7 @@
 
 <h2 id="catalog_translate"><code>catalog_translate</code><a class="headerlink" href="#catalog_translate" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The <code>/content/api</code> catalog-ID translator: <code>translateId(objectId, serviceId, targetObjectId)</code> calls <code>GET catalog/id/%s?destinationServiceId=%s</code> on the cloud to map an item ID from one service into another's namespace — e.g., 'the same album on Spotify vs Deezer'. Results are cached; missing-param errors name exactly which argument failed.</p>
 <p><strong>Technical description:</strong></p>
 <p>translateId(%s,%s,%s) with missing-param errors {objectId,serviceId,targetObjectId}; cloud GET catalog/id/%s?destinationServiceId=%s + targetSid; caching {"retrieved translation from cache","translation not cached; connecting to translation service","translateId response: %d %s","saved translation to cache"}; catalogSvcMgr</p>
 <ul>
@@ -10417,6 +10420,7 @@
 
 <h2 id="didl_extractor"><code>didl_extractor</code><a class="headerlink" href="#didl_extractor" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The DIDL-Lite metadata extractor: pulls Sonos <code>r:</code> fields (tiid, radioName, trackGain, chapterNum/Count, linkUrl, isAd, streamContent, podcast/episode/audiobook fields) and standard upnp/dc fields (originalTrackNumber, album) out of track XML, keyed by class (podcast, show, audiobook chapter). Every queue entry and Now-Playing display reads through this.</p>
 <p><strong>Technical description:</strong></p>
 <p>rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd,streamContent,audioInputIcon,radioShowMd,streamInfo,rating,policies,podcast,episodeNumber,releaseDate,narrator,albumArtist,numSections} + upnp {originalTrackNumber,album}; classes {object.item.audioItem.podcast,.show,.audioBook.chapter,.musicTrack.recentShow}; loadFromExtraMd(trackURI,extraMd); extractMimeTypeFromHttpContentType (trunc/mtParams errors); protocolInfos {http-get,rtsp-rtp-udp,x-sonos-vli:<em>:audio:</em>,x-rincon-queue:<em>:</em>:*}; " duration=" attr; &#10; newline; -yYy- marker</p>
 <ul>
@@ -10674,6 +10678,7 @@
 
 <h2 id="ext_audio_src"><code>ext_audio_src</code><a class="headerlink" href="#ext_audio_src" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The external-audio-source job engine: clips/TTS arrive as jobs with a FSM (STARTING→RESUMING→RESUMED / CANCELLED / DISCARDED), priority, and exclusivity — too many jobs drop new ones, deferred streams queue up. Clip types include doorbell-style AUDIOCLIP, ALEXA_TTS, and ALEXA_WELCOME. This is what plays voice-assistant responses over music.</p>
 <p><strong>Technical description:</strong></p>
 <p>job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too many/no jobs),processJob,WaitForComplete,playDeferredStream(deferred j/d counts),playStream(exclusivity skip)} + "too many deferred jobs"/"playing job %u is missing"/"current job %u gone"; clip types {COMMON,AUDIOCLIP,AVT_HACK,ALEXA_TTS,ALEXA_WELCOME,ALEXA_FAILURE,ALEXA_ALERT,GOOGLE_MEDIA,GOOGLE_ALARM,GOOGLE_TTS,SVE_TTS,VOCAL_GUIDANCE,ALERT,SETUP_CHIRP,DISCOVERY} with intr flag "processing type %s %d (intr=%d)"; volume override "[%i, %i - %i over %ums]" ramp + "[%i, % i]"; "eventing play status for job %u: %s [%s] @%d.%06d"; decoder {failed to get decoder,illegal sample frequency,zero len frame,decoder flagged playback stop,unsupported channel count &gt; 2}; extaudiosrc_playid</p>
 <ul>
@@ -10713,6 +10718,7 @@
 
 <h2 id="favorites"><code>favorites</code><a class="headerlink" href="#favorites" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The favorites store: user radio stations and recents, replicated across the household with an accept/reject decision ('deciding whether to accept replicated list'), DIDL namespacing, and migration paths from old Rhapsody-era and non-OAuth formats. <code>FavoritesUpdateID</code> in ContentDirectory events is this store's change counter.</p>
 <p><strong>Technical description:</strong></p>
 <p>replication "replicating favorites from %s"/"deciding whether to accept replicated list" + informReplicationAndNotify{,ForDestroy} + offerRemoteSetting; DIDL ns {xmlns:dc purl.org/dc/elements/1.1,xmlns:upnp,xmlns:r rinconnetworks,xmlns DIDL-Lite}; migration {old rhapsody→new,old non-OAuth} + "Failed to parse account service ID / serial number from Sonos URI"; errors {Invalid favorite id,Could not access favorites,initContentResource {parse URI,extract item ID,Invalid item ID,No valid mapping for item type}}; shortcuts/shortcut type; fields {AlbumArtURI,NextFavorite,FirmwareVersion,Description,ResMD}; cdudn + nameSpace + restricted + parentID</p>
 <ul>
@@ -10917,6 +10923,7 @@
 
 <h2 id="group_rc"><code>group_rc</code><a class="headerlink" href="#group_rc" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>GroupRenderingControl: group volume and mute. It snapshots member volumes, computes a normalized group volume (<code>calculateVolume</code> with sg/ng/sv/nv terms), validates zone transitions, and propagates DesiredVolume/DesiredMute to members — including partial-failure handling when some members are on fixed output. The group volume slider rides on this.</p>
 <p><strong>Technical description:</strong></p>
 <p>group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zones"} + DesiredVolume/DesiredMute; algo "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + gvd {t,c,f,m,cv,sv}; tracking {addZone already tracked,removeZone not tracked,transitionValid c/m/f}; faults {total failure,partial failure,all members use fixed volume,operation in progress,unexpected upnp fault}; events {GroupVolumeSetActionEvent(vol,mute,vligrouping),VliVolumeProcessingCompleteEvent vliType}; members {localRC vol/mute/fixed,remoteRC %s vol/mute/fixed}; ops {SetGroupMute local/remote rc,SetGroupVolume local netops zones + per-member rc}; group caps {"Group capability updated: 0x%08x -&gt; 0x%08x","Spatial audio disabled in Area Zone","Spatial audio disabled: mask"} + enableSpatialAudio + "GroupCapabilities zp: %s: %i,%i,%i"; cap strings {widevine,atmos,portable,tv_in,hlsv7}</p>
 <ul>
@@ -10970,6 +10977,7 @@
 
 <h2 id="history_mgr"><code>history_mgr</code><a class="headerlink" href="#history_mgr" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The cloud play-history manager: POSTs played tracks, keeps pre/post caches with ETags and cache-control honoring, serves <code>recentlyPlayed</code>, and repairs a corrupt cache after a 304. <code>max-age</code> controls freshness. This is the 'recently played' list that syncs across the household and app.</p>
 <p><strong>Technical description:</strong></p>
 <p>historyService + rphistory + historyEntryInvalid event + ucsType; cache {preCache,postCache,preEtag,postEtag,cacheControl,historyRequest} + "Updating history cache: [status][key][etag][cache-control]" + "Cached etag" + "corrupt cache could not be served after a 304"; POST postHistory + recentlyPlayed + max-age + "max-age=%s, etag=%s, http-result=%d" + "Post History Buffer Cleared"; queue faults {bufferFull,invalidContentType,resourceIncomplete(name,type,objectId),groupIncomplete(name,id,coordinatorId)}; fields {imageUrl,explicit}; getHistory {serving the cache,#getHistory response} gated by {Securely Registered,History Enabled}; deleteHistory history?id=; "Failed to generate defaults for history entry"; "Failed to initialize history from cache"</p>
 <ul>
@@ -11320,6 +11328,7 @@
 
 <h2 id="load_content"><code>load_content</code><a class="headerlink" href="#load_content" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The muse <code>loadContent</code> verb family: <code>loadContainer</code>, <code>loadStream</code>, <code>loadFavorite</code>, <code>loadPlaylist</code>, <code>loadTrackList</code> — with a type whitelist (spotify.connect items, linein variants, trackList programs, podcast episodes, audiobook chapters, homeTheater-input). Guidance strings steer callers to the right verb. This is the cloud-API entry point for 'play this thing'.</p>
 <p><strong>Technical description:</strong></p>
 <p>verbs {loadContainer,loadStream,loadFavorite,loadPlaylist,loadTrackList} with guidance "Use playback#loadTrackList to load tracks"/"Use playback#loadStream to load streams"; item types {spotify.connect,linein.homeTheater.spdif,linein.airplay,trackList.program,episode.podcast,chapter.audiobook,homeTheater-input,TV Audio}; meta json paths {/containerType,/containerName,/name,/explicit,/durationMs,/artist,/imageUrl,/releaseDate,/mimetype}; errors {Invalid favorites directory state,Invalid content resolver state,Account error,Invalid serviceId,Could not find default account for serviceId,SID mismatch lookupAccountByUDN vs RMuseUniversalMusicObjectId,Could not find UDN,serviceId is not associated with accountId}; "cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued)" + "item.id tracking is out of memory"; local-library + r:contentService + /getaa? art; sn_%u/mhhid_ id prefixes; "RadioShow name/Id truncated"; shared|private visibility; protocolInfo http-get:<em>:%s:</em></p>
 <ul>
@@ -11447,6 +11456,7 @@
 
 <h2 id="media_player_mgr"><code>media_player_mgr</code><a class="headerlink" href="#media_player_mgr" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The media-player actor registry: each player is an actor keyed by uuid/index/port/ssl/mtls with overlap detection, lifecycle (register/create/shutdown), and per-player config dirs with their own <code>anacapa_logger.toml</code>. Targets resolve through <code>getActor</code> with backup fallback. It's the internal object model that muse player-scoped commands dispatch into.</p>
 <p><strong>Technical description:</strong></p>
 <p>actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target [%s] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming</p>
 <ul>
@@ -11558,6 +11568,7 @@
 
 <h2 id="mp_autoplay"><code>mp_autoplay</code><a class="headerlink" href="#mp_autoplay" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The media-player autoplay logic for virtual line-in sources: vol/useVol/includeZones params, AirPlay zone inclusion via <code>AirplayIncludeGroupedEvt</code>, and linein object types (homeTheater, airplay, bluetooth) keyed to <code>x-sonos-vli:</code> URIs. Target resolution decides the coordinator or declines ('no autoplay target'). This is what makes a phone's AirPlay session start on the right room.</p>
 <p><strong>Technical description:</strong></p>
 <p>params {vol,useVol,includeZones} + "airplay include zones: %d" + AirplayIncludeGroupedEvt; linein types {object.item.audioItem.linein.{homeTheater,airplay,bluetooth}} + x-sonos-vli; target resolution {"lonely local line-in autoplay","no autoplay target","couldn't determine coordinator/AVT control URI/control URI","Not executing on invisible/node proto incompatible ZP"}; "for controlURI [%s] for coordinator [%s]. programURI [%s]"; "Autoplay command failed ret=%d"; "AutoStop called on unhandled URI"; http://%s:%u</p>
 <ul>
@@ -11584,6 +11595,7 @@
 
 <h2 id="mpmgr"><code>mpmgr</code><a class="headerlink" href="#mpmgr" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The mpmgr actor layer (see media_player_mgr): the registry and resolver that maps a target key to a concrete media-player actor — including the 'no actor available' and 'unexpected target ID type' failure modes. Every player-scoped muse command resolves through here first.</p>
 <p><strong>Technical description:</strong></p>
 <p>actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; resolve {getActor,Actor Filter null,unexpected target ID type,found actor,found backup,target resolved,no actor available}; lifecycle {registered [%zu],created [%zu],Invalid target key abort,Request to shutdown,shutdown}; per-MP config Player%s + anacapa_logger.toml + /localsettings.txt; VLI hooks {onVirtualLineInGetVolume,SessionStartInfoUpdated,StartSession,StopSession,SuspendSession,NameChanged,MetaDataChanged,PlayModesChanged,onPlaybackStateChanged,processSetVolume,waitOnTxBitFlagsClearedLocked}; events {VolumeSetActionEvent(vol,mute),VliVolumeProcessingCompleteEvent(type,success,flags)+signal rc,VliSessionProcessingCompleteEvent(type,action,success,flags),"vliType old: %s new %s cookie %d"}</p>
 <ul>
@@ -11716,6 +11728,7 @@
 
 <h2 id="music_services"><code>music_services</code><a class="headerlink" href="#music_services" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The available-services store: <code>musicservices.xml</code> plus a backstop file, state variables (ZPMusicServicesList, ServiceListVersion, AvailableServiceDescriptorList/TypeList/ListVersion), and settings like the online-update base URL. Replication uses the ms read/write locks. This is how the household agrees on which SMAPI services are installed and at what version.</p>
 <p><strong>Technical description:</strong></p>
 <p>musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVersion,AvailableServiceDescriptorList,AvailableServiceTypeList,AvailableServiceListVersion}; settings {OnlineUpdateBaseURL,R_TrialZPSerial,R_AvailableSvcTrials}; replication locks {rwlR_msd,rwlW_msd} + msdZonePlayer; accept logic "deciding whether to accept replicated list from: %s; ver: %u format: %u"/"replicating services from %s"/"Replicated list accepted"; zp-vs-rs compare {zpETag,rsETag,zpLUD,rsLUD,zpVer,rsVer}; "ServiceTypeList, adding built-in: %s"/"adding: %s; name: %s"; "Warning. No SD found for %d"; poll "next check for available services in %u s [source=%s]"; "Could not submit Available Services DIAG. Service count is: %zu"; checkForAvailableMusicServices job; "Not enough space to write full list"</p>
 <ul>
@@ -12172,6 +12185,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="sharelist"><code>sharelist</code><a class="headerlink" href="#sharelist" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The SMB share-list manager: add/remove/reindex/resort shares, replicate the list via <code>indexrepl</code> with a 'us vs them' remoteSettingIsBetter comparison, and drop shares whose protocol fails verification. Share-index errors and subsumed-path detection keep the library consistent across the household.</p>
 <p><strong>Technical description:</strong></p>
 <p>replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter: us [%s|%u] vs them [%s|%u]"; ops {localAddShare,localRemoveShare,localRequestReindex,localRequestResort,localRemoveUnsupportedShares}; protocol gate {verified supported protocol→keep,else remove + count} + VerifiedValidProtocol flag; errors {share ID not found,path already exists,subsumed by existing share,Path is malformed,Access denied,Cannot exceed maximum shares,Mounting failed,Local index storage error,Remote file share error,Indexing canceled,connection failure,replication failed,replication skipped fmt mismatch}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)" + "Turning resort request into full reindex" + "processing index complete (c:%d i:%d f:%d lc:%s)" + commit {m_bCommitted,m_bWait,m_bTerminate} + index recovery "recovered ix=%d with ver=%d"; R_BrowseByFolderSort + Tracknum sort</p>
 <ul>
@@ -12237,6 +12251,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="smapi_descriptor"><code>smapi_descriptor</code><a class="headerlink" href="#smapi_descriptor" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The SMAPI service-descriptor schema: apiKey, presentationMap, strings, reporting, browse, and Moment sections plus accountTiers (paidLimited, paidPremium). The descriptor is what the player reads to learn a service's capabilities — it's the contract a custom service must implement.</p>
 <p><strong>Technical description:</strong></p>
 <p>fields {apiKey,advertising,presentationMap,strings,reporting,browse,Moment}; accountTiers {paidLimited,paidPremium}</p>
 <ul>
@@ -12779,6 +12794,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="upnputil"><code>upnputil</code><a class="headerlink" href="#upnputil" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>Shared UPnP utilities: parsing <code>host:port</code> out of server URLs with strict port validation, mapping internal statuses to UPNP_RESULT codes while preserving the original error, and the canonical ZonePlayer UDN format. Small but load-bearing — every outbound UPnP call and device description uses it.</p>
 <p><strong>Technical description:</strong></p>
 <p>RparseServerLocationAndPort {"Unable to extract host, allocation too small","Port specified is too long","invalid port. Max value is 65535","unrecognized scheme in URL"}; RmapStatusToUPNPRESULT {UPNP_RESULT_CANT_CONNECT,UPNP_RESULT_GENERAL_FAILURE} + original error 0x%08x; UDN "uuid:%s::urn:schemas-upnp-org:device:ZonePlayer:1"; loopbackSecurityTokenMutex; time fmts {%04hu-%02hu-%02huT%02hu:%02hu:%02hu,%04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx,%02hu:%02hu:%02hu,%+02d:%02d}; statuses {UNPLAYABLE,MEMBER,NO-CONTENT,LAN-SWAPPABLE}; invalid chars ",\&lt;&gt;;?<em>|+=[]:\""; URL escape sets {$-_.+!</em>'(),/,$-_.!<em>'(),,-_.!</em>()}; audio fmt "bd:%u,sr:%u,c:%u,l:%u,d:%u"; "parser ctx allocation failed"</p>
 <ul>
@@ -12884,6 +12900,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="wmp_provider"><code>wmp_provider</code><a class="headerlink" href="#wmp_provider" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The Windows Media Player content provider: NSS browse/search over <code>/WMPNSSv</code>, capability flags (SCPA, SCPB, SCPI), a search grammar (<code>upnp:class derivedfrom "object.item.audioItem"</code>), container-class specs (musicArtist, musicAlbum, musicGenre, playlistContainer), and sort/filter fields including Microsoft extensions. This is legacy DLNA-library browsing support.</p>
 <p><strong>Technical description:</strong></p>
 <p>WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:class derivedfrom "object.item.audioItem" and @refID exists false' + container class specs {person.musicArtist,album.musicAlbum,genre.musicGenre,playlistContainer}; sort/filter "+upnp:album,+upnp:originalTrackNumber,+dc:title" + microsoft:{artistAlbumArtist,artistPerformer,authorComposer} + upnp:genre + "1+upnp:originalTrackNumber"; field set dc:title,res,res@duration,upnp:artist,upnp:artist@role,upnp:album,upnp:originalTrackNumber; rincon md ns urn:schemas-rinconnetworks-com:metadata-1-0/|otherArtist; albumArt via %s?albumArt=true and /getaa?m=1&amp;u=%s; "URI already has a serial number"/"not enough room for account ID"</p>
 <ul>
@@ -12911,6 +12928,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="zgt_errors"><code>zgt_errors</code><a class="headerlink" href="#zgt_errors" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The ZGT error paths: <code>ReportUnresponsiveDevice</code> handling with source address logging, and <code>GetZoneGroupAttributes</code> request validation failures (no valid UUID, invalid TServer, invalid TRequest). These are the error strings a malformed topology request produces.</p>
 <p><strong>Technical description:</strong></p>
 <p>"Handling ReportUnresponsiveDevice %s/%s from %s:%hu"; GetZoneGroupAttributes {"No valid UUID in request server","TServer is not valid for request","TRequest is invalid in the control server"}</p>
 <ul>
@@ -12924,6 +12942,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="zones_mgr"><code>zones_mgr</code><a class="headerlink" href="#zones_mgr" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The zone lifecycle manager: zone-definition changes fire ZonesDefinitionsChangedEvent, muse exposes <code>getZoneDefinition</code> lookups, and transitions on primary/secondary are logged — including failures on the primary that leave a zone half-formed. Channel-map-set (cms) updates flow from primary to secondary to keep stereo/surround mappings consistent.</p>
 <p><strong>Technical description:</strong></p>
 <p>events {ZoneMemberSettingsChangedEvt,ZonesDefinitionsChangedEvent}; muse ops {museGetZoneDefinition "found zone [%s]"}; transitions {"zone transition on secondary/primary: zoneId %s","zone transition failed on primary"}; cms (channel-map-set) {"cms init from %s","cms update from pri: %s","cms update from sec: %s = %s + %s","zoneDef %s inconsistent with cms %s","can't construct channelMapSet"}; file <File name="activeZones">; ops {adding/removing player,joinZone id+flatChannelMapSet,unjoinZone,activateZone,deactivateZone,updateActiveZone,sendUpdateZoneMemberSettingsCmd}; guards {"primary change not supported for HT","update with offline primary not supported for HT","update only allows add or remove, not both","can't update both name and channelMapSet","Zone contains incompatible protocol versions","zone is not active","zone id not found","zone def not found","invalid activeZone","invalid channelMapSet","invalid flatChannelMap","invalid zone name","invalid name:","no name","secondary not reachable","more zones active than RMuseActiveZoneList can hold"}; "Legacy zone exists on %s"; "primary unavailable: sending Remove ops to secondaries"; "re-activate the current zone"; "updating ActiveZone: %s -&gt; %s"/"primary change: %s -&gt; %s"/"offline primary: %s -&gt; %s"</p>
 <ul>
@@ -12937,6 +12956,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="zones_storage"><code>zones_storage</code><a class="headerlink" href="#zones_storage" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The zone-definition store: name/id/channelMapSet records with a max-zone cap, create/update/remove ops (removal is blocked while the zone is active), and replication of offered files with rename-into-place semantics. This is the persistence behind stereo pairs and home-theater bonds surviving reboots.</p>
 <p><strong>Technical description:</strong></p>
 <p>zone defs {name,id,channelMapSet} + "reached maximum zone definitions"/"too many zones defined in the config file [max=%d]" + "zone def full: %s removed"; ops {create,update id,remove (active-guard "zone currently active")}; replication {"received replicated file","failed to rename offered replicated file","failed to load offered replicated file","ignoring replicated file: incompatible schema"}; JSON load errors {missing value,zones data array,root not object,incorrect schema [%d != %d],parsing offset,open errno} + RapidJSON vocab; gainTrimDB remote apply; forwarding {activateZone,updateActiveZone,joinZone,updateZoneMemberSettings cmd to %s} + "primary %s not found" + "output buffer full"</p>
 <ul>
@@ -12963,6 +12983,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="account_actions"><code>account_actions</code><a class="headerlink" href="#account_actions" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The DeviceProperties account-management actions: <code>AddAccountX</code>, <code>AddOAuthAccountX</code>, <code>EditAccountPasswordX</code>, <code>RemoveAccount</code>, credential refresh, and post-update tasks, with args covering OAuth codes, tokens, md5s, and web codes. This is how music-service accounts get attached to a household — the SOAP surface the app uses during service signup.</p>
 <p><strong>Technical description:</strong></p>
 <p>args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUID,NewAccountID,NewAccountUDN,RDMValue}; actions {AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString}</p>
 <ul>
@@ -12976,6 +12997,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="accounts_replication"><code>accounts_replication</code><a class="headerlink" href="#accounts_replication" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The accounts manager's internal op set: adding accounts by credentials, OAuth token, OAuth code, or direct-control; modifying and migrating entries; reporting. Accounts replicate across the household with vector clocks and tombstones, so a deletion on one player propagates correctly instead of resurrecting.</p>
 <p><strong>Technical description:</strong></p>
 <p>ops {markAccountsForPushLocked,setAndUpdatePreferredSerialNum,addAccountWithUserCredentials,int_addAccountWithOAuthToken,addPreinstalledService,addAccountWithOAuthToken,addAccountWithOAuthCode,addAccountForOAuthDirectControl,modifyAccount,migrateAccountsToSMAPI,migrateAccountSID,migrateAccountToOAuth,updateAccountUserInfo,reportAllActiveAccounts,ReportSvcTimedJob,matchImpl,pullFromReplicationService,pushToReplicationService,getPreferredAccount}; zpam: %s,%d,%d,%u; file accounts.xml; outcomes {retry,conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason,vcCloud}; validation {invalid service ID,missing service uuid,missing account type,missing metadata,missing cloud vector clock,missing serial number,missing account ID,missing household vector clock,"Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]",exceeded max deleted accounts}; guest migration {"Existing account is not a guest account, migrateGuestAccount failing","Bad guest migration: UDN = %s - UserIDHash = %s","Migrated %s replication account","Migrated tombstoned %s replication account"}; "End direct control context UUID: %s"; "Invalid replication operation"; "no preferred account set"; "Failed to download manifest file (%s) for service %u"; getDeviceAuthToken failed</p>
 <ul>
@@ -13003,6 +13025,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="alarm_clock"><code>alarm_clock</code><a class="headerlink" href="#alarm_clock" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The AlarmClock service implementation: scheduled alarms and sleep timers stored in SQLite (<code>timers</code> table) with suspend-aware fields — a paused timer serializes its remaining seconds plus the UTC pause point so it fires correctly after a sleep/wake cycle. Recurrence, program URIs, and alarm-mode flags ride on the standard UPnP action set.</p>
 <ul>
 <li><strong>muse_validation:</strong></li>
 <li><strong>errors:</strong> <code>Invalid service id</code>, <code>Failed to convert content payload for alarm contentType=%s, objectId=%s</code>, <code>Invalid startTime</code>, <code>No alarm active to silence</code>, <code>Invalid duration provided</code>, <code>Device not group coordinator or source</code>, <code>Alarm not found</code>, <code>Invalid recurrence</code>, <code>Invalid alarm ID</code>, <code>Invalid Recurrence</code>, <code>Invalid StartTime</code>, <code>Writing alarm failed with error: %d</code>, <code>Unable to return active alarm: definition has been deleted</code></li>
@@ -13017,6 +13040,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="album_art"><code>album_art</code><a class="headerlink" href="#album_art" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The album-art pipeline: artwork fetched from services, cached per-track with file naming, resized into the tile sizes controllers use, and served over the device's HTTP. <code>getAlbumArtURI</code> requests go outbound to SMAPI services; the local cache is what makes browsing not hammer the network.</p>
 <ul>
 <li><strong>worker:</strong> "album URI dereferenced to: %s"; "Fetching album art for %s: %s"; "invoking vliStreamImage on %s %u %u %u %s"; "vliStreamImage failed"</li>
 </ul>
@@ -13050,6 +13074,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="areas"><code>areas</code><a class="headerlink" href="#areas" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The Areas manager — Sonos's name for rooms as a durable concept: <code>areas.json</code> persistence with atomic rename-on-write, schema-version checks, a built-in 'Everywhere' area, and ID-distinctness constraints. When a room survives reboots with its name and settings intact, this is the store doing it.</p>
 <p><strong>Technical description:</strong></p>
 <p>areas.json persistence + atomic-write cycle {accepted file load,rename accepted→store,rename failed paths,saving failed,setup load/save}; schema versioning 'Loaded areas schema version (%d) differs from local version (%d)'; builtin 'Everywhere' + GUID 7055133f-81e7-45e6-ba70-8803966c7185; constraints {'Area IDs must be distinct','Maximum area limit (%d) reached','Cannot update read-only area','Set of players in area (array playerIds)'}; vars {areaId,areasMgr,artfetch}</p>
 <ul>
@@ -13082,11 +13107,13 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="autoplay"><code>autoplay</code><a class="headerlink" href="#autoplay" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The autoplay machinery that picks what happens when a new source appears: line-in, TV audio, AirPlay, and Bluetooth inputs can trigger playback on configured target zones. Parameters include volume override and zone inclusion lists; the <code>Autoplay*</code> state variables in AudioIn/VirtualLineIn are its control knobs.</p>
 <ul>
 <li><strong>engine:</strong> MpAutoPlay_: airplay {include zones,vol,useVol,includeZones}; AirplayIncludeGroupedEvt; AutoStop on unhandled URI; linein URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth}; "lonely local line-in autoplay %s"; failure modes "no autoplay target"/"couldn't determine coordinator"/"couldn't determine AVT control URI of coordinator"/"couldn't determine control URI of zone"; skip "invisible/node proto incompatible ZP"; "for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d"; vliType-driven</li>
 </ul>
 <h2 id="av_transport"><code>av_transport</code><a class="headerlink" href="#av_transport" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The AVTransport service — the heart of playback control: transport URIs, play/pause/seek/stop, queue interaction, crossfade, play modes, and the <code>LastChange</code> event stream. The service record holds the full action table, argument metadata, and proven handler addresses; everything a normal controller does with 'play something' goes through here.</p>
 <ul>
 <li><strong>avt_jobs:</strong> <code>ChangeTransportSettings</code>, <code>avt_play</code>, <code>onEvent</code>, <code>alarmDurationTimer</code>, <code>backupQueueCleanup</code>, <code>pollRadioShowMD</code>, <code>preemptiveAmp</code></li>
 <li><strong>secondary_guards:</strong> improper-call guards on secondary ZPs {"AVTransportURI cannot be set to non-group URI on secondary ZPs","BecomeCoordinatorOfStandaloneGroup improperly called on secondary ZP","BecomeGroupCoordinator improperly called","BecomeGroupCoordinatorAndSource improperly called"}</li>
@@ -13095,6 +13122,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="avt_impl"><code>avt_impl</code><a class="headerlink" href="#avt_impl" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The avt_impl layer under the AVTransport service: transport-source selection (CHSRC for grouped audio, HTAudio for TV input), session bookkeeping in <code>avt.txt</code> with backup/restore and read/write locks, and the RAVTMediaRenderer actor. This is where URI semantics meet the audio engine — e.g., which <code>x-sonos-*:</code> scheme maps to which physical path.</p>
 <p><strong>Technical description:</strong></p>
 <p>TX selection {'Using HTAudio TV TX for GM %s','Using CHSRC TX for GM %s','Why are we telling HTAP to play %s','setting tvInputFormat %08x',iSCS removeClock/installClock}; persistence avt.txt + avt-backup-restore + locks {rwlW_avt,rwlR_avt} + actor RAVTMediaRenderer/scopeAvt; VLI ops {ChangeTransportSettings playing/stopping/deactivating local VLI (txs),endVLISession,onTXSettingsWillChange→VLI::StopTransmission}; session eviction 'sessionError MUSE_ERROR_SESSION_EVICTED for %s: %s' + evict; sleep timer {'sleep timer fired (r:%ld)','sleep timer set (d:%d r:%d p:%d c:%d)','sleep timer reached (p:%d)','Failed to configure the sleep timer','Invalid duration provided'}; amp preempt {'amp already on','prem-amp turn on at %d.%06d; start up time: %dms','could not preemptively turn on the amp'}; queue events {tracksAdded,qLength,trackIndex,enqueueEvent,'Add to queue %u; URI/MD'}; playmode warnings {'vli play modes ignored (enable/disable flags)','play modes ignored (current/desired)'}; operational override {'changing Operational Override mask from 0x%x to 0x%x','setAVT aborted because operation is overridden'}; seek units {TRACK_NR seek track,REL_TIME %lld.%06lld seek time,TIME_DELTA %lld.%06lld,00:00:00,previous}; settings {change crossfade,change play mode,capChange,groupSize,curCaps,requiredCaps,musicPausedMS}; ret codes {stopRet,seekToTrackRet,seekToTimeRet,playRet,pauseRet,endpointSwitch,episode}</p>
 <ul>
@@ -13112,6 +13140,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="avt_lastchange"><code>avt_lastchange</code><a class="headerlink" href="#avt_lastchange" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The complete <code>LastChange</code> event grammar for AVTransport: the standard UPnP fields (TransportState, CurrentTrack<em>, AVTransportURI</em>, NumberOfTracks, play/crossfade modes) plus Sonos extensions under the <code>r:</code> namespace (EnqueuedTransportURI*, sleep/alarm fields, more). Subscribed clients receive this as the single authoritative playback-state stream.</p>
 <p><strong>Technical description:</strong></p>
 <p><Event xmlns=upnp-org:metadata-1-0/AVT/ xmlns:r=rinconnetworks-com:metadata-1-0/>; standard {TransportState,CurrentPlayMode,CurrentCrossfadeMode,NumberOfTracks,CurrentTrack,CurrentSection,CurrentTrackURI,CurrentTrackDuration,CurrentTrackMetaData,PlaybackStorageMedium,AVTransportURI,AVTransportURIMetaData,NextAVTransportURI,NextAVTransportURIMetaData,CurrentTransportActions,TransportStatus,TransportErrorDescription,TransportErrorURI,TransportErrorHttpCode,TransportErrorHttpHeaders}; rincon-ext {r:EnqueuedTransportURI,r:EnqueuedTransportURIMetaData,r:CurrentValidPlayModes,r:DirectControlClientID,r:DirectControlIsSuspended,r:DirectControlAccountID,r:SleepTimerGeneration,r:RestartPending,r:NextTrackURI,r:NextTrackMetaData,r:AlarmRunning,r:SnoozeRunning}; static NOT_IMPLEMENTED {TransportPlaySpeed,CurrentMediaDuration,RecordStorageMedium,PossibleRecordStorageMedia,RecordMediumWriteStatus,CurrentRecordQualityMode}; PossiblePlaybackStorageMedia=NONE, NETWORK; x-sonos-unknown: scheme</p>
 <ul>
@@ -13125,6 +13154,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="browse_ids"><code>browse_ids</code><a class="headerlink" href="#browse_ids" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The SMAPI browse container-ID vocabulary: library roots (ALBARTIST, LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS...), genre branches, global containers, and per-service subtrees. These short prefixes are what services embed in object IDs and what the player matches to render browse hierarchies.</p>
 <p><strong>Technical description:</strong></p>
 <p>library {ALBARTIST,LIBARTIST,LIBALBUM,LIBGENRE,LIBTRACKS,LIBPLAYLISTS,LIBSTATIONS,LIBMUSIC}; genre {GNRSUBGNR,GNRTOPARTIST,GNRTOPALBUM,GNRTOPTRACKS,GNRSTATIONS,GNRCHARTS,NEWRELEASES,RHAPRECOMMEND,SUBGNRALLARTISTS,SUBGNRKEYARTISTS,SUBGNRKEYALBUMS,SUBGNRSAMPLER}; global {GLBARTIST,GLBALBUM,GLBGENRE,GLBLEAFGENRE,GLBTRACK,GLBPLAYLIST,GLBSTATION}; artist {ARTTOPTRACKS,ARTALBUM,ARTSINGLESEPS,ARTCOMPILATIONS,ARTOTHERRELS,ARTSTATION}; discovery {GUIDE,ALBUMSFORYOU,FEATPLAYLISTS,STAFFPICKS,PSTATIONS}; search {SEARCHARTISTS,SEARCHKEYWORDS,SEARCHTRACKS,SEARCHALBUMS,SEARCHCOMPOSERS,SSTATIONS,SONOSSEARCH}; radio {STARTSTA,STARTTAGSTA,BROWSETAGPOP,BROWSETAGALPHA,MYRADIO,PERSONALRADIO,LOVEDRADIO,NEIGHBORHOOD,RECOMMENDED,SEARCHTAGS,TAGRADIO,TOPTAGSPOP,TOPTAGSALPHA,RECENT}; genres {Adult and Easy Listening,Eighties,"Public, Talk, and Sports Radio",Pop and Top 40,Country and Folk,Jazz and Blues,"Classic, Hard and Alt. Rock","Soul, Hip Hop and R&amp;B",Dance and Electronic,"New Age, Ambient, Chill-Down"}; locales {France,Germany,Italy,Netherlands,Spain,International-Other}; misc {ZPSTR_BUFFERING,Favorite Stations,Unnamed Room,Media Server}</p>
 <ul>
@@ -13138,6 +13168,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="catalog_translation"><code>catalog_translation</code><a class="headerlink" href="#catalog_translation" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The same catalog-translation facility as catalog_translate: cloud-backed ID mapping with a local cache ('retrieved translation from cache' vs 'connecting to translation service'). Useful for cross-service matching features like 'also available on'.</p>
 <p><strong>Technical description:</strong></p>
 <p>GET /content/api/catalog/id/%s?destinationServiceId=%s; translateId(objectId,serviceId,targetObjectId); cache {"retrieved translation from cache","translation not cached; connecting to translation service","saved translation to cache","translateId response: %d %s"}; errors {"objectId missing","serviceId missing","targetObjectId missing","cannot perform translateId request; one or more parameters missing"}; actors {zpCatalogTranslation,catalogSvcMgr,targetSid}</p>
 <ul>
@@ -13301,6 +13332,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="content_directory"><code>content_directory</code><a class="headerlink" href="#content_directory" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The ContentDirectory implementation: dual-URN service (Sonos and UPnP org), full browse/create/destroy/update actions, share-indexing state variables (SystemUpdateID, ShareIndexInProgress, ShareIndexLastError, Favorites/Radio/SavedQueues update IDs), and locale handling (zh-CN, ja-JP). The browse surface every library browser and the Sonos app use.</p>
 <p><strong>Technical description:</strong></p>
 <p>dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:service:ContentDirectory:1}; locales {zh-CN,ja-JP}; event vars {SystemUpdateID,ContainerUpdateIDs,ShareIndexInProgress,ShareIndexLastError,FavoritesUpdateID,RadioFavoritesUpdateID,RadioLocationUpdateID,SavedQueuesUpdateID,ShareListUpdateID,cdMediaServer}; actions {Browse,CreateObject,DestroyObject,FindPrefix,GetAlbumArtistDisplayOption,GetAllPrefixLocations,GetBrowseable,GetLastIndexChange,GetSearchCapabilities,GetShareIndexInProgress,UpdateObject,SCHED}; args {BrowseDirectChildren,BrowseMetadata,BrowseFlag,RequestedCount,SortCriteria,NumberReturned,TotalMatches,ContainerID,Elements,CurrentTagValue,NewTagValue,SortOrder,TotalPrefixes,PrefixAndIndexCSV,Browseable,IsBrowseable,IsIndexing,SortCaps,SearchCaps}; logs {"UpdateObject returned %d; ObjectID: %s; Elements: %s","notifyUpdateID('%s', %u)","Bad Browse flag %s","Bad Object ID %s","Browse %s ObjectID: %s;","MetaData failed %d"}; DIDL URNs {upnp/|class,upnp/|albumArtURI,rinconnetworks/|http,rinconnetworks/|albumArtist,rinconnetworks/|description}</p>
 <ul>
@@ -13314,6 +13346,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="customsd"><code>customsd</code><a class="headerlink" href="#customsd" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The <code>/customsd</code> page — a CSRF-protected form that registers a custom SMAPI service descriptor: SID range 240–253/255, name, secureUri, poll interval, and an authType radio (Session ID, Anonymous, DeviceLink, AppLink), plus optional strings/presentation-map/manifest version+URI fields. This is the dev mechanism for pointing a player at your own music service.</p>
 <p><strong>Technical description:</strong></p>
 <p>POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name (blank erases),secureUri,pollInterval}; authType radio {UserId=Session ID,Anonymous,DeviceLink=Device Link,AppLink=Application Link}; optional {stringsVersion+stringsUri,presentationMapVersion+presentationMapUri,manifestVersion+manifestUri}; containerType {MService=Music Service,SoundLab=Sonos Sound Lab}; caps checkboxes {search,trFavorites,alFavorites,arFavorites(commented out),ucPlaylists,logging,playbackLogging,accountLogging,extendedMD(+radioExtendedMD,playlistExtendedMD gated),disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}</p>
 <ul>
@@ -13332,6 +13365,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="device_props"><code>device_props</code><a class="headerlink" href="#device_props" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The DeviceProperties service: device-level attributes — serial, MAC, display settings, button/LED behavior, IR, and the account-management actions (AddAccountX etc.). It's the service that answers 'what is this player' and 'how is it configured' at the UPnP layer.</p>
 <ul>
 <li><strong>idle_shutdown:</strong> idle events LineInStateChangedEvent/ReplicatedSettingsChangedEvent; vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; dpimpl/dpUpdateIdleState "idle state is %sidle, changing to %sidle"</li>
 <li><strong>enetport_schemas:</strong> <EnetPorts><Port port="%d"><Link>%d</Link><Speed>%d%s</Speed></Port>; EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u</li>
@@ -13483,6 +13517,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="group_mgmt"><code>group_mgmt</code><a class="headerlink" href="#group_mgmt" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The GroupManagement service: create/remove bonded groups, zone-player join/leave semantics, member validation, and the state variables controllers use to observe grouping (GroupCoordinatorIsLocal, etc.). It's the SOAP surface for stereo pairs and bonded surrounds — distinct from ad-hoc play-together grouping which lives in zone topology.</p>
 <ul>
 <li><strong>ops:</strong> {SetSourceAreaIds,pause,play,copyMusic(%s to %s),becomeStandalone(retry),joinGroup(%s to %s,retry),groupsCommand} + upnpError; topology guards {invalid topology state empty pid/gid,inconsistent topology state invalid gc or pid count}; music context {cannot be copied,cannot be swapped}; faults {Grouping action failed,Invalid grouping action,Invalid args,Action not authorized,Grouping action failed (default)} + groupId; cloning {clone music from %s to ungroupable %s,create new group and cloning from ungroupable player}; params {Effective set of players to group,Creating group with undefined future coordinator hint,playerIdsToRemove array,playerIdsToAdd array,Effective set of new group members}</li>
 </ul>
@@ -13806,6 +13841,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="music_accounts"><code>music_accounts</code><a class="headerlink" href="#music_accounts" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>Music-service account bookkeeping at the ZG/MS level: per-account nickname, serial, flags, tier, and credentials ride inside ZoneGroupState's MediaServers section so every member sees the same accounts. Changes replicate with vector clocks; the ZGS fragment is the authoritative transport for 'which services exist in this household'.</p>
 <ul>
 <li><strong>accountsmgr:</strong></li>
 <li><strong>guest:</strong> guest accounts: link-code required; sn_%d serials; "guest upgrade not allowed via reauth"; matched by {g,sn,h(ash)}; nickname update; tombstone migration "Migrated tombstoned %s replication account"</li>
@@ -13892,6 +13928,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="queue_schema"><code>queue_schema</code><a class="headerlink" href="#queue_schema" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The track-queue status XML: <code>&lt;Queue&gt;</code> with EntriesMax/Used/HighWater, string-table usage, UpdateID, ObjectID, OwnerID, Policy, and CloudQueue fields. The high-water marks and string-table stats are diagnostic — they tell support how full the queue really got. UpdateID is the change counter event subscribers watch.</p>
 <p><strong>Technical description:</strong></p>
 <p><Queue Name='%s'><EntriesMax>%d</EntriesMax><EntriesUsed>%d</EntriesUsed><EntriesHighWater>%d</EntriesHighWater><StringTableSize>%d</StringTableSize><StringTableUsed>%d</StringTableUsed><StringTableHighWater>%d</StringTableHighWater><UpdateID>%u</UpdateID><ObjectID>%s</ObjectID><OwnerID>%s</OwnerID><Policy>%d</Policy><CloudQueueHost>%s</CloudQueueHost></Queue>; <TrackQueueSummary>Shared/Private</TrackQueueSummary>; GPM {com.google.RemoteSonosReceiver,Google Play Music}</p>
 <ul>
@@ -13910,6 +13947,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="rc_impl"><code>rc_impl</code><a class="headerlink" href="#rc_impl" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The rc_impl layer: the RenderingControl implementation's event vocabulary (VolumeChangedEvent, DuckingEvent, StereoPairStateEvent, TrueplayCalibrationChangedEvent, FeatureConfigChangedEvent), settings write-back, ramp-type enum for fades, sonar calibration modes, and the <code>/status</code> output schema that exposes current levels.</p>
 <p><strong>Technical description:</strong></p>
 <p>events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,StereoPairStateEvent,TrueplayCalibrationChangedEvent,TrueplayStateEvent,RcNotifyGrcEvent,FeatureConfigChangedEvent,LocalPlayerChangeEvent,UpdateSonarEvent}; "Delivery of %s(%u) event cancelled"; RStringTRequestManCB; settingsWriteback; roles {HT_BONDED_MASTER,HT_BONDED_SATELLITE,UNBONDED_DEVICE,Master}; HT params {SubGain,SubCrossover,SubPolarity,SubEnable,VolumeScalingFactor,HeightChannelLevel,DialogLevel,SpeechEnhanceEnabled,SupportsMaxDialogLevel,SurroundLevel,MusicSurroundLevel,SurroundEnable,SurroundMode,AudioDelay,AudioDelayLeftRear}</p>
 <ul>
@@ -13939,6 +13977,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="rendering_control"><code>rendering_control</code><a class="headerlink" href="#rendering_control" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The RenderingControl service: per-zone volume, mute, bass/treble/loudness EQ, output-fixed mode, and the LastChange event stream for all of it. Group volume lives in the sibling GroupRenderingControl service. This is the SOAP surface behind every volume slider.</p>
 <ul>
 <li><strong>volume_engine:</strong> per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math "DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)" + "Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl</li>
 <li><strong>rc_impl_stp:</strong> SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate "This command is allowed only on primary" + "Muse command forwarding failed"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber</li>
@@ -13952,6 +13991,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="saved_queues"><code>saved_queues</code><a class="headerlink" href="#saved_queues" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The <code>.rsq</code> saved-queue format: gzipped XML at <code>file:///jffs/settings/savedqueues.rsq</code> with a <code>.tmp</code> write path for atomicity — <code>&lt;SavedQueues LastUpdateDevice Version Next&gt;</code> containing <code>&lt;SavedQueue&gt;</code> entries with Id, Curated flag, and NumTracks. Validation rejects corrupted counts, bad ids, and version mismatches. 'Sonos playlists' are exactly these files.</p>
 <p><strong>Technical description:</strong></p>
 <p>file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration "Migrating ObjID=%s SN=%u from SID: %u to %u"; SQ:%s objid prefix; <res protocolInfo="file:*:audio/mpegurl:*">; album-art: "No num tracks found, so emitting the first four artworks found"; mobile- playlist prefix; "Add Track Move range: %u-%u to %u"; replication push on save</p>
 <ul>
@@ -13980,6 +14020,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <p><strong>coverage</strong> <code>?</code></p>
 <h2 id="share_indexer"><code>share_indexer</code><a class="headerlink" href="#share_indexer" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The music-library share indexer: <code>localRequestReindex</code>, <code>localRequestResort</code> (a resort request escalates to full reindex when needed), <code>localRemoveUnsupportedShares</code>, and the <code>&lt;Shares&gt;</code> XML schema with per-share Path/UserName/VerifiedValidProtocol/Id. <code>ShareIndexInProgress</code>/<code>ShareIndexLastError</code> in ContentDirectory events report its state.</p>
 <p><strong>Technical description:</strong></p>
 <p>ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,"Turning resort request into full reindex"}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)"; schema <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange><Share Path UserName Password VerifiedValidProtocol Id>; errors {"Unable to find share with given ID","Failed to remove/add share","The share path provided already exists","need to recover ix=%d ver=%d","indexing reported err=%d for %s","Mounting failed.","Local index storage error.","Remote file share error.","Indexing canceled.","connection failure","Cannot exceed the maximum number of allowed shares","The path provided is subsumed by an existing share","Path is malformed","Access to share is denied","Unsupported share protocol."}; lifecycle {"replication failed","replication skipped: local fmt %u, remote fmt %u","initial scan for new files failed","Would have performed scheduled reindex but shares unchanged","reindexing failed","reverting desired state: %d","processing index complete (c:%d i:%d f:%d lc:%s) - %u","skipping commit attempt: m_bCommitted/m_bWait/m_bTerminate","initialized index, scheduling advertise","commit %u","processing index: source (%s:%u)","recovered ix=%d with ver=%d"}; R_BrowseByFolderSort,Tracknum</p>
 <ul>
@@ -13993,6 +14034,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="smapi_client"><code>smapi_client</code><a class="headerlink" href="#smapi_client" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The SMAPI SOAP client — the outbound side: <code>http://www.sonos.com/Services/1.1</code> action namespace with getSessionId, refreshAuthToken, getDeviceAuthToken, getMediaURI, getMediaMetadata, getMetadata, search, reportPlayStatus/Seconds, reportStatus, getAlbumArtURI and more. Session/key vocabulary (deviceSessionId, sessionId) and key-swapping live here. Everything a music service sees from the player arrives through this client.</p>
 <p><strong>Technical description:</strong></p>
 <p>action namespace http://www.sonos.com/Services/1.1|{...}; actions {getSessionId,refreshAuthToken,getDeviceAuthToken,getStreamingMetadata,getUserInfo,getMediaURI,getMediaMetadata,getMetadata,search,reportAccountAction,reportPlayStatus,reportPlaySeconds,setPlayedSeconds,reportStatus,getAlbumArtURI}; session/key vocab {deviceSessionToken,deviceSessionKey,CK_deviceSessionKey,contentKey,CK_contentKey,MU_deviceSessionKey,MU_contentKey,authToken,privateKey,userInfo,algorithm,keySize,value,expiration,httpHeaders,mediaRequestInfo,uriTimeout,contentKeys,callbackPath}; mediaURI fields {positionInformation,privateDataFieldName,contentKeys}; browse params {recursive,count,index,total,mediaCollection,mediaMetadata}; report schema "reportPlayStatus: %s; context: %s; uri: %s; cid: %s; id: %s; seconds: %lld; offset: %lld" + contextId + interval; semantics enum {IMPLICIT,EXPLICIT:PLAY,EXPLICIT:SEEK,EXPLICIT:SKIP_FORWARD,EXPLICIT:SKIP_BACK,EXPLICIT:PAUSE}; metadata URNs http://purl.org/dc/elements/1.1/|{id,creatorId} + urn:schemas-rinconnetworks-com:metadata-1-0/|{narratorId,podcastId,summary,total,duration,authorId,bookId,producerId} + urn:schemas-upnp-org:metadata-1-0/upnp/|artistId; browse hierarchies {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:}; skd://itunes.apple.com/P000000000/s1/e1 FairPlay; X-Sonos-Playback-Id header; "reauthorizing preinstalled service SID %u"; "mult-key decrypt params not found"; "WARNING! getDeviceAuthToken ... credentialType = %u (not OAuth)"; secondsSinceExplicit; "flushing on cert change"; media-sens cache {cont_prov_media_sens,content_prov_list,billboard,"cached/loaded/reset session %u:%u"}</p>
 <ul>
@@ -14096,6 +14138,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="svc_manifest"><code>svc_manifest</code><a class="headerlink" href="#svc_manifest" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The SMAPI service-manifest store: <code>svcmanifests.json</code> with schema-version negotiation (rejecting unsupported actual-vs-supported versions), delete/remove ops with before/after version bookkeeping, and cross-player replication of manifest files. Manifests are how custom service capabilities (strings, presentation maps) propagate to every player.</p>
 <p><strong>Technical description:</strong></p>
 <p>svcmanifests.json text/json; versioning {"Invalid schema version format","Unsupported schema version: actual: %u.%u, supported: %u.%u","Could not extract API header"}; ops {deleteManifest(%u) b=%d,a=%d,removeManifest(%d):%s vb=%d,va=%d}; replication {"replicating manifest file from %s","%s downloading music service manifest from %s; ret=%u, lRet=0x%x",lastUpdateDevice}; json {", \"manifests\": [","JSON parse error %d: %s","Failed to load manifests JSON file","Added trailing slash to: %s","Invalid Id: %s","Failure parsing URI %s","unsupported CQ REST version: %s"}; RCache; "%d hasLastestVersion %d? %d"</p>
 <ul>
@@ -14111,6 +14154,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <p><strong>coverage</strong> <code>?</code></p>
 <h2 id="topology_base"><code>topology_base</code><a class="headerlink" href="#topology_base" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The topology manager: tracks every discovered ZonePlayer (lastIp, moreInfo, orientation, HT flag), emits topology events (AvailableSoftwareUpdate, ZoneGroupName/ID changes, ZonePlayerUUIDsInGroup), and handles quarantine/vanish transitions. The <code>ZonePlayerUUIDsInGroup</code> event is the canonical 'who's in this room' signal.</p>
 <p><strong>Technical description:</strong></p>
 <p>ops {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChange,informLocalSecureRegStateChange,informLocalIdleStateChange,updateLocalMoreInfo,getZPUUIDs,isLocalZPIdle}; events {AvailableSoftwareUpdate,MuseHouseholdId,ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup}; zp attrs {lastIp,moreInfo,spOrientation,htOrientation,newVanishedDevice}; ARP liveness {"received a valid arping from %s","arping successful for active device","arping ip address matched but not mac","arping successful for vanished device","arping unsuccessful"}; quarantine {"Discovery for player %s resulted in quarantine (%s); last network error: 0x%x",quarantinedCount,latestPlayerWithQuarantineEvent,stabilizationTime,latestDownloadErrorCode,latestDownloadErrorReason,quarantining}; missed-player "Report player missed by %s: %s" {missedBy,missedPlayer}; WoW {"[%s] %s WoW magic packet for MAC %02X*6","Attempted to wake %zu missing secondary ZP of primary %s (sent WoW to %zu)","Malformed UUID %s"}; "Faking device %s (%s) props to be %s gc"; "All devices idle for %ld s"; "lookup of control URI for %s failed: secure %d, service %s" + https://%s:%hu; NetsettingsUpdateID</p>
 <ul>
@@ -14182,6 +14226,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="upnp_eventing"><code>upnp_eventing</code><a class="headerlink" href="#upnp_eventing" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The GENA eventing layer: SUBSCRIBE/RENEW/UNSUBSCRIBE handling, logical subscription IDs, the renewal FSM, and the evented LastChange-style payloads each service publishes. UPnP controllers keep state by subscribing here rather than polling — <code>avTransport</code> and <code>renderingControl</code> events are this layer's output.</p>
 <ul>
 <li><strong>renew_fsm:</strong> events {"Unsubscribe in renew ... (oos:%d seq:%d)","Successfully renewed","Failed to renew ... HTTP Result: %d; SR: %08x","Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)","Successfully subscribed ... UDN %s","Received SID %s for deleted client","Received OOS %u / %u for SID %s" (out-of-seq tracking),"Not unsubscribing because bSendUnsubscribeRequest=false"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static</li>
 <li><strong>gates:</strong> "Invalid transport: WSS is required"; "Invalid namespace: UPnP {subscribe,renew,unsubscribe} not supported"; "unexpected target id %d %s; overriding to: %s"; "Unable to retrieve the relative time."; "Rejecting unsupported replication request for %s"; "UPnP Eventing denied. 403 Forbidden returned."; Second-/%u SID form; sourceHasEventsToSend(%s) initial</li>
@@ -14238,6 +14283,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="zgs_mediaservers"><code>zgs_mediaservers</code><a class="headerlink" href="#zgs_mediaservers" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The <code>&lt;MediaServers&gt;</code> section of ZoneGroupState: external media-server proxies (<code>/msprox</code> URLs) plus the embedded SMAPI account table — each <code>&lt;Service&gt;</code> carries NumAccounts with per-account Nickname/SerialNum/Flags/Tier/Password fields. This is how account credentials reach every member without a separate lookup.</p>
 <p><strong>Technical description:</strong></p>
 <p><MediaServers><Ex CURL="/msprox?uuid=…" EURL T EXT/><MediaServer Name UDN Location/><Service UDN NumAccounts Md%u Username%u Token%u Key%u/></MediaServers> — third-party media server proxies + SMAPI account creds embedded in ZGS; per-account {Nickname%u,SerialNum%u,Flags%u,Tier%u,Password%u}; AreasUpdateID+SourceAreasUpdateID; MS tracking {refreshing,"detected new",RINCON,"ignoring non-rincon MS %s","connect to MS %s %s",unauthorized}; media-player MS record "<MediaServer location uuid version canbedisplayed='%s' unavailable='%s' type='%u' ext='%s'>"; errors {empty id,invalid id count}</p>
 <ul>
@@ -14251,6 +14297,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="zgt_schema"><code>zgt_schema</code><a class="headerlink" href="#zgt_schema" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The ZoneGroupState XML schema: <code>&lt;ZoneGroups&gt;</code> containing <code>&lt;ZoneGroup&gt;</code> per group with Coordinator and member <code>&lt;ZonePlayer&gt;</code> elements (UUID, ZoneName, Configuration, SoftwareVersion, SWGen, MinCompatVersion, HTSatChanMapSet and more), plus <code>&lt;VanishedDevices&gt;</code> and <code>&lt;QuarantinedDevices&gt;</code> with Reason/LastSeenUTC. This is the single document describing the entire household layout.</p>
 <p><strong>Technical description:</strong></p>
 <p><ZoneGroupState><ZoneGroups><ZoneGroup Coordinator=" ID=">...</ZoneGroup></ZoneGroups><VanishedDevices>+<QuarantinedDevices><Device {UUID,Reason,ModelInfo,Mac,LastKnownIP,LastSeenUTC}/></ZoneGroupState>; ZonePlayer attrs {QuarantineReason,UUID,ZoneName,Icon,Configuration,Invisible=1,IsZoneBridge=1,SoftwareVersion,SWGen,MinCompatibleVersion,LegacyCompatibleVersion,ChannelMapSet,HTSatChanMapSet,ActiveZoneID,BootSeq,TVConfigurationError,HdmiCecAvailable,WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,Orientation,RoomCalibrationState,SecureRegState,VoiceConfigState,MicEnabled,HeadphoneSwapActive,AirPlayEnabled,VirtualLineInSource,IdleState,MoreInfo,SSLPort,HHSSLPort}; orphan groups ":orphan"; separate <ZonePlayers><ZonePlayer {group,prevgroup,virtuallineingroupid,htsat='true',wirelessmode,connectiontype,channelfreq}> listing</p>
 <ul>
@@ -14264,6 +14311,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="zone_topology"><code>zone_topology</code><a class="headerlink" href="#zone_topology" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The ZoneGroupTopology service itself: <code>GetZoneGroupState</code>/<code>GetZoneGroupAttributes</code> returning the ZoneGroupState XML, plus the evented updates controllers subscribe to. The ZGS document is the household's shared map — groups, coordinators, members, vanished/quarantined devices, and media-server accounts.</p>
 <ul>
 <li><strong>topology_base:</strong></li>
 <li><strong>quarantine:</strong> discovery quarantine {quarantinedCount,latestPlayerWithQuarantineEvent,stabilizationTime,latestDownloadErrorCode,latestDownloadErrorReason,quarantining}; "Report player missed by %s"/missedBy/missedPlayer; quarantineRecheck job; "Player %s removed from quarantine"</li>
