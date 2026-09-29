@@ -875,6 +875,38 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
       - **response:** Flushed
       - **note:** flushes pending sonar tones via sonar-tone (mod_zp)
   - **ranges_literal:** /ranges; boundary=##123456789###BOUNDARY @0x10e72241 — multipart range-request response boundary template (HTTP 206 partial content)
+- **resolved_extra_handlers:**
+  - **/content/api:** f_102fd76c — translateId bridge: fields {objectId,serviceId->targetSid,targetObjectId}; outbound catalog/id/%s?destinationServiceId=%s; translation cache (cache.h) "saved/retrieved translation from cache"; errors objectId/serviceId/targetObjectId missing, "cannot perform translateId request"
+  - **/bridge/content/api:** f_1048f3a4 — getContent proxy w/ "service base path: %s", per-call timing "getContent took %ld ms: %s", "getContent parse failed"
+  - **/entitlements/api:** f_1037120c — entmt obj; "using cloud URL: %s"; cache-control/etag headers; onCacheUpdate; "cloud entitlements: rc %d, http %d"
+  - **/ZPs:** f_104d1b74 — upgrade_mgr JSON report emit {SystemResult,Result,DownloadDuration,ExtendedError}; "report array size mismatch (%d/%zu)"
+  - **/authz:** f_1060363c — resolveToken proxy to muse: logs token masked ******%s; fields {apiKey,credential,responseResolveToken}; cache-control passthrough; "Failed to resolve token http=%d"/"Failed to parse token response"
+  - **/auth/oauth/v2/validate:** f_1063fe2c — outbound fmt /auth/oauth/v2/validate?access_token=%s
+  - **/v2/diags:** f_106b6da0 — diagnostic submit: form-data {originator,serial_num}; submit logs "%s for %s submitted (ID: %s, GUID: %s)" w/ guid-confirm mismatch check; "Local diagnostic" type; Diagnostic stub
+  - **/settings/api/v1/locations/:** f_105dd808 — locSetUpdMgr: processUpdateAllSettings GET /settings/api/v1/locations/%s/effectiveSettings conditional \[etag\|version\] + Last-Modified; X-Sonos-Corr-Id; keys {source,initial}
+  - **/drc:** f_10d5ee28 — dolby DRC config setter (see dsp_drc vocabulary)
+  - **/staticparams:** f_10d5f1e4 shared with /dynamicparams — DSP param registry {virt_mode,dap,frontangle,heightangle,surrangle,rearsurrangle,oarBassExtraction,dapCutOff,upmix,hfilt,post,mode,vlamp,vmcal}
+  - **/dynamicparams:** same fn as /staticparams
+  - **/upload:** f_102537b0 shared crashdump uploader for /anacapad-external /sonospowercoordinator-external /watchdog(-legacy) /sonosledmgrd-external (/jffs/app/debug/sonosledmgrd.dmp) /netstartd-external /btmanager-external legacy-to-sentry; type=crashdump; "No URL found to upload dump file: %s"
+  - **/watchdog:** f_100aaa04 shared with /devmode — internal HTTP subserver: routes /log /devmode /threadinfo /watchdogs /reboot /sonos_log? /unlock; "set log level: %s=%d"; serves anacapa.log; %d.%d.%d.%d host parse; HTML error pages
+  - **/devmode:** f_105e8d90 -> trampoline 0x10789cbc (mp4 header parser region — dev-mode media tools)
+  - **/testenv:** f_105eb9dc — locator module render via obj->vt\[+0x9c\], page field \[r3+356\]
+  - **/sethostip:** f_100b9fac — permission gate 0x10550b24 else HTTP 403; delegates to setter 0x10551bfc
+  - **/sonarctl:** f_100bc354 — "flush" op on mod_zp: "flushing sonar tones"/"Flushed"
+  - **/spotdbg:** f_100b8140 — "spot: permission denied" gate; no-store response
+  - **/snapshotspdiftap:** f_100bd5e4 — "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!"/"Feature not supported."
+  - **/traceroute:** f_100d3ff4 — exec /usr/bin/traceroute
+  - **/ping:** f_100d3f88 — exec (see /traceroute sibling; earlier finding /bin/ping -c 3)
+  - **/ttm_helper:** f_100b9740 — text/plain responder
+  - **/networkmatrix:** f_105ea2f0 — builds matrix record buffer (49-elem), responds 200
+  - **/support/asyncsubmit:** f_105ea400 — form {diagId,guid,flags,excludeFlags,type,coordinator,delay}; schedules diag submission; "already pending" conflict; "Unable to find player from UUID"
+  - **/support/reportstatus:** f_105ea734 — form {guid,uuid,success,controller}; updates submission status
+  - **/support/directsubmit:** f_105e9b30 — HTML "Diagnostic Submission to Sonos, Inc." w/ csrfToken form
+  - **/support/aggregate:** f_105e9fb0 — collects watchdog.dmesg, watchdog.log, button_triggered.xml, dropout_triggered.xml; "cleanup logs after diagnostic"; requires diag type
+  - **/support/review:** f_105e9e60 — XML review doc w/ /xml/review.xsl stylesheet
+  - **/radiolog:** status-registry page {flag=2, handler=f_100b8ff8} radiolog.cxx
+  - **/du-jffs:** status-registry exec page {flag=2, cmd="/usr/bin/du -a -d 5 -k -x /jffs"}
+  - **/dsp/eqdata.txt:** serves app/debug/dsp/eqdata.txt + persistentEQ.xml (literal-adjacent, reference mechanism not table)
 
 ## `device_account_endpoint`
 
