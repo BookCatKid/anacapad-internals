@@ -120199,6 +120199,72 @@
   },
   "chsnk": {
    "crossfade": "sample-level xfade: \"attempting to crossfade with underflowed stream\"/\"recovered crossfade stream underflow\"; int16 crossfade; \"xfade corked stream: replace buffered data via non-xfade overlap\"; \"xfade timestamp too far in past, nst %d.%06d\"; \"xfadeable timestamp\"; \"set xfade lfnf\"; volume-norm ramp insert \"%d @time %d.%06d\"; \"xfade for %zu samples, %f seconds\"; gap tracking \"xfade gap, samples %zd\""
+  },
+  "chirp": {
+   "name": "chirp-core SDK \u2014 acoustic pairing/setup protocol (third-party chirp.io-derived stack)",
+   "source": "/code/chirp-core/source/{core,dsp,maths}/src/** paths in rodata 0x10fd0188-0x10fd4c74",
+   "profiles": [
+    "audible",
+    "sonos-cdma",
+    "sonos_secure_setup",
+    "ultrasonic"
+   ],
+   "acoustic_params": [
+    "base_frequency(>=20)",
+    "channel_count",
+    "channel_interval",
+    "envelope_attack",
+    "envelope_release",
+    "preamble(>=1byte, code within symbol range)",
+    "header_note_duration",
+    "header_silence_duration",
+    "frequency_interval",
+    "body_note_duration",
+    "body_silence_duration",
+    "portamento",
+    "template"
+   ],
+   "encoding_params": [
+    "alphabet_bits",
+    "crc_length",
+    "message_length_max",
+    "message_length_min",
+    "polyphony",
+    "rs_length_max",
+    "rs_length_min",
+    "total frame <= 256 bytes",
+    "symbols <= 64-bit"
+   ],
+   "decoder_config": [
+    "fft_size",
+    "hop_size",
+    "sample_rate_min",
+    "payload_metrics_enabled",
+    "buffer_metrics_enabled",
+    "voters[] {amplitude_threshold,frame_offset,preamble_threshold,reverb_cancellation_exponent,reverb_cancellation_magnitude,spectral_weighting(float)}"
+   ],
+   "fec": "GF(2^8) reed-solomon: gf_calc_syndromes, gf_correct_errata, gf_forney_syndromes, gf_poly_{mul,add,concatenate,zero_pad}, trim_gf_poly, new_gf/del_gf/del_gf_poly; decoder pipeline decoder.c->peaks.c->scorer.c->voter.c->weighting.c; cdma cdma_{encoder,decoder,codebook}; fsk chirp_private_fsk",
+   "api": [
+    "new/del_chirp_payload",
+    "chirp_payload_randomise",
+    "new/del_chirp_profile",
+    "new/del_chirp_protocol",
+    "new_chirp_protocol_from_json_value",
+    "chirp_protocol_corrupt_random_symbols",
+    "new/del_chirp_acoustic",
+    "new/del_chirp_encoding",
+    "new/del_chirp_config",
+    "new_chirp_default_config",
+    "new_chirp_decoder_config_from_json_value",
+    "new_chirp_default_voter_configs",
+    "new/del_chirp_voter_config"
+   ],
+   "json_config": "protocol + decoder configs are JSON-described (schema_version, decoder_config keys) \u2014 profiles load via new_chirp_protocol_from_json_value",
+   "status": "config grammar proven from literal/schema keys; numeric parameter values per profile not extracted (runtime JSON, not rodata)"
+  },
+  "qplay": {
+   "name": "QPlay (Tencent) \u2014 minimal presence in this build",
+   "evidence": "QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found \u2014 stub-grade support"
   }
  },
  "muse": {
