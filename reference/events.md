@@ -326,3 +326,13 @@ Event names: `accessorySwapStatus`, `tvAudioSignalStatus`, `activeZonesChange`, 
 
 - **status:** confirmed
 - **files:** `/oc/zone/common/upnpeventing_source.cxx`, `/oc/zone/common/eventing.cxx`, `eventing.cxx`
+- **name:** upnpeventing notification engine (upnpeventing_sender.cxx + upnpeventing_source.cxx)
+- **sender:** thread "upnpeventing" (runOnce loop); fireNotifications/fireNotificationData; emits <e:propertyset><e:property><...></e:property></e:propertyset>; retry backoff "%d failure(s) sending event ... Now %ld Retry at %ld expires at %ld"; Initial ZGT (ZoneGroupTopology) completion tracked
+- **subscription_lifecycle:** Create/updating/renewing/canceling/terminated states logged; "Removed Insecure UPnP %s" - insecure subscriptions purged; link-local subs cleared; sid format uuid:%s_sub%010u; callback URI validation chain: invalid protocol\|host lookup failure\|host on wrong subnet\|port is unintelligible
+- **tls:** outbound subs via RSslConnection; mbedTLS session-ticket resumption ("Got session ticket ... during write/read"); handshake/roundtrip timing metrics
+- **metrics:** countEvents{Success,Failure,SuccessFirstTry,SuccessRetry}, countFailures{Retry,Connect,Handshake,Read,Write,Timeout}, avgHandshakeTimeMsOn{Success,Failure}, avgRoundTripTimeMsOn{Success,Failure}, remoteIp/remoteUUID/localUUID/sourceName per sub
+- **upnp_page_schema:** <Service name current max><Subscription><EventKey/><NotifyErrors/><SubscriptionID/><NotificationAddr>wss://%s:%u (muse)\|plain</NotificationAddr><IsSecure/></Subscription></Service>; <TruncatedConnectionList maxwebsockets connections/>
+- **wshistory_page_schema:** <Connection id><RemoteEndpoint/><LocalEndpoint/><SubscribedEvents><Subscription name type/></SubscribedEvents><History/><ConnectionDetails><Command namespace cmd method credType/><Version/><Duration/><NextPing/><LastRequest/><Closed/><Key/><UserAgent/><ClientVersion/></ConnectionDetails></Connection>; <Active>; WebSocketHistory + RestHistory sections
+- **channel_type_enum:** `HTSNK`, `FEEDBACK`, `EXT_VOICE+CLIP`, `EXT_CHIRP`, `SIDEBAND_FEEDBACK`, `SETUP_DISCOVERY`, `SPEAKER_DETECT`, `TV_SAT`, `CHSNK_SAT`
+- **trusted_clock:** rwlW_trusted_clock/trclock; "seed set with \[%ld\], offset now \[%lld\]" - seeded by lechmere Date: header
+- **evidence:** `literal block 0x10effc34-0x10f01580`
