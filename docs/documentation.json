@@ -116716,7 +116716,7 @@
   },
   "embedded_sqlite": {
    "status": "partial",
-   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) \u2014 local/suspend timers (timers_impl.cxx) | suspend model: pause -> row in paused_timers w/ remaining_seconds+paused_utc_time; resume -> recompute trigger_time",
+   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) \u2014 local/suspend timers (timers_impl.cxx) | suspend model: pause -> row in paused_timers w/ remaining_seconds+paused_utc_time; resume -> recompute trigger_time | libFLAC embedded codec: reference libFLAC 1.3.4 20220220",
    "anchors": [
     "sqlite3_exec",
     "LocalTimer from sqlite3",
@@ -118895,7 +118895,38 @@
    "sdk": "TrueplayAPIFactory + trueplay_api.cpp; #TRUEPLAY_SDK_VERSIONS# compat list; 'Trueplay SDK version %s not supported, creating previous version'; assets trueplay_spectral_tuning.bin + trueplay_spatial_tuning.bin etag-synced ('Could not load Trueplay etags, %sresetting'); sonos.coreaudio.trueplay.v1.TrueplayService registration",
    "propagation": "coordinator pushes calibration to bonded satellites: 'Failed to SetRoomCalibrationStatus on SUB/SURROUND'; RoomCalibrationBondedZoneInfo; per-driver delays RoomCalDelay{MidLeft,MidRight,MidCenter,TwtrLeft,TwtrRight,TwtrCenter,Bass} + _RoomCalGains/_RoomCalPanGain",
    "unresolved": "measurement mic flow (the actual chirp capture), tuning FSM states, RoomCal* units",
-   "trueroom": "a second tuning system 'trueroom' coexists: muse routes trueroom/{estimatorConfiguration,adaptation,calibrationStatus,successTone,swapInputMute}; x-rincon-trueroom: URIs, x-rincon-configmode:trueroom-tone queue items, trueroom_tone.ogg + a trueroom-tones JFFS folder cleared after tuning; events trueroomStatusEvent/trueroomAdaptationStatusEvent with trueroomEstimatedParams \u2014 an adaptive estimator-based tuner, feature-gated by enableTrueRoom"
+   "trueroom": "a second tuning system 'trueroom' coexists: muse routes trueroom/{estimatorConfiguration,adaptation,calibrationStatus,successTone,swapInputMute}; x-rincon-trueroom: URIs, x-rincon-configmode:trueroom-tone queue items, trueroom_tone.ogg + a trueroom-tones JFFS folder cleared after tuning; events trueroomStatusEvent/trueroomAdaptationStatusEvent with trueroomEstimatedParams \u2014 an adaptive estimator-based tuner, feature-gated by enableTrueRoom",
+   "node_protocol": {
+    "wire": "protobuf node messages (node_messages.cpp): encodeNodeRequest/decodeNodeRequest/encodeNodeResponse/decodeNodeResponse + pb<->TP converters for action/status/channel-type; \"Node message is : %s\"/\"Node response is : %s\"; decode failures logged",
+    "actions": [
+     "TP_NODE_ACTION_NONE",
+     "TP_NODE_ACTION_SETUP",
+     "TP_NODE_ACTION_START_MEASUREMENT",
+     "TP_NODE_ACTION_SEND_BACK_DATA",
+     "TP_NODE_ACTION_COLLECT_DATA",
+     "TP_NODE_ACTION_SEND_STATUS"
+    ],
+    "statuses": [
+     "TP_NODE_STATUS_IDLE",
+     "TP_NODE_STATUS_SETUP",
+     "TP_NODE_STATUS_MEASURING",
+     "TP_NODE_STATUS_MEASUREMENT_DONE",
+     "TP_NODE_STATUS_DATA_COMPUTED",
+     "TP_NODE_STATUS_ERROR",
+     "TP_NODE_STATUS_EXCEPTION"
+    ],
+    "api": "TrueplayAPIFactory + initNode/initNodeMajorVersion; SDK version negotiation \"Trueplay SDK version %s not supported, creating previous version\" / \"Requested version %s already in use -> no-op\"; SDK build 6.2.0.1-main.Unspecified.2db5546c; node data schema version reported",
+    "setup_constraints": "nMics & nDSPChannels must be both zero or both nonzero; minimal-node builds cannot instantiate microphones; \"Node microphone data is %s\"; \"Trueplay data handler reports that data collection %s allowed\"",
+    "ops": [
+     "setup",
+     "setupMeasurement",
+     "startMeasurement",
+     "computeData",
+     "handleMsg"
+    ],
+    "channel_types": "pbChannelType<->TPChannelType converter; \"Unhandled trueplay channel type with value : %d\"",
+    "confidence": "PROVEN enums+protobuf framing; per-message field schema unresolved"
+   }
   },
   "update_machinery": {
    "status": "partial",

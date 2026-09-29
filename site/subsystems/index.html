@@ -1724,7 +1724,7 @@
 <tr>
 <td><code>embedded_sqlite</code></td>
 <td><strong>partial</strong></td>
-<td>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) | suspend model: pause -&gt; row in paused_timers w/ remaining_seconds+paused_utc_time; resume -&gt; recompute trigger_time</td>
+<td>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) | suspend model: pause -&gt; row in paused_timers w/ remaining_seconds+paused_utc_time; resume -&gt; recompute trigger_time | libFLAC embedded codec: reference libFLAC 1.3.4 20220220</td>
 </tr>
 <tr>
 <td><code>entitlements</code></td>
@@ -2125,7 +2125,7 @@
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>A libsqlite3 is linked in; at least the local timer/alarm store persists through SQL statements. Which tables exist and where the database file lives is still unmapped.</p>
 <p><strong>Technical description:</strong></p>
-<p>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) | suspend model: pause -&gt; row in paused_timers w/ remaining_seconds+paused_utc_time; resume -&gt; recompute trigger_time</p>
+<p>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) | suspend model: pause -&gt; row in paused_timers w/ remaining_seconds+paused_utc_time; resume -&gt; recompute trigger_time | libFLAC embedded codec: reference libFLAC 1.3.4 20220220</p>
 <ul>
 <li>
 <p>binary anchors: <code>sqlite3_exec</code>, <code>LocalTimer from sqlite3</code>, <code>LocalTimer from sqlite3 stmt</code>, <code>libsqlite3.so.0</code>, <code>CREATE TABLE IF NOT EXISTS timers</code>, <code>paused_timers</code>, <code>timer.db</code>, <code>PRAGMA user_version</code>, <code>LocalTimer</code>, <code>remaining_seconds</code>, <code>paused_utc_time</code></p>
@@ -2927,6 +2927,15 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
 - **propagation:** coordinator pushes calibration to bonded satellites: 'Failed to SetRoomCalibrationStatus on SUB/SURROUND'; RoomCalibrationBondedZoneInfo; per-driver delays RoomCalDelay{MidLeft,MidRight,MidCenter,TwtrLeft,TwtrRight,TwtrCenter,Bass} + _RoomCalGains/_RoomCalPanGain
 - **unresolved:** measurement mic flow (the actual chirp capture), tuning FSM states, RoomCal* units
 - **trueroom:** a second tuning system 'trueroom' coexists: muse routes trueroom/{estimatorConfiguration,adaptation,calibrationStatus,successTone,swapInputMute}; x-rincon-trueroom: URIs, x-rincon-configmode:trueroom-tone queue items, trueroom_tone.ogg + a trueroom-tones JFFS folder cleared after tuning; events trueroomStatusEvent/trueroomAdaptationStatusEvent with trueroomEstimatedParams — an adaptive estimator-based tuner, feature-gated by enableTrueRoom
+- **node_protocol:**
+  - **wire:** protobuf node messages (node_messages.cpp): encodeNodeRequest/decodeNodeRequest/encodeNodeResponse/decodeNodeResponse + pb<->TP converters for action/status/channel-type; "Node message is : %s"/"Node response is : %s"; decode failures logged
+  - **actions:** `TP_NODE_ACTION_NONE`, `TP_NODE_ACTION_SETUP`, `TP_NODE_ACTION_START_MEASUREMENT`, `TP_NODE_ACTION_SEND_BACK_DATA`, `TP_NODE_ACTION_COLLECT_DATA`, `TP_NODE_ACTION_SEND_STATUS`
+  - **statuses:** `TP_NODE_STATUS_IDLE`, `TP_NODE_STATUS_SETUP`, `TP_NODE_STATUS_MEASURING`, `TP_NODE_STATUS_MEASUREMENT_DONE`, `TP_NODE_STATUS_DATA_COMPUTED`, `TP_NODE_STATUS_ERROR`, `TP_NODE_STATUS_EXCEPTION`
+  - **api:** TrueplayAPIFactory + initNode/initNodeMajorVersion; SDK version negotiation "Trueplay SDK version %s not supported, creating previous version" / "Requested version %s already in use -> no-op"; SDK build 6.2.0.1-main.Unspecified.2db5546c; node data schema version reported
+  - **setup_constraints:** nMics & nDSPChannels must be both zero or both nonzero; minimal-node builds cannot instantiate microphones; "Node microphone data is %s"; "Trueplay data handler reports that data collection %s allowed"
+  - **ops:** `setup`, `setupMeasurement`, `startMeasurement`, `computeData`, `handleMsg`
+  - **channel_types:** pbChannelType<->TPChannelType converter; "Unhandled trueplay channel type with value : %d"
+  - **confidence:** PROVEN enums+protobuf framing; per-message field schema unresolved
 <details><summary>Evidence (8)</summary>
 
 - @ 0x10ebda88 — trueplay-node
