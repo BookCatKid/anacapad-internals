@@ -233,3 +233,14 @@ Five new capability-name literals appear only in 86.10: AUTOMATIC_WIRED_SOFTAP, 
 |---|---|
 | `86.8` | absent |
 | `86.10` | present |
+
+### rootfs content diff — fenway (m8) vs limelight (m9), same build 86.10-80260
+
+m9-only: libdcadec.so.0 (DTS), libsqlite3.so.0, modules/ir_rcvr.ko + opt/ir/ (Playbar has an IR receiver; Play:1 does not), opt/dsp/S9_array.xml (woofer array), opt/buzzers/speaker-detect.mp3 (chirp room-detect tone), wifi/N/dfs.ko + radartool (DFS radar — HT master owns SonosNet), icon-S9.png, opt/bin/anacapad. m8-only: opt/bin/update — RECOVERY BOOT LOOP: writes 'URL: \[http://update-firmware.sonos.com/firmware/Prod/JFFS_Static_Link/fenway.upd\]' to /var/run/upgradeinfo (honors /var/run/forceupdateurl override), rotates /jffs/recovery.log -> recovery_prev.log (112-line trim), runs /bin/upgrade -b every 30s — the unbricker path, ABSENT on m9 (limelight recovery handled differently, likely boot-bank); opt/htdocs/audio/level.mp3 (271KB test tone); opt/htdocs/xml/satellite_device.xml (fenway ships a SATELLITE device-description template — Play:1 can present as a bonded surround); icons S1/S3/Sub.png for topology display. Configure diffs: JFFS on mtdblock3/mtd3 (m8) vs mtdblock4/mtd4 (m9) — different flash layouts; frcheck rc==0 -> netstartd --soft-reset on m8 vs --hard-reset on m9 — the same factory-reset status maps to DIFFERENT reset severity per model.
+
+| Build | State |
+|---|---|
+| `86.10-1-8 fenway` | see detail |
+| `86.10-1-9 limelight` | see detail |
+
+- **status:** confirmed
