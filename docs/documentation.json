@@ -110317,7 +110317,8 @@
     "/du-jffs": "status-registry exec page {flag=2, cmd=\"/usr/bin/du -a -d 5 -k -x /jffs\"}",
     "/dsp/eqdata.txt": "serves app/debug/dsp/eqdata.txt + persistentEQ.xml (literal-adjacent, reference mechanism not table)",
     "/sonar-tone": "not in master table; .rodata-referenced near app/run/inverters + ZP_MODE_STANDALONE + variantDebuginfo \u2014 sonar variant-tone config path",
-    "/debugfiles": "exec page flag=0xa: /bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug"
+    "/debugfiles": "exec page flag=0xa: /bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug",
+    "/customsd": "f_103429f4 \u2014 CSRF form \"Add/update custom service descriptor\": fields {sid(240-253|255), name(blank erases), secureUri, pollInterval, authType in {UserId,Anonymous,DeviceLink,AppLink}, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, containerType in {MService,SoundLab}, caps[] in {search,trFavorites,alFavorites,ucPlaylists,logging,playbackLogging,accountLogging,extendedMD,radioExtendedMD,playlistExtendedMD,disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}} \u2014 full SMAPI SD capability set"
    }
   },
   "device_account_endpoint": {
@@ -117262,7 +117263,77 @@
    "versioning": "queueBaseUrl must end with a semver version ('Specify cloud queue version ... according to Semantic Versioning 2.0.0'); player rejects unknown versions with 'use v%u with this player'; CloudQueueVersion tracked",
    "lifecycle": "internalStartCloudQueue/internalRefreshCloudQueue/loadCloudQueueFromReq entry points; 'activate cloud queue %s', 'loadCloudQueue stop'; 'suspending cloud queue during snooze/alarm'; 'recover from cloud queue error'; REFRESH_CLOUD_QUEUE op; 'Cloud queue policy pause expiry time hit'",
    "rating": "'rating is only implemented for cloud queue' \u2014 thumbs up/down on tracks exists ONLY in the cloud-queue path",
-   "local_eps": "/cloudqueue + /cloudqueuepoll status endpoints"
+   "local_eps": "/cloudqueue + /cloudqueuepoll status endpoints",
+   "cqfsm": {
+    "requests": [
+     "requestVersion(getVersion)",
+     "requestContext(getContext)",
+     "requestWindow(getWindow)",
+     "refreshWindow",
+     "refreshContext",
+     "skipToFirstWindow",
+     "rateItem",
+     "skipNext",
+     "skipPrevious",
+     "getItemWindow"
+    ],
+    "request_grammar": "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'",
+    "headers": [
+     "X-Sonos-Playback-Id",
+     "X-Sonos-Device-Id"
+    ],
+    "response_fields": [
+     "units",
+     "ResponseCode",
+     "RetryWait",
+     "Caller",
+     "ListEntry",
+     "queueType",
+     "errorId",
+     "heard",
+     "skipsRemaining",
+     "skipLimitReached",
+     "jumpToItemId",
+     "Requested Item Id"
+    ],
+    "states": [
+     "PENDING",
+     "ERROR_RETRY",
+     "SUCCESS",
+     "MEDIA_ERROR",
+     "RESET",
+     "GET_VERSION",
+     "GET_CONTEXT",
+     "SCHEDULE_WINDOW",
+     "SCHEDULE_CONTEXT",
+     "GET_WINDOW",
+     "POST_RATE"
+    ],
+    "retry": "\"Retry-After (%ds) not allowed for explicit item request in state %s\"; \"Will retry(%d) %s request in %d seconds after receiving http error code %d\"; exhaustion \"Retry not allowed in state %s... (count = %d)\"; \"request retry loop timed out, failing chsrc interaction\"; \"Resetting due to unexpected state %s on retry\"",
+    "poll": "\"change poll interval to %lld sec\"; refreshWindow \"server does not support notification\" fallback to poll; \"fetching first window\"",
+    "version": "queueBaseUrl semver check: \"Cloud Queue API 'v%u' is unknown; use v%u with this player\"; \"Cloud queue version is %s, at begin %d, at end %d\"",
+    "events": [
+     "contextVersionChanged/contextVersion",
+     "authTokenChanged/authTokenRefreshed"
+    ],
+    "window_flags": [
+     "skipNext",
+     "skipPrev",
+     "queueCompleted",
+     "refresh",
+     "PlayTTLExpired"
+    ],
+    "errors": [
+     "MEDIA_ERROR:NO_ACCT",
+     "window-edge-condition",
+     "WINDOW_MISSING_ITEM_ID",
+     "Abort window request because desired itemId is unknown; waiting for skipToItem",
+     "Unknown Account",
+     "CloudQueueHistory"
+    ],
+    "smapimap": "sonoscp; \"cannot map content type %s to SMAPI protocol [accountId:%s,sid:%s,obj:%s]\"; \"cannot generate SMAPI URL\"; audio/x-spotify; CQ track-URI cache (\"Fetching CQ itemId %s using cached trackURI\"/\"Adding track URI for itemId %s to cache\"/\"Invalidating CQ track URI cache\"); \"CloudQueueWindow init: %s\"; playbackPolicies; reports",
+    "notify": "notifyStateChange [%s]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld; music quality: %s"
+   }
   },
   "dsp_ht_engine": {
    "status": "partial",
@@ -120125,6 +120196,9 @@
    "fsm": "states regStatus + regState %d->%d; events registration during suspend|time expired|success|error|\"retrying registration at time %ld\"; secureRegTransfer tjmgr flow: exitSecRegTransferState scheduled/de-scheduled/run via tjmgrExitSecureRegTransferState; currentAccount",
    "signing": "Registration signing key set/cleared via IPC payload (\"Invalid registration signing key in IPC payload\")",
    "events": "NewCertRegistrationEvent inprocess-event {SonosID}; newRegisteredCertSonosIDLocked; RegisteredCertSonosID/RegisteredCustomerID keys; Household customer ID conflict/changed detection"
+  },
+  "chsnk": {
+   "crossfade": "sample-level xfade: \"attempting to crossfade with underflowed stream\"/\"recovered crossfade stream underflow\"; int16 crossfade; \"xfade corked stream: replace buffered data via non-xfade overlap\"; \"xfade timestamp too far in past, nst %d.%06d\"; \"xfadeable timestamp\"; \"set xfade lfnf\"; volume-norm ramp insert \"%d @time %d.%06d\"; \"xfade for %zu samples, %f seconds\"; gap tracking \"xfade gap, samples %zd\""
   }
  },
  "muse": {

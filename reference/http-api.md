@@ -909,6 +909,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **/dsp/eqdata.txt:** serves app/debug/dsp/eqdata.txt + persistentEQ.xml (literal-adjacent, reference mechanism not table)
   - **/sonar-tone:** not in master table; .rodata-referenced near app/run/inverters + ZP_MODE_STANDALONE + variantDebuginfo — sonar variant-tone config path
   - **/debugfiles:** exec page flag=0xa: /bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug
+  - **/customsd:** f_103429f4 — CSRF form "Add/update custom service descriptor": fields {sid(240-253\|255), name(blank erases), secureUri, pollInterval, authType in {UserId,Anonymous,DeviceLink,AppLink}, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, containerType in {MService,SoundLab}, caps\[\] in {search,trFavorites,alFavorites,ucPlaylists,logging,playbackLogging,accountLogging,extendedMD,radioExtendedMD,playlistExtendedMD,disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}} — full SMAPI SD capability set
 
 ## `device_account_endpoint`
 

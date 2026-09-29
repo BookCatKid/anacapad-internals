@@ -42,6 +42,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `trueplay_tuning` | **partial** | Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant |
 | `update_machinery` | **partial** | manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled |
 | `wac_mode` | **partial** | WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed int, 'Unknown WAC mode %d') with enabled/disabled/timeout transitions; driven by netstartd via /tmp/netstartd.ipc ('WAC mode enabled/disabled/timeout', 'In setup mode', 'Netstart SSID set/clear'); LED goes to R_LED_WAC mode \| netstartd IPC drives WAC: dispatcher f_10691034 msg ids 35/36=WAC disabled/enabled, 37/39/41=WAC timeout cluster; ids 42/46/47=setup-mode enter/setup start/stop. |
+| `chsnk` | **?** |  |
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
 | `registration_machine` | **?** |  |
 
@@ -235,6 +236,20 @@ the Cloud Queue subsystem: a music service hands the player a queueBaseUrl endin
 - **lifecycle:** internalStartCloudQueue/internalRefreshCloudQueue/loadCloudQueueFromReq entry points; 'activate cloud queue %s', 'loadCloudQueue stop'; 'suspending cloud queue during snooze/alarm'; 'recover from cloud queue error'; REFRESH_CLOUD_QUEUE op; 'Cloud queue policy pause expiry time hit'
 - **rating:** 'rating is only implemented for cloud queue' — thumbs up/down on tracks exists ONLY in the cloud-queue path
 - **local_eps:** /cloudqueue + /cloudqueuepoll status endpoints
+- **cqfsm:**
+  - **requests:** `requestVersion(getVersion)`, `requestContext(getContext)`, `requestWindow(getWindow)`, `refreshWindow`, `refreshContext`, `skipToFirstWindow`, `rateItem`, `skipNext`, `skipPrevious`, `getItemWindow`
+  - **request_grammar:** requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'
+  - **headers:** `X-Sonos-Playback-Id`, `X-Sonos-Device-Id`
+  - **response_fields:** `units`, `ResponseCode`, `RetryWait`, `Caller`, `ListEntry`, `queueType`, `errorId`, `heard`, `skipsRemaining`, `skipLimitReached`, `jumpToItemId`, `Requested Item Id`
+  - **states:** `PENDING`, `ERROR_RETRY`, `SUCCESS`, `MEDIA_ERROR`, `RESET`, `GET_VERSION`, `GET_CONTEXT`, `SCHEDULE_WINDOW`, `SCHEDULE_CONTEXT`, `GET_WINDOW`, `POST_RATE`
+  - **retry:** "Retry-After (%ds) not allowed for explicit item request in state %s"; "Will retry(%d) %s request in %d seconds after receiving http error code %d"; exhaustion "Retry not allowed in state %s... (count = %d)"; "request retry loop timed out, failing chsrc interaction"; "Resetting due to unexpected state %s on retry"
+  - **poll:** "change poll interval to %lld sec"; refreshWindow "server does not support notification" fallback to poll; "fetching first window"
+  - **version:** queueBaseUrl semver check: "Cloud Queue API 'v%u' is unknown; use v%u with this player"; "Cloud queue version is %s, at begin %d, at end %d"
+  - **events:** `contextVersionChanged/contextVersion`, `authTokenChanged/authTokenRefreshed`
+  - **window_flags:** `skipNext`, `skipPrev`, `queueCompleted`, `refresh`, `PlayTTLExpired`
+  - **errors:** `MEDIA_ERROR:NO_ACCT`, `window-edge-condition`, `WINDOW_MISSING_ITEM_ID`, `Abort window request because desired itemId is unknown; waiting for skipToItem`, `Unknown Account`, `CloudQueueHistory`
+  - **smapimap:** sonoscp; "cannot map content type %s to SMAPI protocol \[accountId:%s,sid:%s,obj:%s\]"; "cannot generate SMAPI URL"; audio/x-spotify; CQ track-URI cache ("Fetching CQ itemId %s using cached trackURI"/"Adding track URI for itemId %s to cache"/"Invalidating CQ track URI cache"); "CloudQueueWindow init: %s"; playbackPolicies; reports
+  - **notify:** notifyStateChange \[%s\]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld; music quality: %s
 <details><summary>Evidence (8)</summary>
 
 - @ 0x10e75cc4 — /cloudqueue
@@ -1261,6 +1276,11 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 
 </details>
 
+## `chsnk`
+
+**coverage** `?`
+
+- **crossfade:** sample-level xfade: "attempting to crossfade with underflowed stream"/"recovered crossfade stream underflow"; int16 crossfade; "xfade corked stream: replace buffered data via non-xfade overlap"; "xfade timestamp too far in past, nst %d.%06d"; "xfadeable timestamp"; "set xfade lfnf"; volume-norm ramp insert "%d @time %d.%06d"; "xfade for %zu samples, %f seconds"; gap tracking "xfade gap, samples %zd"
 ## `chsrc_chsnk`
 
 **coverage** `substantially decoded`
