@@ -311,7 +311,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **/ai_speech_enhance:** worker f_1023d4f0: AI speech-enhance status
   - **/alarm:** tail f_10277030(*(0x11095f88)+0xaa70,req): alarm-status doc
   - **/analoglinein:** worker f_10209018: analog line-in state
-  - **/api:** f_10769d34 ctx + f_1068c79c: API-provider inventory
+  - **/api:** tail f_10769d34 + f_1068c79c: API-provider inventory + command-stream emitter (</Command>)
   - **/audiocore:** worker f_102a595c: audio-core dump
   - **/backtrace:** tail f_10196174(singleton,req): backtrace dump
   - **/button_triggered.xml:** tail f_10195c74(singleton,req,1): shared raw-trigger XML emitter (r5=1=button)
@@ -320,8 +320,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **/cpumon:** emits <CpuMonitor> XML via f_1023a800
   - **/decoder:** workers f_1023d4d0/f_101887a0/f_1030be10: decoder state
   - **/device:** 511i-class device-info doc: many formatters (identity/capabilities) ; emits <DeviceInfo> (0x100bf634)
-  - **/dmesg:** kernel-log file emit via 0x110999f8
-  - **/dnscache:** tail f_105499e4: DNS-cache dump
+  - **/dmesg:** tail f_1076b10c = shared command-stream helper (dmesg is an exec/file-backed page)
+  - **/dnscache:** tail f_10769d34 (shared command-stream emitter, same target as /api; emits </Command>)
   - **/dropout_triggered.xml:** tail f_10195c74(singleton,req,0): shared raw-trigger XML (r5=0=dropout)
   - **/enetports:** f_10769d34 ctx + f_105bcf90: ethernet-port dump
   - **/ethportstatistics:** f_105bcf90 + formatter family f_105786a0..f_10578744: per-port statistics
@@ -352,7 +352,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **/spdiftap:** f_1054bdc8 + f_10240a5c: SPDIF tap state
   - **/ssidlist.txt:** tail f_106933d8(*(0x11097680),req): Wi-Fi SSID scan list
   - **/ssl_client_cache:** worker f_1056764c: TLS session-cache dump
-  - **/syssettings:** tail f_106937dc(*(0x11097680),req): system settings dump
+  - **/syssettings:** tail f_106937dc = the UPnP security gate (emits "UPnP request denied (403). An insecure request was attempted when in secure mode." / invalid-loopback-token 403) - page is secured behind the same auth check as UPnP control
   - **/temperature:** f_10769d34 + strlcpy: temperature reading
   - **/topology:** virtual delegate: *(0x11097680)->v\[+0x84\] engine -> obj->v\[+0xfc\]: zone-topology dump ; emits <ZoneGroupState>/<ZoneGroups> (f_10743328)
   - **/track_queue_summary:** f_101886e0 + f_10265324: <TrackQueueSummary> doc
@@ -363,6 +363,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **/upnp:** f_10769d34 + f_1068c6f8/f_10706c7c: UPnP/SOAP engine state
   - **/wireless:** virtual delegate: *(0x11097680)->v\[+0x84\] engine -> obj->v\[+0xfc\]: wireless state
   - **/zp:** f_100bfbac (511i): master status page - device identity, all subsystem states
+  - **/settings/effective /settings/location /settings/player:** all three tail-call f_101886a4: shared settings-doc emitter dispatched on a member of the global app object (each stub selects a different member offset before the tail call); emitter itself delegates again - no direct XML literals
 - **handler_classes:** 3 classes: (a) big inline handler with workers; (b) thin tail-emitter {r3=singleton/member, r4=req, optional r5 selector}; (c) engine-singleton virtual delegate (*(0x11097680)->v\[+0x84\] -> obj->v\[+0xfc\])
 - **raw_trigger_payload:** /raw and /status/{button,dropout}_triggered.xml emit <ZPSupportInfo> via f_1076b5ac/f_1076b5dc/f_1076b8ec; /dsp emits <DSPStateManager> via f_10d90388
 - **route_descriptor:**
@@ -882,7 +883,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/decoder:** <MusicDecoder><LastActiveDecoder>%s</LastActiveDecoder></MusicDecoder>
     - **/topology:** <ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d"><SonosNet Disable="%d"/><SonosNet Frequency="%d"/><Network SSID="%s" Flags="%d"/><BackupLanSwapPsk id="%s"/></ReplicatedNetSettings> — shared emitter also used by /wireless,/dmesg,/netsettings.*,/ssidlist.txt (same render lib)
     - **/radiolog:** <PerformanceCounterTables> (perfcounter table emitter shared with /perfcounters) + radio log tail
-  - **unresolved_pages:** /ai_speech_enhance /analoglinein /api queue /dnscache /dmesg /hls /htconfig /settings/* /spdiftap /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler) — /dnscache etc. emit via the shared CpuMonitor/member-dump libs (register-indirect member fns on global app object @0x11095f88)
+  - **unresolved_pages:** /ai_speech_enhance /analoglinein /hls /htconfig /tvprocessor /spdiftap /wireless - vfunc member-dump stubs (load member of global app object @0x11095f88 + fixed offset, call its vfunc render); /settings/* /syssettings /dnscache /api /dmesg resolved to shared emitters f_101886a4/f_106937dc/f_10769d34/f_1076b10c which delegate further without literal schemas
 - **admin_post_endpoints:**
   - **provenance:** master route table {name*,handler*} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
   - **endpoints:**
