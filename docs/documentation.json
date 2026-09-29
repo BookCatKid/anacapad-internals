@@ -116263,7 +116263,8 @@
    "packet": "log fmt \"// %3u %d.%06d %u:%s\" {pktnum,time,size,src}; per-packet crossfade state in control frames (crossfadeStateForPacketID: lPacketNum-1 then -2 fallback; crossfade on|off); discontinuity detection \"found discontinuity of %lldus\", \"exact time match discont ix:%u\"",
    "metrics": "perf-counters: rsend=resent DataBlocks, nackr=resync NACKs sent, nackd=data NACKs, nacku=NACKs unsendable, Histogram of transmitted packet info, transmit port, dstaddr (ucast/mcast/none=local), lastpktid",
    "wifitest": "network connectivity test: disable wifi %d sec -> re-enable -> \"Network test complete: %s\" (netstartd start/end-signaling consumer)",
-   "confidence": "PROVEN vocabulary + NACK grammar + ITBT types; bit-level packet layout unresolved"
+   "confidence": "PROVEN vocabulary + NACK grammar + ITBT types; bit-level packet layout unresolved",
+   "vli_tx": "lTransmitOffBox is now %d [uni=%c]; \"NodeTx configured to handle %s audio (qos: %d)\" \u2014 per-channel QoS; \"delay sending new frames until resend finishes\" \u2014 resend-first ordering; vlintxsink block name \"VLI NodeTX Blocks\""
   },
   "vli_grouping": {
    "name": "Virtual Line-In group link manager (vli_*_mgr/link-helper)",
@@ -116501,6 +116502,44 @@
   },
   "rincon_uuid": {
    "format": "%08X%08X%04hX%08X%08X%08X%08X%08X%08X%08X%08X \u2014 RINCON_ device UUID (8+8+4+8x7 hex)"
+  },
+  "mdns_stack": {
+   "name": "mdns_{device_service,discovery,listener} + mdns_spotify_service",
+   "txt": "TXT record diffs applied keywise: update/duplicate-ignore/replace/remove; version gate \"Sonos mDNS TXT record for %s is older version or missing keys\"; household filter \"%s is not in our household: discovered:%s - ours:%s\"; payload \"Notify topology of %s at %s; bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}\" \u2014 TXT carries bootseq + port range + sequence counter",
+   "lifecycle": "discovered/bye-bye: \"Unknown player %s went bye-bye\" + reason (\"QRCB: Update bye-bye reason to %s\",\"BRCB: Notify topology %s went bye-bye; reason: %s\"); \"Re-discovered a player\"; \"%s is local; ignoring\"; stub URI stub://stub:%u",
+   "dnsservice": "DNSService{CreateConnection,Browse,Resolve,QueryRecord} on br0, domain local.; mDNS Listener thread + poll loop; error-restart \"Attempt # %zu\"; callback table reallocated; \"Ignoring startBrowse during shutdown\"",
+   "announce": "addService %s | %s on port %u; updateTxtRecord; SvcRegRecord Reply \u2014 /mdnsannounce ResendTriggers this"
+  },
+  "muse_network_test": {
+   "verbs": [
+    "museStartNetworkTests (delay: %d, duration: %d)",
+    "museGetNetworkTestResults (id: %s)"
+   ],
+   "constraints": [
+    "URL must start with http:",
+    "Test in progress / Invalid network test ID / Network test in progress states"
+   ],
+   "field": "networkTestId"
+  },
+  "settings_xml": {
+   "element": "<Setting Name=\"...\" Value=\"...\"/>",
+   "factory_path": "\"Invalid system settings, reverting to factory defaults (with %s + %zu)\""
+  },
+  "auto_update_policy": {
+   "gates": [
+    "Found %zu players running older swgen; bAllSupportMySWGen=%c \u2014 cluster compat check",
+    "Skipping swgen %d player uuid=%s",
+    "Device [%s] with battery charge [%d] blocking auto-update \u2014 BATTERY GATE",
+    "Max ZPs reached while checking for auto updates",
+    "not in manifest, skipping update: udn %s, model %d, submodel %d, swgen %d",
+    "manual update required: model requires manual update",
+    "manual update required: below manifest's min auto-update version"
+   ],
+   "manifest": "per-player \"update check zp: udn %s, model %d, submodel %d, ver %s, URI %s, updateID %s\"; version parse failure logged; ZGT control URI + IP needed per player"
+  },
+  "vli_playback_tracker": {
+   "name": "vli_playback_tracker/VLIPlaybackTracker",
+   "telemetry": "session {start,reset,end} w/ clock; fields SampleFreq, framerType, zpVLISession; \"report - secs:%d\", \"upld evt #%d\"; wifi tracking \"Wifi discon %s\",\"Updt WiFi frq: %s->%u\" on ath%zu; \"skip spotify\"; err_max bound"
   }
  },
  "subsystems": {
