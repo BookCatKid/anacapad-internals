@@ -315,17 +315,24 @@ All now in `uri_formats`: `pndrradioad://`, `pndrradio-http://`,
 as the Spotify eSDK hermes channel to hw-platform daemons
 (`hm://hwptp/*`, `hm://hwp-events/*`).
 
-### Favourites write path (SOAP-adjacent)
-`FV:%zu` grammar documented but how favourites enumerate via Browse and
-mutate via UpdateObject/CreateObject is not; `FV:GC`/`FV:GC-HB`
-semantics unknown.
+### Favourites write path (SOAP-adjacent) — substantially decoded
+`mutate_semantics` on `favourites_model`: reorder verbs +
+itemsMoved/radioFavoritesMoved notifications, r: metadata fields
+(description/resMD/room/playmode/type under the rinconnetworks
+metadata URN), :shortcuts/:playlists/:audiobooks categories, TuneIn/
+Custom/RadioShow/instantPlay station classes, DIDL class set,
+SA_RINCON%d_ account URIs, rhapsody-favorite conversion, and the
+informReplicationAndNotify → offerRemoteSetting → userradio{,.d}.xml
+replication pipeline. `FV:GC`/`FV:GC-HB` per-item semantics still
+opaque.
 
-### Alert/chime engine
-`alertContent` log strings, `ALEXA_ALERT`, `JOIN_CHIME_UNAVAILABLE`,
-`Cannot interrupt current clip due to priority policies` — an audio
-interrupt/ducking engine with priority policy surfaced through the
-`audioClip` muse resource and `/duck` `/unduck` endpoints. SOAP-visible
-edge only.
+### Alert/chime engine — covered
+`ducking` record: 64-bit ducking-flag protocol, DuckingEvent/
+PlaybackDucked/DuckingFlags XML, R_MuseDuckingPolicy, remote ducking
+expiration + heartbeat + peer forwarding, voice-enabled/TV
+suppression, pending flag-queue limits, alertContent/ALEXA_ALERT,
+join/registration chime availability conditions, and save/restore
+behavior around pause/stop/end chimes.
 
 ### Non-SOAP error families — covered
 `ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,NO_CONTENT,
@@ -449,12 +456,15 @@ val="FactoryDefaults"/>` EQ presets, `<Account Type=` schema,
 `<Orientation>`, `<MicFlags>`, `<FocusModeMute>` — hundreds of
 unexplored element names across the /status/state dumps.
 
-### DIDL classes — extended
+### DIDL classes — extended (partially resolved)
 `object.item.audioItem.audioBook`, `.audioBook.chapter`, `.podcast`,
-`episode.podcast`, `chapter.audiobook`, `:audiobooks` container, plus
-`mswmext=.asx` WMP-extension mapping and `application/x-mpegurl`/
-`application/vnd.apple.mpegurl`/`application/dash+xml` playlist
-formats. Mostly absent.
+`episode.podcast`, `chapter.audiobook`, `:audiobooks` container —
+audiobook/radioShow/musicTrack/sonos-favorite classes now in
+`favourites_model`; `mswmext=.asx` WMP-extension mapping and
+`application/x-mpegurl`/`application/vnd.apple.mpegurl`/
+`application/dash+xml` playlist formats — ASX/M3U/WLP/PLS sniffers
+plus a full HLS tag parser documented under `playlist_parsers`
+(ABR selection, FairPlay keyformat, segment machinery).
 
 ---
 
@@ -480,12 +490,22 @@ Sonos bridge layer + `hm://` channel to hwptp daemons + Connect device
 API paths + zeroconf `getInfo` schema. Mercury/AP frame internals
 remain third-party-code territory; the zeroconf blob is encrypted.
 
-### Chirp acoustic stack — PARTIAL
+### Chirp acoustic stack — PARTIAL (deepened)
 Embedded chirp-core + chirp-private: encoder/wavetable/decorator,
 decoder/voter/weighting, `chirp_private_{cdma,fsk}.c`, acoustic
 protocol profiles. `chirp_stack`/`chirp`/`chirp_sdk` records cover
-drives `RoomDetection*Chirping` + trueplay discovery integration;
-modulation internals remain opaque (compiled library).
+drives `RoomDetection*Chirping` + trueplay discovery integration.
+The complete profile JSON grammar is now recovered
+(`profile_schema`): built-in profiles `audible`/`sonos-cdma`/
+`sonos_secure_setup`/`ultrasonic`, all protocol-acoustic keys
+(base_frequency, channel_count/interval, note/silence durations,
+preamble, portamento, envelope), encoding keys (alphabet_bits,
+rs_length min/max, crc_length, polyphony, message_length), decoder
+config (fft_size, hop_size, voter configs with reverb-cancellation +
+spectral weighting), and frame limits (≤256 bytes AND ≤256 symbols).
+Actual per-profile *values* are compiled into `new_chirp_builtin_
+profile` data, not static JSON — and modulation internals remain
+opaque (compiled library).
 
 ### Trueplay tuning protocol — PARTIAL (deepened)
 SOAP enable/status + muse trueroom op schemas (all spec-bound) +
@@ -528,11 +548,14 @@ schema-complete persistence formats (see "At the bar").
 `CloudQueueHistory` XML types, `deleteHistory` cloud op,
 rating-gating string. Per-channel format + sync policy undocumented.
 
-### SNTP household time server — PARTIAL
-`sntpsrv.cxx`/`sntppoll.cxx`: players *host* an SNTP server
-(`Created SNTP Server, port: %hu`, `handleSntpRequest`, clock-switch
-strings). `sntp_server`/`sntp` records exist; request/response
-semantics deepened; role/topology selection partially recovered.
+### SNTP household time server — substantially decoded
+`sntpsrv.cxx`/`sntppoll.cxx`/`zone/common/sntp.cxx`: players host an
+SNTP server (per-clock request handling `sntp-%u-clock`, interrupt
+fds, `{sntppoll` status XML + sntp.txt dump + `sntp.poll` endpoint).
+VLI transport is SNTP-disciplined (`vli sntp port`, `htsnk_invld_
+sntp`); drift telemetry `error was %.0f ms ... sntp v:%d f:%d`.
+netstartd satellite-addition notify IPC documented. Clock-switch/
+topology-selection logic partially recovered.
 
 ### Settings replication — PARTIAL (deepened)
 `replicated_settings.cxx`: replicated-store inventory +
@@ -579,26 +602,39 @@ schemas are not.
 responses now in `decoded_handlers`. Tap buffer format remains
 undocumented.
 
-### Update machinery — PARTIAL
+### Update machinery — PARTIAL (deepened)
 `auto_update_scheduler`, `user_update_scheduler`,
 `migrationmanager` (`Bad Migration Data`), `upgrade*.log`,
-`/softwareDownload`, `/testenv` update-URL override.
-`BeginSoftwareUpdate` documented; scheduling/staging/migration not.
+`/softwareDownload`, `/testenv` update-URL override. Scheduling now
+documented (`scheduler_detail`): `<updateScheduler>` status XML
+(AutoUpdate/State/Window/UpgradeManager/HoursPending/ActiveDevice
+List), update gates (upcoming alarm, active devices, window trim),
+ST_SCHEDULED_POST_WOW/ST_SESSION_MONITOR states, the updateHHStatus/
+updateZPResult/updateHHResult household rollout protocol with
+RINCON_%s01400 per-device results, retry FSM, report files, and the
+`/firmware/swgen/%u/latest/` fetch path. Staging details and the
+migration FSM remain thin.
 
 ### Media-player abstraction — VOCAB
 `media_player_mgr`, `media_player_autoplay`, `media_player_vli_ctrl`,
 `extaudiosrc`, `ai_impl_base` — the plug-in layer under AVT sources.
 Vtable/source-mode map undocumented.
 
-### Group/object model internals — PARTIAL
+### Group/object model internals — PARTIAL (deepened)
 `group.cxx`, `group_playeronly`, `group_locationandplayer`,
 `play_state_mgr`, `zones_mgr`/`zones_storage` + `zones.json`. ZGT is
-documented; the internal state machine behind it isn't.
+documented; zones_storage deepened (schemaVersion/zones-data-array
+file format, setup/migration path, gainTrimDB remote apply,
+{activateZone,updateActiveZone,joinZone,updateZoneMemberSettings}
+forwarding vocabulary). The internal group FSM behind ZGT isn't.
 
-### Buttons/IR — PARTIAL
+### Buttons/IR — PARTIAL (deepened)
 `longpress` (gesture detection), `irdecoder`, `irconfig.txt`,
-`button_triggered.xml`. HTControl SOAP surface documented; decode
-mechanics not.
+`button_triggered.xml`. Button-event vocabulary recovered:
+BUTTON_{PLAYPAUSE,VOL_UP,VOL_DN,MICMUTE}_{PRESSED,HELD},
+MICMUTE_SWITCH, VOL_UP+VOL_DN setup-ready combo, 'Becoming standalone
+due to button press' group unjoin, `ir code submitted with guid %s`.
+IR protocol decode mechanics remain undocumented.
 
 ### Muse API semantics — substantially decoded
 282+ cloud routes + 1116 bound local routes; per-route request/
@@ -621,9 +657,13 @@ rating gating, cqfsm states/ops, request params, per-item window
 schema, headers, retry policy — all in `cloud_queue` (see Part 1
 above).
 
-### Remaining buses — PARTIAL
-`hwmessage` netlink documented at boundary; `snf` log domain,
-`nodetx`, `ipc_msg`, `{sntppoll` config block unexplored.
+### Remaining buses — PARTIAL (deepened)
+`hwmessage` netlink documented at boundary; `nodetx` NACK/resync/
+crossfade transport behavior covered under `chsrc_chsnk`; `ipc_msg`
+netstartd wire format + message types recovered; `{sntppoll` block
+covered under `sntp_server`. `snf` log domain is a static dead end —
+only the log filename `anacapa.snf.log` exists, no literal domain
+tag or message strings were found.
 
 ### Sonos Business MSP — covered
 `business_msp` record: `AddRemoveSonosBusinessMSP`, `Sync Sonos
@@ -742,10 +782,13 @@ the deep semantic layer:
    (/spotifyzc zeroconf action vocabulary); AP packet layer recovered
    (7-byte TLV header, 16KB cap, per-packet MAC); mercury/hermes
    message-type semantics still untouched
-4. **Chirp profile parameters** — SDK identified as Asynchronous Inc
-   Chirp SDK 4.2.3 (build 1898) with full error-table + source-path +
-   internal-func vocabulary; sonos-cdma profile symbol set/FEC params
-   still unextracted
+4. **Chirp profile parameters** — RESOLVED: complete profile JSON
+   grammar recovered (protocol-acoustic + encoding + decoder-config
+   key sets, four built-in profiles incl. sonos-cdma, RS/CRC frame
+   limits ≤256 bytes/symbols). The per-profile numeric values are
+   baked into `new_chirp_builtin_profile` struct initializers rather
+   than a static JSON blob — extracting exact Hz/timing values would
+   need a deeper struct-init decode.
 5. **`/status` + master-route schemas** — master HTTP route table
    decoded (~78 records @ 0x11090c00 stride-0x1c) plus the full
    `/status` page registry (stride-12 @ 0x11090144-0x11090b6c:
