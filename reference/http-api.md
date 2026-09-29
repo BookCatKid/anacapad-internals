@@ -698,6 +698,10 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     AccountsInfo, Active, ActiveDeviceList, Alarm, Alarms, AudioCore, Backtrace, Bundles, Cert, ClientVersion, Cloud, ConnectionDetails, CpuMonitor, DNSCache, DSPStateManager, Decoder, DeviceInfo, DiagLevel, EnetPorts, Entry, General, HTConfig, HardwareStatusInfo, History, IRCode, IdxTrk, Incoming, LedPatternInfo, LocalSettings, LocalTime, MediaServers, Mode, Mount, Muse, MusicDecoder, NetSettings, NextLocal, NextUTC, Outgoing, Path, Pending, PendingAlarm, PerformanceCounterTables, Presentation, QuarantinedDevices, Registration, RenderingControl, Replication, RestHistory, RoomCalibrationActiveState, RoomCalibrationAvailCalID, RoomCalibrationBondedZoneInfo, RoomCalibrationInfo, RoomCalibrationOrientation, RoomCalibrationUserIntent, SPDIFTap, SSLClientCache, Satellites, Scheduler, SelfTrueplayEQ, SelfTrueplayInfo, ServiceIds, Services, SsidList, SubscribedEvents, Subscription, Subscriptions, Tables, ThirdPartyLibraryInfo, TimeUTC, Titles, Total, TrackQueueSummary, TrackSummary, UTCTime, UpdateInfo, UsageMetrics, UserAgent, VanishedDevices, Version, WebSocketHistory, Wireless, ZPInfo, ZPSupportInfo, ZoneGroupState, ZoneGroups, ZoneName, ZonePlayers, Zones
     ```
   - **note:** <Name> tags = the emitted root element AND the registered module identity; 90 tags in rodata vs 57 routed pages — unrouted tags (e.g. RoomCalibration*, VanishedDevices, UsageMetrics) are sub-documents emitted inside other pages
+  - **resolve_slot:** locator->vt\[+0x84\] proven (resolves module; e.g. /wireless f_105eab50)
+  - **render_slot:** module->vt\[+0xFC\] proven for /wireless shape (+0xF8 for other modules - per-module vtable layout)
+  - **registry2_pattern:** Pattern A: handler reads *(0x11095f88)+N prebound module ptrs, verifies module->vt\[+0x24\] == per-page constant (the page method), calls it. Adjuster thunks (this+=off; b) bridge MI bases, e.g. /accounts f_101b6edc -> f_10427174.
+  - **shared_base_renderer:** /ai_speech_enhance,/decoder,/htconfig,/spdiftap,/tvprocessor all verify f_100c3f5c (one base-class page method); /analoglinein verifies f_100c3b0c. Output = member dump via computed names - no static schema literals.
 - **status_page_registry:**
   - **provenance:** stride-12 {name*, flag, source*/handler*} table at ~0x11090144-0x11090b6c (immediately precedes the master 102-record route table at 0x11090c00). Two page families: exec/file pages (source = shell cmd string like /sbin/lsmod, /bin/chronyc, or file path under /jffs /opt/log /proc/ath_rincon) and module pages (source = .text handler). flag values 1,2,6,0xa,0xb,0xe,0x43,0x46,0x82 — semantics undecoded, likely content-type/auth bitmask (0x82 set on /api,/cloudqueue,/leds).
   - **exec_pages:** `/ifconfig->/sbin/...`, `/lsmod->/sbin/lsmod`, `/mount->/bin/mount`, `/netstat->/bin/netstat -an`, `/ntpsources->/bin/chronyc -n sources -v`, `/ps->/bin/ps`, `/route->/sbin/route -n`, `/scanresults->/wifi/athconfig scangetresults ath0 (flag 6)`, `/showmacs->brctl showmacs br0`, `/showports->brctl showports br0`, `/showstats->brctl showstats br0`, `/showstp->brctl showstp br0`, `/uptime->/usr/bin/uptime`, `/df`, `/du-jffs`, `/free`, `/date`, `/debugfiles`, `/dmesg`
@@ -792,7 +796,28 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/regcert:** <DeviceCertInfo>{...} (see cert_layer)
     - **/button_triggered.xml / /dropout_triggered.xml:** shared generic page f_10195c74: emits <%s>...</%s> and <%s/> elements over a truncatable log ("Error truncating %s: %s")
     - **/musicservices:** diag-submit page (no XML emit; logs "Could not submit Available Services DIAG. Service count is: %zu")
-  - **unresolved_pages:** /accounts /ai_speech_enhance /analoglinein /api /audiocore /cloud /cloudqueue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /policy /renderingcontrol /settings/* /spdiftap /topology /track_queue_summary /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
+    - **/cloud:**
+      - **render:** f_10599c28
+      - **schema:** <Cloud><ProtocolVersion>%s</ProtocolVersion><LastRetryAfter>%lld</LastRetryAfter><MillisecondsToNextConnect>%ld</MillisecondsToNextConnect><WebsocketRegistration>%s (%s)</WebsocketRegistration></Cloud>
+      - **fields:** `ProtocolVersion`, `LastRetryAfter (optional, %lld)`, `MillisecondsToNextConnect (optional, %ld)`, `WebsocketRegistration: "%s (%s)" e.g. OK (Current)/Pending`
+      - **confidence:** PROVEN
+    - **/policy:**
+      - **render:** f_10372d34
+      - **schema:** <Entitlements><Entitlement type="%s" isTrial="%s" sku="%s" startDate="%s" endDate="%s" codes="%s"/></Entitlements>
+      - **fields:** `type`, `isTrial`, `sku`, `startDate`, `endDate`, `codes`
+      - **confidence:** PROVEN
+    - **/audiocore:**
+      - **render:** f_102a595c
+      - **schema:** <AudioCore> member dump </AudioCore>
+      - **confidence:** PROVEN wrapper
+    - **/track_queue_summary:**
+      - **render:** f_10265324
+      - **schema:** <TrackQueueSummary> member dump </TrackQueueSummary>
+      - **confidence:** PROVEN wrapper
+    - **/accounts:**
+      - **render:** f_101b6edc adjustor thunk this+=280 -> f_10427174
+      - **confidence:** PROVEN mechanism; module is SMB/share-account code (literals are share-connect errors), member-dump output
+  - **unresolved_pages:** /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /renderingcontrol /settings/* /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
 - **admin_post_endpoints:**
   - **provenance:** master route table {name*,handler*} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
   - **endpoints:**
