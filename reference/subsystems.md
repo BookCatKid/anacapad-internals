@@ -668,6 +668,8 @@ policies {"Static policy not found for role (%s), version (%s)","Static fast pol
 
 **coverage** `partial`
 
+The auto-update scheduler FSM: states from INIT through REFRESH, SCHEDULED (and SCHEDULED_POST_WOW for wake-on-wireless), SESSION_MONITOR, SESSION_REPORT, SESSION_ACTIVE — with PendingStart/SessionStart/SessionAttempts counters. Settings like `R_AutoUpdateWindowStart`/`R_AutoUpdatePolicy`/`R_CheckUpdateInterval` control it, and blockers (an upcoming alarm, active playback) postpone installs. This is why updates land at odd hours.
+
 **Technical description:**
 
 states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {"Upcoming alarm is preventing update","Active device(s) preventing update"}; "Trimming the window to (%d) seconds"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; "RINCON_%s01400 updated to %s"/"update failed (%d)"; "Retrying upgrade (%d/%d)..."/"Giving up after max upgrade attempts"; upgrade_mgr.txt state file
@@ -869,6 +871,8 @@ The on-flash layout for cert material: files named for `encrypted-private-key`, 
 ## `chanmapset`
 
 **coverage** `partial`
+
+The ChannelMapSet initializer: builds the channel-map tables that describe how speaker channels are assigned (stereo pair L/R, surround roles), with bounds ('Initializer List too large, truncating') and duplicate detection. The watchdog thread `awThreadWDCheck` guards its init.
 
 **Technical description:**
 
@@ -1459,6 +1463,8 @@ Sonos-side licensing: each account/household can carry <Entitlement> records (ty
 
 **coverage** `partial`
 
+The eSDK telemetry channel (evs): event types EsdkPlaybackStats, EsdkPlaybackErrors, EsdkHttpErrors, EsdkDownload, EsdkEvent, EsdkCapabilities; EndSong records carry ms_played and track ids; events encode into an envelope and ship over `hm://hwp-events/v1/log_event`. Spotify-side playback metrics come from this pipeline.
+
 **Technical description:**
 
 {EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities}; endsong {ms_played:%zu,"Overwriting EndSong track_id with new value!","no track ID/file ID: played:%zu, ms:%zu",intent (%s)}; evs {evs_default_cb %s. error %d,"Error encoding %s","Error encoding envelope","Error sending %s"}; channel hm://hwp-events/v1/log_event; "No file with desired bitrate"; error report "device_id=%s, playback_id=%s, track_uri=%s, source=%s, hostname=%s, url=%s, error_code=%d, stack_error_message=%s, stack_error_code=%d, response_status_code=%d"
@@ -1474,6 +1480,8 @@ Sonos-side licensing: each account/household can carry <Entitlement> records (ty
 
 **coverage** `partial`
 
+The eSDK HTTP layer (`eSDK/httpio`, version 3.205.205): request formatting (hostname/path), response parsing (transfer-encoding unsupported variants, CDN content-encoding rejection, redirects, content-range validation, header-end detection), socketio timeouts and read/write/EOF errors, and DNS result handling. Its strictness explains which CDN/redirect behaviors the player tolerates.
+
 **Technical description:**
 
 tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http request"}; response {"transfer-Encoding","unsupported transfer-encoding","CDN content-encoding unsupported","Redirect to %s","failed to parse or invalid content-range '%s' (req_offset:%d)","Content-Type: %s","bytes ","can't find HTTP headers end marker","invalid HTTP header, can't find protocol marker or status code","failed to find HTTP header line end marker"}; socketio {"%s operation timeout","failed to write/read data to/from socket '%i'","reached socket EOF"}; DNS {"Result for \"%s\" : addr %s","Invalid address family %d","Failed for \"%s\", error %d"}; {"Unable to set the track info","Unable to set hostname","No domain in URL","No http/https in URL","Failed to decode LicenseResponse"}
@@ -1488,6 +1496,8 @@ tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http reque
 ## `esdk_socket`
 
 **coverage** `partial`
+
+The eSDK's raw socket layer: IPv4-only (IPv6 explicitly unsupported), DNS queueing with a bounded queue, connect/bind/accept error taxonomy, socket-option plumbing, and the socketio stream FSM (INACTIVE/STARTING) that decides new-vs-reused sockets. Everything eSDK does on the wire lands here.
 
 **Technical description:**
 
@@ -3401,6 +3411,8 @@ fields {apiKey,advertising,presentationMap,strings,reporting,browse,Moment}; acc
 
 **coverage** `partial`
 
+The SmartPlay bridge-content loader: triggered by BUTTON or EMPTY_AVT, it calls the cloud `/bridge/content/api`, fetches content for a group, and starts playback — all timed (loadContent/getContent/fetchContentAndStartPlay in ms). 'PlayerSmartPlay missing required field' rejects malformed configs. This is the 'speaker plays something sensible when you press play with an empty queue' feature.
+
 **Technical description:**
 
 reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge/content/api + "service base path: %s"; timings {"loadContent took %ld ms: GroupId %s GC %s %s","getContent took %ld ms: %s","fetchContentAndStartPlay took %ld ms, success: %s"}; errors {loadContent failed,getContent parse failed,getContent failed}
@@ -4146,6 +4158,8 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 
 **coverage** `partial`
 
+The watchdog subsystem: `/dev/chk` device, `/watchdog.log` + `/watchdog.dmesg` captures, a health-check thread on a configurable frequency, a client registration API (named clients with callbacks — 'client must have a name', 'already registered'), manual/force triggers, and `/sbin/reboot` on unresponsive. This is the last-resort self-heal.
+
 **Technical description:**
 
 device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {"Watchdog not started","Watchdog already created","Creating watchdog","No watchdog to destroy","Destroying watchdog","Invalid watchdog health check frequency","Watchdog constructed with %u seconds frequency","trigger called with status %d"}; "WATCHDOG: %s manual trigger (UTC %s)"/"unresponsive! (UTC %s)"; /sbin/reboot + return code; /watchdogcrash; "Performing health check"/"Waiting for next health check"; watchdog.poll; "In watchdog thread, performing health check"/"Exiting watchdog thread"; forceTrigger; client API {"client %s not found","Unregistered watchdog client %s","client must have a name","health check callback must be non-null","client %s already registered","Registered watchdog client %s"}; MTD /dev/mtd/0
@@ -4177,6 +4191,8 @@ WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:clas
 ## `ws_client`
 
 **coverage** `partial`
+
+The outbound WebSocket client used for the lechmere/cloud channel: performs the Upgrade handshake (Location, Sec-WebSocket-Accept, Sec-WebSocket-Extensions), negotiates per-message deflate only during open (an unsolicited deflate offer fails the connection), retries openSession, generates nonces, and reports `disconnectedReason` plus close codes. LoadBalancerHost/WebSocket fields shape where it connects.
 
 **Technical description:**
 
@@ -4790,6 +4806,8 @@ The shared error-taxonomy umbrella: muse ERROR_*, JWT errors, LLA errors, downlo
 
 **coverage** `strong`
 
+The Spotify eSDK API table — the complete Sp* surface: connection/login (LoginBlob, OauthToken, SetConnectivity, Logout), playback (Play, Pause, Skip, Seek, SeekRelative, Volume, Shuffle, Repeat, CycleRepeatMode, BecomeActiveDevice), queue (PlayUri, PlayContextUri, QueueUri), event pump (SpPumpEvents), notify hooks (track length/error/stream events/seek complete/download position), and DRM format restriction. Every Spotify feature on-device goes through these calls.
+
 **Technical description:**
 
 registration {SpRegisterConnectionCallbacks,SpRegisterDeviceAliasCallbacks,SpRegisterPlaybackCallbacks,SpRegisterStreamCallbacks,SpRegisterDebugCallbacks,SpFree}; playback {SpPlaybackPlay,SpPlaybackPause,SpPlaybackSkipToNext,SpPlaybackSkipToPrev,SpPlaybackSeek,SpPlaybackSeekRelative,SpPlaybackUpdateVolume,SpPlaybackEnableShuffle,SpPlaybackEnableRepeat,SpPlaybackCycleRepeatMode,SpPlaybackSetAvailableToPlay,SpPlaybackSetDeviceInactive,SpPlaybackSetDeviceControllable,SpPlaybackIncreaseUnderrunCount,SpPlaybackSetBitrate,SpPlaybackSetRedeliveryMode,SpPlaybackIsRedeliveryModeActivated}; connection {SpConnectionLoginBlob,SpConnectionLoginOauthToken,SpConnectionSetConnectivity,SpConnectionLogout,SpGetCanonicalUsername,SpGetLoginUsername}; device {SpSetDisplayName,SpSetVolumeSteps,SpSetDeviceIsGroup,SpEnableConnect,SpDisableConnect,SpSetDeviceAliases} + {SpSetAdUserAgent,SpPumpEvents,SpZeroConfAnnouncePause/Resume,SpConnectionLoginZeroConf,SpPlayUriWithOptions,SpPlayUri,SpPlayContextUri,SpQueueUri,SpPlaybackBecomeActiveDevice,SpRegisterDnsHALCallbacks,SpGetDefaultDnsHALCallbacks,SpRegisterSocketHALCallbacks,SpGetDefaultSocketHALCallbacks,SpRegisterTLSCallbacks,SpPlaybackSetBandwidthLimit,SpNotifyTrackLength,SpNotifyTrackError,SpNotifyStreamPlaybackStarted/Continued/FinishedNaturally,SpNotifySeekComplete,SpSetDownloadPosition,SpLogRegisterTraceObject,SpRestrictDrmMediaFormats,SpRestoreDrmMediaFormats}
@@ -4805,6 +4823,8 @@ registration {SpRegisterConnectionCallbacks,SpRegisterDeviceAliasCallbacks,SpReg
 
 **coverage** `strong`
 
+The eSDK callback registration model: playback callbacks (on_notify, on_seek, on_apply_volume), stream/delivery callbacks (on_data, on_start, on_end, on_flush, on_pos), connection (on_message, on_new_credentials), device-alias, DNS, socket (17 fn ptrs), TLS, debug, and error — each registered in a named block and removable. These are the seams where Sonos injects its behavior into the eSDK.
+
 **Technical description:**
 
 playback cb {on_notify,on_seek,on_apply_volume} "Successfully registered playback callbacks: %s, %s, %s"+removed; stream cb {on_data,on_start,on_end,on_flush,on_pos} "Successfully registered delivery callbacks: %s, %s, %s, %s, %s, %s"+removed; signatures {cb_stream_on_start(id=%u, size=%u),cb_stream_on_end(id=%u),cb_stream_get_position(id=%u) = %u,cb_stream_on_seek_position(id=%u, pos=%u),cb_stream_on_flush() = (id=%u, pos=%u)} + connection {on_message,on_new_credentials} registered×3; aliases {on_selected_device_alias_changed,on_device_aliases_update_done}×2; dns {dns_lookup_callback}; socket {set_opt,rd_from,wr_to,readable,writable,local_addresses,...}×17; TLS/debug/error registered; base64 alphabet
@@ -4819,6 +4839,8 @@ playback cb {on_notify,on_seek,on_apply_volume} "Successfully registered playbac
 ## `esdk_crypto`
 
 **coverage** `strong`
+
+The eSDK login crypto: RSA-2048 bignum arithmetic with a modpow workspace, the login-hello exchange whose buffer must fit SHA1 digest + two signatures + the workspace, and the entropy HAL (`hal_get_random_bytes`). This is what produces the credential blob the AP accepts — the crypto is RSA challenge-response, not a stored password.
 
 **Technical description:**
 
@@ -5525,6 +5547,8 @@ routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/wa
 
 **coverage** `?`
 
+The settings umbrella: household settings, player settings, replicated settings, local settings manager, effective settings — each documented separately. Settings are layered (default → config → featureConfig → replicated → local), so 'effective' values are what actually apply.
+
 ## `share_indexer`
 
 **coverage** `strong`
@@ -5749,6 +5773,8 @@ The eSDK track pipeline: track insertion, delivery accounting (delivery vs integ
 ## `trueplay_service`
 
 **coverage** `strong`
+
+The Trueplay gRPC service (`sonos.coreaudio.trueplay.v1.TrueplayService`, API v1alpha2): methods SetupDevice, ApplySpatialTuning, ApplySpectralTuning, ApplySatelliteTuning, ClearAllTunings, GetSpatialTuning, GetSpectralTuning, GetDeviceConfig; status enum UNSPECIFIED/SUCCESS/FAILURE with Invalid-API-Version/Service-Address errors. This is the tuning engine's front door on newer platforms.
 
 **Technical description:**
 

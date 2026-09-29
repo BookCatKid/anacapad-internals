@@ -9937,6 +9937,7 @@
 
 <h2 id="auto_update"><code>auto_update</code><a class="headerlink" href="#auto_update" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The auto-update scheduler FSM: states from INIT through REFRESH, SCHEDULED (and SCHEDULED_POST_WOW for wake-on-wireless), SESSION_MONITOR, SESSION_REPORT, SESSION_ACTIVE — with PendingStart/SessionStart/SessionAttempts counters. Settings like <code>R_AutoUpdateWindowStart</code>/<code>R_AutoUpdatePolicy</code>/<code>R_CheckUpdateInterval</code> control it, and blockers (an upcoming alarm, active playback) postpone installs. This is why updates land at odd hours.</p>
 <p><strong>Technical description:</strong></p>
 <p>states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {"Upcoming alarm is preventing update","Active device(s) preventing update"}; "Trimming the window to (%d) seconds"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; "RINCON_%s01400 updated to %s"/"update failed (%d)"; "Retrying upgrade (%d/%d)..."/"Giving up after max upgrade attempts"; upgrade_mgr.txt state file</p>
 <ul>
@@ -10109,6 +10110,7 @@
 
 <h2 id="chanmapset"><code>chanmapset</code><a class="headerlink" href="#chanmapset" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The ChannelMapSet initializer: builds the channel-map tables that describe how speaker channels are assigned (stereo pair L/R, surround roles), with bounds ('Initializer List too large, truncating') and duplicate detection. The watchdog thread <code>awThreadWDCheck</code> guards its init.</p>
 <p><strong>Technical description:</strong></p>
 <p>chanmapset var; 'Initializer List is too large: %d &gt; %d, truncating to %d'; 'Duplicate entry: %s at index %zu and %zu'; awThreadWDCheck watchdog</p>
 <ul>
@@ -10621,6 +10623,7 @@
 
 <h2 id="esdk_events"><code>esdk_events</code><a class="headerlink" href="#esdk_events" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The eSDK telemetry channel (evs): event types EsdkPlaybackStats, EsdkPlaybackErrors, EsdkHttpErrors, EsdkDownload, EsdkEvent, EsdkCapabilities; EndSong records carry ms_played and track ids; events encode into an envelope and ship over <code>hm://hwp-events/v1/log_event</code>. Spotify-side playback metrics come from this pipeline.</p>
 <p><strong>Technical description:</strong></p>
 <p>{EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities}; endsong {ms_played:%zu,"Overwriting EndSong track_id with new value!","no track ID/file ID: played:%zu, ms:%zu",intent (%s)}; evs {evs_default_cb %s. error %d,"Error encoding %s","Error encoding envelope","Error sending %s"}; channel hm://hwp-events/v1/log_event; "No file with desired bitrate"; error report "device_id=%s, playback_id=%s, track_uri=%s, source=%s, hostname=%s, url=%s, error_code=%d, stack_error_message=%s, stack_error_code=%d, response_status_code=%d"</p>
 <ul>
@@ -10634,6 +10637,7 @@
 
 <h2 id="esdk_httpio"><code>esdk_httpio</code><a class="headerlink" href="#esdk_httpio" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The eSDK HTTP layer (<code>eSDK/httpio</code>, version 3.205.205): request formatting (hostname/path), response parsing (transfer-encoding unsupported variants, CDN content-encoding rejection, redirects, content-range validation, header-end detection), socketio timeouts and read/write/EOF errors, and DNS result handling. Its strictness explains which CDN/redirect behaviors the player tolerates.</p>
 <p><strong>Technical description:</strong></p>
 <p>tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http request"}; response {"transfer-Encoding","unsupported transfer-encoding","CDN content-encoding unsupported","Redirect to %s","failed to parse or invalid content-range '%s' (req_offset:%d)","Content-Type: %s","bytes ","can't find HTTP headers end marker","invalid HTTP header, can't find protocol marker or status code","failed to find HTTP header line end marker"}; socketio {"%s operation timeout","failed to write/read data to/from socket '%i'","reached socket EOF"}; DNS {"Result for \"%s\" : addr %s","Invalid address family %d","Failed for \"%s\", error %d"}; {"Unable to set the track info","Unable to set hostname","No domain in URL","No http/https in URL","Failed to decode LicenseResponse"}</p>
 <ul>
@@ -10647,6 +10651,7 @@
 
 <h2 id="esdk_socket"><code>esdk_socket</code><a class="headerlink" href="#esdk_socket" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The eSDK's raw socket layer: IPv4-only (IPv6 explicitly unsupported), DNS queueing with a bounded queue, connect/bind/accept error taxonomy, socket-option plumbing, and the socketio stream FSM (INACTIVE/STARTING) that decides new-vs-reused sockets. Everything eSDK does on the wire lands here.</p>
 <p><strong>Technical description:</strong></p>
 <p>{"recv(%d, %p, %d) = -1 (errno %d: %s)","Socket close/getsockname/bind error: %d","Tried to use IPv6 but this platform does not support it.","connect(%d %s port %d)","Socket connection error: %d","Unable to set option:%d error:%s(%d)","Creating IPv4 socket (domain %d)","No free sockets available","Unable to create socket","Socket accept error: %d","Network initialization failed. error code: %d"}; DNS {"Failed DNS request for \"%s\", error %d (%s)","Successfully enqueued DNS request","Unable to enqueue DNS request, queue is full"}; stream {"STREAM_STATE #%u: %s -&gt; %s",STREAM_INACTIVE,STREAM_STARTING}; socketio {"work_mem","can't parse url","New socket required: %d%d%d%d%d","creating new socket","reusing the socket","failed to format/write/read HTTP headers","not enough memory to read HTTP headers or invalid HTTP headers","no active socket","socket read failed"}; channels {"out of buffer! asked for %d bytes","error: out of channels","channel %d data %p size %d","CDN URL is too long to handle: %d","AP error %d on channel %d","cb-&gt;used + data_size &lt; cb-&gt;size","Sent %s(%d) to ap Size %d"}; {".spotify.com",HTTP/1.,ap_list"}</p>
 <ul>
@@ -12340,6 +12345,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="smartplay"><code>smartplay</code><a class="headerlink" href="#smartplay" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The SmartPlay bridge-content loader: triggered by BUTTON or EMPTY_AVT, it calls the cloud <code>/bridge/content/api</code>, fetches content for a group, and starts playback — all timed (loadContent/getContent/fetchContentAndStartPlay in ms). 'PlayerSmartPlay missing required field' rejects malformed configs. This is the 'speaker plays something sensible when you press play with an empty queue' feature.</p>
 <p><strong>Technical description:</strong></p>
 <p>reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge/content/api + "service base path: %s"; timings {"loadContent took %ld ms: GroupId %s GC %s %s","getContent took %ld ms: %s","fetchContentAndStartPlay took %ld ms, success: %s"}; errors {loadContent failed,getContent parse failed,getContent failed}</p>
 <ul>
@@ -12990,6 +12996,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="watchdog"><code>watchdog</code><a class="headerlink" href="#watchdog" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The watchdog subsystem: <code>/dev/chk</code> device, <code>/watchdog.log</code> + <code>/watchdog.dmesg</code> captures, a health-check thread on a configurable frequency, a client registration API (named clients with callbacks — 'client must have a name', 'already registered'), manual/force triggers, and <code>/sbin/reboot</code> on unresponsive. This is the last-resort self-heal.</p>
 <p><strong>Technical description:</strong></p>
 <p>device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {"Watchdog not started","Watchdog already created","Creating watchdog","No watchdog to destroy","Destroying watchdog","Invalid watchdog health check frequency","Watchdog constructed with %u seconds frequency","trigger called with status %d"}; "WATCHDOG: %s manual trigger (UTC %s)"/"unresponsive! (UTC %s)"; /sbin/reboot + return code; /watchdogcrash; "Performing health check"/"Waiting for next health check"; watchdog.poll; "In watchdog thread, performing health check"/"Exiting watchdog thread"; forceTrigger; client API {"client %s not found","Unregistered watchdog client %s","client must have a name","health check callback must be non-null","client %s already registered","Registered watchdog client %s"}; MTD /dev/mtd/0</p>
 <ul>
@@ -13017,6 +13024,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="ws_client"><code>ws_client</code><a class="headerlink" href="#ws_client" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The outbound WebSocket client used for the lechmere/cloud channel: performs the Upgrade handshake (Location, Sec-WebSocket-Accept, Sec-WebSocket-Extensions), negotiates per-message deflate only during open (an unsolicited deflate offer fails the connection), retries openSession, generates nonces, and reports <code>disconnectedReason</code> plus close codes. LoadBalancerHost/WebSocket fields shape where it connects.</p>
 <p><strong>Technical description:</strong></p>
 <p>client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-Accept,Sec-WebSocket-Extensions}; "failing connection due to unsolicited per msg deflate"; per-msg deflate only before open; openSession retry; nonce gen/encode; {"disconnectedReason":"%s"}; close codes on close frame; LoadBalancerHost/WebsocketServerHost; reasons {NEW_IP,BLUETOOTH,POWERED_OFF,UPGRADE,NEW_SSID,SLEEPING,RECONNECT}; threads wsc_mtx/wsc_smtx/wsc_cond</p>
 <ul>
@@ -13534,6 +13542,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="esdk_api"><code>esdk_api</code><a class="headerlink" href="#esdk_api" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The Spotify eSDK API table — the complete Sp* surface: connection/login (LoginBlob, OauthToken, SetConnectivity, Logout), playback (Play, Pause, Skip, Seek, SeekRelative, Volume, Shuffle, Repeat, CycleRepeatMode, BecomeActiveDevice), queue (PlayUri, PlayContextUri, QueueUri), event pump (SpPumpEvents), notify hooks (track length/error/stream events/seek complete/download position), and DRM format restriction. Every Spotify feature on-device goes through these calls.</p>
 <p><strong>Technical description:</strong></p>
 <p>registration {SpRegisterConnectionCallbacks,SpRegisterDeviceAliasCallbacks,SpRegisterPlaybackCallbacks,SpRegisterStreamCallbacks,SpRegisterDebugCallbacks,SpFree}; playback {SpPlaybackPlay,SpPlaybackPause,SpPlaybackSkipToNext,SpPlaybackSkipToPrev,SpPlaybackSeek,SpPlaybackSeekRelative,SpPlaybackUpdateVolume,SpPlaybackEnableShuffle,SpPlaybackEnableRepeat,SpPlaybackCycleRepeatMode,SpPlaybackSetAvailableToPlay,SpPlaybackSetDeviceInactive,SpPlaybackSetDeviceControllable,SpPlaybackIncreaseUnderrunCount,SpPlaybackSetBitrate,SpPlaybackSetRedeliveryMode,SpPlaybackIsRedeliveryModeActivated}; connection {SpConnectionLoginBlob,SpConnectionLoginOauthToken,SpConnectionSetConnectivity,SpConnectionLogout,SpGetCanonicalUsername,SpGetLoginUsername}; device {SpSetDisplayName,SpSetVolumeSteps,SpSetDeviceIsGroup,SpEnableConnect,SpDisableConnect,SpSetDeviceAliases} + {SpSetAdUserAgent,SpPumpEvents,SpZeroConfAnnouncePause/Resume,SpConnectionLoginZeroConf,SpPlayUriWithOptions,SpPlayUri,SpPlayContextUri,SpQueueUri,SpPlaybackBecomeActiveDevice,SpRegisterDnsHALCallbacks,SpGetDefaultDnsHALCallbacks,SpRegisterSocketHALCallbacks,SpGetDefaultSocketHALCallbacks,SpRegisterTLSCallbacks,SpPlaybackSetBandwidthLimit,SpNotifyTrackLength,SpNotifyTrackError,SpNotifyStreamPlaybackStarted/Continued/FinishedNaturally,SpNotifySeekComplete,SpSetDownloadPosition,SpLogRegisterTraceObject,SpRestrictDrmMediaFormats,SpRestoreDrmMediaFormats}</p>
 <ul>
@@ -13547,6 +13556,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="esdk_callbacks"><code>esdk_callbacks</code><a class="headerlink" href="#esdk_callbacks" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The eSDK callback registration model: playback callbacks (on_notify, on_seek, on_apply_volume), stream/delivery callbacks (on_data, on_start, on_end, on_flush, on_pos), connection (on_message, on_new_credentials), device-alias, DNS, socket (17 fn ptrs), TLS, debug, and error — each registered in a named block and removable. These are the seams where Sonos injects its behavior into the eSDK.</p>
 <p><strong>Technical description:</strong></p>
 <p>playback cb {on_notify,on_seek,on_apply_volume} "Successfully registered playback callbacks: %s, %s, %s"+removed; stream cb {on_data,on_start,on_end,on_flush,on_pos} "Successfully registered delivery callbacks: %s, %s, %s, %s, %s, %s"+removed; signatures {cb_stream_on_start(id=%u, size=%u),cb_stream_on_end(id=%u),cb_stream_get_position(id=%u) = %u,cb_stream_on_seek_position(id=%u, pos=%u),cb_stream_on_flush() = (id=%u, pos=%u)} + connection {on_message,on_new_credentials} registered×3; aliases {on_selected_device_alias_changed,on_device_aliases_update_done}×2; dns {dns_lookup_callback}; socket {set_opt,rd_from,wr_to,readable,writable,local_addresses,...}×17; TLS/debug/error registered; base64 alphabet</p>
 <ul>
@@ -13560,6 +13570,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="esdk_crypto"><code>esdk_crypto</code><a class="headerlink" href="#esdk_crypto" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The eSDK login crypto: RSA-2048 bignum arithmetic with a modpow workspace, the login-hello exchange whose buffer must fit SHA1 digest + two signatures + the workspace, and the entropy HAL (<code>hal_get_random_bytes</code>). This is what produces the credential blob the AP accepts — the crypto is RSA challenge-response, not a stored password.</p>
 <p><strong>Technical description:</strong></p>
 <p>bignum asserts {mod[mod[0]] != 0,mod[mod[0]] &amp; BIGNUM_TOP_BIT,mlen &lt;= 2048 / BIGNUM_INT_BITS} = RSA-2048; login asserts {gen/genctx/s/send_buf/send_buf_size != NULL,send_buf_size &gt;= sizeof(s-&gt;ctx.hello.data),work_buf_size &gt;= MODPOW_WORK_RAM_SIZE,resp/respsz/buf/bufsz/failed != NULL,bufsz &gt;= SHA1_DIGEST_SIZE + SIG_SIZE + SIG_SIZE + MODPOW_WORK_RAM_SIZE} = SHA1+dual-signature+modpow; "login failed (error code %d)"; "no memory to check signature"; "Platform identifier: '%s'"; "logging in with client ID %s"; "!"hal_get_random_bytes() failed""; circular buffer {cb-&gt;used &lt;= cb-&gt;size,n &lt;= cb-&gt;used,cb-&gt;used + data_size &lt;= cb-&gt;size,dest != source,circular_buffer_available_space}</p>
 <ul>
@@ -14153,6 +14164,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="settings"><code>settings</code><a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The settings umbrella: household settings, player settings, replicated settings, local settings manager, effective settings — each documented separately. Settings are layered (default → config → featureConfig → replicated → local), so 'effective' values are what actually apply.</p>
 <h2 id="share_indexer"><code>share_indexer</code><a class="headerlink" href="#share_indexer" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
 <p>The music-library share indexer: <code>localRequestReindex</code>, <code>localRequestResort</code> (a resort request escalates to full reindex when needed), <code>localRemoveUnsupportedShares</code>, and the <code>&lt;Shares&gt;</code> XML schema with per-share Path/UserName/VerifiedValidProtocol/Id. <code>ShareIndexInProgress</code>/<code>ShareIndexLastError</code> in ContentDirectory events report its state.</p>
@@ -14340,6 +14352,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="trueplay_service"><code>trueplay_service</code><a class="headerlink" href="#trueplay_service" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The Trueplay gRPC service (<code>sonos.coreaudio.trueplay.v1.TrueplayService</code>, API v1alpha2): methods SetupDevice, ApplySpatialTuning, ApplySpectralTuning, ApplySatelliteTuning, ClearAllTunings, GetSpatialTuning, GetSpectralTuning, GetDeviceConfig; status enum UNSPECIFIED/SUCCESS/FAILURE with Invalid-API-Version/Service-Address errors. This is the tuning engine's front door on newer platforms.</p>
 <p><strong>Technical description:</strong></p>
 <p>service sonos.coreaudio.trueplay.v1.TrueplayService; API v1alpha2; errors {Invalid API Version,Invalid Service Address}; status enum {MESSAGE_STATUS_UNSPECIFIED,MESSAGE_STATUS_SUCCESS,MESSAGE_STATUS_FAILURE}; methods {SetupDevice,ApplySpatialTuning,ApplySpectralTuning,ApplySatelliteTuning,ClearAllTunings,GetSpatialTuning,GetSpectralTuning,GetDeviceConfig} (req+resp names listed)</p>
 <ul>
