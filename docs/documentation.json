@@ -196981,6 +196981,23 @@
   "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
   "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
   "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\" \u2014 ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
-  "unresolved": "enrolment/renewal REQUEST wire formats (CSR structure, request body); the bss cert-object record layout (populated at runtime)"
+  "unresolved": "request URL/endpoint (comes from O_* cloud-URL keys at runtime), exact JSON request body keys, the bss cert-object record layout, cert/key storage file paths",
+  "download_flow": {
+   "provenance": "devicecertmanager.cxx unit f_105a6984-f_105a8724 (source-path literal proven)",
+   "orchestrator": "f_105a7dac \u2014 issues JSON request via inner builder f_105a75dc; finish logger f_105a7868 logs \"Cert download attempt finished (download %s)\" succeeded/failed",
+   "request": "application/json; headers X-Sonos-UserId (f_105a75dc) + X-Sonos-Muse-Household-Id (f_105a7dac); also retrieves \"manufacturing data: %s\"",
+   "response_fields": [
+    "requestTimeMS",
+    "downloadStatusCode",
+    "httpResultCode",
+    "newETag",
+    "previousETag",
+    "download (cert payload)"
+   ],
+   "staging": "downloads written to *.tmp files (\"file %s [%s]\" log) then installed; state+etag persisted as settings keys (state, etag literals in scope)",
+   "events": "muse Registration event emitted with eventType=downloaded, certType=deviceCert, secureReg fields; refresh scheduler f_105a6984 wakes via Job* fields and re-arms \"refresh check in %ld seconds\"; expiry path logs \"certificate expired\"",
+   "driver": "f_1064556c (regdevicecert.cxx cluster, \"regcert\" literal former) drives refresh check",
+   "note": "no PKCS#10/CSR on device \u2014 enrolment is a JSON cert-download API, not key-gen+CSR"
+  }
  }
 }
