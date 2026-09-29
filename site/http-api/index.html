@@ -2482,7 +2482,7 @@
 <li><strong>detail:</strong> ZPSupportInfo XML: <ZPSupportInfo><ZPNetworkInfo type="%s" %s="%s"><ZPSupportItem title="%s">… exec pages wrap <Command cmdline="…"> + /tmp/diagstdout+/tmp/diagstdin + <!-- SDT: %ld ms -->; path allowlist {/jffs/app/log,/jffs/app/settings,/jffs,/opt/log,/opt,/tmp,/var} + ambient caps dropped + child read timeout; application/octet downloads; CDATA escapes</li>
 </ul>
 </li>
-<li><strong>description:</strong> Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 write-capable (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).</li>
+<li><strong>description:</strong> Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 prefix-mount (sub-dispatcher) (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).</li>
 <li><strong>route_semantics:</strong></li>
 <li><strong>/accounts:</strong> worker f_101b6edc: account-list doc ; emits <AccountsInfo> (f_10291974)</li>
 <li><strong>/activeZones:</strong> worker f_10188b88: active-zones list</li>
@@ -3001,7 +3001,7 @@
 - <strong>/upnp:</strong> f_105eb0b4
 - <strong>/wireless:</strong> f_105eab50
 - <strong>/zp:</strong> f_100bfbac (flag 1)
-  - <strong>flag_hypothesis:</strong> flag reads as a bitmask: bit1(0x2)=GET-eligible (set on nearly every page), bit2(0x4)=POST-capable (flag 6 on /scanresults,/playmode,/opt/log/mdnsd.log), bit7(0x80)=API/JSON-style dispatch (0x82 on /api,/cloudqueue,/leds), flag=1 on /zp,/VERSION,/ifconfig possibly unauthenticated/plain-text; 0x43/0x46 outliers on /proc/ath_rincon pages (extra caps 0x40+3/6); INFERRED from flag distribution — the matcher fn that tests the bits not yet located
+  - <strong>flag_hypothesis:</strong> superseded by flags_decode_attempt: flags are a per-page bitmask shared across handler/exec/file families (not page-type); 0x80 = prefix-mount. Best current hypothesis: support-bundle section mask - the flag-bit comparison site was not located statically.
 - <strong>page_schemas:</strong>
   - <strong>provenance:</strong> emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)
   - <strong>schemas:</strong>

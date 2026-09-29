@@ -74,28 +74,49 @@ Grading each surface against that:
   (ZPInfo complete; location-engine `<Data name=...>` dump recovered)
   but most pages' field lists are unwritten. To recreate: walk each
   handler's emit calls.
-- **Muse API** — 525 routes, 73 resources, 249 verbs, auth model and
-  WSS-transport constraint all recovered; per-route JSON request/
-  response bodies are not. A muse client cannot yet be written from
-  the docs alone. Highest-leverage open item.
+- **Muse API** — 525+ routes, resources, verbs, auth model and
+  WSS-transport constraint recovered; **per-route wire schemas now
+  substantially decoded** (post-`203dd97`): 558/603 routes bound to
+  spec lists via the op-vtable `+0x58` accessor; spec grammar fully
+  cracked as flat `{fieldName,typeName}` pairs into the 331-entry name
+  table (`f_109ecb5c` index lookup, `table[3+i]`); repeated field name
+  = type union, `none` = absent slot, `upnpEvent` = universal wrapper.
+  What remains: pair-level flag/annotation semantics (serializer fns
+  in `0x109c9xxx`/`0x1080xxxx`) and the verb↔descriptor binding for
+  the ~45 unbound routes.
 - **Lechmere channel** — framing, version negotiation, close codes,
-  pseudo-HTTP tunnel headers, status fields decoded; the inner TLV
-  message-type semantics (type ≤ 6) and per-type payload schemas are
-  open. Can recreate the transport, not the conversation.
+  pseudo-HTTP tunnel headers, status fields decoded. **Payload format
+  resolved (post-`da05e12`):** the frame body is a pseudo-HTTP request
+  parsed by `f_105d4ff4` (`x-sonos-method:`/`x-sonos-uri:`/
+  `content-length:`/`SOAPACTION:`/`X-Sonos-Udn`) — there is no inner
+  TLV layer; the earlier "type ≤ 6" lead was the *Spotify* AP
+  (`mod_ap_conn.c`) 7-byte Mercury-style TLV, a different subsystem.
+  The 2-char frame messageType is the `AA..AK` registry; `AA..AJ`
+  double as the ten location-settings migration field-ids, `AK` is a
+  non-migration type. Per-code semantic names remain data-driven
+  (opaque hash keys) — static ceiling.
 - **QPlay** — `QPlayAuth(Seed, Code, MID, DID)` arguments recovered;
-  the seed→code exchange format, response payload and post-auth
-  control channel are not decoded.
+  the seed→code transform is a runtime-bound impl vfunc — static
+  ceiling documented.
 - **Spotify Connect zeroconf** — `/spotifyzc` serves `getInfo` to the
   GC only, blob transfer is encrypted; blob format unknown.
 - **netstartd IPC / `/X-external`** — message vocabulary known;
   per-message wire grammar partial.
 - **Settings replication** — ops, denylist/quarantine policy known;
   per-setting wire serialization incomplete.
-- **HTTP endpoints catalogued but shallow** — 77 `http_extra_endpoints`
-  entries are path+address only; most need the /getaa treatment
-  (params, response, errors).
-- **Cloud queue windowing** — route set + versioned-URL requirement
-  known; `CloudQueueWindow` payload fields unresolved.
+- **HTTP endpoints catalogued but shallow** — substantially deepened
+  (post-`62cd5e5`): ~50 handlers now carry params, CSRF requirements,
+  response formats and auth literals in `decoded_handlers`. Remaining
+  shallow entries need the same per-handler walk.
+- **Cloud queue windowing** — largely covered by the `cloud_queue`
+  subsystem record: cqfsm states `{POLL,PENDING,ERROR_RETRY,DONE,
+  SUCCESS,MEDIA_ERROR,RESET,GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,
+  SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}`, ops, request params
+  (`itemId`,`positionMillis`,`queueVersion`), events
+  (`queueVersionChanged`,`contextVersionChanged`,`authToken*`),
+  retry policy and versioned-URL requirement all harvested. Per-item
+  fields inside `itemWindow` (the per-entry JSON schema) remain the
+  last open piece.
 
 ### Not at the bar (vocabulary only)
 
@@ -178,20 +199,30 @@ exec pages (shell commands: `/lsmod`→`/sbin/lsmod`,
 `/ntpsources`→`chronyc`, `/scanresults`→athconfig...), ~45 file-cat
 pages (`/jffs/settings/*.json|xml`, `/opt/log/anacapa.*.log`,
 `/proc/ath_rincon*/*`), and 62 module-rendered pages with `.text`
-handlers. Flag values `1,2,6,a,b,e,43,46,82` undecoded (likely
-content-type/auth bitmask; `0x82` on `/api`,`/cloudqueue`,`/leds`).
-Per-handler output schemas recovered for ~30 pages via emit-literal
+handlers. Flag values `1,2,6,a,b,e,43,46,82` analysed (see
+`flags_decode_attempt`): not page-type discriminators — a per-page
+bitmask with `0x80` = prefix-mount; empirical groupings recorded
+(`0xa` net/sys dumps, `0xe` counters/logs, `0xb` link state, `0x6`
+wifi-mib, `0x1` identity); best hypothesis is a support-bundle
+section mask — exact bit semantics unproven.
+Per-handler output schemas recovered for ~36 pages via emit-literal
 harvest through the delegate chain (ZPInfo, DeviceInfo, Alarm,
 UpdateInfo, LedPatternInfo, ThirdPartyLibraryInfo,
 RoomCalibrationInfo, Shares, ZoneExperiments, ssl_client_cache
 entries, Playmode, TemperatureHistograms, TrackSummary, EnetPorts,
-Registration, DeviceCertInfo — see `page_schemas`). Remaining ~22
-pages use member-dump renderers with no literal emit strings
-(`/accounts`, `/audiocore`, `/cloud`, `/decoder`, `/topology`,
-`/wireless`, `/policy`, `/settings/*`...) — each needs its module
-render vfunc chased individually. `setstring`/`removestring`/`ranges`
-raw settings-write endpoints and `sonarctl`/`mdnsannounce` params
-still unwalked.
+Registration, DeviceCertInfo, RenderingControl, Decoder, Topology,
+Audiocore, Radiolog — see `page_schemas`). Delegation targets
+resolved: `/settings/{effective,location,player}` → shared emitter
+`f_101886a4`; `/syssettings` → the UPnP 403 security gate
+`f_106937dc`; `/api`+`/dnscache` → `f_10769d34`; `/dmesg` →
+command-stream helper `f_1076b10c`. Remaining ~7 member-dump stubs
+(`/ai_speech_enhance`, `/analoglinein`, `/hls`, `/htconfig`,
+`/tvprocessor`, `/spdiftap`, `/wireless`) call vfuncs on app-object
+members with no RTTI and no static ctor refs — static ceiling.
+`setstring`/`removestring`/`ranges`, `sonarctl`, `mdnsannounce`,
+`/jobs`, `/support/asyncsubmit`, `/spotifyzc`, `/cloudqueuepoll`,
+`/downloadspdiftap`, `/snapshotspdiftap` params + response literals
+all decoded into `decoded_handlers` (incl. `csrfToken` requirements).
 
 ### Device description variants
 `/xml/device_description_no_ai.xml` exists — a second device
@@ -289,14 +320,14 @@ The **genuine** `R_*` families are now all proven:
   `certmanager.cxx`; mbedTLS loads CA bundle + client cert; bundle
   download uses ETag change detection.
 
-Residual `R_*` gap: the 29 `R_*` **settings keys**
-(`R_CrossfadeDuration`, `R_ContentFiltering`, `R_VolNormMode`,
-`R_MuseDuckingPolicy`, `R_ServiceBitrate`, `R_AutoUpdatePolicy`,
-`R_HideTuneIn`, `R_ShowNSSServers`, `R_ShowRhapUPnP`,
-`R_AirplayIncludeLinked`, `R_AudioInEncodeType`,
-`R_AccountTransferMode`...) — the real SystemProperties key space is
-undocumented; the dataset documents the Get/Set/Remove *actions* but
-not the key vocabulary they operate on.
+Residual `R_*` gap — **mostly closed**: `shared_primitives.
+system_property_keys` catalogues all 28 standalone `R_*` literals
+with live consumer fns and the `onSettingChanged` strcmp dispatcher
+`f_104b1e48`. Remaining: non-`R_`-prefixed SystemProperties keys —
+the store is an open KV (GetString/SetString are thin vcalls on a
+member store object, `f_107319b4`/`f_10731adc`), so the non-`R_` key
+space is unbounded and cannot be enumerated statically; keys are
+inlined at each call site.
 
 ### CSRF protection on config endpoints
 `/advconfig` POST carries a `csrfToken` hidden field — the player

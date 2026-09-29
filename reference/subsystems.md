@@ -37,7 +37,6 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `chirp` | **partial** | profile sonos-cdma; decode pipeline {chirp_decoder_t,chirp_cdma_decoder_t,chirp_cdma_match_t,chirp_note_estimate_t(u16),chirp_peaks_t/chirp_peak_t,chirp_scorer_t(u64),chirp_voter_t}; encode {chirp_cdma_encoder_t,chirp_codebook_t(u8*),chirp_rms_t,chirp_decorator_t}; fft {chirp_maths_fft_init/deinit,double}; errors {"No frames selected to decode (is sustain period too short?)","payload contains unknown symbols","Preamble payload has too few symbols ... TODO: #741","Payload does not support symbol sizes beyond 64-bit","Preamble code is outside of symbol range","corrupt_random_symbols","symbol_bits will overflow a cast","failed to read fixed config and codebook"}; sdk {chirp_sdk_random_payload,chirp_sdk_get_info,_chirp_on_received_cdma}; playback {"Start chirping with unique device value:%d","current chirp output volume: %d","A chirp signal is already playing with playId %d","Stop chirp playId %d differ than m_chirpPlayId","Failed to stop chirp","Couldn't create a chirp audio stream","Error initializing chirp","Chirp setup failed - chirp sender does not exist!","Unable to play chirp"}; stream taps {as-dspin-ext-chirp,as-dspout-ext-chirp,ext-chirp-as,setup-chirp-as}; stream errors {stream_chirp_init_sync,lack_data_no_drain,read_err_full,read_err_part_data}; "Ignoring busy transition due to chirp only"; muse routes v1/players/{playerId}/roomDetection/chirp{,/{playId}} + household variants |
 | `chirp_stack` | **partial** | embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos-cdma' profile: used for room detection during setup — muse routes roomDetection/chirp (start/stop signalling with {playId}), DSP-routed audio streams as-dspin-ext-chirp/as-dspout-ext-chirp, a per-device unique payload ('Start chirping with unique device value:%d') and calibrated output volume ('Chirp volume not yet calibrated') |
 | `cloud_api_paths` | **partial** | paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent} + prefixes {households/,players/,services/,users/,groups/} + subs {/permissions,/extended}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue,targetType,targetid,reportFirmwareDownload} |
-| `cloud_queue` | **partial** | resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version} |
 | `cloud_synchronizer` | **partial** | cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d" |
 | `common_logger` | **partial** | keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.backup,logger,rsettings}; line fmt "\[%s \| %07ld%03ld\] <%s,%d> "; "Invalid log category name (%s), length: %zu, range \[%d, %d\]"; IO {stat/ferror/read failed}; E_ codes {E_INVALID_SETTING,E_UNSUPPORTED,E_NETWORK_DATA_ERROR,E_NETWORKIOERROR,E_NETWORKTIMEOUT,E_NETWORKOVERFLOW,E_INTERNALERROR,ADD_ME}; rapidjson errors {Invalid escape character,Surrogate pair invalid,Invalid encoding,Number too big for double,Miss fraction/exponent,Missing name/colon/comma,Parsing terminated,Unspecific syntax error,Missing closing quotation mark,Document empty,Document root not singular} |
 | `cpu_monitor` | **partial** | reads /proc/stat; header " \[%d\] usr sys idle sIRQ \| irqD dMS"; row " \[%d\]  %2u  %2u   %2u   %2u \| %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%" |
@@ -228,6 +227,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
 | `circuit_breaker` | **strong** | "%s CB state transition to \[CLOSED\]"/\[OPEN\]/\[SEMI_OPEN\]; musecommand; history.h |
 | `cloud` | **?** |  |
+| `cloud_queue` | **strong** | resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version} |
 | `cloud_registration` | **?** |  |
 | `cloud_services` | **strong** | host patterns {sslauth.sonos.com,https://%s-%s.lower-sslauth.sonos.com%s,https://%s.%s%s,lechmere.%s.ws.sonos.com,/firmware/swgen/%u/latest/}; service names {clientdata,crash-upload,feature-config,music-history,lechmere-v1,music-accounts,myaccount,oauth,player-device-files-ab,product-settings,recommendation,registration,service-catalog,sonos-nonprod,apigee.net,smart-play,system-api,system-api-diagnostics,transfer,translate,universal-search,msmetrics}; CSRFToken var |
 | `content_directory` | **strong** | dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:service:ContentDirectory:1}; locales {zh-CN,ja-JP}; event vars {SystemUpdateID,ContainerUpdateIDs,ShareIndexInProgress,ShareIndexLastError,FavoritesUpdateID,RadioFavoritesUpdateID,RadioLocationUpdateID,SavedQueuesUpdateID,ShareListUpdateID,cdMediaServer}; actions {Browse,CreateObject,DestroyObject,FindPrefix,GetAlbumArtistDisplayOption,GetAllPrefixLocations,GetBrowseable,GetLastIndexChange,GetSearchCapabilities,GetShareIndexInProgress,UpdateObject,SCHED}; args {BrowseDirectChildren,BrowseMetadata,BrowseFlag,RequestedCount,SortCriteria,NumberReturned,TotalMatches,ContainerID,Elements,CurrentTagValue,NewTagValue,SortOrder,TotalPrefixes,PrefixAndIndexCSV,Browseable,IsBrowseable,IsIndexing,SortCaps,SearchCaps}; logs {"UpdateObject returned %d; ObjectID: %s; Elements: %s","notifyUpdateID('%s', %u)","Bad Browse flag %s","Bad Object ID %s","Browse %s ObjectID: %s;","MetaData failed %d"}; DIDL URNs {upnp/\|class,upnp/\|albumArtURI,rinconnetworks/\|http,rinconnetworks/\|albumArtist,rinconnetworks/\|description} |
@@ -981,25 +981,6 @@ paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accou
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fba284 — cloudapi paths
-
-</details>
-
-## `cloud_queue`
-
-**coverage** `partial`
-
-Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (e.g. voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The lifecycle and reconciliation with the local queue are not yet decoded.
-
-**Technical description:**
-
-resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}
-
-- **name:** cloud-queue item-window API
-- **work_ops:** ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}
-- **fsm:** ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions "\[%s\]Changing State: %s(%d) to %s(%d)"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {"Retry-After (%ds) not allowed for explicit item request in state %s","Resetting due to unexpected state %s on retry","Will retry(%d) %s request in %d seconds after receiving http error code %d","Retry not allowed in state %s. The retries are exhuasted (count = %d)","request retry loop timed out, failing chsrc interaction","change poll interval to %lld sec"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {"Abort window request because desired itemId is unknown; waiting for skipToItem","refreshWindow is fetching first window","refreshWindow server does not support notification",window-edge-condition}; versioning {"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.","Cloud Queue API 'v%u' is unknown; use v%u with this player.","Cloud queue version is %s, at begin %d, at end %d"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10ec1f8c — cq window block
 
 </details>
 
@@ -4686,6 +4667,38 @@ The cloud-integration umbrella: API path construction, service hostnames, regist
 - **headers:** outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; "HTTP Header did not fit in char array"
 - **ssl_cache:** ssl_client_cache page + "private, max-age=15780000" + "Skipping HH SSL cache refresh - device is not idle" + "SSL client cache refresh next run in %ld seconds"
 - **fcs_gate:** "Disabling SSL client cache refresh per FCS"; "Loading SSL client cache after UTC time became available"; TrustDevCertChangedEvent
+## `cloud_queue`
+
+**coverage** `strong`
+
+Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The windowed fetch protocol is now mapped: the player runs a 'cqfsm' state machine (POLL/PENDING/ERROR_RETRY/DONE/SUCCESS/MEDIA_ERROR/RESET plus the per-request states GET_VERSION, GET_CONTEXT, SCHEDULE_WINDOW, SCHEDULE_CONTEXT, GET_WINDOW, POST_RATE) and pulls three versioned resources from the queue's base URL: 'itemWindow?' (with isExplicit, previousWindowSize, upcomingWindowSize, heardItemId), 'context?', and 'version?'/'version?updateToken=true&'. Each window item carries itemId, actions, mediaUrl, the full audio-format block (mediaFormat, sampleRate, bitDepth, bitRate, numChannels, dolbyAtmos), reportId/privateData, positionMillisAtSegmentStart and a policies list. Playback reports post {timePlayed, durationPlayedMillis, timeSincePlaybackMillis} and ratings post to 'item/<id>/rating' with currentlyHeardItemId. Requests ride under the standard Sonos cloud headers (Bearer/authorisation tokens, X-Sonos-MS-Sig signature, X-Sonos-DeviceCert, X-Sonos-Playback-Id, X-Sonos-Device-Id, MAID, Accept-Language, group attribute/capability), honour Retry-After, and classify failures as Client error / Server error / Unexpected response / Server aborted connection. The per-item 'policies' bitfield values and the queue↔local-queue reconciliation path are the remaining undecoded pieces.
+
+**Technical description:**
+
+resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}
+
+- **name:** cloud-queue item-window API
+- **work_ops:** ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}
+- **fsm:** ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions "\[%s\]Changing State: %s(%d) to %s(%d)"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {"Retry-After (%ds) not allowed for explicit item request in state %s","Resetting due to unexpected state %s on retry","Will retry(%d) %s request in %d seconds after receiving http error code %d","Retry not allowed in state %s. The retries are exhuasted (count = %d)","request retry loop timed out, failing chsrc interaction","change poll interval to %lld sec"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {"Abort window request because desired itemId is unknown; waiting for skipToItem","refreshWindow is fetching first window","refreshWindow server does not support notification",window-edge-condition}; versioning {"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.","Cloud Queue API 'v%u' is unknown; use v%u with this player.","Cloud queue version is %s, at begin %d, at end %d"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm
+- **item_window_schema:**
+  - **request_urls:**
+    - **window:** 'itemWindow?' + query {isExplicit, previousWindowSize, upcomingWindowSize, heardItemId}
+    - **context:** 'context?'
+    - **version:** 'version?' and 'version?updateToken=true&'
+    - **rating:** 'item/%s/rating' (POST)
+    - **truncation:** 'Truncated item window resource: %s' / context / version — URL buffer cap errors
+  - **item_fields:** `itemId`, `actions`, `mediaUrl`, `mediaFormat`, `sampleRate`, `bitDepth`, `bitRate`, `numChannels`, `dolbyAtmos`, `reportId`, `privateData`, `positionMillisAtSegmentStart`, `policies`, `items`
+  - **play_report_fields:** `timePlayed`, `durationPlayedMillis`, `timeSincePlaybackMillis`, `'Truncated TimePlayed post for %s @ %s'`
+  - **rating_fields:** `currentlyHeardItemId`, `'Truncated rating post for %s'`
+  - **headers:** `X-Updated-Authorization:`, `X-Goog-Updated-Authorization:`, `Retry-After:`, `X-Sonos-MS-Sig:`, `Bearer`, `AUTHORIZATION:`, `X-Sonos-DeviceCert:`, `X-Sonos-Context-TimeZone:`, `X-Sonos-MAID:`, `X-Sonos-Accept-Language:`, `X-Sonos-GroupAttribute:`, `X-Sonos-GroupCapability:`
+  - **error_taxonomy:** `Client error`, `Server error`, `Unexpected response`, `Server aborted connection`, `ERROR_LSE`
+  - **provenance:** literal cluster .rodata 0x10ec1e64-0x10ec2288 — the CQ HTTP request builder + item/report field names
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec1f8c — cq window block
+
+</details>
+
 ## `cloud_registration`
 
 **coverage** `?`

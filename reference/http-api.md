@@ -304,7 +304,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **description:** dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit\|delete} → "Statement installed."/"Statement removed." — signed statement mechanism
   - **/support:**
     - **detail:** ZPSupportInfo XML: <ZPSupportInfo><ZPNetworkInfo type="%s" %s="%s"><ZPSupportItem title="%s">… exec pages wrap <Command cmdline="…"> + /tmp/diagstdout+/tmp/diagstdin + <!-- SDT: %ld ms -->; path allowlist {/jffs/app/log,/jffs/app/settings,/jffs,/opt/log,/opt,/tmp,/var} + ambient caps dropped + child read timeout; application/octet downloads; CDATA escapes
-- **description:** Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 write-capable (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).
+- **description:** Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 prefix-mount (sub-dispatcher) (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).
 - **route_semantics:**
   - **/accounts:** worker f_101b6edc: account-list doc ; emits <AccountsInfo> (f_10291974)
   - **/activeZones:** worker f_10188b88: active-zones list
@@ -819,7 +819,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/upnp:** f_105eb0b4
     - **/wireless:** f_105eab50
     - **/zp:** f_100bfbac (flag 1)
-  - **flag_hypothesis:** flag reads as a bitmask: bit1(0x2)=GET-eligible (set on nearly every page), bit2(0x4)=POST-capable (flag 6 on /scanresults,/playmode,/opt/log/mdnsd.log), bit7(0x80)=API/JSON-style dispatch (0x82 on /api,/cloudqueue,/leds), flag=1 on /zp,/VERSION,/ifconfig possibly unauthenticated/plain-text; 0x43/0x46 outliers on /proc/ath_rincon pages (extra caps 0x40+3/6); INFERRED from flag distribution — the matcher fn that tests the bits not yet located
+  - **flag_hypothesis:** superseded by flags_decode_attempt: flags are a per-page bitmask shared across handler/exec/file families (not page-type); 0x80 = prefix-mount. Best current hypothesis: support-bundle section mask - the flag-bit comparison site was not located statically.
 - **page_schemas:**
   - **provenance:** emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)
   - **schemas:**

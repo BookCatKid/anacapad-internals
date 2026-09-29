@@ -109700,7 +109700,7 @@
      "detail": "ZPSupportInfo XML: <ZPSupportInfo><ZPNetworkInfo type=\"%s\" %s=\"%s\"><ZPSupportItem title=\"%s\">\u2026 exec pages wrap <Command cmdline=\"\u2026\"> + /tmp/diagstdout+/tmp/diagstdin + <!-- SDT: %ld ms -->; path allowlist {/jffs/app/log,/jffs/app/settings,/jffs,/opt/log,/opt,/tmp,/var} + ambient caps dropped + child read timeout; application/octet downloads; CDATA escapes"
     }
    },
-   "description": " Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 write-capable (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).",
+   "description": " Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 prefix-mount (sub-dispatcher) (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).",
    "route_semantics": {
     "/accounts": "worker f_101b6edc: account-list doc ; emits <AccountsInfo> (f_10291974)",
     "/activeZones": "worker f_10188b88: active-zones list",
@@ -110467,7 +110467,7 @@
      "/wireless": "f_105eab50",
      "/zp": "f_100bfbac (flag 1)"
     },
-    "flag_hypothesis": "flag reads as a bitmask: bit1(0x2)=GET-eligible (set on nearly every page), bit2(0x4)=POST-capable (flag 6 on /scanresults,/playmode,/opt/log/mdnsd.log), bit7(0x80)=API/JSON-style dispatch (0x82 on /api,/cloudqueue,/leds), flag=1 on /zp,/VERSION,/ifconfig possibly unauthenticated/plain-text; 0x43/0x46 outliers on /proc/ath_rincon pages (extra caps 0x40+3/6); INFERRED from flag distribution \u2014 the matcher fn that tests the bits not yet located"
+    "flag_hypothesis": "superseded by flags_decode_attempt: flags are a per-page bitmask shared across handler/exec/file families (not page-type); 0x80 = prefix-mount. Best current hypothesis: support-bundle section mask - the flag-bit comparison site was not located statically."
    },
    "page_schemas": {
     "provenance": "emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)",
@@ -117561,7 +117561,7 @@
   },
   "cloud_queue": {
    "name": "cloud-queue item-window API",
-   "status": "partial",
+   "status": "strong",
    "summary": "resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}",
    "evidence": [
     {
@@ -117572,7 +117572,64 @@
     }
    ],
    "work_ops": "ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}",
-   "fsm": "ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions \"[%s]Changing State: %s(%d) to %s(%d)\"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params \"requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'\"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {\"Retry-After (%ds) not allowed for explicit item request in state %s\",\"Resetting due to unexpected state %s on retry\",\"Will retry(%d) %s request in %d seconds after receiving http error code %d\",\"Retry not allowed in state %s. The retries are exhuasted (count = %d)\",\"request retry loop timed out, failing chsrc interaction\",\"change poll interval to %lld sec\"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {\"Abort window request because desired itemId is unknown; waiting for skipToItem\",\"refreshWindow is fetching first window\",\"refreshWindow server does not support notification\",window-edge-condition}; versioning {\"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.\",\"Cloud Queue API 'v%u' is unknown; use v%u with this player.\",\"Cloud queue version is %s, at begin %d, at end %d\"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm"
+   "fsm": "ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions \"[%s]Changing State: %s(%d) to %s(%d)\"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params \"requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'\"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {\"Retry-After (%ds) not allowed for explicit item request in state %s\",\"Resetting due to unexpected state %s on retry\",\"Will retry(%d) %s request in %d seconds after receiving http error code %d\",\"Retry not allowed in state %s. The retries are exhuasted (count = %d)\",\"request retry loop timed out, failing chsrc interaction\",\"change poll interval to %lld sec\"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {\"Abort window request because desired itemId is unknown; waiting for skipToItem\",\"refreshWindow is fetching first window\",\"refreshWindow server does not support notification\",window-edge-condition}; versioning {\"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.\",\"Cloud Queue API 'v%u' is unknown; use v%u with this player.\",\"Cloud queue version is %s, at begin %d, at end %d\"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm",
+   "item_window_schema": {
+    "request_urls": {
+     "window": "'itemWindow?' + query {isExplicit, previousWindowSize, upcomingWindowSize, heardItemId}",
+     "context": "'context?'",
+     "version": "'version?' and 'version?updateToken=true&'",
+     "rating": "'item/%s/rating' (POST)",
+     "truncation": "'Truncated item window resource: %s' / context / version \u2014 URL buffer cap errors"
+    },
+    "item_fields": [
+     "itemId",
+     "actions",
+     "mediaUrl",
+     "mediaFormat",
+     "sampleRate",
+     "bitDepth",
+     "bitRate",
+     "numChannels",
+     "dolbyAtmos",
+     "reportId",
+     "privateData",
+     "positionMillisAtSegmentStart",
+     "policies",
+     "items"
+    ],
+    "play_report_fields": [
+     "timePlayed",
+     "durationPlayedMillis",
+     "timeSincePlaybackMillis",
+     "'Truncated TimePlayed post for %s @ %s'"
+    ],
+    "rating_fields": [
+     "currentlyHeardItemId",
+     "'Truncated rating post for %s'"
+    ],
+    "headers": [
+     "X-Updated-Authorization:",
+     "X-Goog-Updated-Authorization:",
+     "Retry-After:",
+     "X-Sonos-MS-Sig: ",
+     "Bearer ",
+     "AUTHORIZATION: ",
+     "X-Sonos-DeviceCert: ",
+     "X-Sonos-Context-TimeZone: ",
+     "X-Sonos-MAID: ",
+     "X-Sonos-Accept-Language: ",
+     "X-Sonos-GroupAttribute: ",
+     "X-Sonos-GroupCapability: "
+    ],
+    "error_taxonomy": [
+     "Client error",
+     "Server error",
+     "Unexpected response",
+     "Server aborted connection",
+     "ERROR_LSE"
+    ],
+    "provenance": "literal cluster .rodata 0x10ec1e64-0x10ec2288 \u2014 the CQ HTTP request builder + item/report field names"
+   }
   },
   "dsp_ht_engine": {
    "status": "partial",

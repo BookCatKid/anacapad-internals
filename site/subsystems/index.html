@@ -884,17 +884,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cloud_queue" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>cloud_queue</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#cloud_synchronizer" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2967,6 +2956,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>cloud</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloud_queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>cloud_queue</code>
       </span>
     </span>
   </a>
@@ -5002,17 +5002,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cloud_queue" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>cloud_queue</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#cloud_synchronizer" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -7092,6 +7081,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cloud_queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>cloud_queue</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cloud_registration" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -8317,11 +8317,6 @@
 <td>paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent} + prefixes {households/,players/,services/,users/,groups/} + subs {/permissions,/extended}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue,targetType,targetid,reportFirmwareDownload}</td>
 </tr>
 <tr>
-<td><code>cloud_queue</code></td>
-<td><strong>partial</strong></td>
-<td>resources {itemWindow?,context?,version?,version?updateToken=true&amp;}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}</td>
-</tr>
-<tr>
 <td><code>cloud_synchronizer</code></td>
 <td><strong>partial</strong></td>
 <td>cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d"</td>
@@ -9270,6 +9265,11 @@
 <td><code>cloud</code></td>
 <td><strong>?</strong></td>
 <td></td>
+</tr>
+<tr>
+<td><code>cloud_queue</code></td>
+<td><strong>strong</strong></td>
+<td>resources {itemWindow?,context?,version?,version?updateToken=true&amp;}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}</td>
 </tr>
 <tr>
 <td><code>cloud_registration</code></td>
@@ -10316,22 +10316,6 @@
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fba284 — cloudapi paths
-
-</details>
-
-<h2 id="cloud_queue"><code>cloud_queue</code><a class="headerlink" href="#cloud_queue" title="Permanent link">&para;</a></h2>
-<p><strong>coverage</strong> <code>partial</code></p>
-<p>Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (e.g. voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The lifecycle and reconciliation with the local queue are not yet decoded.</p>
-<p><strong>Technical description:</strong></p>
-<p>resources {itemWindow?,context?,version?,version?updateToken=true&amp;}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}</p>
-<ul>
-<li><strong>name:</strong> cloud-queue item-window API</li>
-<li><strong>work_ops:</strong> ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}</li>
-<li><strong>fsm:</strong> ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions "[%s]Changing State: %s(%d) to %s(%d)"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {"Retry-After (%ds) not allowed for explicit item request in state %s","Resetting due to unexpected state %s on retry","Will retry(%d) %s request in %d seconds after receiving http error code %d","Retry not allowed in state %s. The retries are exhuasted (count = %d)","request retry loop timed out, failing chsrc interaction","change poll interval to %lld sec"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {"Abort window request because desired itemId is unknown; waiting for skipToItem","refreshWindow is fetching first window","refreshWindow server does not support notification",window-edge-condition}; versioning {"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.","Cloud Queue API 'v%u' is unknown; use v%u with this player.","Cloud queue version is %s, at begin %d, at end %d"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm</li>
-</ul>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10ec1f8c — cq window block
 
 </details>
 
@@ -13551,6 +13535,37 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <li><strong>ssl_cache:</strong> ssl_client_cache page + "private, max-age=15780000" + "Skipping HH SSL cache refresh - device is not idle" + "SSL client cache refresh next run in %ld seconds"</li>
 <li><strong>fcs_gate:</strong> "Disabling SSL client cache refresh per FCS"; "Loading SSL client cache after UTC time became available"; TrustDevCertChangedEvent</li>
 </ul>
+<h2 id="cloud_queue"><code>cloud_queue</code><a class="headerlink" href="#cloud_queue" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>strong</code></p>
+<p>Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The windowed fetch protocol is now mapped: the player runs a 'cqfsm' state machine (POLL/PENDING/ERROR_RETRY/DONE/SUCCESS/MEDIA_ERROR/RESET plus the per-request states GET_VERSION, GET_CONTEXT, SCHEDULE_WINDOW, SCHEDULE_CONTEXT, GET_WINDOW, POST_RATE) and pulls three versioned resources from the queue's base URL: 'itemWindow?' (with isExplicit, previousWindowSize, upcomingWindowSize, heardItemId), 'context?', and 'version?'/'version?updateToken=true&amp;'. Each window item carries itemId, actions, mediaUrl, the full audio-format block (mediaFormat, sampleRate, bitDepth, bitRate, numChannels, dolbyAtmos), reportId/privateData, positionMillisAtSegmentStart and a policies list. Playback reports post {timePlayed, durationPlayedMillis, timeSincePlaybackMillis} and ratings post to 'item/<id>/rating' with currentlyHeardItemId. Requests ride under the standard Sonos cloud headers (Bearer/authorisation tokens, X-Sonos-MS-Sig signature, X-Sonos-DeviceCert, X-Sonos-Playback-Id, X-Sonos-Device-Id, MAID, Accept-Language, group attribute/capability), honour Retry-After, and classify failures as Client error / Server error / Unexpected response / Server aborted connection. The per-item 'policies' bitfield values and the queue↔local-queue reconciliation path are the remaining undecoded pieces.</p>
+<p><strong>Technical description:</strong></p>
+<p>resources {itemWindow?,context?,version?,version?updateToken=true&amp;}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}</p>
+<ul>
+<li><strong>name:</strong> cloud-queue item-window API</li>
+<li><strong>work_ops:</strong> ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}</li>
+<li><strong>fsm:</strong> ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions "[%s]Changing State: %s(%d) to %s(%d)"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {"Retry-After (%ds) not allowed for explicit item request in state %s","Resetting due to unexpected state %s on retry","Will retry(%d) %s request in %d seconds after receiving http error code %d","Retry not allowed in state %s. The retries are exhuasted (count = %d)","request retry loop timed out, failing chsrc interaction","change poll interval to %lld sec"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {"Abort window request because desired itemId is unknown; waiting for skipToItem","refreshWindow is fetching first window","refreshWindow server does not support notification",window-edge-condition}; versioning {"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.","Cloud Queue API 'v%u' is unknown; use v%u with this player.","Cloud queue version is %s, at begin %d, at end %d"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm</li>
+<li><strong>item_window_schema:</strong></li>
+<li><strong>request_urls:</strong><ul>
+<li><strong>window:</strong> 'itemWindow?' + query {isExplicit, previousWindowSize, upcomingWindowSize, heardItemId}</li>
+<li><strong>context:</strong> 'context?'</li>
+<li><strong>version:</strong> 'version?' and 'version?updateToken=true&amp;'</li>
+<li><strong>rating:</strong> 'item/%s/rating' (POST)</li>
+<li><strong>truncation:</strong> 'Truncated item window resource: %s' / context / version — URL buffer cap errors</li>
+</ul>
+</li>
+<li><strong>item_fields:</strong> <code>itemId</code>, <code>actions</code>, <code>mediaUrl</code>, <code>mediaFormat</code>, <code>sampleRate</code>, <code>bitDepth</code>, <code>bitRate</code>, <code>numChannels</code>, <code>dolbyAtmos</code>, <code>reportId</code>, <code>privateData</code>, <code>positionMillisAtSegmentStart</code>, <code>policies</code>, <code>items</code></li>
+<li><strong>play_report_fields:</strong> <code>timePlayed</code>, <code>durationPlayedMillis</code>, <code>timeSincePlaybackMillis</code>, <code>'Truncated TimePlayed post for %s @ %s'</code></li>
+<li><strong>rating_fields:</strong> <code>currentlyHeardItemId</code>, <code>'Truncated rating post for %s'</code></li>
+<li><strong>headers:</strong> <code>X-Updated-Authorization:</code>, <code>X-Goog-Updated-Authorization:</code>, <code>Retry-After:</code>, <code>X-Sonos-MS-Sig:</code>, <code>Bearer</code>, <code>AUTHORIZATION:</code>, <code>X-Sonos-DeviceCert:</code>, <code>X-Sonos-Context-TimeZone:</code>, <code>X-Sonos-MAID:</code>, <code>X-Sonos-Accept-Language:</code>, <code>X-Sonos-GroupAttribute:</code>, <code>X-Sonos-GroupCapability:</code></li>
+<li><strong>error_taxonomy:</strong> <code>Client error</code>, <code>Server error</code>, <code>Unexpected response</code>, <code>Server aborted connection</code>, <code>ERROR_LSE</code></li>
+<li><strong>provenance:</strong> literal cluster .rodata 0x10ec1e64-0x10ec2288 — the CQ HTTP request builder + item/report field names</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec1f8c — cq window block
+
+</details>
+
 <h2 id="cloud_registration"><code>cloud_registration</code><a class="headerlink" href="#cloud_registration" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
 <p>Cloud registration state machine: binds the player to a household online; <code>getRegistrationStatus</code> exposes progress; failures retry with backoff and leave local playback working.</p>
