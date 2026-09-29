@@ -107213,6 +107213,31 @@
     "n[]",
     "m[]"
    ]
+  },
+  "vli_mimes": {
+   "description": "VLI/queue accepted MIME whitelist",
+   "fields": [
+    "audio/x-aiff",
+    "audio/flac",
+    "audio/mp4",
+    "audio/x-m4a",
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/mpeg3",
+    "application/ogg",
+    "audio/ogg",
+    "audio/x-spotify-ogg",
+    "audio/x-wav",
+    "audio/vnd.wave",
+    "audio/wma",
+    "audio/x-ms-wma",
+    "audio/x-mpegurl",
+    "audio/mpegurl",
+    "application/x-mpegurl",
+    "application/vnd.apple.mpegurl",
+    "audio/L16",
+    "application/dash+xml"
+   ]
   }
  },
  "firmware_differences": {
@@ -120906,7 +120931,8 @@
   },
   "content_directory": {
    "container_classes": "browse classes {object.container.album.musicAlbum,.compilation,playlistContainer.sameArtist,playlistContainer,albumlist,person.musicArtist,genre.musicGenre,person.composer}; fields {dc:creator,upnp:albumArtURI}; category keys {ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS}; dirObjAttr; <AudioCore> page + OrientationChangeEvent",
-   "didl_objects": "res protocolInfo x-rincon-queue:*:*:*; rincon md ns usernameX/passwordX (SMB creds in metadata); SQ:%d; object types {dirObjShares,dirObjQueue,dirObjQueueQueue,dirObjSavedQueueTrack,dirObjSavedQueue,directory}; \"cannot set queues (container size exceeded %d, already set %d)\"; mntmgr \"createObject: invalid share %s\""
+   "didl_objects": "res protocolInfo x-rincon-queue:*:*:*; rincon md ns usernameX/passwordX (SMB creds in metadata); SQ:%d; object types {dirObjShares,dirObjQueue,dirObjQueueQueue,dirObjSavedQueueTrack,dirObjSavedQueue,directory}; \"cannot set queues (container size exceeded %d, already set %d)\"; mntmgr \"createObject: invalid share %s\"",
+   "album_art": "fetch files {folder.jpg,Folder.jpg,folder.gif,Folder.gif} + WMP \"%s/AlbumArt_{GUID}_Large.jpg\"; image/jpg+image/gif; \"image read failed (to=%d r=%zu tr=%zu)\"; ID3v1 genre table present (Blues..Hard Rock standard list)"
   },
   "audio_stream_mixer": {
    "name": "audio_stream + mixing_threaded \u2014 per-stream mixer",
@@ -121092,6 +121118,42 @@
      "status": "confirmed",
      "address": "0x10ebe644",
      "notes": "dropout handler block"
+    }
+   ]
+  },
+  "vli_ctrl": {
+   "name": "VliCtrl \u2014 VLI transport ctrl interface",
+   "status": "partial",
+   "summary": "types {AirPlay,bluetooth/Bluetooth,tvproxy/TV Proxy} + \"StartSession for unusable/unknown type\"; scoped scopeVliCtrl/VliCtrlIx; protocolInfo x-sonos-vli:*:audio:*; cookie+fromSender tracking \"%s:%d vliType %s cookie: %d\"; \"waiting for tx flags failed\"/\"completion signal timed out %#x %#x\" + \"timed out!!!!!!!\"; \"VLIGroupIDs cannot contain commas\"",
+   "events": [
+    "VliTransportAction(action)",
+    "AvtHaltActionEvent(action,vliType,cookie,fromSender)",
+    "AvtVliActionEvent",
+    "VolumeSetActionEvent(vol,mute,from_sonos,vligrouping)",
+    "GroupVolumeSetActionEvent(vol,mute,from_sonos,vligrouping)",
+    "VolumeChangedEvent(vli source,vol,mute,vligrouping)",
+    "VliPropertiesChangedEvent(name|md|mode,cookie)"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ecc104",
+     "notes": "VliCtrl block"
+    }
+   ]
+  },
+  "didl_extractor": {
+   "name": "RTrackDIDLLiteMdExtractor \u2014 track DIDL parser",
+   "status": "partial",
+   "summary": "rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd,streamContent,audioInputIcon,radioShowMd,streamInfo,rating,policies,podcast,episodeNumber,releaseDate,narrator,albumArtist,numSections} + upnp {originalTrackNumber,album}; classes {object.item.audioItem.podcast,.show,.audioBook.chapter,.musicTrack.recentShow}; loadFromExtraMd(trackURI,extraMd); extractMimeTypeFromHttpContentType (trunc/mtParams errors); protocolInfos {http-get,rtsp-rtp-udp,x-sonos-vli:*:audio:*,x-rincon-queue:*:*:*}; \" duration=\" attr; &#10; newline; -yYy- marker",
+   "uri_service_map": "{x-rincon-mp3radio,x-rincon-internal,x-rincon-buzzer,sonos.com-{hls-static,hls-radio,hls-aac,rtrecent,spotify,http,mms},x-sonosapi-iqradio,audio/x-sonos-recent,pandora.com-{pndrradio-http,pndrradioad},real.com-{rhapsody-direct,rhapsody-http-1-0},sirius.com-sirradio,last.fm-radio-http,https:,file:,rhap:,radio-{rhap,radea,npsdy}:,pndrradio-http://,pndrradioad://,lfmtrack:,x-sonos-dock:,hls-static://}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ecc67c",
+     "notes": "didl extractor block"
     }
    ]
   }

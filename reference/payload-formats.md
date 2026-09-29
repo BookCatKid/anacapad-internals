@@ -1004,6 +1004,12 @@ UPnP search-criteria grammar accepted by CD search: upnp:class = "object.contain
 
 </details>
 
+## `vli_mimes` _unassessed_
+
+VLI/queue accepted MIME whitelist
+
+Fields: `audio/x-aiff`, `audio/flac`, `audio/mp4`, `audio/x-m4a`, `audio/mpeg`, `audio/mp3`, `audio/mpeg3`, `application/ogg`, `audio/ogg`, `audio/x-spotify-ogg`, `audio/x-wav`, `audio/vnd.wave`, `audio/wma`, `audio/x-ms-wma`, `audio/x-mpegurl`, `audio/mpegurl`, `application/x-mpegurl`, `application/vnd.apple.mpegurl`, `audio/L16`, `application/dash+xml`
+
 ## `zone_audio_state` `confirmed`
 
 The per-zone audio state block — the 37-field EQ/DSP/volume schema used in status docs.
