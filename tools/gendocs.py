@@ -1062,6 +1062,20 @@ def render_muse(m):
                    + "; ".join("`%s` — %s" % (k, _e(v))
                                for k, v in mu["tables"].items()))
         out.append("")
+    out += ["## Op-object vtable spine", "",
+            "Every op is a C++ object sharing one vtable skeleton: "
+            "`+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate "
+            "(`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op "
+            "**execute** (unique per op class — shown as Exec in the "
+            "tables below), `+0x10` shared default, and `+0x14`..`+0x60` "
+            "a fixed hook ladder whose base defaults live at "
+            "`0x101c0638..0x101c06ac`. Ops override subsets of the hooks: "
+            "the low hooks read body params (`muted`, `volume`, ...), "
+            "higher hooks build forwarded requests (e.g. `setVolume` "
+            "overrides `+0x60` to emit `v1/players/{id}/playerVolume/mute` "
+            "and `v1/groups/{id}/groupVolume`). Each verb registers two "
+            "op classes — a player-channel variant and a fatter "
+            "household-channel variant.", ""]
     pipe = mu.get("pipeline") or {}
     if pipe:
         out += ["## Request pipeline", ""]
@@ -1105,17 +1119,27 @@ def render_muse(m):
         rows = []
         seen = set()
         fields_seen = []
+        msgs_seen = []
+        paths_seen = []
         for op in r.get("ops") or []:
             key = (op["method"], op["path"], op["verb"])
             if key in seen:
                 continue
             seen.add(key)
             impl = op.get("impl") or {}
-            execs = "`%s`" % impl["exec"] if impl.get("exec") else "—"
-            fields = op.get("op_fields") or []
-            for f_ in fields:
+            if impl.get("execs"):
+                execs = " ".join("`%s`" % x for x in impl["execs"])
+            else:
+                execs = "—"
+            for f_ in op.get("op_fields") or []:
                 if f_ not in fields_seen:
                     fields_seen.append(f_)
+            for m_ in op.get("op_msgs") or []:
+                if m_ not in msgs_seen:
+                    msgs_seen.append(m_)
+            for p_ in op.get("op_paths") or []:
+                if p_ not in paths_seen:
+                    paths_seen.append(p_)
             rows.append(["`%s`" % _e(op["method"]),
                          "`%s`" % _e(op["path"]),
                          "`%s`" % _e(op["verb"]),
@@ -1123,11 +1147,23 @@ def render_muse(m):
                          "`%s`" % _e(op["flags"]),
                          execs])
         _table(out, ["Method", "Path", "Op", "Trailing param",
-                     "Flags", "Exec"], rows)
+                     "Flags", "Exec (vtable +0x0c)"], rows)
         if fields_seen:
             out.append("Op-level JSON keys recovered from op-object "
                        "methods: %s"
                        % ", ".join("`%s`" % _e(x) for x in fields_seen))
+            out.append("")
+        if msgs_seen:
+            out.append("Validation / log strings recovered from "
+                       "op-object methods:")
+            out.append("")
+            for m_ in msgs_seen:
+                out.append("- `%s`" % _e(m_))
+            out.append("")
+        if paths_seen:
+            out.append("Route fragments these ops build or forward to: "
+                       "%s" % ", ".join("`%s`" % _e(p)
+                                        for p in paths_seen))
             out.append("")
         fv = r.get("field_vocab") or []
         if fv:
