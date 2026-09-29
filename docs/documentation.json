@@ -121798,7 +121798,7 @@
     "audio_pipeline_11029xxx": "0x11029a24(3f)/0x11029a74(4f)/0x11029c38(4f)/0x11029c98(4f)/0x11029cf4(2f)/0x11029d50(2f) - TrueplayService (sonos.coreaudio.trueplay.v1) request/response protos, v1alpha2"
    },
    "callers": "pb_decode/pb_encode/pb_ostream_from_buffer/pb_istream_from_buffer imported from libprotobuf-nanopb.so.0 (plt 0x11098690/0x110994a8/0x11098dd0/0x11098ce8); in-binary callers cluster in the SPDIF module (0x10e68xxx), the chproc/DSP region (0x10dd8xxx), Spotify eSDK (0x10ca8xxx,0x10ca9xxx) and the RPC engine (0x10c5bxxx) - consistent with SCI hw-bus messages, ChProcConfig/DSPConfig, eSDK protos and muse messages all sharing the codec",
-   "residual": "per-field names/types require full nanopb iter decode beyond the (tag<<2)|atype low byte; aux arrays now proven to be per-message submsg descriptor lists (0x10fbfaa8 verified on the 44-field envelope); message names must be correlated with the muse enum/proto-name registries; the 44-field envelope's proto identity not yet string-named",
+   "residual": "per-field names/types require full nanopb iter decode beyond the (tag<<2)|atype low byte; message names not stored - root msg 0x10fbee48 and envelope 0x10fbfa8c identities must be correlated with muse proto-name registries; remaining non-aux .sdata desc slots (the 0x40001204-flagged entries) unresolved",
    "evidence": [
     {
      "type": "firmware",
@@ -121818,7 +121818,7 @@
     "0x10fbf634": "9-field msg w/ OPT_FIX64 at tags 1,3,5,7,9 - sparse fixed64 metric fields (telemetry/histogram shape)",
     "type_semantics": "LTYPE map used: 0 VARINT/1 UVARINT/2 SVARINT/3 FIX32/4 FIX64/5 BYTES/6 STRING/7 SUBMSG/8 SUBMSG_CB; HTYPE: 0 REQ/1 OPT/2 REP/3 ONEOF - inferred, consistent with nanopb 0.4.x conventions"
    },
-   "submessage_graph": "aux arrays decode cleanly: the 44-field message @0x10fbfa8c has aux @0x10fbfaa8 = 43 ptrs to OTHER msgdescs (+NULL sentinel) spanning 0x10fbf29c-0x10fbfee4 - ~30 distinct submessage types, fields 0-2 share the same 1-field desc @0x10fbfee4. This makes 0x10fbfa8c the top-level container/envelope message of the muse-region schema set. Field stream is 2 u32/field with sequential tags (low byte (tag<<2)|atype, atype=1 dominant -> flat required-field struct)."
+   "submessage_graph": "aux arrays decode cleanly as per-message submsg descriptor lists. Graph recovered two levels deep: the ROOT muse message is 0x10fbee48 (8 fields, aux @0x10fbee64) whose fields bind subdescs {0x10fbfee4 x3 (the shared 1-field wrapper), 0x10fbfa8c (the 44-field envelope), 0x10fbf9b8 (15f), 0x10fbf970 (3f), 0x10fbee18 (2f)}. 0x10fbfa8c's own aux @0x10fbfaa8 = 43 ptrs to ~30 distinct subdescs spanning 0x10fbf29c-0x10fbfee4 (fields 0-2 again share 0x10fbfee4). NOTE: some descs' aux arrays live in .sdata (0x10fbee18->0x11095bec, 0x10fbfee4->0x11095d78) - part of what earlier looked like an .sdata 'descriptor registry' is actually relocated aux-pointer storage. Field streams are 2 u32/field, low byte (tag<<2)|atype, atype=1 dominant -> flat required-field structs."
   }
  },
  "subsystems": {
