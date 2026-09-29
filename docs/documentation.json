@@ -121755,7 +121755,9 @@
     ]
    },
    "type_registry": "alphabetical name table 0x10f975c0-0x10f98568 (203 entries) \u2014 candidate type-index namespace for spec-pair {0x82,b} entries",
-   "playervolume": "verbs {duck,unduck} at v1/players/%s/playerVolume/{duck,unduck}; setVolume \"cannot set volume AND mute parameter\"; setRelativeVolume \"cannot set volumeDelta AND muted parameter\"; fixed flag; v1/groups/ + v1/players/ + /playerVolume paths"
+   "playervolume": "verbs {duck,unduck} at v1/players/%s/playerVolume/{duck,unduck}; setVolume \"cannot set volume AND mute parameter\"; setRelativeVolume \"cannot set volumeDelta AND muted parameter\"; fixed flag; v1/groups/ + v1/players/ + /playerVolume paths",
+   "command_format": "muse command = JSON array [header object, body object]; \"failed to parse json body (offset: %u)\"; param validation emits MISSING_VALUE/UNEXPECTED_TYPE + range/coerce messages",
+   "client_auth": "schemes {wssmtls,httpsmtls}; audience v2.api.smartspeaker.audio; credentials {apikey,guest_token,guest_token_pin}; \"Policy key permissions length exceeds maximum size!\"; \"validateTargetIdV1: invalid target id: %s of type: %s.\"; \"Client auth exception\"; \"API key changed from [%.8s] to [%.8s]\"; \"Credential is missing\"; \"Secure connection required\"; \"Upnp command failed with return code\"; \"Error code not found in objectStatusMap\"; \"Api Key passed by client is too long..truncating.\"; MuseDebugInfo; providers {getActorProvider,getTargetIdProvider,getTargetValidator,MuseDeviceImplProvider}"
   },
   "iocompress": {
    "name": "iocompress \u2014 zlib buffers",
@@ -123038,14 +123040,14 @@
    ]
   },
   "http_client": {
-   "name": "asio HTTP client internals",
+   "name": "async HTTP client (curl multi + asio)",
    "status": "partial",
-   "summary": "asio.poll + 'Immediate connect on %d'; headers {X-Sonos-ErrorType,Transfer-Encoding(identity),Content-Length,Content-Encoding,ContentRange(bytes %zu-%zu/%zu,bytes %zu-/%zu)}; 1xx interim handling HTTP/1.1 1",
+   "summary": "sonos::http::performAsync; errors {\"not scheduled. No active thread pool available. Cancelling.\",\"Client not setup\",\"HTTP request attempted with empty URL\",\"Curl error (%d): %s\",\"Request timed out in %lld ms\",\"curl_multi_perform/poll/info_read\"}; perf counters {taskCount=tasks actively processed,mainLoopIteration=main loop time}; asio categories {generic,std:unknown,asio.netdb,asio.addrinfo,asio.misc}; netdb errors {Service not found,Socket type not supported,Host not found (authoritative)/(non-authoritative),\"query valid but no data\",\"non-recoverable database lookup\"}; misc {Already open,End of file,Element not found,\"descriptor does not fit into select fd_set\"}; io_service {epoll re-registration,Invalid service owner,Service already exists,sonosAsyncThreadPoolCond,sonosAsyncWorkGuard}",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10ee6d58",
+     "address": "0x10f92844",
      "notes": "http client"
     }
    ]
@@ -123339,6 +123341,58 @@
      "status": "confirmed",
      "address": "0x10e8c2a0",
      "notes": "ZGS MediaServers"
+    }
+   ]
+  },
+  "muse_errors": {
+   "name": "muse error-code registry",
+   "status": "strong",
+   "summary": "results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ERROR_PLAYBACK_FAILED,NO_CONTENT,NO_PLAYABLE_CONTENT,EXPLICIT_NOT_ALLOWED,EXPIRED_TOKEN,NOT_PLAYABLE,SPOTIFY_CONNECT,FAILURE_TO_ENQUEUE,CLOUD_QUEUE_SERVER,SKIP_LIMIT_REACHED,PLAYBACK_STREAM_LIMIT,PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE}; session {SESSION_IN_PROGRESS,JOIN_FAILED,EVICTED,INVALID_SESSION_ID,NOT_DESIGNATED_DEVICE}; accounts {PREFERRED_ACCOUNT_NOT_SET/NOT_FOUND,ACCOUNT_FULL,INVALID_ID,NO_DEFAULT_FOUND,REAUTH_REQUIRED,UPGRADE_REQUIRED,WRONG_SERVICE}; update {NO_UPDATE_AVAILABLE,INVALID_UPM_FORMAT,INSUFFICIENT_POWER_FOR_UPDATE,UPDATE_IN_PROGRESS}; misc {ALARM_NO_SPACE,ALARM_BAD_TIME_SERVER,AREAS_READ_ONLY,AUDIO_CLIP_ID_NOT_FOUND/_MEDIA_ERROR/_PAUSE_CONTENT_FAILED/_VOICE_ASSISTANT_PLAYING,CACHE_NOT_FOUND/_RECORD_NOT_FOUND,CANT_CONNECT[_REMOTE],DEVICE_ALREADY_REGISTERED/UNAVAILABLE,INVALID_ACTION,DOWNSTREAM_CONNECT_FAILED,SHARES_CONFLICT/NO_SUCH_SHARE/NO_SPACE/REQUEST_FAILED,STIMULUS_ALREADY_PLAYING,MICROPHONE_NOT_ENABLED,NO_POSITIONING_RESULTS,UNSUPPORTED_POSITIONING_REQUEST,SVC_DISABLED,TIMER_NOT_FOUND,UNSUPPORTED_VOLUME_MODE,INVALID_RESOURCE,ROOM_DETECTION_SIGNALLING_FAILED/BUSY,GROUP_CHANGED}; generic {COMMAND_FAILED/TIMEOUT,CONTENT_TYPE_NOT_SUPPORTED,DISALLOWED_BY_POLICY,INTERNAL,INVALID_AUTH_HEADER/CERT/OBJECT_ID/PARAMETER/SYNTAX/HEADER/LENGTH/TRANSPORT,TARGET_ID_NOT_FOUND,LOAD_COMMAND_FAILED,MISSING_PARAMETERS,NO_PERMISSION,NOT_AUTHORIZED,NOT_CAPABLE,PRECONDITION_FAILED,EXPECTATION_FAILED,QUEUE_FULL,RESOURCE_GONE/CONFLICT,REQUIRES_GROUP_COORDINATOR,SERVICE_NOT_AVAILABLE/CONFIGURED/SUPPORTED/UNAVAILABLE,UNSUPPORTED_NAMESPACE/COMMAND/REQUEST/REQUEST_METHOD,API_KEY_VALIDATION_FAILED,NYI,CMD_FUTURE,CMD_REMOVED,INSUFFICIENT_RESOURCES,INCORRECT_STATE,INCOMPATIBLE_API_VERSION,INCOMPATIBLE_CLIENT_VERSION}; param validation {MISSING_VALUE,UNEXPECTED_TYPE,\"Parameter failed timestamp validation\",\"not a valid Muse error code\",\"out of range: at or below minimum of/above maximum of\",\"Found unexpected array/object\",\"Missing required field\",\"Unable to coerce string to number/boolean\",\"number of entries below/above minimum/maximum\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f9508c",
+     "notes": "muse ERROR enum"
+    }
+   ]
+  },
+  "muse_events": {
+   "name": "muse event-type registry",
+   "status": "strong",
+   "summary": "{accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f960df",
+     "notes": "muse event types"
+    }
+   ]
+  },
+  "circuit_breaker": {
+   "name": "circuit breaker FSM",
+   "status": "strong",
+   "summary": "\"%s CB state transition to [CLOSED]\"/[OPEN]/[SEMI_OPEN]; musecommand; history.h",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f94550",
+     "notes": "CB FSM"
+    }
+   ]
+  },
+  "common_logger": {
+   "name": "common_logger config",
+   "status": "partial",
+   "summary": "keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.backup,logger,rsettings}; line fmt \"[%s | %07ld%03ld] <%s,%d> \"; \"Invalid log category name (%s), length: %zu, range [%d, %d]\"; IO {stat/ferror/read failed}; E_ codes {E_INVALID_SETTING,E_UNSUPPORTED,E_NETWORK_DATA_ERROR,E_NETWORKIOERROR,E_NETWORKTIMEOUT,E_NETWORKOVERFLOW,E_INTERNALERROR,ADD_ME}; rapidjson errors {Invalid escape character,Surrogate pair invalid,Invalid encoding,Number too big for double,Miss fraction/exponent,Missing name/colon/comma,Parsing terminated,Unspecific syntax error,Missing closing quotation mark,Document empty,Document root not singular}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f933f8",
+     "notes": "logger+json"
     }
    ]
   }
