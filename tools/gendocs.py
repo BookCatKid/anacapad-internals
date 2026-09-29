@@ -1163,6 +1163,9 @@ def render_muse(m):
                 execs = "resource-block"
             else:
                 execs = "—"
+            if op.get("desc_execs"):
+                execs += " desc:`%s`" % "` `".join(
+                    x[2:] for x in op["desc_execs"])
             for f_ in op.get("op_fields") or []:
                 if f_ not in fields_seen:
                     fields_seen.append(f_)
