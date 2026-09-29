@@ -3782,6 +3782,7 @@ The telemetry umbrella: the event pipeline feeding usage metrics, dropout events
 PlayerButtons + TelemetryBasePlayer + TelemetryCategoryContext + telemetry tag; fields {event_id,event_name,event_schema_version,household_id,model_type,muse_household_id,serial_number,sonos_id,sw_build_type,sw_full_version,timestamp_utc,audio_type}; "PlayerButtons missing required field %s"; T1.0 vs T2.0 event schema split: 'T2.0 event callback triggered: name: %s, Category: %s, nameSchemaVer: %s' vs 'T1.0 event callback triggered: name %s category %s'; uploader config keys {defaultUploader,optOutExemptUploader,reportIntervalSec,uploader-ref}
 
 - **name:** telemetry — event schema
+- **shipped_config:** opt/conf/zpMetricsConfigV2.xml rev=13: 104 categories; only 3 default ON — nowplaying.playReport (optOutExempt uploader), zpAM.maintenance, quarantining; everything else (all muse.* subscribe/unsubscribe/getVolume/duck/getPlaybackStatus, all upnp.* GetMute/GetPositionInfo/SetRoomCalibrationStatus/ReportUnresponsiveDevice/reportPlaySeconds/etc.) is OFF — usage telemetry is near-silent by default. Comment in file: 'DO NOT CHANGE THIS ORDER, as old (S1) players only load up to a certain point' — the category table is POSITIONALLY parsed for S1 compat.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ec7290 — telemetry block
