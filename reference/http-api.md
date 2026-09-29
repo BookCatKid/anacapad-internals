@@ -785,7 +785,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
 - **page_schemas:**
   - **provenance:** emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)
   - **schemas:**
-    - **/zp:** <ZPInfo>{ZoneName,ZoneIcon,Configuration,LocalUID,SerialNumber,SoftwareVersion,BuildType,SWGen,SoftwareDate,SoftwareScm,HHSwgenState,MinCompatibleVersion,...}</ZPInfo>
+    - **/zp:** <ZPInfo>{ZoneName,ZoneIcon,Configuration,LocalUID,SerialNumber,SoftwareVersion,BuildType,SWGen,SoftwareDate,SoftwareScm,HHSwgenState,MinCompatibleVersion,...}</ZPInfo> \| additional dp_impl fields: WirelessMode ConnectionType ChannelFreq BehindWifiExtender WifiEnabled EthLink SettingsReplicationState SecureRegState IsIdle MoreInfo RawBattPct BattPct BattChg BattTmp BtSrcName; <ZPNetworkInfo type=User> + START/END UUID markers + unreachable flag
     - **/device:** <DeviceInfo>{ZoneName,NetworkHash,DHCPServerMac,NetworkIPAddress,NetworkMask,DiagLevel,DevMode}</DeviceInfo>
     - **/alarm:** <Alarm>{Mode,Scheduler,UTCTime,LocalTime,Pending{PendingAlarm\[ID,Type,Time,TimeUTC\]}}</Alarm>
     - **/update:** <UpdateInfo>{AutoUpdate,State,Window(%02u:%02u:%02u - %02u:%02u:%02u),UpgradeManager,HoursPending,ActiveDeviceList}</UpdateInfo>
@@ -799,7 +799,10 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/playmode:** <Playmode>{Shuffle,Repeat,Crossfade}</Playmode>
     - **/temperature:** <TemperatureHistograms>{CPUTemperature}</TemperatureHistograms>
     - **/tracks_summary:** <TrackSummary>{Tables{Table\[name,max,count\]},StoreSize,StoreUsed,EntriesSize,EntriesUsed,Conflicts}</TrackSummary>
-    - **/enetports:** <EnetPorts>{Port\[port\]{Link,Speed}}</EnetPorts>
+    - **/enetports:**
+      - **schema:** <EnetPorts><Port port=%d><Link>%d</Link><Speed>%d%s</Speed></Port>...</EnetPorts>
+      - **fields:** `port`, `Link`, `Speed + unit suffix`
+      - **confidence:** PROVEN (dp_impl 0x10ef3494)
     - **/cpumon:** <CpuMonitor>
     - **/hardwareevents:** <HardwareStatusInfo>
     - **/upnp:** <Subscriptions>
@@ -835,7 +838,10 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/accounts:**
       - **render:** f_101b6edc adjustor thunk this+=280 -> f_10427174
       - **confidence:** PROVEN mechanism; module is SMB/share-account code (literals are share-connect errors), member-dump output
-  - **unresolved_pages:** /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /renderingcontrol /settings/* /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
+    - **/ethportstatistics:**
+      - **schema:** EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions} + EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr} read from /sys/class/net/eth0 (eth%u)
+      - **confidence:** PROVEN literals (dp_impl 0x10ef34e0-0x10ef35e8)
+  - **unresolved_pages:** /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /hls /htconfig /renderingcontrol /settings/* /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
 - **admin_post_endpoints:**
   - **provenance:** master route table {name*,handler*} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
   - **endpoints:**

@@ -2932,7 +2932,7 @@
 - <strong>page_schemas:</strong>
   - <strong>provenance:</strong> emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)
   - <strong>schemas:</strong>
-- <strong>/zp:</strong> <ZPInfo>{ZoneName,ZoneIcon,Configuration,LocalUID,SerialNumber,SoftwareVersion,BuildType,SWGen,SoftwareDate,SoftwareScm,HHSwgenState,MinCompatibleVersion,...}</ZPInfo>
+- <strong>/zp:</strong> <ZPInfo>{ZoneName,ZoneIcon,Configuration,LocalUID,SerialNumber,SoftwareVersion,BuildType,SWGen,SoftwareDate,SoftwareScm,HHSwgenState,MinCompatibleVersion,...}</ZPInfo> | additional dp_impl fields: WirelessMode ConnectionType ChannelFreq BehindWifiExtender WifiEnabled EthLink SettingsReplicationState SecureRegState IsIdle MoreInfo RawBattPct BattPct BattChg BattTmp BtSrcName; <ZPNetworkInfo type=User> + START/END UUID markers + unreachable flag
 - <strong>/device:</strong> <DeviceInfo>{ZoneName,NetworkHash,DHCPServerMac,NetworkIPAddress,NetworkMask,DiagLevel,DevMode}</DeviceInfo>
 - <strong>/alarm:</strong> <Alarm>{Mode,Scheduler,UTCTime,LocalTime,Pending{PendingAlarm[ID,Type,Time,TimeUTC]}}</Alarm>
 - <strong>/update:</strong> <UpdateInfo>{AutoUpdate,State,Window(%02u:%02u:%02u - %02u:%02u:%02u),UpgradeManager,HoursPending,ActiveDeviceList}</UpdateInfo>
@@ -2946,7 +2946,10 @@
 - <strong>/playmode:</strong> <Playmode>{Shuffle,Repeat,Crossfade}</Playmode>
 - <strong>/temperature:</strong> <TemperatureHistograms>{CPUTemperature}</TemperatureHistograms>
 - <strong>/tracks_summary:</strong> <TrackSummary>{Tables{Table[name,max,count]},StoreSize,StoreUsed,EntriesSize,EntriesUsed,Conflicts}</TrackSummary>
-- <strong>/enetports:</strong> <EnetPorts>{Port[port]{Link,Speed}}</EnetPorts>
+- <strong>/enetports:</strong>
+  - <strong>schema:</strong> <EnetPorts><Port port=%d><Link>%d</Link><Speed>%d%s</Speed></Port>...</EnetPorts>
+  - <strong>fields:</strong> <code>port</code>, <code>Link</code>, <code>Speed + unit suffix</code>
+  - <strong>confidence:</strong> PROVEN (dp_impl 0x10ef3494)
 - <strong>/cpumon:</strong> <CpuMonitor>
 - <strong>/hardwareevents:</strong> <HardwareStatusInfo>
 - <strong>/upnp:</strong> <Subscriptions>
@@ -2982,7 +2985,10 @@
 - <strong>/accounts:</strong>
   - <strong>render:</strong> f_101b6edc adjustor thunk this+=280 -&gt; f_10427174
   - <strong>confidence:</strong> PROVEN mechanism; module is SMB/share-account code (literals are share-connect errors), member-dump output
-  - <strong>unresolved_pages:</strong> /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /renderingcontrol /settings/<em> /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
+- <strong>/ethportstatistics:</strong>
+  - <strong>schema:</strong> EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions} + EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr} read from /sys/class/net/eth0 (eth%u)
+  - <strong>confidence:</strong> PROVEN literals (dp_impl 0x10ef34e0-0x10ef35e8)
+  - <strong>unresolved_pages:</strong> /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /hls /htconfig /renderingcontrol /settings/<em> /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
 - </em><em>admin_post_endpoints:</em><em>
   - </em><em>provenance:</em><em> master route table {name</em>,handler<em>} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
   - </em><em>endpoints:</em><em>
