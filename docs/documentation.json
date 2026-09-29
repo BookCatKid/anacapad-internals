@@ -116195,6 +116195,16 @@
     "Radio Shows",
     "Recently Played%s%s"
    ]
+  },
+  "nodetx_transport": {
+   "name": "nodetx \u2014 inter-player block-audio transport with NACK retransmit",
+   "channels": "nodetx_chsrc etc. (chsrc registers tx channels); ITBT (InterthreadBlockTransport) types ITBTT_{UNKNOWN,CHSRC,LINEIN,VLI} \u2014 intra-player transport used by seamless transitions",
+   "nack": "receiver NACKs carry {count,min,max} packet range (\"nack from %s count=%u, min=%u, max=%u\"); stale-packet suppression (\"not transmitting %u stale packets\"); NACK with incompatible protocol version dropped (\"ignore NACK packet with incompatible protocol version: %d\")",
+   "resync": "ops requestResync/schedResync/schedResyncX/immedResync/endTX/endTransmission; \"Caught resync\"; \"resetting to pkt:%u off:%u\"",
+   "packet": "log fmt \"// %3u %d.%06d %u:%s\" {pktnum,time,size,src}; per-packet crossfade state in control frames (crossfadeStateForPacketID: lPacketNum-1 then -2 fallback; crossfade on|off); discontinuity detection \"found discontinuity of %lldus\", \"exact time match discont ix:%u\"",
+   "metrics": "perf-counters: rsend=resent DataBlocks, nackr=resync NACKs sent, nackd=data NACKs, nacku=NACKs unsendable, Histogram of transmitted packet info, transmit port, dstaddr (ucast/mcast/none=local), lastpktid",
+   "wifitest": "network connectivity test: disable wifi %d sec -> re-enable -> \"Network test complete: %s\" (netstartd start/end-signaling consumer)",
+   "confidence": "PROVEN vocabulary + NACK grammar + ITBT types; bit-level packet layout unresolved"
   }
  },
  "subsystems": {
@@ -119381,7 +119391,8 @@
      "notes": "chsnk.cxx literal block: frame types, synchronizedPlay, seamless transition, denylist, frame pool"
     }
    ],
-   "confidence": "PROVEN vocabulary+log formats; wire bit-level framing NOT yet recovered (frame type ids, header layout)"
+   "confidence": "PROVEN vocabulary+log formats; wire bit-level framing NOT yet recovered (frame type ids, header layout)",
+   "itbt": "seamless handoff rides ITBTT_CHSRC/LINEIN/VLI InterthreadBlockTransport channels; failures \"itdbt receive packet failed\",\"incompatible protocol version\",\"END_TX\""
   },
   "registration_machine": {
    "name": "regdevicecert.cxx registration/secure-reg FSM",
