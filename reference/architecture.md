@@ -617,6 +617,7 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
   - **files:** /jffs/netstartd_prev.log, /opt/log/netstartd.log, netstartd.dmp, netstartd.properties, netstartd.count, /netstartd-external, /var/run/netstart_mode, /tmp/netstartd.pid
   - **messages:** settings push ('...settings update to netstartd'), PSK update ('...ushed PSK update to netstartd'), pull ('...ettings update from netstartd'), type update '\[%s\]', 'SSID, cannot notify netstartd', refusal handling 'netstart refused'/'meshDisable (netstart refused)'
   - **status:** confirmed
+  - **note:** CORRECTION: netstart2 DOES exist — the literal lives in wifi/netstartd (separate daemon binary); see native_protocols/netstart2 for the full decode
 - **mrpc:**
   - **name:** MRPC
   - **status:** ZERO literals in anacapad-86.10 - no 'mrpc' string anywhere. Either absent from this binary or unlabeled; honest negative result
@@ -698,8 +699,15 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
   - **status:** strong
   - **model:** no local BT stack in anacapad — cloud-managed only: v1/players/{playerId}/hardwareStatus/{bluetooth,bluetoothPairing,pairedBluetoothDevices/{bluetoothAddress}} routes + scope cmds getBluetoothStatus/setBluetoothPairing/activatePairedBluetoothDevice/removePairedBluetoothDevice; 'Supported only on devices with bluetooth' gate; vli_bt stream source; hal_detect_get_cable_states
 - **netstart2:**
-  - **status:** confirmed-absent
-  - **finding:** no 'netstart2' literal in any of 4 builds (34.16/57.10/86.8/86.10); netstartd IPC is the only netstart surface
+  - **status:** confirmed
+  - **location:** wifi/netstartd (separate binary — the netstart2 literal lives in netstartd, not anacapad; earlier absence claim was anacapad-only scope)
+  - **transport:** DTLS over UDP (mbedtls_net_* + ssl_*): full DTLS state names {DISCONNECTED,CONNECTING,HELLO_VERIFY,CONNECTED,WRITING,CLOSING,CLOSE_NOTIFY_SENT,CLOSE_NOTIFY_DISCONNECT,CLOSE_IMMEDIATELY,CLIENT_RECONNECT}; app-level ACKs (message received without ACK for last payload / received unexpected ACK / replay detected retransmitting); ECJPAKE password handshake (ssl_set_hs_ecjpake_password) — PAKE for PIN-less provisioning; DTLS PIN alternative; client ID set; PSK auth (Authenticating with PSK)
+  - **messages:** NS2_MSG_* {SETUP_BEGIN(mode arg), SETUP_CANCEL(flags), SETUP_CLIENT_HELLO, SETUP_CONTINUE, SETUP_REAUTHORIZE(flags), SETUP_SERVER_HELLO, SETUP_SERVER_HELLO_LEGACY, SETUP_STATUS(0x%x), GET_PSK(type), PSK, REGISTRATION_KEY} + BEGIN_SETUP control
+  - **setup_modes:** NS2_SETUP_MODE_* {NONE, CHIRP, CHIRP_WITH_BUTTON, CLIENT_PIN, MANUAL_PIN, NFC, QR_CODE, QR_CODE_WITH_BUTTON, QR_CODE_WITH_REMOTE} — 9 provisioning mechanisms incl. audio chirp, QR+remote, NFC, client/manual PIN
+  - **state_fsm:** NS2_STATE_SETUP_* {START, DISCOVERY, DISCOVERY_INTERACTION, PIN_EXCHANGED, ACTIVE, WAITING, UPDATE, STANDBY, COMPLETE} — 9-state setup FSM
+  - **psk_lifecycle:** device PSK: loaded with boot count (Netstart2 device PSK loaded, boot count %u), discarded on expiry OR max boot count; sends DTLS PSK to client; registration key set/clear (Netstart2 clearing registration signing key); unable to lock registration; no household configured
+  - **files:** /jffs/net/settings/netstart2.txt (+ .tmp atomic write) — persisted NS2 state; setup logs /jffs/setup.{log,dmesg} + /jffs/sys/log/setup/; chirp payload generation (Netstart2 failed to generate chirp payload); contactless setup attempt-limit + reauthorize (Contactless setup attempt limit reached)
+  - **netmanager:** states {ST_CCRD,ST_CCRDA,ST_CON,ST_CON_CR,ST_R} via handlers {NetManagerSonosNet{Base,NoWifi,WithPath},NetManagerStation{Base,CheckCarrier}}Handler; events NM_EVT_SONOSNET_ENABLED + SonosNet Hint; anacapa IPC notifies state update 0x%x + mode %d %d + recovery AP state; LED modes {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH,JOIN_HH_OPEN,BEGIN_SETUP_MODE,IN_SETUP_MODE}; wacd spawned on wacstart/wactimeout via /tmp/netstartd_wac.ipc
 - **chsrc_chsnk:**
   - **status:** confirmed
   - **model:** CHSRC (channel source, chsrc.cxx) multicasts group audio to CHSNK (channel sink) receivers via nodetx_chsrc; chsnk refreshes multicast join on NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent
