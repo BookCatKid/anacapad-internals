@@ -166,6 +166,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `sound_device` | **partial** | syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample width inconsistency}; system/src_disable + StdQ ASRC Coeffs + "Running with SRC bypassed"; orientation sensing; "reset vcxo"; health flags {AMP_CURRENT_WARN,AMP_FAULT_WARN,AUDIO_WARN_TEMP,CPU_WARN_TEMP,CPU2_WARN_TEMP,SOC_WARN_TEMP,AMP_CURRENT_FAULT,AMP_FAULT,AUDIO_FAULT_TEMP,CPU_FAULT_TEMP,CPU2_FAULT_TEMP,SOC_FAULT_TEMP,PS36_FAULT,UV36_FAULT,UV14_FAULT,POWER_WARN_TEMP,POWER_FAULT_TEMP,MOTION_FAULT_TEMP,MOTION_WARN_TEMP}_STATUS |
 | `sound_swap` | **partial** | sound_swap/audio_swap; queue audioSwapEventQueue + progress audioSwapProgress; behaviors SWAP_BEHAVIOR_{DO_NOTHING,PUSH_SWAP,PULL_SWAP,UNDEFINED}; push/pull disband target\|initiator group; HTSatelliteChecker gates (isFound,isHTSat,playerUDN,HTPrimaryUDN + topology/group-props/GC-AVT lookups); FSM "New state: %i"/"Event %i not handled in state %i"/transition-failure -> reset; result fields {swapResult,swapType,swapTarget,swapGC,initAction,candCount,respCount}; gates {bonded zone,HT Satellite,unknown state,unswappable audio,already in progress}; muse calls museCmdSetGroupMembers/museCmdModifyGroupMembers via groups/%s/groups/modifyGroupMembers |
 | `spdif_detect` | **partial** | detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3),NULL Burst,Pause Burst}; unsupported taxonomy {AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1/2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1-3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA,Unsupported} |
+| `spec_pair_stream` | **partial** | Byte-oriented spec stream in .rodata (e.g. blob @0x10fa51b3): sequence of 4-byte tag-words {u8 tag, u24 operand}. Tag 0x82 = reference into spec_object_table (operand = index 0-330; proven by consecutive semantic groups 44/45/46 = authorizationGrantHeader/Payload/Response). Other observed tags: 0xae (operand often 0x34), 0x0f, 0x34, 0x4c, 0x84, 0xcb, 0xcd, 0xd0, 0xd6 — tag semantics undecoded (hypothesis: field-name refs where operand indexes the same name table, plus property/cardinality markers). Streams are not pointer-referenced; probably reached via sequential scan or descriptor vtables in .data.rel.ro. Parser function not yet identified (no immediate-compare on 0x82 found). |
 | `spotify_smapi_ctrl` | **partial** | setPositionInfo fmt "trackId='%s', position=nullptr, duration=%d, bLastReport=true"; "discarding pre-transition position %lldms"; TransitionAck \[pos,preLogout pos,transAck\] + "Begin AwaitingTransitionAck \[preLogout=%lldms\]"; stream status "SMAPI current stream\[%u\] mediaType\[%d\]=%s (curTrkStatus\[%u\]=%d/nextTrkStatus\[%u\]=%d)"; "Notified we are receiving delegation. Resetting track queue info."; "Error event in SMAPI mode, e=0x%08x"; error map "error: %s ecode=%d (%s), mapped to 0x%08x" |
 | `spotify_thread` | **partial** | single-request constraint "Already have a spotify request in progress, can only have one!!" + "Executing %s ..."/"%s timeout"; rate limit {"restricting excessive fatal error reporting","spotify telemetry rate limit exceeded!",spotrl}; connect ops {SpDisableConnect,SpEnableConnect,SpSetDisplayName,SpSetDeviceIsGroup,Enable/Disable Connect} "Set display name \[%s\], is%s grouped"; playback {SpPlaybackIncreaseUnderrunCount "Underruns reported: %u",SpPlaybackSetBitrate setbr,SpPlaybackPause/Play,SpPlayUriWithOptions,SpPlaybackEnableShuffle/Repeat,SpGetMetadata,SpZeroConfGetVars}; ads spotify:ad:/spotify:interruption:; restart token "'Radio' stripped from restart token. Token was %s now %s"; login {SpConnectionLoginOauthToken,waitForLogin,waitForLogout,"Login user change while in progress \[%s => %s\]","Already logging in as \[%s\]","Login mismatch","username %s... is longer than maximum %zu"}; logout {SpConnectionLogout,"logout %u, reset","Async logout initiated for VLI source switch","logout-%u - %d \[%s\]"}; work {RSpotifyEventWork::doWork(),DefaultWork}; "Failed to update the volume to %u (status=%d)" |
 | `spotify_vli_session` | **partial** | session verbs {start,suspendSession,startAudio,pauseAudio,stopAudio,playModesChanged}; power {Spotify eSDK source power suspend/resume (e=0x%08x)}; delegation {"Ignoring audio flush/track changed/seeks (pos %u)/pause/became inactive while setting state / delegating","Spotify eSDK source selected, isDelegating %d, isActive %d","source not selected","Source Deselected, from sender %d"}; cookies {"%s:%d spotify old cookie: %d new: %d","Ignoring stale stopSession due to cookie mismatch"}; callbacks onVirtualLineIn{SuspendSession,StartAudio,StopAudio,PlayModesChanged} cookie %d; metadata {track,artist,album,playback_source_uri,bitrate} + Next Metadata; "Error event in VLI mode, e=0x%08x"; R_SPOT_EVT_AUDIO_TIMEOUT; RSpotifyVLIControl deactivate |
@@ -271,7 +272,8 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `muse_enums` | **strong** | actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}; SFB perms {SRADIO_HD_CONTENT,SRADIO_SPECIAL_CONTENT,SRADIO_ONDEMAND_ARCHIVE,SRADIO_CAN_SKIP,SFB_BASIC_UI,SFB_COMMERCIAL_MSP,SFB_ESSENTIALS_MSP,SFB_PREMIUM_MSP,SFB_DASHBOARD_ACCESS,SFB_CNTRL_MEDIA_SRCS,SFB_CNTRL_THIRD_PARTY,SFB_RSTC_CONTENT_ACS,SFB_RSTC_SAVE_CONTENT_ACS,SFB_RSTC_SETTINGS_ACS,SFB_RSTC_ALARMS_ACS,SFB_RSTC_MESSAGING_ACS,SFB_RSTC_SAVE_GROUPS_ACS,SFB_SCHEDULES_ACCESS,SFB_MVP}; playback states {BUFFERING,PAUSED,PLAYING}; queue ops {APPEND,INSERT,INSERT_NEXT,PLAY_NOW}; ratings {EXCELLENT,POSITIVE,NEGATIVE,RATED,THUMBSUP,THUMBSDOWN,SHELVED}; registration {LEGACY_REGISTERED,SECURE_REGISTERED,TRANSFER,PREP_TRANSFER}; netmode {NETMODE_SONOSNET_WIRELESS,NETMODE_WIRED,NETMODE_WIRED_NO_WIFI,NETMODE_STATION,NETMODE_SATELLITE_V1,NETMODE_SATELLITE_V1_WIRED,NETMODE_SATELLITE_V2,STATION_SATELLITE}; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; FORBIDDEN; USB_C; GOOGLE; recurrence + {alarm states: ALARM_PENDING,ALARM_SNOOZED,ALARM_FIRING,INTERRUPTED; buttons: PLAY_PAUSE,MUSIC,DPAD_UP/DOWN/LEFT/RIGHT/SELECT; sources: CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL; errors: CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS,EXTRALOCAL; abort: ABORT_INCORRECT_MODE,ABORT_NO_SOURCE,ABORT_INVALID_OP,ABORT_REFUSED,ABORT_UNDETERMINED,REPLY_TIMEOUT,ROOT_INDIRECT,BROADCAST_BLOCKED; groups: MUSICOBJECTID,GROUP_STATUS_MOVED,GROUP_STATUS_UPDATED; update: UPDATE_COMPLETE,INFO_FILE_WRITE_FAILED,BSU_FAILED,UPGRADE_MGR_SPAWN_FAILED,MANIFEST_DOWNLOAD_FAILED,MANIFEST_PARSE_FAILED,UPDATE_NEVER_RUN,FINAL_RESULT_UNKNOWN; surrounds: VERTICAL_WALL_BELOW,FLEXIBLE_SURROUNDS,PORTABLE_SURROUNDS; sec: SECURE,SECURE_REG,UPNP_OVER_TLS; indexer: ADD_IN_PROGRESS,ADD_COMPLETE,PENDING_REINDEXING,REINDEXING_IN_PROGRESS,REINDEXING_COMPLETE,REPLICATION_IN_PROGRESS,REPLICATION_COMPLETE,PENDING_DELETE,DELETE_COMPLETE; sonosnet: SONOSNET_DISABLED,SONOSNET_DISABLE_TEST; conn: ONLINE,TERMINATING; chirp: INAUDIBLE_WIDE,MULTI_INAUDIBLE_WIDE,MULTI_AUDIBLE; timers: TIMER_PAUSED,TIMER_RINGING; power: TO_STANDBY,POWERING_DOWN,POWERING_UP,SMART_DOCKED,PRIMARY_PLAYBACK_STARTED,POWERING_UP_UPDATED,WAKING_UP_FROM_USER,PRIMARY_NETWORK_STATUS_CHANGE; volume: FIXED,PASS_THROUGH; wifi: ACK_AWAIT,WIFI_DISABLING,WIFI_DISABLED,ACK_NOT_RECEIVED; positioning: APPLE_MOBILE_DEVICE,ANDROID_MOBILE_DEVICE,STIMULUS_PLAYBACK_COMPLETE,BEARING,DISTANCE,ACOUSTIC_SPACE_MAP,MEASUREMENT_RESULTS,MEASUREMENT_RAW_AUDIO,IMPULSE_RESPONSE_AND_AUDIO; HEY_SONOS; RADIOLIST} |
 | `muse_errors` | **strong** | results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ERROR_PLAYBACK_FAILED,NO_CONTENT,NO_PLAYABLE_CONTENT,EXPLICIT_NOT_ALLOWED,EXPIRED_TOKEN,NOT_PLAYABLE,SPOTIFY_CONNECT,FAILURE_TO_ENQUEUE,CLOUD_QUEUE_SERVER,SKIP_LIMIT_REACHED,PLAYBACK_STREAM_LIMIT,PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE}; session {SESSION_IN_PROGRESS,JOIN_FAILED,EVICTED,INVALID_SESSION_ID,NOT_DESIGNATED_DEVICE}; accounts {PREFERRED_ACCOUNT_NOT_SET/NOT_FOUND,ACCOUNT_FULL,INVALID_ID,NO_DEFAULT_FOUND,REAUTH_REQUIRED,UPGRADE_REQUIRED,WRONG_SERVICE}; update {NO_UPDATE_AVAILABLE,INVALID_UPM_FORMAT,INSUFFICIENT_POWER_FOR_UPDATE,UPDATE_IN_PROGRESS}; misc {ALARM_NO_SPACE,ALARM_BAD_TIME_SERVER,AREAS_READ_ONLY,AUDIO_CLIP_ID_NOT_FOUND/_MEDIA_ERROR/_PAUSE_CONTENT_FAILED/_VOICE_ASSISTANT_PLAYING,CACHE_NOT_FOUND/_RECORD_NOT_FOUND,CANT_CONNECT\[_REMOTE\],DEVICE_ALREADY_REGISTERED/UNAVAILABLE,INVALID_ACTION,DOWNSTREAM_CONNECT_FAILED,SHARES_CONFLICT/NO_SUCH_SHARE/NO_SPACE/REQUEST_FAILED,STIMULUS_ALREADY_PLAYING,MICROPHONE_NOT_ENABLED,NO_POSITIONING_RESULTS,UNSUPPORTED_POSITIONING_REQUEST,SVC_DISABLED,TIMER_NOT_FOUND,UNSUPPORTED_VOLUME_MODE,INVALID_RESOURCE,ROOM_DETECTION_SIGNALLING_FAILED/BUSY,GROUP_CHANGED}; generic {COMMAND_FAILED/TIMEOUT,CONTENT_TYPE_NOT_SUPPORTED,DISALLOWED_BY_POLICY,INTERNAL,INVALID_AUTH_HEADER/CERT/OBJECT_ID/PARAMETER/SYNTAX/HEADER/LENGTH/TRANSPORT,TARGET_ID_NOT_FOUND,LOAD_COMMAND_FAILED,MISSING_PARAMETERS,NO_PERMISSION,NOT_AUTHORIZED,NOT_CAPABLE,PRECONDITION_FAILED,EXPECTATION_FAILED,QUEUE_FULL,RESOURCE_GONE/CONFLICT,REQUIRES_GROUP_COORDINATOR,SERVICE_NOT_AVAILABLE/CONFIGURED/SUPPORTED/UNAVAILABLE,UNSUPPORTED_NAMESPACE/COMMAND/REQUEST/REQUEST_METHOD,API_KEY_VALIDATION_FAILED,NYI,CMD_FUTURE,CMD_REMOVED,INSUFFICIENT_RESOURCES,INCORRECT_STATE,INCOMPATIBLE_API_VERSION,INCOMPATIBLE_CLIENT_VERSION}; param validation {MISSING_VALUE,UNEXPECTED_TYPE,"Parameter failed timestamp validation","not a valid Muse error code","out of range: at or below minimum of/above maximum of","Found unexpected array/object","Missing required field","Unable to coerce string to number/boolean","number of entries below/above minimum/maximum"} |
 | `muse_events` | **strong** | {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent} |
-| `muse_types` | **strong** | 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} |
+| `muse_types` | **strong** | 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} RESOLVED: idx->name via spec_object_table (0x10f97088); {0x82,idx} proven to index it. |
+| `muse_verb_ns_registry` | **confirmed** | Pair table @.data 0x110941d8: {namespace_name_ptr, verb_name_ptr} x~320 entries, terminated ffffffff. Binds every verb to its namespace (authorization/resolveToken, catalog/translate, entitlements/*, groups/*, history/*, playback/*, zones/*, systemReporting/*, smartplay/getContent...). Preceded by 2-char event-code table (AA..AK @0x110941a4) and hash seeds h1/h2. |
 | `muse_verbs` | **strong** | areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,cancelAudioClip,clipMetadata}; authz {getPolicyKey,getPermissions,grantType,assertion,objectType}; cloudRegistration {getRegistrationStatus,setRegistrationState,transferDeviceRegistration,vanishedDevices,quarantinedDevices}; diagnostics {submitDiagnostics,results}; settings {getSettingsGroup,updateAllSettings,updateSettingsGroup,targetSettingsOnly,namespaces,delayMillis,subscribe/unsubscribePlayerSettings,get/setPlayerSettings,setAllowMicrophone,setSelfTruePlay,setEnablePositioningMeasurement,setSonosNetChannel,get/setRestrictedAdminSettings,setUserMetricsTracking,getPublicSettings,getProtectedSettings,getProtectedAdminSettings,"v1/players/%s/settings/player"}; entitlements {subscribeUser,unsubscribeUser,getEntitlements}; history {removeHistoryItem}; deviceProperties {setName}; householdUpdate {getHouseholdUpdateStatus,isRunning,designatedDeviceId}; irControl {getIRControl}; indexerStatus {getIndexerStatus,updating}; musicServiceAccounts {getPreferredMusicServiceAccount,endDirectControl,__provisioned__,availableServicesVersion,registeredServicesVersion}; networks {temporarilyDisableNetwork,startNetworkTests,getNetworkTestResults}; playback {togglePlay,menuType,dpadDirection}; cache {cacheSettings,cacheKey,invalidateCache}; playlists {getPlaylists,getPlaylist,postPlaylist,loadPlaylist}; positioning {playStimulus,set/getStimulusTuning,startSession,cancelSession,applyAction,getSessionMap,getDeviceMeasurements,sendMeasurements,notifySessionError/Status/DeviceStatus,getMeasurementCapabilities,setTelemetryLevel,measurements}; roomDetection {stopSignalling}; sleepTimer {getSleepTimer,remainingTimeDuration}; smartplay {getContent}; soundSwap {requestSwap}; svc {getWeatherConfig,voiceCommand}; systemTime {get/setTimeZoneInfo}; timers {setRelativeDuration,pauseTimer,resumeTimer,abortTimer}; trueplay {detectSpeakerPresence,resetDetectedSpeaker,setSpeakerPresenceRate,get/setConfiguration,getTrueplayStatus}; trueroom {playSuccessTone,setSwapInputMute,trueroomEstimatedParams}; virtualRemoteControl {sendButtonCommand}; voice {wakeword,amazon,getVoiceAccounts,updateVoiceAccount,removeVoiceAccount,createAmazonChallenge,notifyInitiateOnboarding,timeoutSeconds}; zones {backhaulChannel,getActiveZoneList,getZoneDefinition(List),addZoneDefinition,addMissingZoneDefinition,updateZoneDefinition,updateActiveZone,updateZoneMemberSettings,removeZoneDefinition,activateZone,deactivateZone,joinZone,unjoinZone}; renew |
 | `music_accounts` | **?** |  |
 | `network` | **?** |  |
@@ -295,6 +297,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `smb` | **?** |  |
 | `sntp` | **?** |  |
 | `spdif_burst` | **strong** | supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3)}; unsupported enum {NULL Burst,Pause Burst,AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1,MPEG1 Layer 2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1/2/3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA} all prefixed "Unsupported " |
+| `spec_object_table` | **confirmed** | Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Index space referenced by spec-pair tag 0x82. Entries 0-2 are function pointers (0x10809540, primitive formatters); idx 3 = none; idx 4+ = named objects: 231 type names (alphabetical contiguous literals @0x10f975b4-0x10f98577, accessoryId..zoneMemberState), 40 event-type names, 11x upnpEvent (one per UPnP-bridge namespace), 57 other literals (namespace names, resource names, verb-adjacent literals). Ordering is semantic+alphabetical hybrid: consecutive indices group related objects (e.g. 44/45/46 = authorizationGrantHeader/Payload/Response). |
 | `spotify` | **?** |  |
 | `spotify_connect` | **?** |  |
 | `spotify_esdk` | **strong** | cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}; NTS callbacks {ConnectionMessage,ConnectionNewCreds,StreamStart(id,fmt,drm,size,gain),PlaybackNotify,StreamFlush,StreamGetPosition(id),Error}; mDNS {"Registering Spotify Connect mDNS service \[%s\]","Unregistering","Updating ... event %d","new cert updating mDNS"}; seamless delegation {"Seeking to %ims in support of seamless delegation","Timed out waiting for AudioStart from eSDK during seamless delegation","%s failed to become active","set seek time to %u ms, byte offset: %zu"}; VLI transition matrix {"VLI source switch logout - async","Normal logout - blocking","VLI deselected, last id: %u, pos: %u, bLogout: %d","Detected VLI source switch","Connect mode toggled during transition - allowing login to proceed","Account matches ... skipping login","Already logged in with same user","username may have changed","mismatch ... regular logout","mismatch ... async logout","Already logged out"}; dual tracking "pos: %u (VLI: %d \[%d\], SMAPI: %d \[%d\])"; track FSM {AwaitingCurrentTrackAck,AwaitingNextTrackAck,CurrentTrackPlayed}; metadata {bitrate,track_uri,original_track_uri,playback id,audio_quality,hifi_status} New/Next Track Metadata; URIs spotify:track:/spotify:episode: "Bogus track URI"; media delivery {"unsupported DRM format: %d","stream start (id:%u, type:%s, size:%u)","stream data ... size: %u, offset: %u","stream end","stream flush ... pos: %u","getPosition (id=%u): result %u",performFlush}; events {GroupVolumeChangedEvent,SpotifyDelegationNotification,SpotifyMDNSRequest}; "Sent group volume change %u to eSDK (mute %d)"; TPM legacy "Spotify setPositionInfo ... uri=%s, playbackId=%s, position=%.3f, isFinalReport=%d"; init {SpInit supported media formats: %llu,devid,remoteName,deviceType,libraryVer,resolverVer,productId}; R_ServiceBitrate |
@@ -3556,6 +3559,21 @@ detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (D
 
 </details>
 
+## `spec_pair_stream`
+
+**coverage** `partial`
+
+**Technical description:**
+
+Byte-oriented spec stream in .rodata (e.g. blob @0x10fa51b3): sequence of 4-byte tag-words {u8 tag, u24 operand}. Tag 0x82 = reference into spec_object_table (operand = index 0-330; proven by consecutive semantic groups 44/45/46 = authorizationGrantHeader/Payload/Response). Other observed tags: 0xae (operand often 0x34), 0x0f, 0x34, 0x4c, 0x84, 0xcb, 0xcd, 0xd0, 0xd6 — tag semantics undecoded (hypothesis: field-name refs where operand indexes the same name table, plus property/cardinality markers). Streams are not pointer-referenced; probably reached via sequential scan or descriptor vtables in .data.rel.ro. Parser function not yet identified (no immediate-compare on 0x82 found).
+
+- **name:** muse spec-pair descriptor stream
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fa51b3 — tag-word blob; format proven, tag semantics partial
+
+</details>
+
 ## `spotify_smapi_ctrl`
 
 **coverage** `partial`
@@ -5294,7 +5312,7 @@ The registry of ~203 type names (alphabetical, `accessorySwap` through `zoneMemb
 
 **Technical description:**
 
-203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found}
+203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} RESOLVED: idx->name via spec_object_table (0x10f97088); {0x82,idx} proven to index it.
 
 - **name:** muse type registry — spec-pair type index names
 - **types** (203):
@@ -5307,6 +5325,21 @@ The registry of ~203 type names (alphabetical, `accessorySwap` through `zoneMemb
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f975c0 — type-name block
+
+</details>
+
+## `muse_verb_ns_registry`
+
+**coverage** `confirmed`
+
+**Technical description:**
+
+Pair table @.data 0x110941d8: {namespace_name_ptr, verb_name_ptr} x~320 entries, terminated ffffffff. Binds every verb to its namespace (authorization/resolveToken, catalog/translate, entitlements/*, groups/*, history/*, playback/*, zones/*, systemReporting/*, smartplay/getContent...). Preceded by 2-char event-code table (AA..AK @0x110941a4) and hash seeds h1/h2.
+
+- **name:** muse verb<->namespace registry (.data)
+<details><summary>Evidence (1)</summary>
+
+- @ 0x110941d8 — ns->verb pair table
 
 </details>
 
@@ -5617,6 +5650,353 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ee650c — burst enum
+
+</details>
+
+## `spec_object_table`
+
+**coverage** `confirmed`
+
+**Technical description:**
+
+Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Index space referenced by spec-pair tag 0x82. Entries 0-2 are function pointers (0x10809540, primitive formatters); idx 3 = none; idx 4+ = named objects: 231 type names (alphabetical contiguous literals @0x10f975b4-0x10f98577, accessoryId..zoneMemberState), 40 event-type names, 11x upnpEvent (one per UPnP-bridge namespace), 57 other literals (namespace names, resource names, verb-adjacent literals). Ordering is semantic+alphabetical hybrid: consecutive indices group related objects (e.g. 44/45/46 = authorizationGrantHeader/Payload/Response).
+
+- **name:** muse spec-object index table (331 entries)
+- **entries:**
+  - idx: 0, ptr: 10809540, name: 
+  - idx: 1, ptr: 10809540, name: 
+  - idx: 2, ptr: 10809540, name: 
+  - idx: 3, ptr: 10ea50a0, name: none
+  - idx: 4, ptr: 10f975b4, name: accessoryId
+  - idx: 5, ptr: 10f975c0, name: accessorySwap
+  - idx: 6, ptr: 10f975c0, name: accessorySwap
+  - idx: 7, ptr: 10f960f4, name: tvAudioSignalStatus
+  - idx: 8, ptr: 10f975d0, name: accessoryWifiPsk
+  - idx: 9, ptr: 10f975e4, name: accessPolicyControl
+  - idx: 10, ptr: 10f975f8, name: accessPolicySetting
+  - idx: 11, ptr: 10f9760c, name: accountError
+  - idx: 12, ptr: 10f9761c, name: acousticMeasurement
+  - idx: 13, ptr: 10f97630, name: acousticMetrics
+  - idx: 14, ptr: 10e961f4, name: activeZone
+  - idx: 15, ptr: 10f96108, name: activeZonesChange
+  - idx: 16, ptr: 10f9611c, name: zoneDefinitionsChange
+  - idx: 17, ptr: 10f96134, name: zoneError
+  - idx: 18, ptr: 10f97640, name: activeZoneList
+  - idx: 19, ptr: 10f97650, name: activeZoneMember
+  - idx: 20, ptr: 10f97664, name: actuator
+  - idx: 21, ptr: 10e9f204, name: advertisingInfo
+  - idx: 22, ptr: 10eab7e0, name: alarm
+  - idx: 23, ptr: 10f9663c, name: upnpEvent
+  - idx: 24, ptr: 10f97670, name: alarmDescription
+  - idx: 25, ptr: 10f97684, name: alarmList
+  - idx: 26, ptr: 10f97690, name: alarmRunningState
+  - idx: 27, ptr: 10f976a4, name: versionChanged
+  - idx: 28, ptr: 10e77820, name: album
+  - idx: 29, ptr: 10f976b4, name: allowAirplaySetting
+  - idx: 30, ptr: 10f976c8, name: allowDirectControlSetting
+  - idx: 31, ptr: 10f976e4, name: allowLineInSetting
+  - idx: 32, ptr: 10f976f8, name: amazonAlexaAccount
+  - idx: 33, ptr: 10f9770c, name: amazonAlexaSetup
+  - idx: 34, ptr: 10e86248, name: amazonChallenge
+  - idx: 35, ptr: 10ead3d8, name: area
+  - idx: 36, ptr: 10e7c0e4, name: areas
+  - idx: 37, ptr: 10f976a4, name: versionChanged
+  - idx: 38, ptr: 10e77750, name: artist
+  - idx: 39, ptr: 10f97720, name: asyncRequestAck
+  - idx: 40, ptr: 10f96d6c, name: audioClip
+  - idx: 41, ptr: 10f96174, name: audioClipStatus
+  - idx: 42, ptr: 10f97730, name: audioConnectorStatus
+  - idx: 43, ptr: 10f9663c, name: upnpEvent
+  - idx: 44, ptr: 10f97748, name: authorizationGrantHeader
+  - idx: 45, ptr: 10f97764, name: authorizationGrantPayload
+  - idx: 46, ptr: 10f97780, name: authorizationGrantResponse
+  - idx: 47, ptr: 10f9779c, name: authzModifier
+  - idx: 48, ptr: 10f977ac, name: authzPermission
+  - idx: 49, ptr: 10f977bc, name: authzPermissions
+  - idx: 50, ptr: 10f977d0, name: authzPolicyKey
+  - idx: 51, ptr: 10f977e0, name: authzPolicyKeyLechmere
+  - idx: 52, ptr: 10f977f8, name: authzTokenStatus
+  - idx: 53, ptr: 10f9780c, name: authzUser
+  - idx: 54, ptr: 10f96190, name: availableSoftwareUpdate
+  - idx: 55, ptr: 10f9663c, name: upnpEvent
+  - idx: 56, ptr: 10ef9000, name: battery
+  - idx: 57, ptr: 10f97818, name: batteryCells
+  - idx: 58, ptr: 10ef9000, name: battery
+  - idx: 59, ptr: 10f961c4, name: wirelessNetworkStatus
+  - idx: 60, ptr: 10f97828, name: microphoneSwitch
+  - idx: 61, ptr: 10f9783c, name: waterState
+  - idx: 62, ptr: 10f97848, name: bluetoothPairing
+  - idx: 63, ptr: 10ecc164, name: bluetooth
+  - idx: 64, ptr: 10f9785c, name: poeState
+  - idx: 65, ptr: 10f96240, name: lineInStatus
+  - idx: 66, ptr: 10f97868, name: wiredSubStatus
+  - idx: 67, ptr: 10f97878, name: bleMeasurement
+  - idx: 68, ptr: 10ecc164, name: bluetooth
+  - idx: 69, ptr: 10f97888, name: bluetoothDevice
+  - idx: 70, ptr: 10f97848, name: bluetoothPairing
+  - idx: 71, ptr: 10f97898, name: bluetoothPolicySettings
+  - idx: 72, ptr: 10f19fcc, name: book
+  - idx: 73, ptr: 10ea04f4, name: bridgeContext
+  - idx: 74, ptr: 10f978b0, name: channelMapPair
+  - idx: 75, ptr: 10f978c0, name: chirpRequest
+  - idx: 76, ptr: 10f978d0, name: cloudDevice
+  - idx: 77, ptr: 10f978dc, name: cloudRegistrationStatus
+  - idx: 78, ptr: 10f978dc, name: cloudRegistrationStatus
+  - idx: 79, ptr: 10f978f4, name: commandHeader
+  - idx: 80, ptr: 10f9663c, name: upnpEvent
+  - idx: 81, ptr: 10ed8838, name: container
+  - idx: 82, ptr: 10f9f778, name: content
+  - idx: 83, ptr: 10f9663c, name: upnpEvent
+  - idx: 84, ptr: 10f97904, name: contentMetadataBlob
+  - idx: 85, ptr: 10f97918, name: contentPagedResources
+  - idx: 86, ptr: 10f97930, name: contentPageInfo
+  - idx: 87, ptr: 10f97940, name: contentResource
+  - idx: 88, ptr: 10f97950, name: createInviteResponse
+  - idx: 89, ptr: 10f97968, name: deeplink
+  - idx: 90, ptr: 10e7c864, name: devices
+  - idx: 91, ptr: 10f97974, name: deviceInfo
+  - idx: 92, ptr: 10f97974, name: deviceInfo
+  - idx: 93, ptr: 10f9663c, name: upnpEvent
+  - idx: 94, ptr: 10f97980, name: deviceSoftwareUpdateStatus
+  - idx: 95, ptr: 10f9799c, name: diagnosticInfo
+  - idx: 96, ptr: 10f979ac, name: diagnosticSubmissionMetadata
+  - idx: 97, ptr: 10f979cc, name: diagnosticSubmissionResult
+  - idx: 98, ptr: 10f962bc, name: diagnosticSubmissionResults
+  - idx: 99, ptr: 10f962d8, name: diagnosticMetadata
+  - idx: 100, ptr: 10f979e8, name: directControl
+  - idx: 101, ptr: 10f979f8, name: discoveryInfo
+  - idx: 102, ptr: 10fd09d0, name: duration
+  - idx: 103, ptr: 10f97a08, name: edidStatus
+  - idx: 104, ptr: 10f97a14, name: settingsChanged
+  - idx: 105, ptr: 10f97a24, name: enableContentAccessSetting
+  - idx: 106, ptr: 10f97a40, name: entitlement
+  - idx: 107, ptr: 10e7d0fc, name: entitlements
+  - idx: 108, ptr: 10f97a4c, name: entitlementsList
+  - idx: 109, ptr: 10f976a4, name: versionChanged
+  - idx: 110, ptr: 10f97a60, name: eqSettings
+  - idx: 111, ptr: 10f97a6c, name: ethernetPorts
+  - idx: 112, ptr: 10f97a7c, name: ethernetPortStatus
+  - idx: 113, ptr: 10f96328, name: extendedDeviceStatus
+  - idx: 114, ptr: 10f96340, name: extendedPlaybackStatus
+  - idx: 115, ptr: 10f97a90, name: externalId
+  - idx: 116, ptr: 10f086c4, name: favorite
+  - idx: 117, ptr: 10f97a9c, name: favoritesList
+  - idx: 118, ptr: 10f976a4, name: versionChanged
+  - idx: 119, ptr: 10f97aac, name: feature
+  - idx: 120, ptr: 10f97ab4, name: featureConfig
+  - idx: 121, ptr: 10f97ac4, name: featureConfigDropoutContext
+  - idx: 122, ptr: 10f97ae0, name: featureConfigHomeTheaterWifiPerfTelemetry
+  - idx: 123, ptr: 10f97b0c, name: featureConfigMetricsService
+  - idx: 124, ptr: 10f97b28, name: featureConfigPlink
+  - idx: 125, ptr: 10f97b3c, name: featureConfigQuickbonding
+  - idx: 126, ptr: 10f97b58, name: featureConfigSemiSleep
+  - idx: 127, ptr: 10f97b70, name: featureConfigSmartPlay
+  - idx: 128, ptr: 10f97b88, name: featureConfigSpotABR
+  - idx: 129, ptr: 10f97ba0, name: featureConfigSsdpAdvertiseConfig
+  - idx: 130, ptr: 10f97bc4, name: featureConfigZoneExperiment
+  - idx: 131, ptr: 10f97be0, name: geoLocation
+  - idx: 132, ptr: 10f97bec, name: getUsersResponse
+  - idx: 133, ptr: 10f97c00, name: globalError
+  - idx: 134, ptr: 10f97c0c, name: globalSettings
+  - idx: 135, ptr: 10eb20d4, name: group
+  - idx: 136, ptr: 10e7d218, name: groups
+  - idx: 137, ptr: 10f96370, name: groupCoordinatorChanged
+  - idx: 138, ptr: 10f97c1c, name: groupInfo
+  - idx: 139, ptr: 10f9663c, name: upnpEvent
+  - idx: 140, ptr: 10f9663c, name: upnpEvent
+  - idx: 141, ptr: 10e7d41c, name: groupVolume
+  - idx: 142, ptr: 10eae760, name: hardwareVersion
+  - idx: 143, ptr: 10f963a8, name: hdmiStatus
+  - idx: 144, ptr: 10f976a4, name: versionChanged
+  - idx: 145, ptr: 10f97c28, name: homeTheaterInputFormat
+  - idx: 146, ptr: 10f97c40, name: homeTheaterOptions
+  - idx: 147, ptr: 10f17d3c, name: household
+  - idx: 148, ptr: 10e7ea80, name: households
+  - idx: 149, ptr: 10f97c54, name: householdSoftwareUpdateStatus
+  - idx: 150, ptr: 10f963cc, name: householdUpdateStatus
+  - idx: 151, ptr: 10f963e4, name: upgradeManager
+  - idx: 152, ptr: 10f9663c, name: upnpEvent
+  - idx: 153, ptr: 10f97c74, name: idResponse
+  - idx: 154, ptr: 10eeeb48, name: image
+  - idx: 155, ptr: 10f96400, name: indexerStatus
+  - idx: 156, ptr: 10f08274, name: intendedTargets
+  - idx: 157, ptr: 10f97c80, name: irControlStatus
+  - idx: 158, ptr: 10ee0c00, name: limitedSkipsState
+  - idx: 159, ptr: 10f97c90, name: lineInSettings
+  - idx: 160, ptr: 10f97ca0, name: lineInSettingsGroup
+  - idx: 161, ptr: 10f97cb4, name: lineInStatusInfo
+  - idx: 162, ptr: 10f97cc8, name: lineInStatusList
+  - idx: 163, ptr: 10e9bc60, name: localDevices
+  - idx: 164, ptr: 10f97cdc, name: localVoiceSettings
+  - idx: 165, ptr: 10f97cf0, name: loopbackTimeoutControl
+  - idx: 166, ptr: 10f97d08, name: manufacturingData
+  - idx: 167, ptr: 10f97d1c, name: metadataStatus
+  - idx: 168, ptr: 10f97828, name: microphoneSwitch
+  - idx: 169, ptr: 10f9663c, name: upnpEvent
+  - idx: 170, ptr: 10f96420, name: musicServicesChanged
+  - idx: 171, ptr: 10f97d2c, name: musicServiceAccount
+  - idx: 172, ptr: 10e999fc, name: network
+  - idx: 173, ptr: 10f97d40, name: networksList
+  - idx: 174, ptr: 10f0733c, name: networkTestId
+  - idx: 175, ptr: 10f97d50, name: networkTestResult
+  - idx: 176, ptr: 10efe25c, name: offlinePsk
+  - idx: 177, ptr: 10e72320, name: ok
+  - idx: 178, ptr: 10f97d64, name: patchEffectiveAllSettingsGroups
+  - idx: 179, ptr: 10f97d84, name: patchEffectiveAnyOneSettingsGroup
+  - idx: 180, ptr: 10f97da8, name: patchPlayerAllSettingsGroups
+  - idx: 181, ptr: 10f97dc8, name: patchPlayerAnyOneSettingsGroup
+  - idx: 182, ptr: 10e9f1e8, name: playbackAction
+  - idx: 183, ptr: 10e9f1bc, name: playbackLocation
+  - idx: 184, ptr: 10f97d1c, name: metadataStatus
+  - idx: 185, ptr: 10f97de8, name: playbackPolicy
+  - idx: 186, ptr: 10f97df8, name: playbackSettings
+  - idx: 187, ptr: 10f96450, name: playbackStatus
+  - idx: 188, ptr: 10e9f768, name: playbackError
+  - idx: 189, ptr: 10ebde9c, name: player
+  - idx: 190, ptr: 10f97e0c, name: playerAllSettingsGroups
+  - idx: 191, ptr: 10f97e24, name: playerAnyOneSettingsGroup
+  - idx: 192, ptr: 10f97e40, name: playerSettings
+  - idx: 193, ptr: 10f97e50, name: playerSettingsEvent
+  - idx: 194, ptr: 10f97e64, name: playerSetError
+  - idx: 195, ptr: 10ea0d20, name: playerVolume
+  - idx: 196, ptr: 10ec6334, name: playlist
+  - idx: 197, ptr: 10f97e74, name: playlistsList
+  - idx: 198, ptr: 10f976a4, name: versionChanged
+  - idx: 199, ptr: 10ed34cc, name: playlistSummary
+  - idx: 200, ptr: 10f97e84, name: playlistTrack
+  - idx: 201, ptr: 10f97e94, name: playMode
+  - idx: 202, ptr: 10ecf57c, name: podcast
+  - idx: 203, ptr: 10f9785c, name: poeState
+  - idx: 204, ptr: 10f97ea0, name: portableSurrounds
+  - idx: 205, ptr: 10f97eb4, name: positioningDevice
+  - idx: 206, ptr: 10f97ec8, name: positioningDeviceMeasurementList
+  - idx: 207, ptr: 10f97eec, name: positioningDeviceStatusInfo
+  - idx: 208, ptr: 10f97f08, name: positioningMap
+  - idx: 209, ptr: 10f97f18, name: positioningMeasurement
+  - idx: 210, ptr: 10f97f30, name: positioningMeasurementCapability
+  - idx: 211, ptr: 10f97f54, name: positioningMeasurementCapabilityList
+  - idx: 212, ptr: 10f97f7c, name: positioningSessionErrorInfo
+  - idx: 213, ptr: 10f97f98, name: positioningSessionRequest
+  - idx: 214, ptr: 10f97fb4, name: positioningSessionStatusInfo
+  - idx: 215, ptr: 10f97f7c, name: positioningSessionErrorInfo
+  - idx: 216, ptr: 10f97eec, name: positioningDeviceStatusInfo
+  - idx: 217, ptr: 10f97fb4, name: positioningSessionStatusInfo
+  - idx: 218, ptr: 10f97fd4, name: positioningSpatialData
+  - idx: 219, ptr: 10f97fec, name: positioningTelemetry
+  - idx: 220, ptr: 10f0ed88, name: positionInformation
+  - idx: 221, ptr: 10f98004, name: postHistoryConfig
+  - idx: 222, ptr: 10f98018, name: preferredLanguageSetting
+  - idx: 223, ptr: 10f98034, name: protectedAdminSettings
+  - idx: 224, ptr: 10f9804c, name: protectedSettings
+  - idx: 225, ptr: 10f98060, name: publicSettings
+  - idx: 226, ptr: 10f9663c, name: upnpEvent
+  - idx: 227, ptr: 10f98070, name: queueItem
+  - idx: 228, ptr: 10f9807c, name: queueItemWindow
+  - idx: 229, ptr: 10f9808c, name: radioShow
+  - idx: 230, ptr: 10f98098, name: rateStatus
+  - idx: 231, ptr: 10ec21b8, name: rating
+  - idx: 232, ptr: 10f980a4, name: recurrenceRule
+  - idx: 233, ptr: 10f980b4, name: redeemInviteResponse
+  - idx: 234, ptr: 10ee7290, name: registration
+  - idx: 235, ptr: 10e7cb98, name: RegistrationState
+  - idx: 236, ptr: 10f980cc, name: RegistrationToken
+  - idx: 237, ptr: 10f980e0, name: registry
+  - idx: 238, ptr: 10f980ec, name: registryCollection
+  - idx: 239, ptr: 10f98100, name: relativeTimeStamp
+  - idx: 240, ptr: 10f9663c, name: upnpEvent
+  - idx: 241, ptr: 10f98114, name: replicatedAreas
+  - idx: 242, ptr: 10f98124, name: reportOptions
+  - idx: 243, ptr: 10f98134, name: restrictedAdminSettings
+  - idx: 244, ptr: 10f9814c, name: sdkVersions
+  - idx: 245, ptr: 10ef1f28, name: secureReg
+  - idx: 246, ptr: 10f98158, name: secureRegCert
+  - idx: 247, ptr: 10f98168, name: secureRegCertMetadata
+  - idx: 248, ptr: 10eac178, name: service
+  - idx: 249, ptr: 10f964d8, name: sessionError
+  - idx: 250, ptr: 10f964e8, name: sessionInfo
+  - idx: 251, ptr: 10f98180, name: sessionStatus
+  - idx: 252, ptr: 10fd07a4, name: settings
+  - idx: 253, ptr: 10f97a14, name: settingsChanged
+  - idx: 254, ptr: 10f98190, name: settingsGroupMetadata
+  - idx: 255, ptr: 10f976a4, name: versionChanged
+  - idx: 256, ptr: 10f97a14, name: settingsChanged
+  - idx: 257, ptr: 10f97e50, name: playerSettingsEvent
+  - idx: 258, ptr: 10f981a8, name: share
+  - idx: 259, ptr: 10f981b0, name: sharesList
+  - idx: 260, ptr: 10f981bc, name: shareListStatus
+  - idx: 261, ptr: 10f981cc, name: shareStatus
+  - idx: 262, ptr: 10f96540, name: sleepTimerStatus
+  - idx: 263, ptr: 10f981d8, name: smartplayContentResource
+  - idx: 264, ptr: 10f981f4, name: softwareUpdate
+  - idx: 265, ptr: 10f98204, name: softwareUpdateOptions
+  - idx: 266, ptr: 10efb3ac, name: sonosnet
+  - idx: 267, ptr: 10efe1e8, name: sonosnetEnabled
+  - idx: 268, ptr: 10f9821c, name: sonosDeviceNonce
+  - idx: 269, ptr: 10f98230, name: soundSwapRequestResponse
+  - idx: 270, ptr: 10f9824c, name: speakerDetectionStatus
+  - idx: 271, ptr: 10f98264, name: speakerPresenceEffectiveRate
+  - idx: 272, ptr: 10f98284, name: speakerPresenceResult
+  - idx: 273, ptr: 10f9829c, name: speakerPresenceResultList
+  - idx: 274, ptr: 10f982b8, name: stimulusTuningEnabled
+  - idx: 275, ptr: 10f982d0, name: swapModelInfo
+  - idx: 276, ptr: 10f982e0, name: systemNameSetting
+  - idx: 277, ptr: 10f9663c, name: upnpEvent
+  - idx: 278, ptr: 10f982f4, name: timer
+  - idx: 279, ptr: 10eab624, name: timers
+  - idx: 280, ptr: 10f982fc, name: timeVal
+  - idx: 281, ptr: 10f98304, name: timeZoneInfo
+  - idx: 282, ptr: 10f98314, name: tokenStatus
+  - idx: 283, ptr: 10edb528, name: track
+  - idx: 284, ptr: 10f98320, name: trackQuality
+  - idx: 285, ptr: 10f98330, name: transitionToShipModeStatus
+  - idx: 286, ptr: 10f9834c, name: translatedObjectId
+  - idx: 287, ptr: 10f98360, name: translatedObjectIds
+  - idx: 288, ptr: 10f98374, name: translation
+  - idx: 289, ptr: 10f98380, name: transportSetting
+  - idx: 290, ptr: 10f98394, name: trueplayConfiguration
+  - idx: 291, ptr: 10f96568, name: trueplayStatus
+  - idx: 292, ptr: 10f9829c, name: speakerPresenceResultList
+  - idx: 293, ptr: 10f98264, name: speakerPresenceEffectiveRate
+  - idx: 294, ptr: 10f983ac, name: trueroomAdaptationStatus
+  - idx: 295, ptr: 10f983ac, name: trueroomAdaptationStatus
+  - idx: 296, ptr: 10f965cc, name: trueroomCalibrationStatus
+  - idx: 297, ptr: 10f983c8, name: trueroomStatus
+  - idx: 298, ptr: 10f983d8, name: trueroomEstimatorConfig
+  - idx: 299, ptr: 10f983c8, name: trueroomStatus
+  - idx: 300, ptr: 10f983f0, name: trustedAccessories
+  - idx: 301, ptr: 10f98404, name: uniqueSetTestData
+  - idx: 302, ptr: 10f98418, name: uniqueSetTestItem
+  - idx: 303, ptr: 10f9842c, name: universalMusicObjectId
+  - idx: 304, ptr: 10f98444, name: updateItem
+  - idx: 305, ptr: 10ec400c, name: upnpError
+  - idx: 306, ptr: 10f9663c, name: upnpEvent
+  - idx: 307, ptr: 10f98450, name: upnpParameter
+  - idx: 308, ptr: 10f98460, name: upnpResponse
+  - idx: 309, ptr: 10f98470, name: usageContextSetting
+  - idx: 310, ptr: 10f976a4, name: versionChanged
+  - idx: 311, ptr: 10f98484, name: videoContent
+  - idx: 312, ptr: 10f9663c, name: upnpEvent
+  - idx: 313, ptr: 10f98494, name: virtualLineInSource
+  - idx: 314, ptr: 10f984a8, name: voiceAccount
+  - idx: 315, ptr: 10f984b8, name: voiceAccountsList
+  - idx: 316, ptr: 10f976a4, name: versionChanged
+  - idx: 317, ptr: 10f984cc, name: voiceAccountProfile
+  - idx: 318, ptr: 10f984e0, name: voiceWakeWord
+  - idx: 319, ptr: 10f9783c, name: waterState
+  - idx: 320, ptr: 10f984f0, name: weatherConfig
+  - idx: 321, ptr: 10f98500, name: wifiDisable
+  - idx: 322, ptr: 10f97868, name: wiredSubStatus
+  - idx: 323, ptr: 10f9850c, name: zoneDefinition
+  - idx: 324, ptr: 10f9851c, name: zoneDefinitionList
+  - idx: 325, ptr: 10f9663c, name: upnpEvent
+  - idx: 326, ptr: 10f98530, name: zoneMember
+  - idx: 327, ptr: 10f9853c, name: zoneMemberSettings
+  - idx: 328, ptr: 10f98550, name: zoneMemberSettingsMap
+  - idx: 329, ptr: 10f98568, name: zoneMemberState
+  - idx: 330, ptr: 10ea6a2c, name: 
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f97088 — 331-pointer table; all targets resolved
 
 </details>
 
