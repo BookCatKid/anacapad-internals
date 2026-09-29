@@ -2,7 +2,7 @@
 
 The household/player REST API the official app and cloud channel drive — recovered from the binary's route registration tables, not from public docs.
 
-the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template*, flags, 0, handler*, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb\[,subparam\]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...).
+the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template*, flags, 0, handler*, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb\[,subparam\]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...). All muse routes are mounted under the /api prefix — the master HTTP table registers '/api' -> f_100d2cf8 which installs the muse dispatcher (stubs f_100d36c0/f_100d36e4 -> pipeline f_100d2e18), so on the wire paths are /api/v1/... .
 
 **flags decode:** flags low byte = HTTP method bitmask: 0x01 GET, 0x02 POST, 0x04 PUT, 0x08 DELETE, 0x10 PATCH (settings-only). Bit 0x100 set = household/settings-class routes; clear (0x2000000x) = playback/volume-class (playback, groupVolume, playerVolume, playbackMetadata). 0x20000000 = muse marker bit on all records.
 

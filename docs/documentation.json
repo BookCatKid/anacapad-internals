@@ -118688,13 +118688,14 @@
    "framing": "RFC6455 with per-message-deflate negotiation: 'wspmd' log domain, deflate/inflate stream ops, 'expected empty deflate block', 'deflate out buffer requirement not met'; config keys SONOS_FCS_DISABLE/ENABLE_PER_MSG_DEFLATE toggle it at runtime \u2014 'FCS' is the internal name of this channel",
    "close_reasons": "standard codes GOING_AWAY/PROTOCOL_ERROR/BAD_DATA/NOT_CONSISTENT/VIOLATED_POLICY/MESSAGE_TOO_BIG/SERVICE_RESTART/TRY_AGAIN_LATER/TLS_HANDSHAKE plus SONOS_* extensions: client-side (REGISTRATION_CERT_REMOVED/CHANGED, DATA_COLLECTION_OPTED_OUT \u2014 telemetry opt-out tears down the channel, ACCESS_TOKEN_EXPIRED, TOO_MANY_UNACKED_PINGS, READ/WRITE_ERROR, CUSTOMER_ID_CHANGED, AUTH_METHOD_CHANGED); player-side (SHUTDOWN, IP_ADDRESS_CHANGED, BLUETOOTH, POWERED_OFF, UPGRADE, NEW_SSID, LOW_BATTERY, SLEEPING, RECONNECT); server-side (LECHMERE_RECONNECT_LATER \u2014 server steering, PLAYER_UNSUPPORTED)",
    "keepalive": "application-level ping/pong: client disconnects on SONOS_CLIENT_TOO_MANY_UNACKED_PINGS",
-   "frame_format": "decoded from reader f_105d52e0: each frame starts with an 8-byte ASCII-hex header \u2014 [protocolVersion:%02x][messageType:%02x][extHeaderLen:%04x] \u2014 followed by extHeaderLen bytes of extended header, then payload. version and type are bounded small enums (rejects >6: 'Bad protocol version: %c%c', 'Bad message type: %c%c; %d', 'Bad extended header length: %c%c'); short reads \u2192 'failed to read lechmere header: %d' / 'could not recv extended header; expected %u read %u'",
+   "frame_format": "decoded from reader f_105d52e0: each frame starts with an 8-byte ASCII-hex header \u2014 [protocolVersion:%02x][messageType:%02x][extHeaderLen:%04x] \u2014 followed by extHeaderLen bytes of extended header, then payload. version and type are bounded small enums (rejects >6: 'Bad protocol version: %c%c', 'Bad message type: %c%c; %d', 'Bad extended header length: %c%c'); short reads -> 'failed to read lechmere header: %d' / 'could not recv extended header; expected %u read %u'.",
    "handshake": "Sec-WebSocket-Protocol: lechmere.%u offered; server response's Sec-WebSocket-Protocol header is parsed back with 'lechmere.%hhu%n' sscanf (f_105d45f8) to confirm the negotiated version; the HTTP 101 Date: header is also consumed \u2014 wall-clock sync from the upgrade response",
    "lifecycle": "'IP changed. Bouncing connection' \u2014 local IP change tears the channel down (SONOS_PLAYER_IP_ADDRESS_CHANGED close reason); authzPolicyKeyLechmere carries a role field ('Could not parse role from lechmere policy key')",
    "tunnel_headers": "extended-header vocabulary: 'x-sonos-method:', 'x-sonos-uri:', 'SOAPACTION:' \u2014 lechmere frames carry virtual HTTP request lines, i.e. UPnP/SOAP actions are tunnelled through the websocket as pseudo-HTTP; upgrade request adds X-Sonos-Udn; 'protocol version negotiation failed due to unknown version (%s)' on mismatch",
    "status_fields": "connection-status record fields: status, protocolVer, reason, code, retry, uptimeMs, transport, closed/failed/opened \u2014 the lechmereConnection status doc",
    "clock": "'could note use Date header for trusted clock seed: %s' \u2014 the HTTP 101 Date: response seeds the trusted clock",
-   "auth_fields": "policy-key record fields: userId, policyKey, museVersion"
+   "auth_fields": "policy-key record fields: userId, policyKey, museVersion",
+   "reader_dispatch": "the reader returns a 0..10 code dispatched through a PIC jump table at 0x10ef12c8 in the ws-client read loop f_1059c088. Cases: 0-1 EVENT-class frames ('Unexpected TYPE EVENT' logged; loop continues); 2 HTTP-tunnel frame ('support for HTTP message dropped' \u2014 the HTTP-over-lechmere tunnel is deprecated/dropped in this build on the OUTBOUND client path; the tunneled-UPnP pseudo-headers seen elsewhere belong to the server side /api/v1/websocket); 3 the real inbound command frame (payload queued at ctx+0x1f8, timestamped +0x310); 4 -> f_1070d01c (registration/ack-class frame); 5 SET_CONFIG-class (registration write; errors 'SET_CONFIG failed to read'/'failed to send registration'); 6 CHECK_CONFIG-class ('CHECK_CONFIG failed to return registration'); 7 'Unrecognized message type' (reader reject); 8 'read timeout'; 9 'read error'; 10 clean end-of-frame continue."
   },
   "led_engine": {
    "status": "partial",
@@ -120356,7 +120357,7 @@
  "muse": {
   "status": "partial",
   "name": "muse API (v1)",
-  "description": "the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template*, flags, 0, handler*, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb[,subparam]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...).",
+  "description": "the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template*, flags, 0, handler*, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb[,subparam]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...). All muse routes are mounted under the /api prefix \u2014 the master HTTP table registers '/api' -> f_100d2cf8 which installs the muse dispatcher (stubs f_100d36c0/f_100d36e4 -> pipeline f_100d2e18), so on the wire paths are /api/v1/... .",
   "flags_decode": "flags low byte = HTTP method bitmask: 0x01 GET, 0x02 POST, 0x04 PUT, 0x08 DELETE, 0x10 PATCH (settings-only). Bit 0x100 set = household/settings-class routes; clear (0x2000000x) = playback/volume-class (playback, groupVolume, playerVolume, playbackMetadata). 0x20000000 = muse marker bit on all records.",
   "dispatch": "two stubs only: f_100d36c0 (r8=0) serves 332 records, f_100d36e4 (r8=1) 271; both tail-call f_100d2e18 which normalizes the request into a 0x2a00-byte context (header/flag block at +0x416.., buf +0x2594) and dispatches on the parsed csv op name. r6==NULL fast-path returns 0.",
   "tables": {
@@ -175692,6 +175693,16 @@
    "routes_with_fields": 473,
    "verbs_bound": 237,
    "verbs_total": 265
+  },
+  "mount": {
+   "prefix": "/api",
+   "master_handler": "0x100d2cf8",
+   "dispatch_stubs": [
+    "0x100d36c0",
+    "0x100d36e4"
+   ],
+   "pipeline": "0x100d2e18",
+   "note": "master-route /api record hands the prefix to the muse router; r8=0/1 selects the channel (player vs household)"
   }
  }
 }
