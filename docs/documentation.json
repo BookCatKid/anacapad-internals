@@ -118101,7 +118101,8 @@
      "ZonesDefinitionsChangedEvent"
     ],
     "settings": "gainTrimDB [%.2f] apply"
-   }
+   },
+   "topo_events_detail": "topology_events_report.cxx: change detectors {chmap,HTsat defn,wifi mode,connection type,ch frq,wifi on,eth link,sats of GMs,local grp role,plbk corr ctx type} + \"GroupCoordinator before/after: %u/%u\"/\"nRel b/a:%u/%u\"; fields gcuid,cid:%s/%s,in:%u/%u; rate-limit \"reported %ds ago:limit\"; \"fail:unparse cid. quit report\"; names TopologyEventsReport/topologyEventsReport"
   },
   "ibt_plans": {
    "status": "partial",
@@ -120378,7 +120379,8 @@
    "codes": "learn submission: \"\\x%02X\" byte dump \"Pass %d short code bytes:\"; code fmt \"%02x%%20\"/\"%02x \""
   },
   "reporting": {
-   "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump"
+   "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump",
+   "play_report": "RPlayReportSubmitter: submitPlayReport/playReport/nowplaying endpoints; fields {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId,codec,originDelay,outputDelay,endReason,skippedTrack}; \"final report\" notify; \"periodic report interval set to %lld seconds\"; spotify-connect serviceType"
   },
   "ir_learn": {
    "name": "IR learn + cloud IR database",
@@ -120605,6 +120607,34 @@
   },
   "stream_metadata": {
    "cache": "streamingMetadataCache: \"Setting metadata reference time %s at %ld\"/\"Rejecting invalid stream metadata reference time\"; framer selection \"%d (%s) framer for: %s\"; \"%d(%s).sd:(%s,%lld)\"; mswmext=.asx sniff; sonosapi tag; \"unexpected text/html\"; getMediaUri %d + \"URI expires in %us\" + \"dereferenced to: %s\"; \"Disallow playback of Spotify Free content from Sonos queue\" \u2014 free-tier gate; \"%d: StartTime: %s %dms - %ums %s\""
+  },
+  "track_play_monitor": {
+   "name": "RTrackPlayMonitor/trackPlayRecorder \u2014 play-segment recording",
+   "status": "partial",
+   "summary": "per-track log entries {Track Or Station URI,Extra Md,Context URI,CQ Auth Token,SMAPI Device Id,CloudQueueVersion,CQ Context Version,CQ Playback Id,API Key,Framer Name}; play line \"%s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s)\"; segments \"seg start @ %d.%06d (packetId: %u), end ...\"; PlaybackId remap; string-pool bounded (pool %d%% full, \"Resetting due to no free RTrackLogEntries\"); states In progress/Final/LSE; selthrd.RTrackPlayMonitor thread",
+   "events": "R_STREAM_OP_{SAMPLE(publish segment),OPEN(offset),CLOSE(packetId),INTERRUPT(act,offset),ACK(act,packetId),ERROR,IMMED_RESYNC,SCHED_RESYNC,BOUNDARY,ORIGIN_TIME_SELECTED,QUALITY_SELECTED(bd,sr,c,br,nc,a,fmt)} + R_PLAY_OP_{SAMPLE,BOUNDARY,RESYNC(immed|sched),ERROR,CHANGE_SRC,CODEC_SELECTED,ORIGIN_TIME_SELECTED}; sources {REMOTE,CHSRC,Virtual Line-In}; errors {NO_ERROR,CLOUD_QUEUE_ERROR}",
+   "recorder": "segment containers: streams/playback/canceled per lifecycle {(init),(finalize),(RESYNC),(RESYNCED),(RESYNCING),(SCHED RESYNC)}; full-container overwrite; zero-sample cancel; memory-pressure relief falls back to canceled; \"Overwriting stream error\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed8350",
+     "notes": "trackplaymonitor/recorder region"
+    }
+   ]
+  },
+  "mpegts_id3": {
+   "name": "MPEG-TS demuxer + timed ID3 (HLS radio metadata)",
+   "status": "partial",
+   "summary": "TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), eslen, \"No audio PID\"/\"Audio PID is 0x%x\", \"non-audio and non-timed_id3 PID\", PTS, peslen/payload; timed-ID3v2 extraction: tag footer detect, \"Ignoring too large timed ID3 size\", OOB guards, \"unsupported mp3 segment\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed9380",
+     "notes": "ts/id3 parser region"
+    }
+   ]
   }
  },
  "muse": {
