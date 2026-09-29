@@ -119643,7 +119643,8 @@
     }
    ],
    "session_detail": "eSDK event enum {TrackChanged,ShuffleOn,ShuffleOff,RepeatOn,RepeatOff,BecameActive,BecameInactive,AudioDeliveryDone,ContextChanged,MetadataChanged,NetworkRequired,TrackDownloadStalled,QueuedTrackAccepted}; callbacks {setPositionInfo,notifyDownloadComplete,setTrackStreamId,setTrackSize,notifyTrackChanged,notifyMetadataChanged,addTracks}; NTS extra {ConnectionNotify,PlaybackApplyVolume,StreamEnd(id),StreamSeekToPosition(id,pos)}; HAL {spot_hal,Dns HAL Exit(status,err)}; token {\"Treating auth token as expired\",\"Login failed with E_SONOS_BAD_ACCOUNT\",\"attempting refresh\",\"Refresh token failed with upnp result: %hu\",\"Now time %ld.%06ld. Account info last update time %ld.%06ld\"}; pullContext(playing,seek .%06d,byte offset,bitrate,observable); SWPBL-259788 guard \"Delegated VLI session is not playing; skipping pullContext()/become active device ... avoid re-initiating Direct Control\"; SMAPI\u2194VLI {\"SMAPI to VLI transition detected. Forcing loginZC\",\"VLI selection with stored account but already in connect mode - likely resuming VLI (e.g., after AirPlay)\",\"Already logged in with same account, skipping loginZC\"}",
-   "queue_fsm": "spotifyTrackQueue (spot_q): tracks {current,next,previous} matched by streamId; ack states {Current Acked,Queued Acked}; transitions {\"Track change: (%s||%s) -> (%s||%s)\",\"Unknown track change ... != upcoming\",\"ERROR current/next track mismatch\",\"!!!! [BUG] RESOLVING acked NEXT track mismatch\"}; ops {Play track at %u ms,Next track,Queueing track,Add tracks}; pending FSM {Current Track Pending,Current Track Still Pending,Play & Queue Tracks,Now Pending,Still Pending,Waiting In-Flight Queueing,Max retries (%u) exceeded. Resetting,Queued pending track after %u failures}; seek paths {\"Resume from pause fast path, offset: %zu\",\"Seek fast path: %u ms\",\"Forcing seek slow path\",\"using SpPlayUri ... type/uri\",\"adjusting initial Play position\",\"Play from beginning\"}; safeguards {\"Suppressing phantom playback-start after end-of-queue\",\"Playback finished at position=%lld ms\",\"Resetting position ... download has not completed\",\"position info request for previous track \u2192 cached\"}; dump \" [%s]: id: %u, %s||%s, pos: %lld / %lldms, delivered: %d, rendered: %d\""
+   "queue_fsm": "spotifyTrackQueue (spot_q): tracks {current,next,previous} matched by streamId; ack states {Current Acked,Queued Acked}; transitions {\"Track change: (%s||%s) -> (%s||%s)\",\"Unknown track change ... != upcoming\",\"ERROR current/next track mismatch\",\"!!!! [BUG] RESOLVING acked NEXT track mismatch\"}; ops {Play track at %u ms,Next track,Queueing track,Add tracks}; pending FSM {Current Track Pending,Current Track Still Pending,Play & Queue Tracks,Now Pending,Still Pending,Waiting In-Flight Queueing,Max retries (%u) exceeded. Resetting,Queued pending track after %u failures}; seek paths {\"Resume from pause fast path, offset: %zu\",\"Seek fast path: %u ms\",\"Forcing seek slow path\",\"using SpPlayUri ... type/uri\",\"adjusting initial Play position\",\"Play from beginning\"}; safeguards {\"Suppressing phantom playback-start after end-of-queue\",\"Playback finished at position=%lld ms\",\"Resetting position ... download has not completed\",\"position info request for previous track \u2192 cached\"}; dump \" [%s]: id: %u, %s||%s, pos: %lld / %lldms, delivered: %d, rendered: %d\"",
+   "vli_control": "RSpotifyVLIControl: metadata {track,artist,album,playback_source_uri,bitrate}+Next Metadata; cookie-validated sessions \"Ignoring stale stopSession due to cookie mismatch: %d != %d\"; callbacks {onVirtualLineInSuspendSession,onVirtualLineInStartAudio,onVirtualLineInStopAudio,onVirtualLineInPlayModesChanged} cookie %d; delegation guards {\"Ignoring pause while setting state / delegating. isPlaying set to %d\",\"Ignoring became inactive\",\"Ignoring volume change (%u)\"}; actors {spotifyVliControl,spotify_vli,spotify_md,scopeSpotyVli}; R_SPOT_EVT_METADATA_CHANGE + SpotifyInternalEvent unhandled type"
   },
   "telemetry_submission": {
    "status": "partial",
@@ -120293,17 +120294,18 @@
     "audio_frame": "\"pkt: %zu channels, %zu samples, payload:%zu, rl:%d\" \u2014 multichannel framed audio; \"Last audio frame %d\"; \"frame serialization failed\"",
     "sat_mgmt": "\"satellites active [0x%x]\" mask; \"bonded sub(s) %zu\"; satellite sub receives non-sub channels; \"Sonar center delay %d samples, %d usec\"; play start/end handled with disabled sats; \"changing surround time delta mode\"; \"sample type changed\"; \"Request resync\"; volume/mute/LED propagation (\"vol change %u (%u%%) -> %u\",\"mute change %d -> %d\",\"LED brightness %d -> %d\"); \"Send playback ended if count %d > 0 or remote audio disabled %d\""
    },
-   "tx_stats": "counters {timeToPlay=\"Time between send and play\",txSent=\"Total bytes transmitted\",txErrors,serializationErrors,numLateFrames=\"late to transmit a frame\",\"Total resynchronization frames\",playbackEnd=\"Total playback ended frames\",mx_proc=\"Highest SatMixer processing time\",tx_proc=\"Highest SatTx processing time\"} \u2014 \"HT Audio Satellite TX General\""
+   "tx_stats": "counters {timeToPlay=\"Time between send and play\",txSent=\"Total bytes transmitted\",txErrors,serializationErrors,numLateFrames=\"late to transmit a frame\",\"Total resynchronization frames\",playbackEnd=\"Total playback ended frames\",mx_proc=\"Highest SatMixer processing time\",tx_proc=\"Highest SatTx processing time\"} \u2014 \"HT Audio Satellite TX General\"",
+   "surround": "per-channel \"%s delay: %uus, gain: %f\"; surrounds/sub/group member down mix %s; \"changing surround mode. old %d new %d\" + \"changing tv surround lvl\" + \"changing music surround lvl\" + \"changing height channel lvl\" + \"sub changing %zu to %zu\"; \"Set %s signal rate: %zu\"; SatConfigEvent; \"TV signal %s\"; htcZonePlayer; Orientation %s; TOSLinkConnected; IRRepeaterState; TVSignalDetectedEvent"
   },
   "ir_decoder": {
-   "name": "RIRDecoder \u2014 IR protocol decoder",
-   "status": "partial",
-   "summary": "protocol detect {\"Histogram contains no second peak\",avgA/avgB,threshold}; coding {\"biphase pulse too long %d\",\"too many raw bits!\",\"pulse width coding with threshold of [%f]\",\"pulse distance coding with threshold of [%f]\"}; results {\"***** unrecognized %d *****\",\"***** recognized %d *****\"}; io {\"Could not read IR data. (%d, read: %zd)\",\"IR Event read: %zd, msgcount: %u\"}; selthrd.RIRDecoder.{reset,data,except,timeout}",
+   "name": "IR decoder + learn + cloud DB",
+   "status": "strong",
+   "summary": "encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,input_codes} with \"Cannot add X: list full.\" bounds; config /opt/ir/irconfig.txt + \":vol_up_codes:\" keys + \"IR not configured\"; device {\"Failed to open IR device!\",\"Could not get IR file descriptor!\",\"Loading active codes...\",\"IR Controls %s\"}; learn FSM {Capturing short code,\"Short code is first of a series. Ignored!\",Storing short code,\"short so far %d and max: %d\",Successful short code learn,First short long code learned}; algorithm {\"Pass %d length %d learn count: %d\",hex dumps,\"first and third passes have different sizes!\",\"don't match!\",\"Insufficient redundancy in alternate code.\",\"Successfully recognized code as Alternating.\",\"Successfully recognized repeat code.\",\"Mismatched short messages in suspected repeat code.\",\"Successfully recognized a non - repeating code.\",\"Learn summary: Success/Repeat style/Alt style %c\",\"Over ten codes received... not a repeat style code\",\"Ignoring excessively long code\"}; one-button {\"Entered one button learn\",waiting/\"no longer waiting\",UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND,\"One button code not found in DB due to timeout\",\"Timeout during IR code learn for target %s\"}; embedded remote DB {Sharp,LG / Haier TV L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA TV 46LA45RQ,Orion TV SLED3280-HDLCD3250,Mitsubishi WD-65638 & WD-60738,JVC TV JLC42BC3000 & LT-19E610,Seiki TV LC-32B56,SuperSonicSC-240 & 491,ViewSonic VT4210LED & VT3205LED,Loewe}; targets {VolUp,VolDown,VolMute}; DB ops {\"attempting to add null remote\",\"add remote to full db\",\"too long a controller name\",\"excessively long main/alt/repeat code\",Uninstalled all codes}; cloud: submit POST http://ir.ws.sonos.com/IRCode/ XML <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> (guid via /dev/urandom); lookup \"Requesting: %s\" \u2192 \"Code found for remote id [%s]!\" / \"Requested code not found in IR database\"; \"Outstanding codes yet to be learned: Lengths are: %d, %d, %d\"; \"Denylisted pyle!\"",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10ea7854",
+     "address": "0x10ea6550",
      "notes": "irdecoder block"
     }
    ]
@@ -122690,6 +122692,45 @@
      "status": "confirmed",
      "address": "0x10ea49d4",
      "notes": "spotify thread block"
+    }
+   ]
+  },
+  "smapi_descriptor": {
+   "name": "SMAPI service descriptor schema",
+   "status": "partial",
+   "summary": "fields {apiKey,advertising,presentationMap,strings,reporting,browse,Moment}; accountTiers {paidLimited,paidPremium}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea5c70",
+     "notes": "smapi descriptor fields"
+    }
+   ]
+  },
+  "cpu_monitor": {
+   "name": "CPU monitor",
+   "status": "partial",
+   "summary": "reads /proc/stat; header \" [%d] usr sys idle sIRQ | irqD dMS\"; row \" [%d]  %2u  %2u   %2u   %2u | %6u %5lld\"; parses %zu x7; \"cpu%d switched to a shutdown state\"; \"Avoided dividing by zero calculating cpu core: %d bOverflow: %d\"; \"core%d: idle at %d%%\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea5d00",
+     "notes": "cpu monitor region"
+    }
+   ]
+  },
+  "ht_audio_sources": {
+   "name": "TV audio source types",
+   "status": "partial",
+   "summary": "source names {tv-sat-as,tv-gm-dm-as,tv-proc-as,AIHomeTheater,chsnk-sat-as}; ForceSubmitTvSessionReport op",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea5f94",
+     "notes": "ht source names"
     }
    ]
   }
