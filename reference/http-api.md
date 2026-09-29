@@ -907,6 +907,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **/radiolog:** status-registry page {flag=2, handler=f_100b8ff8} radiolog.cxx
   - **/du-jffs:** status-registry exec page {flag=2, cmd="/usr/bin/du -a -d 5 -k -x /jffs"}
   - **/dsp/eqdata.txt:** serves app/debug/dsp/eqdata.txt + persistentEQ.xml (literal-adjacent, reference mechanism not table)
+  - **/sonar-tone:** not in master table; .rodata-referenced near app/run/inverters + ZP_MODE_STANDALONE + variantDebuginfo — sonar variant-tone config path
+  - **/debugfiles:** exec page flag=0xa: /bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug
 
 ## `device_account_endpoint`
 
