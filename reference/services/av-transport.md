@@ -516,6 +516,10 @@ Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
 
 #### Notes
 
@@ -641,6 +645,10 @@ Request parse layer rejected an argument before the impl was invoked.
 worker-call rejection path
 
 - worker call result -> literal
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
 
 #### Notes
@@ -777,6 +785,10 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: promotion-path domai
 Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 #### Notes
@@ -1253,6 +1265,10 @@ worker-call rejection path
 
 - worker call result -> literal
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1384,6 +1400,10 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd
 Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1662,6 +1682,10 @@ Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
 
 #### Notes
 
@@ -1912,6 +1936,10 @@ None known beyond 718 — the impl returns 0 unconditionally after teardown; thi
 Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -3156,6 +3184,10 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 - typed argument parse or request-shape check failed in the wrapper
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -3280,6 +3312,10 @@ impl returns 0 unconditionally after the gate
 Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -3534,6 +3570,10 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 - typed argument parse or request-shape check failed in the wrapper
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -3662,6 +3702,10 @@ Indexed submit failed - the impl+0x580 engine rejected the track-back request.
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -4353,6 +4397,10 @@ Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
 
 #### Notes
 
@@ -4643,6 +4691,10 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, calle
 **Bounded unknown — proven:** f_10146e94 persistence rc returned
 **Bounded unknown — unresolved:** concrete codes the saved-queue persistence helper can produce (storage/duplicate errors)
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -4779,6 +4831,10 @@ Illegal seek target: malformed time, negative REL_TIME, out-of-range track, or f
 - Indexed mode: TRACK_NR Target outside 1..65534 (strtol t; rejects when (t-1) unsigned > 0xFFFD, i.e. t<=0 or t>=65535, including saturating/negative results).
 - Indexed mode: rchsrcreq track submission via f_10255f64 returns 0.
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
 
 #### Notes
 
@@ -4909,6 +4965,10 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: URI-set worker f_102
 Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 #### Notes
@@ -5173,6 +5233,10 @@ Request parse layer rejected an argument before the impl was invoked.
 
 - Missing or unparseable input argument at the wrapper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -5433,6 +5497,10 @@ byte impl+0x5a86 is 0 — no alarm is ringing, nothing to snooze.
 rec+4 u16 is returned; codes 718/402/800/701 enumerated.
 
 - worker wrote a code not in the enumerated set
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -5708,6 +5776,10 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718, downstream mode
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

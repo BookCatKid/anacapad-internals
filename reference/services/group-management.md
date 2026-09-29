@@ -175,6 +175,10 @@ gm_impl AddMember impl-level failure
 
 - GC or new member is an ungroupable player
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `strong`
+
+impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,808}: documented set missed 802/806/807. Strings: 'Adding member failed - invalid argument', 'Rejecting AddMember: GC or new member is an ungroupable player', 'Adding member to satellite is not supported'.
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -293,6 +297,10 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | emp
 MemberID not in member list ('failed (not a member before?)')
 
 - member-list scan this+0x288 (0x19-stride, <=0x20) found no strcmp match
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

@@ -157,6 +157,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
 
 #### Notes
 
@@ -313,6 +317,10 @@ request-validate failure (req->v\[+0x08\] returned 0)
 **Bounded unknown — unresolved:** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
 
 #### Notes
@@ -540,6 +548,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -653,6 +665,10 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 - request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v\[+0x14\]
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
 
 #### Notes
@@ -1243,6 +1259,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
 
 #### Notes
 
@@ -1360,6 +1380,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1475,6 +1499,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 **Bounded unknown — unresolved:** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1613,6 +1641,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
 
 #### Notes
 
@@ -1736,6 +1768,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
 
 #### Notes
 
@@ -1851,6 +1887,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

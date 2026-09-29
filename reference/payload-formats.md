@@ -268,6 +268,22 @@ Version-11 sibling section of sonos_signed_blob_json: ',\n{"magic":"(=^+^=)","ve
 
 </details>
 
+## `http_status_map` `strong`
+
+A lookup table that turns HTTP status codes from cloud/service calls into the player's own error numbers; anything unrecognized becomes 499. It's the 'objectStatusMap' that auth errors complain about.
+
+**Technical description:**
+
+- **name:** HTTP status mapping table (objectStatusMap)
+- **summary:** .rodata table at 0x10f94ec4 (+second page 0x10f94fa8): dense u16/u32 HTTP-status index->code map with sentinel 499. Recognized values {400,401,403,404,405,409,410,412,415,417,490,491,499,500,501,503,504}; unmapped -> 499. Consumed by the client-error mapping layer f_1038e82c ('Client error' string, internal codes {401,402,501,1000,1001,1002,1004}) - this is the 'objectStatusMap' referenced by the auth-layer string 'Error code not found in objectStatusMap'. HTTP errors from SMaPI/lechmere/cloud calls are normalized through this table into the internal fault space.
+
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10f94ec4 — status map table, 499 sentinel
+- @ 0x1038e82c — client-error mapper fn; internal codes {401,402,501,1001,1002,1004}
+
+</details>
+
 ## `itunes_plist_importer` `strong`
 
 The iTunes-library XML key vocabulary the importer understands — for local library shares.

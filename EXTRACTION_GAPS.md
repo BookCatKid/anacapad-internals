@@ -996,3 +996,25 @@ the deep semantic layer:
     rootfs diff (fenway recovery loop, satellite_device.xml, mtd
     layout, frcheck severity split). Remaining rootfs surface is
     empty dirs + standard busybox/glibc — nothing unharvested.
+11c. **Store-commit fault layer** — DONE: whole-.text census of
+    accumulator-context error literals + transitive call-graph
+    propagation closed the 'call-derived rc' blind spot. Every
+    replicated XML store carries a vendor 800-series ladder via its
+    .tmp/fsync/rename atomic save: userradio f_10384490
+    {402,501,701,702,803,805,806,807} (805=count>=70 favorites cap,
+    806=ftell>128KiB); savedqueues f_1047ee0c {501,701,802-812}+
+    {813,814,850,899} via add/reorder fns; alarmclock f_10283998
+    {501,800,801,802}; timezones f_1015aaf8 {801,802,803}; accountsmgr
+    {802,803,806,809,810}; gm AddMember {800-808}; sp_impl
+    {800,811,812}; dp_zpimpl {821,822,824}. Folded into per-action
+    errors (status inferred for propagated entries) + new
+    subsystems/store_commit_faults + payload_formats/http_status_map
+    (0x10f94ec4 status map, 499 sentinel; client-error mapper
+    f_1038e82c {401,402,501,1001,1002,1004}).
+    RESIDUAL: (a) mtctr/bctrl vfunc edges invisible to the bl callgraph
+    - propagated domains are a floor not a ceiling; (b) per-rung
+    triggers decoded only for userradio - other stores' rung semantics
+    undecoded; (c) legacy error sets (AlarmClock) contain
+    misclassified ASCII-pair constants (9587/25455/...) from the old
+    over-broad scan - doc-quality cleanup pending; (d) f_100c960f
+    {801-804} worker identity unknown.

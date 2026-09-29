@@ -185,6 +185,10 @@ Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -299,6 +303,10 @@ alarm-store vfunc 0x1027b134 (slot +0x3c) domain: accumulator r31 = remove-call 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1471,6 +1479,10 @@ Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1596,6 +1608,10 @@ format-string validation gate
 
 - format-string validation gate
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1711,6 +1727,10 @@ Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1825,6 +1845,10 @@ alarm-store vfunc 0x1027a64c (slot +0x20) domain: accumulator r29/r30 seeded fro
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1944,6 +1968,10 @@ alarm-store vfunc 0x1027cf5c (slot +0x10) domain: literal 402 (li r3,0x192 at 0x
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -2099,6 +2127,10 @@ alarm-store vfunc 0x1027ac80 (slot +0x38) domain: literal 402 gate (0x1027ad34) 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

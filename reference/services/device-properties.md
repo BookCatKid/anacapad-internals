@@ -147,6 +147,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -258,6 +262,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 **Bounded unknown — unresolved:** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -372,6 +380,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 **Bounded unknown — unresolved:** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1913,6 +1925,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a bctr through o
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -2020,6 +2036,10 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a real fn -> rea
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -2369,6 +2389,10 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 - request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v\[+0x14\]
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -3169,6 +3193,10 @@ worker f_101931a8 (1096 insns): apply chain f_10186870/f_1040e4cc/f_10740ce8/f_1
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

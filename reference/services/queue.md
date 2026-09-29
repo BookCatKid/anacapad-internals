@@ -331,6 +331,10 @@ Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
 
 #### Notes
 
@@ -1498,6 +1502,10 @@ literal gate: r4!=0 -> 800 (0x10465f88); r4==0 -> engine vfunc +0x7c on *(svc+0x
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
+
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

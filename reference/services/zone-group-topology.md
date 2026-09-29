@@ -389,6 +389,10 @@ Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+
+topology rc domain adds {800} via zgt worker
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
