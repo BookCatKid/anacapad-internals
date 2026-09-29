@@ -93,7 +93,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `hw_events` | **partial** | hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}; readEvent {overflow,unknown,readNextMsg ERROR}; button forwarding {'Forwarding button events','Disabling button event forwarding'} to private-IP-only target {Unable to translate address,Host not private IP,Invalid host IP,Invalid port no,socket errors}; FSM states {NOT_IN_HOUSEHOLD,PROCESSING_PLAYBACK,IN_DEMO_MODE,IN_RDM_MODE,IN_BUTTON_OBSERVATION_MODE,IN_TRANSFER_MODE,PROCESSING_JOIN,JOIN_CHIME_UNAVAILABLE,REGISTRATION_CHIME_UNAVAILABLE,BUTTONS_LOCKED,DAT_IN_BUTTONLESS_SETUP_MODE,DAT_IN_SETUP_DISCOVERY}; setup combo {VOL_DN\|VOL_UP starts timer → setup-ready on pop, VOL_UP+VOL_DN timer popped}; '%s press/release count = %zu'; '%s ignored in notify mode'; 'Disallowed action (%d - %s) because (%d - %s)'; 'inline action'; allowPlaybackRequests; 'collecting triggered diags'; 'enter %s household mode'; 'cancel join household mode'; PLAYPAUSE; '%s button pressed (cid)'; 'Play button held'; orientation {old->new,orientation_change,syslib orient}; led_diags {'Diag mode:%u, leftMS:%u; timeMS:%u; next mode: %u','set diag mode:%d'}; setup {'join hh','enabling wifi and %s','signaling netstartd (%s) %s',openap} |
 | `ibt` | **partial** | plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "\[dispatch\] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag |
 | `ibt_plans` | **partial** | a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init |
-| `inprocess_events` | **partial** | PlaybackEvent subject; "Registering/Unregistering "%s" observer "%s". Total observers: %zu"; ie-obs thread + %s-%s naming; sleep settings {enableSemiSleep,enableHTSourceSleep}; timeout "We timed out on %zu devices after %u attempts" + useCase + attempts + secondary; metrics {msTTM,msDRP}; "I/O Error: 0x%x. HTTP Result: %d uri: %s" |
+| `inprocess_events` | **partial** | subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,"We timed out on %zu devices after %u attempts",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache |
 | `interrupt_reasons` | **partial** | {CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL}; CEC errors {CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS} |
 | `iocompress` | **partial** | RCompressBuffer {deflateInit2,deflate,deflateEnd failed} + RDecompressBuffer {inflateInit2,inflate,inflateEnd failed} |
 | `ir_learn` | **partial** | htaudio.cxx IR subsystem: code lists vol_up_codes/vol_down_codes/vol_mute_codes/input_codes (bounded); learn FSM passes{1,3} redundancy checks "first and third passes have different sizes"/"don't match"; repeat styles {alternating,repeating,non-repeating}; one-button learn with timeout (UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND); config /opt/ir/irconfig.txt; cloud database http://ir.ws.sonos.com/IRCode/ — submit <IRCode><code><value><guid> XML (guid from //dev//urandom), query "Requesting: %s" -> "Code found for remote id \[%s\]"; embedded remote-name table {Sharp,LG/Haier L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA 46LA45RQ,Orion SLED3280,Mitsubishi WD-65638/60738,JVC JLC42BC3000/LT-19E610,Seiki LC-32B56,SuperSonic SC-240/491,ViewSonic VT4210LED/VT3205LED,Loewe}; "Denylisted pyle!"; "Outstanding codes yet to be learned: Lengths are: %d, %d, %d" |
@@ -234,12 +234,14 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `muse_types` | **strong** | 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} |
 | `music_accounts` | **?** |  |
 | `network` | **?** |  |
+| `network_tools` | **strong** | forms {"Tools for debugging network issues"}; /bin/ping -c 3 + /usr/bin/traceroute + nslookup + /mdnsannounce; POST params {host,csrfToken}; /pcap streams trace.pcap (Content-Disposition attachment) via /bin/pcap - not (host %s and port %d) exclusion filter |
 | `nodetx` | **?** |  |
 | `player_settings` | **strong** | keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq (treble),eq (bass),eq (loudness),gainTrimDB,zone attributes}; volume modes incl PASS_THROUGH ("EQ cannot be adjusted in PASS_THROUGH volume mode") + "Device does not support fixed output"; "Satellites not supported; configure primary device"; "monoMode (not supported in setup)"; wifiDisable reasons {reason unknown,netstart refused,no Ethernet carrier,meshDisable (netstart refused)}; "Netstart failed to modify meshDisable setting"; "Unable to set setting(s): ... (unsupported)"; actors {PlayerSettings,PlayerSettingsManager,playersettingsmgr,gmSat,ukwnt} |
 | `product_models` | **strong** | codenames {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-T,TitanWOW-P,TitanWOW-G,Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Optimo2,Optimo1}; ZPS ids {ZPS11,ZPS12,ZPS13,ZPS14,ZPS15,ZPS16,ZPS17,ZPS18,ZPS19,ZPS20,ZPS21,ZPS22,ZPS23,ZPS24,ZPS26,ZPS27,ZPS31,ZPS35,ZPS37,ZPS38,ZPS43,ZPS54,ZPS55,ZP120,ANVIL}; dspconfigparam + "ConfigParam lookup from player model %d failed" |
 | `protocol_info` | **strong** | schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotify,sonos.com-rtrecent,x-rincon,x-rincon-mp3radio,x-rincon-playlist,x-rincon-queue,x-rincon-stream,x-sonosapi-stream,x-sonosapi-hls,x-sonosapi-hls-static,x-sonosapi-radio,x-rincon-cpcontainer}; mime types {audio/mp3,audio/mp4,audio/x-m4a,audio/mpeg,audio/mpegurl,audio/x-mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/dash+xml,audio/mpeg3,audio/wav,audio/x-wav,audio/wma,audio/x-ms-wma,audio/aiff,audio/x-aiff,audio/flac,application/ogg,audio/ogg,audio/x-spotify,audio/x-sonos-recent,audio/x-sonosapi-radio}; vars {SourceProtocolInfo,SinkProtocolInfo,CurrentConnectionIDs}; actors {ConnectionManagerServer,ConnectionManagerRenderer} |
 | `queue_schema` | **strong** | <Queue Name='%s'><EntriesMax>%d</EntriesMax><EntriesUsed>%d</EntriesUsed><EntriesHighWater>%d</EntriesHighWater><StringTableSize>%d</StringTableSize><StringTableUsed>%d</StringTableUsed><StringTableHighWater>%d</StringTableHighWater><UpdateID>%u</UpdateID><ObjectID>%s</ObjectID><OwnerID>%s</OwnerID><Policy>%d</Policy><CloudQueueHost>%s</CloudQueueHost></Queue>; <TrackQueueSummary>Shared/Private</TrackQueueSummary>; GPM {com.google.RemoteSonosReceiver,Google Play Music} |
 | `radiolog` | **?** |  |
+| `rc_impl` | **strong** | events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,StereoPairStateEvent,TrueplayCalibrationChangedEvent,TrueplayStateEvent,RcNotifyGrcEvent,FeatureConfigChangedEvent,LocalPlayerChangeEvent,UpdateSonarEvent}; "Delivery of %s(%u) event cancelled"; RStringTRequestManCB; settingsWriteback; roles {HT_BONDED_MASTER,HT_BONDED_SATELLITE,UNBONDED_DEVICE,Master}; HT params {SubGain,SubCrossover,SubPolarity,SubEnable,VolumeScalingFactor,HeightChannelLevel,DialogLevel,SpeechEnhanceEnabled,SupportsMaxDialogLevel,SurroundLevel,MusicSurroundLevel,SurroundEnable,SurroundMode,AudioDelay,AudioDelayLeftRear} |
 | `registration` | **?** |  |
 | `registration_machine` | **?** |  |
 | `rendering_control` | **?** |  |
@@ -815,6 +817,31 @@ embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos
 paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent} + prefixes {households/,players/,services/,users/,groups/} + subs {/permissions,/extended}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue,targetType,targetid,reportFirmwareDownload}
 
 - **name:** cloud-API URL builders + params
+- **namespaces:**
+  - **playback:** groupId+householdId routes {skipToPreviousTrack,skipBack,seek,seekRelative,loadContainer,trackList->loadTrackList,loadStream,lineIn->loadLineIn,content->loadContent,skipToTrack}; playbackExtended->getExtendedPlaybackStatus; playbackMetadata->{getMetadataStatus,ratings->rate}
+  - **playbackSession:** {groupId}/playbackSession/{joinOrCreate,join,create}; {sessionId}/{rejoin,suspend,leave,loadCloudQueue,loadCloudQueueWithWindow,loadStreamUrl,loadStreamUrlWithContext,refreshCloudQueue,skipToItem,skipToItemWithWindow,seek,seekRelative}
+  - **playerVolume:** {playerId}/playerVolume->{setVolume,getVolume}; /relative->setRelativeVolume; /mute->setMute; /duck->duck; /unduck->unduck
+  - **playlists:** households/{hh}/playlists->{getPlaylists,{playlistId}->getPlaylist,getPlaylist->postPlaylist}; groups/{groupId}/playlists->loadPlaylist
+  - **positioning:** {playerId}/positioning/{playStimulus,stimulusTuning->{set,get}StimulusTuning,session->{startSession,cancelSession},action->applyAction,sessionMap,deviceMeasurements,measurements->sendMeasurements,sessionError/sessionStatus/deviceStatus->notify*,measurementCapabilities,telemetryLevel->setTelemetryLevel}
+  - **power:** {playerId}/power/policy->setPowerPolicy
+  - **roomDetection:** {playerId}/roomDetection/chirp->startSignalling; chirp/{playId}->stopSignalling
+  - **settings:** users/{userId}/settings->getSettings; players/{playerId}/settings->{getAllSettings,updateAllSettings}; player->{get,set}PlayerSettings; player/voice/allowMicrophone->setAllowMicrophone; setSelfTruePlay; enablePositioningMeasurement; sonosNetChannel->setSonosNetChannel; {groupName}->{get,update}SettingsGroup; hh/settings/{restrictedAdmin->{get,set}RestrictedAdminSettings,restrictedAdmin/userMetricsTracking->setUserMetricsTracking,public->getPublicSettings,protected/{setting},protectedAdmin/{setting}}
+  - **sleepTimer:** groups/{groupId}/sleepTimer->{configureSleepTimer,getSleepTimer}
+  - **smartplay:** households/{hh}/smartplay/content->getContent
+  - **soundSwap:** {playerId}/soundSwap->triggerSwap; /request->requestSwap
+  - **svc:** {playerId}/svc/{weatherConfig->{set,get}WeatherConfig,voiceCommand}
+  - **systemReporting:** households/{hh}/systemReporting/{firmwareDownload,softwareDownload,accountSubscription,productEvent}->report*; target-less form renders "v1/\[error: 'none' is not a valid target\]/systemReporting/..."
+  - **systemTime:** households/{hh}/systemTime/timeZone->{get,set}TimeZoneInfo
+  - **time:** {playerId}/time/relative->getRelativeTime
+  - **timers:** {playerId}/timers->getTimers; /create->createTimer; /setDuration/{timerId}->setDuration; /setRelativeDuration/{timerId}->setRelativeDuration; /pause/{timerId}->pauseTimer; /resume/{timerId}->resumeTimer; /{timerId}->abortTimer
+  - **trueplay:** {playerId}/trueplay/{discovery->detectSpeakers,presenceDiscovery->detectSpeakerPresence,resetDetectedSpeaker,presenceRate->setSpeakerPresenceRate,config/{id}->{get,set}Configuration,status->getTrueplayStatus}
+  - **trueroom:** {playerId}/trueroom/{estimatorConfiguration,adaptation,calibrationStatus->getCalibrationStatus,successTone->playSuccessTone,swapInputMute->setSwapInputMute}
+  - **update:** {playerId}/update/{check->checkForUpdate,firmware->beginSoftwareUpdate,status->getUpdateStatus}
+  - **upnp_bridge:** v1/players/{playerId}/upnp{SVC}\[+households/{hh}/\] for SVC in {AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology}; each ->call; /subscription->subscribe; /subscription/{logicalSID}->{renew,unsubscribe}
+  - **virtualLineIn:** {playerId}/virtualLineIn/{selectSource,startTransmission,stopTransmission,sendBackChannelCmd,startAudio,stopAudio}
+  - **virtualRemoteControl:** {playerId}/virtualRemoteControl/buttonCommand->sendButtonCommand
+  - **voice:** {playerId}/voice/accounts->{getVoiceAccounts,createVoiceAccount}; accounts/{accountId}->{updateVoiceAccount,removeVoiceAccount}; amazonChallenge->createAmazonChallenge; setup->notifyInitiateOnboarding
+  - **zones:** households/{hh}/zones->getActiveZoneList; zones/definition->{getZoneDefinitionList,addZoneDefinition}; definition/{zoneId}->{get,update,remove}ZoneDefinition; missingDefinition->addMissingZoneDefinition; activeZone/{zoneId}->updateActiveZone; memberSettings/{zoneId}->updateZoneMemberSettings; activate/{zoneId}->activateZone; deactivate/{zoneId}->deactivateZone; players/{playerId}/zones/{join,unjoin}/{zoneId}
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fba284 — cloudapi paths
@@ -1847,12 +1874,12 @@ a remote-management command executor: commands named in log domain 'ibt' are com
 
 **Technical description:**
 
-PlaybackEvent subject; "Registering/Unregistering "%s" observer "%s". Total observers: %zu"; ie-obs thread + %s-%s naming; sleep settings {enableSemiSleep,enableHTSourceSleep}; timeout "We timed out on %zu devices after %u attempts" + useCase + attempts + secondary; metrics {msTTM,msDRP}; "I/O Error: 0x%x. HTTP Result: %d uri: %s"
+subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,"We timed out on %zu devices after %u attempts",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache
 
-- **name:** inprocess-events — subject/observer bus
+- **name:** inprocess-events observer registry
 <details><summary>Evidence (1)</summary>
 
-- @ 0x10e86cc8 — inprocess-events block
+- @ 0x10e86c88 — inprocess-events
 
 </details>
 
@@ -4186,6 +4213,21 @@ TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnsseque
 
 - **netsettings_mgr:** file netsettings.json + HHSettings + schema upgrade; 4 PSK classes {HhPsk,ControlPsk,RoomEncPsk(room name encrypt),LanSwapPsk} each + Backup variant, rotation "PSK rotation successful (HH/Control/RoomEnc/LanSwap)" + version bump; encoding {SonosNet key,DTLS HH PSK}; netstartd push {netsettings,PSK,channel change "Pushed SonosNet channel change to %u for %u ms"}; SonosNet-disable test-mode auto-revert FSM {sn_en,sn_dis,sn_dis_test}: "schedule automatic revert in %d seconds"/"SonosNet was re-enabled"/"Disable succeeded (probably)"/"automatic revert failed!"; SSID protection "Registering for next topology update to protect SSID"; "Pending netsettings.json update discarded after replicating"
 - **network_test:** networkTestMgr: nettestresult.txt; cycle {"waiting %d sec before disabling wifi","disabling wifi for %d sec","enabling wifi",connect-open,complete:%s} + abort paths
+## `network_tools`
+
+**coverage** `strong`
+
+**Technical description:**
+
+forms {"Tools for debugging network issues"}; /bin/ping -c 3 + /usr/bin/traceroute + nslookup + /mdnsannounce; POST params {host,csrfToken}; /pcap streams trace.pcap (Content-Disposition attachment) via /bin/pcap - not (host %s and port %d) exclusion filter
+
+- **name:** network diagnostic tools page
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e86814 — tools page
+
+</details>
+
 ## `nodetx`
 
 **coverage** `?`
@@ -4256,6 +4298,21 @@ schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotif
 **coverage** `?`
 
 - **detail:** flags {recurse,redir,unsupported}; rc_impl settingsWriteback
+## `rc_impl`
+
+**coverage** `strong`
+
+**Technical description:**
+
+events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,StereoPairStateEvent,TrueplayCalibrationChangedEvent,TrueplayStateEvent,RcNotifyGrcEvent,FeatureConfigChangedEvent,LocalPlayerChangeEvent,UpdateSonarEvent}; "Delivery of %s(%u) event cancelled"; RStringTRequestManCB; settingsWriteback; roles {HT_BONDED_MASTER,HT_BONDED_SATELLITE,UNBONDED_DEVICE,Master}; HT params {SubGain,SubCrossover,SubPolarity,SubEnable,VolumeScalingFactor,HeightChannelLevel,DialogLevel,SpeechEnhanceEnabled,SupportsMaxDialogLevel,SurroundLevel,MusicSurroundLevel,SurroundEnable,SurroundMode,AudioDelay,AudioDelayLeftRear}
+
+- **name:** RenderingControl implementation (rc_impl)
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e87630 — rc_impl block
+
+</details>
+
 ## `registration`
 
 **coverage** `?`

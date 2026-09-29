@@ -121865,15 +121865,15 @@
    ]
   },
   "inprocess_events": {
-   "name": "inprocess-events \u2014 subject/observer bus",
+   "name": "inprocess-events observer registry",
    "status": "partial",
-   "summary": "PlaybackEvent subject; \"Registering/Unregistering \"%s\" observer \"%s\". Total observers: %zu\"; ie-obs thread + %s-%s naming; sleep settings {enableSemiSleep,enableHTSourceSleep}; timeout \"We timed out on %zu devices after %u attempts\" + useCase + attempts + secondary; metrics {msTTM,msDRP}; \"I/O Error: 0x%x. HTTP Result: %d uri: %s\"",
+   "summary": "subject.h; Registering/Unregistering \"%s\" observer \"%s\". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,\"We timed out on %zu devices after %u attempts\",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10e86cc8",
-     "notes": "inprocess-events block"
+     "address": "0x10e86c88",
+     "notes": "inprocess-events"
     }
    ]
   },
@@ -122297,7 +122297,33 @@
      "address": "0x10fba284",
      "notes": "cloudapi paths"
     }
-   ]
+   ],
+   "namespaces": {
+    "playback": "groupId+householdId routes {skipToPreviousTrack,skipBack,seek,seekRelative,loadContainer,trackList->loadTrackList,loadStream,lineIn->loadLineIn,content->loadContent,skipToTrack}; playbackExtended->getExtendedPlaybackStatus; playbackMetadata->{getMetadataStatus,ratings->rate}",
+    "playbackSession": "{groupId}/playbackSession/{joinOrCreate,join,create}; {sessionId}/{rejoin,suspend,leave,loadCloudQueue,loadCloudQueueWithWindow,loadStreamUrl,loadStreamUrlWithContext,refreshCloudQueue,skipToItem,skipToItemWithWindow,seek,seekRelative}",
+    "playerVolume": "{playerId}/playerVolume->{setVolume,getVolume}; /relative->setRelativeVolume; /mute->setMute; /duck->duck; /unduck->unduck",
+    "playlists": "households/{hh}/playlists->{getPlaylists,{playlistId}->getPlaylist,getPlaylist->postPlaylist}; groups/{groupId}/playlists->loadPlaylist",
+    "positioning": "{playerId}/positioning/{playStimulus,stimulusTuning->{set,get}StimulusTuning,session->{startSession,cancelSession},action->applyAction,sessionMap,deviceMeasurements,measurements->sendMeasurements,sessionError/sessionStatus/deviceStatus->notify*,measurementCapabilities,telemetryLevel->setTelemetryLevel}",
+    "power": "{playerId}/power/policy->setPowerPolicy",
+    "roomDetection": "{playerId}/roomDetection/chirp->startSignalling; chirp/{playId}->stopSignalling",
+    "settings": "users/{userId}/settings->getSettings; players/{playerId}/settings->{getAllSettings,updateAllSettings}; player->{get,set}PlayerSettings; player/voice/allowMicrophone->setAllowMicrophone; setSelfTruePlay; enablePositioningMeasurement; sonosNetChannel->setSonosNetChannel; {groupName}->{get,update}SettingsGroup; hh/settings/{restrictedAdmin->{get,set}RestrictedAdminSettings,restrictedAdmin/userMetricsTracking->setUserMetricsTracking,public->getPublicSettings,protected/{setting},protectedAdmin/{setting}}",
+    "sleepTimer": "groups/{groupId}/sleepTimer->{configureSleepTimer,getSleepTimer}",
+    "smartplay": "households/{hh}/smartplay/content->getContent",
+    "soundSwap": "{playerId}/soundSwap->triggerSwap; /request->requestSwap",
+    "svc": "{playerId}/svc/{weatherConfig->{set,get}WeatherConfig,voiceCommand}",
+    "systemReporting": "households/{hh}/systemReporting/{firmwareDownload,softwareDownload,accountSubscription,productEvent}->report*; target-less form renders \"v1/[error: 'none' is not a valid target]/systemReporting/...\"",
+    "systemTime": "households/{hh}/systemTime/timeZone->{get,set}TimeZoneInfo",
+    "time": "{playerId}/time/relative->getRelativeTime",
+    "timers": "{playerId}/timers->getTimers; /create->createTimer; /setDuration/{timerId}->setDuration; /setRelativeDuration/{timerId}->setRelativeDuration; /pause/{timerId}->pauseTimer; /resume/{timerId}->resumeTimer; /{timerId}->abortTimer",
+    "trueplay": "{playerId}/trueplay/{discovery->detectSpeakers,presenceDiscovery->detectSpeakerPresence,resetDetectedSpeaker,presenceRate->setSpeakerPresenceRate,config/{id}->{get,set}Configuration,status->getTrueplayStatus}",
+    "trueroom": "{playerId}/trueroom/{estimatorConfiguration,adaptation,calibrationStatus->getCalibrationStatus,successTone->playSuccessTone,swapInputMute->setSwapInputMute}",
+    "update": "{playerId}/update/{check->checkForUpdate,firmware->beginSoftwareUpdate,status->getUpdateStatus}",
+    "upnp_bridge": "v1/players/{playerId}/upnp{SVC}[+households/{hh}/] for SVC in {AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology}; each ->call; /subscription->subscribe; /subscription/{logicalSID}->{renew,unsubscribe}",
+    "virtualLineIn": "{playerId}/virtualLineIn/{selectSource,startTransmission,stopTransmission,sendBackChannelCmd,startAudio,stopAudio}",
+    "virtualRemoteControl": "{playerId}/virtualRemoteControl/buttonCommand->sendButtonCommand",
+    "voice": "{playerId}/voice/accounts->{getVoiceAccounts,createVoiceAccount}; accounts/{accountId}->{updateVoiceAccount,removeVoiceAccount}; amazonChallenge->createAmazonChallenge; setup->notifyInitiateOnboarding",
+    "zones": "households/{hh}/zones->getActiveZoneList; zones/definition->{getZoneDefinitionList,addZoneDefinition}; definition/{zoneId}->{get,update,remove}ZoneDefinition; missingDefinition->addMissingZoneDefinition; activeZone/{zoneId}->updateActiveZone; memberSettings/{zoneId}->updateZoneMemberSettings; activate/{zoneId}->activateZone; deactivate/{zoneId}->deactivateZone; players/{playerId}/zones/{join,unjoin}/{zoneId}"
+   }
   },
   "local_routes_2": {
    "name": "zone/group route paths + duck",
@@ -123273,6 +123299,32 @@
      "status": "confirmed",
      "address": "0x10eba2d4",
      "notes": "customsd form"
+    }
+   ]
+  },
+  "network_tools": {
+   "name": "network diagnostic tools page",
+   "status": "strong",
+   "summary": "forms {\"Tools for debugging network issues\"}; /bin/ping -c 3 + /usr/bin/traceroute + nslookup + /mdnsannounce; POST params {host,csrfToken}; /pcap streams trace.pcap (Content-Disposition attachment) via /bin/pcap - not (host %s and port %d) exclusion filter",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e86814",
+     "notes": "tools page"
+    }
+   ]
+  },
+  "rc_impl": {
+   "name": "RenderingControl implementation (rc_impl)",
+   "status": "strong",
+   "summary": "events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,StereoPairStateEvent,TrueplayCalibrationChangedEvent,TrueplayStateEvent,RcNotifyGrcEvent,FeatureConfigChangedEvent,LocalPlayerChangeEvent,UpdateSonarEvent}; \"Delivery of %s(%u) event cancelled\"; RStringTRequestManCB; settingsWriteback; roles {HT_BONDED_MASTER,HT_BONDED_SATELLITE,UNBONDED_DEVICE,Master}; HT params {SubGain,SubCrossover,SubPolarity,SubEnable,VolumeScalingFactor,HeightChannelLevel,DialogLevel,SpeechEnhanceEnabled,SupportsMaxDialogLevel,SurroundLevel,MusicSurroundLevel,SurroundEnable,SurroundMode,AudioDelay,AudioDelayLeftRear}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e87630",
+     "notes": "rc_impl block"
     }
    ]
   }
