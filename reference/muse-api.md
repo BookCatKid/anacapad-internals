@@ -244,6 +244,10 @@ Catalog lookups for music services. `serviceId`-scoped GETs resolve service cata
 | `GET` | `v1/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | — |
 | `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | — |
 
+Resource implementation functions (string-block registrar family): `0x10ad6210`
+
+Field vocabulary recovered from the resource's implementation functions: `catalog`
+
 ## `devices`
 
 Device CRUD and discovery for the household. Lists players in a household, registers/unregisters devices, and manages per-device attributes. `userId`-scoped ops handle user-specific device registrations.
@@ -267,6 +271,15 @@ Device CRUD and discovery for the household. Lists players in a household, regis
 | `PUT` | `v1/households/{householdId}/players/{playerId}/devices/transfer` | `transferDeviceRegistration` | `-` | `0x20000104` | `0x10ad8928` `0x10ad8938` |
 | `GET` | `v1/households/{householdId}/devices/local` | `getLocalDevices` | `-` | `0x20000101` | `0x10ad8938` `0x10ad8948` |
 
+Resource implementation functions (string-block registrar family): `0x10a65658`, `0x10a6578c`, `0x10a66160`, `0x10a66b3c`, `0x10a774c4`, `0x10a775a8`, `0x10a77630`, `0x10a784b4`, `0x10a78bb8`, `0x10ad7570`, `0x10ad8968`, `0x10bb2cdc`, `0x10bb2fc8`, `0x10bb3974`, `0x10bb41e8`
+
+Field vocabulary recovered from the resource's implementation functions: `devices`, `serial`, `modelDisplayName`, `fromVersion`, `toVersion`, `clientState`, `deviceState`, `result`, `downloadDuration`, `errorMsg`, `_objectType`, `timestamp`, `systemVersion`, `numUpdatedDevices`, `numDevices`, `duration`, `systemResult`, `null`, `capabilities`, `deviceIds`, `zoneInfo`, `virtualLineInSource`, `id`, `primaryDeviceId`, `serialNumber`, `deviceId`, `model`, `color`, `apiVersion`, `minApiVersion`, `name`, `websocketUrl`, `softwareVersion`, `hwVersion`, `swGen`, `versions`, `quarantineReasons`, `vanishReason`, `zoneId`, `members`, `isUnregistered`, `type`, `controlAPI`, `trueplaySDK`, `audioTxProtocol`, `htAudioTxProtocol`, `channelMap`, `state`, `false`, `true`, `vanishedDevices`, `quarantinedDevices`, `deviceFeatures`, `origin`, `numMeasurements`, `numRetries`, `useCached`, `metrics`, `orchestrator`, `debugData`
+
+Implementation messages:
+
+- `\u%04X`
+- `%d`
+
 Op-level JSON keys recovered from op-object methods: `assertion`
 
 ## `devicesExtended`
@@ -276,6 +289,10 @@ A wider read-only device listing — the same household device set decorated wit
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) |
 |---|---|---|---|---|---|
 | `GET` | `v1/households/{householdId}/devicesExtended` | `getExtendedDeviceStatus` | `-` | `0x20000101` | `0x101c0740` `0x101c0750` |
+
+Resource implementation functions (string-block registrar family): `0x101c0770`
+
+Field vocabulary recovered from the resource's implementation functions: `devicesExtended`
 
 ## `diagnostics`
 
@@ -505,6 +522,10 @@ Per-device household software update — a single player checks and applies firm
 | `GET` | `v1/devices/{deviceId}/householdUpdate/status` | `getHouseholdUpdateStatus` | `-` | `0x20000101` | `0x10af5900` `0x10af5910` |
 | `GET` | `v1/households/{householdId}/devices/{deviceId}/householdUpdate/status` | `getHouseholdUpdateStatus` | `-` | `0x20000101` | `0x10af5900` `0x10af5910` |
 
+Resource implementation functions (string-block registrar family): `0x10af5930`
+
+Field vocabulary recovered from the resource's implementation functions: `householdUpdate`
+
 ## `households`
 
 Top-level household object: create/lookup, members, the `none`-scoped ops are unauthenticated bootstrap endpoints (a player with no household talks here). Everything else in muse hangs off a `householdId` bound by these routes.
@@ -519,6 +540,10 @@ Top-level household object: create/lookup, members, the `none`-scoped ops are un
 | `GET` | `v1/households/{householdId}/households/location` | `getHouseholdLocation` | `-` | `0x20000101` | — |
 | `PUT` | `v1/households/{householdId}/households/location` | `setLocation` | `-` | `0x20000104` | — |
 
+Resource implementation functions (string-block registrar family): `0x10af3488`
+
+Field vocabulary recovered from the resource's implementation functions: `households`
+
 ## `info`
 
 Read-only per-player info — identity, capabilities, version. The cheap 'what is this box' query.
@@ -527,6 +552,14 @@ Read-only per-player info — identity, capabilities, version. The cheap 'what i
 |---|---|---|---|---|---|
 | `GET` | `v1/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | — |
 | `GET` | `v1/households/{householdId}/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | — |
+
+Resource implementation functions (string-block registrar family): `0x10a38570`, `0x10a3890c`, `0x10a38e50`
+
+Field vocabulary recovered from the resource's implementation functions: `info`, `resources`, `type`, `id`, `name`, `explicit`, `playable`, `metadata`, `images`, `count`, `offset`, `pageSize`, `total`, `_objectType`, `false`, `true`, `url`, `width`, `height`, `objectId`, `accountId`, `serviceId`, `REDACTED`, `metadataBlob`
+
+Implementation messages:
+
+- `%d`
 
 ## `ircontrol`
 
@@ -566,6 +599,10 @@ Administrative POSTs on a player — factory/maintenance operations.
 | `POST` | `v1/households/{householdId}/players/{playerId}/management/factoryReset` | `factoryReset` | `-` | `0x20000102` | `0x10afe1ac` |
 | `POST` | `v1/players/{playerId}/management/reboot` | `reboot` | `-` | `0x20000102` | `0x10afe1ac` `0x10afe1bc` `0x10b0d1b0` `0x10b0d1c0` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/management/reboot` | `reboot` | `-` | `0x20000102` | `0x10afe1ac` `0x10afe1bc` `0x10b0d1b0` `0x10b0d1c0` |
+
+Resource implementation functions (string-block registrar family): `0x10afe1dc`
+
+Field vocabulary recovered from the resource's implementation functions: `management`
 
 Op-level JSON keys recovered from op-object methods: `fullSync`, `setting`, `operation`
 
@@ -641,6 +678,10 @@ Privileged platform ops — POST-only, player/household scoped, used by first-pa
 | `POST` | `v1/players/{playerId}/platformInternal/reboot` | `reboot` | `-` | `0x20000102` | `0x10afe1ac` `0x10afe1bc` `0x10b0d1b0` `0x10b0d1c0` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/platformInternal/reboot` | `reboot` | `-` | `0x20000102` | `0x10afe1ac` `0x10afe1bc` `0x10b0d1b0` `0x10b0d1c0` |
 | `POST` | `v1/households/{householdId}/platformInternal/invalidateCache` | `invalidateCache` | `-` | `0x20000102` | `0x10b0d1c0` `0x10b0d1d0` |
+
+Resource implementation functions (string-block registrar family): `0x10b0d1f0`
+
+Field vocabulary recovered from the resource's implementation functions: `platformInternal`
 
 Op-level JSON keys recovered from op-object methods: `fullSync`, `setting`, `operation`, `cacheSettings`, `cacheNamespace`, `cacheData`, `cacheName`, `cacheKey`
 
@@ -865,6 +906,10 @@ Player power ops — POST-only power transitions (the player has no soft-power v
 | `POST` | `v1/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | — |
 | `POST` | `v1/households/{householdId}/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | — |
 
+Resource implementation functions (string-block registrar family): `0x10b20c24`, `0x10b05ea8`, `0x100d5240`
+
+Field vocabulary recovered from the resource's implementation functions: `power`, `volumeUp`, `volumeDown`, `toggleMute`, `loadResource`, `dpad`, `back`, `home`, `settings`, `togglePlay`, `secondary`, `role`, `stp`, `useCase`, `powerWakeupFromSemiSleep`, `primary`, `ht`
+
 ## `roomDetection`
 
 Mic-based room detection — start/stop the chirp-based proximity and room-matching flow that the Chirp stack backs. POST deletes/stops in-flight detection state.
@@ -998,6 +1043,10 @@ Household wall-clock/location time — GET reads the household clock state, PUT 
 | `GET` | `v1/households/{householdId}/systemTime/timeZone` | `getTimeZoneInfo` | `-` | `0x20000101` | `0x10b39424` |
 | `PUT` | `v1/households/{householdId}/systemTime/timeZone` | `setTimeZoneInfo` | `-` | `0x20000104` | `0x10b39424` `0x10b39434` |
 
+Resource implementation functions (string-block registrar family): `0x10b39454`
+
+Field vocabulary recovered from the resource's implementation functions: `systemTime`
+
 Op-level JSON keys recovered from op-object methods: `timeZoneInfo`
 
 ## `time`
@@ -1008,6 +1057,18 @@ Player-local time reads — GETs return the player's clock/status for alarm-trig
 |---|---|---|---|---|---|
 | `GET` | `v1/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | — |
 | `GET` | `v1/households/{householdId}/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | — |
+
+Resource implementation functions (string-block registrar family): `0x10b3a554`, `0x101827e4`
+
+Field vocabulary recovered from the resource's implementation functions: `time`, `ath1`, `md`, `sm`, `satSwitch`, `wifi`, `hardware`, `satsw`, `suid`, `cn`, `td`, `d3`, `l1`, `l2`, `l3`, `lmNeighbor`, `lmrep`
+
+Implementation messages:
+
+- `Error %d from uploadSatSwitchTimeReport`
+- `Error expected no more than %d entries, got %d`
+- `Error %d from WifiFuncsGetLmChangeStats`
+- `%d`
+- `%u`
 
 ## `timers`
 
@@ -1376,6 +1437,10 @@ Virtual remote — send remote-button events to a player through muse (related t
 | `POST` | `v1/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | — |
 | `POST` | `v1/households/{householdId}/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | — |
 
+Resource implementation functions (string-block registrar family): `0x10b85458`
+
+Field vocabulary recovered from the resource's implementation functions: `virtualRemoteControl`
+
 ## `voice`
 
 Voice assistant integration state — assistant enablement/locale on voice players.
@@ -1423,7 +1488,7 @@ Op-level JSON keys recovered from op-object methods: `zoneId`, `channelMapSet`, 
 
 ## Unresolved
 
-237 of 265 distinct verbs have recovered implementations (verb->factory->vtable->execute chains; 558 of 603 route records carry an 'impl' block and 473 carry extracted op-field lists). The 28 unbound verbs are all registration/reporting/household-listing ops (initDeviceRegistration, completeDeviceRegistration, refreshDeviceRegistration, getDeviceRegistrations, getUserDeviceRegistrations, deregisterDevice, removeDevice, getDevices, getHousehold(s), getHouseholdLocation, setLocation, setName, setPowerPolicy, getInfo, getRelativeTime, sendButtonCommand, translate, batchTranslate, getUsers, createInvite, redeemInvite, deleteInvite, getContent, reportFirmwareDownload, reportSoftwareDownload, reportAccountSubscription, reportProductEvent) — they register through a path that does not use the {verb,factory} store pattern, consistent with being forwarded/served by the household coordinator or cloud channel rather than a per-op local object; their handler bodies are not in this binary's local op map. Per-op 'fields' lists are JSON keys referenced inside the op object's own methods — a strong lower bound, not proven-complete schemas; nested-object shape, types, requiredness and enum domains remain undetermined.
+237 of 265 verbs have factory->vtable->exec chains. The remaining 28 split into two mechanisms rather than one gap: (a) 11 verbs — invite/user/translate/systemReporting ops — are registered in the OUTBOUND client registry at 0x110941d4 ({resource,verb} pairs + path-suffix/query-param stream at 0x1108df14), i.e. the player acts as a muse client and forwards these to the coordinator/cloud; their outbound shapes are documented in the outbound section. (b) 17 verbs — devices/registrations, households, info, power/policy, time, virtualRemoteControl, catalog-translate — are registered by each resource's own string-block registrar (e.g. f_10af3488 for households, which builds path+csv registrations inline); the resource implementation functions and their JSON field vocabulary are recorded per resource as impl_funcs/impl_fields, but the internal verb->method fan-out inside those functions is not yet walked.
 
 <details><summary>Evidence (5)</summary>
 

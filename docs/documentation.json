@@ -120406,7 +120406,7 @@
     "notes": "request normalizer + dispatcher"
    }
   ],
-  "unresolved": "237 of 265 distinct verbs have recovered implementations (verb->factory->vtable->execute chains; 558 of 603 route records carry an 'impl' block and 473 carry extracted op-field lists). The 28 unbound verbs are all registration/reporting/household-listing ops (initDeviceRegistration, completeDeviceRegistration, refreshDeviceRegistration, getDeviceRegistrations, getUserDeviceRegistrations, deregisterDevice, removeDevice, getDevices, getHousehold(s), getHouseholdLocation, setLocation, setName, setPowerPolicy, getInfo, getRelativeTime, sendButtonCommand, translate, batchTranslate, getUsers, createInvite, redeemInvite, deleteInvite, getContent, reportFirmwareDownload, reportSoftwareDownload, reportAccountSubscription, reportProductEvent) \u2014 they register through a path that does not use the {verb,factory} store pattern, consistent with being forwarded/served by the household coordinator or cloud channel rather than a per-op local object; their handler bodies are not in this binary's local op map. Per-op 'fields' lists are JSON keys referenced inside the op object's own methods \u2014 a strong lower bound, not proven-complete schemas; nested-object shape, types, requiredness and enum domains remain undetermined.",
+  "unresolved": "237 of 265 verbs have factory->vtable->exec chains. The remaining 28 split into two mechanisms rather than one gap: (a) 11 verbs \u2014 invite/user/translate/systemReporting ops \u2014 are registered in the OUTBOUND client registry at 0x110941d4 ({resource,verb} pairs + path-suffix/query-param stream at 0x1108df14), i.e. the player acts as a muse client and forwards these to the coordinator/cloud; their outbound shapes are documented in the outbound section. (b) 17 verbs \u2014 devices/registrations, households, info, power/policy, time, virtualRemoteControl, catalog-translate \u2014 are registered by each resource's own string-block registrar (e.g. f_10af3488 for households, which builds path+csv registrations inline); the resource implementation functions and their JSON field vocabulary are recorded per resource as impl_funcs/impl_fields, but the internal verb->method fan-out inside those functions is not yet walked.",
   "routes": [
    {
     "path": "v1/households/{HHID}/settings/protected-admin/{setting}",
@@ -121056,7 +121056,11 @@
     "verb": "createInvite",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e78620"
+    "record_va": "0x10e78620",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/authorization/invite",
@@ -121068,7 +121072,11 @@
     "verb": "createInvite",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e78638"
+    "record_va": "0x10e78638",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/authorization/redeem",
@@ -121080,7 +121088,11 @@
     "verb": "redeemInvite",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e78650"
+    "record_va": "0x10e78650",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/authorization/redeem",
@@ -121092,7 +121104,11 @@
     "verb": "redeemInvite",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e78668"
+    "record_va": "0x10e78668",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/authorization/users",
@@ -121104,7 +121120,11 @@
     "verb": "getUsers",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e78680"
+    "record_va": "0x10e78680",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/authorization/users",
@@ -121116,7 +121136,11 @@
     "verb": "getUsers",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e78698"
+    "record_va": "0x10e78698",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/authorization/users",
@@ -121128,7 +121152,11 @@
     "verb": "deleteInvite",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e786b0"
+    "record_va": "0x10e786b0",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/authorization/users",
@@ -121140,7 +121168,11 @@
     "verb": "deleteInvite",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e786c8"
+    "record_va": "0x10e786c8",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/players/{playerId}/authorization/authorizeDevice",
@@ -121262,7 +121294,11 @@
     "verb": "translate",
     "subparam": "objectId",
     "handler": "0x100d36c0",
-    "record_va": "0x10e78740"
+    "record_va": "0x10e78740",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/services/{serviceId}/catalog/id/{objectId}",
@@ -121274,7 +121310,11 @@
     "verb": "translate",
     "subparam": "objectId",
     "handler": "0x100d36e4",
-    "record_va": "0x10e78758"
+    "record_va": "0x10e78758",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/services/{serviceId}/catalog/ids",
@@ -121286,7 +121326,11 @@
     "verb": "batchTranslate",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e78770"
+    "record_va": "0x10e78770",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/services/{serviceId}/catalog/ids",
@@ -121298,7 +121342,11 @@
     "verb": "batchTranslate",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e78788"
+    "record_va": "0x10e78788",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices",
@@ -121310,7 +121358,11 @@
     "verb": "getDevices",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e787a0"
+    "record_va": "0x10e787a0",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices/{playerId}",
@@ -121322,7 +121374,11 @@
     "verb": "removeDevice",
     "subparam": "playerId",
     "handler": "0x100d36c0",
-    "record_va": "0x10e787b8"
+    "record_va": "0x10e787b8",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices/registrations",
@@ -121334,7 +121390,11 @@
     "verb": "getDeviceRegistrations",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e787d0"
+    "record_va": "0x10e787d0",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/users/{userId}/devices/registrations",
@@ -121346,7 +121406,11 @@
     "verb": "getUserDeviceRegistrations",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e787e8"
+    "record_va": "0x10e787e8",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/users/{userId}/devices/registrations",
@@ -121358,7 +121422,11 @@
     "verb": "getUserDeviceRegistrations",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e78800"
+    "record_va": "0x10e78800",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices/registrations",
@@ -121370,7 +121438,11 @@
     "verb": "initDeviceRegistration",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e78818"
+    "record_va": "0x10e78818",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices/registrations/{deviceId}",
@@ -121382,7 +121454,11 @@
     "verb": "completeDeviceRegistration",
     "subparam": "deviceId",
     "handler": "0x100d36c0",
-    "record_va": "0x10e78830"
+    "record_va": "0x10e78830",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices/registrations/{deviceId}",
@@ -121394,7 +121470,11 @@
     "verb": "refreshDeviceRegistration",
     "subparam": "deviceId",
     "handler": "0x100d36c0",
-    "record_va": "0x10e78848"
+    "record_va": "0x10e78848",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/devices/registrations/{deviceId}",
@@ -121406,7 +121486,11 @@
     "verb": "deregisterDevice",
     "subparam": "deviceId",
     "handler": "0x100d36c0",
-    "record_va": "0x10e78860"
+    "record_va": "0x10e78860",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/players/{playerId}/devices/registration",
@@ -124375,7 +124459,11 @@
     "verb": "getHouseholds",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e792e0"
+    "record_va": "0x10e792e0",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/households",
@@ -124387,7 +124475,11 @@
     "verb": "getHouseholds",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e792f8"
+    "record_va": "0x10e792f8",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/households/{householdId}",
@@ -124399,7 +124491,11 @@
     "verb": "getHousehold",
     "subparam": "householdId",
     "handler": "0x100d36c0",
-    "record_va": "0x10e79310"
+    "record_va": "0x10e79310",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/households/{householdId}",
@@ -124411,7 +124507,11 @@
     "verb": "getHousehold",
     "subparam": "householdId",
     "handler": "0x100d36e4",
-    "record_va": "0x10e79328"
+    "record_va": "0x10e79328",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/households/name",
@@ -124423,7 +124523,11 @@
     "verb": "setName",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e79340"
+    "record_va": "0x10e79340",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/households/location",
@@ -124435,7 +124539,11 @@
     "verb": "getHouseholdLocation",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e79358"
+    "record_va": "0x10e79358",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/households/location",
@@ -124447,7 +124555,11 @@
     "verb": "setLocation",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e79370"
+    "record_va": "0x10e79370",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/devices/{deviceId}/householdUpdate/update",
@@ -124547,7 +124659,11 @@
     "verb": "getInfo",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e793e8"
+    "record_va": "0x10e793e8",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/players/{playerId}/info",
@@ -124559,7 +124675,11 @@
     "verb": "getInfo",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e79400"
+    "record_va": "0x10e79400",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/players/{playerId}/ircontrol",
@@ -129335,7 +129455,11 @@
     "verb": "setPowerPolicy",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a378"
+    "record_va": "0x10e7a378",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/players/{playerId}/power/policy",
@@ -129347,7 +129471,11 @@
     "verb": "setPowerPolicy",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7a390"
+    "record_va": "0x10e7a390",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/players/{playerId}/roomDetection/chirp",
@@ -130342,7 +130470,11 @@
     "verb": "getContent",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a720"
+    "record_va": "0x10e7a720",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/players/{playerId}/soundSwap",
@@ -130602,7 +130734,11 @@
     "verb": "reportFirmwareDownload",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a828"
+    "record_va": "0x10e7a828",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/systemReporting/firmwareDownload",
@@ -130614,7 +130750,11 @@
     "verb": "reportFirmwareDownload",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7a840"
+    "record_va": "0x10e7a840",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/systemReporting/softwareDownload",
@@ -130626,7 +130766,11 @@
     "verb": "reportSoftwareDownload",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a858"
+    "record_va": "0x10e7a858",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/systemReporting/softwareDownload",
@@ -130638,7 +130782,11 @@
     "verb": "reportSoftwareDownload",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7a870"
+    "record_va": "0x10e7a870",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/systemReporting/accountSubscription",
@@ -130650,7 +130798,11 @@
     "verb": "reportAccountSubscription",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a888"
+    "record_va": "0x10e7a888",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/systemReporting/accountSubscription",
@@ -130662,7 +130814,11 @@
     "verb": "reportAccountSubscription",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7a8a0"
+    "record_va": "0x10e7a8a0",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/[error:  'none' is not a valid target]/systemReporting/productEvent",
@@ -130674,7 +130830,11 @@
     "verb": "reportProductEvent",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a8b8"
+    "record_va": "0x10e7a8b8",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/systemReporting/productEvent",
@@ -130686,7 +130846,11 @@
     "verb": "reportProductEvent",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7a8d0"
+    "record_va": "0x10e7a8d0",
+    "impl": {
+     "kind": "outbound_registry",
+     "note": "op registered in the outbound client registry (0x110941d4 {resource,verb}); served via the player-as-client forward path"
+    }
    },
    {
     "path": "v1/households/{householdId}/systemTime/timeZone",
@@ -130743,7 +130907,11 @@
     "verb": "getRelativeTime",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7a918"
+    "record_va": "0x10e7a918",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/players/{playerId}/time/relative",
@@ -130755,7 +130923,11 @@
     "verb": "getRelativeTime",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7a930"
+    "record_va": "0x10e7a930",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/players/{playerId}/timers",
@@ -147329,7 +147501,11 @@
     "verb": "sendButtonCommand",
     "subparam": null,
     "handler": "0x100d36c0",
-    "record_va": "0x10e7b9c8"
+    "record_va": "0x10e7b9c8",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/households/{householdId}/players/{playerId}/virtualRemoteControl/buttonCommand",
@@ -147341,7 +147517,11 @@
     "verb": "sendButtonCommand",
     "subparam": null,
     "handler": "0x100d36e4",
-    "record_va": "0x10e7b9e0"
+    "record_va": "0x10e7b9e0",
+    "impl": {
+     "kind": "resource_block",
+     "note": "registered by the resource's own string-block registrar (no per-verb factory array); impl funcs on the resource record"
+    }
    },
    {
     "path": "v1/players/{playerId}/voice/accounts",
@@ -149703,7 +149883,13 @@
      "serviceId"
     ],
     "field_vocab": [],
-    "op_count": 4
+    "op_count": 4,
+    "impl_funcs": [
+     "0x10ad6210"
+    ],
+    "impl_fields": [
+     "catalog"
+    ]
    },
    "devices": {
     "ops": [
@@ -149962,7 +150148,90 @@
      "userId"
     ],
     "field_vocab": [],
-    "op_count": 16
+    "op_count": 16,
+    "impl_funcs": [
+     "0x10a65658",
+     "0x10a6578c",
+     "0x10a66160",
+     "0x10a66b3c",
+     "0x10a774c4",
+     "0x10a775a8",
+     "0x10a77630",
+     "0x10a784b4",
+     "0x10a78bb8",
+     "0x10ad7570",
+     "0x10ad8968",
+     "0x10bb2cdc",
+     "0x10bb2fc8",
+     "0x10bb3974",
+     "0x10bb41e8"
+    ],
+    "impl_fields": [
+     "devices",
+     "serial",
+     "modelDisplayName",
+     "fromVersion",
+     "toVersion",
+     "clientState",
+     "deviceState",
+     "result",
+     "downloadDuration",
+     "errorMsg",
+     "_objectType",
+     "timestamp",
+     "systemVersion",
+     "numUpdatedDevices",
+     "numDevices",
+     "duration",
+     "systemResult",
+     "null",
+     "capabilities",
+     "deviceIds",
+     "zoneInfo",
+     "virtualLineInSource",
+     "id",
+     "primaryDeviceId",
+     "serialNumber",
+     "deviceId",
+     "model",
+     "color",
+     "apiVersion",
+     "minApiVersion",
+     "name",
+     "websocketUrl",
+     "softwareVersion",
+     "hwVersion",
+     "swGen",
+     "versions",
+     "quarantineReasons",
+     "vanishReason",
+     "zoneId",
+     "members",
+     "isUnregistered",
+     "type",
+     "controlAPI",
+     "trueplaySDK",
+     "audioTxProtocol",
+     "htAudioTxProtocol",
+     "channelMap",
+     "state",
+     "false",
+     "true",
+     "vanishedDevices",
+     "quarantinedDevices",
+     "deviceFeatures",
+     "origin",
+     "numMeasurements",
+     "numRetries",
+     "useCached",
+     "metrics",
+     "orchestrator",
+     "debugData"
+    ],
+    "impl_msgs": [
+     "\\u%04X",
+     "%d"
+    ]
    },
    "devicesExtended": {
     "ops": [
@@ -149994,7 +150263,13 @@
      "householdId"
     ],
     "field_vocab": [],
-    "op_count": 1
+    "op_count": 1,
+    "impl_funcs": [
+     "0x101c0770"
+    ],
+    "impl_fields": [
+     "devicesExtended"
+    ]
    },
    "diagnostics": {
     "ops": [
@@ -152814,7 +153089,13 @@
      "none"
     ],
     "field_vocab": [],
-    "op_count": 7
+    "op_count": 7,
+    "impl_funcs": [
+     "0x10af3488"
+    ],
+    "impl_fields": [
+     "households"
+    ]
    },
    "householdUpdate": {
     "ops": [
@@ -152907,7 +153188,13 @@
      "deviceId"
     ],
     "field_vocab": [],
-    "op_count": 4
+    "op_count": 4,
+    "impl_funcs": [
+     "0x10af5930"
+    ],
+    "impl_fields": [
+     "householdUpdate"
+    ]
    },
    "info": {
     "ops": [
@@ -152939,7 +153226,41 @@
      "playerId"
     ],
     "field_vocab": [],
-    "op_count": 2
+    "op_count": 2,
+    "impl_funcs": [
+     "0x10a38570",
+     "0x10a3890c",
+     "0x10a38e50"
+    ],
+    "impl_fields": [
+     "info",
+     "resources",
+     "type",
+     "id",
+     "name",
+     "explicit",
+     "playable",
+     "metadata",
+     "images",
+     "count",
+     "offset",
+     "pageSize",
+     "total",
+     "_objectType",
+     "false",
+     "true",
+     "url",
+     "width",
+     "height",
+     "objectId",
+     "accountId",
+     "serviceId",
+     "REDACTED",
+     "metadataBlob"
+    ],
+    "impl_msgs": [
+     "%d"
+    ]
    },
    "ircontrol": {
     "ops": [
@@ -153295,7 +153616,13 @@
      "playerId"
     ],
     "field_vocab": [],
-    "op_count": 4
+    "op_count": 4,
+    "impl_funcs": [
+     "0x10afe1dc"
+    ],
+    "impl_fields": [
+     "management"
+    ]
    },
    "musicServiceAccounts": {
     "ops": [
@@ -154228,7 +154555,13 @@
      "playerId"
     ],
     "field_vocab": [],
-    "op_count": 4
+    "op_count": 4,
+    "impl_funcs": [
+     "0x10b0d1f0"
+    ],
+    "impl_fields": [
+     "platformInternal"
+    ]
    },
    "playback": {
     "ops": [
@@ -157602,7 +157935,31 @@
      "playerId"
     ],
     "field_vocab": [],
-    "op_count": 2
+    "op_count": 2,
+    "impl_funcs": [
+     "0x10b20c24",
+     "0x10b05ea8",
+     "0x100d5240"
+    ],
+    "impl_fields": [
+     "power",
+     "volumeUp",
+     "volumeDown",
+     "toggleMute",
+     "loadResource",
+     "dpad",
+     "back",
+     "home",
+     "settings",
+     "togglePlay",
+     "secondary",
+     "role",
+     "stp",
+     "useCase",
+     "powerWakeupFromSemiSleep",
+     "primary",
+     "ht"
+    ]
    },
    "roomDetection": {
     "ops": [
@@ -158250,7 +158607,13 @@
      "householdId"
     ],
     "field_vocab": [],
-    "op_count": 2
+    "op_count": 2,
+    "impl_funcs": [
+     "0x10b39454"
+    ],
+    "impl_fields": [
+     "systemTime"
+    ]
    },
    "time": {
     "ops": [
@@ -158282,7 +158645,37 @@
      "playerId"
     ],
     "field_vocab": [],
-    "op_count": 2
+    "op_count": 2,
+    "impl_funcs": [
+     "0x10b3a554",
+     "0x101827e4"
+    ],
+    "impl_fields": [
+     "time",
+     "ath1",
+     "md",
+     "sm",
+     "satSwitch",
+     "wifi",
+     "hardware",
+     "satsw",
+     "suid",
+     "cn",
+     "td",
+     "d3",
+     "l1",
+     "l2",
+     "l3",
+     "lmNeighbor",
+     "lmrep"
+    ],
+    "impl_msgs": [
+     "Error %d from uploadSatSwitchTimeReport",
+     "Error expected no more than %d entries, got %d",
+     "Error %d from WifiFuncsGetLmChangeStats",
+     "%d",
+     "%u"
+    ]
    },
    "timers": {
     "ops": [
@@ -174788,7 +175181,13 @@
      "playerId"
     ],
     "field_vocab": [],
-    "op_count": 2
+    "op_count": 2,
+    "impl_funcs": [
+     "0x10b85458"
+    ],
+    "impl_fields": [
+     "virtualRemoteControl"
+    ]
    },
    "voice": {
     "ops": [

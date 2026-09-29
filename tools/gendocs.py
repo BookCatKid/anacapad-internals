@@ -1129,6 +1129,10 @@ def render_muse(m):
             impl = op.get("impl") or {}
             if impl.get("execs"):
                 execs = " ".join("`%s`" % x for x in impl["execs"])
+            elif impl.get("kind") == "outbound_registry":
+                execs = "outbound-fwd"
+            elif impl.get("kind") == "resource_block":
+                execs = "resource-block"
             else:
                 execs = "—"
             for f_ in op.get("op_fields") or []:
@@ -1148,6 +1152,23 @@ def render_muse(m):
                          execs])
         _table(out, ["Method", "Path", "Op", "Trailing param",
                      "Flags", "Exec (vtable +0x0c)"], rows)
+        if r.get("impl_funcs"):
+            out.append("Resource implementation functions (string-block "
+                       "registrar family): %s"
+                       % ", ".join("`%s`" % f for f in r["impl_funcs"]))
+            out.append("")
+        if r.get("impl_fields"):
+            out.append("Field vocabulary recovered from the resource's "
+                       "implementation functions: %s"
+                       % ", ".join("`%s`" % _e(x)
+                                  for x in r["impl_fields"]))
+            out.append("")
+        if r.get("impl_msgs"):
+            out.append("Implementation messages:")
+            out.append("")
+            for m_ in r["impl_msgs"]:
+                out.append("- `%s`" % _e(m_))
+            out.append("")
         if fields_seen:
             out.append("Op-level JSON keys recovered from op-object "
                        "methods: %s"
