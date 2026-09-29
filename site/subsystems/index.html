@@ -9920,6 +9920,7 @@
 
 <h2 id="authz"><code>authz</code><a class="headerlink" href="#authz" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The <code>/authz</code> policy layer that decides what a caller may do: static per-role policies, fast-path policies, guest/offline policies, and an mTLS policy — selected at request time. Token resolution asks the cloud for permissions and masks tokens in logs. Every sensitive HTTP and muse surface consults this before acting.</p>
 <p><strong>Technical description:</strong></p>
 <p>policies {"Static policy not found for role (%s), version (%s)","Static fast policy not found","Not in offline mode","Using guest policy for offline mode","Using mTLS policy","Using guest policy"}; token ops {"Failed to get the permissions: http=%d","Failed to parse getPermissions response","Failed to resolve token [token=<strong><em>*</em>*%s]: http=%d" (masked),"Failed to parse token response","Request to resolveToken successful [token=</strong>****%s]"}; cache {cache-control-header,responseResolveToken,museAuthzCache,InMemoryHttpCacheMutex,"Policy mapping retrieved from cache"}; guards {"Credential is not allowed","Guest access disallowed","Unauthenticated control disallowed"}</p>
 <ul>
@@ -10086,6 +10087,7 @@
 
 <h2 id="cert_files"><code>cert_files</code><a class="headerlink" href="#cert_files" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The on-flash layout for cert material: files named for <code>encrypted-private-key</code>, <code>expiration</code>, <code>encryption-key-type</code>, and <code>sonos-key-and-cert</code>. Rotation and renewal rewrite these; a corrupt or expired set cascades into mTLS and token-signing failures across every authenticated surface.</p>
 <p><strong>Technical description:</strong></p>
 <p>"%s/%s.%s"; keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert}; "failed to retrieve key"</p>
 <ul>
@@ -10161,6 +10163,7 @@
 
 <h2 id="cloud_api_paths"><code>cloud_api_paths</code><a class="headerlink" href="#cloud_api_paths" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The URL builders for every cloud call: <code>/tokens</code>, <code>/invite</code>, <code>/redeem</code>, <code>/users</code>, <code>/firmwareDownload</code>, <code>/softwareDownload</code>, <code>/accountSubscription</code>, <code>/productEvent</code>, each under household/player/service/group prefixes with query params like <code>protocolVersion=</code>, <code>accountId=</code>, <code>includeDeviceInfo=</code>. These are the outbound REST paths — the muse namespace routes are the inbound mirror of the same API surface.</p>
 <p><strong>Technical description:</strong></p>
 <p>paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent} + prefixes {households/,players/,services/,users/,groups/} + subs {/permissions,/extended}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue,targetType,targetid,reportFirmwareDownload}</p>
 <ul>
@@ -10216,6 +10219,7 @@
 
 <h2 id="cloud_synchronizer"><code>cloud_synchronizer</code><a class="headerlink" href="#cloud_synchronizer" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The background thread that registers all cloud sync services at boot and consumes just-in-time events, discarding ones it doesn't recognize. It's the glue between 'registered with the cloud' and 'receives pushed state' — a failed synchronizer leaves the device registered but deaf to cloud-initiated changes.</p>
 <p><strong>Technical description:</strong></p>
 <p>cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d"</p>
 <ul>
@@ -10347,6 +10351,7 @@
 
 <h2 id="device_registration"><code>device_registration</code><a class="headerlink" href="#device_registration" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The two-phase secure-enrollment handshake: <code>POST /product/v2/households/{hh}/players?action=refresh</code> starts it, <code>?action=complete&amp;token={tok}</code> finishes with the issued credential. The FSM logs state changes, handles suspend/resume mid-registration, retries on schedule, and treats an unexpected 401 as terminal. This is the path a replacement or reset player takes to get a household cert.</p>
 <p><strong>Technical description:</strong></p>
 <p>Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh then ?action=complete&amp;token={tok}; FSM "regState changed %d -&gt; %d" + "Transfer mode old (e:%d) new (e:%d)"; logs {during suspend,time expired,success,retrying registration at time %ld,error,Unexpected 401 response}; vars {regStatus,playerReg,sslerror,errno,mutualssl,sslError}; cert lifecycle {Flushed cert,removed invalid cert}; secure-reg-transfer IPC: signing key via {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}, jobs {tjmgrExitSecureRegTransferState,newRegisteredCertSonosIDLocked,exitSecRegTransferState}; household-customer conflict {"Household customer ID [%s] in conflict with local device [%s]","changed [%s] -&gt; [%s]"} vars {RegisteredCustomerID,RegisteredCertSonosID}; events {Received %s event. Sonos ID,NewCertRegistrationEvent inprocess-event}; RegisterZoneProvider UPnP action; replicated headers {X-RINCON-LAST-UPDATE-DEVICE,X-RINCON-CONTENT-FORMAT,CONTENT-ENCODING,X-RINCON-SIGNATURE} + "unexpected content version/format"; {ReplicatedSettings,settingsReplication,netsettingsReplication}; "Removing settings denylists after registration"</p>
 <ul>
@@ -10384,6 +10389,7 @@
 
 <h2 id="devicecertmanager"><code>devicecertmanager</code><a class="headerlink" href="#devicecertmanager" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The manager that downloads and refreshes the device cert from the cloud: ETag-cached GETs, metadata records (requestTimeMS, downloadStatusCode, previousETag), 'downloaded' vs 'unchanged' outcomes, and a scheduled refresh job when metadata is unknown. This is how a player's identity cert survives factory refurbs and re-enrollment.</p>
 <p><strong>Technical description:</strong></p>
 <p>ETag-cached downloads; metadata {requestTimeMS,downloadStatusCode,httpResultCode,previousETag}; outcomes {downloaded,unchanged}; "Cert download attempt finished"; "Unknown cert metadata state: %s. Scheduling cert refresh job."; error taxonomy {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present}; headers {X-Sonos-Muse-Household-Id,X-Sonos-Denylisted}; "Retrieved manufacturing data: %s"; files generated lazily "file not available yet, generating"</p>
 <ul>
@@ -11100,6 +11106,7 @@
 
 <h2 id="ibt"><code>ibt</code><a class="headerlink" href="#ibt" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>Intended-target fan-out: a single muse command can name <code>intendedTargets</code> — a set of players — and the planner expands it into per-target executions, validating that the command supports fan-out and each target parses. This is how the app sends one 'set volume' to a whole room instead of issuing per-player calls.</p>
 <p><strong>Technical description:</strong></p>
 <p>plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "[dispatch] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag</p>
 <ul>
@@ -11139,6 +11146,7 @@
 
 <h2 id="inprocess_events"><code>inprocess_events</code><a class="headerlink" href="#inprocess_events" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The in-process observer registry: named observers register per subject (PlaybackEvent and friends), the engine logs each registration with a running count, and flags like <code>enableSemiSleep</code>/<code>enableHTSourceSleep</code> mark power-sensitive listeners. This is the pub-sub fabric under muse events for handlers inside the same process.</p>
 <p><strong>Technical description:</strong></p>
 <p>subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,"We timed out on %zu devices after %u attempts",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache</p>
 <ul>
@@ -11618,6 +11626,7 @@
 
 <h2 id="muse_field_schema"><code>muse_field_schema</code><a class="headerlink" href="#muse_field_schema" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The JSON field names used in muse payloads, grouped by domain: auth (accessToken, refreshToken, pinEpoch), battery (chargingState, rawBatteryPercentage, batteryTemperature), device (isCoordinator, isSatellite, bootSequenceId, museHouseholdName), plus settings, positioning, and queue fields. These are the wire keys a client must produce — the binary is the authoritative spelling.</p>
 <p><strong>Technical description:</strong></p>
 <p>auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery {statusReason,chargingState,validCharger,rawBatteryPercentage,batteryPercentage,batteryTemperature}; device {deviceFeatures,isCoordinator,isVisible,isSatellite,isSecure,bootSequenceId,systemUptimeSeconds,anacapaUptimeSeconds,museHouseholdName,primaryDeviceId,networkIPAddress,networkMask,networkType,wifiSignalStrength}; audio in {bluetoothSource,lineInSource,audioInputName,audioInputIcon}; misc {pageSize,websocketUrl,vanishReason,toVersion,clientState,deviceState,downloadDuration,isSuspended,credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate,businessCore,controlChannels,restrictedAccess,sonosRadio,speed}; playback caps {canSkipToPrevious,canPause,canStop,canRepeat,canRepeatOne,canCrossfade,canShuffle,canSkipToItem}; policy {showNPreviousTracks,pauseTtlSec,playTtlSec,limitedSkips,pauseAtEndOfQueue,refreshAuthWhilePaused,notifyUserIntent,pauseOnDuck}; track meta {catalogId,region,nextItem,currentVideo,streamInfo,replayGain,advertisement,episodeNumber,chapterNumber,episodeName,immersive,connotation}; session {epochId,periodicIntervalMillis,sendPlaybackActions,macAddr,hmacDigest,sessionState}; misc2 {zoneInfo,isUnregistered,targetRoomName,meshDisable,suppressTVConfigError,repeatOne,shuffle,customerId,updateURL,enableMonitor,manifestRevision,latestSwGen,wifiDisableState}; SFB wire keys {third-party-integ,no-ads,hd-content,special-content,on-demand-archive,can-skip,content-saving,messaging,save-groups,basic-ui,commercial-msp,essentials-msp,premium-msp,dashboard-access,schedules-access}; alarm ops {getAlarms,fetchAlarm,createAlarm,updateAlarm,snoozeAlarm,removeAlarm}; duration fmt ISO8601 PT0H5M0S</p>
 <ul>
@@ -11631,6 +11640,7 @@
 
 <h2 id="muse_logging"><code>muse_logging</code><a class="headerlink" href="#muse_logging" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The internal command/event logger (<code>muselogcmd</code>/<code>muselogevt</code>) that records dispatched muse operations — loadAudioClip, setProtectedAdminSettings, createVoiceAccount among them. Useful for understanding which operations are considered sensitive enough to log, and for debugging replayed command histories.</p>
 <p><strong>Technical description:</strong></p>
 <p>{muselogevt,muselogcmd}; logged ops {loadAudioClip,startDirectControlEx,setProtectedAdminSettings,createVoiceAccount}</p>
 <ul>
@@ -11644,6 +11654,7 @@
 
 <h2 id="muse_perf"><code>muse_perf</code><a class="headerlink" href="#muse_perf" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>A per-stage profiler inside the muse engine: AUTH_IS_AUTHORIZED, COMMAND_PARSE, COMMAND_DISPATCH, COMMAND_EXECUTE, plus per-verb stages like PLAYER_VOLUME_SET_VOLUME, each reporting total ms, average, and count. Explains where command latency goes — e.g., auth vs dispatch vs the handler itself.</p>
 <p><strong>Technical description:</strong></p>
 <p>fmt "- %c%010u - %6s -" + "%s: %lldms, %fms avg [count=%u]"; stages {AUTH_IS_AUTHORIZED,AUTH_PARSE_DEVICE_TOKEN,AUTH_POLICY_TABLE_CACHE_FETCH,COMMAND_DISPATCH,COMMAND_EXECUTE,COMMAND_LOGGER,COMMAND_PARSE,COMMAND_REPORT,PLAYER_VOLUME_SET_VOLUME}</p>
 <ul>
@@ -11691,6 +11702,7 @@
 
 <h2 id="muse_target_validator"><code>muse_target_validator</code><a class="headerlink" href="#muse_target_validator" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The gate that resolves a command's target: implicit targets (the receiving player), explicit targets (another player or group by id), and the rejections (guest_access_disallowed, forbidden, not_authorized, not_found). This is the first thing a command hits after auth — most 4xx-equivalent muse failures originate here.</p>
 <p><strong>Technical description:</strong></p>
 <p>rejects {guest_access_disallowed,forbidden,not_authorized,not_found}; museinfoserviceobserver/infoservice</p>
 <ul>
@@ -11872,6 +11884,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="psk_hierarchy"><code>psk_hierarchy</code><a class="headerlink" href="#psk_hierarchy" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The household's symmetric-key tree: four PSKs — HhPsk (DTLS for household comms), ControlPsk, RoomEncPsk (encrypts room names), LanSwapPsk — each with a backup mirror for seamless rotation. Rotation regenerates all four, bumps the netsettings version, and propagates to members. This is the cryptographic root of trust for inter-player traffic.</p>
 <p><strong>Technical description:</strong></p>
 <p>PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each +Backup mirror id; rotation {"Unable to generate new HH/control/room name encrypt/lan swap PSK","Unable to update settings with new PSKs","PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)","Bumping netsettings version","not rotated"}; encoding {"Encoding SonosNet key failed","Encoding DTLS HH PSK failed"}; "Pending netsettings.json update discarded after replicating"; "Settings Replication changed SN Disable from %d to %d (source: %s)"; SSID protection {"SSID missing from known networks list","Registering for next topology update to protect SSID","Current SSID protected/already protected/not protected, could not get current SSID/missing from networks list","Not connected to a WiFi network, skipping SSID protection"}; "Received netsettings update from netstartd"/"netsettings changed"; app/run/nettestresult.txt</p>
 <ul>
@@ -12591,6 +12604,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="token_refresh"><code>token_refresh</code><a class="headerlink" href="#token_refresh" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The OAuth token-refresh state machine: dedicated threads watch expiry, request refresh through the cloud queue, wait for completion, and stash tokens to file — logging HTTP status per attempt. When SMAPI or cloud calls start failing with auth errors while the token looks valid, this is the FSM that was supposed to have refreshed it.</p>
 <p><strong>Technical description:</strong></p>
 <p>threads {cqatrs_tx,cloudqueue_tr}; log "[%s HTTP %d from %s%s] %s"; states {"using token from file","requesting new token refresh sync","requesting token refresh sync %u %d -&gt; %d","need to wait for token refresh","waiting for token refresh completion","waiting for refresh tx complete; current state %d","Attempting to refresh token (hrs=%d te=%d)","transition token refresh action %u %d -&gt; %d","Token refresh succeeded. Beginning retry."}; errors {"last refresh token for load timed out","no last refresh token time","expected entry not found to complete tx","expected entry not found waiting for tx","Refresh token failed with upnp result: %d","Refresh token failed. Could not find SD, sid=%u","unexpected token action %d"}; keyed by acct. sn. %u</p>
 <ul>
@@ -13151,11 +13165,13 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="cert"><code>cert</code><a class="headerlink" href="#cert" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>Device identity certificates: each player holds a Sonos-issued cert + encrypted private key used for mTLS to <code>sslauth.*</code> and for signing SMAPI tokens. Cert problems surface as mutual-SSL errors in registration and auth failures on any signed request. The device cert is also what the <code>/authz</code> mTLS policy path checks.</p>
 <ul>
 <li><strong>metadata_errors:</strong> devcertmgrprovider cert validation codes: BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present; headers X-Sonos-UserId,X-Sonos-Muse-Household-Id,X-Sonos-Denylisted; response {requestTimeMS,downloadStatusCode,httpResultCode,previousETag,download,reasonCode,certError}; states downloaded/unchanged/generating; "Unknown cert metadata state: %s. Scheduling cert refresh job"; "Retrieved manufacturing data: %s"; refresh "%s: refresh check in %ld seconds"/"certificate expired"/"utc time not set"</li>
 </ul>
 <h2 id="cert_layer"><code>cert_layer</code><a class="headerlink" href="#cert_layer" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The X.509 validation layer: issuer/environment/household/user matching, issue-date checks, and chain validation producing the BAD_FILE/BAD_CERT/MISMATCH_* error taxonomy. Every signed or mTLS-protected path (registration, SMAPI tokens, secure registration, remote control) runs through here.</p>
 <ul>
 <li><strong>files:</strong> cert.xml + metadata.txt; "Buffer not sufficient to store entire certificate"; "loading %s (0x%x) took %ums"; tmpfile-rename atomic swap; "failed to load replacement (0x%x)"</li>
 </ul>
@@ -13242,6 +13258,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="circuit_breaker"><code>circuit_breaker</code><a class="headerlink" href="#circuit_breaker" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>A CLOSED/OPEN/SEMI_OPEN circuit breaker wrapped around muse command delivery: when commands to the cloud start failing, the breaker opens and fast-fails instead of queuing forever, then probes recovery through a semi-open state. This is why a player in a dead-network state still answers local commands quickly — cloud-bound work is short-circuited at the breaker.</p>
 <p><strong>Technical description:</strong></p>
 <p>"%s CB state transition to [CLOSED]"/[OPEN]/[SEMI_OPEN]; musecommand; history.h</p>
 <ul>
@@ -13255,6 +13272,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="cloud"><code>cloud</code><a class="headerlink" href="#cloud" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The umbrella for everything the player does against <code>*.ws.sonos.com</code>: API path construction, registration, the lechmere event connection, and per-service hostnames. When a doc says 'cloud-dependent', this is the layer involved — and it's the reason many muse APIs return <code>ERROR_SERVICE_NOT_AVAILABLE</code> when the device is offline.</p>
 <ul>
 <li><strong>get_api:</strong> callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags</li>
 <li><strong>headers:</strong> outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; "HTTP Header did not fit in char array"</li>
@@ -13263,11 +13281,13 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="cloud_registration"><code>cloud_registration</code><a class="headerlink" href="#cloud_registration" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The state machine that binds a player to a household in Sonos cloud. Registration state changes are logged as numeric transitions; failure paths retry with backoff and the registration status is queryable through muse <code>cloudRegistration#getRegistrationStatus</code>. A player that never completes registration still plays local content but has no cloud identity, so anything household-scoped fails.</p>
 <ul>
 <li><strong>fsm:</strong> cloudregistration.cxx: required fields {sonosId,householdLocationId,dhcpMac,ipAddr,museHHName} — "Missing required information: DHCP Server MAC (%s), Location ID (%s)" defers registration; triggers "Updating cloud registration due to '%s'"/MuseSessionId change/explicit request; "Caching muse cloud registration event %s"; "Network Hash [%s], Muse Household Id [%s]"; cloudRegPollWifiStation monitor job; R_HouseholdLocationID key</li>
 </ul>
 <h2 id="cloud_services"><code>cloud_services</code><a class="headerlink" href="#cloud_services" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The registry of which cloud hostnames serve what: <code>sslauth.sonos.com</code> for authenticated calls, per-service <code>*.ws.sonos.com</code> endpoints for lechmere events, crash upload, feature config, music history, registration, recommendations, and more. Knowing this map is what tells you which outage explains which symptom — e.g., lost household settings vs lost voice services are different backends.</p>
 <p><strong>Technical description:</strong></p>
 <p>host patterns {sslauth.sonos.com,https://%s-%s.lower-sslauth.sonos.com%s,https://%s.%s%s,lechmere.%s.ws.sonos.com,/firmware/swgen/%u/latest/}; service names {clientdata,crash-upload,feature-config,music-history,lechmere-v1,music-accounts,myaccount,oauth,player-device-files-ab,product-settings,recommendation,registration,service-catalog,sonos-nonprod,apigee.net,smart-play,system-api,system-api-diagnostics,transfer,translate,universal-search,msmetrics}; CSRFToken var</p>
 <ul>
@@ -13468,6 +13488,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="hermes"><code>hermes</code><a class="headerlink" href="#hermes" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The mercury/hermes channel layer for Spotify: <code>hm://hwptp/*</code> URIs carry device state (volume, play, shuffle, repeat, queue, pull_playback) between the cloud and the Connect session, plus content-encryption-key and offline-restriction channels. Push messages arrive over the AP connection as defragmented packets; rate limiting with <code>Spotify-Unavailable-For</code> throttles sends. It's the control plane that makes Spotify Connect work.</p>
 <p><strong>Technical description:</strong></p>
 <p>roots {hm://hwptp/v1/devices,hm://hwptp/v1/tsv,hm://hwptp/v1,hm://hwptp/v2/resolve/%s/%d/%s}; device subs {%s/devices/%s/state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue}; media {%s/content_encryption_key/%s,%s/cache_key,%s/offline/restrictions}; fields {random,checksum}; "!"Action not handled""</p>
 <ul>
@@ -13532,6 +13553,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <p><strong>coverage</strong> <code>?</code></p>
 <h2 id="ibt_planner"><code>ibt_planner</code><a class="headerlink" href="#ibt_planner" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets, and rejects commands that don't support the <code>intendedTargets</code> parameter. Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable.</p>
 <p><strong>Technical description:</strong></p>
 <p>{"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list for command (%s)","failed to generate ibt plan for command (%s)","implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; JWT cert chain {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}</p>
 <ul>
@@ -13559,6 +13581,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="jwt_auth"><code>jwt_auth</code><a class="headerlink" href="#jwt_auth" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The JWT layer for muse and device tokens: HS256 signing, X.509-chain (x5c) validation, and a granular error taxonomy (malformed header/payload/signature, untrusted chain, missing private key). Device tokens are minted via <code>POST oauth.{env}ws.sonos.com/oauth/v4/pdsw</code> with a jwt-bearer grant. Every authenticated muse command parses a token through this layer first.</p>
 <p><strong>Technical description:</strong></p>
 <p>JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; alg HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,"Failed to get the real/relative time","Failed to stringify JWT","Device failed to generate device/guest token","Invalid Base64 encoded JSON object","Device unavailable due to other requests","Player not securely registered","An unexpected grant type was provided","An invalid JWT was provided. Reason:","A malformed JWT header/payload was provided","Player not in the assertion's aud field","POST /authorizeDevice request failed"}; claims exp+rexp {"exp is missing","Invalid exp value","Expired exp value",same for rexp}; token validation {"Device token not minted in this HH","Token is expired, security settings have changed since the token was issued","Device token expired","missing/invalid expiration time","not minted by this device","Device token is valid"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}</p>
 <ul>
@@ -13598,6 +13621,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="lechmere"><code>lechmere</code><a class="headerlink" href="#lechmere" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The persistent event connection to <code>lechmere.{env}.ws.sonos.com</code> — the channel over which the cloud pushes muse commands and the player publishes state. Route templates with <code>{scope}/{ns}/{verb}</code> bindings describe the addressing scheme, and reconnect/rate-limit handling keeps the channel alive. If clients talk to the cloud API, their commands arrive on-device through this pipe.</p>
 <ul>
 <li><strong>cloudrequest:</strong> cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg ("per msg deflate change %d -&gt; %d") w/ local-run-state override; "Player IP changed. Bouncing connection"; backoff "Following backoff schedule, retry in %lld"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT ("Unexpected TYPE EVENT"), "support for HTTP message dropped", "Unrecognized message type"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/"player request failed: %s"; SwitchingRadiosEvent; museCloudEvtHandler</li>
 </ul>
@@ -13680,12 +13704,14 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="muse"><code>muse</code><a class="headerlink" href="#muse" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The cloud command protocol itself: namespace + verb + typed params addressed to a target scope, over the lechmere channel or the in-process mirror. ~67 namespaces and ~320 verbs covering playback, settings, grouping, positioning, timers, registration, and the UPnP bridge. It's the modern counterpart to SOAP — most of what the app does above local control goes through muse.</p>
 <ul>
 <li><strong>auth_errors:</strong> auth helper errors {"Player is not securely registered","Access token's user does not match registered user","Access token does not have adequate permissions","Command scopes could not be determined","Invalid user","Scope is insufficient","Error reading scopes","Error matching scopes"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {"Response code: %d, Access token is invalid"/"Scope is insufficient"}</li>
 <li><strong>service_bindings:</strong> musezpactor UPnP service URIs {AlarmClock:1,AudioIn:1,ConnectionManager:1,MusicServices:1,SystemProperties:1,ZoneGroupTopology:1,HTControl:1,GroupManagement:1,GroupRenderingControl:1(urn:schemas-upnp-org) + Queue:1(urn:schemas-sonos-com),VirtualLineIn:1}; "zp already set"/"zp not set"</li>
 </ul>
 <h2 id="muse_engine"><code>muse_engine</code><a class="headerlink" href="#muse_engine" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The dispatcher that owns the namespace registry, target validation, IBT planning, authorization, and command execution for muse. Mounted on <code>/api</code> and <code>/device_account</code> inside the device web server as well as on the lechmere pipe — which is why the same verb set works both locally (with a device token) and from the cloud.</p>
 <ul>
 <li><strong>dispatch:</strong> "Dispatching command (ns=v%u/%s, cmd=%s)"; actor errors {"Namespace may be missing actor (%s). See RZPMuseActor","Namespace has no actor (%s). See RZPMuseActor::setupWholeDevicePointers()"," has no actor","Failed to create command (%s)"," command is not supported"}; target ids {"invalid implicit target id [%s]","invalid explicit target id [%s]","Invalid targetId for unsubscribe (%d)"}; events {RMuseEventing,"Failed to send muse message %s(%s)"}</li>
 <li><strong>upnp_bridge:</strong></li>
@@ -13706,6 +13732,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="muse_enums"><code>muse_enums</code><a class="headerlink" href="#muse_enums" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The enum tables shared by muse fields: actor roles (VOICE_ASSISTANT, GUEST, ADMIN, EMPLOYEE, PLAYER_TO_PLAYER, BLE_DTLS), authz resources (AUTHZPOLICIES, DEVICES, ENTITLEMENTS, SETTINGS, HISTORY), permissions (PLAY_TO_BONDED, STOP_CONTENT, USE_SHARED_QUEUE), content types (PLAYLIST, EPISODE, PODCAST...), and credential types (ACCESS_TOKEN, API_KEY, GUEST_TOKEN_PIN).</p>
 <p><strong>Technical description:</strong></p>
 <p>actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}; SFB perms {SRADIO_HD_CONTENT,SRADIO_SPECIAL_CONTENT,SRADIO_ONDEMAND_ARCHIVE,SRADIO_CAN_SKIP,SFB_BASIC_UI,SFB_COMMERCIAL_MSP,SFB_ESSENTIALS_MSP,SFB_PREMIUM_MSP,SFB_DASHBOARD_ACCESS,SFB_CNTRL_MEDIA_SRCS,SFB_CNTRL_THIRD_PARTY,SFB_RSTC_CONTENT_ACS,SFB_RSTC_SAVE_CONTENT_ACS,SFB_RSTC_SETTINGS_ACS,SFB_RSTC_ALARMS_ACS,SFB_RSTC_MESSAGING_ACS,SFB_RSTC_SAVE_GROUPS_ACS,SFB_SCHEDULES_ACCESS,SFB_MVP}; playback states {BUFFERING,PAUSED,PLAYING}; queue ops {APPEND,INSERT,INSERT_NEXT,PLAY_NOW}; ratings {EXCELLENT,POSITIVE,NEGATIVE,RATED,THUMBSUP,THUMBSDOWN,SHELVED}; registration {LEGACY_REGISTERED,SECURE_REGISTERED,TRANSFER,PREP_TRANSFER}; netmode {NETMODE_SONOSNET_WIRELESS,NETMODE_WIRED,NETMODE_WIRED_NO_WIFI,NETMODE_STATION,NETMODE_SATELLITE_V1,NETMODE_SATELLITE_V1_WIRED,NETMODE_SATELLITE_V2,STATION_SATELLITE}; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; FORBIDDEN; USB_C; GOOGLE; recurrence + {alarm states: ALARM_PENDING,ALARM_SNOOZED,ALARM_FIRING,INTERRUPTED; buttons: PLAY_PAUSE,MUSIC,DPAD_UP/DOWN/LEFT/RIGHT/SELECT; sources: CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL; errors: CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS,EXTRALOCAL; abort: ABORT_INCORRECT_MODE,ABORT_NO_SOURCE,ABORT_INVALID_OP,ABORT_REFUSED,ABORT_UNDETERMINED,REPLY_TIMEOUT,ROOT_INDIRECT,BROADCAST_BLOCKED; groups: MUSICOBJECTID,GROUP_STATUS_MOVED,GROUP_STATUS_UPDATED; update: UPDATE_COMPLETE,INFO_FILE_WRITE_FAILED,BSU_FAILED,UPGRADE_MGR_SPAWN_FAILED,MANIFEST_DOWNLOAD_FAILED,MANIFEST_PARSE_FAILED,UPDATE_NEVER_RUN,FINAL_RESULT_UNKNOWN; surrounds: VERTICAL_WALL_BELOW,FLEXIBLE_SURROUNDS,PORTABLE_SURROUNDS; sec: SECURE,SECURE_REG,UPNP_OVER_TLS; indexer: ADD_IN_PROGRESS,ADD_COMPLETE,PENDING_REINDEXING,REINDEXING_IN_PROGRESS,REINDEXING_COMPLETE,REPLICATION_IN_PROGRESS,REPLICATION_COMPLETE,PENDING_DELETE,DELETE_COMPLETE; sonosnet: SONOSNET_DISABLED,SONOSNET_DISABLE_TEST; conn: ONLINE,TERMINATING; chirp: INAUDIBLE_WIDE,MULTI_INAUDIBLE_WIDE,MULTI_AUDIBLE; timers: TIMER_PAUSED,TIMER_RINGING; power: TO_STANDBY,POWERING_DOWN,POWERING_UP,SMART_DOCKED,PRIMARY_PLAYBACK_STARTED,POWERING_UP_UPDATED,WAKING_UP_FROM_USER,PRIMARY_NETWORK_STATUS_CHANGE; volume: FIXED,PASS_THROUGH; wifi: ACK_AWAIT,WIFI_DISABLING,WIFI_DISABLED,ACK_NOT_RECEIVED; positioning: APPLE_MOBILE_DEVICE,ANDROID_MOBILE_DEVICE,STIMULUS_PLAYBACK_COMPLETE,BEARING,DISTANCE,ACOUSTIC_SPACE_MAP,MEASUREMENT_RESULTS,MEASUREMENT_RAW_AUDIO,IMPULSE_RESPONSE_AND_AUDIO; HEY_SONOS; RADIOLIST}</p>
 <ul>
@@ -13719,6 +13746,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="muse_errors"><code>muse_errors</code><a class="headerlink" href="#muse_errors" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The ~80-entry error registry every muse command can return: generic (INVALID_ACTION, UNSUPPORTED_COMMAND), playback (PLAYBACK_FAILED, SKIP_LIMIT_REACHED, EXPLICIT_NOT_ALLOWED, PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE), session (SESSION_IN_PROGRESS, JOIN_FAILED, EVICTED), and infrastructure (SERVICE_NOT_AVAILABLE, CLOUD_QUEUE_SERVER, NOT_DESIGNATED_DEVICE). These strings are the contract — clients should branch on them, not on free-text messages.</p>
 <p><strong>Technical description:</strong></p>
 <p>results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ERROR_PLAYBACK_FAILED,NO_CONTENT,NO_PLAYABLE_CONTENT,EXPLICIT_NOT_ALLOWED,EXPIRED_TOKEN,NOT_PLAYABLE,SPOTIFY_CONNECT,FAILURE_TO_ENQUEUE,CLOUD_QUEUE_SERVER,SKIP_LIMIT_REACHED,PLAYBACK_STREAM_LIMIT,PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE}; session {SESSION_IN_PROGRESS,JOIN_FAILED,EVICTED,INVALID_SESSION_ID,NOT_DESIGNATED_DEVICE}; accounts {PREFERRED_ACCOUNT_NOT_SET/NOT_FOUND,ACCOUNT_FULL,INVALID_ID,NO_DEFAULT_FOUND,REAUTH_REQUIRED,UPGRADE_REQUIRED,WRONG_SERVICE}; update {NO_UPDATE_AVAILABLE,INVALID_UPM_FORMAT,INSUFFICIENT_POWER_FOR_UPDATE,UPDATE_IN_PROGRESS}; misc {ALARM_NO_SPACE,ALARM_BAD_TIME_SERVER,AREAS_READ_ONLY,AUDIO_CLIP_ID_NOT_FOUND/_MEDIA_ERROR/_PAUSE_CONTENT_FAILED/_VOICE_ASSISTANT_PLAYING,CACHE_NOT_FOUND/_RECORD_NOT_FOUND,CANT_CONNECT[_REMOTE],DEVICE_ALREADY_REGISTERED/UNAVAILABLE,INVALID_ACTION,DOWNSTREAM_CONNECT_FAILED,SHARES_CONFLICT/NO_SUCH_SHARE/NO_SPACE/REQUEST_FAILED,STIMULUS_ALREADY_PLAYING,MICROPHONE_NOT_ENABLED,NO_POSITIONING_RESULTS,UNSUPPORTED_POSITIONING_REQUEST,SVC_DISABLED,TIMER_NOT_FOUND,UNSUPPORTED_VOLUME_MODE,INVALID_RESOURCE,ROOM_DETECTION_SIGNALLING_FAILED/BUSY,GROUP_CHANGED}; generic {COMMAND_FAILED/TIMEOUT,CONTENT_TYPE_NOT_SUPPORTED,DISALLOWED_BY_POLICY,INTERNAL,INVALID_AUTH_HEADER/CERT/OBJECT_ID/PARAMETER/SYNTAX/HEADER/LENGTH/TRANSPORT,TARGET_ID_NOT_FOUND,LOAD_COMMAND_FAILED,MISSING_PARAMETERS,NO_PERMISSION,NOT_AUTHORIZED,NOT_CAPABLE,PRECONDITION_FAILED,EXPECTATION_FAILED,QUEUE_FULL,RESOURCE_GONE/CONFLICT,REQUIRES_GROUP_COORDINATOR,SERVICE_NOT_AVAILABLE/CONFIGURED/SUPPORTED/UNAVAILABLE,UNSUPPORTED_NAMESPACE/COMMAND/REQUEST/REQUEST_METHOD,API_KEY_VALIDATION_FAILED,NYI,CMD_FUTURE,CMD_REMOVED,INSUFFICIENT_RESOURCES,INCORRECT_STATE,INCOMPATIBLE_API_VERSION,INCOMPATIBLE_CLIENT_VERSION}; param validation {MISSING_VALUE,UNEXPECTED_TYPE,"Parameter failed timestamp validation","not a valid Muse error code","out of range: at or below minimum of/above maximum of","Found unexpected array/object","Missing required field","Unable to coerce string to number/boolean","number of entries below/above minimum/maximum"}</p>
 <ul>
@@ -13732,6 +13760,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="muse_events"><code>muse_events</code><a class="headerlink" href="#muse_events" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The ~65 event types a muse client can subscribe to: avTransport, playbackStatus, renderingControl, zoneGroupTopology, groupCoordinatorChanged, sleepTimerStatus, trueplayStatus, audioInput, batteryStatus, bluetooth status, and more. Subscriptions are per-namespace with logical SIDs; events are how the cloud API delivers state changes rather than polling.</p>
 <p><strong>Technical description:</strong></p>
 <p>{accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent}</p>
 <ul>
@@ -13745,6 +13774,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="muse_types"><code>muse_types</code><a class="headerlink" href="#muse_types" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The registry of ~203 type names (alphabetical, <code>accessorySwap</code> through <code>zoneMemberState</code>) that tag every field in a muse command/event. Type indices map into spec-pair entries; handlers reference names directly. For clients, this is the authoritative list of object shapes the API can carry.</p>
 <p><strong>Technical description:</strong></p>
 <p>203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found}</p>
 <ul>
@@ -13762,6 +13792,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="muse_verbs"><code>muse_verbs</code><a class="headerlink" href="#muse_verbs" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The verb-name table — every operation callable per namespace: <code>getAreas</code>/<code>createArea</code>, <code>loadAudioClip</code>, <code>getRegistrationStatus</code>/<code>transferDeviceRegistration</code>, <code>submitDiagnostics</code>, settings getters/setters, playback load ops, and hundreds more across ~67 namespaces. This is effectively the full cloud-API method list.</p>
 <p><strong>Technical description:</strong></p>
 <p>areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,cancelAudioClip,clipMetadata}; authz {getPolicyKey,getPermissions,grantType,assertion,objectType}; cloudRegistration {getRegistrationStatus,setRegistrationState,transferDeviceRegistration,vanishedDevices,quarantinedDevices}; diagnostics {submitDiagnostics,results}; settings {getSettingsGroup,updateAllSettings,updateSettingsGroup,targetSettingsOnly,namespaces,delayMillis,subscribe/unsubscribePlayerSettings,get/setPlayerSettings,setAllowMicrophone,setSelfTruePlay,setEnablePositioningMeasurement,setSonosNetChannel,get/setRestrictedAdminSettings,setUserMetricsTracking,getPublicSettings,getProtectedSettings,getProtectedAdminSettings,"v1/players/%s/settings/player"}; entitlements {subscribeUser,unsubscribeUser,getEntitlements}; history {removeHistoryItem}; deviceProperties {setName}; householdUpdate {getHouseholdUpdateStatus,isRunning,designatedDeviceId}; irControl {getIRControl}; indexerStatus {getIndexerStatus,updating}; musicServiceAccounts {getPreferredMusicServiceAccount,endDirectControl,<strong>provisioned</strong>,availableServicesVersion,registeredServicesVersion}; networks {temporarilyDisableNetwork,startNetworkTests,getNetworkTestResults}; playback {togglePlay,menuType,dpadDirection}; cache {cacheSettings,cacheKey,invalidateCache}; playlists {getPlaylists,getPlaylist,postPlaylist,loadPlaylist}; positioning {playStimulus,set/getStimulusTuning,startSession,cancelSession,applyAction,getSessionMap,getDeviceMeasurements,sendMeasurements,notifySessionError/Status/DeviceStatus,getMeasurementCapabilities,setTelemetryLevel,measurements}; roomDetection {stopSignalling}; sleepTimer {getSleepTimer,remainingTimeDuration}; smartplay {getContent}; soundSwap {requestSwap}; svc {getWeatherConfig,voiceCommand}; systemTime {get/setTimeZoneInfo}; timers {setRelativeDuration,pauseTimer,resumeTimer,abortTimer}; trueplay {detectSpeakerPresence,resetDetectedSpeaker,setSpeakerPresenceRate,get/setConfiguration,getTrueplayStatus}; trueroom {playSuccessTone,setSwapInputMute,trueroomEstimatedParams}; virtualRemoteControl {sendButtonCommand}; voice {wakeword,amazon,getVoiceAccounts,updateVoiceAccount,removeVoiceAccount,createAmazonChallenge,notifyInitiateOnboarding,timeoutSeconds}; zones {backhaulChannel,getActiveZoneList,getZoneDefinition(List),addZoneDefinition,addMissingZoneDefinition,updateZoneDefinition,updateActiveZone,updateZoneMemberSettings,removeZoneDefinition,activateZone,deactivateZone,joinZone,unjoinZone}; renew</p>
 <ul>
@@ -13796,12 +13827,14 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="network"><code>network</code><a class="headerlink" href="#network" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The network configuration surface: Wi-Fi credentials, SonosNet vs wired modes, netlink address monitoring, and the transition logic between them. PSK material for the household lives adjacent (see psk_hierarchy). Most of what <code>/status</code> reports about connectivity comes from this layer.</p>
 <ul>
 <li><strong>netsettings_mgr:</strong> file netsettings.json + HHSettings + schema upgrade; 4 PSK classes {HhPsk,ControlPsk,RoomEncPsk(room name encrypt),LanSwapPsk} each + Backup variant, rotation "PSK rotation successful (HH/Control/RoomEnc/LanSwap)" + version bump; encoding {SonosNet key,DTLS HH PSK}; netstartd push {netsettings,PSK,channel change "Pushed SonosNet channel change to %u for %u ms"}; SonosNet-disable test-mode auto-revert FSM {sn_en,sn_dis,sn_dis_test}: "schedule automatic revert in %d seconds"/"SonosNet was re-enabled"/"Disable succeeded (probably)"/"automatic revert failed!"; SSID protection "Registering for next topology update to protect SSID"; "Pending netsettings.json update discarded after replicating"</li>
 <li><strong>network_test:</strong> networkTestMgr: nettestresult.txt; cycle {"waiting %d sec before disabling wifi","disabling wifi for %d sec","enabling wifi",connect-open,complete:%s} + abort paths</li>
 </ul>
 <h2 id="network_tools"><code>network_tools</code><a class="headerlink" href="#network_tools" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The <code>/tools</code> diagnostic page: HTML forms that run <code>ping -c 3</code>, <code>traceroute</code>, <code>nslookup</code>, and <code>/mdnsannounce</code> against a host parameter, plus a <code>/pcap</code> endpoint that streams a packet capture (with an exclusion filter for its own HTTP connection). CSRF-token protected. This is the engineering page support asks you to visit for network forensics.</p>
 <p><strong>Technical description:</strong></p>
 <p>forms {"Tools for debugging network issues"}; /bin/ping -c 3 + /usr/bin/traceroute + nslookup + /mdnsannounce; POST params {host,csrfToken}; /pcap streams trace.pcap (Content-Disposition attachment) via /bin/pcap - not (host %s and port %d) exclusion filter</p>
 <ul>
@@ -13890,11 +13923,13 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="registration"><code>registration</code><a class="headerlink" href="#registration" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>Device registration at the UPnP layer: the local (non-cloud) registration machinery that pairs a player into a household and tracks its registration state. Distinct from cloud_registration — this is the on-LAN side that has to succeed before cloud enrollment can.</p>
 <ul>
 <li><strong>secreg_fsm:</strong> endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&amp;token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}; "Household customer ID [%s] in conflict with local device [%s]"; "regState changed %d -&gt; %d"; "Transfer mode old (e:%d) new (e:%d)" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; "removed invalid cert"; "Unexpected 401 response"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}</li>
 </ul>
 <h2 id="registration_machine"><code>registration_machine</code><a class="headerlink" href="#registration_machine" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The <code>regdevicecert.cxx</code> FSM driving the secure-registration protocol: sequential regState transitions with timeout/retry handling, transfer-mode tracking, and SSL error capture. It orchestrates the two-phase enroll (refresh then complete) under <code>device_registration</code>.</p>
 <ul>
 <li><strong>name:</strong> regdevicecert.cxx registration/secure-reg FSM</li>
 <li><strong>cloud_api:</strong> <code>/product/v2/households/%s/players?action=refresh</code>, <code>/product/v2/households/%s/players?action=complete&amp;token=%s</code></li>

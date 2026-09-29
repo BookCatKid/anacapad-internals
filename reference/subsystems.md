@@ -645,6 +645,8 @@ raudiotapMutex; "failed to setup async request %d %s"; "can't consume from a clo
 
 **coverage** `partial`
 
+The `/authz` policy layer that decides what a caller may do: static per-role policies, fast-path policies, guest/offline policies, and an mTLS policy — selected at request time. Token resolution asks the cloud for permissions and masks tokens in logs. Every sensitive HTTP and muse surface consults this before acting.
+
 **Technical description:**
 
 policies {"Static policy not found for role (%s), version (%s)","Static fast policy not found","Not in offline mode","Using guest policy for offline mode","Using mTLS policy","Using guest policy"}; token ops {"Failed to get the permissions: http=%d","Failed to parse getPermissions response","Failed to resolve token \[token=******%s\]: http=%d" (masked),"Failed to parse token response","Request to resolveToken successful \[token=******%s\]"}; cache {cache-control-header,responseResolveToken,museAuthzCache,InMemoryHttpCacheMutex,"Policy mapping retrieved from cache"}; guards {"Credential is not allowed","Guest access disallowed","Unauthenticated control disallowed"}
@@ -835,6 +837,8 @@ translateId(%s,%s,%s) with missing-param errors {objectId,serviceId,targetObject
 
 **coverage** `partial`
 
+The on-flash layout for cert material: files named for `encrypted-private-key`, `expiration`, `encryption-key-type`, and `sonos-key-and-cert`. Rotation and renewal rewrite these; a corrupt or expired set cascades into mTLS and token-signing failures across every authenticated surface.
+
 **Technical description:**
 
 "%s/%s.%s"; keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert}; "failed to retrieve key"
@@ -917,6 +921,8 @@ embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos
 
 **coverage** `partial`
 
+The URL builders for every cloud call: `/tokens`, `/invite`, `/redeem`, `/users`, `/firmwareDownload`, `/softwareDownload`, `/accountSubscription`, `/productEvent`, each under household/player/service/group prefixes with query params like `protocolVersion=`, `accountId=`, `includeDeviceInfo=`. These are the outbound REST paths — the muse namespace routes are the inbound mirror of the same API surface.
+
 **Technical description:**
 
 paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent} + prefixes {households/,players/,services/,users/,groups/} + subs {/permissions,/extended}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue,targetType,targetid,reportFirmwareDownload}
@@ -976,6 +982,8 @@ resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isE
 ## `cloud_synchronizer`
 
 **coverage** `partial`
+
+The background thread that registers all cloud sync services at boot and consumes just-in-time events, discarding ones it doesn't recognize. It's the glue between 'registered with the cloud' and 'receives pushed state' — a failed synchronizer leaves the device registered but deaf to cloud-initiated changes.
 
 **Technical description:**
 
@@ -1129,6 +1137,8 @@ devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "
 
 **coverage** `partial`
 
+The two-phase secure-enrollment handshake: `POST /product/v2/households/{hh}/players?action=refresh` starts it, `?action=complete&token={tok}` finishes with the issued credential. The FSM logs state changes, handles suspend/resume mid-registration, retries on schedule, and treats an unexpected 401 as terminal. This is the path a replacement or reset player takes to get a household cert.
+
 **Technical description:**
 
 Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh then ?action=complete&token={tok}; FSM "regState changed %d -> %d" + "Transfer mode old (e:%d) new (e:%d)"; logs {during suspend,time expired,success,retrying registration at time %ld,error,Unexpected 401 response}; vars {regStatus,playerReg,sslerror,errno,mutualssl,sslError}; cert lifecycle {Flushed cert,removed invalid cert}; secure-reg-transfer IPC: signing key via {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}, jobs {tjmgrExitSecureRegTransferState,newRegisteredCertSonosIDLocked,exitSecRegTransferState}; household-customer conflict {"Household customer ID \[%s\] in conflict with local device \[%s\]","changed \[%s\] -> \[%s\]"} vars {RegisteredCustomerID,RegisteredCertSonosID}; events {Received %s event. Sonos ID,NewCertRegistrationEvent inprocess-event}; RegisterZoneProvider UPnP action; replicated headers {X-RINCON-LAST-UPDATE-DEVICE,X-RINCON-CONTENT-FORMAT,CONTENT-ENCODING,X-RINCON-SIGNATURE} + "unexpected content version/format"; {ReplicatedSettings,settingsReplication,netsettingsReplication}; "Removing settings denylists after registration"
@@ -1167,6 +1177,8 @@ developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unl
 ## `devicecertmanager`
 
 **coverage** `partial`
+
+The manager that downloads and refreshes the device cert from the cloud: ETag-cached GETs, metadata records (requestTimeMS, downloadStatusCode, previousETag), 'downloaded' vs 'unchanged' outcomes, and a scheduled refresh job when metadata is unknown. This is how a player's identity cert survives factory refurbs and re-enrollment.
 
 **Technical description:**
 
@@ -1967,6 +1979,8 @@ hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHand
 
 **coverage** `partial`
 
+Intended-target fan-out: a single muse command can name `intendedTargets` — a set of players — and the planner expands it into per-target executions, validating that the command supports fan-out and each target parses. This is how the app sends one 'set volume' to a whole room instead of issuing per-player calls.
+
 **Technical description:**
 
 plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "\[dispatch\] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag
@@ -2007,6 +2021,8 @@ a remote-management command executor: commands named in log domain 'ibt' are com
 ## `inprocess_events`
 
 **coverage** `partial`
+
+The in-process observer registry: named observers register per subject (PlaybackEvent and friends), the engine logs each registration with a running count, and flags like `enableSemiSleep`/`enableHTSourceSleep` mark power-sensitive listeners. This is the pub-sub fabric under muse events for handlers inside the same process.
 
 **Technical description:**
 
@@ -2532,6 +2548,8 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 
 **coverage** `partial`
 
+The JSON field names used in muse payloads, grouped by domain: auth (accessToken, refreshToken, pinEpoch), battery (chargingState, rawBatteryPercentage, batteryTemperature), device (isCoordinator, isSatellite, bootSequenceId, museHouseholdName), plus settings, positioning, and queue fields. These are the wire keys a client must produce — the binary is the authoritative spelling.
+
 **Technical description:**
 
 auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery {statusReason,chargingState,validCharger,rawBatteryPercentage,batteryPercentage,batteryTemperature}; device {deviceFeatures,isCoordinator,isVisible,isSatellite,isSecure,bootSequenceId,systemUptimeSeconds,anacapaUptimeSeconds,museHouseholdName,primaryDeviceId,networkIPAddress,networkMask,networkType,wifiSignalStrength}; audio in {bluetoothSource,lineInSource,audioInputName,audioInputIcon}; misc {pageSize,websocketUrl,vanishReason,toVersion,clientState,deviceState,downloadDuration,isSuspended,credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate,businessCore,controlChannels,restrictedAccess,sonosRadio,speed}; playback caps {canSkipToPrevious,canPause,canStop,canRepeat,canRepeatOne,canCrossfade,canShuffle,canSkipToItem}; policy {showNPreviousTracks,pauseTtlSec,playTtlSec,limitedSkips,pauseAtEndOfQueue,refreshAuthWhilePaused,notifyUserIntent,pauseOnDuck}; track meta {catalogId,region,nextItem,currentVideo,streamInfo,replayGain,advertisement,episodeNumber,chapterNumber,episodeName,immersive,connotation}; session {epochId,periodicIntervalMillis,sendPlaybackActions,macAddr,hmacDigest,sessionState}; misc2 {zoneInfo,isUnregistered,targetRoomName,meshDisable,suppressTVConfigError,repeatOne,shuffle,customerId,updateURL,enableMonitor,manifestRevision,latestSwGen,wifiDisableState}; SFB wire keys {third-party-integ,no-ads,hd-content,special-content,on-demand-archive,can-skip,content-saving,messaging,save-groups,basic-ui,commercial-msp,essentials-msp,premium-msp,dashboard-access,schedules-access}; alarm ops {getAlarms,fetchAlarm,createAlarm,updateAlarm,snoozeAlarm,removeAlarm}; duration fmt ISO8601 PT0H5M0S
@@ -2547,6 +2565,8 @@ auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery
 
 **coverage** `partial`
 
+The internal command/event logger (`muselogcmd`/`muselogevt`) that records dispatched muse operations — loadAudioClip, setProtectedAdminSettings, createVoiceAccount among them. Useful for understanding which operations are considered sensitive enough to log, and for debugging replayed command histories.
+
 **Technical description:**
 
 {muselogevt,muselogcmd}; logged ops {loadAudioClip,startDirectControlEx,setProtectedAdminSettings,createVoiceAccount}
@@ -2561,6 +2581,8 @@ auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery
 ## `muse_perf`
 
 **coverage** `partial`
+
+A per-stage profiler inside the muse engine: AUTH_IS_AUTHORIZED, COMMAND_PARSE, COMMAND_DISPATCH, COMMAND_EXECUTE, plus per-verb stages like PLAYER_VOLUME_SET_VOLUME, each reporting total ms, average, and count. Explains where command latency goes — e.g., auth vs dispatch vs the handler itself.
 
 **Technical description:**
 
@@ -2610,6 +2632,8 @@ the muse API is the real product surface: 525 route strings, organized as househ
 ## `muse_target_validator`
 
 **coverage** `partial`
+
+The gate that resolves a command's target: implicit targets (the receiving player), explicit targets (another player or group by id), and the rejections (guest_access_disallowed, forbidden, not_authorized, not_found). This is the first thing a command hits after auth — most 4xx-equivalent muse failures originate here.
 
 **Technical description:**
 
@@ -2805,6 +2829,8 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 ## `psk_hierarchy`
 
 **coverage** `partial`
+
+The household's symmetric-key tree: four PSKs — HhPsk (DTLS for household comms), ControlPsk, RoomEncPsk (encrypts room names), LanSwapPsk — each with a backup mirror for seamless rotation. Rotation regenerates all four, bumps the netsettings version, and propagates to members. This is the cryptographic root of trust for inter-player traffic.
 
 **Technical description:**
 
@@ -3590,6 +3616,8 @@ async wakeMissingPlayers {task,timer,request,retry TJ,cancel,failure} + "Unexpec
 
 **coverage** `partial`
 
+The OAuth token-refresh state machine: dedicated threads watch expiry, request refresh through the cloud queue, wait for completion, and stash tokens to file — logging HTTP status per attempt. When SMAPI or cloud calls start failing with auth errors while the token looks valid, this is the FSM that was supposed to have refreshed it.
+
 **Technical description:**
 
 threads {cqatrs_tx,cloudqueue_tr}; log "\[%s HTTP %d from %s%s\] %s"; states {"using token from file","requesting new token refresh sync","requesting token refresh sync %u %d -> %d","need to wait for token refresh","waiting for token refresh completion","waiting for refresh tx complete; current state %d","Attempting to refresh token (hrs=%d te=%d)","transition token refresh action %u %d -> %d","Token refresh succeeded. Beginning retry."}; errors {"last refresh token for load timed out","no last refresh token time","expected entry not found to complete tx","expected entry not found waiting for tx","Refresh token failed with upnp result: %d","Refresh token failed. Could not find SD, sid=%u","unexpected token action %d"}; keyed by acct. sn. %u
@@ -4216,10 +4244,14 @@ fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; requests {"downloading '%s' 
 
 **coverage** `?`
 
+Device identity certificates: each player holds a Sonos-issued cert + encrypted private key used for mTLS to `sslauth.*` and for signing SMAPI tokens. Cert problems surface as mutual-SSL errors in registration and auth failures on any signed request. The device cert is also what the `/authz` mTLS policy path checks.
+
 - **metadata_errors:** devcertmgrprovider cert validation codes: BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present; headers X-Sonos-UserId,X-Sonos-Muse-Household-Id,X-Sonos-Denylisted; response {requestTimeMS,downloadStatusCode,httpResultCode,previousETag,download,reasonCode,certError}; states downloaded/unchanged/generating; "Unknown cert metadata state: %s. Scheduling cert refresh job"; "Retrieved manufacturing data: %s"; refresh "%s: refresh check in %ld seconds"/"certificate expired"/"utc time not set"
 ## `cert_layer`
 
 **coverage** `?`
+
+The X.509 validation layer: issuer/environment/household/user matching, issue-date checks, and chain validation producing the BAD_FILE/BAD_CERT/MISMATCH_* error taxonomy. Every signed or mTLS-protected path (registration, SMAPI tokens, secure registration, remote control) runs through here.
 
 - **files:** cert.xml + metadata.txt; "Buffer not sufficient to store entire certificate"; "loading %s (0x%x) took %ums"; tmpfile-rename atomic swap; "failed to load replacement (0x%x)"
 ## `chirp_sdk`
@@ -4318,6 +4350,8 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 **coverage** `strong`
 
+A CLOSED/OPEN/SEMI_OPEN circuit breaker wrapped around muse command delivery: when commands to the cloud start failing, the breaker opens and fast-fails instead of queuing forever, then probes recovery through a semi-open state. This is why a player in a dead-network state still answers local commands quickly — cloud-bound work is short-circuited at the breaker.
+
 **Technical description:**
 
 "%s CB state transition to \[CLOSED\]"/\[OPEN\]/\[SEMI_OPEN\]; musecommand; history.h
@@ -4333,6 +4367,8 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 **coverage** `?`
 
+The umbrella for everything the player does against `*.ws.sonos.com`: API path construction, registration, the lechmere event connection, and per-service hostnames. When a doc says 'cloud-dependent', this is the layer involved — and it's the reason many muse APIs return `ERROR_SERVICE_NOT_AVAILABLE` when the device is offline.
+
 - **get_api:** callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response\[%s\],unexpected timeout rSz/cL,JSON parse failure \[sz,off\]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags
 - **headers:** outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; "HTTP Header did not fit in char array"
 - **ssl_cache:** ssl_client_cache page + "private, max-age=15780000" + "Skipping HH SSL cache refresh - device is not idle" + "SSL client cache refresh next run in %ld seconds"
@@ -4341,10 +4377,14 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 **coverage** `?`
 
+The state machine that binds a player to a household in Sonos cloud. Registration state changes are logged as numeric transitions; failure paths retry with backoff and the registration status is queryable through muse `cloudRegistration#getRegistrationStatus`. A player that never completes registration still plays local content but has no cloud identity, so anything household-scoped fails.
+
 - **fsm:** cloudregistration.cxx: required fields {sonosId,householdLocationId,dhcpMac,ipAddr,museHHName} — "Missing required information: DHCP Server MAC (%s), Location ID (%s)" defers registration; triggers "Updating cloud registration due to '%s'"/MuseSessionId change/explicit request; "Caching muse cloud registration event %s"; "Network Hash \[%s\], Muse Household Id \[%s\]"; cloudRegPollWifiStation monitor job; R_HouseholdLocationID key
 ## `cloud_services`
 
 **coverage** `strong`
+
+The registry of which cloud hostnames serve what: `sslauth.sonos.com` for authenticated calls, per-service `*.ws.sonos.com` endpoints for lechmere events, crash upload, feature config, music history, registration, recommendations, and more. Knowing this map is what tells you which outage explains which symptom — e.g., lost household settings vs lost voice services are different backends.
 
 **Technical description:**
 
@@ -4574,6 +4614,8 @@ version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %1
 
 **coverage** `strong`
 
+The mercury/hermes channel layer for Spotify: `hm://hwptp/*` URIs carry device state (volume, play, shuffle, repeat, queue, pull_playback) between the cloud and the Connect session, plus content-encryption-key and offline-restriction channels. Push messages arrive over the AP connection as defragmented packets; rate limiting with `Spotify-Unavailable-For` throttles sends. It's the control plane that makes Spotify Connect work.
+
 **Technical description:**
 
 roots {hm://hwptp/v1/devices,hm://hwptp/v1/tsv,hm://hwptp/v1,hm://hwptp/v2/resolve/%s/%d/%s}; device subs {%s/devices/%s/state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue}; media {%s/content_encryption_key/%s,%s/cache_key,%s/offline/restrictions}; fields {random,checksum}; "!"Action not handled""
@@ -4646,6 +4688,8 @@ directives {stale-while-revalidate,stale-if-error,no-store,private,public}; stat
 
 **coverage** `strong`
 
+The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets, and rejects commands that don't support the `intendedTargets` parameter. Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable.
+
 **Technical description:**
 
 {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list for command (%s)","failed to generate ibt plan for command (%s)","implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; JWT cert chain {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}
@@ -4676,6 +4720,8 @@ encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,in
 ## `jwt_auth`
 
 **coverage** `strong`
+
+The JWT layer for muse and device tokens: HS256 signing, X.509-chain (x5c) validation, and a granular error taxonomy (malformed header/payload/signature, untrusted chain, missing private key). Device tokens are minted via `POST oauth.{env}ws.sonos.com/oauth/v4/pdsw` with a jwt-bearer grant. Every authenticated muse command parses a token through this layer first.
 
 **Technical description:**
 
@@ -4721,6 +4767,8 @@ asserts {korn_ptr->_temp_ram_num_allocs == 0,korn_ptr->_temp_ram_free == (char *
 ## `lechmere`
 
 **coverage** `?`
+
+The persistent event connection to `lechmere.{env}.ws.sonos.com` — the channel over which the cloud pushes muse commands and the player publishes state. Route templates with `{scope}/{ns}/{verb}` bindings describe the addressing scheme, and reconnect/rate-limit handling keeps the channel alive. If clients talk to the cloud API, their commands arrive on-device through this pipe.
 
 - **cloudrequest:** cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg ("per msg deflate change %d -> %d") w/ local-run-state override; "Player IP changed. Bouncing connection"; backoff "Following backoff schedule, retry in %lld"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT ("Unexpected TYPE EVENT"), "support for HTTP message dropped", "Unrecognized message type"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/"player request failed: %s"; SwitchingRadiosEvent; museCloudEvtHandler
 ## `leds_zp`
@@ -4815,11 +4863,15 @@ TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnsseque
 
 **coverage** `?`
 
+The cloud command protocol itself: namespace + verb + typed params addressed to a target scope, over the lechmere channel or the in-process mirror. ~67 namespaces and ~320 verbs covering playback, settings, grouping, positioning, timers, registration, and the UPnP bridge. It's the modern counterpart to SOAP — most of what the app does above local control goes through muse.
+
 - **auth_errors:** auth helper errors {"Player is not securely registered","Access token's user does not match registered user","Access token does not have adequate permissions","Command scopes could not be determined","Invalid user","Scope is insufficient","Error reading scopes","Error matching scopes"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {"Response code: %d, Access token is invalid"/"Scope is insufficient"}
 - **service_bindings:** musezpactor UPnP service URIs {AlarmClock:1,AudioIn:1,ConnectionManager:1,MusicServices:1,SystemProperties:1,ZoneGroupTopology:1,HTControl:1,GroupManagement:1,GroupRenderingControl:1(urn:schemas-upnp-org) + Queue:1(urn:schemas-sonos-com),VirtualLineIn:1}; "zp already set"/"zp not set"
 ## `muse_engine`
 
 **coverage** `?`
+
+The dispatcher that owns the namespace registry, target validation, IBT planning, authorization, and command execution for muse. Mounted on `/api` and `/device_account` inside the device web server as well as on the lechmere pipe — which is why the same verb set works both locally (with a device token) and from the cloud.
 
 - **dispatch:** "Dispatching command (ns=v%u/%s, cmd=%s)"; actor errors {"Namespace may be missing actor (%s). See RZPMuseActor","Namespace has no actor (%s). See RZPMuseActor::setupWholeDevicePointers()"," has no actor","Failed to create command (%s)"," command is not supported"}; target ids {"invalid implicit target id \[%s\]","invalid explicit target id \[%s\]","Invalid targetId for unsubscribe (%d)"}; events {RMuseEventing,"Failed to send muse message %s(%s)"}
 - **upnp_bridge:**
@@ -4839,6 +4891,8 @@ TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnsseque
 
 **coverage** `strong`
 
+The enum tables shared by muse fields: actor roles (VOICE_ASSISTANT, GUEST, ADMIN, EMPLOYEE, PLAYER_TO_PLAYER, BLE_DTLS), authz resources (AUTHZPOLICIES, DEVICES, ENTITLEMENTS, SETTINGS, HISTORY), permissions (PLAY_TO_BONDED, STOP_CONTENT, USE_SHARED_QUEUE), content types (PLAYLIST, EPISODE, PODCAST...), and credential types (ACCESS_TOKEN, API_KEY, GUEST_TOKEN_PIN).
+
 **Technical description:**
 
 actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}; SFB perms {SRADIO_HD_CONTENT,SRADIO_SPECIAL_CONTENT,SRADIO_ONDEMAND_ARCHIVE,SRADIO_CAN_SKIP,SFB_BASIC_UI,SFB_COMMERCIAL_MSP,SFB_ESSENTIALS_MSP,SFB_PREMIUM_MSP,SFB_DASHBOARD_ACCESS,SFB_CNTRL_MEDIA_SRCS,SFB_CNTRL_THIRD_PARTY,SFB_RSTC_CONTENT_ACS,SFB_RSTC_SAVE_CONTENT_ACS,SFB_RSTC_SETTINGS_ACS,SFB_RSTC_ALARMS_ACS,SFB_RSTC_MESSAGING_ACS,SFB_RSTC_SAVE_GROUPS_ACS,SFB_SCHEDULES_ACCESS,SFB_MVP}; playback states {BUFFERING,PAUSED,PLAYING}; queue ops {APPEND,INSERT,INSERT_NEXT,PLAY_NOW}; ratings {EXCELLENT,POSITIVE,NEGATIVE,RATED,THUMBSUP,THUMBSDOWN,SHELVED}; registration {LEGACY_REGISTERED,SECURE_REGISTERED,TRANSFER,PREP_TRANSFER}; netmode {NETMODE_SONOSNET_WIRELESS,NETMODE_WIRED,NETMODE_WIRED_NO_WIFI,NETMODE_STATION,NETMODE_SATELLITE_V1,NETMODE_SATELLITE_V1_WIRED,NETMODE_SATELLITE_V2,STATION_SATELLITE}; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; FORBIDDEN; USB_C; GOOGLE; recurrence + {alarm states: ALARM_PENDING,ALARM_SNOOZED,ALARM_FIRING,INTERRUPTED; buttons: PLAY_PAUSE,MUSIC,DPAD_UP/DOWN/LEFT/RIGHT/SELECT; sources: CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL; errors: CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS,EXTRALOCAL; abort: ABORT_INCORRECT_MODE,ABORT_NO_SOURCE,ABORT_INVALID_OP,ABORT_REFUSED,ABORT_UNDETERMINED,REPLY_TIMEOUT,ROOT_INDIRECT,BROADCAST_BLOCKED; groups: MUSICOBJECTID,GROUP_STATUS_MOVED,GROUP_STATUS_UPDATED; update: UPDATE_COMPLETE,INFO_FILE_WRITE_FAILED,BSU_FAILED,UPGRADE_MGR_SPAWN_FAILED,MANIFEST_DOWNLOAD_FAILED,MANIFEST_PARSE_FAILED,UPDATE_NEVER_RUN,FINAL_RESULT_UNKNOWN; surrounds: VERTICAL_WALL_BELOW,FLEXIBLE_SURROUNDS,PORTABLE_SURROUNDS; sec: SECURE,SECURE_REG,UPNP_OVER_TLS; indexer: ADD_IN_PROGRESS,ADD_COMPLETE,PENDING_REINDEXING,REINDEXING_IN_PROGRESS,REINDEXING_COMPLETE,REPLICATION_IN_PROGRESS,REPLICATION_COMPLETE,PENDING_DELETE,DELETE_COMPLETE; sonosnet: SONOSNET_DISABLED,SONOSNET_DISABLE_TEST; conn: ONLINE,TERMINATING; chirp: INAUDIBLE_WIDE,MULTI_INAUDIBLE_WIDE,MULTI_AUDIBLE; timers: TIMER_PAUSED,TIMER_RINGING; power: TO_STANDBY,POWERING_DOWN,POWERING_UP,SMART_DOCKED,PRIMARY_PLAYBACK_STARTED,POWERING_UP_UPDATED,WAKING_UP_FROM_USER,PRIMARY_NETWORK_STATUS_CHANGE; volume: FIXED,PASS_THROUGH; wifi: ACK_AWAIT,WIFI_DISABLING,WIFI_DISABLED,ACK_NOT_RECEIVED; positioning: APPLE_MOBILE_DEVICE,ANDROID_MOBILE_DEVICE,STIMULUS_PLAYBACK_COMPLETE,BEARING,DISTANCE,ACOUSTIC_SPACE_MAP,MEASUREMENT_RESULTS,MEASUREMENT_RAW_AUDIO,IMPULSE_RESPONSE_AND_AUDIO; HEY_SONOS; RADIOLIST}
@@ -4853,6 +4907,8 @@ actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVI
 ## `muse_errors`
 
 **coverage** `strong`
+
+The ~80-entry error registry every muse command can return: generic (INVALID_ACTION, UNSUPPORTED_COMMAND), playback (PLAYBACK_FAILED, SKIP_LIMIT_REACHED, EXPLICIT_NOT_ALLOWED, PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE), session (SESSION_IN_PROGRESS, JOIN_FAILED, EVICTED), and infrastructure (SERVICE_NOT_AVAILABLE, CLOUD_QUEUE_SERVER, NOT_DESIGNATED_DEVICE). These strings are the contract — clients should branch on them, not on free-text messages.
 
 **Technical description:**
 
@@ -4869,6 +4925,8 @@ results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ER
 
 **coverage** `strong`
 
+The ~65 event types a muse client can subscribe to: avTransport, playbackStatus, renderingControl, zoneGroupTopology, groupCoordinatorChanged, sleepTimerStatus, trueplayStatus, audioInput, batteryStatus, bluetooth status, and more. Subscriptions are per-namespace with logical SIDs; events are how the cloud API delivers state changes rather than polling.
+
 **Technical description:**
 
 {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent}
@@ -4883,6 +4941,8 @@ results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ER
 ## `muse_types`
 
 **coverage** `strong`
+
+The registry of ~203 type names (alphabetical, `accessorySwap` through `zoneMemberState`) that tag every field in a muse command/event. Type indices map into spec-pair entries; handlers reference names directly. For clients, this is the authoritative list of object shapes the API can carry.
 
 **Technical description:**
 
@@ -4905,6 +4965,8 @@ results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ER
 ## `muse_verbs`
 
 **coverage** `strong`
+
+The verb-name table — every operation callable per namespace: `getAreas`/`createArea`, `loadAudioClip`, `getRegistrationStatus`/`transferDeviceRegistration`, `submitDiagnostics`, settings getters/setters, playback load ops, and hundreds more across ~67 namespaces. This is effectively the full cloud-API method list.
 
 **Technical description:**
 
@@ -4942,11 +5004,15 @@ areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,can
 
 **coverage** `?`
 
+The network configuration surface: Wi-Fi credentials, SonosNet vs wired modes, netlink address monitoring, and the transition logic between them. PSK material for the household lives adjacent (see psk_hierarchy). Most of what `/status` reports about connectivity comes from this layer.
+
 - **netsettings_mgr:** file netsettings.json + HHSettings + schema upgrade; 4 PSK classes {HhPsk,ControlPsk,RoomEncPsk(room name encrypt),LanSwapPsk} each + Backup variant, rotation "PSK rotation successful (HH/Control/RoomEnc/LanSwap)" + version bump; encoding {SonosNet key,DTLS HH PSK}; netstartd push {netsettings,PSK,channel change "Pushed SonosNet channel change to %u for %u ms"}; SonosNet-disable test-mode auto-revert FSM {sn_en,sn_dis,sn_dis_test}: "schedule automatic revert in %d seconds"/"SonosNet was re-enabled"/"Disable succeeded (probably)"/"automatic revert failed!"; SSID protection "Registering for next topology update to protect SSID"; "Pending netsettings.json update discarded after replicating"
 - **network_test:** networkTestMgr: nettestresult.txt; cycle {"waiting %d sec before disabling wifi","disabling wifi for %d sec","enabling wifi",connect-open,complete:%s} + abort paths
 ## `network_tools`
 
 **coverage** `strong`
+
+The `/tools` diagnostic page: HTML forms that run `ping -c 3`, `traceroute`, `nslookup`, and `/mdnsannounce` against a host parameter, plus a `/pcap` endpoint that streams a packet capture (with an exclusion filter for its own HTTP connection). CSRF-token protected. This is the engineering page support asks you to visit for network forensics.
 
 **Technical description:**
 
@@ -5048,10 +5114,14 @@ events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,St
 
 **coverage** `?`
 
+Device registration at the UPnP layer: the local (non-cloud) registration machinery that pairs a player into a household and tracks its registration state. Distinct from cloud_registration — this is the on-LAN side that has to succeed before cloud enrollment can.
+
 - **secreg_fsm:** endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}; "Household customer ID \[%s\] in conflict with local device \[%s\]"; "regState changed %d -> %d"; "Transfer mode old (e:%d) new (e:%d)" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; "removed invalid cert"; "Unexpected 401 response"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}
 ## `registration_machine`
 
 **coverage** `?`
+
+The `regdevicecert.cxx` FSM driving the secure-registration protocol: sequential regState transitions with timeout/retry handling, transfer-mode tracking, and SSL error capture. It orchestrates the two-phase enroll (refresh then complete) under `device_registration`.
 
 - **name:** regdevicecert.cxx registration/secure-reg FSM
 - **cloud_api:** `/product/v2/households/%s/players?action=refresh`, `/product/v2/households/%s/players?action=complete&token=%s`
