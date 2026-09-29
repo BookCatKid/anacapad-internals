@@ -104759,6 +104759,12 @@
    "service": "/DeviceProperties/Control",
    "description": "update counters",
    "fields": "{DeviceName,AuthorizationGrantedUpdateID,AuthorizationDeniedUpdateID,HdmiCecAvailable,MicEnabled,HeadphoneSwapActive,SvcActive}"
+  },
+  "update_info_schema": {
+   "status": "strong",
+   "service": "/status",
+   "description": "UpdateInfo page",
+   "fields": "<UpdateInfo><AutoUpdate>%d</AutoUpdate><State>%s</State><Window>%02u:%02u:%02u - %02u:%02u:%02u</Window><UpgradeManager>%s</UpgradeManager><HoursPending>%u</HoursPending><ActiveDeviceList/></UpdateInfo>"
   }
  },
  "uri_formats": {
@@ -120814,6 +120820,62 @@
   },
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\""
+  },
+  "audio_in": {
+   "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; artfetch thread"
+  },
+  "areas": {
+   "name": "areasMgr \u2014 multi-room area persistence",
+   "status": "partial",
+   "summary": "areas.json file; Everywhere area UUID 7055133f-81e7-45e6-ba70-8803966c7185; validation {\"Area IDs must be distinct\",\"Maximum area limit (%d) reached\",\"Cannot update read-only area\"}; fields {areaId,playerIds array}; accept-file staging {accepted file load/rename} + schema version check \"Loaded areas schema version (%d) differs from local version (%d)\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ead0bc",
+     "notes": "areas block"
+    }
+   ]
+  },
+  "async_stream": {
+   "name": "RAsyncBufferedStream \u2014 HTTP/CDN stream buffer",
+   "status": "partial",
+   "summary": "init {buffersize,multiThread,ratelimit us}; segment table (realloc to %zu entries); alloc policy {satisfied by track transition|deleting played data|not satisfied}; \"Started reaping played data. Lose fast scrubbing backwards\"; CDN fallback {\">>>Sync read from CDN at offset %zu\",\"Opportunistic sync read from CDN\"}; \"File is in memory!\"; seek sessions \"new seek based PB session\"; \"Socket has: %zu bytes ... CHSRC ms ahead: %ld\"; stats mrrkbs/arrkbs + \"Avg read rate %zuKB/sec; min read rate %zu\"; \"Atom Table Full\" bound; threads asyncstrmio/asyncstreamiomgr",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ead488",
+     "notes": "asyncstrm block"
+    }
+   ]
+  },
+  "auto_update": {
+   "name": "upgrade_mgr \u2014 auto-update scheduler FSM",
+   "status": "partial",
+   "summary": "states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {\"Upcoming alarm is preventing update\",\"Active device(s) preventing update\"}; \"Trimming the window to (%d) seconds\"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; \"RINCON_%s01400 updated to %s\"/\"update failed (%d)\"; \"Retrying upgrade (%d/%d)...\"/\"Giving up after max upgrade attempts\"; upgrade_mgr.txt state file",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10eae3f4",
+     "notes": "auto_update_scheduler block"
+    }
+   ]
+  },
+  "av_transport": {
+   "avt_jobs": [
+    "ChangeTransportSettings",
+    "avt_play",
+    "onEvent",
+    "alarmDurationTimer",
+    "backupQueueCleanup",
+    "pollRadioShowMD",
+    "preemptiveAmp"
+   ]
+  },
+  "content_directory": {
+   "container_classes": "browse classes {object.container.album.musicAlbum,.compilation,playlistContainer.sameArtist,playlistContainer,albumlist,person.musicArtist,genre.musicGenre,person.composer}; fields {dc:creator,upnp:albumArtURI}; category keys {ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS}; dirObjAttr; <AudioCore> page + OrientationChangeEvent"
   }
  },
  "muse": {
