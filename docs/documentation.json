@@ -122484,16 +122484,15 @@
    ]
   },
   "hermes": {
-   "name": "hermes.c \u2014 Spotify eSDK request channel",
-   "status": "partial",
-   "summary": "request record \"id %u method %d uri %s %d bytes\"; content-type vnd.spotify/mercury-mget-request; methods incl UNSUB; rate limiting {\"Rate limiting active, and set to %llu ms\",\"Rate limiting deactivated\",\"Message not sent: rate limited for %llums more.\"}; push {\"Got hermes push from %s\",\"Got hermes uri %s status_code %d\"}; defrag {\"Defragmentation buffer size %d, cannot fit extra %d bytes (max size: %d)\",\"Could not fit packet to defragmentation buffer, clearing the buffer\"}; header {\"Failed to decode HermesHeader: %s\"}; timeout field 0..255; chunk stats {\"first_chunk_request_time not set\",\"latest_chunk_finished_time not set\",\"finished_time >= stats->first_chunk_request_time\"}; \"Unable to set the track info\"",
-   "bandwidth": "BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s; WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d; LOW BW (kbit/s): %u < %u, count = %u; \"Bandwidth not calculated, latency zero\"; \"Bandwidth window not updated, latency zero\"",
+   "name": "hermes/hwptp channels",
+   "status": "strong",
+   "summary": "roots {hm://hwptp/v1/devices,hm://hwptp/v1/tsv,hm://hwptp/v1,hm://hwptp/v2/resolve/%s/%d/%s}; device subs {%s/devices/%s/state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue}; media {%s/content_encryption_key/%s,%s/cache_key,%s/offline/restrictions}; fields {random,checksum}; \"!\"Action not handled\"\"",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10fe4094",
-     "notes": "hermes.c block"
+     "address": "0x10fd6244",
+     "notes": "hermes"
     }
    ]
   },
@@ -123743,6 +123742,34 @@
      "status": "confirmed",
      "address": "0x10fd4c24",
      "notes": "eSDK internals"
+    }
+   ],
+   "device_types": "{CARTHING,HOMETHING,COMPUTER,TABLET,SMARTPHONE,SPEAKER,AUDIODONGLE,GAMECONSOLE,CASTVIDEO,CASTAUDIO,AUTOMOBILE,SMARTWATCH,CHROMEBOOK}",
+   "session": "desc fmt \"%.*s;%.*s;%.*s;%.*s;tpapi\"; device_id assert \"result == device_id + SHA1_HASH_LENGTH * 2 && *result == '\\0'\"; {sonos_ppc,\"socket init failed\",\"Failed to initialize module subsystem! Error %d\",\"Failed to initialize tls with %d\",\"Failed to get entropy for PRNG\",\"No data to play, will pause playback if network is not reconnected within %dms\",\"Notifying kSpConnectionNotifyLoggedOut\",\"reinit_session failed with error %d\",kSpErrorFailed,validate_no_api_reentry_status,\"3.205.205-gd0f06121\",accesstoken,GROUP,\"Decrypting ZeroConf blob failed\",\"Login with username '%s', blob '%s', tokentype '%s'\"}; track notify {\"Notify: track %d length: %u ms\",\"track %d error at position: %u ms is '%s'\",\"track %u playback started at timestamp %llu ms\",\"Integration reported invalid track to start/finish\",\"Invalid track %u, expected %u\",\"DLBUFFER CLEAR\"}"
+  },
+  "korn_kernel": {
+   "name": "eSDK korn module kernel",
+   "status": "strong",
+   "summary": "asserts {korn_ptr->_temp_ram_num_allocs == 0,korn_ptr->_temp_ram_free == (char *)korn_ptr->_temp_ram,aligned_size <= available_ram,korn_ptr->_temp_ram_num_allocs - 1 < MAX_KORN_TEMP_RAM_ALLOCS,ptr == korn_ptr->_temp_ram,sp_korn_event_count() < SP_MAX_EVENTS}; {\"module %s pump returned error\",\"%d is more than free space %td\",\"!!! Too many requests/returns of temp ram!\",\"Module requested %zu bytes\",\"Ignoring recursive calls\",\"event_loop_counter--\",\"Initializing module %s\",\"Module %d (%s) failed to initialize.\",\"Event %d discarded, queue full\",\"Module %d failed to shutdown. Possible memory leak.\"}; timers {\"Timer scheduled for now+%lums. #timers=%lu\",\"No free timer slots\",\"Attempting to access unavailable timer. id=%d\",\"Stopping unavailable timer. id=%d\"}; korn_ptr/module_manager",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fd690c",
+     "notes": "korn"
+    }
+   ]
+  },
+  "korn_events": {
+   "name": "korn event enum (~70)",
+   "status": "strong",
+   "summary": "{KORN_INITIALIZED,KORN_SHUTDOWN,WEBSERVER_START,WEBSERVER_STARTED,WEBSERVER_UPDATED,ZEROCONF_START,ZEROCONF_DEVICE_ADDED,ZEROCONF_TRANSFER_CRED,ZEROCONF_TRANSFER_STATUS,ZEROCONF_AUTH_TOKEN,ZEROCONF_AUTH_CODE,MDNS_START,MDNS_PAUSE,MDNS_RESUME,MDNS_DEVICES,MDNS_DEVICE_DISCOVERED,MDNS_DEVICE_EVICTED,MDNS_RETRIGGER_DISCOVERED_DEVICES,HOSTNAME,PLAYBACK_RESUME,PLAYBACK_RESUMED,TRACK_RESUME,OBSERVE_PLAY,SKIP_NEXT,SKIP_PREV,PLAYBACK_SEEK,PLAY_URI,QUEUE_URI,QUEUE_FINISHED,TRACK_STARTED,SET_SHUFFLE,SET_REPEAT,INTERNAL_SHUFFLE,INTERNAL_REPEAT,CONNECT_SET_VOLUME,AUDIO_DELIVERY_DONE,CONTEXT_FAILED,TW_UPDATED,PLAY_FALLBACK_FILE,QUEUE_FILE,TRACK_FINISHED,TRACK_FAILED,NOTIFY_TRACK_FAILED,INTERNAL_TRACK_STARTED,MEDIA_SEEK,PLAYBACK_INITIATED,PREVIOUS_POSITION,PLAYBACK_PROGRESS_STARTED,SET_DOWNLOAD_POSITION,NOTIFY_INTEGRATION_PLAYBACK_STARTED,NOTIFY_INTEGRATION_FINISHED_TRACK,NOTIFY_INTEGRATION_HAS_TRACK_LENGTH,NOTIFY_TRACK_ERROR,SEEK_COMPLETE,EXTERNAL_UNDERRUN_COUNT_POINTER,NOTIFY_STREAM_DELIVERED,STREAM_START,STREAM_START2,STREAM_STOP,STREAM_STARTED,STREAM_FINISHED,STREAM_FAILED,STREAM_CAPPED,FILE_SIZE,DATA_DOWNLOAD_LATENCY,CONNECTIVITY,DBG_DECODER_STARTED,DBG_DISCONNECT,DBG_UNDERRUN_TIMEOUT,DBG_DOWNLOAD_UNDERRUN,DBG_MDNS_ANNOUNCE,DBG_RESOLVE,DBG_PERIODIC_STATE_UPDATE,DBG_SET_KEY_RATE_LIMIT_ERROR,DBG_FORCE_STATE_UPDATE,DBG_INTERNAL_CDN_FINISHED,HWP_VERSION,ITEM_LIST_CHANGED,LOGOUT_REQUESTED,AP_CREATED,AP_CONNECT_ERROR,AP_DISCONNECTED,CONNECTION_STATE_CHANGED,AP_LOGIN,AP_SET_SESSION,NEW_PRODUCT_STATE,AP_LOGIN_OFFLINE,LOGIN_OFFLINE_ERROR,TPAPI_STATE_CHANGE,TPAPI_SHARED_STATE_POINTER,CACHE_ID,CACHE_KEY}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fd6ce8",
+     "notes": "korn events"
     }
    ]
   }
