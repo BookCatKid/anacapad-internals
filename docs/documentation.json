@@ -111460,7 +111460,8 @@
     "/tmp/upgrade.log",
     "/tmp/wifi_card_mac_addr"
    ],
-   "jobs_endpoint": "/jobs?job=<JobName> triggers any manifest task handler directly over HTTP (port 1400)"
+   "jobs_endpoint": "/jobs?job=<JobName> triggers any manifest task handler directly over HTTP (port 1400)",
+   "exec_backend": "etc/diagprocessd (generated from configs/arch/limelight.toml): FIFO menu \u2014 mkfifo /tmp/diagstdin + /tmp/diagstdout, read loop dispatching numeric commands: 0=date, 1=ls -l debug dirs, 2=df, 3=du jffs top100, 4=free, 5=ifconfig, 6=lsmod, 7=mount, 8=netstat -an, 9=ps, 10=route -n, 11-14=brctl showmacs/showports/showstats/showstp br0, 15=uptime, 16=dmesg -s 32768, 17=/wifi/athconfig scangetresults ath0, 18=chronyc -n sources -v, *=NA. The support-bundle shell_cmds (/df,/free,/ps,/lsmod,/netstat,/ntpsources,/showmacs,...) resolve THROUGH this daemon \u2014 anacapad sends the command index over the FIFO rather than exec'ing directly (privilege separation: diagprocessd runs as root)."
   },
   "spotify_esdk": {
    "status": "confirmed",
@@ -130562,7 +130563,8 @@
    "rcb_bundle_format": ".rcb files (sonosRcb* C API): sonosRcbParseHeader + sonosRcbParseManifest + sonosRcbParseCerts \u2014 header/manifest/cert-chain container; version string '%hhu.%hhu-%u'; directory scan 'Scanning %s for best cert bundle' picks highest version; root_certs_metadata.txt alongside; fallback /etc/fallback_trusted_roots.rcb; atomic write via '%s.tmp' rename; inotify-watched hot reload \u2014 'Cert bundle (%s) modified: inotify event' + hash re-verify 'modified: bad hash' '%s (original) vs %s (calculated)'; refcounted via addRef; 'Removed bad/unused cert bundle' pruning; status enum SonosRcbStatus_t + sonosRcbStatusToString",
    "validation_semantics": "messages: 'local cert validation succeeded for %s (local port %u)' / 'Sonos device %scert had bad params (local port %u)' / 'Sonos device %scert did not match %s '%s' (actual %s)' = SAN/name matching / 'local %scert validation failed Sonos field checks for %s' = custom sonos_device_x509_fields gate / 'local %scert validation failure ... ignored due to allowlisted hostname' = hostname allowlist bypass / 'Cert validation failed due to cert bundle error: %s' / 'Unable to load root cert bundle file: %s' / 'Cannot parse %s certs. Bundle is invalid' / 'Parsed %llu %s certs (failed to parse %llu certs)'",
    "api_surface": "exports: sonosCertval{Initialize,Cleanup,Validate,SetSSLToSonosDevice,GetSonosDeviceRootCAs,GetSonosDeviceRootsForEnv}; sonosRcb{Init,Free,ParseHeader,ParseManifest,ParseCerts,ParseCertsCopy,StatusToString}; RootCACertBundle::{initialize,cleanup,loadCertBundle,getBundle(CertType,..),getRootCerts,getRootCertsAddToChain,copyRootCertsAddToChain,getMetadataFilename,hasDynamicCertBundle,formatVersion,id,version,addRef,free} + statics s_certBundle/s_fallbackBundle/s_bundleTrackingList/s_bundleLock/s_trustDevCerts/s_getEnvironment/s_fallbackBundleFilename",
-   "notes": "CertType distinguishes bundle pools; getRootCerts takes std::function filter/select callbacks incl a SonosRcbStatus_t(u8,u8,u8,u8,const SonosRcb*,x509*,u32*,x509**) selector; dates parsed via '%m/%d/%y'; 'CERT_INVALID' literal; imports are ZZ*-obfuscated ordinals (same patched-toolchain export scrubbing as anacapad)"
+   "notes": "CertType distinguishes bundle pools; getRootCerts takes std::function filter/select callbacks incl a SonosRcbStatus_t(u8,u8,u8,u8,const SonosRcb*,x509*,u32*,x509**) selector; dates parsed via '%m/%d/%y'; 'CERT_INVALID' literal; imports are ZZ*-obfuscated ordinals (same patched-toolchain export scrubbing as anacapad)",
+   "rcb_shipped_layout": "SHIPPED FILE etc/fallback_trusted_roots.rcb decoded at byte level: magic 'rcbundle\\x00' @0; u16 ver-hi + version string '78.1-47150' @0x0a (NUL-padded to 0x48); 32-byte bundle digest @0x48-0x68; index records @0x68+: {algo_tag u16, then offset/len pairs} \u2014 algo_tag values observed {07c1 x~19, 06a0,07c3,07c9,07c6,07ce,0060,0120} tag the cert/key type; cert DER blobs follow the table \u2014 first blob @0x12a = '30 82 01 b6' Amazon Root CA 3 (ECC P-256, 2015-2040). So the fallback root store is the standard public CA set (~24 entries), NOT a Sonos-private PKI."
   },
   "rootfs_boot_chain": {
    "name": "/etc/Configure sysinit + ramdisk layout \u2014 the boot chain",
@@ -130590,7 +130592,8 @@
      "notes": "shipped shell files"
     }
    ],
-   "notes": "dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init)."
+   "notes": "dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init).",
+   "security_files": "etc/fstab: rootfs mounted from /dev/mapper/crroot (device-mapper 'crroot' \u2014 dm-verity/dm-crypt read-only root; the shipped squashfs is integrity-protected at the block layer). /dev/shm tmpfs noexec,nodev,nosuid mode=600. etc/passwd: dedicated users {chrony(19),anacapa(20)} locked with '!' in shadow; root has a shipped MD5crypt hash ($1$AugXR3h8$...) \u2014 a fixed factory root credential, reachable only after unlock (dropbear getty are gated on device_unlocked_flag). chrony.conf: pools 0-3.sonostime.pool.ntp.org iburst maxsources 1, driftfile /jffs/chrony/chrony.drift, makestep 60 1, port 0 (no NTP serving). dhcp.script (udhcpc): bound/renew writes /etc/resolv.conf + ifconfig + default-route + multicast route, then removes /var/run/waitforip \u2014 the boot handshake anacapad waits on."
   },
   "rootfs_data_files": {
    "name": "shipped rootfs data files \u2014 DSP array, IR codes, musicservices seed, web UI assets",
