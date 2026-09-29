@@ -561,6 +561,15 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 Dispatcher 0x10738308 decodes fully: binary-search over action table 0x10f11a64; *(svc+4) impl NULL -> 401; handler args {svc-adj, req, impl=*(svc+4)}; impl vfuncs +0x08 AddMember / +0x0c RemoveMember / +0x10 ReportTrackBufferingResult / +0x14 SetSourceAreaIds; svc object embedded at ctx+0x3fa44 (ctor f_107389bc); px bound at runtime (group-init path), impl class unproven.
 
+## Additional records
+
+### `implementation_notes`
+
+- **source:** gm_impl.cxx + grc_zpimpl.cxx literals 0x10ec300c-0x10ec45cc; scopeGm/scopeGrc; gm_events log fmt "(%2d) add\|rem %s / grp %s %s"
+- **addmember_validation:** `ungroupable player rejected (gcUUID+memberID logged)`, `invalid argument`, `satellite cannot accept members`, `incompatible member`, `invisibility/node-proto compat check`, `bootseq out-of-sync GM`, `duplicate member`
+- **config:** configure group %d: {fd,bgc,dgc,c,oc} tuple; ChangeCoordinator + DelegateGC ("delaying delegation by %d ms","delegating with member list %s new gc %s"); topology monitor starts on GC change
+- **vli_session:** vli session end evt -> VliSessionProcessingCompleteEvent (async task)
+
 Implementation sources (recovered): `zoneplayer/gm_impl.cxx`
 
 <details><summary>Service evidence (3)</summary>

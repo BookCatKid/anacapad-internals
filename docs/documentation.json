@@ -23936,7 +23936,21 @@
    "notes": "Dispatcher 0x10738308 decodes fully: binary-search over action table 0x10f11a64; *(svc+4) impl NULL -> 401; handler args {svc-adj, req, impl=*(svc+4)}; impl vfuncs +0x08 AddMember / +0x0c RemoveMember / +0x10 ReportTrackBufferingResult / +0x14 SetSourceAreaIds; svc object embedded at ctx+0x3fa44 (ctor f_107389bc); px bound at runtime (group-init path), impl class unproven.",
    "impl_files": [
     "zoneplayer/gm_impl.cxx"
-   ]
+   ],
+   "implementation_notes": {
+    "source": "gm_impl.cxx + grc_zpimpl.cxx literals 0x10ec300c-0x10ec45cc; scopeGm/scopeGrc; gm_events log fmt \"(%2d) add|rem %s / grp %s %s\"",
+    "addmember_validation": [
+     "ungroupable player rejected (gcUUID+memberID logged)",
+     "invalid argument",
+     "satellite cannot accept members",
+     "incompatible member",
+     "invisibility/node-proto compat check",
+     "bootseq out-of-sync GM",
+     "duplicate member"
+    ],
+    "config": "configure group %d: {fd,bgc,dgc,c,oc} tuple; ChangeCoordinator + DelegateGC (\"delaying delegation by %d ms\",\"delegating with member list %s new gc %s\"); topology monitor starts on GC change",
+    "vli_session": "vli session end evt -> VliSessionProcessingCompleteEvent (async task)"
+   }
   },
   "/HTControl/Control": {
    "name": "HTControl",
@@ -55917,7 +55931,16 @@
    "notes": null,
    "impl_files": [
     "zoneplayer/grc_zpimpl.cxx"
-   ]
+   ],
+   "implementation_notes": {
+    "volume_engine": "SetGroupVolume fans to member zones as netops (\"local:%d netops:%u zones:%u\"); normalize formula \"calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f\" + \"gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d\"; per-zone snapshots \"snapshot %s: %u (was %u)\" + \"snapshot sum for %u (of %u) zones\"; states total/partial failure, all-fixed, operation in progress; DesiredVolume/DesiredMute; GroupVolumeSetActionEvent {vol,mute,vligrouping} -> VliVolumeProcessingCompleteEvent",
+    "state_vars": [
+     "OutputFixed",
+     "GroupMute",
+     "GroupVolumeChangeable"
+    ],
+    "remote_rc": "remoteRC (%s) proxy logs {fixed,vol,mute} per member"
+   }
   },
   "/MediaRenderer/Queue/Control": {
    "name": "Queue",
@@ -116583,6 +116606,38 @@
    "tunein": "\"Successfully converted TuneIn while settingAVT. old: %s, new: %s\" \u2014 legacy URI rewrite",
    "amp": "preemptive amp warm \"prem-amp turn on at %d.%06d; start up time: %dms\"",
    "autoplay": "autoplaying %d %s; Spotify SMAPI via VLI autoplay; ProgramURI; TV-proxy VLI refused; HT-capability gate"
+  },
+  "group_capabilities": {
+   "feature_names": [
+    "widevine",
+    "atmos",
+    "portable",
+    "tv_in",
+    "hlsv7"
+   ],
+   "log": "\"Group capability updated: 0x%08x -> 0x%08x\",\"Spatial audio disabled: 0x%08x -> 0x%08x\"/\"in Area Zone\", enableSpatialAudio, \"GroupCapabilities zp: %s: %i,%i,%i\"",
+   "note": "32-bit groupcap mask with named feature flags"
+  },
+  "muse_grouping_ops": {
+   "name": "groupsCommand muse op",
+   "params": [
+    "playerIdsToAdd (array)",
+    "playerIdsToRemove (array)",
+    "groupId",
+    "future coordinator hint (optional)"
+   ],
+   "semantics": "\"Effective set of players to group\"/\"Effective set of new group members\" computed; clone music context from ungroupable player allowed (\"clone music (from %s to ungroupable %s)\"/\"create new group and cloning from ungroupable player %s failed\"); music context cannot be copied/swapped variants; fans into UPnP SetSourceAreaIds/pause/play/copyMusic/becomeStandalone/joinGroup with retry (\"attempting retry\")",
+   "errors": [
+    "Grouping action failed",
+    "Invalid grouping action",
+    "Invalid args",
+    "Action not authorized",
+    "invalid topology state, empty field(s)",
+    "inconsistent topology state, invalid gc or pid count"
+   ]
+  },
+  "healthcheck_job": {
+   "schedule": "\"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\"; skip conditions \"Not scheduling: %d %d %d %d %d %d\""
   }
  },
  "subsystems": {

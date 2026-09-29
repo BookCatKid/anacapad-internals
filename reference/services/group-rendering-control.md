@@ -864,6 +864,14 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+## Additional records
+
+### `implementation_notes`
+
+- **volume_engine:** SetGroupVolume fans to member zones as netops ("local:%d netops:%u zones:%u"); normalize formula "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + "gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d"; per-zone snapshots "snapshot %s: %u (was %u)" + "snapshot sum for %u (of %u) zones"; states total/partial failure, all-fixed, operation in progress; DesiredVolume/DesiredMute; GroupVolumeSetActionEvent {vol,mute,vligrouping} -> VliVolumeProcessingCompleteEvent
+- **state_vars:** `OutputFixed`, `GroupMute`, `GroupVolumeChangeable`
+- **remote_rc:** remoteRC (%s) proxy logs {fixed,vol,mute} per member
+
 Implementation sources (recovered): `zoneplayer/grc_zpimpl.cxx`
 
 <details><summary>Service evidence (3)</summary>
