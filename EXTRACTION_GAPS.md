@@ -877,7 +877,12 @@ the deep semantic layer:
 1. **Muse op internals** — spec grammar fully decoded
    (`{fieldName,typeName}` pairs, unions, `none`/`upnpEvent`,
    `table[3+i]` indexing, `f_109ecb5c`/`f_109ecb90` lookups); all
-   1116 extracted routes carry decoded member lists; still missing:
+   1116 extracted routes carry decoded member lists; **all 51 spec
+   streams extracted verbatim** to `reference/muse_spec_streams.md`
+   (post-`acb6042`), plus the per-member layout/validator dispatch
+   `f_10927c1c` (vtable slot at 0x10f7f724, special-cased members
+   incl. bit-packed `diagnosticInfo`, clamped `trackQuality`, and
+   converter-applied `versionChanged`); still missing:
    per-field requiredness/defaults and inner schemas of opaque
    payload objects (e.g. `trueroomEstimatedParams` inner fields —
    never stringized)
