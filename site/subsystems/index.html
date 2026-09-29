@@ -16744,7 +16744,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="trueplay_tuning"><code>trueplay_tuning</code><a class="headerlink" href="#trueplay_tuning" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
-<p>Trueplay room tuning is really two surfaces. The SOAP side (documented actions) flips tuning on/off; the real work happens over five cloud-routed muse ops on each player: estimatorConfiguration, adaptation, getCalibrationStatus, playSuccessTone and setSwapInputMute, each reachable as v1/players/{id}/trueroom/<op> or household-qualified. Responses come back as trueroomStatus / trueroomAdaptationStatus objects carrying a deeplink (to resume playback after the tone) plus the standard auth/feature-gate envelope. Tuning tones ride a dedicated URI scheme (x-rincon-trueroom:, configmode trueroom-tone): the .ogg asset is fetched into a JFFS 'trueroom-tones' folder, played while the player saves its normal transport state, and the AVT is restored — or deliberately not restored — afterwards. What remains undecoded: the request bodies for those five ops (their vtables lack the spec accessor) and the inner field names of trueroomEstimatedParams — the actual estimated distance/delay/EQ numbers.</p>
+<p>Trueplay room tuning is really two surfaces. The SOAP side (documented actions) flips tuning on/off; the real work happens over five cloud-routed muse ops on each player: estimatorConfiguration (GET), adaptation (POST), getCalibrationStatus (GET), playSuccessTone (POST) and setSwapInputMute (POST), each reachable as v1/players/{id}/trueroom/<op> or household-qualified. Their wire schemas are decoded: adaptation posts a trueroomEstimatorConfig, calibrationStatus answers with trueroomAdaptationStatus, successTone with trueroomCalibrationStatus, and every op can return the standard globalError union (channelMapPair / wiredSubStatus / chirpRequest). Tuning tones ride a dedicated URI scheme (x-rincon-trueroom:, configmode trueroom-tone): the .ogg asset is fetched into a JFFS 'trueroom-tones' folder, played while the player saves its normal transport state, and the AVT is restored — or deliberately not restored — afterwards. What remains undecoded: the inner field names of trueroomEstimatedParams — the actual estimated distance/delay/EQ values.</p>
 <p><strong>Technical description:</strong></p>
 <p>Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant</p>
 <ul>
@@ -16788,7 +16788,15 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 </li>
 <li><strong>tone_mechanism:</strong> x-rincon-trueroom: URI scheme + x-rincon-configmode:trueroom-tone; tone asset trueroom_tone.ogg fetched to a JFFS 'trueroom-tones' folder ('Clearing Trueroom tone folder on JFFS'); the AVT transport state is saved and restored around config mode ('Not restoring the AVT' vs 'restoring the AVT'); validation literal 'One or more Trueroom options amongst (%s, %s) are missing or invalid'</li>
-<li><strong>unbound:</strong> the 5 ops' op-vtables carry no +0x58 spec accessor — request bodies unresolved; trueroomEstimatedParams inner field names not emitted as standalone literals</li>
+<li><strong>op_schemas:</strong><ul>
+<li><strong>estimatorConfiguration (GET):</strong> {ok:upnpEvent, globalError:channelMapPair}</li>
+<li><strong>adaptation (POST):</strong> {trueroomEstimatorConfig:upnpEvent, globalError:{channelMapPair|wiredSubStatus}}</li>
+<li><strong>getCalibrationStatus (GET):</strong> {trueroomAdaptationStatus:upnpEvent, globalError:{channelMapPair|wiredSubStatus|chirpRequest}}</li>
+<li><strong>playSuccessTone (POST):</strong> {trueroomCalibrationStatus:upnpEvent, globalError:wiredSubStatus}</li>
+<li><strong>setSwapInputMute (POST):</strong> {ok:upnpEvent, globalError:wiredSubStatus}</li>
+</ul>
+</li>
+<li><strong>remaining:</strong> inner field names of trueroomEstimatedParams (the estimated distance/delay/EQ values) are not emitted as standalone literals</li>
 </ul>
 <details><summary>Evidence (8)</summary>
 

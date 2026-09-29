@@ -8076,7 +8076,7 @@ service sonos.coreaudio.trueplay.v1.TrueplayService; API v1alpha2; errors {Inval
 
 **coverage** `strong`
 
-Trueplay room tuning is really two surfaces. The SOAP side (documented actions) flips tuning on/off; the real work happens over five cloud-routed muse ops on each player: estimatorConfiguration, adaptation, getCalibrationStatus, playSuccessTone and setSwapInputMute, each reachable as v1/players/{id}/trueroom/<op> or household-qualified. Responses come back as trueroomStatus / trueroomAdaptationStatus objects carrying a deeplink (to resume playback after the tone) plus the standard auth/feature-gate envelope. Tuning tones ride a dedicated URI scheme (x-rincon-trueroom:, configmode trueroom-tone): the .ogg asset is fetched into a JFFS 'trueroom-tones' folder, played while the player saves its normal transport state, and the AVT is restored — or deliberately not restored — afterwards. What remains undecoded: the request bodies for those five ops (their vtables lack the spec accessor) and the inner field names of trueroomEstimatedParams — the actual estimated distance/delay/EQ numbers.
+Trueplay room tuning is really two surfaces. The SOAP side (documented actions) flips tuning on/off; the real work happens over five cloud-routed muse ops on each player: estimatorConfiguration (GET), adaptation (POST), getCalibrationStatus (GET), playSuccessTone (POST) and setSwapInputMute (POST), each reachable as v1/players/{id}/trueroom/<op> or household-qualified. Their wire schemas are decoded: adaptation posts a trueroomEstimatorConfig, calibrationStatus answers with trueroomAdaptationStatus, successTone with trueroomCalibrationStatus, and every op can return the standard globalError union (channelMapPair / wiredSubStatus / chirpRequest). Tuning tones ride a dedicated URI scheme (x-rincon-trueroom:, configmode trueroom-tone): the .ogg asset is fetched into a JFFS 'trueroom-tones' folder, played while the player saves its normal transport state, and the AVT is restored — or deliberately not restored — afterwards. What remains undecoded: the inner field names of trueroomEstimatedParams — the actual estimated distance/delay/EQ values.
 
 **Technical description:**
 
@@ -8115,7 +8115,13 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
     - **trueroomStatus:** {authzTokenStatus, featureConfigZoneExperiment, deeplink, bluetooth} — cls3 response/event; deeplink = resume-playback link after the tone
     - **trueroomAdaptationStatus:** {authzTokenStatus, featureConfigZoneExperiment, bluetoothPolicySettings, bluetooth} — cls3
   - **tone_mechanism:** x-rincon-trueroom: URI scheme + x-rincon-configmode:trueroom-tone; tone asset trueroom_tone.ogg fetched to a JFFS 'trueroom-tones' folder ('Clearing Trueroom tone folder on JFFS'); the AVT transport state is saved and restored around config mode ('Not restoring the AVT' vs 'restoring the AVT'); validation literal 'One or more Trueroom options amongst (%s, %s) are missing or invalid'
-  - **unbound:** the 5 ops' op-vtables carry no +0x58 spec accessor — request bodies unresolved; trueroomEstimatedParams inner field names not emitted as standalone literals
+  - **op_schemas:**
+    - **estimatorConfiguration (GET):** {ok:upnpEvent, globalError:channelMapPair}
+    - **adaptation (POST):** {trueroomEstimatorConfig:upnpEvent, globalError:{channelMapPair\|wiredSubStatus}}
+    - **getCalibrationStatus (GET):** {trueroomAdaptationStatus:upnpEvent, globalError:{channelMapPair\|wiredSubStatus\|chirpRequest}}
+    - **playSuccessTone (POST):** {trueroomCalibrationStatus:upnpEvent, globalError:wiredSubStatus}
+    - **setSwapInputMute (POST):** {ok:upnpEvent, globalError:wiredSubStatus}
+  - **remaining:** inner field names of trueroomEstimatedParams (the estimated distance/delay/EQ values) are not emitted as standalone literals
 <details><summary>Evidence (8)</summary>
 
 - @ 0x10ebda88 — trueplay-node
