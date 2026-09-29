@@ -120895,61 +120895,41 @@
    ]
   },
   "amp_manager": {
-   "name": "RAmpManager \u2014 amp power/mute/rail FSM",
-   "status": "partial",
-   "summary": "ops {power,mute,hipower} with \"ignored unsupported amp command\" guard; power rails {\"transition to high power rail\",\"to low power rail\"}; off-decision fields \"roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d\"; \"scheduling off in %d sec\"; \"failed to unmute amps to clear fault\"; \"ampState %d -> %d\" + notifyAmpState; threads ampMgr",
+   "name": "ampMgr power manager",
+   "status": "strong",
+   "summary": "AmplifierPowerStateChangedEvent; transitions {\"zone %d volume %f -> %f\",\"zone %d is playing %d -> %d\"}; notify ops {manageAmpStateLocked_notifyVolume,notifyPlayState,notifyPlayingUnmuteableSource_p/np,notifyOutputFixed,resetPreemptiveTurnOn,notifyPreemptiveTurnOn}; preemptive \"zone %zu preemptive turn on %d -> 0/%d\"; power {\"entered ampPowerOnLocked() - %dms\",\"ignored unsupported amp command: power/mute/hipower (%d)\",\"failed to power on/unmute/mute/power off amps (%d)\",\"failed to transition to high/low power rail (%d)\",\"left ampPowerOnLocked()\",\"requested amp power off\"}; off-decision \"roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d\"; \"scheduling off in %d sec\"; {ampMgr,RAmpManager,ampPowerOnLocked,ampPowerOffLocked,\"failed to unmute amps to clear fault\",\"ampState %d -> %d\",notifyAmpState,\"init failed (%d)\"}",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10fe5640",
-     "notes": "ampManager block"
+     "address": "0x10fe5434",
+     "notes": "ampMgr"
     }
    ]
   },
   "lla": {
-   "name": "liblla \u2014 low-level audio (output+input)",
-   "status": "partial",
-   "summary": "errors {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; devices {lla_hdmi out, lla_in_%s in}; out: \"Setting tx latency %u\", combined time+output delay, play-time-in-past reject, \"time requested %d.%06d current time ... devPlayTime/devCurrentTime\", \"callback failed, playing zeros\", underflow-count cache; in: descriptor \"id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu\", rx time in ticks, nonblocking pipe, buffer copy maxbytes bound; fds lla-select/lla.in.poll",
+   "name": "LLA (low-level audio) interface",
+   "status": "strong",
+   "summary": "status codes {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; out {lla_hdmi,\"device open failed, unsupported device type %d\",\"opening lla output device\",\"could not get device rc %s lrc %s fd %d\",\"Setting tx latency %u - rc %d\",\"could not get output limits\",\"could not set tx latency rc %d try %u got %u\",\"could not get combined time and output delay\"}; timing {\"underflow count not cached, returning 0\",lla-select,\"play time in the past\",\"adjusted play time in the past\",\"%s %s current time %d.%06d play time %d.%06d write at %d.%06d\",\"could not get sample unit time ticks\",\"could not get time\",\"could not get output delay\",\"time requested %d.%06d current time %d.%06d diff %dus devPlayTime: %llu devCurrentTime: %llu diff in sample unit time %llu\"}; IO {\"fd not set fd=%d\",\"timed out fd=%d\",\"select failed fd=%d errno=%d %s\",\"no output fd %d\",\"low level interface could not fulfill request. error %d uf %u\",\"callback failed, playing zeros %d\",\"commit error (%d) before caching underflow count\",\"could not get buffer information\"}; input {\"Device is not open\",\"Failed to open the input device:%d, status:%s\",\"id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu\",\"Failed to get fd\",\"closed input device fd:%d\",\"lla.in.poll\",\"Select returned but LLA fd not set\",\"Failed to get rx time in ticks/rx time\",\"Could not get input delay/input time and delay\",\"Failed to flush the input\",liblla_input,lla_in_%s,\"Failed to set pipe to nonblocking\",\"Failed to create pipe\",\"pTmpFrame buffer is NULL\",\"Failed to copy buffer contents\",\"Trying to copy more bytes than expected. attempted %d maxbytes %d\",\"could not release buffer after read\",\"Buffer Passed in is NULL\",\"No readable data available. Previous ret:%s fd:%d\",\"read failed status: (%s) fd: %d\"}; event objects {\"Failed to add event object %s\",\"Invalid object index\",\"Add fd for object %s\",\"Wait for input failed: %d\",\"Spurious Input Event 0x%x\",\"Remove object %s\",\"Failed to find object for releasing\",\"Object %s was not formally released\"}; liblla",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
      "address": "0x10fe5ad4",
-     "notes": "liblla blocks"
+     "notes": "LLA"
     }
    ]
   },
   "dolby_decoder": {
-   "name": "dlbdec \u2014 Dolby DD+/Evolution (JOC) decoder",
-   "status": "partial",
-   "summary": "config files /opt/dsp/dolby_config.json + app/debug/dsp/dolby_config.json jffs override; keys {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle,oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal} + DRC {movie,night,disable} + crossover 100-200HZ + speaker roles lrrse/lrrs1/lrrs2; Evolution mem {static,dynamic byte allocs}, timeslice processing, malformed-input detect; status <DEC_SampleRate><LFEPresence><DEC_ChanCount> + <BlocksInTimeSlice><ACMOD><DataRate><DialNorm><SURRMOD>",
-   "control_ids": [
-    "DDPI_UDC_OUTCTL_OUTLFEON_ID",
-    "OUTMODE_ID",
-    "DUALMODE_ID",
-    "COMPMODE_ID",
-    "OUTPCMSCALE_ID",
-    "STEREOMODE_ID",
-    "DRCSCALEHIGH_ID",
-    "DRCSCALELOW_ID",
-    "DDPI_UDC_CTL_SUBSTREAMSELECT_ID",
-    "ERRORCONCEAL_ID",
-    "ERRORMAXRPTS_ID",
-    "EVOMODE_ID",
-    "EVOQUICK_SWITCH",
-    "EVOQUICK_SUBSTREAM_ID",
-    "EVOQUICK_STREAMTYPE",
-    "MIXER_SWITCH_ID",
-    "FORCE_JOC_OUTPUT_DMX_ID",
-    "MIXPREF_ID"
-   ],
+   "name": "Dolby decoder + DAP config",
+   "status": "strong",
+   "summary": "config {\"unable to parse %s\",app/debug/dsp/dolby_config.json (JFFS override),\"override dolby config with jffs\",/opt/dsp/dolby_config.json,\"loaded player dolby json config\",\"unable to load player dolby json config, loading defaults\",\"Config %s not found, loading default\"}; decoder {dlbdec,\"dolby decoder unable to decode\",\"<DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount>\"}; parse errors {mode state,bass extraction mode,dap profile mode}; staticparams {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; dynamicparams {oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal}; modes {/default,movie,disable,night,sonosdolbyconfig,\"drc config is invalid\"}; DRC cutoffs 100HZ-200HZ in 10Hz steps; LRR EQ {lrrse,lrrs1,lrrs2}; PCM decoder {decoder_pcm,\"Invalid frame size detected %zu\",\"Unsupported input rate detected %zu\",\"Invalid number of input samples detected %zu\",\"<DEC_SampleRate>%zu</DEC_SampleRate>\"}",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10fe6998",
-     "notes": "dlbdec/evo block"
+     "address": "0x10fe686c",
+     "notes": "dolby"
     }
    ]
   },
@@ -123907,13 +123887,26 @@
   "watchdog": {
    "name": "watchdog driver interface",
    "status": "partial",
-   "summary": "device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {\"Watchdog not started\",\"Watchdog already created\",\"Creating watchdog\",\"No watchdog to destroy\",\"Destroying watchdog\",\"Invalid watchdog health check frequency\",\"Watchdog constructed with %u seconds frequency\",\"trigger called with status %d\"}",
+   "summary": "device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {\"Watchdog not started\",\"Watchdog already created\",\"Creating watchdog\",\"No watchdog to destroy\",\"Destroying watchdog\",\"Invalid watchdog health check frequency\",\"Watchdog constructed with %u seconds frequency\",\"trigger called with status %d\"}; \"WATCHDOG: %s manual trigger (UTC %s)\"/\"unresponsive! (UTC %s)\"; /sbin/reboot + return code; /watchdogcrash; \"Performing health check\"/\"Waiting for next health check\"; watchdog.poll; \"In watchdog thread, performing health check\"/\"Exiting watchdog thread\"; forceTrigger; client API {\"client %s not found\",\"Unregistered watchdog client %s\",\"client must have a name\",\"health check callback must be non-null\",\"client %s already registered\",\"Registered watchdog client %s\"}; MTD /dev/mtd/0",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
      "address": "0x10fe4fe4",
      "notes": "watchdog"
+    }
+   ]
+  },
+  "evo_decoder": {
+   "name": "Dolby Evolution decoder (DDPI UDC)",
+   "status": "strong",
+   "summary": "{\"Failed to query static params! %d\",\"unable to close evo decoder error: %d\",\"Failed to extract MD Evolution! ERROR %d\",\"Unable to get evolution metadata\",\"Failed to query Evolution decoder memory! Evolution err: %d\",\"Failed initial query\",\"Failed to allocate enough memory\",\"Failed to allocate %llu static/dynamic byte for Evolution decoder!\",\"Failed To Init Evo Decoder\"}; UDC {udcMutex,\"ERROR: %d getting frame metadata\",\"Malformed input signal detected %d\",\"ddpi_udc_timeslicecomplete returned %d\",\"ERROR: %d Processing timeslice\",\"ERROR: %d getting timeslice metadata\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe6f40",
+     "notes": "evo decoder"
     }
    ]
   }
