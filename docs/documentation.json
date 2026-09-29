@@ -119641,7 +119641,9 @@
      "address": "0x10ea23a0",
      "notes": "spotify esdk block"
     }
-   ]
+   ],
+   "session_detail": "eSDK event enum {TrackChanged,ShuffleOn,ShuffleOff,RepeatOn,RepeatOff,BecameActive,BecameInactive,AudioDeliveryDone,ContextChanged,MetadataChanged,NetworkRequired,TrackDownloadStalled,QueuedTrackAccepted}; callbacks {setPositionInfo,notifyDownloadComplete,setTrackStreamId,setTrackSize,notifyTrackChanged,notifyMetadataChanged,addTracks}; NTS extra {ConnectionNotify,PlaybackApplyVolume,StreamEnd(id),StreamSeekToPosition(id,pos)}; HAL {spot_hal,Dns HAL Exit(status,err)}; token {\"Treating auth token as expired\",\"Login failed with E_SONOS_BAD_ACCOUNT\",\"attempting refresh\",\"Refresh token failed with upnp result: %hu\",\"Now time %ld.%06ld. Account info last update time %ld.%06ld\"}; pullContext(playing,seek .%06d,byte offset,bitrate,observable); SWPBL-259788 guard \"Delegated VLI session is not playing; skipping pullContext()/become active device ... avoid re-initiating Direct Control\"; SMAPI\u2194VLI {\"SMAPI to VLI transition detected. Forcing loginZC\",\"VLI selection with stored account but already in connect mode - likely resuming VLI (e.g., after AirPlay)\",\"Already logged in with same account, skipping loginZC\"}",
+   "queue_fsm": "spotifyTrackQueue (spot_q): tracks {current,next,previous} matched by streamId; ack states {Current Acked,Queued Acked}; transitions {\"Track change: (%s||%s) -> (%s||%s)\",\"Unknown track change ... != upcoming\",\"ERROR current/next track mismatch\",\"!!!! [BUG] RESOLVING acked NEXT track mismatch\"}; ops {Play track at %u ms,Next track,Queueing track,Add tracks}; pending FSM {Current Track Pending,Current Track Still Pending,Play & Queue Tracks,Now Pending,Still Pending,Waiting In-Flight Queueing,Max retries (%u) exceeded. Resetting,Queued pending track after %u failures}; seek paths {\"Resume from pause fast path, offset: %zu\",\"Seek fast path: %u ms\",\"Forcing seek slow path\",\"using SpPlayUri ... type/uri\",\"adjusting initial Play position\",\"Play from beginning\"}; safeguards {\"Suppressing phantom playback-start after end-of-queue\",\"Playback finished at position=%lld ms\",\"Resetting position ... download has not completed\",\"position info request for previous track \u2192 cached\"}; dump \" [%s]: id: %u, %s||%s, pos: %lld / %lldms, delivered: %d, rendered: %d\""
   },
   "telemetry_submission": {
    "status": "partial",
@@ -122662,6 +122664,32 @@
      "status": "confirmed",
      "address": "0x10ea14c4",
      "notes": "spotify.cxx zc block"
+    }
+   ]
+  },
+  "spotify_smapi_ctrl": {
+   "name": "RSpotifySMAPIControl",
+   "status": "partial",
+   "summary": "setPositionInfo fmt \"trackId='%s', position=nullptr, duration=%d, bLastReport=true\"; \"discarding pre-transition position %lldms\"; TransitionAck [pos,preLogout pos,transAck] + \"Begin AwaitingTransitionAck [preLogout=%lldms]\"; stream status \"SMAPI current stream[%u] mediaType[%d]=%s (curTrkStatus[%u]=%d/nextTrkStatus[%u]=%d)\"; \"Notified we are receiving delegation. Resetting track queue info.\"; \"Error event in SMAPI mode, e=0x%08x\"; error map \"error: %s ecode=%d (%s), mapped to 0x%08x\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea46c0",
+     "notes": "smapi block"
+    }
+   ]
+  },
+  "spotify_thread": {
+   "name": "spotify request thread",
+   "status": "partial",
+   "summary": "single-request constraint \"Already have a spotify request in progress, can only have one!!\" + \"Executing %s ...\"/\"%s timeout\"; rate limit {\"restricting excessive fatal error reporting\",\"spotify telemetry rate limit exceeded!\",spotrl}; connect ops {SpDisableConnect,SpEnableConnect,SpSetDisplayName,SpSetDeviceIsGroup,Enable/Disable Connect} \"Set display name [%s], is%s grouped\"; playback {SpPlaybackIncreaseUnderrunCount \"Underruns reported: %u\",SpPlaybackSetBitrate setbr,SpPlaybackPause/Play,SpPlayUriWithOptions,SpPlaybackEnableShuffle/Repeat,SpGetMetadata,SpZeroConfGetVars}; ads spotify:ad:/spotify:interruption:; restart token \"'Radio' stripped from restart token. Token was %s now %s\"; login {SpConnectionLoginOauthToken,waitForLogin,waitForLogout,\"Login user change while in progress [%s => %s]\",\"Already logging in as [%s]\",\"Login mismatch\",\"username %s... is longer than maximum %zu\"}; logout {SpConnectionLogout,\"logout %u, reset\",\"Async logout initiated for VLI source switch\",\"logout-%u - %d [%s]\"}; work {RSpotifyEventWork::doWork(),DefaultWork}; \"Failed to update the volume to %u (status=%d)\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea49d4",
+     "notes": "spotify thread block"
     }
    ]
   }
