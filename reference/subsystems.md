@@ -54,6 +54,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `factory_reset` | **partial** | factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted confirm form, /jffs/factoryReset.txt marker file ('unable to create factory reset file.', 'factory reset had errors', ': not factory reset'), LED_MODE_FACTORY_RESET pattern, sonosFactoryResetFull entry point, household-wide consequence ('device: %s %s removed from vanished list after factory reset'), and 'Invalid system settings (%s), resetting to factory defaults' as a self-heal path; muse route management/factoryReset can trigger it remotely |
 | `favorites` | **partial** | replication "replicating favorites from %s"/"deciding whether to accept replicated list" + informReplicationAndNotify{,ForDestroy} + offerRemoteSetting; DIDL ns {xmlns:dc purl.org/dc/elements/1.1,xmlns:upnp,xmlns:r rinconnetworks,xmlns DIDL-Lite}; migration {old rhapsody→new,old non-OAuth} + "Failed to parse account service ID / serial number from Sonos URI"; errors {Invalid favorite id,Could not access favorites,initContentResource {parse URI,extract item ID,Invalid item ID,No valid mapping for item type}}; shortcuts/shortcut type; fields {AlbumArtURI,NextFavorite,FirmwareVersion,Description,ResMD}; cdudn + nameSpace + restricted + parentID |
 | `favourites_model` | **partial** | Sonos favourites store + ContentDirectory projection: FV:2 root container paired with FavoritesUpdateID; XML store schema recovered; mutation via CDS CreateObject/UpdateObject/DestroyObject on the dirObjFavorites vtable + muse getFavorites/loadFavorite routes |
+| `fcs_detail` | **partial** | f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffer (timestamp page) |
 | `fdevent` | **partial** | ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read}; EventSync %s; epoll_create1/epoll_ctl/epoll_wait error paths; fd capacity bound "%d already monitored"/"exceeded the fd capacity of %d" |
 | `feature_config` | **partial** | GET /features/v1/config? (cache-control: no-cache); files cloudconfig.json/cloudconfig_override.json with {swVersion,hwVersion}; precedence: override > cloud-cached > cloud-persisted; "failed to fetch config: not securely registered"; "Already have fresh data. Skipping Fetch."; "failed to connect. rescheduling in 1 hour"; stale markers; FCS Cache via g_pZone |
 | `feature_flag_registry` | **partial** | complete compile-time feature/config flag vocabulary (48 keys): featureConfig* family keys in the cloud-config JSON doc plus enable*/disable* booleans read at init — the build's feature map showing which subsystems are switchable |
@@ -96,11 +97,11 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `mpmgr` | **partial** | actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; resolve {getActor,Actor Filter null,unexpected target ID type,found actor,found backup,target resolved,no actor available}; lifecycle {registered \[%zu\],created \[%zu\],Invalid target key abort,Request to shutdown,shutdown}; per-MP config Player%s + anacapa_logger.toml + /localsettings.txt; VLI hooks {onVirtualLineInGetVolume,SessionStartInfoUpdated,StartSession,StopSession,SuspendSession,NameChanged,MetaDataChanged,PlayModesChanged,onPlaybackStateChanged,processSetVolume,waitOnTxBitFlagsClearedLocked}; events {VolumeSetActionEvent(vol,mute),VliVolumeProcessingCompleteEvent(type,success,flags)+signal rc,VliSessionProcessingCompleteEvent(type,action,success,flags),"vliType old: %s new %s cookie %d"} |
 | `multi_daemon_boundary` | **partial** | anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks \| netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test" |
 | `muse_semantics` | **partial** | the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume |
-| `muse_types` | **partial** | 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} |
 | `music_services` | **partial** | musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVersion,AvailableServiceDescriptorList,AvailableServiceTypeList,AvailableServiceListVersion}; settings {OnlineUpdateBaseURL,R_TrialZPSerial,R_AvailableSvcTrials}; replication locks {rwlR_msd,rwlW_msd} + msdZonePlayer; accept logic "deciding whether to accept replicated list from: %s; ver: %u format: %u"/"replicating services from %s"/"Replicated list accepted"; zp-vs-rs compare {zpETag,rsETag,zpLUD,rsLUD,zpVer,rsVer}; "ServiceTypeList, adding built-in: %s"/"adding: %s; name: %s"; "Warning. No SD found for %d"; poll "next check for available services in %u s \[source=%s\]"; "Could not submit Available Services DIAG. Service count is: %zu"; checkForAvailableMusicServices job; "Not enough space to write full list" |
 | `netif_monitor` | **partial** | netlink {RTM_NEWLINK,RTM_GETLINK}; errors {read error,incorrect type,unexpected message %X}; selthrd.RIfAddressMonitor.{reset,data,except,timeout} |
 | `netstart_events` | **partial** | events {netstartd hello,Setup start,Setup stop,Netstart is idle,Netstart alive,Netstart open,In setup mode,Netstart SSID set/clear,Netstart triggered upgrade (0x%x),Got connection type update \[%s\]}; WAC {/var/run/wac_mode,Unknown WAC mode %d,WAC mode disabled/enabled/timeout}; ForceShutdownOnNewSSID %d; shutdown {"Deferring shutdown, reason \[%d\]","deferring newHHID event","ignoring network bounce mid-shutdown",zpShutdown,/tmp/netstartd.pid}; IP-change {re-binding old->new,clearing link-local subscriptions on 169.254.* change,shutting down for new IP,newAddr event with same addr}; conn types {SonosNet (Ethernet),Home Theater 2.0,Home Theater (Ethernet),Home Theater,Ethernet (WiFi Disabled),Ethernet,SonosNet (wireless)}; events {newHHID,newSSID}; "%s: %s event resetting connection to mDNS" |
 | `noderx` | **partial** | indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight rec " %u r:%d.%06d s:%c p:%d.%06d"; startup {"Starting up; id:%u, delayPkts:%u, delayFrms:%u","Startup large packet gap:%u, don't NACK",bFinalStartPacket,allowing NACK resend of LCG,ignoring discontig NACK resend,ignoring partial frames}; NACK "out of order packet; send nack immediately" + "NACKed for %u IDs, %u packets, ob/lr/lcg/lrx"; pause/resume {thread pausing/resuming, state validation p/sp/pr/ip}; frame layer {wFirstFrameOffset,wBytesOfDataLeftToRead,pwLen,Playtime} + errors {expected frame not found,frame length conflict,Packet stream framing error,frame too large,bufferNextProtocolFrame WOULDBLOCK/E_WOULDBLOCK,readNextDataBlock timeout,forcing decoder reset}; skipAhead entries {immed,shifted,released blocks,too many}; resync {"resynchronization flushing packets %u-%u",resynchronization message}; "Ignore packet with incorrect protocol version"; "Received dup packet id with different class"/oob/mismatch replace; "RX buffer full"/"RX discontig"; threads {noderx-data,noderx-pause,noderx.rxd.usleep,noderx.loc.usleep}; "failing noderx for io error (c=%u t=%lld)" |
+| `nslookup_detail` | **partial** | f_100b96d0: gate → execs nslookup via f_10549cf8 with table arg 0x11097680+0x810 |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
 | `player_settings` | **partial** | keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq(treble/bass/loudness),gainTrimDB,zone attributes}; gates {"Device does not support fixed output","Satellites not supported; configure primary device","monoMode (not supported in setup)",wifiDisable {reason unknown,netstart refused,no Ethernet carrier},meshDisable (netstart refused),"EQ cannot be adjusted in PASS_THROUGH volume mode"}; error fmt "Unable to set setting(s): X (unsupported)"; settingsv2; gmSat/ukwnt/unhandled handlers |
 | `playlist_parsers` | **partial** | iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction ("found linkUrl"); Post-stream readData dump {bytesLeft,len,buf} |
@@ -109,10 +110,12 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `qplay` | **partial** | QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support |
 | `qplay_protocol` | **partial** | Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route — the only service missing its event pair), a QPlayAuth action taking Seed/Code/MID/DID arguments (seed→code auth handshake: controller sends Seed, device answers with a Code computed from MID machine-id and DID device-id), a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> |
 | `queue_persistence` | **partial** | .rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt |
+| `rdmbuttonfwd_detail` | **partial** | f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 → f_100b9bb0 forwards buttons; else 403-class |
 | `runtime_flag_files` | **partial** | runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, brokendevice, wifidisabled, htdocs_locked, crashed_play_state, anacapa-has-run, fresh_hh.txt, anacapa_prevent_crashdump_upload, sonosConcurrencyUnrecoverableError), /var/run mode files (wac_mode, netstart_mode, netmanager_extender_flags, systemtimeoffset), /tmp/memorylog 4-file ring + .old copy, /tmp/smb/ mount workspace, /tmp/backtrace + diagstdout/diagstdin diag scratch, /tmp/event_preserve + event_reporter_v3 buffers |
 | `runtime_policy` | **partial** | fields {"Business subscriber","Cloud Schedule","Effective P2P policy is encrypted","Guest Access Enabled","Unathenticated Control Enabled"(sic),"Insecure UPnP Allowed","Auth Pin Set","Thor Timeout"}; reeval on {"isBusinessSubscriber has changed","Line In policy has changed","Business Cloud Schedule has changed"}; settings keys {global,usageContext,BUSINESS,scheduledChangeValue,enableContentAccess,allowDirectControl,allowLineIn,allowAirplay}; "Failed to fetch latest entitlements \[ec=%s\]" |
 | `scrobbler` | **partial** | Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API |
 | `semisleep_power` | **partial** | low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') \| Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers. \| Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018 — parked timers survive suspend; resume recomputes. |
+| `sethostip_detail` | **partial** | f_100b9fac: gate → tail f_105499fc (host-ip set + respond) |
 | `settings_replication` | **partial** | the household replication bus: per-setting transfers ('replicateOne from %s to %s setting %u version %u') with a version+format negotiation ('deciding whether to accept replicated list from: %s; ver: %u format: %u'); per-setting denylisting on badFormat/badEncoding; a separate player-level quarantine subsystem enforcing admission policy (HTTPS required, known user, secure reg required) with scheduled rechecks; suppressed while unregistered |
 | `share_indexer` | **partial** | walk {open share path,read folder,entry %s,stat file} skips {.sparsebundle}; cancels {interrupted,recursion limit on share/at //%s,file error,share error}; files {Unplayable,Inaccessible}; shadow/shadow2 dirs + Remote/Local I/O error during %s; index %s/trackinfo + trackinfo.tmp + sorts sort-* + shareindex + "took %ldms to initialize indexes"; BBF fields {bbfTitle,bbfFile,bbfTracknum}; URIs {x-file-cifs://,x-rincon-playlist:}; res {x-rincon-playlist:*:*:*}; /getaa?u=%s&v=%u; r:displayTitle; sort orders {ITUNES,DEFAULT,PINYIN} + albumArtist/genre; itunes plist dedup "Skipping itplist with duplicate size and mtime"/"More than %d itplists"; .version fmt %s,%u; events {CdNotifyUpdateId,CdNotifyShareIx}; indexingTrack job |
 | `sharelist` | **partial** | replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter: us \[%s\|%u\] vs them \[%s\|%u\]"; ops {localAddShare,localRemoveShare,localRequestReindex,localRequestResort,localRemoveUnsupportedShares}; protocol gate {verified supported protocol→keep,else remove + count} + VerifiedValidProtocol flag; errors {share ID not found,path already exists,subsumed by existing share,Path is malformed,Access denied,Cannot exceed maximum shares,Mounting failed,Local index storage error,Remote file share error,Indexing canceled,connection failure,replication failed,replication skipped fmt mismatch}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)" + "Turning resort request into full reindex" + "processing index complete (c:%d i:%d f:%d lc:%s)" + commit {m_bCommitted,m_bWait,m_bTerminate} + index recovery "recovered ix=%d with ver=%d"; R_BrowseByFolderSort + Tracknum sort |
@@ -141,6 +144,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `track_play_monitor` | **partial** | per-track log entries {Track Or Station URI,Extra Md,Context URI,CQ Auth Token,SMAPI Device Id,CloudQueueVersion,CQ Context Version,CQ Playback Id,API Key,Framer Name}; play line "%s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s)"; segments "seg start @ %d.%06d (packetId: %u), end ..."; PlaybackId remap; string-pool bounded (pool %d%% full, "Resetting due to no free RTrackLogEntries"); states In progress/Final/LSE; selthrd.RTrackPlayMonitor thread |
 | `trueplay` | **partial** | config modes {button-notify,room_calibration-calibrate,speaker-detect,trueroom} + "configMode CountDown:%d"; eTag manifest /etags.txt matched against tone files {leader.ogg,testtone.ogg,complete_ht.ogg,inverter_*} at path %s/%s/%s/%s-%s under tones; fetch via players/%s/settings/player muse settings + forward; "eTag is matching a known file"; types {plug-in spectral,polarity}; params {tone_duration,force,v:%s t:%s}; "Sonar cal volume - using clipped volume %d instead of requested %d"; TP update "found TP version ... do update to v%s"; teardown {"Clearing Trueroom tone folder on JFFS","Error removing Trueplay asset dir"}; restore paths {common RC,original RC,TV Surround Level,enable sonar,set AVT,reset AVT,re-enable Trueplay}; "Trueroom config mode - Not restoring/restoring the AVT"; fields {HTBondedZoneCommitState,AvailableRoomCalibration,RoomCalibrationState,Orientation,LastChangedPlayState,AlexaCBLSupported,SupportsAudioIn,SupportsAudioClip,HtBondedZoneCommitUpdateEvt}; cm_button "pressed %s" |
 | `trueplay_tuning` | **partial** | Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant |
+| `ttm_helper_detail` | **partial** | f_100b9740: gate f_105489e4 → dumps runtime text blob (0x11095f88 table, f_100d567c copy) as text/plain |
 | `unlock` | **partial** | flags {/tmp/device_unlocked_flag,/tmp/htdocs_locked,/opt/htdocs_locked}; flow {Fuse Value:,Challenge:} + form "Serial: %s / %s %s / POST {confirm textarea 11x80}"; responses {"DevUnlock Rebooting...",Success,Too Many Unlocks,Not Applicable}; muse op deviceUnlock; rate-limit "Too Many Unlocks" |
 | `update_machinery` | **partial** | manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled |
 | `usage_metrics` | **partial** | <UsageMetrics><ver>2</ver> + <ucs>/<uc> records {ms_cdctrluri,ms_regctrluri,ms_croot,ms_fn} posted to submit.aspx under /HRMetrics/; cfg fetches {pollInterval.htm,wifiTxRateThreshold.htm,wifiLatencyThreshold.htm}?hhid=%s; wifi counters {ath%u,rxPrr,beacon_flags,datarx,secdrp,roaming,trf2g,trf5g,trg2g,trg5g,tbtm2g,tbtm5g,rfail,q*_nbf,q*_cmp,q*_bpk,q*_ltc,hwstat,rxbhs,rxhang,rxfMax,rxcMax,txfMax,bprowar,gtkfm,gtkfc,nogcfc,links}; per-AP "MAC/rssiF/rssiT/PktMin/PER" + "BSSID/perAP/rssiAP"; "Audio-drop ... include with future periodic submission" + rate-limit; WD daily write; CPUTempHist <temperatures>; unlocked/hw_warn/hw_fault flags; usageDataSharing optin |
@@ -177,6 +181,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `mod_zp` | **?** |  |
 | `muse` | **?** |  |
 | `muse_engine` | **?** |  |
+| `muse_types` | **strong** | 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} |
 | `music_accounts` | **?** |  |
 | `network` | **?** |  |
 | `nodetx` | **?** |  |
@@ -1115,6 +1120,21 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 
 </details>
 
+## `fcs_detail`
+
+**coverage** `partial`
+
+**Technical description:**
+
+f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffer (timestamp page)
+
+- **name:** fcs_detail
+<details><summary>Evidence (1)</summary>
+
+- firmware — handler disas
+
+</details>
+
 ## `fdevent`
 
 **coverage** `partial`
@@ -1940,26 +1960,6 @@ the muse API is the real product surface: 525 route strings, organized as househ
 
 </details>
 
-## `muse_types`
-
-**coverage** `partial`
-
-**Technical description:**
-
-203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found}
-
-- **name:** muse type registry — spec-pair type index names
-- **types** (203):
-
-  ```
-  accessorySwap, accessoryWifiPsk, accessPolicyControl, accessPolicySetting, accountError, acousticMeasurement, acousticMetrics, activeZoneList, activeZoneMember, actuator, alarmDescription, alarmList, alarmRunningState, versionChanged, allowAirplaySetting, allowDirectControlSetting, allowLineInSetting, amazonAlexaAccount, amazonAlexaSetup, asyncRequestAck, audioConnectorStatus, authorizationGrantHeader, authorizationGrantPayload, authorizationGrantResponse, authzModifier, authzPermission, authzPermissions, authzPolicyKey, authzPolicyKeyLechmere, authzTokenStatus, authzUser, batteryCells, microphoneSwitch, waterState, bluetoothPairing, poeState, wiredSubStatus, bleMeasurement, bluetoothDevice, bluetoothPolicySettings, channelMapPair, chirpRequest, cloudDevice, cloudRegistrationStatus, commandHeader, contentMetadataBlob, contentPagedResources, contentPageInfo, contentResource, createInviteResponse, deeplink, deviceInfo, deviceSoftwareUpdateStatus, diagnosticInfo, diagnosticSubmissionMetadata, diagnosticSubmissionResult, directControl, discoveryInfo, edidStatus, settingsChanged, enableContentAccessSetting, entitlement, entitlementsList, eqSettings, ethernetPorts, ethernetPortStatus, externalId, favoritesList, feature, featureConfig, featureConfigDropoutContext, featureConfigHomeTheaterWifiPerfTelemetry, featureConfigMetricsService, featureConfigPlink, featureConfigQuickbonding, featureConfigSemiSleep, featureConfigSmartPlay, featureConfigSpotABR, featureConfigSsdpAdvertiseConfig, featureConfigZoneExperiment, geoLocation, getUsersResponse, globalError, globalSettings, groupInfo, homeTheaterInputFormat, homeTheaterOptions, householdSoftwareUpdateStatus, idResponse, irControlStatus, lineInSettings, lineInSettingsGroup, lineInStatusInfo, lineInStatusList, localVoiceSettings, loopbackTimeoutControl, manufacturingData, metadataStatus, musicServiceAccount, networksList, networkTestResult, patchEffectiveAllSettingsGroups, patchEffectiveAnyOneSettingsGroup, patchPlayerAllSettingsGroups, patchPlayerAnyOneSettingsGroup, playbackPolicy, playbackSettings, playerAllSettingsGroups, playerAnyOneSettingsGroup, playerSettings, playerSettingsEvent, playerSetError, playlistsList, playlistTrack, playMode, portableSurrounds, positioningDevice, positioningDeviceMeasurementList, positioningDeviceStatusInfo, positioningMap, positioningMeasurement, positioningMeasurementCapability, positioningMeasurementCapabilityList, positioningSessionErrorInfo, positioningSessionRequest, positioningSessionStatusInfo, positioningSpatialData, positioningTelemetry, postHistoryConfig, preferredLanguageSetting, protectedAdminSettings, protectedSettings, publicSettings, queueItem, queueItemWindow, radioShow, rateStatus, recurrenceRule, redeemInviteResponse, RegistrationToken, registry, registryCollection, relativeTimeStamp, replicatedAreas, reportOptions, restrictedAdminSettings, sdkVersions, secureRegCert, secureRegCertMetadata, sessionStatus, settingsGroupMetadata, share, sharesList, shareListStatus, shareStatus, smartplayContentResource, softwareUpdate, softwareUpdateOptions, sonosDeviceNonce, soundSwapRequestResponse, speakerDetectionStatus, speakerPresenceEffectiveRate, speakerPresenceResult, speakerPresenceResultList, stimulusTuningEnabled, swapModelInfo, systemNameSetting, timer, timeVal, timeZoneInfo, tokenStatus, trackQuality, transitionToShipModeStatus, translatedObjectId, translatedObjectIds, translation, transportSetting, trueplayConfiguration, trueroomAdaptationStatus, trueroomStatus, trueroomEstimatorConfig, trustedAccessories, uniqueSetTestData, uniqueSetTestItem, universalMusicObjectId, updateItem, upnpParameter, upnpResponse, usageContextSetting, videoContent, virtualLineInSource, voiceAccount, voiceAccountsList, voiceAccountProfile, voiceWakeWord, weatherConfig, wifiDisable, zoneDefinition, zoneDefinitionList, zoneMember, zoneMemberSettings, zoneMemberSettingsMap, zoneMemberState
-  ```
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10f975c0 — type-name block
-
-</details>
-
 ## `music_services`
 
 **coverage** `partial`
@@ -2029,6 +2029,21 @@ indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight re
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ecfae4 — noderx block
+
+</details>
+
+## `nslookup_detail`
+
+**coverage** `partial`
+
+**Technical description:**
+
+f_100b96d0: gate → execs nslookup via f_10549cf8 with table arg 0x11097680+0x810
+
+- **name:** nslookup_detail
+<details><summary>Evidence (1)</summary>
+
+- firmware — handler disas
 
 </details>
 
@@ -2201,6 +2216,21 @@ How the queue survives reboots: saved queues are an XML document (.rsq) of Saved
 
 </details>
 
+## `rdmbuttonfwd_detail`
+
+**coverage** `partial`
+
+**Technical description:**
+
+f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 → f_100b9bb0 forwards buttons; else 403-class
+
+- **name:** rdmbuttonfwd_detail
+<details><summary>Evidence (1)</summary>
+
+- firmware — handler disas
+
+</details>
+
 ## `runtime_flag_files`
 
 **coverage** `partial`
@@ -2318,6 +2348,21 @@ low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemi
 - @ 0x10f0408c — AHA_SUSPEND_VLI_SESSION op
 - @ 0x10fba624 — LED apply gated by suspend bypass flag
 - @ 0x10edccbc — timers_impl.cxx literal block: timer op logs + SQLite DDL
+
+</details>
+
+## `sethostip_detail`
+
+**coverage** `partial`
+
+**Technical description:**
+
+f_100b9fac: gate → tail f_105499fc (host-ip set + respond)
+
+- **name:** sethostip_detail
+<details><summary>Evidence (1)</summary>
+
+- firmware — handler disas
 
 </details>
 
@@ -2881,6 +2926,21 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
 
 </details>
 
+## `ttm_helper_detail`
+
+**coverage** `partial`
+
+**Technical description:**
+
+f_100b9740: gate f_105489e4 → dumps runtime text blob (0x11095f88 table, f_100d567c copy) as text/plain
+
+- **name:** ttm_helper_detail
+<details><summary>Evidence (1)</summary>
+
+- firmware — handler disas
+
+</details>
+
 ## `unlock`
 
 **coverage** `partial`
@@ -3272,6 +3332,27 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
   - **evidence:**
     - type: firmware, status: confirmed, address: 0x10e8462c, notes: bridge bindings
 - **type_registry:** alphabetical name table 0x10f975c0-0x10f98568 (203 entries) — candidate type-index namespace for spec-pair {0x82,b} entries
+## `muse_types`
+
+**coverage** `strong`
+
+**Technical description:**
+
+203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found}
+
+- **name:** muse type registry — spec-pair type index names
+- **types** (203):
+
+  ```
+  accessorySwap, accessoryWifiPsk, accessPolicyControl, accessPolicySetting, accountError, acousticMeasurement, acousticMetrics, activeZoneList, activeZoneMember, actuator, alarmDescription, alarmList, alarmRunningState, versionChanged, allowAirplaySetting, allowDirectControlSetting, allowLineInSetting, amazonAlexaAccount, amazonAlexaSetup, asyncRequestAck, audioConnectorStatus, authorizationGrantHeader, authorizationGrantPayload, authorizationGrantResponse, authzModifier, authzPermission, authzPermissions, authzPolicyKey, authzPolicyKeyLechmere, authzTokenStatus, authzUser, batteryCells, microphoneSwitch, waterState, bluetoothPairing, poeState, wiredSubStatus, bleMeasurement, bluetoothDevice, bluetoothPolicySettings, channelMapPair, chirpRequest, cloudDevice, cloudRegistrationStatus, commandHeader, contentMetadataBlob, contentPagedResources, contentPageInfo, contentResource, createInviteResponse, deeplink, deviceInfo, deviceSoftwareUpdateStatus, diagnosticInfo, diagnosticSubmissionMetadata, diagnosticSubmissionResult, directControl, discoveryInfo, edidStatus, settingsChanged, enableContentAccessSetting, entitlement, entitlementsList, eqSettings, ethernetPorts, ethernetPortStatus, externalId, favoritesList, feature, featureConfig, featureConfigDropoutContext, featureConfigHomeTheaterWifiPerfTelemetry, featureConfigMetricsService, featureConfigPlink, featureConfigQuickbonding, featureConfigSemiSleep, featureConfigSmartPlay, featureConfigSpotABR, featureConfigSsdpAdvertiseConfig, featureConfigZoneExperiment, geoLocation, getUsersResponse, globalError, globalSettings, groupInfo, homeTheaterInputFormat, homeTheaterOptions, householdSoftwareUpdateStatus, idResponse, irControlStatus, lineInSettings, lineInSettingsGroup, lineInStatusInfo, lineInStatusList, localVoiceSettings, loopbackTimeoutControl, manufacturingData, metadataStatus, musicServiceAccount, networksList, networkTestResult, patchEffectiveAllSettingsGroups, patchEffectiveAnyOneSettingsGroup, patchPlayerAllSettingsGroups, patchPlayerAnyOneSettingsGroup, playbackPolicy, playbackSettings, playerAllSettingsGroups, playerAnyOneSettingsGroup, playerSettings, playerSettingsEvent, playerSetError, playlistsList, playlistTrack, playMode, portableSurrounds, positioningDevice, positioningDeviceMeasurementList, positioningDeviceStatusInfo, positioningMap, positioningMeasurement, positioningMeasurementCapability, positioningMeasurementCapabilityList, positioningSessionErrorInfo, positioningSessionRequest, positioningSessionStatusInfo, positioningSpatialData, positioningTelemetry, postHistoryConfig, preferredLanguageSetting, protectedAdminSettings, protectedSettings, publicSettings, queueItem, queueItemWindow, radioShow, rateStatus, recurrenceRule, redeemInviteResponse, RegistrationToken, registry, registryCollection, relativeTimeStamp, replicatedAreas, reportOptions, restrictedAdminSettings, sdkVersions, secureRegCert, secureRegCertMetadata, sessionStatus, settingsGroupMetadata, share, sharesList, shareListStatus, shareStatus, smartplayContentResource, softwareUpdate, softwareUpdateOptions, sonosDeviceNonce, soundSwapRequestResponse, speakerDetectionStatus, speakerPresenceEffectiveRate, speakerPresenceResult, speakerPresenceResultList, stimulusTuningEnabled, swapModelInfo, systemNameSetting, timer, timeVal, timeZoneInfo, tokenStatus, trackQuality, transitionToShipModeStatus, translatedObjectId, translatedObjectIds, translation, transportSetting, trueplayConfiguration, trueroomAdaptationStatus, trueroomStatus, trueroomEstimatorConfig, trustedAccessories, uniqueSetTestData, uniqueSetTestItem, universalMusicObjectId, updateItem, upnpParameter, upnpResponse, usageContextSetting, videoContent, virtualLineInSource, voiceAccount, voiceAccountsList, voiceAccountProfile, voiceWakeWord, weatherConfig, wifiDisable, zoneDefinition, zoneDefinitionList, zoneMember, zoneMemberSettings, zoneMemberSettingsMap, zoneMemberState
+  ```
+- **consumer_evidence:** live PIC-formed refs: settings-group handlers→settingsGroupMetadata (f_10aa1e80..f_10aa2854); zone ops→zoneDefinition/zoneDefinitionList/zoneMemberSettingsMap (f_10b8c5bc,f_10b8d72c); VLI→virtualLineInSource/wifiDisable (f_10a77630..f_10abdd54); geo→geoLocation (f_10b3670c..); shares→shareStatus (f_10afa388); deeplink/deviceInfo (f_10b061c8,f_10a50920); activeZoneMember/actuator (f_10a11634..); playMode (f_10a11284..); timeVal/timeZoneInfo (f_10b38910..); manufacturingData (f_10a0996c..); usageContextSetting (f_106c55c4..); idResponse (f_10ab3874..); replicatedAreas (f_10733fb4,f_1077fe2c); post-name region 0x10f98578-0x10f986e8 (muse_target_validator+errors) consumers f_10692d10,f_10698074..,f_109ed0a8,f_109ed6e0,f_109ee960..,f_109efc88
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f975c0 — type-name block
+
+</details>
+
 ## `music_accounts`
 
 **coverage** `?`
