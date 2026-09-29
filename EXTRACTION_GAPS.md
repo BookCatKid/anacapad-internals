@@ -18,6 +18,14 @@ Why they were missed is documented per item; the root pattern is that
 the extraction was SOAP-dispatch-driven: no dispatch anchor → no
 forced investigation.
 
+> **Status (post-expansion commits e3c784e→2b1de46):** this audit has
+> been substantially executed. All 36+ subsystem records now exist in
+> `documentation.json` under `subsystems`, and every one has been
+> deepened to `partial` coverage or better with real binary evidence.
+> Part 1 items are folded into `shared_primitives`/`uri_formats`. What
+> remains open is the deep semantic tail listed at the bottom — this
+> file is kept as the map of what each record still does NOT cover.
+
 ---
 
 ## Part 1 — SOAP / UPnP surface gaps (belong in this dataset)
@@ -446,17 +454,30 @@ undocumented.
 
 ---
 
-## To close, ordered by leverage
+## Still open, ordered by leverage
 
-1. HTTP endpoint inventory completion (~35 paths) + /status handler
-   decode + CSRF mechanism — pure-Part-1 win, bounded effort
-2. `R_*` result-code enum + `R_*` settings-key space — biggest single
-   vocabulary unlock; touches faults, muse and SystemProperties
-3. Muse route semantics — largest vocabulary-only surface
-4. Spotify eSDK bridge + Connect
-5. Scrobbler handshake/submission format
-6. Settings replication + favourites/history data models
-7. DSP/HT tuning + zone audio-state schema
-8. Lechmere command vocabulary; GENA internals
-9. `.rsq`/file formats; unlock/devmode mechanism; SemiSleep power model
-10. Telemetry machinery; scheme/header/DIDL-class vocabulary backfill
+Everything below is now catalogued with evidence; what's missing is
+the deep semantic layer:
+
+1. **Muse per-route schemas** — 525 routes, namespace structure mapped
+   (upnp* proxy namespaces + native resources); per-route request/
+   response bodies and auth requirements unresolved
+2. **Lechmere TLV payloads** — framing, close-reason taxonomy and
+   deflate negotiation decoded; the inner command namespace (what the
+   TLV payloads carry) still undecoded
+3. **Spotify eSDK internals** — module map + Connect surface decoded;
+   mercury/hermes message semantics untouched
+4. **Chirp profile parameters** — sonos-cdma profile exists; exact
+   symbol set/FEC params unextracted
+5. **`/status` subhandler semantics** — 63 names + handler addresses
+   catalogued; per-handler output schemas unwritten
+6. **R_* integer mappings** — the 403-name enum is complete but enum
+   *values* are not proven from the binary
+7. **Certificate wire flows** — lifecycle decoded; the enrolment/
+   renewal request formats unresolved
+8. **SemiSleep/WAC/factory-reset state machines** — trigger strings
+   catalogued; full FSM transitions not walked
+9. **IBT plan format** — executor decoded (plan→target-list→
+   dispatch); plan schema and command vocabulary unknown
+10. **XML schema clusters** — element lists recovered; attribute
+    types/ranges/defaults mostly unvalidated against parsers

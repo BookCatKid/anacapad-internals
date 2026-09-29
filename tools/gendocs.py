@@ -928,6 +928,7 @@ _HTTP_KEYS = [
     "xml_schema_clusters", "internal_error_families",
     "system_property_keys", "internal_result_namespace",
     "smapi_capability_vocabulary", "albumart_proxy",
+    "muse_route_verbs",
 ]
 
 
