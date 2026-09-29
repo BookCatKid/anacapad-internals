@@ -205,6 +205,7 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 - **fec:** GF(2^8) reed-solomon: gf_calc_syndromes, gf_correct_errata, gf_forney_syndromes, gf_poly_{mul,add,concatenate,zero_pad}, trim_gf_poly, new_gf/del_gf/del_gf_poly; decoder pipeline decoder.c->peaks.c->scorer.c->voter.c->weighting.c; cdma cdma_{encoder,decoder,codebook}; fsk chirp_private_fsk
 - **api:** `new/del_chirp_payload`, `chirp_payload_randomise`, `new/del_chirp_profile`, `new/del_chirp_protocol`, `new_chirp_protocol_from_json_value`, `chirp_protocol_corrupt_random_symbols`, `new/del_chirp_acoustic`, `new/del_chirp_encoding`, `new/del_chirp_config`, `new_chirp_default_config`, `new_chirp_decoder_config_from_json_value`, `new_chirp_default_voter_configs`, `new/del_chirp_voter_config`
 - **json_config:** protocol + decoder configs are JSON-described (schema_version, decoder_config keys) — profiles load via new_chirp_protocol_from_json_value
+- **audio_src:** ChirpExtAudioSrc: chirp generation API {set_config,sample_rate,start,max payload,is valid,send,generation status/incomplete,duration truncated,"generated signal (%zu bytes)","generation took %u ms",stop}; "Start chirping with unique device value:%d" — device id encoded into payload; playId mgmt (REA_PLAY_ID_NULL guard, m_chirpPlayId match); "Chirp volume not yet calibrated"; "Chirp payload %s not supported"
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fd0188 — chirp-core rodata block
@@ -1404,6 +1405,10 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 - **tv_session_fields:** `cid set/clr`, `corrId`, `sessionLength`, `sessionPlayTime`, `connectionType`, `GCUUID`, `GCBootSeq`, `GCTimeStart`, `GCTimeEnd`, `inputRate`, `dataBurstType`, `contentType`, `playSeconds`, `forced`, `topoType`, `zpHTInputSession`
 - **core:** htcZonePlayer: per-role "%s delay: %uus, gain: %f" for surrounds/sub/group-member-down-mix; "changing surround mode. old %d new %d"; "changing tv surround lvl"/"changing music surround lvl"/"changing height channel lvl"; "sub changing %zu to %zu"; "Set %s signal rate: %zu"; events SatConfigEvent/TVSignalDetectedEvent/TOSLinkConnected/IRRepeaterState; "Orientation %s"
+- **satellite_tx:**
+  - **control_frame:** "sending control frame: ctrl 0x%x unscV %d curV %d extV %d extVM %d B %d T %d led %d SPL %d SC %d" — {ctrl flags, unscaled/current/ext volume, extV-muted, B, T, led, SPL, SC}
+  - **audio_frame:** "pkt: %zu channels, %zu samples, payload:%zu, rl:%d" — multichannel framed audio; "Last audio frame %d"; "frame serialization failed"
+  - **sat_mgmt:** "satellites active \[0x%x\]" mask; "bonded sub(s) %zu"; satellite sub receives non-sub channels; "Sonar center delay %d samples, %d usec"; play start/end handled with disabled sats; "changing surround time delta mode"; "sample type changed"; "Request resync"; volume/mute/LED propagation ("vol change %u (%u%%) -> %u","mute change %d -> %d","LED brightness %d -> %d"); "Send playback ended if count %d > 0 or remote audio disabled %d"
 ## `music_accounts`
 
 **coverage** `?`
