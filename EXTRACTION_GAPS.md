@@ -170,11 +170,22 @@ Why missed: only the `/status`-table cluster was decoded
 (0x10e75c5c-0x10e75f80); the other route tables/dispatch paths weren't
 enumerated exhaustively.
 
-### `/status` subhandler semantics — 63 names, zero behaviour
-Every subhandler name + handler address is catalogued but none of the
-handlers were disassembled: what `experiments`, `trueplayinfo`,
-`setstring`/`removestring`/`ranges` (raw settings write endpoints!),
-`mdnsannounce`, `sonarctl` etc. actually accept and return is unknown.
+### `/status` subhandler semantics — routes mapped, schemas still open
+The page registry is now fully decoded: a stride-12 `{name*, flag,
+source*/handler*}` table at `0x11090144-0x11090b6c` (immediately
+before the 102-record master route table) with three page families —
+exec pages (shell commands: `/lsmod`→`/sbin/lsmod`,
+`/ntpsources`→`chronyc`, `/scanresults`→athconfig...), ~45 file-cat
+pages (`/jffs/settings/*.json|xml`, `/opt/log/anacapa.*.log`,
+`/proc/ath_rincon*/*`), and 62 module-rendered pages with `.text`
+handlers. Flag values `1,2,6,a,b,e,43,46,82` undecoded (likely
+content-type/auth bitmask; `0x82` on `/api`,`/cloudqueue`,`/leds`).
+What remains: per-handler *output schemas* — most module handlers
+haven't had their emit-call field lists written (only ZPInfo,
+location-engine, `DeviceCertInfo`, `<Registration>`, muse event
+fields are decoded). `setstring`/`removestring`/`ranges` raw
+settings-write endpoints and `sonarctl`/`mdnsannounce` params still
+unwalked.
 
 ### Device description variants
 `/xml/device_description_no_ai.xml` exists — a second device
@@ -424,11 +435,19 @@ strings). Role/topology undocumented.
 `LastUpdateDevice`/`NextFavorite` versioning); merge/dissemination
 protocol undocumented.
 
-### Accounts/cert lifecycle — PARTIAL
-`certmanager`/`devicecertmanager`/`regdevicecert`/
-`cloudregistration`/`register`/`museclient_authhelper`/
-`zpserviceaccounts`; endpoints exist but enrolment/renewal flows,
-cert formats and key storage undecoded.
+### Accounts/cert lifecycle — selection + status pages proven
+`R_CLIENT_KEYCERT_ID_*` selector proven (`f_1057ac60` returns 0-3
+from cert-ctx flag bits; id→object via `f_1056c738` indexing bss
+tables `0x110a5670`/`0x110a56d8`). `/regcert` page → `DeviceCertInfo`
+schema proven (CertName/Denylisted/HaveCert/CertSerial/ExpiresUtc/
+ExpiresIn/JobAllowed/JobForceAllowed/JobScheduled/JobLastRun/ETag/
+HouseholdID/SonosID/IDType + PEM body); cert-refresh scheduler
+`f_105a6984` (`dcm` tag, muse Registration event fields `haveCert/
+refreshTJ/eventType/refreshed/certType/deviceCert/secureReg`).
+`/root_cert_bundles` hex-dumps the loaded CA bundle via registry
+`0x11095f88` vfunc+108/+40. Still unresolved: enrolment/renewal
+request wire formats (CSR structure, request bodies), the runtime
+cert-object record layout, key storage paths.
 
 ### Entitlements — VOCAB
 `entitlementsmanager.cxx`, `entitlementsVersionChanged` event,
@@ -602,11 +621,11 @@ the deep semantic layer:
    internal-func vocabulary; sonos-cdma profile symbol set/FEC params
    still unextracted
 5. **`/status` + master-route schemas** — master HTTP route table
-   decoded (102 records @ 0x11090c00 stride-28, incl. UPnP /Control +
-   /Event dispatchers, /api muse entry, /websocket/api, /reboot,
-   /tools, /support/*); per-route emit schemas harvested for ~83
-   routes; the remainder delegate via module vfunc +0x24 and need
-   per-module chasing
+   decoded (102 records @ 0x11090c00 stride-28) plus the full `/status`
+   page registry (stride-12 @ 0x11090144-0x11090b6c: exec/file/module
+   page families, 62 module handlers mapped); per-route emit schemas
+   harvested for ~85 routes; the remainder delegate via module vfunc
+   +0x24 and need per-module chasing
 6. **R_* integer mappings** — RESOLVED: every genuine `R_*` family is
    now proven (`R_LED_*` mask via log-arg constants, `R_PLAY_OP_*`/
    `R_STREAM_OP_*` via PIC jump-table bucketing,
