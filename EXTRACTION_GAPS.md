@@ -1016,7 +1016,7 @@ the deep semantic layer:
     triggers decoded only for userradio - other stores' rung semantics
     undecoded; (c) legacy error sets (AlarmClock) contain
     misclassified ASCII-pair constants (9587/25455/...) from the old
-    over-broad scan - doc-quality cleanup pending; (d) f_100c960f
+    over-broad scan - doc-quality cleanup pending; (d) RESOLVED - f_100c960f carries no error literals, its {801-804} is call-derived; (e) remaining .tmp writers verified log-only (shares/areas/netsettings/featureconfig/trackinfo/metricsconfig emit no fault ladders); (f) f_100c960f
     {801-804} worker identity unknown.
 11d. **Indexed enum-table sweep + getter error floor** — DONE:
     rodata scan for every contiguous char*-name array and
