@@ -121701,6 +121701,19 @@
     }
    ],
    "notes": "Per-vtable name attribution is partially inferred from referrer string context; the favorites cluster and queue/share family are solid, the two AI: classes are inferred by neighborhood."
+  },
+  "binary_section_map": {
+   "status": "confirmed",
+   "description": "Where the binary's pointer tables physically live. .rodata holds non-relocated vtables/tables (dispatch tables, enum registries, the 17 prefix-capable dirObj vtables). .data.rel.ro holds 284 relocated table runs >=3 words (vendored-library vtables: libcurl connfilter family also in .data @0x11093f20-0x11094144 as ten 12-slot sibling classes - cf_connect/cf_socket_close/cf_shutdown/ALPN machinery; json-schema validator 47/39-slot vtables; perfcounters; the SPDIF module's 163-slot table). .init_array @0x11085328 has 420 static constructors (global object registration). .got2 has 368 entries incl 1327->rodata-string map entries used by SDA/PIC string loads.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "notes": "whole-section pointer-run census: .data.rel.ro 2451 .text ptrs in 284 runs, .data 322 ptrs (10x12-slot connfilter family), .init_array 420 entries, .got2 368 entries"
+    }
+   ]
   }
  },
  "subsystems": {
@@ -127890,7 +127903,27 @@
      "address": "0x10ee650c",
      "notes": "burst enum"
     }
-   ]
+   ],
+   "code_module": {
+    "status": "partial",
+    "range": "0x10e50000-0x10e6ffff (.text, ~128KB, previously zero doc anchors)",
+    "contents": [
+     "IEC61937 burst-writer: 'OVERSIZE SPDIF block @ %d frames!' / 'Restart SPDIF block @ %d frames.' frame-boundary recovery logs (f_10e6f32c)",
+     "enum->name mappers: f_10e6e5ac (17 external callers) bounds-checks index<0x10 then lwzux into ptr table @0x1102a2cc, 'UNDEFINED' fallback @0x10e88b0c; 'BLED_UNAVAILABLE' string @0x10e88b58 in neighborhood",
+     "163-entry relocated table @0x1108b594 in .data.rel.ro (slots f_10e54684-f_10e62544 family; buffer-ctor f_10e55110 inits obj+0x800/+0x1000/+0x1800 buffers)",
+     "module calls nanopb (pb_encode/pb_decode/pb_ostream_from_buffer/pb_istream_from_buffer): the nanopb runtime co-located/linked with the SPDIF layer"
+    ],
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "status": "confirmed",
+      "notes": "bl-target census: 0x10e5-0x10e6 fns' top calls = __stack_chk_fail/__printf_chk + pb_* (234/135/46/45); SPDIF literals resolved in f_10e6f32c; .data.rel.ro run census found the 163-slot table"
+     }
+    ],
+    "residual": "per-slot table semantics and the full burst-writer call graph unmapped; external entrypoints identified by inbound-call census (f_10e6e5ac mapper x17, f_10e5025c x8, f_10e57b2c x6)"
+   }
   },
   "addrmon": {
    "name": "netlink interface-address monitor",

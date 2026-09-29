@@ -5904,13 +5904,20 @@ The SNTP time discipline: chrony-backed clock management, virtual-clock concepts
 
 **coverage** `strong`
 
-The SPDIF burst-format taxonomy: 37 unsupported formats plus the handled Dolby/DTS burst types. When a TV sends an unrecognized bitstream, it's this table that decides 'unsupported' — explaining silent HDMI inputs.
+The SPDIF burst-format taxonomy: 37 unsupported formats plus the handled Dolby/DTS burst types. When a TV sends an unrecognized bitstream, it's this table that decides 'unsupported' — explaining silent HDMI inputs. The code lives in a ~128 KB module (0x10e50000-0x10e6ffff) that repackages compressed audio into IEC61937 burst frames for optical output, recovering from oversized frames via 'OVERSIZE SPDIF block'/'Restart SPDIF block' handling; the module also hosts the nanopb protobuf codec shared with the hardware-event bus and Trueplay node protocol.
 
 **Technical description:**
 
 supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3)}; unsupported enum {NULL Burst,Pause Burst,AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1,MPEG1 Layer 2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1/2/3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA} all prefixed "Unsupported "; this is the IEC 61937 data-type code map (NULL/PAUSE are IEC-61937 burst types; MAT = Dolby MAT container; DRA = DRA Chinese standard); per-type error counters tv_decoder_error_{dd,ddp,mat,pcm,dts1,dts2,dts3} + tv_decoder_dsp_error_dap; IEC 61937 data-type rejection names incl 'Unsupported AC-3', 'Unsupported DTS1' + 'No Signal'
 
 - **name:** SPDIF burst-format taxonomy
+- **code_module:**
+  - **status:** partial
+  - **range:** 0x10e50000-0x10e6ffff (.text, ~128KB, previously zero doc anchors)
+  - **contents:** `IEC61937 burst-writer: 'OVERSIZE SPDIF block @ %d frames!' / 'Restart SPDIF block @ %d frames.' frame-boundary recovery logs (f_10e6f32c)`, `enum->name mappers: f_10e6e5ac (17 external callers) bounds-checks index<0x10 then lwzux into ptr table @0x1102a2cc, 'UNDEFINED' fallback @0x10e88b0c; 'BLED_UNAVAILABLE' string @0x10e88b58 in neighborhood`, `163-entry relocated table @0x1108b594 in .data.rel.ro (slots f_10e54684-f_10e62544 family; buffer-ctor f_10e55110 inits obj+0x800/+0x1000/+0x1800 buffers)`, `module calls nanopb (pb_encode/pb_decode/pb_ostream_from_buffer/pb_istream_from_buffer): the nanopb runtime co-located/linked with the SPDIF layer`
+  - **evidence:**
+    - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: bl-target census: 0x10e5-0x10e6 fns' top calls = __stack_chk_fail/__printf_chk + pb_* (234/135/46/45); SPDIF literals resolved in f_10e6f32c; .data.rel.ro run census found the 163-slot table
+  - **residual:** per-slot table semantics and the full burst-writer call graph unmapped; external entrypoints identified by inbound-call census (f_10e6e5ac mapper x17, f_10e5025c x8, f_10e57b2c x6)
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ee650c — burst enum
