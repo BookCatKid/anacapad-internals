@@ -478,6 +478,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `device_props_update_ids` | /DeviceProperties/Control |  | ? | `strong` |
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
+| `sounddevice_status_schema` | /status |  | ? | `strong` |
 | `update_info_schema` | /status |  | ? | `strong` |
 | `zone_group_state_schema` | /ZoneGroupTopology/Control |  | ? | `strong` |
 | `zoneplayers_status_schema` | /status |  | ? | `strong` |
@@ -3407,6 +3408,11 @@ update counters
 ### `renderingcontrol_status_schema`
 
 /status/renderingcontrol emitted XML
+
+
+### `sounddevice_status_schema`
+
+SoundDevice page (per-zone volume/ducking)
 
 
 ### `update_info_schema`

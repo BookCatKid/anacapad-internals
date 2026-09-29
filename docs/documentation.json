@@ -104765,6 +104765,12 @@
    "service": "/status",
    "description": "UpdateInfo page",
    "fields": "<UpdateInfo><AutoUpdate>%d</AutoUpdate><State>%s</State><Window>%02u:%02u:%02u - %02u:%02u:%02u</Window><UpgradeManager>%s</UpgradeManager><HoursPending>%u</HoursPending><ActiveDeviceList/></UpdateInfo>"
+  },
+  "sounddevice_status_schema": {
+   "status": "strong",
+   "service": "/status",
+   "description": "SoundDevice page (per-zone volume/ducking)",
+   "fields": "<SoundDevice><Zones><Zone><Zone>%d</Zone><UnscaledVolume><Volume><DeferredVolume><Ducked><DuckingVolume><DuckingPercent><OverrideVolume><Muted><DeferredMute><ExtSrcVolume><SurroundLevel><ZoneChannelCount></Zone></Zones></SoundDevice>"
   }
  },
  "uri_formats": {
@@ -120876,6 +120882,48 @@
   },
   "content_directory": {
    "container_classes": "browse classes {object.container.album.musicAlbum,.compilation,playlistContainer.sameArtist,playlistContainer,albumlist,person.musicArtist,genre.musicGenre,person.composer}; fields {dc:creator,upnp:albumArtURI}; category keys {ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS}; dirObjAttr; <AudioCore> page + OrientationChangeEvent"
+  },
+  "audio_stream_mixer": {
+   "name": "audio_stream + mixing_threaded \u2014 per-stream mixer",
+   "status": "partial",
+   "summary": "stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} + stats \"E:%d, D:%d, B:%d, PR:%d\"; fade engine \"fade added: %i.%i sample_len(%u) current_gain target_gain rate\" + max/min/fade complete + \"no fade slots available\"; skipAhead \"delta:%u > buffered:%u\"; \"discontinuity detected after scheduled resync\"; mixer: bManageOutputLatency,startup buffers,buffers; fd poll sound.fd.poll.%04X; stall detect \"loop(wall): %uus loop(cpu): %uus, sel: %uus\"; states MTS_PLAYING transition; DSP drain FSM {\"start dsp flushing %i buffers\",\"dsp flushing ended %i frames early\",\"driver draining\",\"dsp flushing complete with od %u\"}; stream names as-{dspin,dspout}{-tv,-ext-voice,-ext-chirp}/as-src{in,out}-ext-voice/%s-chsnk%zu; system/audio_out_disable + \"Running with audio output disabled\"; forcePerfectInitialSync; \"KERNEL_PRINTK_ENABLE ... mixer scheduling can't be guaranteed\"; \"Testpoint delay of %ums\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f29ab7",
+     "notes": "audio_stream/mixing blocks"
+    }
+   ]
+  },
+  "sound_device": {
+   "name": "sounddev \u2014 output device + HW health",
+   "status": "partial",
+   "summary": "syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample width inconsistency}; system/src_disable + StdQ ASRC Coeffs + \"Running with SRC bypassed\"; orientation sensing; \"reset vcxo\"; health flags {AMP_CURRENT_WARN,AMP_FAULT_WARN,AUDIO_WARN_TEMP,CPU_WARN_TEMP,CPU2_WARN_TEMP,SOC_WARN_TEMP,AMP_CURRENT_FAULT,AMP_FAULT,AUDIO_FAULT_TEMP,CPU_FAULT_TEMP,CPU2_FAULT_TEMP,SOC_FAULT_TEMP,PS36_FAULT,UV36_FAULT,UV14_FAULT,POWER_WARN_TEMP,POWER_FAULT_TEMP,MOTION_FAULT_TEMP,MOTION_WARN_TEMP}_STATUS",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f2ac18",
+     "notes": "sounddev block"
+    }
+   ]
+  },
+  "rendering_control": {
+   "volume_engine": "per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math \"DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)\" + \"Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)\"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl"
+  },
+  "audio_rate_ctrl": {
+   "name": "Audio Rate Controller (ASRC) + timesync drift",
+   "status": "partial",
+   "summary": "ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, \"Rate Maxed\"/\"Rate Inv Maxed\" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; \"time went back; try again\"; \"Thread descheduled for %uus. Limit %uus\"; SRC mute on |drift| \"(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u\"; \"Out of bounds. drift: %f mute count: %d\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f2b610",
+     "notes": "arc/timesync block"
+    }
+   ]
   }
  },
  "muse": {
