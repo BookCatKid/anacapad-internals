@@ -1151,3 +1151,34 @@ the deep semantic layer:
     coeff tables). Recovering message schemas needs per-fn reg
     tracking through GOT - deferred. Per-block attribution inferred
     from sampled literals; boundaries are 0x20000-granular.
+
+15. Descriptor/graph round (88d593f-33c60b0):
+    .sdata category registry documented: {api,zc,download,audio,esdk}
+    channel names +3 callback tables @0x11095d88 (esdk consumed by
+    10 eSDK-internal fns -> eventreporter channel registry).
+    dynsym census: 5724 dynamic symbols; 4816 defined but ALL are
+    statically-linked libstdc++/libgcc (std:: RTTI/methods) + a
+    handful of named Sonos consts (kDefaultBaseHttpPort,
+    kHttpsPortDeltaFromBase, kSecureHHHttpsPortDeltaFromBase,
+    g_pszJFFSRoot - already documented). No Sonos-internal FUNC/OBJ
+    exports; no non-std RTTI -> 'no RTTI' conclusion for app classes
+    confirmed from the symbol side.
+    TrueplayService corrected: 0x1102a134 is a 10-slot VTABLE, not a
+    verb dispatch table; slots 2-9 = ALL EIGHT v1alpha2 methods and
+    EVERY one is an identical 9-instr 'Unimplemented Method %s'
+    printf stub carrying only its name string -> Trueplay is
+    compiled out on Playbar (mic-less). Companion class
+    'trueplay_message_handler' vtable @0x10febc94 = 4 real methods
+    (f_10d94xxx incl a 'saving to file' dump path) + the same
+    GetSpatialTuning/GetSpectralTuning stubs.
+    Protobuf message GRAPH: .sdata 'descriptor registry' partly
+    re-attributed - several slots are relocated aux-pointer arrays
+    (e.g. 0x11095d78 aux of 1-field 0x10fbfee4, 0x11095bec aux of
+    0x10fbee18). Root muse msg = 0x10fbee48 (8 fields) whose aux
+    binds {1f wrapper x3, 44f envelope 0x10fbfa8c, 15f, 3f, 2f};
+    0x10fbfa8c aux @0x10fbfaa8 = 43 ptrs over ~30 distinct subdescs.
+    RESIDUAL: (a) per-field names not stored - need correlation with
+    muse proto-name registries; (b) non-aux .sdata desc slots with
+    the 0x40001204 flag word unresolved (may be per-msg
+    callback/default blocks); (c) .eh_frame_hdr present (4620 FDEs)
+    and already exploited by build_funcmap - no additional gap there.
