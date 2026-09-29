@@ -104846,6 +104846,12 @@
    "service": "/ZPs",
    "description": "household update status page fields",
    "fields": "{program,SystemVersion,NumZPs,NumUpdateZPs,CurrentVersion,TargetVersion,HardwareVersion,DownloadDuration,ServerIP,ErrorMsg,ExtendedError}; \"Request type [%s] != response type [%s]\"; \"report array size mismatch (%d/%zu)\"; \"report %s error\"; \"failed to rename report %s to %s\""
+  },
+  "ht_input_session": {
+   "status": "strong",
+   "service": "zpHTInputSession",
+   "description": "HT input-session telemetry fields",
+   "fields": "{tv_usage,corrId(cid set/clr),sessionLength,sessionPlayTime,connectionType,GCUUID,GCBootSeq,GCTimeStart,GCTimeEnd,inputRate,dataBurstType,contentType,playSeconds,forced,topoType,zpHTInputSession,dump-proc-anacapa,build.version}"
   }
  },
  "uri_formats": {
@@ -120275,18 +120281,17 @@
    "tx_stats": "counters {timeToPlay=\"Time between send and play\",txSent=\"Total bytes transmitted\",txErrors,serializationErrors,numLateFrames=\"late to transmit a frame\",\"Total resynchronization frames\",playbackEnd=\"Total playback ended frames\",mx_proc=\"Highest SatMixer processing time\",tx_proc=\"Highest SatTx processing time\"} \u2014 \"HT Audio Satellite TX General\""
   },
   "ir_decoder": {
-   "name": "RIRDecoder \u2014 IR receive/decoder",
+   "name": "RIRDecoder \u2014 IR protocol decoder",
    "status": "partial",
-   "summary": "irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -> auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; \"Short Code not recognized\"/\"unrecognized %d\"; read \"ir: %d length: %d\",\"IR Event read: %zd, msgcount: %u\"",
+   "summary": "protocol detect {\"Histogram contains no second peak\",avgA/avgB,threshold}; coding {\"biphase pulse too long %d\",\"too many raw bits!\",\"pulse width coding with threshold of [%f]\",\"pulse distance coding with threshold of [%f]\"}; results {\"***** unrecognized %d *****\",\"***** recognized %d *****\"}; io {\"Could not read IR data. (%d, read: %zd)\",\"IR Event read: %zd, msgcount: %u\"}; selthrd.RIRDecoder.{reset,data,except,timeout}",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10ea75d8",
-     "notes": "irdecoder.cxx rodata"
+     "address": "0x10ea7854",
+     "notes": "irdecoder block"
     }
-   ],
-   "codes": "learn submission: \"\\x%02X\" byte dump \"Pass %d short code bytes:\"; code fmt \"%02x%%20\"/\"%02x \""
+   ]
   },
   "reporting": {
    "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump",
@@ -121686,7 +121691,8 @@
      }
     ]
    },
-   "type_registry": "alphabetical name table 0x10f975c0-0x10f98568 (203 entries) \u2014 candidate type-index namespace for spec-pair {0x82,b} entries"
+   "type_registry": "alphabetical name table 0x10f975c0-0x10f98568 (203 entries) \u2014 candidate type-index namespace for spec-pair {0x82,b} entries",
+   "playervolume": "verbs {duck,unduck} at v1/players/%s/playerVolume/{duck,unduck}; setVolume \"cannot set volume AND mute parameter\"; setRelativeVolume \"cannot set volumeDelta AND muted parameter\"; fixed flag; v1/groups/ + v1/players/ + /playerVolume paths"
   },
   "iocompress": {
    "name": "iocompress \u2014 zlib buffers",
@@ -122420,6 +122426,19 @@
      "status": "confirmed",
      "address": "0x10e7ceb8",
      "notes": "effsettings block"
+    }
+   ]
+  },
+  "ibt": {
+   "name": "IBT \u2014 intended-target command fan-out",
+   "status": "partial",
+   "summary": "plan {\"already generated ibt plan, no action taken\",\"executing ibt plan for command (%s)\",\"failed to generate target list\",\"failed to generate ibt plan\"}; intendedTargets param {\"implicit target parsed [%s]\",\"explicit target parsed [%s]\",\"invalid intendedTargets parameter\",\"command does not support intendedTargets parameter\",\"invalid muse command body format\"}; dispatch \"[dispatch] unsupported IBT command (%s)\"; JWT {\"Unable to parse JWT token\",\"Unable to load root bundle\",\"Can't get client device certs\",\"JWT cert validation finished: %s\"}; ibt log domain; enablePitchfork flag",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fac620",
+     "notes": "ibt block"
     }
    ]
   }

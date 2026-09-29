@@ -478,6 +478,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `avt_lastchange` | /MediaRenderer/AVTransport/Event |  | ? | `strong` |
 | `device_props_extra_vars` | /DeviceProperties/Control |  | ? | `strong` |
 | `device_props_update_ids` | /DeviceProperties/Control |  | ? | `strong` |
+| `ht_input_session` | zpHTInputSession |  | ? | `strong` |
 | `netsettings_schema` | ReplicatedNetSettings |  | ? | `strong` |
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
@@ -3420,6 +3421,11 @@ more state vars
 ### `device_props_update_ids`
 
 update counters
+
+
+### `ht_input_session`
+
+HT input-session telemetry fields
 
 
 ### `netsettings_schema`

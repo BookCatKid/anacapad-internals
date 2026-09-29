@@ -1269,6 +1269,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ibt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>ibt</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ibt_plans" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -4093,6 +4104,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ibt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>ibt</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ibt_plans" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -5933,6 +5955,11 @@
 <td>hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}; readEvent {overflow,unknown,readNextMsg ERROR}; button forwarding {'Forwarding button events','Disabling button event forwarding'} to private-IP-only target {Unable to translate address,Host not private IP,Invalid host IP,Invalid port no,socket errors}; FSM states {NOT_IN_HOUSEHOLD,PROCESSING_PLAYBACK,IN_DEMO_MODE,IN_RDM_MODE,IN_BUTTON_OBSERVATION_MODE,IN_TRANSFER_MODE,PROCESSING_JOIN,JOIN_CHIME_UNAVAILABLE,REGISTRATION_CHIME_UNAVAILABLE,BUTTONS_LOCKED,DAT_IN_BUTTONLESS_SETUP_MODE,DAT_IN_SETUP_DISCOVERY}; setup combo {VOL_DN|VOL_UP starts timer → setup-ready on pop, VOL_UP+VOL_DN timer popped}; '%s press/release count = %zu'; '%s ignored in notify mode'; 'Disallowed action (%d - %s) because (%d - %s)'; 'inline action'; allowPlaybackRequests; 'collecting triggered diags'; 'enter %s household mode'; 'cancel join household mode'; PLAYPAUSE; '%s button pressed (cid)'; 'Play button held'; orientation {old-&gt;new,orientation_change,syslib orient}; led_diags {'Diag mode:%u, leftMS:%u; timeMS:%u; next mode: %u','set diag mode:%d'}; setup {'join hh','enabling wifi and %s','signaling netstartd (%s) %s',openap}</td>
 </tr>
 <tr>
+<td><code>ibt</code></td>
+<td><strong>partial</strong></td>
+<td>plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "[dispatch] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag</td>
+</tr>
+<tr>
 <td><code>ibt_plans</code></td>
 <td><strong>partial</strong></td>
 <td>a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init</td>
@@ -5955,7 +5982,7 @@
 <tr>
 <td><code>ir_decoder</code></td>
 <td><strong>partial</strong></td>
-<td>irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -&gt; auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; "Short Code not recognized"/"unrecognized %d"; read "ir: %d length: %d","IR Event read: %zd, msgcount: %u"</td>
+<td>protocol detect {"Histogram contains no second peak",avgA/avgB,threshold}; coding {"biphase pulse too long %d","too many raw bits!","pulse width coding with threshold of [%f]","pulse distance coding with threshold of [%f]"}; results {"<strong><em>*</em> unrecognized %d </strong><strong><em>","</em></strong><strong> recognized %d </strong>***"}; io {"Could not read IR data. (%d, read: %zd)","IR Event read: %zd, msgcount: %u"}; selthrd.RIRDecoder.{reset,data,except,timeout}</td>
 </tr>
 <tr>
 <td><code>ir_learn</code></td>
@@ -7733,6 +7760,19 @@
 
 </details>
 
+<h2 id="ibt"><code>ibt</code><a class="headerlink" href="#ibt" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "[dispatch] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag</p>
+<ul>
+<li><strong>name:</strong> IBT — intended-target command fan-out</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fac620 — ibt block
+
+</details>
+
 <h2 id="ibt_plans"><code>ibt_plans</code><a class="headerlink" href="#ibt_plans" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>An 'IBT' command-plan executor ('executing ibt plan for command') gated by the enablePitchfork feature flag — likely in-band tuning/test command plans. Almost nothing decoded.</p>
@@ -7801,14 +7841,13 @@
 <h2 id="ir_decoder"><code>ir_decoder</code><a class="headerlink" href="#ir_decoder" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
 <p><strong>Technical description:</strong></p>
-<p>irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -&gt; auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; "Short Code not recognized"/"unrecognized %d"; read "ir: %d length: %d","IR Event read: %zd, msgcount: %u"</p>
+<p>protocol detect {"Histogram contains no second peak",avgA/avgB,threshold}; coding {"biphase pulse too long %d","too many raw bits!","pulse width coding with threshold of [%f]","pulse distance coding with threshold of [%f]"}; results {"<strong><em>*</em> unrecognized %d </strong><strong><em>","</em></strong><strong> recognized %d </strong>***"}; io {"Could not read IR data. (%d, read: %zd)","IR Event read: %zd, msgcount: %u"}; selthrd.RIRDecoder.{reset,data,except,timeout}</p>
 <ul>
-<li><strong>name:</strong> RIRDecoder — IR receive/decoder</li>
-<li><strong>codes:</strong> learn submission: "\x%02X" byte dump "Pass %d short code bytes:"; code fmt "%02x%%20"/"%02x "</li>
+<li><strong>name:</strong> RIRDecoder — IR protocol decoder</li>
 </ul>
 <details><summary>Evidence (1)</summary>
 
-- @ 0x10ea75d8 — irdecoder.cxx rodata
+- @ 0x10ea7854 — irdecoder block
 
 </details>
 
@@ -9501,6 +9540,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 </li>
 <li><strong>type_registry:</strong> alphabetical name table 0x10f975c0-0x10f98568 (203 entries) — candidate type-index namespace for spec-pair {0x82,b} entries</li>
+<li><strong>playervolume:</strong> verbs {duck,unduck} at v1/players/%s/playerVolume/{duck,unduck}; setVolume "cannot set volume AND mute parameter"; setRelativeVolume "cannot set volumeDelta AND muted parameter"; fixed flag; v1/groups/ + v1/players/ + /playerVolume paths</li>
 </ul>
 <h2 id="muse_types"><code>muse_types</code><a class="headerlink" href="#muse_types" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
