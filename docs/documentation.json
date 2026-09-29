@@ -119465,6 +119465,47 @@
       "70": "ERROR_NO_PLAYABLE_CONTENT"
      },
      "note": "legacy media/service playback error enum: generic transport errors 0-17, then per-service ranges (RHAP 18-23, AUDIBLE 24-26, WMP 27-28, SIRIUS 29-37, PAND 38-44, SONOS 45-47, LASTFM 48-51,55, DOCK 52, SONOS extras 53-54,56-59, CLOUD_QUEUE 60-64, CERT 65-66, tail 67-70)"
+    },
+    "speaker_mask": {
+     "provenance": "ordered char* name table @0x10fbe650, 6 entries (same index-table shape as muse_result_codes)",
+     "kind": "enum",
+     "count": 6,
+     "names": {
+      "0": "SPEAKER_MASK_UNSPECIFIED",
+      "1": "SPEAKER_MASK_THREE_DOT_ONE",
+      "2": "SPEAKER_MASK_FIVE_DOT_ONE",
+      "3": "SPEAKER_MASK_FIVE_DOT_ONE_DOT_TWO",
+      "4": "SPEAKER_MASK_SEVEN_DOT_ONE",
+      "5": "SPEAKER_MASK_NINE_DOT_ONE_DOT_FOUR"
+     },
+     "note": "HT channel-mask enum (three.1=3.1ch, five.1.2/9.1.4 = Atmos heights)"
+    },
+    "security_errors": {
+     "provenance": "contiguous literal run @0x10f92018-0x10f92274, 19 names; order likely = enum order but NO pointer table found \u2014 values unproven",
+     "kind": "enum_unproven",
+     "count": 19,
+     "names": [
+      "SECURITY_ERROR_AUTH_GENERAL",
+      "SECURITY_ERROR_LOGIN_DENIED",
+      "SECURITY_ERROR_PEER_FAILED_VERIFICATION",
+      "SECURITY_ERROR_REMOTE_ACCESS_DENIED",
+      "SECURITY_ERROR_SSL_CACERT",
+      "SECURITY_ERROR_SSL_CACERT_BADFILE",
+      "SECURITY_ERROR_SSL_CERTPROBLEM",
+      "SECURITY_ERROR_SSL_CIPHER",
+      "SECURITY_ERROR_SSL_CLIENTCERT",
+      "SECURITY_ERROR_SSL_CONNECT",
+      "SECURITY_ERROR_SSL_CRL_BADFILE",
+      "SECURITY_ERROR_SSL_ENGINE_INITFAILED",
+      "SECURITY_ERROR_SSL_ENGINE_NOTFOUND",
+      "SECURITY_ERROR_SSL_ENGINE_SETFAILED",
+      "SECURITY_ERROR_SSL_INVALIDCERTSTATUS",
+      "SECURITY_ERROR_SSL_ISSUER",
+      "SECURITY_ERROR_SSL_PINNEDPUBKEYNOTMATCH",
+      "SECURITY_ERROR_SSL_SHUTDOWN_FAILED",
+      "SECURITY_ERROR_USE_SSL_FAILED"
+     ],
+     "note": "auth/TLS client error vocabulary (curl-style SSL error family); adjacent HTTP-fetch run: ERROR_USE_SSL_FAILED,ERROR_POST_FAILED,ERROR_RETURNED,ERROR_MALFORMED_URL,ERROR_TOO_MANY_REDIRECTS"
     }
    },
    "evidence": [
@@ -196821,8 +196862,9 @@
    "spec_pairs": {
     "layout": "per-block: aligned {u32 tag, u32 val} array -> FFFFFFFF,FFFFFFFF -> pad -> verb/param literal run -> op vtables (23-slot spine)",
     "example": "alarms block @0x10f9fc74: 23 pairs for 6 verbs; tags observed {0x82 x15, 0x13 x4, 0xae x3, 0x16, 0x86}; vals {0x34,0x3f,0x42,0x47,0x48,0x00,0x01} \u2014 repeats suggest shared field slots, not per-op param ids",
-    "status": "tag/val semantics UNDECODED \u2014 consumer function not yet identified (validators take (obj,key) only; copier uses fixed offsets). Candidates: field-type+offset schema, or wire-type+field-id. This is the field-type blocker.",
-    "literal_extras": "non-verb literals in blocks are param names + defaults (e.g. PT0H5M0S in alarms block = default snooze 5m)"
+    "status": "STRUCTURE PROVEN: spec = per-param {u32 tag, u32 val} array at descriptor+0; accessor[k] returns &spec[k]. TAG SEMANTICS STILL UNDECODED: tags {0x82 x15, 0x13 x4, 0xae x3, 0x16, 0x86} = likely type/kind code; vals {0x34,0x3f,0x42,0x47,0x48,0x00,0x01} = likely field-id/slot (repeats = shared slot across ops or flags). Binder/serializer consumer not yet identified \u2014 accessors have no data pointers and no bl callers except one (f_10ac533c ctor path); likely referenced via computed index or bss registration",
+    "literal_extras": "non-verb literals in blocks are param names + defaults (e.g. PT0H5M0S in alarms block = default snooze 5m)",
+    "accessors": "confirmed: generated accessor functions (0x20-byte stride, e.g. f_10ac459c..f_10ac4678) each form descriptor-base and write &spec[k] to caller out-slot; spec array is AT descriptor offset 0 \u2014 per-param {tag,val} descriptor array indexed by param position"
    }
   }
  }

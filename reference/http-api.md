@@ -3039,6 +3039,24 @@ The complete operation list of the muse (app/cloud) API: every resource and what
       - **69:** ERROR_RESOURCE_NO_LONGER_AVAILABLE
       - **70:** ERROR_NO_PLAYABLE_CONTENT
     - **note:** legacy media/service playback error enum: generic transport errors 0-17, then per-service ranges (RHAP 18-23, AUDIBLE 24-26, WMP 27-28, SIRIUS 29-37, PAND 38-44, SONOS 45-47, LASTFM 48-51,55, DOCK 52, SONOS extras 53-54,56-59, CLOUD_QUEUE 60-64, CERT 65-66, tail 67-70)
+  - **speaker_mask:**
+    - **provenance:** ordered char* name table @0x10fbe650, 6 entries (same index-table shape as muse_result_codes)
+    - **kind:** enum
+    - **count:** 6
+    - **names:**
+      - **0:** SPEAKER_MASK_UNSPECIFIED
+      - **1:** SPEAKER_MASK_THREE_DOT_ONE
+      - **2:** SPEAKER_MASK_FIVE_DOT_ONE
+      - **3:** SPEAKER_MASK_FIVE_DOT_ONE_DOT_TWO
+      - **4:** SPEAKER_MASK_SEVEN_DOT_ONE
+      - **5:** SPEAKER_MASK_NINE_DOT_ONE_DOT_FOUR
+    - **note:** HT channel-mask enum (three.1=3.1ch, five.1.2/9.1.4 = Atmos heights)
+  - **security_errors:**
+    - **provenance:** contiguous literal run @0x10f92018-0x10f92274, 19 names; order likely = enum order but NO pointer table found — values unproven
+    - **kind:** enum_unproven
+    - **count:** 19
+    - **names:** `SECURITY_ERROR_AUTH_GENERAL`, `SECURITY_ERROR_LOGIN_DENIED`, `SECURITY_ERROR_PEER_FAILED_VERIFICATION`, `SECURITY_ERROR_REMOTE_ACCESS_DENIED`, `SECURITY_ERROR_SSL_CACERT`, `SECURITY_ERROR_SSL_CACERT_BADFILE`, `SECURITY_ERROR_SSL_CERTPROBLEM`, `SECURITY_ERROR_SSL_CIPHER`, `SECURITY_ERROR_SSL_CLIENTCERT`, `SECURITY_ERROR_SSL_CONNECT`, `SECURITY_ERROR_SSL_CRL_BADFILE`, `SECURITY_ERROR_SSL_ENGINE_INITFAILED`, `SECURITY_ERROR_SSL_ENGINE_NOTFOUND`, `SECURITY_ERROR_SSL_ENGINE_SETFAILED`, `SECURITY_ERROR_SSL_INVALIDCERTSTATUS`, `SECURITY_ERROR_SSL_ISSUER`, `SECURITY_ERROR_SSL_PINNEDPUBKEYNOTMATCH`, `SECURITY_ERROR_SSL_SHUTDOWN_FAILED`, `SECURITY_ERROR_USE_SSL_FAILED`
+    - **note:** auth/TLS client error vocabulary (curl-style SSL error family); adjacent HTTP-fetch run: ERROR_USE_SSL_FAILED,ERROR_POST_FAILED,ERROR_RETURNED,ERROR_MALFORMED_URL,ERROR_TOO_MANY_REDIRECTS
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
 - **r_star_status:** PROVEN: R_LED_* (64-bit mask, applyLEDMode log-arg constants), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table bucketing), muse result codes 0-106 (direct-indexed name table — the enum the R_-adjacent ERROR_* strings actually belong to). CORRECTION: most names previously catalogued as R_* namespaces (R_ACCOUNT_*, R_PAND_*, R_WMP_*, R_LASTFM_*, R_CLOUD_QUEUE_*, R_PLAYBACK_*, R_INIT/READ/WRITE_STATUS_*, R_MASK_*, R_TYPE_*, R_DOCK_INTERRUPT, R_MICROPHONE_*, R_PEER_*, R_INSUFFICIENT_*) were SUBSTRING ARTIFACTS inside ERROR_*, FLAC__STREAM_DECODER_*, SPEAKER_MASK_* and FRAME_NUMBER_TYPE_* strings — not a Sonos R_ namespace. Genuine remaining R_*: R_CLIENT_KEYCERT_ID_* (curl cert-selection ids, log only) and the ~29 R_* settings keys (separate vocabulary)
