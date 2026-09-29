@@ -130543,6 +130543,15 @@
     }
    ],
    "forward_targets": "Duck-command forwarding targets are selector strings 'FV:GC' (forward to group coordinator) and 'FV:GC-HB' (forward to coordinator's bonded peer(s)), beside peers 'all secondaries', 'group coordinator', 'bonded peer' \u2014 NOT favorites URIs despite the FV: prefix. Logs: 'Forward %s %d to %s %s' / 'failed to forward duck command %s to %s.' (duck.cxx 0x10ebf2xx block)."
+  },
+  "libsonos_certval": {
+   "name": "libsonos-certval.so.2 \u2014 device-cert validation + RCB root bundles",
+   "status": "partial",
+   "summary": "shared lib (1.7MB, stripped but dynsym-rich) implementing sonos::certval::validate(sonos_device_x509_fields*, mbedtls_x509_crt* cert, ca_crt, crl, profile, name, flags, cb...) + sonos::RootCACertBundle \u2014 the whole device-cert verification pipeline lives HERE, not in anacapad; that's why CSR/body internals are thin in the main binary",
+   "rcb_bundle_format": ".rcb files (sonosRcb* C API): sonosRcbParseHeader + sonosRcbParseManifest + sonosRcbParseCerts \u2014 header/manifest/cert-chain container; version string '%hhu.%hhu-%u'; directory scan 'Scanning %s for best cert bundle' picks highest version; root_certs_metadata.txt alongside; fallback /etc/fallback_trusted_roots.rcb; atomic write via '%s.tmp' rename; inotify-watched hot reload \u2014 'Cert bundle (%s) modified: inotify event' + hash re-verify 'modified: bad hash' '%s (original) vs %s (calculated)'; refcounted via addRef; 'Removed bad/unused cert bundle' pruning; status enum SonosRcbStatus_t + sonosRcbStatusToString",
+   "validation_semantics": "messages: 'local cert validation succeeded for %s (local port %u)' / 'Sonos device %scert had bad params (local port %u)' / 'Sonos device %scert did not match %s '%s' (actual %s)' = SAN/name matching / 'local %scert validation failed Sonos field checks for %s' = custom sonos_device_x509_fields gate / 'local %scert validation failure ... ignored due to allowlisted hostname' = hostname allowlist bypass / 'Cert validation failed due to cert bundle error: %s' / 'Unable to load root cert bundle file: %s' / 'Cannot parse %s certs. Bundle is invalid' / 'Parsed %llu %s certs (failed to parse %llu certs)'",
+   "api_surface": "exports: sonosCertval{Initialize,Cleanup,Validate,SetSSLToSonosDevice,GetSonosDeviceRootCAs,GetSonosDeviceRootsForEnv}; sonosRcb{Init,Free,ParseHeader,ParseManifest,ParseCerts,ParseCertsCopy,StatusToString}; RootCACertBundle::{initialize,cleanup,loadCertBundle,getBundle(CertType,..),getRootCerts,getRootCertsAddToChain,copyRootCertsAddToChain,getMetadataFilename,hasDynamicCertBundle,formatVersion,id,version,addRef,free} + statics s_certBundle/s_fallbackBundle/s_bundleTrackingList/s_bundleLock/s_trustDevCerts/s_getEnvironment/s_fallbackBundleFilename",
+   "notes": "CertType distinguishes bundle pools; getRootCerts takes std::function filter/select callbacks incl a SonosRcbStatus_t(u8,u8,u8,u8,const SonosRcb*,x509*,u32*,x509**) selector; dates parsed via '%m/%d/%y'; 'CERT_INVALID' literal; imports are ZZ*-obfuscated ordinals (same patched-toolchain export scrubbing as anacapad)"
   }
  },
  "muse": {

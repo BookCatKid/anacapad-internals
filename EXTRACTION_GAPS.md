@@ -926,8 +926,14 @@ the deep semantic layer:
    Residual: the 29 `R_*` settings keys (SystemProperties vocabulary)
 7. **Certificate wire flows** — selector + id→object path proven;
    registration refresh/complete URL grammar + signing-key-over-IPC +
-   nine device-registration muse verbs recovered; still unresolved:
-   CSR/request-body inner structures and runtime cert-object layout
+   nine device-registration muse verbs recovered; **the cert-validation
+   internals live in `libsonos-certval.so.2`** (post-dump): RCB bundle
+   format (header+manifest+certs via `sonosRcbParse*`), inotify hot
+   reload + hash re-verify, `/etc/fallback_trusted_roots.rcb`, custom
+   `sonos_device_x509_fields` gate with hostname-allowlist bypass —
+   recorded under `subsystems/libsonos_certval`. Still unresolved:
+   CSR/request-body inner structures and `sonos_device_x509_fields`
+   member layout (stripped lib — positional)
 8. **SemiSleep/WAC/factory-reset state machines** — records exist
    (`semisleep_power`, `wac_mode`, `factory_reset`, `zone_topology`);
    WoW wake machinery for vanished members documented; full FSM
