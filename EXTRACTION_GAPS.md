@@ -1064,3 +1064,34 @@ the deep semantic layer:
     functions unidentified (no direct lis+addi refs — bases passed
     via struct stores); (c) AlarmClock legacy ASCII-pair junk codes
     still pending cleanup per 11c.
+
+12. Dispatch-layer census round (cb40aaf, b745a45) — verified, not gapped:
+    every service's action table walked (16 tables); name sets match
+    documented actions exactly for all services, all handler addresses
+    match through both record layouts. New proven structure:
+    {name,fn,0} direct records (9 services) vs {name,voff|1,delta}
+    pointer-to-member-function records (AlarmClock, HTControl,
+    ConnectionManager x2, MusicServices, SystemProperties,
+    ZoneGroupTopology); impl vtables sit adjacent to action tables,
+    slot+0x08 is the dispatcher itself. HTControl has sibling
+    base/derived classes: base vtable 0x10f11b64 stubs
+    IdentifyIRRemote/LearnIRCode through f_107396d0 (parse-then-501
+    reject stub); the registered object is the derived class (ctor
+    f_10242118 called by factory f_1018d27c calls base f_10739e2c then
+    overwrites vptr to 0x10ea61d0 with the real IR handlers).
+    request_vtable slot +0x34 added (request -> zone/session context).
+    Arg-surface reconciliation: every arg-access site in
+    internal_functions.used_by maps to a documented action arg —
+    zero missing inputs/outputs; empty arg lists verified legitimate
+    (e.g. ReportAlarmStartedRunning parses the empty arg list via
+    req v[+0x08] then delegates). Confirmed absence: no SCPD/
+    stateVariable/sendEvents literals in the image — the device never
+    emits service-description XML; the SV registry is eventing-only.
+    RESIDUAL: (a) req v[+0x34] consumer semantics proven at
+    GetZoneGroupAttributes (obj+0x6c -> +0x178 chain) but the returned
+    object's class not named (no RTTI); (b) request slots
+    0x00/0x04/0x10/0x18/0x28-0x30 unobserved on the request class —
+    the map covers only observed uses; (c) the dirObj per-prefix class
+    map (51 vtable-like runs in 0x10ec09xx-0x10ec3exx) is only
+    partially attributed to ObjectID prefixes — the resolver
+    f_10349d00 path-walk is the documented ceiling.
