@@ -5919,6 +5919,7 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
   - **evidence:**
     - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: bl-target census: 0x10e5-0x10e6 fns' top calls = __stack_chk_fail/__printf_chk + pb_* (234/135/46/45); SPDIF literals resolved in f_10e6f32c; .data.rel.ro run census found the 163-slot table
   - **residual:** per-slot table semantics and the full burst-writer call graph unmapped; external entrypoints identified by inbound-call census (f_10e6e5ac mapper x17, f_10e5025c x8, f_10e57b2c x6)
+- **pic_call_model:** module is -fPIC: fns anchor PC via bc $+4;mflr r30 then lwz negative(r30) into .got2; the 164-slot table @0x1108b594-0x1108b824 (ends exactly at .got2 start) = the objects private GOT function block - 164 distinct fn ptrs spanning 0x10e53-0x10e62 (the modules complete internal fn set). Internal calls go lwz/mtctr/bctrl (63 bctrl sites), never bl - which is why the module had zero bl-anchored doc references despite being fully mapped.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ee650c — burst enum
