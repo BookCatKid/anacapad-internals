@@ -196964,9 +196964,15 @@
    "spec_pairs": {
     "layout": "per-block: aligned {u32 tag, u32 val} array -> FFFFFFFF,FFFFFFFF -> pad -> verb/param literal run -> op vtables (23-slot spine)",
     "example": "alarms block @0x10f9fc74: 23 pairs for 6 verbs; tags observed {0x82 x15, 0x13 x4, 0xae x3, 0x16, 0x86}; vals {0x34,0x3f,0x42,0x47,0x48,0x00,0x01} \u2014 repeats suggest shared field slots, not per-op param ids",
-    "status": "STRUCTURE PROVEN: spec = per-param {u32 tag, u32 val} array at descriptor+0; accessor[k] returns &spec[k]. TAG SEMANTICS STILL UNDECODED: tags {0x82 x15, 0x13 x4, 0xae x3, 0x16, 0x86} = likely type/kind code; vals {0x34,0x3f,0x42,0x47,0x48,0x00,0x01} = likely field-id/slot (repeats = shared slot across ops or flags). Binder/serializer consumer not yet identified \u2014 accessors have no data pointers and no bl callers except one (f_10ac533c ctor path); likely referenced via computed index or bss registration",
+    "status": "STRUCTURE + PARTIAL SEMANTICS: per-op {a,b} at descriptor+0 via generated accessors; a=0xae=local REST op / a=unique id=numbered dispatch op (lechmere cmd-id hypothesis); b=0x34 schema marker; full tag enum + consumer (the vfunc that reads the entry) still unresolved",
     "literal_extras": "non-verb literals in blocks are param names + defaults (e.g. PT0H5M0S in alarms block = default snooze 5m)",
-    "accessors": "confirmed: generated accessor functions (0x20-byte stride, e.g. f_10ac459c..f_10ac4678) each form descriptor-base and write &spec[k] to caller out-slot; spec array is AT descriptor offset 0 \u2014 per-param {tag,val} descriptor array indexed by param position"
+    "accessors": "confirmed: generated accessor functions (0x20-byte stride, e.g. f_10ac459c..f_10ac4678) each form descriptor-base and write &spec[k] to caller out-slot; spec array is AT descriptor offset 0 \u2014 per-param {tag,val} descriptor array indexed by param position",
+    "entry_semantics": {
+     "shape": "one {u32 a, u32 b} entry per op (accessor for op_i returns &entry_i); entries NOT per-param",
+     "a_field": "0xae for ordinary locally-served REST ops; unique ascending values 0x20-0x141 for household/VRC/registration-family ops \u2014 consistent with a numbered dispatch (lechmere cmd-id) namespace; clusters: 0x82/0x86/0xa0/0xae high-bit group vs 0x13-0x48 low group",
+     "b_field": "0x34 for ~all entries (schema marker/version); rare 0x36/0x39/0x3a variants (sendButtonCommand param-adjacent entries)",
+     "confidence": "INFERRED \u2014 a-field is type-or-id, b a constant marker; the non-0xae ops map to the same verbs that had no local factory binding (household-proxied cmds), supporting cmd-id interpretation; exact tag enum still unproven"
+    }
    }
   }
  }
