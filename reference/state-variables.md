@@ -475,10 +475,12 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `ZoneGroupTopology.ZoneGroupState` | ZoneGroupTopology | string | yes | `confirmed` |
 | `ZoneGroupTopology.ZonePlayerUUIDsInGroup` | ZoneGroupTopology | string | yes | `confirmed` |
 | `alarm_status_schema` | /AlarmClock/Control |  | ? | `strong` |
+| `device_props_extra_vars` | /DeviceProperties/Control |  | ? | `strong` |
 | `device_props_update_ids` | /DeviceProperties/Control |  | ? | `strong` |
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
 | `replicated_netsettings_schema` | settings replication |  | ? | `strong` |
+| `shares_schema` | ContentDirectory |  | ? | `strong` |
 | `sounddevice_status_schema` | /status |  | ? | `strong` |
 | `update_info_schema` | /status |  | ? | `strong` |
 | `vli_state_snapshot` | VirtualLineIn |  | ? | `strong` |
@@ -3397,6 +3399,11 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 /status/alarm emitted XML
 
 
+### `device_props_extra_vars`
+
+more state vars
+
+
 ### `device_props_update_ids`
 
 update counters
@@ -3415,6 +3422,11 @@ update counters
 ### `replicated_netsettings_schema`
 
 netsettings replicated XML
+
+
+### `shares_schema`
+
+replicated share registry XML
 
 
 ### `sounddevice_status_schema`

@@ -104786,6 +104786,18 @@
    "service": "VirtualLineIn",
    "description": "VLI handoff snapshot recorded at state transitions",
    "fields": "(vliType %u): origin %d.%06d, seek time %d.%06d, byte offset %zu, packet num %u, frame offset %u, account %d, playing %d, bitrate %u"
+  },
+  "shares_schema": {
+   "status": "strong",
+   "service": "ContentDirectory",
+   "description": "replicated share registry XML",
+   "fields": "<Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange><Share Path UserName Password VerifiedValidProtocol Id/>\u2026</Shares>; short form <Share><Path/><Mount/></Shares>"
+  },
+  "device_props_extra_vars": {
+   "status": "strong",
+   "service": "/DeviceProperties/Control",
+   "description": "more state vars",
+   "fields": "{AudioInputIcon,AudioInputLevel,AudioInputLatency,MuseHouseholdID,LocationID,ShadowStorageLimit,ActiveZoneID,ChannelMapSetTime,UnpairedLED,UnpairedButtonLock,UnpairedZoneName,UnpairedIcon,UnpairedConfiguration,AutoplayIncludeLinked,AutoplayVolume,UseAutoplayVolume,AmpOffTimerSec,AutoplayRoomUUID,HTSatelliteDefn,HTAUsecDelay,HTASilenceThresholdAutoPlaySec}"
   }
  },
  "uri_formats": {
@@ -120871,7 +120883,49 @@
     "reconnect": "reconnectHTSatellites {master,oldmap,failmap,recoverSat,recovery,satellite roles}: \"reconnected Sat %s\"/\"retry in 10 secs as topology hasn't settled\"/\"removing Sat\"/\"separating from HT primary\"; restarts on ZP\u2194Sat transitions",
     "bonded": "AddBondedZone: EnterConfigMode\u2192satellites\u2192joinZone\u2192ExitConfigMode + unlink failure \"Unable to unlink secondary\"; RemoveBondedZones: \"Stop topology monitor: zone teardown\" + \"Zone teardown (%u) via %s took %ld ms\"; setAVTransportURIOnSecondaries + \"Pushing bonded zone state to secondaries failed\""
    },
-   "bonded_recovery": "recoverBondedZone: consist checks {\"(Secondary doesn't see same topology)\",\"(all members present)\",\"(member missing)\"}; granularities {full state,EQ only}; FSM {\"retrying as topology hasn't settled (ct=%u)\",\"successful %s; %s sent to secondaries\",\"partner is incompatible\",\"hard failure: %d\",\"separating this player from bonded zone\",\"reducing bonded zone to %s\"}; roles {isPrimary,availmap,newmap,othermap}; orphan regroup {\"regrouping with orphaned secondary\",\"Delegating coordination to self\"}; unstick/restick sonar clears; telemetry bondedZoneChange {trigger,opDurationMs,bondDurationS,usedMuseAPI,prevChannelMapSet,prevPrimary,wasPrimary}"
+   "bonded_recovery": "recoverBondedZone: consist checks {\"(Secondary doesn't see same topology)\",\"(all members present)\",\"(member missing)\"}; granularities {full state,EQ only}; FSM {\"retrying as topology hasn't settled (ct=%u)\",\"successful %s; %s sent to secondaries\",\"partner is incompatible\",\"hard failure: %d\",\"separating this player from bonded zone\",\"reducing bonded zone to %s\"}; roles {isPrimary,availmap,newmap,othermap}; orphan regroup {\"regrouping with orphaned secondary\",\"Delegating coordination to self\"}; unstick/restick sonar clears; telemetry bondedZoneChange {trigger,opDurationMs,bondDurationS,usedMuseAPI,prevChannelMapSet,prevPrimary,wasPrimary}",
+   "event_vocabulary": [
+    "TopologyEventsReportEvent",
+    "TopologyGroupMemberRemovedEvent",
+    "InfoUpdatedEvent",
+    "ActiveZonesChangedEvent",
+    "RemoteConnectionTypeChangedEvent",
+    "GroupChangedEvent",
+    "VliTransportActionEvent",
+    "NewZPEvent",
+    "ReplicatedSettingsNeedsUpdateEvent",
+    "MissingBondedZoneMemberDetectedEvent",
+    "AVTStateLastChangedEvent",
+    "RemoteHTSwapStateChangedEvent",
+    "DeviceGoneEvt",
+    "GroupAdvertiseRequestEvent",
+    "DesignatedDeviceChangedEvent",
+    "Account changed event",
+    "ThirdPartyMediaServersX",
+    "AlarmRunSequence"
+   ],
+   "iface_ops": [
+    "setLocalSonarCalibrationID",
+    "informLocalNewSourceAreaIds",
+    "getGroupMembersWithDifferentVirtualLineInGroupID",
+    "getLocalOrientation",
+    "setLocalSonarState",
+    "internalPopulateSonarZoneDescription",
+    "isBondedZoneConsistent",
+    "ifBondedZoneGetNextUUID",
+    "ifBondedZoneGetNextUUIDInTopology",
+    "ifBondedZoneGetPartnerUUIDInTopology",
+    "getLocalChannelName",
+    "hasSurrounds",
+    "sonarZoneAgreesOnCalibration",
+    "informLocalVoiceStateChange",
+    "informLocalMicStateChange",
+    "informLocalTVConfigStateChange",
+    "informLocalAirPlay",
+    "informLocalOrientation",
+    "setLocalTransportStateChanged",
+    "informLocalPlayerZPChange"
+   ]
   },
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\""
@@ -121154,6 +121208,45 @@
      "status": "confirmed",
      "address": "0x10ecc67c",
      "notes": "didl extractor block"
+    }
+   ]
+  },
+  "sharelist": {
+   "name": "sharelist \u2014 SMB share replication + index",
+   "status": "partial",
+   "summary": "replication via %s/indexrepl + proposeUpdatedShareList + \"remoteSettingIsBetter: us [%s|%u] vs them [%s|%u]\"; ops {localAddShare,localRemoveShare,localRequestReindex,localRequestResort,localRemoveUnsupportedShares}; protocol gate {verified supported protocol\u2192keep,else remove + count} + VerifiedValidProtocol flag; errors {share ID not found,path already exists,subsumed by existing share,Path is malformed,Access denied,Cannot exceed maximum shares,Mounting failed,Local index storage error,Remote file share error,Indexing canceled,connection failure,replication failed,replication skipped fmt mismatch}; reindex \"request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)\" + \"Turning resort request into full reindex\" + \"processing index complete (c:%d i:%d f:%d lc:%s)\" + commit {m_bCommitted,m_bWait,m_bTerminate} + index recovery \"recovered ix=%d with ver=%d\"; R_BrowseByFolderSort + Tracknum sort",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e89d48",
+     "notes": "sharelist block"
+    }
+   ]
+  },
+  "svc_manifest": {
+   "name": "svcmanifestfile \u2014 SMAPI manifest store",
+   "status": "partial",
+   "summary": "svcmanifests.json {\"manifests\":[\u2026]} + RCache + lastUpdateDevice; schema check \"Unsupported schema version: actual: %u.%u, supported: %u.%u\" + \"Could not extract API header\"; ops {deleteManifest(%u) b=%d,a=%d,removeManifest vb/va}; \"%s downloading music service manifest from %s\"; \"replicating manifest file from %s\"; \"unsupported CQ REST version: %s\"; \"Added trailing slash\"; svcmanifests thread",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e8a740",
+     "notes": "svcmanifestfile block"
+    }
+   ]
+  },
+  "account_migration": {
+   "name": "zpserviceaccounts \u2014 OAuth migration + preinstall",
+   "status": "partial",
+   "summary": "OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthResult}: \"migrated account to OAuth, type:%u, sn: %u\" + retry {res,retry count,\"delay migration until cloud connection\",\"expected ouath account; reset to retry migration\"}; \"failed to replace email with username for last.fm\"; sonos-radio gate {\"no SBiz entitlement; preinstalling Sonos Radio\",\"found SBiz entitlement; blocking preinstall\"} + \"stale entitlements; scheduling job to refresh\"; preinstall SID=%u attempts; SA_RINCON65031_ service-account prefix; settings {R_HideTuneIn,R_MigratedTuneIn}; maintenance {\"failed to download manifest file for account sid/sn\",\"received empty hash\",\"failed to update userInfo and clean up user hash\",\"Failed to getUserInfo during SvcMaintenance\",\"failed to migrate built-in accounts\",\"failed to migrate pre cloud replication accounts\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e9b28c",
+     "notes": "zpserviceaccounts block"
     }
    ]
   }
