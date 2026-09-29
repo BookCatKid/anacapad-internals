@@ -71,7 +71,6 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `fcs_detail` | **partial** | f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffer (timestamp page) |
 | `fd_event` | **partial** | ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.read,removeFd,waitForEvent}; EventSync %s; epoll {create1,ctl,wait} errors incl "unsupported flags","already monitored","exceeded the fd capacity of %d" |
 | `fdevent` | **partial** | ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read}; EventSync %s; epoll_create1/epoll_ctl/epoll_wait error paths; fd capacity bound "%d already monitored"/"exceeded the fd capacity of %d" |
-| `feature_config` | **partial** | cloud GET /features/v1/config? + cache-control: no-cache; files {cloudconfig.json,cloudconfig_override.json} + {swVersion,hwVersion}; precedence: override > cloud-cached ("stale" marker) > cloud-persisted; "failed to fetch config: not securely registered" gate; fetch cycle {"Already have fresh data. Skipping Fetch.","failed to get service url","failed to connect. rescheduling in 1 hour.","Fetching cloud data."}; managers {RFeatureConfigManager,FeatureConfigManager}; FCS Cache requires g_pZone init |
 | `feature_flag_registry` | **partial** | complete compile-time feature/config flag vocabulary (48 keys): featureConfig* family keys in the cloud-config JSON doc plus enable*/disable* booleans read at init — the build's feature map showing which subsystems are switchable |
 | `feature_flags` | **partial** | flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,featureConfigSemiSleep,DropoutContext,HomeTheaterWifiPerfTelemetry,MetricsService,Plink,Quickbonding,SemiSleep,SmartPlay,SpotABR,SsdpAdvertiseConfig,ZoneExperiment,featureConfigZoneExperiment} |
 | `fileio` | **partial** | async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here" |
@@ -122,6 +121,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `mpegts_id3` | **partial** | TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), eslen, "No audio PID"/"Audio PID is 0x%x", "non-audio and non-timed_id3 PID", PTS, peslen/payload; timed-ID3v2 extraction: tag footer detect, "Ignoring too large timed ID3 size", OOB guards, "unsupported mp3 segment" |
 | `mpmgr` | **partial** | actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; resolve {getActor,Actor Filter null,unexpected target ID type,found actor,found backup,target resolved,no actor available}; lifecycle {registered \[%zu\],created \[%zu\],Invalid target key abort,Request to shutdown,shutdown}; per-MP config Player%s + anacapa_logger.toml + /localsettings.txt; VLI hooks {onVirtualLineInGetVolume,SessionStartInfoUpdated,StartSession,StopSession,SuspendSession,NameChanged,MetaDataChanged,PlayModesChanged,onPlaybackStateChanged,processSetVolume,waitOnTxBitFlagsClearedLocked}; events {VolumeSetActionEvent(vol,mute),VliVolumeProcessingCompleteEvent(type,success,flags)+signal rc,VliSessionProcessingCompleteEvent(type,action,success,flags),"vliType old: %s new %s cookie %d"} |
 | `multi_daemon_boundary` | **partial** | anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks \| netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test" |
+| `muse_field_schema` | **partial** | auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery {statusReason,chargingState,validCharger,rawBatteryPercentage,batteryPercentage,batteryTemperature}; device {deviceFeatures,isCoordinator,isVisible,isSatellite,isSecure,bootSequenceId,systemUptimeSeconds,anacapaUptimeSeconds,museHouseholdName,primaryDeviceId,networkIPAddress,networkMask,networkType,wifiSignalStrength}; audio in {bluetoothSource,lineInSource,audioInputName,audioInputIcon}; misc {pageSize,websocketUrl,vanishReason,toVersion,clientState,deviceState,downloadDuration,isSuspended,credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate,businessCore,controlChannels,restrictedAccess,sonosRadio,speed} |
 | `muse_logging` | **partial** | {muselogevt,muselogcmd}; logged ops {loadAudioClip,startDirectControlEx,setProtectedAdminSettings,createVoiceAccount} |
 | `muse_perf` | **partial** | fmt "- %c%010u - %6s -" + "%s: %lldms, %fms avg \[count=%u\]"; stages {AUTH_IS_AUTHORIZED,AUTH_PARSE_DEVICE_TOKEN,AUTH_POLICY_TABLE_CACHE_FETCH,COMMAND_DISPATCH,COMMAND_EXECUTE,COMMAND_LOGGER,COMMAND_PARSE,COMMAND_REPORT,PLAYER_VOLUME_SET_VOLUME} |
 | `muse_semantics` | **partial** | the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume |
@@ -222,6 +222,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `download_status` | **confirmed** | {ERROR_NOT_CALLED,WRITE_ERROR,TRUNCATION_ERROR,SIZE_ERROR,FILE_ERROR,CONNECTION_ERROR,DOWNLOAD_SUCCEEDED,FILE_UNCHANGED,DOWNLOAD_IN_PROGRESS} |
 | `dsp_config` | **strong** | files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully decoded DSPConfig","Decoding error %s","DSPConfig file is empty","Unable to open DSP config file %s"}; per-model {"Bonded gain for '%s' not found in DSPConfig","Volume breakpoints for '%s' not found"}; breakpoints {"no default volume breakpoints specified","no bonded volume breakpoints specified, using default instead","volume (%i) and gain (%i) lengths differ in default volume breakpoints","... in bonded volume breakpoints","default (%i) and bonded (%i) volume breakpoint lengths differ","... breakpoints differ","Too many volume breakpoints ... `.nanopb_options` ... MAX_VOLUME_BREAKPOINT_LENGTH","DSPConfigParams conversion successful"}; gravity param; trueplay_version x.x.x.x fmt + range {"base version isnt valid","Start or end of range isnt a valid version","Unable to parse version from end/start string"}; "setNumChannels(%d) greater than max (%d)"; fileio {"DSP file path is longer than buffer","unable to open file","fread","file %s does not exist","Could not get size of file"} |
 | `error_codes` | **?** |  |
+| `feature_config` | **strong** | {disableWebSocketPerMessageDeflate,metricsConfigURL,metricsConfigV2URL,preferredRPContainer,spotifyAdaptiveBitrate,enableSpotifyConnectForAllAccts,enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,thorTimeout,enableChsrcPerfOptimizations,enableUPnPEventingGNDOptimization,enableSecureAlbumArt,enableCEP20ThreadTweaks,smartPlayConfig,debounceWindowMilliseconds,debounceWindowMillisecondsCEP20,useLegacySpotifySmapiPlayback,quickbondingConfig,ssdpAdvertiseConfig,enablePitchfork,enableSslClientCacheRefresh,plink,enableDhcpProxyFailureTelemetry,homeTheaterWifiPerfTelemetry,enableOnDeviceSoundGeneration,enableRadioSocTemperatureTelemetry,enableHomeTheaterWifi6GHzFronthaul,reportHtSurrounds,reportHtSwap,reportPortableSurrounds,wifiTxRateThreshold,wifiLatencyThresholdMillis,requests,frequencyMins,delayRandPct,enableQuickbonding,enabledHT,thresholdDC,dropoutSensitiveDC,ssdpBroadcastOnlyZonePlayer1,ssdpAdvertiseOnlyEssentialServices,numLFEChannels,numHeightChannels,streamDescription,groupingLatency,enableTrueRoom,enableFlexibleSurroundsTuning,enableVirtualHeight,systemResult,numDevices,numUpdatedDevices} |
 | `group_mgmt` | **?** |  |
 | `ht_telemetry` | **strong** | schema {corrId,cid set/clr,sessionLength,sessionPlayTime,connectionType,GCUUID,GCBootSeq,GCTimeStart,GCTimeEnd,inputRate,dataBurstType,contentType,playSeconds,forced,topoType}; tags {tv_usage,zpHTInputSession} |
 | `htaudio` | **?** |  |
@@ -236,6 +237,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `mod_zp` | **?** |  |
 | `muse` | **?** |  |
 | `muse_engine` | **?** |  |
+| `muse_enums` | **strong** | actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}; SFB perms {SRADIO_HD_CONTENT,SRADIO_SPECIAL_CONTENT,SRADIO_ONDEMAND_ARCHIVE,SRADIO_CAN_SKIP,SFB_BASIC_UI,SFB_COMMERCIAL_MSP,SFB_ESSENTIALS_MSP,SFB_PREMIUM_MSP,SFB_DASHBOARD_ACCESS,SFB_CNTRL_MEDIA_SRCS,SFB_CNTRL_THIRD_PARTY,SFB_RSTC_CONTENT_ACS,SFB_RSTC_SAVE_CONTENT_ACS,SFB_RSTC_SETTINGS_ACS,SFB_RSTC_ALARMS_ACS,SFB_RSTC_MESSAGING_ACS,SFB_RSTC_SAVE_GROUPS_ACS,SFB_SCHEDULES_ACCESS,SFB_MVP}; playback states {BUFFERING,PAUSED,PLAYING}; queue ops {APPEND,INSERT,INSERT_NEXT,PLAY_NOW}; ratings {EXCELLENT,POSITIVE,NEGATIVE,RATED,THUMBSUP,THUMBSDOWN,SHELVED}; registration {LEGACY_REGISTERED,SECURE_REGISTERED,TRANSFER,PREP_TRANSFER}; netmode {NETMODE_SONOSNET_WIRELESS,NETMODE_WIRED,NETMODE_WIRED_NO_WIFI,NETMODE_STATION,NETMODE_SATELLITE_V1,NETMODE_SATELLITE_V1_WIRED,NETMODE_SATELLITE_V2,STATION_SATELLITE}; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; FORBIDDEN; USB_C; GOOGLE; recurrence |
 | `muse_errors` | **strong** | results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ERROR_PLAYBACK_FAILED,NO_CONTENT,NO_PLAYABLE_CONTENT,EXPLICIT_NOT_ALLOWED,EXPIRED_TOKEN,NOT_PLAYABLE,SPOTIFY_CONNECT,FAILURE_TO_ENQUEUE,CLOUD_QUEUE_SERVER,SKIP_LIMIT_REACHED,PLAYBACK_STREAM_LIMIT,PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE}; session {SESSION_IN_PROGRESS,JOIN_FAILED,EVICTED,INVALID_SESSION_ID,NOT_DESIGNATED_DEVICE}; accounts {PREFERRED_ACCOUNT_NOT_SET/NOT_FOUND,ACCOUNT_FULL,INVALID_ID,NO_DEFAULT_FOUND,REAUTH_REQUIRED,UPGRADE_REQUIRED,WRONG_SERVICE}; update {NO_UPDATE_AVAILABLE,INVALID_UPM_FORMAT,INSUFFICIENT_POWER_FOR_UPDATE,UPDATE_IN_PROGRESS}; misc {ALARM_NO_SPACE,ALARM_BAD_TIME_SERVER,AREAS_READ_ONLY,AUDIO_CLIP_ID_NOT_FOUND/_MEDIA_ERROR/_PAUSE_CONTENT_FAILED/_VOICE_ASSISTANT_PLAYING,CACHE_NOT_FOUND/_RECORD_NOT_FOUND,CANT_CONNECT\[_REMOTE\],DEVICE_ALREADY_REGISTERED/UNAVAILABLE,INVALID_ACTION,DOWNSTREAM_CONNECT_FAILED,SHARES_CONFLICT/NO_SUCH_SHARE/NO_SPACE/REQUEST_FAILED,STIMULUS_ALREADY_PLAYING,MICROPHONE_NOT_ENABLED,NO_POSITIONING_RESULTS,UNSUPPORTED_POSITIONING_REQUEST,SVC_DISABLED,TIMER_NOT_FOUND,UNSUPPORTED_VOLUME_MODE,INVALID_RESOURCE,ROOM_DETECTION_SIGNALLING_FAILED/BUSY,GROUP_CHANGED}; generic {COMMAND_FAILED/TIMEOUT,CONTENT_TYPE_NOT_SUPPORTED,DISALLOWED_BY_POLICY,INTERNAL,INVALID_AUTH_HEADER/CERT/OBJECT_ID/PARAMETER/SYNTAX/HEADER/LENGTH/TRANSPORT,TARGET_ID_NOT_FOUND,LOAD_COMMAND_FAILED,MISSING_PARAMETERS,NO_PERMISSION,NOT_AUTHORIZED,NOT_CAPABLE,PRECONDITION_FAILED,EXPECTATION_FAILED,QUEUE_FULL,RESOURCE_GONE/CONFLICT,REQUIRES_GROUP_COORDINATOR,SERVICE_NOT_AVAILABLE/CONFIGURED/SUPPORTED/UNAVAILABLE,UNSUPPORTED_NAMESPACE/COMMAND/REQUEST/REQUEST_METHOD,API_KEY_VALIDATION_FAILED,NYI,CMD_FUTURE,CMD_REMOVED,INSUFFICIENT_RESOURCES,INCORRECT_STATE,INCOMPATIBLE_API_VERSION,INCOMPATIBLE_CLIENT_VERSION}; param validation {MISSING_VALUE,UNEXPECTED_TYPE,"Parameter failed timestamp validation","not a valid Muse error code","out of range: at or below minimum of/above maximum of","Found unexpected array/object","Missing required field","Unable to coerce string to number/boolean","number of entries below/above minimum/maximum"} |
 | `muse_events` | **strong** | {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent} |
 | `muse_types` | **strong** | 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 — the type-name space indexed by {0x82,type_idx} spec-pair entries (hypothesis; index order unproven). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found} |
@@ -1475,21 +1477,6 @@ ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.
 
 </details>
 
-## `feature_config`
-
-**coverage** `partial`
-
-**Technical description:**
-
-cloud GET /features/v1/config? + cache-control: no-cache; files {cloudconfig.json,cloudconfig_override.json} + {swVersion,hwVersion}; precedence: override > cloud-cached ("stale" marker) > cloud-persisted; "failed to fetch config: not securely registered" gate; fetch cycle {"Already have fresh data. Skipping Fetch.","failed to get service url","failed to connect. rescheduling in 1 hour.","Fetching cloud data."}; managers {RFeatureConfigManager,FeatureConfigManager}; FCS Cache requires g_pZone init
-
-- **name:** feature config manager
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10ef3848 — feature config region
-
-</details>
-
 ## `feature_flag_registry`
 
 **coverage** `partial`
@@ -2414,6 +2401,21 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 - @ 0x10ef601c — /tmp/netstartd.ipc socket path
 - @ 0x10efab18 — 'Pushed netsettings update to netstartd'
 - @ 0x10ea7cc0 — per-daemon .dmp/.properties/backtrace crash files
+
+</details>
+
+## `muse_field_schema`
+
+**coverage** `partial`
+
+**Technical description:**
+
+auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery {statusReason,chargingState,validCharger,rawBatteryPercentage,batteryPercentage,batteryTemperature}; device {deviceFeatures,isCoordinator,isVisible,isSatellite,isSecure,bootSequenceId,systemUptimeSeconds,anacapaUptimeSeconds,museHouseholdName,primaryDeviceId,networkIPAddress,networkMask,networkType,wifiSignalStrength}; audio in {bluetoothSource,lineInSource,audioInputName,audioInputIcon}; misc {pageSize,websocketUrl,vanishReason,toVersion,clientState,deviceState,downloadDuration,isSuspended,credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate,businessCore,controlChannels,restrictedAccess,sonosRadio,speed}
+
+- **name:** muse JSON field schema
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f9a8e8 — field schema
 
 </details>
 
@@ -4107,6 +4109,21 @@ files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully dec
 **coverage** `?`
 
 - **rze:** RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}
+## `feature_config`
+
+**coverage** `strong`
+
+**Technical description:**
+
+{disableWebSocketPerMessageDeflate,metricsConfigURL,metricsConfigV2URL,preferredRPContainer,spotifyAdaptiveBitrate,enableSpotifyConnectForAllAccts,enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,thorTimeout,enableChsrcPerfOptimizations,enableUPnPEventingGNDOptimization,enableSecureAlbumArt,enableCEP20ThreadTweaks,smartPlayConfig,debounceWindowMilliseconds,debounceWindowMillisecondsCEP20,useLegacySpotifySmapiPlayback,quickbondingConfig,ssdpAdvertiseConfig,enablePitchfork,enableSslClientCacheRefresh,plink,enableDhcpProxyFailureTelemetry,homeTheaterWifiPerfTelemetry,enableOnDeviceSoundGeneration,enableRadioSocTemperatureTelemetry,enableHomeTheaterWifi6GHzFronthaul,reportHtSurrounds,reportHtSwap,reportPortableSurrounds,wifiTxRateThreshold,wifiLatencyThresholdMillis,requests,frequencyMins,delayRandPct,enableQuickbonding,enabledHT,thresholdDC,dropoutSensitiveDC,ssdpBroadcastOnlyZonePlayer1,ssdpAdvertiseOnlyEssentialServices,numLFEChannels,numHeightChannels,streamDescription,groupingLatency,enableTrueRoom,enableFlexibleSurroundsTuning,enableVirtualHeight,systemResult,numDevices,numUpdatedDevices}
+
+- **name:** featureConfig complete schema
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f9bef8 — featureConfig fields
+
+</details>
+
 ## `group_mgmt`
 
 **coverage** `?`
@@ -4253,6 +4270,21 @@ TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnsseque
 - **client_auth:** schemes {wssmtls,httpsmtls}; audience v2.api.smartspeaker.audio; credentials {apikey,guest_token,guest_token_pin}; "Policy key permissions length exceeds maximum size!"; "validateTargetIdV1: invalid target id: %s of type: %s."; "Client auth exception"; "API key changed from \[%.8s\] to \[%.8s\]"; "Credential is missing"; "Secure connection required"; "Upnp command failed with return code"; "Error code not found in objectStatusMap"; "Api Key passed by client is too long..truncating."; MuseDebugInfo; providers {getActorProvider,getTargetIdProvider,getTargetValidator,MuseDeviceImplProvider}
 - **namespaces:** {audioClip,householdUpdate,management,musicServiceAccounts,pinewood,platformInternal,positioning,roomDetection,soundSwap,systemReporting,systemTime,virtualRemoteControl} + settings:{accessorySettings,business,frontierLlms,global,playback,playerBasic,playerLineIn,playerUI,positioning,preferences,prodashboard,security,video} + upnp:{AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology}
 - **http_auth:** challenge {private,public,realm,error_description,nonce,Basic}; OAuth errors {invalid_request,invalid_token,insufficient_scope,service_unavailable}; results {denied/403,denied/503,no token}; log "Muse auth result: \[%s\] \[%s\] \[%s\] \[%s\] \[%s\] \[%.8s\] \[%s/%s::%s\]"
+## `muse_enums`
+
+**coverage** `strong`
+
+**Technical description:**
+
+actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}; SFB perms {SRADIO_HD_CONTENT,SRADIO_SPECIAL_CONTENT,SRADIO_ONDEMAND_ARCHIVE,SRADIO_CAN_SKIP,SFB_BASIC_UI,SFB_COMMERCIAL_MSP,SFB_ESSENTIALS_MSP,SFB_PREMIUM_MSP,SFB_DASHBOARD_ACCESS,SFB_CNTRL_MEDIA_SRCS,SFB_CNTRL_THIRD_PARTY,SFB_RSTC_CONTENT_ACS,SFB_RSTC_SAVE_CONTENT_ACS,SFB_RSTC_SETTINGS_ACS,SFB_RSTC_ALARMS_ACS,SFB_RSTC_MESSAGING_ACS,SFB_RSTC_SAVE_GROUPS_ACS,SFB_SCHEDULES_ACCESS,SFB_MVP}; playback states {BUFFERING,PAUSED,PLAYING}; queue ops {APPEND,INSERT,INSERT_NEXT,PLAY_NOW}; ratings {EXCELLENT,POSITIVE,NEGATIVE,RATED,THUMBSUP,THUMBSDOWN,SHELVED}; registration {LEGACY_REGISTERED,SECURE_REGISTERED,TRANSFER,PREP_TRANSFER}; netmode {NETMODE_SONOSNET_WIRELESS,NETMODE_WIRED,NETMODE_WIRED_NO_WIFI,NETMODE_STATION,NETMODE_SATELLITE_V1,NETMODE_SATELLITE_V1_WIRED,NETMODE_SATELLITE_V2,STATION_SATELLITE}; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; FORBIDDEN; USB_C; GOOGLE; recurrence
+
+- **name:** muse enum tables
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f9949c — enum tables
+
+</details>
+
 ## `muse_errors`
 
 **coverage** `strong`
