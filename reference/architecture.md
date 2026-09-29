@@ -313,15 +313,18 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
 ### `soap_fault_code_vocabulary`
 
 - **status:** strong
-- **extraction:** li/ori immediates in error-band scanned across all 1848 worker/impl functions referenced in the DB (tools/_errdomain2.py); per-function literal sets persisted in docs/worker_err_literals.json
-- **upnp_band** (79):
+- **extraction:** original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.
+- **upnp_band** (92):
 
   ```
-  101, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 400, 401, 402, 403, 404, 405, 408, 411, 501, 606, 608, 624, 640, 651, 652, 664, 680, 699, 701, 702, 705, 706, 710, 711, 712, 717, 718, 720, 728, 800, 801, 802, 803, 804, 806, 807, 808, 810, 1000, 1003, 1021, 1023, 1024, 1025, 1026, 1028, 1040, 1043, 1046, 1056, 1057, 1100, 1104, 1143, 1152, 1161, 1178, 1200, 1221, 1224, 1266, 1272, 1287
+  101, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 400, 401, 402, 403, 404, 405, 408, 411, 501, 606, 608, 624, 640, 651, 652, 664, 680, 699, 701, 702, 705, 706, 710, 711, 712, 717, 718, 720, 728, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 820, 821, 822, 824, 850, 899, 1000, 1003, 1020, 1021, 1023, 1024, 1025, 1026, 1028, 1040, 1043, 1046, 1056, 1057, 1100, 1104, 1143, 1152, 1161, 1178, 1200, 1221, 1224, 1266, 1272, 1287
   ```
 - **semantics:** every 'vret'/passthrough error domain is bounded by the union of its impl worker's exit literals + this aggregate vocabulary; concrete per-action subset requires exit-block dataflow (runtime boundary for the impl->engine delegation chains)
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: whole-.text census: 2713 fns w/ error-band literals; refined accumulator-filtered propagation over 6729-fn call graph; additions verified against store-commit ladders
+- **notes:**
+  - **census_union:** Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.
 
 ### `soap_client`
 
