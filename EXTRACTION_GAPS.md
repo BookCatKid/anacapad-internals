@@ -1202,3 +1202,21 @@ the deep semantic layer:
     (internal IE-model vars, statically unresolvable).
     Action-layer saturation verified: 205/205 actions carry bound
     handler addresses.
+
+17. Full wire-schema decode round (e039a38-9f8f6d9):
+    nanopb 0.4.x PB_FIELDINFO format fetched and decoded properly
+    (variable 1/2/4/8-word fields). All 103 msgdescs decoded: 362
+    fields = 150 submsg/63 uvarint/58 string/54 fixed32/19 bool/
+    17 varint/3 bytes; recorded as tag:ltype:htype in schemas[].
+    Envelope 0x10fbfa8c resolved: {1:string, 2-4:rep submsg,
+    5-44:ONEOF over 40 subdescs} - tagged-union RPC envelope.
+    text_region_map completed end-to-end 0x1006-0x10e6: vendored
+    boundary pinned (libstdc++ 0x1084-8f, curl 1090-95, mbedtls
+    1096, nghttp2 1097, async_http_client 1098, RapidJSON
+    1099-9b, muse client 109c-10aa) + ~70 Sonos block attributions.
+    .text census: ~19k fns; zero-anchor blocks resolved as either
+    vendored (libstdc++) or subsystem-internal subroutines.
+    RESIDUAL: envelope oneof branch NAMES bound at runtime via
+    field-1 string (no static name->desc table exists - verified);
+    per-branch schema decoded but operation identity needs
+    .proto/api-name correlation.
