@@ -4918,9 +4918,39 @@ OnlineUpdateBaseURL, RSystemOverrides, O_SUBMIT_DIAG_URL, O_SUBMIT_AUTO_DIAG_URL
 <li><strong>note:</strong> 64-bit LED-state mask; !R_LED_HHID logs the same 0x2 bit inverted (set vs clear both logged)</li>
 </ul>
 </li>
+<li><strong>r_play_op:</strong><ul>
+<li><strong>provenance:</strong> jump-table dispatch in f_104c9270: cmplwi bound 6 + PIC offset table @0x10ed8640; each case logs its R_PLAY_OP name — PROVEN</li>
+<li><strong>kind:</strong> enum</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> (no R_ log in case — likely NONE/nop)</li>
+<li><strong>1:</strong> R_PLAY_OP_BOUNDARY</li>
+<li><strong>2:</strong> R_PLAY_OP_RESYNC (immed log site)</li>
+<li><strong>3:</strong> R_PLAY_OP_ERROR</li>
+<li><strong>4:</strong> shared case: R_PLAY_OP_RESYNC (sched), R_PLAY_OP_CHANGE_SRC, R_PLAY_OP_SAMPLE all logged here</li>
+<li><strong>5:</strong> R_PLAY_OP_CODEC_SELECTED</li>
+<li><strong>6:</strong> R_PLAY_OP_ORIGIN_TIME_SELECTED</li>
+</ul>
+</li>
+<li><strong>r_stream_op:</strong><ul>
+<li><strong>provenance:</strong> jump-table dispatch in f_104c6264 (stream op handler); case-&gt;log-name bucketing — PROVEN</li>
+<li><strong>kind:</strong> enum</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> (no R_ log)</li>
+<li><strong>1:</strong> R_STREAM_OP_OPEN</li>
+<li><strong>2:</strong> R_STREAM_OP_CLOSE</li>
+<li><strong>3:</strong> R_STREAM_OP_INTERRUPT</li>
+<li><strong>4:</strong> shared case: R_STREAM_OP_SAMPLE + R_STREAM_OP_ACK</li>
+<li><strong>5:</strong> R_STREAM_OP_ERROR</li>
+<li><strong>6:</strong> R_STREAM_OP_BOUNDARY</li>
+<li><strong>7:</strong> R_STREAM_OP_IMMED_RESYNC</li>
+<li><strong>8:</strong> R_STREAM_OP_SCHED_RESYNC</li>
+<li><strong>9:</strong> R_STREAM_OP_ORIGIN_TIME_SELECTED</li>
+<li><strong>10:</strong> R_STREAM_OP_QUALITY_SELECTED</li>
+</ul>
+</li>
 <li><strong>evidence:</strong></li>
 <li>type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12</li>
-<li><strong>r_star_status:</strong> method established: per-use extraction at log sites. R_LED_<em> proven via log-arg constants (r_led_mask). Remaining namespaces (R_PLAY_OP/R_STREAM_OP/R_INIT_STATUS/R_ACCOUNT_</em>/R_PAND_<em>/R_WMP_</em>/R_READ_<em>/R_WRITE_</em>/R_CLOUD_QUEUE_<em>/R_LASTFM_</em>) still need switch-dispatch analysis — their log sites compare masked/multi-reg values, not single immediates</li>
+<li><strong>r_star_status:</strong> PROVEN via per-use methods: R_LED_<em> (64-bit mask, log-arg constants in applyLEDMode f_10c918a0), R_PLAY_OP_</em> + R_STREAM_OP_<em> (PIC jump-table case bucketing). Remaining unproven: R_INIT_STATUS/R_READ_STATUS/R_WRITE_STATUS/R_ACCOUNT_</em>/R_PAND_<em>/R_LASTFM_</em>/R_WMP_<em>/R_CLOUD_QUEUE_</em>/R_MASK_<em>/R_CLIENT_KEYCERT_</em>/R_TYPE_<em>/R_PLAYBACK_</em> + singles — their use sites are compare-chains or non-switch dispatch; same method applies but needs per-site masked-compare decoding</li>
 </ul>
 
 

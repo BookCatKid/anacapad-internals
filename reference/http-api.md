@@ -2823,6 +2823,32 @@ The complete operation list of the muse (app/cloud) API: every resource and what
       - **R_LED_IDENTIFY_PLAYER:** 0x4000000000
       - **R_LED_PLAYING:** 0x0 (else/default case — mask with no bit set)
     - **note:** 64-bit LED-state mask; !R_LED_HHID logs the same 0x2 bit inverted (set vs clear both logged)
+  - **r_play_op:**
+    - **provenance:** jump-table dispatch in f_104c9270: cmplwi bound 6 + PIC offset table @0x10ed8640; each case logs its R_PLAY_OP name — PROVEN
+    - **kind:** enum
+    - **names:**
+      - **0:** (no R_ log in case — likely NONE/nop)
+      - **1:** R_PLAY_OP_BOUNDARY
+      - **2:** R_PLAY_OP_RESYNC (immed log site)
+      - **3:** R_PLAY_OP_ERROR
+      - **4:** shared case: R_PLAY_OP_RESYNC (sched), R_PLAY_OP_CHANGE_SRC, R_PLAY_OP_SAMPLE all logged here
+      - **5:** R_PLAY_OP_CODEC_SELECTED
+      - **6:** R_PLAY_OP_ORIGIN_TIME_SELECTED
+  - **r_stream_op:**
+    - **provenance:** jump-table dispatch in f_104c6264 (stream op handler); case->log-name bucketing — PROVEN
+    - **kind:** enum
+    - **names:**
+      - **0:** (no R_ log)
+      - **1:** R_STREAM_OP_OPEN
+      - **2:** R_STREAM_OP_CLOSE
+      - **3:** R_STREAM_OP_INTERRUPT
+      - **4:** shared case: R_STREAM_OP_SAMPLE + R_STREAM_OP_ACK
+      - **5:** R_STREAM_OP_ERROR
+      - **6:** R_STREAM_OP_BOUNDARY
+      - **7:** R_STREAM_OP_IMMED_RESYNC
+      - **8:** R_STREAM_OP_SCHED_RESYNC
+      - **9:** R_STREAM_OP_ORIGIN_TIME_SELECTED
+      - **10:** R_STREAM_OP_QUALITY_SELECTED
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
-- **r_star_status:** method established: per-use extraction at log sites. R_LED_* proven via log-arg constants (r_led_mask). Remaining namespaces (R_PLAY_OP/R_STREAM_OP/R_INIT_STATUS/R_ACCOUNT_*/R_PAND_*/R_WMP_*/R_READ_*/R_WRITE_*/R_CLOUD_QUEUE_*/R_LASTFM_*) still need switch-dispatch analysis — their log sites compare masked/multi-reg values, not single immediates
+- **r_star_status:** PROVEN via per-use methods: R_LED_* (64-bit mask, log-arg constants in applyLEDMode f_10c918a0), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table case bucketing). Remaining unproven: R_INIT_STATUS/R_READ_STATUS/R_WRITE_STATUS/R_ACCOUNT_*/R_PAND_*/R_LASTFM_*/R_WMP_*/R_CLOUD_QUEUE_*/R_MASK_*/R_CLIENT_KEYCERT_*/R_TYPE_*/R_PLAYBACK_* + singles — their use sites are compare-chains or non-switch dispatch; same method applies but needs per-site masked-compare decoding
