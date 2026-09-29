@@ -491,6 +491,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `vli_state_snapshot` | VirtualLineIn |  | ? | `strong` |
 | `zone_group_state_schema` | /ZoneGroupTopology/Control |  | ? | `strong` |
 | `zoneplayers_status_schema` | /status |  | ? | `strong` |
+| `zp_support_info` | /status support info |  | ? | `strong` |
 | `zpinfo_schema` | mod_zp /status |  | ? | `strong` |
 
 ### `AC.AlarmListVersion`
@@ -3483,6 +3484,11 @@ evented ZoneGroupState XML emitted by topology_base
 ### `zoneplayers_status_schema`
 
 /status ZonePlayers page
+
+
+### `zp_support_info`
+
+ZPSupportInfo schema
 
 
 ### `zpinfo_schema`

@@ -22,6 +22,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `audio_taps` | **partial** | PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap |
 | `auto_update` | **partial** | states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {"Upcoming alarm is preventing update","Active device(s) preventing update"}; "Trimming the window to (%d) seconds"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; "RINCON_%s01400 updated to %s"/"update failed (%d)"; "Retrying upgrade (%d/%d)..."/"Giving up after max upgrade attempts"; upgrade_mgr.txt state file |
 | `boot_sequence` | **partial** | "updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey} |
+| `browse_prefixes` | **partial** | {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:} + urn:schemas-rinconnetworks-com:metadata-1-0/\|total |
 | `bt_sbc` | **partial** | params "freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu"; errors {Invalid packet header,Failed to parse %zd,Truncated packet. Lost frames,Invalid packet,frame size changed %zu->%zu,decoder error %zd on frame %zu,Bad SBC frame %zu read/decoded,NOTIFYFRAME_ERR_BUFFERING,unknown frame status} |
 | `business_msp` | **partial** | Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION) |
 | `buttons_ir` | **partial** | button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database |
@@ -37,6 +38,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `dolby_decoder` | **partial** | config files /opt/dsp/dolby_config.json + app/debug/dsp/dolby_config.json jffs override; keys {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle,oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal} + DRC {movie,night,disable} + crossover 100-200HZ + speaker roles lrrse/lrrs1/lrrs2; Evolution mem {static,dynamic byte allocs}, timeslice processing, malformed-input detect; status <DEC_SampleRate><LFEPresence><DEC_ChanCount> + <BlocksInTimeSlice><ACMOD><DataRate><DialNorm><SURRMOD> |
 | `drm_content_keys` | **partial** | skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry detected from ContentKeys"; X-Sonos-Playback-Id: %s header; "getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)" |
 | `dropout_logging` | **partial** | triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,set/reset pt}; slot model {clr slot,slot in use skip incr,set slot %zu idx %zu to %s,no space in list}; conditions {set pt reached,flag report at %zu sbmt,set pos aud,pt in fut - inaud,GCI but no CID}; per-ch incr "incr call: %s, %zu, %zu, ch %zu, %d.%06d"; fields {inputType,SatChCount,HtsnkVersion,msAfterPt,GroupRole,GCTimeValid,GCTime,btRole,submit}; counters {htsnk_missed_total,htsnk_missed_duration_total,htsnk_late_total,htsnk_strm_reset_duration_total,htsnk_strm_silence_duration_total,htsnk_strm_plc_duration_total}; reasons {chsnk_lse,chsnk_ch_data_full,chsnk_w_err,chsrc_framer_uflw,htsnk_invld_sntp,htsnk_late_frames,htsnk_missed_frames,htsnk_time_backw,htsnk_stream_err,htsnk_stream_uflw,htsnk_stream_reset_duration,htsnk_wrong_frame}; bt_audio + injectdropout test cmd {"missing dt param","Injected dropout error"}; "Sat chs %zu"/"Sat htsnk ver %u" |
+| `dsp_config` | **partial** | /opt/dsp file; "Successfully decoded DSPConfig"; errors {Decoding error,file empty,Unable to open,Bonded gain not found,Volume breakpoints not found,no default/bonded volume breakpoints,lengths differ,too many (nanopb_options vs MAX_VOLUME_BREAKPOINT_LENGTH)}; gravity field; default+bonded breakpoint curves compared |
 | `dsp_files` | **partial** | files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,dsp_system_satellite.bin,satellite_processor.bin}; sonar-tone flush {"flushing sonar tones","Flushed"}; htdocs_locked; "modZPAmpTimer() called"; "unable to delete %s even though it exists"/"successfully deleted %s"; settings {ZPLocalSettingsFile,ZPExpirationTime,ZPGroupExpirationTime,ZPForcedUPnPExpirationTimeout,ZPMusicServicesBackstop,ZPTimeZonesBackstop}; "Setting JFFS root to %s" + ServerRoot + ContinueAfterIPChange + #GROUP_NAME# + "Failure generating group description xml" |
 | `dsp_ht_engine` | **partial** | home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks |
 | `dts_decoder` | **partial** | profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo} |
@@ -72,12 +74,14 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `lla` | **partial** | errors {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; devices {lla_hdmi out, lla_in_%s in}; out: "Setting tx latency %u", combined time+output delay, play-time-in-past reject, "time requested %d.%06d current time ... devPlayTime/devCurrentTime", "callback failed, playing zeros", underflow-count cache; in: descriptor "id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu", rx time in ticks, nonblocking pipe, buffer copy maxbytes bound; fds lla-select/lla.in.poll |
 | `load_content` | **partial** | verbs {loadContainer,loadStream,loadFavorite,loadPlaylist,loadTrackList} with guidance "Use playback#loadTrackList to load tracks"/"Use playback#loadStream to load streams"; item types {spotify.connect,linein.homeTheater.spdif,linein.airplay,trackList.program,episode.podcast,chapter.audiobook,homeTheater-input,TV Audio}; meta json paths {/containerType,/containerName,/name,/explicit,/durationMs,/artist,/imageUrl,/releaseDate,/mimetype}; errors {Invalid favorites directory state,Invalid content resolver state,Account error,Invalid serviceId,Could not find default account for serviceId,SID mismatch lookupAccountByUDN vs RMuseUniversalMusicObjectId,Could not find UDN,serviceId is not associated with accountId}; "cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued)" + "item.id tracking is out of memory"; local-library + r:contentService + /getaa? art; sn_%u/mhhid_ id prefixes; "RadioShow name/Id truncated"; shared\|private visibility; protocolInfo http-get:*:%s:* |
 | `log_domain_map` | **partial** | 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring |
+| `log_domains` | **partial** | files /opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.events,ht,hdmi,hw.events,lechmere.event,musecmdandrsp,musedebug,museevt,rc.upnp,snf,spotify,spotify.debug,sps,trueplay,tv,vl}.log + anacapa.log + /jffs/app/log/anacapa.log.backup; conf {/opt/conf/anacapa.conf,/jffs/conf/anacapa.conf}; "Capped MaxConn value %d to %d. Edit anacapa.h to increase cap."; ZPSTR_BUFFERING state; R_TrialZPSerial key |
 | `longpress` | **partial** | GC list {head,tail,current} of cloneable group coordinators; "cycling to %s:%s"/"end of list reached"; tracked GC actions {Adding new GC,Moving GC to head,Removing GC,"Updating last PAUSED/STOPPED GC","Last GC in HH to change playback state is no longer cloneable",Untracked GC action}; "not joinable" |
 | `media_player_abstraction` | **partial** | source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source |
 | `media_player_mgr` | **partial** | actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target \[%s\] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming |
 | `memory_monitor` | **partial** | reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /tmp/memorylog/log.%d with .old rotation; "memory report avail=%s free=%s"; "report skipped %s (count: %u)"; fields {memavailable,memfree}; threads memlog/memmon/memory_status |
 | `mntmgr` | **partial** | mount points /tmp/smb/%d_%d + trial /tmp/smb/tmp%d_%u; "already mounted unc=%s share=%s loc=%s"; "too many shares mounted"; trial mount "Trial mount found unsupported protocol: %s (strike %d/%d)" + "flagging %s as failed"; "not http mounting %s as %s" |
 | `model_sku_vocabulary` | **partial** | 51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID |
+| `model_table` | **partial** | models recognized by this build: {ZPS1,ZPS3,ZPS6,ZPS9(this unit),ZPS11,ZPS12,ZPS13,ZPS14,ZPS15,ZPS16,ZPS17,ZPS18,ZPS19,ZPS20,ZPS21,ZPS22,ZPS23,ZPS24,ZPS26,ZPS27,ZPS31,ZPS35,ZPS37,ZPS38,ZPS43,ZPS54,ZPS55,ZP120,ANVIL} |
 | `mp3_decoder` | **partial** | normalization {id3,lame}; "WMA radio not supported on this platform"; resync bound "20 resync required: corrupt file"; frame errors {illegal sample rate,read frame header/sync/data overflow/data failed}; xing {"No size in xing header","xing we can't load",VBR dur "%zukb/%ukbps = %llds",CBR dur,"Assume that VBR file without a ToC has constant bitrate of %d"}; ID3v2 skip; "Found valid header after searching %zu bytes"; seekSeconds duration bound |
 | `mp_autoplay` | **partial** | params {vol,useVol,includeZones} + "airplay include zones: %d" + AirplayIncludeGroupedEvt; linein types {object.item.audioItem.linein.{homeTheater,airplay,bluetooth}} + x-sonos-vli; target resolution {"lonely local line-in autoplay","no autoplay target","couldn't determine coordinator/AVT control URI/control URI","Not executing on invisible/node proto incompatible ZP"}; "for controlURI \[%s\] for coordinator \[%s\]. programURI \[%s\]"; "Autoplay command failed ret=%d"; "AutoStop called on unhandled URI"; http://%s:%u |
 | `mpegts_id3` | **partial** | TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), eslen, "No audio PID"/"Audio PID is 0x%x", "non-audio and non-timed_id3 PID", PTS, peslen/payload; timed-ID3v2 extraction: tag footer detect, "Ignoring too large timed ID3 size", OOB guards, "unsupported mp3 segment" |
@@ -92,6 +96,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
 | `player_settings` | **partial** | keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq(treble/bass/loudness),gainTrimDB,zone attributes}; gates {"Device does not support fixed output","Satellites not supported; configure primary device","monoMode (not supported in setup)",wifiDisable {reason unknown,netstart refused,no Ethernet carrier},meshDisable (netstart refused),"EQ cannot be adjusted in PASS_THROUGH volume mode"}; error fmt "Unable to set setting(s): X (unsupported)"; settingsv2; gmSat/ukwnt/unhandled handlers |
 | `playlist_parsers` | **partial** | iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction ("found linkUrl"); Post-stream readData dump {bytesLeft,len,buf} |
+| `protocol_info` | **partial** | rows {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:audio/mpeg3:*,sonos.com-http:*:audio/wma:*,sonos.com-http:*:audio/wav:*,sonos.com-http:*:audio/aiff:*,sonos.com-http:*:audio/flac:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-http:*:application/ogg:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls-static:*:*:*,sonos.com-http:*:application/dash+xml:*,sonos.com-http:*:application/octet-stream:*,x-sonosapi-hls:*:*:*,sonos.com-http:*:audio/mp4:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; prefixes {sonos.com-http,sonos.com-mms,sonos.com-spotify,sonos.com-rtrecent,sonos.com-hls-static,sonos.com-hls-radio,sonos.com-hls-aac}; audio/vnd.radiotime; ext map {.wav,.aiff,.flac,.mpd,.unknown}; "Unsupported mime type (%s) for object id (%s)" |
 | `psk_hierarchy` | **partial** | PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each +Backup mirror id; rotation {"Unable to generate new HH/control/room name encrypt/lan swap PSK","Unable to update settings with new PSKs","PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)","Bumping netsettings version","not rotated"}; encoding {"Encoding SonosNet key failed","Encoding DTLS HH PSK failed"}; "Pending netsettings.json update discarded after replicating"; "Settings Replication changed SN Disable from %d to %d (source: %s)"; SSID protection {"SSID missing from known networks list","Registering for next topology update to protect SSID","Current SSID protected/already protected/not protected, could not get current SSID/missing from networks list","Not connected to a WiFi network, skipping SSID protection"}; "Received netsettings update from netstartd"/"netsettings changed"; app/run/nettestresult.txt |
 | `qplay` | **partial** | QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support |
 | `qplay_protocol` | **partial** | Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route — the only service missing its event pair), a QPlayAuth action taking Seed/Code/MID/DID arguments (seed→code auth handshake: controller sends Seed, device answers with a Code computed from MID machine-id and DID device-id), a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> |
@@ -105,6 +110,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `sharelist` | **partial** | replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter: us \[%s\|%u\] vs them \[%s\|%u\]"; ops {localAddShare,localRemoveShare,localRequestReindex,localRequestResort,localRemoveUnsupportedShares}; protocol gate {verified supported protocol→keep,else remove + count} + VerifiedValidProtocol flag; errors {share ID not found,path already exists,subsumed by existing share,Path is malformed,Access denied,Cannot exceed maximum shares,Mounting failed,Local index storage error,Remote file share error,Indexing canceled,connection failure,replication failed,replication skipped fmt mismatch}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)" + "Turning resort request into full reindex" + "processing index complete (c:%d i:%d f:%d lc:%s)" + commit {m_bCommitted,m_bWait,m_bTerminate} + index recovery "recovered ix=%d with ver=%d"; R_BrowseByFolderSort + Tracknum sort |
 | `shoutcast` | **partial** | request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; responses {ICY 200,HTTP/1.1 200,HTTP/1.0 200,HTTP/1.1 30x,HTTP/1.0 30x} + redirect to %s; "request buffer is too small"; "add header \[%s : %s\]"; "opening connection with \[%s\]"; "Redirect audio/x-mpegurl to %s" (M3U); inline metadata {StreamTitle,text=""} + "end of file or I/O error"; shoutcastradio type; explicitContentFiltering + rsmapicontextzp |
 | `shutdown_reasons` | **partial** | "idle state is %sidle, changing to %sidle" + dpUpdateIdleState; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; "unable to parse KVPair. %s is an invalid KV pair string."; battery {RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; EnetPorts {<Port port Link Speed> + EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,...}} |
+| `shutdown_seq` | **partial** | ordered teardown {HttpClient,ZonePlayer,AsyncMuseThreadPool,InternalEventDispatcher,resetZone,DropoutEventHandler,deleteTimedJobManager,AsyncThreadPool,finalSection,finalSectionEnd} |
 | `signal_source` | **partial** | errors "invalid playId"/"failed to stop signal"/"incorrect playId"/"nothing is currently playing"/"couldn't create an audio stream"/"only one signal can run at any given time"/"invalid channel"/"disallowed by policy"; channelNumber param |
 | `smartplay` | **partial** | reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge/content/api + "service base path: %s"; timings {"loadContent took %ld ms: GroupId %s GC %s %s","getContent took %ld ms: %s","fetchContentAndStartPlay took %ld ms, success: %s"}; errors {loadContent failed,getContent parse failed,getContent failed} |
 | `sntp_server` | **partial** | Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling |
@@ -498,6 +504,21 @@ states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SE
 
 </details>
 
+## `browse_prefixes`
+
+**coverage** `partial`
+
+**Technical description:**
+
+{newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:} + urn:schemas-rinconnetworks-com:metadata-1-0/|total
+
+- **name:** SMAPI/browse object-id prefixes
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f0f62c — browse prefixes
+
+</details>
+
 ## `bt_sbc`
 
 **coverage** `partial`
@@ -782,6 +803,21 @@ triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ebe644 — dropout handler block
+
+</details>
+
+## `dsp_config`
+
+**coverage** `partial`
+
+**Technical description:**
+
+/opt/dsp file; "Successfully decoded DSPConfig"; errors {Decoding error,file empty,Unable to open,Bonded gain not found,Volume breakpoints not found,no default/bonded volume breakpoints,lengths differ,too many (nanopb_options vs MAX_VOLUME_BREAKPOINT_LENGTH)}; gravity field; default+bonded breakpoint curves compared
+
+- **name:** DSPConfig — nanopb volume breakpoints
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f249f4 — dspconfig block
 
 </details>
 
@@ -1518,6 +1554,21 @@ Every anacapa.*.log domain names a subsystem boundary — the 21 domains are eff
 
 </details>
 
+## `log_domains`
+
+**coverage** `partial`
+
+**Technical description:**
+
+files /opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.events,ht,hdmi,hw.events,lechmere.event,musecmdandrsp,musedebug,museevt,rc.upnp,snf,spotify,spotify.debug,sps,trueplay,tv,vl}.log + anacapa.log + /jffs/app/log/anacapa.log.backup; conf {/opt/conf/anacapa.conf,/jffs/conf/anacapa.conf}; "Capped MaxConn value %d to %d. Edit anacapa.h to increase cap."; ZPSTR_BUFFERING state; R_TrialZPSerial key
+
+- **name:** anacapa log-domain map
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e7543d — log domains
+
+</details>
+
 ## `longpress`
 
 **coverage** `partial`
@@ -1635,6 +1686,21 @@ Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability 
 - @ 0x10f249a4 — ZPS9
 - @ 0x10e741dd — HwFeatures
 - @ 0x10f2490c — ZPSnn identifier table (two rodata runs)
+
+</details>
+
+## `model_table`
+
+**coverage** `partial`
+
+**Technical description:**
+
+models recognized by this build: {ZPS1,ZPS3,ZPS6,ZPS9(this unit),ZPS11,ZPS12,ZPS13,ZPS14,ZPS15,ZPS16,ZPS17,ZPS18,ZPS19,ZPS20,ZPS21,ZPS22,ZPS23,ZPS24,ZPS26,ZPS27,ZPS31,ZPS35,ZPS37,ZPS38,ZPS43,ZPS54,ZPS55,ZP120,ANVIL}
+
+- **name:** ZPS model-compatibility table
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f2490c — model table
 
 </details>
 
@@ -1912,6 +1978,21 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ed1854 — play_state_mgr region
+
+</details>
+
+## `protocol_info`
+
+**coverage** `partial`
+
+**Technical description:**
+
+rows {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:audio/mpeg3:*,sonos.com-http:*:audio/wma:*,sonos.com-http:*:audio/wav:*,sonos.com-http:*:audio/aiff:*,sonos.com-http:*:audio/flac:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-http:*:application/ogg:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls-static:*:*:*,sonos.com-http:*:application/dash+xml:*,sonos.com-http:*:application/octet-stream:*,x-sonosapi-hls:*:*:*,sonos.com-http:*:audio/mp4:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; prefixes {sonos.com-http,sonos.com-mms,sonos.com-spotify,sonos.com-rtrecent,sonos.com-hls-static,sonos.com-hls-radio,sonos.com-hls-aac}; audio/vnd.radiotime; ext map {.wav,.aiff,.flac,.mpd,.unknown}; "Unsupported mime type (%s) for object id (%s)"
+
+- **name:** GetProtocolInfo — protocolInfo rows
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f0f62c — protocolinfo block
 
 </details>
 
@@ -2227,6 +2308,21 @@ request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; response
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ef3328 — idle/shutdown block
+
+</details>
+
+## `shutdown_seq`
+
+**coverage** `partial`
+
+**Technical description:**
+
+ordered teardown {HttpClient,ZonePlayer,AsyncMuseThreadPool,InternalEventDispatcher,resetZone,DropoutEventHandler,deleteTimedJobManager,AsyncThreadPool,finalSection,finalSectionEnd}
+
+- **name:** modZPShutdown sequence
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e743d7 — shutdown order
 
 </details>
 
