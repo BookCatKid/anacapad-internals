@@ -2491,5 +2491,34 @@
   "strings_remote": "SWPBL-250456",
   "upd_structure": "86.10-80260-1-9.upd sections: preinstall.sh (type 3), kernel.uImage (type 6), rootfs.squashfs (type 4) + device-payload.bin \u2014 per-section sha256 + recipient_id 12e82a182af27801eba0ff3c94e8e649ed962dbb",
   "confidence": "proven (rootfs build.properties + receipt.json)"
+ },
+ "rodata_diff_m8_vs_m9_868": {
+  "claim": "model-8 fenway vs model-9 limelight at SAME version 86.8-78270: m9 has ~3212 meaningful unique strings vs m8's ~962 \u2014 the delta is almost entirely the home-theater stack plus a few surprising m8-only surfaces",
+  "m9_only_surface": [
+   "full HT pipeline: htaudio{,_autoplay,_chprocessing,_configuration,_satellite_tx}.cxx + zoneplayer/htaudio.cxx + /htconfig",
+   "<TVProc> status XML {Input,Signal,Mode,HTSwap,SampleRate,FrameRate,DataBurst,NSDResult,StreamInfo,StreamChannels,InputChannelCount} + /tvprocessor + tv_processor_usage.cxx",
+   "Dolby stack: /opt/dsp/dolby_config.json (+jffs override app/debug/dsp/dolby_config.json), format names {Dolby Digital,DD+,TrueHD,MAT,Atmos DD+/MAT/TrueHD}, sonosdolbyconfig, 'Unknown Dolby Databurst Type; choosing UDC'",
+   "SPDIF tap: /spdiftap,/snapshotspdiftap,/downloadspdiftap + <SPDIFParser> schema {State,InputBitstreamStride,Anomalies} + tv_spdif_{16,32} taps",
+   "TV EDID quirk database: Mitsubishi WD-65638/WD-60738, JVC JLC42BC3000/LT-19E610, LG/Haier L32D1120, RCA 46LA45RQ, Seiki LC-32B56 \u2014 per-TV-model compat strings",
+   "Playbar DSP presets: MasterSysPlaybar, MasterSysPlaybarNoDsp, PlaybarBassManager, PlaybarLimiter + Evolution decoder ('Failed to allocate %llu dynamic byte for Evolution decoder')",
+   "surround/satellite: htaudio_satellite_tx.cxx, satelliteChannelMap, HTChProcConfig protobuf, 'satellite %s;%s, model %s, added to ht config'",
+   "m9-only web form: /ssh/authorized_keys POST form w/ csrfToken + textarea + remove_keys \u2014 SSH key mgmt endpoint",
+   "audio-tap debug: '!!!!! rewinding audio tap !!!!!','!!!!! start of audio tap !!!!!'"
+  ],
+  "m8_only_surface": [
+   "per-product DSP classes: DSPControlPlay1/DSPPlay1, DSPControlPlay3/DSPPlay3, DSPControlSub/DSPSub/DSPSysSub (runtime submodel split, not compile-time)",
+   "'Unsupported Fenway Submodel'/'Unsupported fenway Submodel' guards",
+   "'Sonar spatial calibration for all-in-one speakers not implemented' \u2014 fenway Sonar present, spatial cal only on HT master",
+   "GPIO procfs /proc/driver/gpio",
+   "debug web forms: /logger XHR POST + /removestring form with csrfToken",
+   "sample-ramp params: LimRampTimeAttack/LimRampTimeRelease, disableRamping, 'Changed sample type from %u to %u'",
+   "sonar channel stats: channel_%d_bounciness, channel_%d_envaverage, sonarFreq, freq_%d",
+   "TEST HARNESS: 'Perform test: %s: # frames %u; every %u; repeat %u; skipBy: %u; offsetUsec: %d'",
+   "Lv1.api.smartspeaker.audio endpoint literal",
+   "limiter plumbing: 'Lim Ramp Time {Attack,Release}'"
+  ],
+  "shared_schema_delta": "<Zone> XML schema nearly identical BUT m9 adds <SourceGainOffsetdB>%d</SourceGainOffsetdB> field absent on m8",
+  "confidence": "proven (normalized .rodata diff, substring-verified both directions)",
+  "method": "identical packer-normalization as 86.8->86.10 diff; raw m8=25863/m9=30763 unique strings, real post-filter m8-only=962 m9-only=3212"
  }
 }
