@@ -3393,7 +3393,40 @@
 - </em><em>/upnp:</em><em> f_105eb0b4
 - </em><em>/wireless:</em><em> f_105eab50
 - </em><em>/zp:</em><em> f_100bfbac (flag 1)
-  - </em><em>flag_hypothesis:</em>* flag reads as a bitmask: bit1(0x2)=GET-eligible (set on nearly every page), bit2(0x4)=POST-capable (flag 6 on /scanresults,/playmode,/opt/log/mdnsd.log), bit7(0x80)=API/JSON-style dispatch (0x82 on /api,/cloudqueue,/leds), flag=1 on /zp,/VERSION,/ifconfig possibly unauthenticated/plain-text; 0x43/0x46 outliers on /proc/ath_rincon pages (extra caps 0x40+3/6); INFERRED from flag distribution — the matcher fn that tests the bits not yet located</p>
+  - </em><em>flag_hypothesis:</em><em> flag reads as a bitmask: bit1(0x2)=GET-eligible (set on nearly every page), bit2(0x4)=POST-capable (flag 6 on /scanresults,/playmode,/opt/log/mdnsd.log), bit7(0x80)=API/JSON-style dispatch (0x82 on /api,/cloudqueue,/leds), flag=1 on /zp,/VERSION,/ifconfig possibly unauthenticated/plain-text; 0x43/0x46 outliers on /proc/ath_rincon pages (extra caps 0x40+3/6); INFERRED from flag distribution — the matcher fn that tests the bits not yet located
+- </em><em>page_schemas:</em><em>
+  - </em><em>provenance:</em><em> emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)
+  - </em><em>schemas:</em><em>
+- </em><em>/zp:</em><em> <ZPInfo>{ZoneName,ZoneIcon,Configuration,LocalUID,SerialNumber,SoftwareVersion,BuildType,SWGen,SoftwareDate,SoftwareScm,HHSwgenState,MinCompatibleVersion,...}</ZPInfo>
+- </em><em>/device:</em><em> <DeviceInfo>{ZoneName,NetworkHash,DHCPServerMac,NetworkIPAddress,NetworkMask,DiagLevel,DevMode}</DeviceInfo>
+- </em><em>/alarm:</em><em> <Alarm>{Mode,Scheduler,UTCTime,LocalTime,Pending{PendingAlarm[ID,Type,Time,TimeUTC]}}</Alarm>
+- </em><em>/update:</em><em> <UpdateInfo>{AutoUpdate,State,Window(%02u:%02u:%02u - %02u:%02u:%02u),UpgradeManager,HoursPending,ActiveDeviceList}</UpdateInfo>
+- </em><em>/leds:</em><em> <LedPatternInfo>{LedPatternEntry[time,led_ids(%08x),repeats,steps]{LedStepEntry[rgb(%06X),hold,fade]}}</LedPatternInfo>
+- </em><em>/libraries:</em><em> <ThirdPartyLibraryInfo>{Library[Name=Spotify eSDK]{Version}}</ThirdPartyLibraryInfo>
+- </em><em>/trueplayinfo:</em><em> <RoomCalibrationInfo>{RoomCalibrationActiveState,UserIntent,AvailCalID,Orientation}</RoomCalibrationInfo>
+- </em><em>/shares:</em><em> <Shares>{Share{Path},Mount,LastChange}</Shares>
+- </em><em>/experiments:</em><em> <ZoneExperiments>{ZoneExperiment[id(%llu),name,value,defaultValue]}</ZoneExperiments>
+- </em><em>/ssl_client_cache:</em><em> {Entry{HostName,Port,TimeToExpire,TimeSinceLastRefresh}}
+- </em><em>/ssl_client_cache_note:</em><em> entries = TLS session-cache rows with expiry/refresh timestamps
+- </em><em>/playmode:</em><em> <Playmode>{Shuffle,Repeat,Crossfade}</Playmode>
+- </em><em>/temperature:</em><em> <TemperatureHistograms>{CPUTemperature}</TemperatureHistograms>
+- </em><em>/tracks_summary:</em><em> <TrackSummary>{Tables{Table[name,max,count]},StoreSize,StoreUsed,EntriesSize,EntriesUsed,Conflicts}</TrackSummary>
+- </em><em>/enetports:</em><em> <EnetPorts>{Port[port]{Link,Speed}}</EnetPorts>
+- </em><em>/cpumon:</em><em> <CpuMonitor>
+- </em><em>/hardwareevents:</em><em> <HardwareStatusInfo>
+- </em><em>/upnp:</em><em> <Subscriptions>
+- </em><em>/rss:</em><em> <ReplicatedSettingsState>
+- </em><em>/location_settings_update:</em><em> <LocationSettingsUpdate>
+- </em><em>/netsettings.txt:</em><em> <NetSettings>
+- </em><em>/ssidlist.txt:</em><em> <SsidList>
+- </em><em>/backtrace:</em><em> <Backtrace>
+- </em><em>/perfcounters:</em><em> <PerformanceCounterTables>
+- </em><em>/activeZones:</em><em> <File name='activeZones'>
+- </em><em>/registration:</em><em> <Registration>{RegState,CustomerID}</Registration>
+- </em><em>/regcert:</em><em> <DeviceCertInfo>{...} (see cert_layer)
+- </em><em>/button_triggered.xml / /dropout_triggered.xml:</em><em> shared generic page f_10195c74: emits &lt;%s&gt;...&lt;/%s&gt; and &lt;%s/&gt; elements over a truncatable log ("Error truncating %s: %s")
+- </em><em>/musicservices:</em><em> diag-submit page (no XML emit; logs "Could not submit Available Services DIAG. Service count is: %zu")
+  - </em><em>unresolved_pages:</em><em> /accounts /ai_speech_enhance /analoglinein /api /audiocore /cloud /cloudqueue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /policy /renderingcontrol /settings/</em> /spdiftap /topology /track_queue_summary /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)</p>
 </li>
 </ul>
 <h2 id="device_account_endpoint"><code>device_account_endpoint</code><a class="headerlink" href="#device_account_endpoint" title="Permanent link">&para;</a></h2>

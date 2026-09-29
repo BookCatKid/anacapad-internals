@@ -113789,6 +113789,41 @@
      "/zp": "f_100bfbac (flag 1)"
     },
     "flag_hypothesis": "flag reads as a bitmask: bit1(0x2)=GET-eligible (set on nearly every page), bit2(0x4)=POST-capable (flag 6 on /scanresults,/playmode,/opt/log/mdnsd.log), bit7(0x80)=API/JSON-style dispatch (0x82 on /api,/cloudqueue,/leds), flag=1 on /zp,/VERSION,/ifconfig possibly unauthenticated/plain-text; 0x43/0x46 outliers on /proc/ath_rincon pages (extra caps 0x40+3/6); INFERRED from flag distribution \u2014 the matcher fn that tests the bits not yet located"
+   },
+   "page_schemas": {
+    "provenance": "emit-literal harvest per handler + delegation-chain resolution (handlers load module via locator slot 0x5f88/0x7680-family then tail-call the render fn; schemas = the literal args of emit calls)",
+    "schemas": {
+     "/zp": "<ZPInfo>{ZoneName,ZoneIcon,Configuration,LocalUID,SerialNumber,SoftwareVersion,BuildType,SWGen,SoftwareDate,SoftwareScm,HHSwgenState,MinCompatibleVersion,...}</ZPInfo>",
+     "/device": "<DeviceInfo>{ZoneName,NetworkHash,DHCPServerMac,NetworkIPAddress,NetworkMask,DiagLevel,DevMode}</DeviceInfo>",
+     "/alarm": "<Alarm>{Mode,Scheduler,UTCTime,LocalTime,Pending{PendingAlarm[ID,Type,Time,TimeUTC]}}</Alarm>",
+     "/update": "<UpdateInfo>{AutoUpdate,State,Window(%02u:%02u:%02u - %02u:%02u:%02u),UpgradeManager,HoursPending,ActiveDeviceList}</UpdateInfo>",
+     "/leds": "<LedPatternInfo>{LedPatternEntry[time,led_ids(%08x),repeats,steps]{LedStepEntry[rgb(%06X),hold,fade]}}</LedPatternInfo>",
+     "/libraries": "<ThirdPartyLibraryInfo>{Library[Name=Spotify eSDK]{Version}}</ThirdPartyLibraryInfo>",
+     "/trueplayinfo": "<RoomCalibrationInfo>{RoomCalibrationActiveState,UserIntent,AvailCalID,Orientation}</RoomCalibrationInfo>",
+     "/shares": "<Shares>{Share{Path},Mount,LastChange}</Shares>",
+     "/experiments": "<ZoneExperiments>{ZoneExperiment[id(%llu),name,value,defaultValue]}</ZoneExperiments>",
+     "/ssl_client_cache": "{Entry{HostName,Port,TimeToExpire,TimeSinceLastRefresh}}",
+     "/ssl_client_cache_note": "entries = TLS session-cache rows with expiry/refresh timestamps",
+     "/playmode": "<Playmode>{Shuffle,Repeat,Crossfade}</Playmode>",
+     "/temperature": "<TemperatureHistograms>{CPUTemperature}</TemperatureHistograms>",
+     "/tracks_summary": "<TrackSummary>{Tables{Table[name,max,count]},StoreSize,StoreUsed,EntriesSize,EntriesUsed,Conflicts}</TrackSummary>",
+     "/enetports": "<EnetPorts>{Port[port]{Link,Speed}}</EnetPorts>",
+     "/cpumon": "<CpuMonitor>",
+     "/hardwareevents": "<HardwareStatusInfo>",
+     "/upnp": "<Subscriptions>",
+     "/rss": "<ReplicatedSettingsState>",
+     "/location_settings_update": "<LocationSettingsUpdate>",
+     "/netsettings.txt": "<NetSettings>",
+     "/ssidlist.txt": "<SsidList>",
+     "/backtrace": "<Backtrace>",
+     "/perfcounters": "<PerformanceCounterTables>",
+     "/activeZones": "<File name='activeZones'>",
+     "/registration": "<Registration>{RegState,CustomerID}</Registration>",
+     "/regcert": "<DeviceCertInfo>{...} (see cert_layer)",
+     "/button_triggered.xml / /dropout_triggered.xml": "shared generic page f_10195c74: emits <%s>...</%s> and <%s/> elements over a truncatable log (\"Error truncating %s: %s\")",
+     "/musicservices": "diag-submit page (no XML emit; logs \"Could not submit Available Services DIAG. Service count is: %zu\")"
+    },
+    "unresolved_pages": "/accounts /ai_speech_enhance /analoglinein /api /audiocore /cloud /cloudqueue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /policy /renderingcontrol /settings/* /spdiftap /topology /track_queue_summary /tvprocessor /wireless /syssettings \u2014 handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)"
    }
   },
   "device_account_endpoint": {
