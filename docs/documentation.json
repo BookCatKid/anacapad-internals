@@ -121769,7 +121769,7 @@
   },
   "protobuf_descriptors": {
    "status": "confirmed",
-   "description": "nanopb pb_msgdesc_t schema inventory. 81 message descriptors (fuller structural census, aux-pointer-in-.sdata descs included) recovered across .rodata + .data.rel.ro: 7-word records {field_info*, aux/submsg*, 0, 0, field_count, 0, field_count} where field_info* points to a packed u32 descriptor array (nanopb PB_FIELD_32BIT-style encoding; observed first-words 0x00011705/0x40011805/0x10011805/0x40022805/0x0010220e pack per-field tag+ltype+offset info).",
+   "description": "nanopb pb_msgdesc_t schema inventory. 102 message descriptors (fuller structural census, aux-pointer-in-.sdata descs included) recovered across .rodata + .data.rel.ro: 7-word records {field_info*, aux/submsg*, 0, 0, field_count, 0, field_count} where field_info* points to a packed u32 descriptor array (nanopb PB_FIELD_32BIT-style encoding; observed first-words 0x00011705/0x40011805/0x10011805/0x40022805/0x0010220e pack per-field tag+ltype+offset info).",
    "clusters": {
     "muse_region_10fb9xxx": [
      "0x10fb9d64 (2 fields)",
@@ -121801,7 +121801,7 @@
     "audio_pipeline_11029xxx": "0x11029a24(3f)/0x11029a74(4f)/0x11029c38(4f)/0x11029c98(4f)/0x11029cf4(2f)/0x11029d50(2f) - TrueplayService (sonos.coreaudio.trueplay.v1) request/response protos, v1alpha2"
    },
    "callers": "pb_decode/pb_encode/pb_ostream_from_buffer/pb_istream_from_buffer imported from libprotobuf-nanopb.so.0 (plt 0x11098690/0x110994a8/0x11098dd0/0x11098ce8); in-binary callers cluster in the SPDIF module (0x10e68xxx), the chproc/DSP region (0x10dd8xxx), Spotify eSDK (0x10ca8xxx,0x10ca9xxx) and the RPC engine (0x10c5bxxx) - consistent with SCI hw-bus messages, ChProcConfig/DSPConfig, eSDK protos and muse messages all sharing the codec",
-   "residual": "per-field names/types beyond the (tag<<2)|atype low byte require full nanopb iter emulation; message names not embedded; root msg 0x10fbee48 + envelope 0x10fbfa8c identities need .proto-name correlation; a type-name vocab table @0x10f31f18+ (bool,byte,double,long,float,unsigned,__int,decimal,half,char,alloc...) near the false-positive cluster is a separate wire-type-name registry, undocumented owner",
+   "residual": "per-field names/types beyond the (tag<<2)|atype low byte require full nanopb iter emulation; message names not embedded; root msg 0x10fbee48 + envelope 0x10fbfa8c identities need .proto-name correlation",
    "evidence": [
     {
      "type": "firmware",
@@ -121823,7 +121823,7 @@
    },
    "submessage_graph": "aux arrays decode cleanly as per-message submsg descriptor lists. Graph recovered two levels deep: the ROOT muse message is 0x10fbee48 (8 fields, aux @0x10fbee64) whose fields bind subdescs {0x10fbfee4 x3 (the shared 1-field wrapper), 0x10fbfa8c (the 44-field envelope), 0x10fbf9b8 (15f), 0x10fbf970 (3f), 0x10fbee18 (2f)}. 0x10fbfa8c's own aux @0x10fbfaa8 = 43 ptrs to ~30 distinct subdescs spanning 0x10fbf29c-0x10fbfee4 (fields 0-2 again share 0x10fbfee4). NOTE: some descs' aux arrays live in .sdata (0x10fbee18->0x11095bec, 0x10fbfee4->0x11095d78) - part of what earlier looked like an .sdata 'descriptor registry' is actually relocated aux-pointer storage. Field streams are 2 u32/field, low byte (tag<<2)|atype, atype=1 dominant -> flat required-field structs.",
    "sdata_consumers": "access model resolved: NO r13-SDA; slots are reached by lis/addi direct addressing (non-PIC code) or got2 indirection (PIC modules). f_10c9634c (protobuf-RPC engine) indexes the 0x11095a5c-0x11095b08 block heavily (per-msg global slots); trueplay binder fns load 0x11095eb0/0x11095f50; the {api,zc,download,audio,esdk} registry @0x11095d80-0x11095db0 is referenced by ~30 eSDK-region fns (0x10ca-0x10d8) - it is the shared event-channel table, not a nanopb structure.",
-   "datarelro_descs": "five descs live in .data.rel.ro (their aux ptr forces relocation): 0x1108b3f0(8f,aux->.data.rel.ro), 0x1108b418(2f), 0x1108b434(3f), 0x1108b450(3f), 0x1108b46c(6f) - field_info @0x10fbe5bc-0x10fbe624 (muse cluster). The .sdata 0x40001204 entries re-identified: they are field_info WORDS (packed type/tag), not flag sentinels - some descs put their field stream in .sdata directly."
+   "datarelro_descs": "desc placement is split three ways by relocation need: 76 in .rodata (fi+aux ptrs resolved), 5 in .data.rel.ro (0x1108b3f0-b46c), and 21 one-field wrapper descs in .rodata whose fi+aux are a single {aux_ptr, field_info_word} pair packed in .sdata - the .sdata 0x40001204/0x40001404/0x10001004 words are field_info words, fully resolving that earlier mystery block"
   }
  },
  "subsystems": {
