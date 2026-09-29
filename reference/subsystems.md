@@ -2286,6 +2286,7 @@ lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiat
   - **AJ:** bit9
   - **AK:** not registered by the migration walker (counter bound 0xa) - separate channel role
   - **record:** 0x24 bytes {strbuf ptr, len, data ptr +0xc, index +0x1c} built per code at f_10bd65e0-0x10bd6630
+- **payload_parser:** f_105d4ff4 — pseudo-HTTP request parse on the frame payload: line-scan via memchr('\n'), strips the '\r' line-ending, then strncasecmp header names {x-sonos-method: (0x10), x-sonos-uri: (0xd), content-length: (0x10), SOAPACTION: (0xc), X-Sonos-Udn} — i.e. the lechmere frame body is a tunneled minimal HTTP request carrying UPnP/SOAP control to the cloud. The 2-char frame messageType IS the AA..AK code set; 'Bad message type: %c%c; %d' fires when the code is not in the registered table. AA..AJ are also reused as the ten location-settings migration field-ids (the same keyed map); AK is registered in the type table but excluded from the migration walker — a non-migration lechmere message type.
 <details><summary>Evidence (14)</summary>
 
 - @ 0x10e75541 — lechmere.event
