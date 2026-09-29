@@ -111976,7 +111976,7 @@
   },
   "gena_internals": {
    "status": "strong",
-   "name": "GENA subscription/notify internals",
+   "name": "GENA internals + per-service LastChange schemas",
    "description": "Subscription machinery vocabulary: SID preinstall ('Attempting to preinstall SID=%u', '?sid=0' URL form), status fields SubscribedEvents/LogicalSID/UPnPSID/NotifyErrors, sender/source pair upnpeventing_sender+upnpeventing_source, AVTStateLastChangedEvent event name, and the <LastChange>%s</LastChange> wrapper emitted per service. Per-service LastChange payload schemas not enumerated.",
    "evidence": [
     {
@@ -112010,8 +112010,38 @@
      "status": "confirmed",
      "address": "0x10e89d80",
      "notes": "<LastChange>"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed1c6c",
+     "notes": "<Event xmlns=\"urn:schemas-sonos-com:metadata-1-0/Queue/\"> \u2014 proprietary Queue LastChange"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed1cd0",
+     "notes": "<QueueID val=\"%.20s\"> + QueueOwnerID/UpdateID/Curated elements"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb29e8",
+     "notes": "AVT LastChange envelope with r: namespace + full element sequence"
     }
-   ]
+   ],
+   "lastchange_schemas": {
+    "RCS": "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/RCS/\"><InstanceID val=\"0\">... \u2014 standard UPnP RCS event envelope",
+    "AVT": "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/AVT/\" xmlns:r=\"urn:schemas-rinconnetworks-com:metadata-1-0/\"> then elements in order: TransportState, CurrentPlayMode, CurrentCrossfadeMode, NumberOfTracks, CurrentTrack, CurrentSection (non-standard), CurrentTrackURI, CurrentTrackDuration, CurrentTrackMetaData, r:EnqueuedTransportURI, r:EnqueuedTransportURIMetaData, PlaybackStorageMedium, AVTransportURI, AVTransportURIMetaData, NextAVTransportURI, NextAVTransportURIMetaData \u2014 all as <X val=\"...\"> attribute-value form",
+    "Queue": "proprietary Sonos namespace urn:schemas-sonos-com:metadata-1-0/Queue/ \u2014 NOT a UPnP standard schema. Elements: <QueueID val=\"%.20s\"> (20-char truncated), <QueueOwnerID val=\"%s\"/>, <UpdateID val=\"%u\"/>, <Curated val=\"...\"> \u2014 the Curated flag matches the SavedQueue store schema"
+   },
+   "notes": "AVT envelopes carry the r: extension namespace for Sonos fields; Queue events live in a Sonos-private namespace (schemas-sonos-com, not rinconnetworks) \u2014 clients parsing LastChange must handle all three namespaces; val=\"\" attribute form used throughout"
   },
   "didl_classes_ext": {
    "status": "strong",
@@ -112269,6 +112299,62 @@
      "status": "confirmed",
      "address": "0x10eee550",
      "notes": "ERROR_DOCK_INTERRUPT"
+    }
+   ]
+  },
+  "albumart_proxy": {
+   "name": "/getaa album-art proxy",
+   "role": "local HTTP album-art endpoint: serves cached/proxied art to controllers; URI forms /getaa?u=<url>&v=<ver>, /getaa?m=1&u=<url> and /getaa?s=1&u=<url> (m=/s= size variants), plus upstream '?albumArt=true' fetches; art cached as <dir>/AlbumArt_{GUID}_Large.jpg",
+   "params": "u= source URL (validated: 'AlbumArtURI longer than expected.'), v= version/etag-style param, m=1 / s=1 select medium/small variants; '%s?albumArt=true' marks upstream art requests",
+   "flags": "enableSecureAlbumArt feature flag gates a secured art fetch path; AlbumArtistDisplayOption + GetAlbumArtistDisplayOption control whether album-artist metadata is displayed (microsoft:artistAlbumArtist DIDL extension supported in sort/filter caps)",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e76390",
+     "notes": "/getaa route literal"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e8937c",
+     "notes": "/getaa?u=%s&v=%u form"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f0df90",
+     "notes": "/getaa?m=1&u=%s variant"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f0f3c4",
+     "notes": "/getaa?s=1&u=%s variant"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ecd458",
+     "notes": "AlbumArt_{GUID}_Large.jpg cache filename"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f9c1f0",
+     "notes": "enableSecureAlbumArt flag"
     }
    ]
   }
@@ -112648,7 +112734,7 @@
   },
   "cloud_queue": {
    "status": "partial",
-   "summary": "Cloud-queue playback: sessions load cloud-resident queues via v1/playbackSessions/{sessionId}/playbackSession/loadCloudQueue (+WithWindow variant for windowed fetch, refreshCloudQueue); local /cloudqueue + /cloudqueuepoll endpoints; a CloudQueueWindow object wraps the API window; dedicated CLOUD_QUEUE_* error family",
+   "summary": "the Cloud Queue subsystem: a music service hands the player a queueBaseUrl ending in a SemVer API version (validated: 'path must end with a cloud queue version', 'Cloud Queue API v%u is unknown; use v%u with this player'), then the player pages itemWindows over it: loadCloudQueue, loadCloudQueueWithWindow ('Full itemWindow from the Cloud Queue API must be passed'), refreshCloudQueue, skipToItemWithWindow \u2014 all as muse routes on playbackSessions/{sessionId}",
    "anchors": [
     "/cloudqueue",
     "trackQueueAdditions",
@@ -112697,11 +112783,40 @@
      "status": "confirmed",
      "address": "0x10eb17ac",
      "notes": "itemWindow requirement string"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb9a2b",
+     "notes": "queueBaseUrl semver validation + API version negotiation"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb11d8",
+     "notes": "itemWindow contract on skipToItemWithWindow/loadCloudQueueWithWindow"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eee62c",
+     "notes": "ERROR_CLOUD_QUEUE_* fault family"
     }
    ],
    "routes": "loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue under /v1/playbackSessions/{sessionId}/ playbackSession (+household-scoped variants); 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow' \u2014 large queues fetched in windows",
    "internals": "internalStartCloudQueue, internalRefreshCloudQueue, loadCloudQueueFromReq; CloudQueueWindow init logging; CloudQueueVersion state; trackQueueAdditions pushes additions back to cloud; CloudQueueHistory in history pipeline",
-   "errors": "ERROR_CLOUD_QUEUE_{SERVICE_ERROR,ACCESS_DENIED,STREAM_LIMIT,SERVICE_UNRESPONSIVE,CANT_REACH_SERVER,SERVER}"
+   "errors": "ERROR_CLOUD_QUEUE_{SERVICE_ERROR,ACCESS_DENIED,STREAM_LIMIT,SERVICE_UNRESPONSIVE,CANT_REACH_SERVER,SERVER}; 'Cloud Queue Error'/'<Cloud queue error>' fault strings",
+   "muse_routes": "loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue \u2014 each on v1/playbackSessions/{sessionId}/playbackSession/ AND v1/households/{householdId}/playbackSessions/{sessionId}/playbackSession/",
+   "versioning": "queueBaseUrl must end with a semver version ('Specify cloud queue version ... according to Semantic Versioning 2.0.0'); player rejects unknown versions with 'use v%u with this player'; CloudQueueVersion tracked",
+   "lifecycle": "internalStartCloudQueue/internalRefreshCloudQueue/loadCloudQueueFromReq entry points; 'activate cloud queue %s', 'loadCloudQueue stop'; 'suspending cloud queue during snooze/alarm'; 'recover from cloud queue error'; REFRESH_CLOUD_QUEUE op; 'Cloud queue policy pause expiry time hit'",
+   "rating": "'rating is only implemented for cloud queue' \u2014 thumbs up/down on tracks exists ONLY in the cloud-queue path",
+   "local_eps": "/cloudqueue + /cloudqueuepoll status endpoints"
   },
   "dsp_ht_engine": {
    "status": "partial",
@@ -113063,7 +113178,7 @@
   },
   "feature_flag_registry": {
    "status": "partial",
-   "summary": "feature flags are JSON keys in the settings/cloud config document (featureConfig sits in the same key table as entitlementsList/eqSettings/ethernetPorts/favoritesList/geoLocation/getUsersResponse) \u2014 cloud-delivered, not compile-time; 10 featureConfig* subkeys enumerate the gated feature set",
+   "summary": "complete compile-time feature/config flag vocabulary (48 keys): featureConfig* family keys in the cloud-config JSON doc plus enable*/disable* booleans read at init \u2014 the build's feature map showing which subsystems are switchable",
    "anchors": [
     "featureConfigPlink",
     "featureConfigSmartPlay",
@@ -113112,6 +113227,14 @@
      "status": "confirmed",
      "address": "0x10ef3d34",
      "notes": "<ZoneExperiment id name value defaultValue> schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f97ab4",
+     "notes": "featureConfig key table 0x10f97ab4-0x10f97bc4; enable* table 0x10f9bedc-0x10f9ccc8"
     }
    ],
    "mechanism": "'featureConfig' parent key with per-feature subkeys; ZoneExperiment layer adds <ZoneExperiments><ZoneExperiment id name value defaultValue> docs + /experiments HTTP endpoint + O_ZONE_EXPERIMENTS config key + experimentId field \u2014 A/B values carry explicit defaults so absent assignment falls back to defaultValue",
@@ -113127,7 +113250,65 @@
     "SsdpAdvertiseConfig": null,
     "ZoneExperiment": null
    },
-   "unresolved": "which config file/route carries featureConfig (householdsettings.json? muse?), per-flag gate sites"
+   "unresolved": "which config file/route carries featureConfig (householdsettings.json? muse?), per-flag gate sites",
+   "featureconfig_keys": [
+    "featureConfigDropoutContext",
+    "featureConfigHomeTheaterWifiPerfTelemetry",
+    "featureConfigMetricsService",
+    "featureConfigPlink",
+    "featureConfigQuickbonding",
+    "featureConfigSemiSleep",
+    "featureConfigSmartPlay",
+    "featureConfigSpotABR",
+    "featureConfigSsdpAdvertiseConfig",
+    "featureConfigZoneExperiment"
+   ],
+   "enable_keys": [
+    "enableContentAccessSetting",
+    "enableSemiSleep",
+    "enableHTSourceSleep",
+    "enableSpatialAudio",
+    "enableExternalPartnerMode",
+    "enableSpotifyConnectForAllAccts",
+    "enableSpotifySMAPIVolumeNormalization",
+    "enableVoiceDataCollection",
+    "enableSvcHomeControlLutron",
+    "enableSvcPlus",
+    "enableAmazonMusicDASH",
+    "enableAppleMusicHlsv7",
+    "enableTuneInReplacement",
+    "enableTuneInMigration",
+    "enableTrueplayDataCollection",
+    "enableSystemAPIV2",
+    "enable3ChannelSatellites",
+    "enableHTSNKv2",
+    "enableSPSDataCollection",
+    "enablePortableSurrounds",
+    "enableMaxDialogueLevel",
+    "enableRemoveMSPCredentialsFromUPnP",
+    "enableChsrcPerfOptimizations",
+    "enableUPnPEventingGNDOptimization",
+    "enableSecureAlbumArt",
+    "enableCEP20ThreadTweaks",
+    "enablePitchfork",
+    "enableSslClientCacheRefresh",
+    "enableDhcpProxyFailureTelemetry",
+    "enableOnDeviceSoundGeneration",
+    "enableRadioSocTemperatureTelemetry",
+    "enableHomeTheaterWifi6GHzFronthaul",
+    "enableTopologyReports",
+    "enableFastNetworkSwitching",
+    "enableQuickbonding",
+    "enabledSTP",
+    "enabledHT",
+    "enableTrueRoom",
+    "enableFlexibleSurroundsTuning",
+    "enableVirtualHeight",
+    "enableCloudSetting",
+    "disableWebSocketPerMessageDeflate",
+    "disableTlsRsaCiphersuites"
+   ],
+   "notable": "enableTrueRoom (next-gen tuning), enableVirtualHeight + enableFlexibleSurroundsTuning (Atmos-era HT), enable3ChannelSatellites, enableHTSNKv2 (channel-sink v2), enableTuneInReplacement/Migration (service swap), enableSvcHomeControlLutron/enableSvcPlus (partner integrations), disableTlsRsaCiphersuites (hardening), enablePitchfork (IBT plans)"
   },
   "group_object_model": {
    "status": "partial",
@@ -113207,8 +113388,8 @@
    "xml": "<ZoneGroup Coordinator=..>, <ZoneGroupState><ZoneGroups></ZoneGroups></ZoneGroupState>, <Satellites>, /xml/satellite_device.xml satellite device description"
   },
   "ibt_plans": {
-   "status": "vocab",
-   "summary": "an 'ibt plan' executor: commands are compiled into plans ('executing ibt plan for command (%s)', 'failed to generate ibt plan for command (%s)', 'already generated ibt plan, no action taken', 'unsupported IBT command (%s)'); likely related to feature flag enablePitchfork; command vocabulary and plan format unresolved",
+   "status": "partial",
+   "summary": "a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list \u2014 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init",
    "anchors": [
     "executing ibt plan for command",
     "unsupported IBT command",
@@ -113246,9 +113427,34 @@
      "status": "confirmed",
      "address": "0x10fac64c",
      "notes": "'executing ibt plan for command (%s)' + dispatch rejection"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10b985c4",
+     "notes": "ibt plan executor: plan\u2192target-list\u2192per-target dispatch"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec78c0",
+     "notes": "[dispatch] dispatched (%s) to target (%s), result [%s]"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10a581b0",
+     "notes": "enablePitchfork gate checked twice in init fn"
     }
    ],
-   "unresolved": "what IBT stands for (in-box testing? install-base tooling?), the plan schema, which commands generate plans, and how plans execute"
+   "unresolved": "full command vocabulary (only 'ibt' command-name seen in dispatch compare), plan serialization format, what the targets are (players in household?), what enablePitchfork bundles",
+   "mechanics": "executor f_10b985c4: look up command \u2192 generate ibt plan \u2192 generate target list \u2192 for each target '[dispatch] dispatched (%s) to target (%s), result [%s]'; 'already generated ibt plan, no action taken' = idempotent re-entry; 'unsupported IBT command (%s)' rejects unknown verbs"
   },
   "lechmere_wss": {
    "status": "partial",
@@ -113830,7 +114036,7 @@
   },
   "qplay_protocol": {
    "status": "partial",
-   "summary": "Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route \u2014 the only service missing its event pair), QPlayAuth action, a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability>",
+   "summary": "Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route \u2014 the only service missing its event pair), a QPlayAuth action taking Seed/Code/MID/DID arguments (seed\u2192code auth handshake: controller sends Seed, device answers with a Code computed from MID machine-id and DID device-id), a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability>",
    "anchors": [
     "urn:schemas-tencent-com:service:QPlay",
     "QPlayAuth",
@@ -113875,10 +114081,35 @@
      "status": "confirmed",
      "address": "0x10ea8db4",
      "notes": "updateSharedTQPlayMode context guard"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1073a4f0",
+     "notes": "QPlayAuth strcmp dispatcher \u2192 vtable calls"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11d64",
+     "notes": "'Seed' arg literal (f_1056157c arg-parser site 0x1073a61c)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11d6c",
+     "notes": "'MID' + 'DID' arg literals adjacent"
     }
    ],
-   "unresolved": "QPlayAuth request/response schema, key derivation, and the UDP media/control channel are still undecoded",
-   "soap": "/QPlay/Control registered; QPlayAuth the visible action; xmlns:qq=\"http://www.tencent.com\" capability element advertises 'QPlay:2' in device description"
+   "unresolved": "the post-auth control channel (UDP keepalive/position reports in public QPlay docs), how MID/DID are generated, and the replay/validity rules on Seed",
+   "soap": "/QPlay/Control registered; QPlayAuth dispatch site 0x1073a4f0 does strcmp on the action name then calls vtable+0x14/+0x38 on the action object; sibling function at 0x1073a5d0 initializes string-arg records for Seed (via arg-parser f_1056157c), then Code, MID, DID",
+   "auth_args": "QPlayAuth args: Seed (in), Code, MID, DID \u2014 matches the public QPlay auth scheme where the speaker derives an auth code from a controller-supplied seed bound to its IDs"
   },
   "queue_persistence": {
    "status": "partial",

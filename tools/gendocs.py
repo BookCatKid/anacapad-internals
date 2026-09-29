@@ -927,7 +927,7 @@ _HTTP_KEYS = [
     "replication_elements", "token_refresh_state_machine",
     "xml_schema_clusters", "internal_error_families",
     "system_property_keys", "internal_result_namespace",
-    "smapi_capability_vocabulary",
+    "smapi_capability_vocabulary", "albumart_proxy",
 ]
 
 
