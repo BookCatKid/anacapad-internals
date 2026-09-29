@@ -1228,6 +1228,19 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
         - **elements:** `<ZPSupportInfo>`, `</ZPSupportInfo>`, `</ZPNetworkInfo>`, `%s`, `<ZPNetworkInfo type='%s' %s='%s'>`, `<?xml version="1.0" ?>`, `<?xml-stylesheet type="text/xsl" href="/xml/review.xsl"?>`, `HTTP/1.1 %d`, `<!-- SDT: %ld ms -->`
         - **fields:** `CONTENT-TYPE`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
       - **fields_seen:** `CONTENT-TYPE`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+- **dispatch_model:**
+  - **locator_global:** 0x11097680 (.bss, runtime-populated service locator)
+  - **locator_vfuncs:**
+    - **0x84:** resolve module object for this page (per-handler hardcoded or string-keyed)
+    - **0xf8:** module render — writes the page XML into the response stream
+    - **0x6c_0x178:** /device-class handlers call locator members +0x6c/+0x178 for shared header emit
+  - **registry2_global:** 0x11095f88 — second .bss registry used by the /accounts,/analoglinein,/registration class; handler verifies installed vfunc+0x24 against a per-module constant before indirect call
+  - **module_tags** (89):
+  
+    ```
+    AccountsInfo, Active, ActiveDeviceList, Alarm, Alarms, AudioCore, Backtrace, Bundles, Cert, ClientVersion, Cloud, ConnectionDetails, CpuMonitor, DNSCache, DSPStateManager, Decoder, DeviceInfo, DiagLevel, EnetPorts, Entry, General, HTConfig, HardwareStatusInfo, History, IRCode, IdxTrk, Incoming, LedPatternInfo, LocalSettings, LocalTime, MediaServers, Mode, Mount, Muse, MusicDecoder, NetSettings, NextLocal, NextUTC, Outgoing, Path, Pending, PendingAlarm, PerformanceCounterTables, Presentation, QuarantinedDevices, Registration, RenderingControl, Replication, RestHistory, RoomCalibrationActiveState, RoomCalibrationAvailCalID, RoomCalibrationBondedZoneInfo, RoomCalibrationInfo, RoomCalibrationOrientation, RoomCalibrationUserIntent, SPDIFTap, SSLClientCache, Satellites, Scheduler, SelfTrueplayEQ, SelfTrueplayInfo, ServiceIds, Services, SsidList, SubscribedEvents, Subscription, Subscriptions, Tables, ThirdPartyLibraryInfo, TimeUTC, Titles, Total, TrackQueueSummary, TrackSummary, UTCTime, UpdateInfo, UsageMetrics, UserAgent, VanishedDevices, Version, WebSocketHistory, Wireless, ZPInfo, ZPSupportInfo, ZoneGroupState, ZoneGroups, ZoneName, ZonePlayers, Zones
+    ```
+  - **note:** <Name> tags = the emitted root element AND the registered module identity; 90 tags in rodata vs 57 routed pages — unrouted tags (e.g. RoomCalibration*, VanishedDevices, UsageMetrics) are sub-documents emitted inside other pages
 
 ## `device_account_endpoint`
 
