@@ -116815,7 +116815,8 @@
   },
   "ssh_authorized_keys": "CSRF form POST ssh_key textarea; buttons submit/remove_keys; \"unable to allocate valid port set for %s\" nearby",
   "watchdog_crash": "\"WATCHDOG: %s unresponsive! (UTC %s)\" -> /sbin/reboot (\"returned %d\"); /watchdogcrash + \"Performing health check\"/\"Waiting for next health check\" cycle",
-  "diag_instructions": "/ws/diag/diag_instructions.xml fetched with ?hhid= \u2014 ServerDiagInstructions/SubmitPermission; \"Contacting server for instructions: %s\"; I/O+HTTP error paths"
+  "diag_instructions": "/ws/diag/diag_instructions.xml fetched with ?hhid= \u2014 ServerDiagInstructions/SubmitPermission; \"Contacting server for instructions: %s\"; I/O+HTTP error paths",
+  "muse_upnp_bridge_actions": "bridge verbs callable via upnp* namespaces: CreateStereoPair,SeparateStereoPair,RemoveHTSatellite{SatRoomUUID},RoomDetection{Start,Stop}Chirping,ChirpIfPlayingSwappableAudio,EnterConfigMode,ExitConfigMode,GetButtonLockState,GetLEDState,GetButtonState,GetHouseholdID,GetZoneAttributes{Name,Icon,Configuration,TargetRoomName},GetZoneInfo{DisplaySoftwareVersion,MACAddress,CopyrightInfo,ExtraInfo,HTAudioIn},GetZoneGroupState,GetZoneGroupAttributes{ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup,MuseHouseholdId},ReportUnresponsiveDevice{DeviceUUID,DesiredAction,DiagnosticID,IncludeControllers},BeginSoftwareUpdate{ExtraOptions},CheckForUpdate{UpdateType,CachedOnly},RegisterMobileDevice{MobileDeviceName,MobileDeviceUDN,MobileIPAndPort},GetLineInLevel,GetAudioInputAttributes,SetLineInLevel{DesiredLeft,Right},SetAudioInputAttributes{DesiredName},StartTransmissionToGroup,SetSourceAreaIds{DesiredSourceAreaIds},ReportTrackBufferingResult{BootSeq,GroupUUIDJoined,VolumeAVTransportURI,CoordinatorID},Get/SetAutoplay{Volume,LinkedZones,RoomUUID,UseAutoplayVolume}"
  },
  "subsystems": {
   "ab_experiments": {
@@ -120485,6 +120486,29 @@
     "accounts": "auth-token expiry detection -> refresh via upnp; \"Login failed with E_SONOS_BAD_ACCOUNT\"; service descriptor lookup {sid,g,sn}; \"Treating auth token as expired\"",
     "telemetry": "ecode mapping \"error: %s ecode=%d (%s), mapped to 0x%08x\"; fatal-error report rate limit (\"restricting excessive fatal error reporting\"/\"spotify telemetry rate limit exceeded!\" spotrl); underrun counter; \"Radio:\" prefix stripped from restart token"
    }
+  },
+  "alarm_clock": {
+   "muse_validation": {
+    "errors": [
+     "Invalid service id",
+     "Failed to convert content payload for alarm contentType=%s, objectId=%s",
+     "Invalid startTime",
+     "No alarm active to silence",
+     "Invalid duration provided",
+     "Device not group coordinator or source",
+     "Alarm not found",
+     "Invalid recurrence",
+     "Invalid alarm ID",
+     "Invalid Recurrence",
+     "Invalid StartTime",
+     "Writing alarm failed with error: %d",
+     "Unable to return active alarm: definition has been deleted"
+    ],
+    "recurrence": "day-bitmask \"12345\"-style strings + presets {DAILY,WEEKDAYS,WEEKENDS}"
+   }
+  },
+  "vli": {
+   "sink": "vlintxsink \"VLI NodeTX Blocks\": \"lTransmitOffBox is now %d [uni=%c]\"; \"NodeTx configured to handle %s audio (qos: %d)\"; \"delay sending new frames until resend finishes\""
   }
  },
  "muse": {
@@ -197111,7 +197135,87 @@
      }
     ]
    }
-  }
+  },
+  "wire_grammar": {
+   "cmd_address": "v%u:%s#%s \u2014 v<apiVersion>:<namespace>#<verb>; logged \"Received command v%u:%s#%s(%s)\" with params and \"response (success=%s,type=%s) to v%u:%s#%s(%s) [took %lld ms]\"",
+   "request_fields": [
+    "implicitTarget",
+    "explicitTargets",
+    "intendedTargets",
+    "cmdId",
+    "namespace",
+    "museItemType",
+    "trackCount",
+    "targetId",
+    "apiVersion",
+    "transportType",
+    "upnpMethod",
+    "upnpAnacapaPort",
+    "playEffect",
+    "clientVer",
+    "newGC",
+    "Transfer-encoding"
+   ],
+   "auth_fields": [
+    "inFastCache",
+    "credentialValid",
+    "userRole",
+    "authService",
+    "responseOAuth",
+    "responsePolicyKey",
+    "cachePolicyKey",
+    "accessDenialReason",
+    "isGuestAccessAllowed",
+    "isUnauthenticatedControlAllowed",
+    "onBehalfOfApiKey",
+    "clientStatus"
+   ],
+   "response_fields": [
+    "responseFailed",
+    "errorReason",
+    "timeoutMS",
+    "timeInOpenStateMS",
+    "circuitBreakerOpenedCount",
+    "totalFailures",
+    "totalSuccessfulRetries",
+    "totalFailedRetries"
+   ],
+   "target_validation": "explicitTargets: \"invalid target id in list\"/\"too many targets\"; \"Failed to parse %s#%s command: %s (%s)\"; \"failed to parse muse command body for [%s]\"; muse-async-cmd-id- prefix; async cmd queue",
+   "settings": [
+    "guestAccessAllowed",
+    "unauthCtrlAllowed",
+    "museSecuritySettings",
+    "museCircuitBreaker"
+   ],
+   "chaos": "MuseChaos debug endpoint: \"chaos: delaying request for %s#%s by %d ms\"/\"chaos: dropping request for %s#%s\"; HTML control {namespace,command,interval,delayMs} -> \"set:\"/\"cleared\"/\"Invalid request parameters\"",
+   "errors": [
+    "Access token is missing",
+    "Failed to send",
+    "Namespace setup issue (%s)",
+    " namespace is not supported"
+   ],
+   "headers": [
+    "X-Sonos-Diagnostics-Api-Key"
+   ],
+   "activation": "RMuseController activating namespace (apiVersion=%u, ns=%s, cmd=%s); (REST) [%u] sending: %s"
+  },
+  "loadcontent_types": [
+   "favorite",
+   "episode.show",
+   "station.broadcast",
+   "object.item.audioItem.audioBroadcast.live",
+   "linein.homeTheater.hdmi",
+   "linein.bluetooth",
+   "trackList",
+   "object.container.playlistContainer.tracklist",
+   "object.container.podcast",
+   "object.item.sonos-favorite"
+  ],
+  "loadcontent_errors": [
+   "Given object ID is not the alarm buzzer object ID",
+   "Given URI is not the alarm buzzer URI",
+   "LoadContent supports only Sonos Content API resource types"
+  ]
  },
  "cert_layer": {
   "keycert_ids": {
