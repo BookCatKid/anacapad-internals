@@ -30,7 +30,9 @@ PAGE_ORDER = [
     ("uri-formats", "URI formats"),
     ("payload-formats", "Payload formats"),
     ("http-api", "HTTP / non-SOAP"),
+    ("muse-api", "muse API (v1)"),
     ("firmware-differences", "Firmware differences"),
+    ("subsystems", "Subsystems"),
 ]
 
 _TITLE_RE = re.compile(r"^#\s+`?([A-Za-z]+)", re.M)

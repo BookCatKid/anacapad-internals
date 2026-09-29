@@ -649,6 +649,7 @@ class Model:
     firmware_differences: list = field(default_factory=list)
     firmware_diff_meta: dict = field(default_factory=dict)
     shared_primitives: dict = field(default_factory=dict)
+    muse: dict = field(default_factory=dict)
     routing: dict = field(default_factory=dict)
     request_vtable: dict = field(default_factory=dict)
     capabilities: dict = field(default_factory=dict)
@@ -711,6 +712,7 @@ def normalize(doc, client_text=None):
     m.request_vtable = doc.get("request_vtable") or {}
     m.shared_primitives = doc.get("shared_primitives") or {}
     m.subsystems = doc.get("subsystems") or {}
+    m.muse = doc.get("muse") or {}
     m.internal_functions = doc.get("internal_functions") or {}
     m.dispatch_candidates = doc.get("dispatch_candidates") or {}
 
@@ -811,6 +813,12 @@ def _apply_client_text(model, overlay):
             allsv[k].client_summary = txt
         else:
             unmatched.append("state_variable %s" % k)
+    for k, txt in (overlay.get("muse_resources") or {}).items():
+        res = (model.muse.get("resources") or {}).get(k)
+        if res is not None:
+            res["client_summary"] = txt
+        else:
+            unmatched.append("muse_resource %s" % k)
     return unmatched
 
 

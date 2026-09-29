@@ -300,6 +300,8 @@ def render_index(m):
             "grammars",
             "- [HTTP API](http-api.md) — non-SOAP HTTP endpoints and "
             "diagnostics",
+            "- [muse API](muse-api.md) — the v1 REST surface (route table, "
+            "methods, op names)",
             "- [Subsystems](subsystems.md) — non-SOAP protocols and "
             "engines with coverage levels",
             "- [Firmware differences](firmware-differences.md) — "
@@ -1041,6 +1043,108 @@ def render_subsystems(m):
     return "\n".join(out)
 
 
+def render_muse(m):
+    mu = m.muse or {}
+    out = ["# muse API (v1)", "",
+           "The household/player REST API the official app and cloud "
+           "channel drive — recovered from the binary's route "
+           "registration tables, not from public docs.", ""]
+    if mu.get("description"):
+        out.append(_para(mu["description"]))
+        out.append("")
+    for k in ("flags_decode", "dispatch"):
+        if mu.get(k):
+            out.append("**%s:** %s" % (k.replace("_", " "),
+                                       _e(mu[k])))
+            out.append("")
+    if mu.get("tables"):
+        out.append("Registration arrays: "
+                   + "; ".join("`%s` — %s" % (k, _e(v))
+                               for k, v in mu["tables"].items()))
+        out.append("")
+    pipe = mu.get("pipeline") or {}
+    if pipe:
+        out += ["## Request pipeline", ""]
+        for k in ("request_envelope", "content_type", "auth",
+                  "path_params", "body", "errors", "op_dispatch"):
+            if pipe.get(k):
+                out.append("**%s.** %s" % (k.replace("_", " "),
+                                           _e(pipe[k])))
+                out.append("")
+    ob = mu.get("outbound") or {}
+    if ob:
+        out += ["## Outbound (player as muse client)", ""]
+        if ob.get("note"):
+            out.append(_para(ob["note"]))
+            out.append("")
+        rows = []
+        for name, spec in sorted((ob.get("ops") or {}).items()):
+            bits = []
+            if spec.get("prefix"):
+                bits.append("prefix `%s`" % _e(spec["prefix"]))
+            if spec.get("path"):
+                bits.append("suffix `%s`" % _e(spec["path"]))
+            if spec.get("query"):
+                bits.append("query " + ", ".join("`%s=`" % _e(q)
+                                                for q in spec["query"]))
+            rows.append(["`%s`" % name, " ".join(bits) or "—"])
+        _table(out, ["Outbound op", "Wire shape"], rows)
+        out.append("")
+    res = mu.get("resources") or {}
+    out += ["## Resources", ""]
+    rows = [["`%s`" % n, str(r.get("op_count") or 0),
+             ", ".join(r.get("methods") or []),
+             _e(", ".join(r.get("scopes") or []))]
+            for n, r in sorted(res.items())]
+    _table(out, ["Resource", "Ops", "Methods", "Scope params"], rows)
+    for n, r in sorted(res.items()):
+        out += ["## `%s`" % n, ""]
+        if r.get("client_summary"):
+            out.append(_para(r["client_summary"]))
+            out.append("")
+        rows = []
+        seen = set()
+        fields_seen = []
+        for op in r.get("ops") or []:
+            key = (op["method"], op["path"], op["verb"])
+            if key in seen:
+                continue
+            seen.add(key)
+            impl = op.get("impl") or {}
+            execs = "`%s`" % impl["exec"] if impl.get("exec") else "—"
+            fields = op.get("op_fields") or []
+            for f_ in fields:
+                if f_ not in fields_seen:
+                    fields_seen.append(f_)
+            rows.append(["`%s`" % _e(op["method"]),
+                         "`%s`" % _e(op["path"]),
+                         "`%s`" % _e(op["verb"]),
+                         "`%s`" % _e(op["subparam"] or "-"),
+                         "`%s`" % _e(op["flags"]),
+                         execs])
+        _table(out, ["Method", "Path", "Op", "Trailing param",
+                     "Flags", "Exec"], rows)
+        if fields_seen:
+            out.append("Op-level JSON keys recovered from op-object "
+                       "methods: %s"
+                       % ", ".join("`%s`" % _e(x) for x in fields_seen))
+            out.append("")
+        fv = r.get("field_vocab") or []
+        if fv:
+            out.append("Field vocabulary (request/response keys seen in "
+                       "the resource's client tables — not yet bound to "
+                       "individual ops): %s"
+                       % ", ".join("`%s`" % _e(x) for x in fv))
+            out.append("")
+    if mu.get("unresolved"):
+        out += ["## Unresolved", "", _para(mu["unresolved"])]
+    if mu.get("evidence"):
+        out.append("")
+        _ev_details([genmodel.Evidence.from_raw(e)
+                     for e in mu["evidence"]], out)
+    return "\n".join(out)
+
+
 def render_availability(m):
     out = ["# Availability matrix", "",
            "Every canonical action record. `advertised` services are in the "
@@ -1091,6 +1195,7 @@ def render_all(m, outdir):
                  "Opaque payload/field grammars recovered from sscanf/"
                  "printf templates and parser functions."),
              "http-api.md": render_http_api(m),
+             "muse-api.md": render_muse(m),
              "subsystems.md": render_subsystems(m),
              "firmware-differences.md": render_firmware(m),
              "availability-matrix.md": render_availability(m)}
