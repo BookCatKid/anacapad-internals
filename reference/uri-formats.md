@@ -603,7 +603,7 @@ x-rincon-cpcontainer:<provider-ns>:<id>[/<sub>]
 
 Used by: ContentDirectory object IDs; AVTransport EnqueueURI container refs
 
-RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Residual: kind_enum/flag-word semantics inferred.
+RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Residual: kind_enum/flag-word semantics inferred; the record layout switches to 8-word form for raw service-URI prefixes (radea/npsdy/rdradio).
 
 - **cp_id_map:**
   - **table:** 0x10e7747c
@@ -672,8 +672,47 @@ RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Resid
       - **flags:** 0x4c
       - **short:** ps.
       - **path:** station::ps.%s
+    - **RDCPI:GLBTRACK::**
+      - **kind:** 0x3
+      - **flags:** 0x2020
+      - **short:** Tra.
+      - **path:** ondemand_track::tra.%s
   - **status:** confirmed
-  - **notes:** kind_enum f1 (4=album,5=artist,0xc=station,0xd=playlist/artist-album-list,0xe=playlist,0xf=track-list) and flag words f2 are inferred groupings, not proven semantics; f3 bit 0x1000000 marks the local-library (mymusic/LIB) entries; short_id is the derived item-id prefix embedded in the path template.
+  - **notes:** kind_enum f1 (4=album,5=artist,0xc=station,0xd=playlist/artist-album-list,0xe=playlist,0xf=track-list,3=track) and flag words f2 are inferred groupings, not proven semantics; f3=0x1000000 marks local-library entries. Extended 8-word records canonicalize legacy service URI domains (radea:/npsdy: on-demand track ids, rdradio: station ids) onto internal path templates + an explicit source scheme (x-sonos-http:/x-sonosapi-radio:) - i.e. service-URI rewrite rules.
+  - **uri_rewrite_entries:**
+    - **_shape:** 8 words: {match_prefix, kind_enum, flags, short_id, source_ext, path_template, source_scheme, trailer}
+    - **radea:Tra.:**
+      - **kind:** 0x3
+      - **flags:** 0x2020
+      - **short:** Tra.
+      - **ext:** .mp3
+      - **path:** ondemand_track::tra.%s
+      - **scheme:** x-sonos-http:
+      - **tail:** .mp4
+    - **npsdy:Tra.:**
+      - **kind:** 0x3
+      - **flags:** 0x2020
+      - **short:** Tra.
+      - **ext:** .mp3
+      - **path:** ondemand_track::tra.%s
+      - **scheme:** x-sonos-http:
+      - **tail:** .mp4
+    - **rdradio:station:ps.:**
+      - **kind:** 0xd
+      - **flags:** 0x4c
+      - **short:** ps.
+      - **ext:** ?
+      - **path:** station::ps.%s
+      - **scheme:** x-sonosapi-radio:
+      - **tail:** 0
+    - **rdradio:artist:Art.:**
+      - **kind:** 0xd
+      - **flags:** 0x4c
+      - **short:** Art.
+      - **ext:** ?
+      - **path:** station::sas.%s
+      - **scheme:** x-sonosapi-radio:
+      - **tail:** 0
 
 <details><summary>Evidence (4)</summary>
 
