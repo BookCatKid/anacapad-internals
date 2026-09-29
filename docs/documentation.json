@@ -116816,7 +116816,10 @@
   "ssh_authorized_keys": "CSRF form POST ssh_key textarea; buttons submit/remove_keys; \"unable to allocate valid port set for %s\" nearby",
   "watchdog_crash": "\"WATCHDOG: %s unresponsive! (UTC %s)\" -> /sbin/reboot (\"returned %d\"); /watchdogcrash + \"Performing health check\"/\"Waiting for next health check\" cycle",
   "diag_instructions": "/ws/diag/diag_instructions.xml fetched with ?hhid= \u2014 ServerDiagInstructions/SubmitPermission; \"Contacting server for instructions: %s\"; I/O+HTTP error paths",
-  "muse_upnp_bridge_actions": "bridge verbs callable via upnp* namespaces: CreateStereoPair,SeparateStereoPair,RemoveHTSatellite{SatRoomUUID},RoomDetection{Start,Stop}Chirping,ChirpIfPlayingSwappableAudio,EnterConfigMode,ExitConfigMode,GetButtonLockState,GetLEDState,GetButtonState,GetHouseholdID,GetZoneAttributes{Name,Icon,Configuration,TargetRoomName},GetZoneInfo{DisplaySoftwareVersion,MACAddress,CopyrightInfo,ExtraInfo,HTAudioIn},GetZoneGroupState,GetZoneGroupAttributes{ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup,MuseHouseholdId},ReportUnresponsiveDevice{DeviceUUID,DesiredAction,DiagnosticID,IncludeControllers},BeginSoftwareUpdate{ExtraOptions},CheckForUpdate{UpdateType,CachedOnly},RegisterMobileDevice{MobileDeviceName,MobileDeviceUDN,MobileIPAndPort},GetLineInLevel,GetAudioInputAttributes,SetLineInLevel{DesiredLeft,Right},SetAudioInputAttributes{DesiredName},StartTransmissionToGroup,SetSourceAreaIds{DesiredSourceAreaIds},ReportTrackBufferingResult{BootSeq,GroupUUIDJoined,VolumeAVTransportURI,CoordinatorID},Get/SetAutoplay{Volume,LinkedZones,RoomUUID,UseAutoplayVolume}"
+  "muse_upnp_bridge_actions": "bridge verbs callable via upnp* namespaces: CreateStereoPair,SeparateStereoPair,RemoveHTSatellite{SatRoomUUID},RoomDetection{Start,Stop}Chirping,ChirpIfPlayingSwappableAudio,EnterConfigMode,ExitConfigMode,GetButtonLockState,GetLEDState,GetButtonState,GetHouseholdID,GetZoneAttributes{Name,Icon,Configuration,TargetRoomName},GetZoneInfo{DisplaySoftwareVersion,MACAddress,CopyrightInfo,ExtraInfo,HTAudioIn},GetZoneGroupState,GetZoneGroupAttributes{ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup,MuseHouseholdId},ReportUnresponsiveDevice{DeviceUUID,DesiredAction,DiagnosticID,IncludeControllers},BeginSoftwareUpdate{ExtraOptions},CheckForUpdate{UpdateType,CachedOnly},RegisterMobileDevice{MobileDeviceName,MobileDeviceUDN,MobileIPAndPort},GetLineInLevel,GetAudioInputAttributes,SetLineInLevel{DesiredLeft,Right},SetAudioInputAttributes{DesiredName},StartTransmissionToGroup,SetSourceAreaIds{DesiredSourceAreaIds},ReportTrackBufferingResult{BootSeq,GroupUUIDJoined,VolumeAVTransportURI,CoordinatorID},Get/SetAutoplay{Volume,LinkedZones,RoomUUID,UseAutoplayVolume}",
+  "accepted_mimes": "audio/x-aiff,audio/flac,audio/mp4,audio/x-m4a,audio/mpeg,audio/mp3,audio/mpeg3,application/ogg,audio/ogg,audio/x-spotify-ogg,audio/x-wav,audio/vnd.wave,audio/wma,audio/x-ms-wma,audio/x-mpegurl,audio/mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/x-mpegURL,audio/L16,application/dash+xml,audio/x-sonos-recent",
+  "uri_service_map": "URI prefix -> service impl: x-rincon-mp3radio,x-sonosapi-iqradio,sonos.com-hls-{static,radio,aac,rtrecent},x-rincon-internal,x-rincon-buzzer,pandora.com-pndrradio-http,sonos.com-spotify,real.com-rhapsody-direct,sonos.com-http,real.com-rhapsody-http-1-0,sonos.com-mms,sirius.com-sirradio,last.fm-radio-http,pandora.com-pndrradioad,https:,file:,rhap:,radio-rhap:,radio-radea:,radio-npsdy:,pndrradio-http://,pndrradioad://,lfmtrack:,x-sonos-dock:,hls-static://",
+  "rincon_didl_fields": "urn:schemas-rinconnetworks-com:metadata-1-0/|{tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd}; r:{radioName,streamContent,audioInputIcon,radioShowMd}; upnp:originalTrackNumber; res duration=\" attr; classes object.item.audioItem.{podcast,show,audioBook.chapter}; loadFromExtraMd {pszTrackURI,pszExtraMd}; RTrackDIDLLiteMdExtractor; extractMimeTypeFromHttpContentType"
  },
  "subsystems": {
   "ab_experiments": {
@@ -120508,7 +120511,54 @@
    }
   },
   "vli": {
-   "sink": "vlintxsink \"VLI NodeTX Blocks\": \"lTransmitOffBox is now %d [uni=%c]\"; \"NodeTx configured to handle %s audio (qos: %d)\"; \"delay sending new frames until resend finishes\""
+   "sink": "vlintxsink \"VLI NodeTX Blocks\": \"lTransmitOffBox is now %d [uni=%c]\"; \"NodeTx configured to handle %s audio (qos: %d)\"; \"delay sending new frames until resend finishes\"",
+   "ctrl": {
+    "callbacks": [
+     "onVirtualLineInGetVolume",
+     "onVirtualLineInSessionStartInfoUpdated",
+     "onVirtualLineInStartSession",
+     "onVirtualLineInStopSession",
+     "onVirtualLineInSuspendSession",
+     "onPlaybackStateChanged",
+     "processSetVolume",
+     "onVirtualLineInNameChanged",
+     "onVirtualLineInMetaDataChanged",
+     "onVirtualLineInPlayModesChanged"
+    ],
+    "events": [
+     "VolumeSetActionEvent",
+     "VliVolumeProcessingCompleteEvent{vliType,success,flags}",
+     "VliSessionProcessingCompleteEvent{vliType,action,success,flags}",
+     "VliTransportAction",
+     "AvtHaltActionEvent",
+     "AvtVliActionEvent",
+     "GroupVolumeSetActionEvent",
+     "VolumeChangedEvent(vli source)",
+     "VliPropertiesChangedEvent{name,md,mode}"
+    ],
+    "types": [
+     "AirPlay",
+     "bluetooth/Bluetooth",
+     "tvproxy/TV Proxy"
+    ],
+    "details": "cookie-based session tracking; waitOnTxBitFlagsClearedLocked; \"StartSession for unusable/unknown type\"; protocolInfo=\"x-sonos-vli:*:audio:*\"; \"VLIGroupIDs cannot contain commas\"; completion-signal timeouts"
+   }
+  },
+  "media_player_mgr": {
+   "name": "mpmgr \u2014 MediaPlayer actor registry",
+   "status": "partial",
+   "summary": "actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); \"found actor for %s\"/\"found backup for %s\"/\"%s target [%s] for type %d resolved to %s\"/\"no actor available\"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ecb874",
+     "notes": "media_player_mgr.cxx"
+    }
+   ]
+  },
+  "autoplay": {
+   "engine": "MpAutoPlay_: airplay {include zones,vol,useVol,includeZones}; AirplayIncludeGroupedEvt; AutoStop on unhandled URI; linein URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth}; \"lonely local line-in autoplay %s\"; failure modes \"no autoplay target\"/\"couldn't determine coordinator\"/\"couldn't determine AVT control URI of coordinator\"/\"couldn't determine control URI of zone\"; skip \"invisible/node proto incompatible ZP\"; \"for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d\"; vliType-driven"
   }
  },
  "muse": {

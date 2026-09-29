@@ -774,6 +774,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#media_player_mgr" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>media_player_mgr</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#model_sku_vocabulary" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1673,6 +1684,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#media_player_mgr" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>media_player_mgr</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#model_sku_vocabulary" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1858,6 +1880,11 @@
 <td>source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source</td>
 </tr>
 <tr>
+<td><code>media_player_mgr</code></td>
+<td><strong>partial</strong></td>
+<td>actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target [%s] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming</td>
+</tr>
+<tr>
 <td><code>model_sku_vocabulary</code></td>
 <td><strong>partial</strong></td>
 <td>51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID</td>
@@ -1954,6 +1981,11 @@
 </tr>
 <tr>
 <td><code>alarm_clock</code></td>
+<td><strong>?</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>autoplay</code></td>
 <td><strong>?</strong></td>
 <td></td>
 </tr>
@@ -2671,6 +2703,19 @@
 
 </details>
 
+<h2 id="media_player_mgr"><code>media_player_mgr</code><a class="headerlink" href="#media_player_mgr" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target [%s] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming</p>
+<ul>
+<li><strong>name:</strong> mpmgr — MediaPlayer actor registry</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ecb874 — media_player_mgr.cxx
+
+</details>
+
 <h2 id="model_sku_vocabulary"><code>model_sku_vocabulary</code><a class="headerlink" href="#model_sku_vocabulary" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability conditionals — which features a given hardware reports. The model→capability table hasn't been written out yet.</p>
@@ -3290,6 +3335,11 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 - **muse_validation:**
   - **errors:** `Invalid service id`, `Failed to convert content payload for alarm contentType=%s, objectId=%s`, `Invalid startTime`, `No alarm active to silence`, `Invalid duration provided`, `Device not group coordinator or source`, `Alarm not found`, `Invalid recurrence`, `Invalid alarm ID`, `Invalid Recurrence`, `Invalid StartTime`, `Writing alarm failed with error: %d`, `Unable to return active alarm: definition has been deleted`
   - **recurrence:** day-bitmask "12345"-style strings + presets {DAILY,WEEKDAYS,WEEKENDS}
+## `autoplay`
+
+**coverage** `?`
+
+- **engine:** MpAutoPlay_: airplay {include zones,vol,useVol,includeZones}; AirplayIncludeGroupedEvt; AutoStop on unhandled URI; linein URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth}; "lonely local line-in autoplay %s"; failure modes "no autoplay target"/"couldn't determine coordinator"/"couldn't determine AVT control URI of coordinator"/"couldn't determine control URI of zone"; skip "invisible/node proto incompatible ZP"; "for controlURI \[%s\] for coordinator \[%s\]. programURI \[%s\]. %d - %d"; vliType-driven
 ## `chsnk`
 
 **coverage** `?`
@@ -3395,6 +3445,11 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **sink:** vlintxsink "VLI NodeTX Blocks": "lTransmitOffBox is now %d \[uni=%c\]"; "NodeTx configured to handle %s audio (qos: %d)"; "delay sending new frames until resend finishes"
+- **ctrl:**
+  - **callbacks:** `onVirtualLineInGetVolume`, `onVirtualLineInSessionStartInfoUpdated`, `onVirtualLineInStartSession`, `onVirtualLineInStopSession`, `onVirtualLineInSuspendSession`, `onPlaybackStateChanged`, `processSetVolume`, `onVirtualLineInNameChanged`, `onVirtualLineInMetaDataChanged`, `onVirtualLineInPlayModesChanged`
+  - **events:** `VolumeSetActionEvent`, `VliVolumeProcessingCompleteEvent{vliType,success,flags}`, `VliSessionProcessingCompleteEvent{vliType,action,success,flags}`, `VliTransportAction`, `AvtHaltActionEvent`, `AvtVliActionEvent`, `GroupVolumeSetActionEvent`, `VolumeChangedEvent(vli source)`, `VliPropertiesChangedEvent{name,md,mode}`
+  - **types:** `AirPlay`, `bluetooth/Bluetooth`, `tvproxy/TV Proxy`
+  - **details:** cookie-based session tracking; waitOnTxBitFlagsClearedLocked; "StartSession for unusable/unknown type"; protocolInfo="x-sonos-vli:*:audio:*"; "VLIGroupIDs cannot contain commas"; completion-signal timeouts
 
 
 
