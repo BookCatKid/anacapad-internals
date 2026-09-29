@@ -1090,7 +1090,7 @@ csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS'
 
 **coverage** `partial`
 
-The `/X-external` proxy table that forwards requests to sibling daemons — sonospowercoordinator, btmanager, sonosledmgrd, netstartd — plus the watchdog and sentry upload routes (with watchdog_log/watchdog_dmesg attachments and crashdump support). These are the internal control channels between anacapad and the rest of the firmware.
+The /X-external proxy table that forwards requests to sibling daemons — sonospowercoordinator, btmanager, sonosledmgrd, netstartd — plus the watchdog and sentry upload routes (with watchdog_log/watchdog_dmesg attachments). The netstartd channel's wire format is now decoded: every message on /tmp/netstartd.ipc is a 12-byte header {fieldA, fieldB, length} followed by {u32 message-id, payload} where the declared length includes the id itself (4..0x804); ids 31-91 are netstartd events dispatched through a 61-entry jump table, ids >= 0x40 take a local handler path. A 'hello' message is sent immediately after 'IPC established', with automatic reconnect on timeout and clean teardown logged as 'IPC closed'. The first 8 header bytes belong to libsonos's ReadIPCHeader and their fields aren't resolvable from anacapad alone.
 
 **Technical description:**
 
