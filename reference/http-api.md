@@ -3057,6 +3057,100 @@ The complete operation list of the muse (app/cloud) API: every resource and what
     - **count:** 19
     - **names:** `SECURITY_ERROR_AUTH_GENERAL`, `SECURITY_ERROR_LOGIN_DENIED`, `SECURITY_ERROR_PEER_FAILED_VERIFICATION`, `SECURITY_ERROR_REMOTE_ACCESS_DENIED`, `SECURITY_ERROR_SSL_CACERT`, `SECURITY_ERROR_SSL_CACERT_BADFILE`, `SECURITY_ERROR_SSL_CERTPROBLEM`, `SECURITY_ERROR_SSL_CIPHER`, `SECURITY_ERROR_SSL_CLIENTCERT`, `SECURITY_ERROR_SSL_CONNECT`, `SECURITY_ERROR_SSL_CRL_BADFILE`, `SECURITY_ERROR_SSL_ENGINE_INITFAILED`, `SECURITY_ERROR_SSL_ENGINE_NOTFOUND`, `SECURITY_ERROR_SSL_ENGINE_SETFAILED`, `SECURITY_ERROR_SSL_INVALIDCERTSTATUS`, `SECURITY_ERROR_SSL_ISSUER`, `SECURITY_ERROR_SSL_PINNEDPUBKEYNOTMATCH`, `SECURITY_ERROR_SSL_SHUTDOWN_FAILED`, `SECURITY_ERROR_USE_SSL_FAILED`
     - **note:** auth/TLS client error vocabulary (curl-style SSL error family); adjacent HTTP-fetch run: ERROR_USE_SSL_FAILED,ERROR_POST_FAILED,ERROR_RETURNED,ERROR_MALFORMED_URL,ERROR_TOO_MANY_REDIRECTS
+  - **channel_codes_ht:**
+    - **provenance:** ordered char* name table @0x11092550, 18 entries
+    - **kind:** enum
+    - **count:** 18
+    - **names:**
+      - **0:** LF
+      - **1:** RF
+      - **2:** CC
+      - **3:** SW
+      - **4:** LR
+      - **5:** RR
+      - **6:** LS
+      - **7:** RS
+      - **8:** LTF
+      - **9:** RTF
+      - **10:** LTR
+      - **11:** RTR
+      - **12:** LW
+      - **13:** RW
+      - **14:** LTM
+      - **15:** RTM
+      - **16:** AX1
+      - **17:** AX2
+    - **note:** full home-theater channel vocabulary: fronts, center, sub, rear/surround, top front/middle/rear (Atmos heights), wide, aux1/2
+  - **channel_codes_short:**
+    - **provenance:** ordered char* name table @0x10ff0d88, 12 entries
+    - **kind:** enum
+    - **count:** 12
+    - **names:**
+      - **0:** L
+      - **1:** R
+      - **2:** C
+      - **3:** SUB
+      - **4:** LS
+      - **5:** RS
+      - **6:** LRS
+      - **7:** RRS
+      - **8:** LTM
+      - **9:** RTM
+      - **10:** LW
+      - **11:** RW
+  - **channel_map_profiles:**
+    - **provenance:** ordered char* table @0x11095308, 31 entries = 4 concatenated channel-map profiles
+    - **kind:** profile_set
+    - **names:**
+      - **0:** LF
+      - **1:** RF
+      - **2:** C
+      - **3:** LFE
+      - **4:** LS
+      - **5:** RS
+      - **6:** LRS
+      - **7:** RRS
+      - **8:** LF
+      - **9:** RF
+      - **10:** C
+      - **11:** LFE
+      - **12:** LS
+      - **13:** RS
+      - **14:** LRS
+      - **15:** RRS
+      - **16:** LF
+      - **17:** RF
+      - **18:** C
+      - **19:** LS
+      - **20:** RS
+      - **21:** LRS
+      - **22:** RRS
+      - **23:** LF
+      - **24:** RF
+      - **25:** C
+      - **26:** LFE
+      - **27:** LS
+      - **28:** RS
+      - **29:** LRS
+      - **30:** RRS
+    - **note:** 4 profile layouts (3x 8-ch with LFE + 1x 7-ch without LFE) — the stereo-pair+sub+surround+height map variants
+  - **timezones:**
+    - **provenance:** ordered char* table @0x11092824, 11 entries
+    - **kind:** enum
+    - **count:** 11
+    - **names:**
+      - **0:** PST
+      - **1:** MST
+      - **2:** CST
+      - **3:** EST
+      - **4:** AST
+      - **5:** NST
+      - **6:** CET
+      - **7:** IST
+      - **8:** EET
+      - **9:** CST
+      - **10:** JST
+    - **note:** tz abbrev table (CST appears twice - US Central + China Standard)
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
 - **r_star_status:** PROVEN: R_LED_* (64-bit mask, applyLEDMode log-arg constants), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table bucketing), muse result codes 0-106 (direct-indexed name table — the enum the R_-adjacent ERROR_* strings actually belong to). CORRECTION: most names previously catalogued as R_* namespaces (R_ACCOUNT_*, R_PAND_*, R_WMP_*, R_LASTFM_*, R_CLOUD_QUEUE_*, R_PLAYBACK_*, R_INIT/READ/WRITE_STATUS_*, R_MASK_*, R_TYPE_*, R_DOCK_INTERRUPT, R_MICROPHONE_*, R_PEER_*, R_INSUFFICIENT_*) were SUBSTRING ARTIFACTS inside ERROR_*, FLAC__STREAM_DECODER_*, SPEAKER_MASK_* and FRAME_NUMBER_TYPE_* strings — not a Sonos R_ namespace. Genuine remaining R_*: R_CLIENT_KEYCERT_ID_* (curl cert-selection ids, log only) and the ~29 R_* settings keys (separate vocabulary)
