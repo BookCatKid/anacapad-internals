@@ -130,9 +130,16 @@ unknown action name on QPlay dispatcher
 
 - action name != QPlayAuth (dispatcher strcmp) (dispatcher fault 0x1073a548)
 
+**`401`** `confirmed`
+
+action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
+
+- dispatched action name != "QPlayAuth" (strcmp fallthrough)
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
+- handler `0x1073a4f0`
 - Dispatcher f_1073a4f0 strcmp-matches "QPlayAuth", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v\[+0x0c\] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v\[+0x08\] gate (else 402), then impl->v\[+0x08\] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v\[+0x24\] then commits via req->v\[+0x0c\].
 
 - @ 0x1073a528 — strcmp dispatch site

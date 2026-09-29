@@ -87150,8 +87150,8 @@
      "status": "confirmed",
      "visibility": "advertised",
      "reachability": "callable",
-     "handler": null,
-     "handler_func": null,
+     "handler": "0x1073a4f0",
+     "handler_func": "0x1073a4f0",
      "req_arg": null,
      "dispatch": {
       "kind": "strcmp-dispatched",
@@ -87410,6 +87410,39 @@
            "notes": "strcmp dispatch"
           }
          ]
+        }
+       ]
+      },
+      {
+       "code": 401,
+       "meaning": "action-name strcmp miss in wrapper f_1073a4f0 -> req v[+0x14] emit 0x191",
+       "status": "confirmed",
+       "fault_sites": [
+        "0x1073a53c"
+       ],
+       "conditions": [
+        {
+         "description": "dispatched action name != \"QPlayAuth\" (strcmp fallthrough)",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "status": "confirmed",
+           "address": "0x1073a528",
+           "notes": "strcmp + bc 12,30 -> body; else addi r4,0x191 + mtctr req v[+0x14]"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "address": "0x1073a53c",
+         "notes": "addi r4,0x191; mtctr; bctrl on req v[+0x14]"
         }
        ]
       }
@@ -105460,6 +105493,115 @@
      "pc": "0x1034a24c"
     }
    ]
+  },
+  "0x107396d0": {
+   "address": "0x107396d0",
+   "role": "action_reject_stub",
+   "description": "Shared HTControl base-class action stub. Calls the request object's v[+0x08] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req v[+0x14]. Occupies vtable slots +0x14 and +0x18 of the HTControl base-class vtable 0x10f11b64, i.e. the IdentifyIRRemote and LearnIRCode slots in the base class.",
+   "why_external": "Defines base-class behavior for the two IR-learning actions; the derived class registered on this build overrides both slots with real implementations (f_10241f24 / f_10242008).",
+   "required_for_behavior": true,
+   "status": "confirmed",
+   "used_by": [
+    {
+     "arg": "IdentifyIRRemote",
+     "direction": "in",
+     "site": "0x10f11b78"
+    },
+    {
+     "arg": "LearnIRCode",
+     "direction": "in",
+     "site": "0x10f11b7c"
+    }
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x107396d0",
+     "notes": "disasm: req->v[+8] parse call, then lwz r9=vptr[+0x14], r4=0x1f5, bctr - unconditional 501 fault after parse"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11b78",
+     "notes": "base vtable slot +0x14 = 0x107396d0"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11b7c",
+     "notes": "base vtable slot +0x18 = 0x107396d0"
+    }
+   ],
+   "notes": null
+  },
+  "0x10242118": {
+   "address": "0x10242118",
+   "role": "impl_ctor",
+   "description": "Derived HTControl impl-class constructor. Calls the base-class ctor f_10739e2c (which installs vptr 0x10f11b64), then overwrites the vptr with the derived vtable 0x10ea61d0 carrying the real IdentifyIRRemote/LearnIRCode implementations at slots +0x14/+0x18.",
+   "why_external": "Proves which impl class is registered: the service object ends up with vptr 0x10ea61d0, so both IR actions reach real handlers - the base-class 501 stubs are transient construction state only.",
+   "required_for_behavior": true,
+   "status": "confirmed",
+   "used_by": [
+    {
+     "arg": "HTControl service object",
+     "direction": "in",
+     "site": "0x1018d27c"
+    }
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10242134",
+     "notes": "bl f_10739e2c (base ctor) inside f_10242118"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10242118",
+     "notes": "stores vptr 0x10ea61d0"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1018d27c",
+     "notes": "factory calls f_10242118"
+    }
+   ],
+   "notes": null
+  },
+  "0x1018d27c": {
+   "address": "0x1018d27c",
+   "role": "service_factory",
+   "description": "HTControl impl factory - allocates and constructs the derived impl object via f_10242118.",
+   "why_external": "The only call site that instantiates the registered HTControl implementation class.",
+   "required_for_behavior": true,
+   "status": "confirmed",
+   "used_by": [],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1018f6d8",
+     "notes": "bl f_10242118 inside f_1018d27c"
+    }
+   ],
+   "notes": null
   }
  },
  "dispatch_candidates": {
@@ -121215,6 +121357,68 @@
   "rate_limiter": {
    "summary": "'RateLimiter(%s): num %d, period %dms, suppr %dms, delay %dus' \u2014 named rate limiter with {max events per period, suppression window, delay} fields; used across audio/network paths",
    "status": "confirmed"
+  },
+  "action_dispatch_records": {
+   "description": "Per-service action dispatch tables are sorted name-keyed records of stride 12 consumed by a binary-search dispatcher (e.g. f_10307608 ContentDirectory, f_10733b44 AlarmClock). Two record layouts exist: DIRECT {name_ptr, fn_ptr, 0} - used by AVTransport, ContentDirectory, ConnectionManager? no; used by AVTransport, ContentDirectory, DeviceProperties, GroupManagement, GroupRenderingControl, Queue, RenderingControl, VirtualLineIn - the middle word is the handler. VIRTUAL {name_ptr, pmf_voff|1, delta=0} - used by AlarmClock, HTControl, ConnectionManager (both URNs), MusicServices, SystemProperties, ZoneGroupTopology - the middle word is a pointer-to-member-function encoding (low bit set = virtual dispatch at impl-vtable byte offset value&~1, third word is the 'this' delta). The dispatcher then invokes req->v[+0x14] with 0x191 (401) when the name is absent.",
+   "status": "confirmed",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10733c54",
+     "notes": "PMF decode in AlarmClock dispatcher: lwz r9,rec+4; andi. r9&1 -> virtual path; lwz r3,rec+8 delta; vtable slot load via vptr+delta"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb4264",
+     "notes": "CDS table: 16 x {name,fn,0} sorted, binary search verified"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11580",
+     "notes": "AlarmClock table: 17 x {name,voff|1,0}"
+    }
+   ],
+   "notes": "All 17 service action tables verified against documented actions: zero missing names, zero extra names, all handler addresses match (direct fn column for direct services, impl-vtable[voff&~1] for virtual services)."
+  },
+  "service_impl_vtables": {
+   "description": "The six virtual-dispatch services place their impl-class vtable immediately before the action table in .rodata: SystemProperties 0x10f110a8(18 slots), ZoneGroupTopology 0x10f113b0(11), AlarmClock 0x10f11530(20), ConnectionManager 0x10f118bc(6), HTControl 0x10f11b64(11, base class), MusicServices 0x10f11d04(6). Layout: slot0/1 = dtor pair, slot+0x08 = the service dispatcher itself, slots +0x0c up = action impls in voff order. HTControl additionally has a derived class at 0x10ea61d0 (ctor f_10242118 via factory f_1018d27c) which overrides slots +0x14/+0x18 with real IdentifyIRRemote/LearnIRCode handlers - the base-class versions of those slots point at the 501 reject stub f_107396d0.",
+   "status": "confirmed",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11530",
+     "notes": "AlarmClock impl vtable: slot+0x08 = dispatcher f_10733b44, slots+0x0c.. = 17 action handlers, all verified"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea61d0",
+     "notes": "HTControl derived vtable: +0x14=f_10241f24 +0x18=f_10242008"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f11b64",
+     "notes": "HTControl base vtable: +0x14/+0x18=f_107396d0 (501 stub)"
+    }
+   ],
+   "notes": "Registered class proven by ctor chain f_1018d27c -> f_10242118 -> base ctor f_10739e2c then vptr overwrite to 0x10ea61d0."
   }
  },
  "subsystems": {

@@ -415,6 +415,7 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
 |---|---|---|---|
 | `QPlayAuth` | `402` | `confirmed` | request-validate gate failed (req->v\[+0x08\] returned 0) |
 | `QPlayAuth` | `401` | `confirmed` | unknown action name on QPlay dispatcher |
+| `QPlayAuth` | `401` | `confirmed` | action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191 |
 | _(dispatcher)_ | `401` | `strong` | unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler |
 
 ### `Queue`

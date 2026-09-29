@@ -198,7 +198,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
-| `QPlayAuth` | advertised | callable | `confirmed` | `-` |
+| `QPlayAuth` | advertised | callable | `confirmed` | `0x1073a4f0` |
 
 ## `Queue` — `/MediaRenderer/Queue/Control` (advertised)
 
