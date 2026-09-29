@@ -1204,6 +1204,7 @@ developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unl
 - **endpoints:** /unlock, /devunlock, /mfgunlock, /unlock.htm (browser form)
 - **behavior:** unlock writes /tmp/device_unlocked_flag and an <Unlocked>1</Unlocked> record; the deviceUnlock op + 'DevUnlock' page return 'Rebooting...'; a server-side cap yields '<h2>Too Many Unlocks</h2>' when the per-device unlock budget is exhausted
 - **safety:** RdeviceIsUnlocked + RabortIfUnlocked R_* hooks let diagnostic/self-test code abort on unlocked hardware — unlocked units are treated as non-production
+- **ssh_console_gates:** run_sshd.sh: dropbear (-R -F, ecdsa host key at /jffs/persist/ssh/dropbear_ecdsa_host_key, client keys /jffs/sys/debug/ssh/authorized_keys — the /ssh/authorized_keys form target) is init-respawned BUT blocks on 'waitwhiletrue \[ ! -f /tmp/device_unlocked_flag \]' — SSH only serves after device unlock. secure_console_login.sh similarly gates the ttyS0 getty on /proc/sonos-lock/console_enable == '1' (secure-boot console lock), then secure_console.sh does 'login -f root' auto-login — serial console is root with no password once the proc lock is lifted; absent on pre-secure-boot players (console disabled by other methods).
 <details><summary>Evidence (4)</summary>
 
 - @ 0x10f00014 — /devunlock endpoint literal
