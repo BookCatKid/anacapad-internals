@@ -121,11 +121,6 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetBrowseable` | advertised | callable | `strong` | `0x10307424` |
 | `UpdateObject` | advertised | callable | `strong` | `0x10306d28` |
 
-## `Control` — `/GroupRenderingControl/Control` (None)
-
-| Action | Visibility | Wire status | Confidence | Handler |
-|---|---|---|---|---|
-
 ## `DeviceProperties` — `/DeviceProperties/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |

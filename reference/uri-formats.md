@@ -69,7 +69,7 @@ music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 </details>
 
-## `hls-aac` `partial`
+## `hls-aac` `strong`
 
 `hls-aac://` — the AAC-coded HLS variant; same engine as hls-radio with ADTS framing expectations.
 
@@ -85,7 +85,7 @@ HLS AAC variant
 
 </details>
 
-## `hls-radio` `partial`
+## `hls-radio` `strong`
 
 `hls-radio://` — marks a URI as an HLS radio stream, routing it to the hls-live player rather than a one-shot fetch.
 
@@ -135,7 +135,7 @@ HLS radio variant scheme token in the protocol vocabulary.
 
 </details>
 
-## `hm` `partial`
+## `hm` `strong`
 
 `hm://` — the Spotify hermes/mercury channel scheme; URIs under it address hermes resources (hwptp devices, tsv, resolve) rather than audio. Never a playable transport URI.
 
@@ -191,7 +191,7 @@ Used by: cloud alarm sync; UPnP-bridge subscription relay
 
 </details>
 
-## `last_fm-radio-http` `partial`
+## `last_fm-radio-http` `confirmed`
 
 The `last.fm-radio-http` scheme — legacy Last.fm radio over HTTP; still accepted by the scheme table even though the service integration is historical.
 
@@ -243,7 +243,7 @@ IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabular
 
 </details>
 
-## `pandora_com-pndrradioad` `partial`
+## `pandora_com-pndrradioad` `strong`
 
 The `pandora.com-pndrradioad` service prefix — identifies Pandora ad-insertion streams distinctly from normal station audio.
 
@@ -259,7 +259,7 @@ pandora ad service prefix
 
 </details>
 
-## `pndrradio-http` `partial`
+## `pndrradio-http` `strong`
 
 `pndrradio-http://` — a Pandora radio variant served over plain HTTP. Appears in queue/transport URIs when a Pandora station uses the non-SMAPI path.
 
@@ -406,7 +406,7 @@ Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%
 
 </details>
 
-## `sonos_com-hls-radio` `partial`
+## `sonos_com-hls-radio` `strong`
 
 The `sonos.com-hls-radio` service prefix — marks HLS-radio streams coming through the Sonos-hosted radio aggregation service.
 
@@ -472,7 +472,7 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 
 </details>
 
-## `stub` `partial`
+## `stub` `strong`
 
 `stub://stub:%u` — a placeholder URI used by stub/dummy players in group handling. If it shows up in a queue, the source is a synthetic entry, not real media.
 
@@ -740,7 +740,7 @@ Catch-all record; split into per-scheme records as uses get traced.
 
 </details>
 
-## `x-sonos-unknown` `partial`
+## `x-sonos-unknown` `confirmed`
 
 `x-sonos-unknown:` — the placeholder for a source whose type couldn't be determined. Shows up in transport state when metadata is missing or the source predates classification.
 

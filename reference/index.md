@@ -32,7 +32,6 @@ Binary `anacapad`, build `86.10-80260` — model-9 (Playbar/limelight). Generate
 | [ConnectionManager](services/connection-manager-renderer.md) | `/MediaRenderer/ConnectionManager/Control` | advertised | 3 | `strong` |
 | [ConnectionManager](services/connection-manager-server.md) | `/MediaServer/ConnectionManager/Control` | advertised | 3 | `strong` |
 | [ContentDirectory](services/content-directory.md) | `/MediaServer/ContentDirectory/Control` | advertised | 16 | `strong` |
-| [Control](services/control.md) | `/GroupRenderingControl/Control` |  | 0 | _unassessed_ |
 | [DeviceProperties](services/device-properties.md) | `/DeviceProperties/Control` | advertised | 27 | `strong` |
 | [GroupManagement](services/group-management.md) | `/GroupManagement/Control` | advertised | 4 | `strong` |
 | [GroupRenderingControl](services/group-rendering-control.md) | `/MediaRenderer/GroupRenderingControl/Control` | advertised | 6 | `strong` |
