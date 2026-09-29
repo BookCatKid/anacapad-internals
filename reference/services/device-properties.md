@@ -3279,6 +3279,12 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 Shared impl object 0x10e98278 is shared with SystemProperties: slots +0x18..+0x40 alias DP group/pair ops with SP account ops (e.g. +0x18 = AddBondedZones + AddAccountX). Same function = same operation; semantic differentiation is in the parsed record argument.
 
+## Additional records
+
+### `impl`
+
+- **desired_attrs:** action params {DesiredIcon,DesiredConfiguration,DesiredTargetRoomName,DesiredButtonLockState,DesiredLEDState,KeepGrouped}; ops {SetZoneAttributes,SetButtonLockState,SetLEDState,AddHTSatellite,RemoveHTSatellite,AddBondedZone,RemoveBondedZones}; VliPropertiesChangedEvent processing
+
 Implementation sources (recovered): `common/dp_impl.cxx`, `zoneplayer/dp_zpimpl.cxx`, `zoneplayer/dp_zpimpl_ht.cxx`, `zoneplayer/dp_zpimpl_stp.cxx`
 
 <details><summary>Service evidence (3)</summary>

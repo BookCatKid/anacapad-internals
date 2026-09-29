@@ -81,6 +81,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
 | `cloud_registration` | **?** |  |
 | `content_directory` | **?** |  |
+| `datatap` | **?** |  |
 | `device_props` | **?** |  |
 | `diagnostics` | **?** |  |
 | `dsp_params` | **?** |  |
@@ -1871,6 +1872,12 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **container_classes:** browse classes {object.container.album.musicAlbum,.compilation,playlistContainer.sameArtist,playlistContainer,albumlist,person.musicArtist,genre.musicGenre,person.composer}; fields {dc:creator,upnp:albumArtURI}; category keys {ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS}; dirObjAttr; <AudioCore> page + OrientationChangeEvent
+- **didl_objects:** res protocolInfo x-rincon-queue:*:*:*; rincon md ns usernameX/passwordX (SMB creds in metadata); SQ:%d; object types {dirObjShares,dirObjQueue,dirObjQueueQueue,dirObjSavedQueueTrack,dirObjSavedQueue,directory}; "cannot set queues (container size exceeded %d, already set %d)"; mntmgr "createObject: invalid share %s"
+## `datatap`
+
+**coverage** `?`
+
+- **detail:** "Datatap snapshot failed after %zu" (snapshot bound); ZoneDevDiscThread
 ## `device_props`
 
 **coverage** `?`
@@ -2070,3 +2077,8 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
   - **vanish_fsm:** states {active→vanished} with {byebye reason,reasonforvanish,vanishbatterypercentage,vanishbatterytemperature,timesincevanish}; "Broadcasted unresponsive device %s"; "Received 'Remove' message pointing to local device"; "VerifyThenRemoveSystemwide: Not removing, %s is present"; removeknown/hwver actions; "device %s removed from vanished list after factory reset"
   - **discovery:** handleNewOrUpdatedZP "%s found %s at %s; age: %d; addr: %s; host: %s; proxy: %s; ports={%u-%u}"; IP-change detect "ZP (%s) changed IP address from %s to %s"; link-local 169.254 guards; "Updated network hash: \[%s\] => \[%s\]"; "new bootseq"; "%s ZP %s (bootseq %u)"; X-Sonos-LatestSWGen + Content-Location headers; "Faking device %s (%s) props to be %s gc"; designated {PlayerDesignatedDevice missing required field %s}; "All devices idle for %ld s"; topmon thread
 - **discovered_zp_cache:** RDiscoveredZP/RDiscoveredZPs/RVanishedZPs replicated objects: "Updating RDiscoveredZP - current group %s - previous group %s"; "applying cached changes 0x%x on top of 0x%x"; "RDiscoveredZP is not yet valid, caching SID %s change map: 0x%x" (subscription change-map cache); "Got GM info for %s (%s, %s) in group %s (%s)"; device-desc dd_{mhh,sn,md,bld,in_hh,in_ver} + isHtap:%d; version-gated eventing "DiscoveredZP version=%u.%u.%u, using %s eventing" (secure\|insecure); "got discovery packet from another subnet -- mask: %x"; "detected/un-detected 3rd party extender: %s != %s"; vanish reasons {LOW BATTERY,EXPIRED} + " (wakeable)"
+- **ht_satellite_ops:**
+  - **add:** AddHTSatellite: precheck {"unable to become satellite, device has satellites","Primary device %s is not found","incompatible primary device %s"}; "Change from ZP to Sat mode. Map: %s"; clears SOURCE+local sonar config; sendGroupAddHTSatelliteCmd via DeviceProperties:1; joinZone cmd; "HT Zone setup (%u) via %s took %ld ms"; sat-state sync "upd \[%zu\], remote uuid: %s, remote state: %d"/"chk \[%zu\] ... my state %d"/"players ready: %d, map size: %d"; netstartd notify; "Push satellite state to UUID %s"
+  - **remove:** RemoveHTSatellite: clears RoomCalibration on satellite (per-sat + SATELLITE-of-SUB paths) + local sonar; "Change from Sat map %s to Sat map %s"/"Change from Sat to ZP mode"; "RemoveHTSat: error %d sending to Sat"; "HT Sat %s removal (%u) via %s took %ld ms"
+  - **reconnect:** reconnectHTSatellites {master,oldmap,failmap,recoverSat,recovery,satellite roles}: "reconnected Sat %s"/"retry in 10 secs as topology hasn't settled"/"removing Sat"/"separating from HT primary"; restarts on ZP↔Sat transitions
+  - **bonded:** AddBondedZone: EnterConfigMode→satellites→joinZone→ExitConfigMode + unlink failure "Unable to unlink secondary"; RemoveBondedZones: "Stop topology monitor: zone teardown" + "Zone teardown (%u) via %s took %ld ms"; setAVTransportURIOnSecondaries + "Pushing bonded zone state to secondaries failed"
