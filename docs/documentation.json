@@ -120845,7 +120845,8 @@
     "remove": "RemoveHTSatellite: clears RoomCalibration on satellite (per-sat + SATELLITE-of-SUB paths) + local sonar; \"Change from Sat map %s to Sat map %s\"/\"Change from Sat to ZP mode\"; \"RemoveHTSat: error %d sending to Sat\"; \"HT Sat %s removal (%u) via %s took %ld ms\"",
     "reconnect": "reconnectHTSatellites {master,oldmap,failmap,recoverSat,recovery,satellite roles}: \"reconnected Sat %s\"/\"retry in 10 secs as topology hasn't settled\"/\"removing Sat\"/\"separating from HT primary\"; restarts on ZP\u2194Sat transitions",
     "bonded": "AddBondedZone: EnterConfigMode\u2192satellites\u2192joinZone\u2192ExitConfigMode + unlink failure \"Unable to unlink secondary\"; RemoveBondedZones: \"Stop topology monitor: zone teardown\" + \"Zone teardown (%u) via %s took %ld ms\"; setAVTransportURIOnSecondaries + \"Pushing bonded zone state to secondaries failed\""
-   }
+   },
+   "bonded_recovery": "recoverBondedZone: consist checks {\"(Secondary doesn't see same topology)\",\"(all members present)\",\"(member missing)\"}; granularities {full state,EQ only}; FSM {\"retrying as topology hasn't settled (ct=%u)\",\"successful %s; %s sent to secondaries\",\"partner is incompatible\",\"hard failure: %d\",\"separating this player from bonded zone\",\"reducing bonded zone to %s\"}; roles {isPrimary,availmap,newmap,othermap}; orphan regroup {\"regrouping with orphaned secondary\",\"Delegating coordination to self\"}; unstick/restick sonar clears; telemetry bondedZoneChange {trigger,opDurationMs,bondDurationS,usedMuseAPI,prevChannelMapSet,prevPrimary,wasPrimary}"
   },
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\""
@@ -121067,6 +121068,32 @@
   },
   "datatap": {
    "detail": "\"Datatap snapshot failed after %zu\" (snapshot bound); ZoneDevDiscThread"
+  },
+  "trueplay": {
+   "name": "trueplay_dp \u2014 sonar calibration engine",
+   "status": "partial",
+   "summary": "config modes {button-notify,room_calibration-calibrate,speaker-detect,trueroom} + \"configMode CountDown:%d\"; eTag manifest /etags.txt matched against tone files {leader.ogg,testtone.ogg,complete_ht.ogg,inverter_*} at path %s/%s/%s/%s-%s under tones; fetch via players/%s/settings/player muse settings + forward; \"eTag is matching a known file\"; types {plug-in spectral,polarity}; params {tone_duration,force,v:%s t:%s}; \"Sonar cal volume - using clipped volume %d instead of requested %d\"; TP update \"found TP version ... do update to v%s\"; teardown {\"Clearing Trueroom tone folder on JFFS\",\"Error removing Trueplay asset dir\"}; restore paths {common RC,original RC,TV Surround Level,enable sonar,set AVT,reset AVT,re-enable Trueplay}; \"Trueroom config mode - Not restoring/restoring the AVT\"; fields {HTBondedZoneCommitState,AvailableRoomCalibration,RoomCalibrationState,Orientation,LastChangedPlayState,AlexaCBLSupported,SupportsAudioIn,SupportsAudioClip,HtBondedZoneCommitUpdateEvt}; cm_button \"pressed %s\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ebd630",
+     "notes": "trueplay_dp block"
+    }
+   ]
+  },
+  "dropout_logging": {
+   "name": "DropoutEventHandler \u2014 dropout telemetry",
+   "status": "partial",
+   "summary": "triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,set/reset pt}; slot model {clr slot,slot in use skip incr,set slot %zu idx %zu to %s,no space in list}; conditions {set pt reached,flag report at %zu sbmt,set pos aud,pt in fut - inaud,GCI but no CID}; per-ch incr \"incr call: %s, %zu, %zu, ch %zu, %d.%06d\"; fields {inputType,SatChCount,HtsnkVersion,msAfterPt,GroupRole,GCTimeValid,GCTime,btRole,submit}; counters {htsnk_missed_total,htsnk_missed_duration_total,htsnk_late_total,htsnk_strm_reset_duration_total,htsnk_strm_silence_duration_total,htsnk_strm_plc_duration_total}; reasons {chsnk_lse,chsnk_ch_data_full,chsnk_w_err,chsrc_framer_uflw,htsnk_invld_sntp,htsnk_late_frames,htsnk_missed_frames,htsnk_time_backw,htsnk_stream_err,htsnk_stream_uflw,htsnk_stream_reset_duration,htsnk_wrong_frame}; bt_audio + injectdropout test cmd {\"missing dt param\",\"Injected dropout error\"}; \"Sat chs %zu\"/\"Sat htsnk ver %u\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ebe644",
+     "notes": "dropout handler block"
+    }
+   ]
   }
  },
  "muse": {
