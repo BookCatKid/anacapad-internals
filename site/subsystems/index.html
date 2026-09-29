@@ -2175,6 +2175,11 @@
 <li><strong>lifecycle:</strong> cached entitlements returned from local store ('returning entitlements from cache'); refreshEntitlements fetches from cloud ('requesting entitlements from cloud', 'cloud entitlements: rc %d, http %d'); on ENTITLEMENTS_CHANGED the old set is stashed then compared ('stashed existing entitlements to compare later'); 'stale entitlements; scheduling job to refresh'</li>
 <li><strong>muse:</strong> v1/users/{userId}/entitlements, v1/households/{householdId}/entitlements + users/{userId} scoped; internalMuseSubscribeToEntitlements pushes entitlements_changed / entitlementsVersionChanged events; 'savePendingEntitlementsLocked'</li>
 <li><strong>gating:</strong> isEntitlementOn/processEntitlements feed RRuntimeZPPolicy ([localSettingsMgr=%s,entitlementsMgr=%s]) — the runtime policy engine; SBiz entitlement blocks Sonos Radio preinstall ('found SBiz entitlement; blocking preinstall of Sonos Radio' vs 'no SBiz entitlement; preinstalling Sonos Radio')</li>
+<li><strong>cloud_api:</strong> GET /entitlements/api with X-Sonos-User-Id header + "Cache-Control: max-age=0"; "cloud entitlements: rc %d, http %d"</li>
+<li><strong>cache:</strong> HTTPCacheManager-backed; stash-compare on refresh ("stashed existing entitlements to compare later"); "cache re-populated on refresh"/"TTLs updated on refresh (data unchanged)"; "Cache format unexpected"/"Corrupt Cache"/"Cache unpopulated"; cold-start only-empty warning</li>
+<li><strong>events:</strong> entitlements for "%s" changed -&gt; internal event + "triggering version changed muse event" (ENTITLEMENTS_CHANGED) + notifyClients; side-effects: "scheduled job to consider updating Sonos Radio" / "Sonos Business MSP"</li>
+<li><strong>methods:</strong> <code>savePendingEntitlementsLocked</code>, <code>onCacheUpdate</code>, <code>scheduled refresh</code>, <code>Fetch from cloud</code></li>
+<li><strong>source:</strong> entitlementsmanager.cxx literals 0x10ebf7d0-0x10ebfdec</li>
 </ul>
 <details><summary>Evidence (6)</summary>
 
