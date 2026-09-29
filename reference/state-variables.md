@@ -475,6 +475,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `ZoneGroupTopology.ZoneGroupState` | ZoneGroupTopology | string | yes | `confirmed` |
 | `ZoneGroupTopology.ZonePlayerUUIDsInGroup` | ZoneGroupTopology | string | yes | `confirmed` |
 | `alarm_status_schema` | /AlarmClock/Control |  | ? | `strong` |
+| `avt_lastchange` | /MediaRenderer/AVTransport/Event |  | ? | `strong` |
 | `device_props_extra_vars` | /DeviceProperties/Control |  | ? | `strong` |
 | `device_props_update_ids` | /DeviceProperties/Control |  | ? | `strong` |
 | `netsettings_schema` | ReplicatedNetSettings |  | ? | `strong` |
@@ -3402,6 +3403,11 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 ### `alarm_status_schema`
 
 /status/alarm emitted XML
+
+
+### `avt_lastchange`
+
+AVTransport LastChange evented fields
 
 
 ### `device_props_extra_vars`

@@ -69,6 +69,30 @@ music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 </details>
 
+## `hls-aac` `partial`
+
+HLS AAC variant
+
+- **scheme:** hls-aac://
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
+
+</details>
+
+## `hls-radio` `partial`
+
+HLS radio stream
+
+- **scheme:** hls-radio://
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
+
+</details>
+
 ## `hls_aac` `strong`
 
 Marker scheme for AAC-over-HLS streams.
@@ -100,6 +124,18 @@ HLS radio variant scheme token in the protocol vocabulary.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10e939cc — rodata scheme literal
+
+</details>
+
+## `hm` `partial`
+
+Spotify hermes/mercury channel URI
+
+- **scheme:** hm://
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
 
 </details>
 
@@ -142,6 +178,18 @@ Used by: cloud alarm sync; UPnP-bridge subscription relay
 
 </details>
 
+## `last_fm-radio-http` `partial`
+
+Last.fm radio HTTP scheme
+
+- **scheme:** last.fm-radio-http
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
+
+</details>
+
 ## `misc_schemes` `strong`
 
 The long tail of URI schemes — file://, rtsp://, mms://, last.fm-radio-http, hls-*, pndrradio-*, hm://, skd:, stub: — mostly alternate transports for specific services.
@@ -175,6 +223,30 @@ IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabular
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f99030 — rodata URN literal
+
+</details>
+
+## `pandora_com-pndrradioad` `partial`
+
+pandora ad service prefix
+
+- **scheme:** pandora.com-pndrradioad
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
+
+</details>
+
+## `pndrradio-http` `partial`
+
+Pandora radio HTTP variant
+
+- **scheme:** pndrradio-http://
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
 
 </details>
 
@@ -306,6 +378,18 @@ Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%
 
 </details>
 
+## `sonos_com-hls-radio` `partial`
+
+hls-radio service prefix
+
+- **scheme:** sonos.com-hls-radio
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
+
+</details>
+
 ## `sonos_queue_track_uri` `strong`
 
 The emitted form of a queue track reference — x-rincon-queue:<device>#<position>. Useful when constructing 'play this specific track' URIs.
@@ -353,6 +437,18 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 <details><summary>Evidence (1)</summary>
 
 - firmware — 'spotify:track:','spotify:episode:','x-spotify://' literals + spotify_smapi.cxx
+
+</details>
+
+## `stub` `partial`
+
+stub player URI
+
+- **scheme:** stub://stub:%u
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
 
 </details>
 
@@ -597,6 +693,18 @@ Catch-all record; split into per-scheme records as uses get traced.
 - @ 0x10eb36bc — x-sonos-clone-gc
 - @ 0x10f0258c — x-sonos-upnp-tunnel
 - @ 0x10f0f044 — x-sonos-auth-https%s
+
+</details>
+
+## `x-sonos-unknown` `partial`
+
+unknown-source placeholder URI
+
+- **scheme:** x-sonos-unknown:
+
+<details><summary>Evidence (1)</summary>
+
+- firmware — scheme literal
 
 </details>
 
