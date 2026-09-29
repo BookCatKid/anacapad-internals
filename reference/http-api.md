@@ -588,6 +588,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/save_eq_presets:**
       - **handler:** f_100ba144
       - **flags:** 
+      - **detail:** writes eqdata.txt via path-builder f_100b97f4 + form processor f_1068a70c
+      - **status:** strong
     - **/getDSP:**
       - **handler:** f_100bd9fc
       - **flags:** 
@@ -595,9 +597,13 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/putDSP:**
       - **handler:** f_100bb63c
       - **flags:** 
+      - **detail:** gate → obj->vt\[2\] commit + atomic refcount; uploads DSP config
+      - **status:** strong
     - **/setPersistentEQ:**
       - **handler:** f_100ba218
       - **flags:** 
+      - **detail:** writes app/debug/dsp/persistentEQ.xml via same form processor
+      - **status:** strong
     - **/removeDSPDebugFiles:**
       - **handler:** f_100bc518
       - **flags:** 
@@ -605,6 +611,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/dolby_config:**
       - **handler:** f_100be454
       - **flags:** 
+      - **detail:** gate f_10548a14 → f_100be1cc writes config; else 500-class
+      - **status:** strong
     - **/audio_tap:**
       - **handler:** f_100becc4
       - **flags:** 
@@ -619,7 +627,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/testpoint:**
       - **handler:** f_100b85ec
       - **flags:** `1024`
-      - **detail:** Binary testpoint (f_100b85ec, flag 0x400); emits raw PIC-format data.
+      - **detail:** exec registry {init f_10571a84,run f_10571ae4,cleanup f_10571c88} over rodata struct 0x10e72a9c
+      - **status:** strong
     - **/diaglevel:**
       - **handler:** f_105e93d8
       - **flags:** 
@@ -661,12 +670,18 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/ssh/fingerprints:**
       - **handler:** f_105e9578
       - **flags:** `257`
+      - **detail:** tail f_10670638 reads fingerprint buffer 0x11097680+0x8d0; record fields {+15c,+158,+178,+182,+184}
+      - **status:** strong
     - **/snapshotspdiftap:**
       - **handler:** f_100bd5e4
       - **flags:** 
+      - **detail:** gate → verifies vt+0x124==f_100c3f5c snapshot vfunc → takes snapshot
+      - **status:** strong
     - **/downloadspdiftap:**
       - **handler:** f_100b9ed0
       - **flags:** 
+      - **detail:** gate f_1054bdc8 → snprintf %s/%s spdiftap.compressed → streams file
+      - **status:** strong
     - **/cloudqueuepoll:**
       - **handler:** f_100b8260
       - **flags:** `1024`

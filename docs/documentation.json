@@ -110111,7 +110111,9 @@
      },
      "/save_eq_presets": {
       "handler": "f_100ba144",
-      "flags": []
+      "flags": [],
+      "detail": "writes eqdata.txt via path-builder f_100b97f4 + form processor f_1068a70c",
+      "status": "strong"
      },
      "/getDSP": {
       "handler": "f_100bd9fc",
@@ -110120,11 +110122,15 @@
      },
      "/putDSP": {
       "handler": "f_100bb63c",
-      "flags": []
+      "flags": [],
+      "detail": "gate \u2192 obj->vt[2] commit + atomic refcount; uploads DSP config",
+      "status": "strong"
      },
      "/setPersistentEQ": {
       "handler": "f_100ba218",
-      "flags": []
+      "flags": [],
+      "detail": "writes app/debug/dsp/persistentEQ.xml via same form processor",
+      "status": "strong"
      },
      "/removeDSPDebugFiles": {
       "handler": "f_100bc518",
@@ -110133,7 +110139,9 @@
      },
      "/dolby_config": {
       "handler": "f_100be454",
-      "flags": []
+      "flags": [],
+      "detail": "gate f_10548a14 \u2192 f_100be1cc writes config; else 500-class",
+      "status": "strong"
      },
      "/audio_tap": {
       "handler": "f_100becc4",
@@ -110154,7 +110162,8 @@
       "flags": [
        1024
       ],
-      "detail": "Binary testpoint (f_100b85ec, flag 0x400); emits raw PIC-format data."
+      "detail": "exec registry {init f_10571a84,run f_10571ae4,cleanup f_10571c88} over rodata struct 0x10e72a9c",
+      "status": "strong"
      },
      "/diaglevel": {
       "handler": "f_105e93d8",
@@ -110215,15 +110224,21 @@
       "handler": "f_105e9578",
       "flags": [
        257
-      ]
+      ],
+      "detail": "tail f_10670638 reads fingerprint buffer 0x11097680+0x8d0; record fields {+15c,+158,+178,+182,+184}",
+      "status": "strong"
      },
      "/snapshotspdiftap": {
       "handler": "f_100bd5e4",
-      "flags": []
+      "flags": [],
+      "detail": "gate \u2192 verifies vt+0x124==f_100c3f5c snapshot vfunc \u2192 takes snapshot",
+      "status": "strong"
      },
      "/downloadspdiftap": {
       "handler": "f_100b9ed0",
-      "flags": []
+      "flags": [],
+      "detail": "gate f_1054bdc8 \u2192 snprintf %s/%s spdiftap.compressed \u2192 streams file",
+      "status": "strong"
      },
      "/cloudqueuepoll": {
       "handler": "f_100b8260",
@@ -122330,7 +122345,7 @@
   "rdmbuttonfwd_detail": {
    "name": "rdmbuttonfwd_detail",
    "status": "partial",
-   "summary": "f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 \u2192 f_100b9bb0 forwards buttons; else 403-class",
+   "summary": "f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 \u2192 f_100b9bb0 forwards buttons; else 403-class \u2014 GET/POST path via f_100b9bb0 after RDM-mode predicate f_105e9468",
    "evidence": [
     {
      "type": "firmware",
@@ -122439,6 +122454,22 @@
      "status": "confirmed",
      "address": "0x10fac620",
      "notes": "ibt block"
+    }
+   ]
+  },
+  "spotifyzc": {
+   "handler": "f_1020f8c4 (GC-gated getInfo; blob transfer encrypted per gap audit)"
+  },
+  "sonarctl_detail": {
+   "name": "/sonarctl",
+   "status": "partial",
+   "summary": "gate f_105489fc \u2192 method check (r9==1 POST?) \u2192 f_100b4614+f_100b4364+f_100b4388 response helpers; flushes sonar tones (\"flushing sonar tones\"/\"Flushed\")",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x100bc354",
+     "notes": "handler disas"
     }
    ]
   }
