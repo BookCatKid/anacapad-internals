@@ -2292,17 +2292,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spec_pair_stream" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>spec_pair_stream</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#spotify_smapi_ctrl" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3748,6 +3737,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>spec_object_table</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec_pair_stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>spec_pair_stream</code>
       </span>
     </span>
   </a>
@@ -6410,17 +6410,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spec_pair_stream" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>spec_pair_stream</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#spotify_smapi_ctrl" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -7873,6 +7862,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#spec_pair_stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>spec_pair_stream</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#spotify" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -8962,11 +8962,6 @@
 <td>detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3),NULL Burst,Pause Burst}; unsupported taxonomy {AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1/2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1-3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA,Unsupported}</td>
 </tr>
 <tr>
-<td><code>spec_pair_stream</code></td>
-<td><strong>partial</strong></td>
-<td>RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs — high bytes were index values &lt;331). Each descriptor holds a ptr into a packed rodata pool; list = [root-idx] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established — likely via registration order or the verb table.</td>
-</tr>
-<tr>
 <td><code>spotify_smapi_ctrl</code></td>
 <td><strong>partial</strong></td>
 <td>setPositionInfo fmt "trackId='%s', position=nullptr, duration=%d, bLastReport=true"; "discarding pre-transition position %lldms"; TransitionAck [pos,preLogout pos,transAck] + "Begin AwaitingTransitionAck [preLogout=%lldms]"; stream status "SMAPI current stream[%u] mediaType[%d]=%s (curTrkStatus[%u]=%d/nextTrkStatus[%u]=%d)"; "Notified we are receiving delegation. Resetting track queue info."; "Error event in SMAPI mode, e=0x%08x"; error map "error: %s ecode=%d (%s), mapped to 0x%08x"</td>
@@ -9625,6 +9620,11 @@
 <td><code>spec_object_table</code></td>
 <td><strong>confirmed</strong></td>
 <td>Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Index space referenced by spec-pair tag 0x82. Entries 0-2 are function pointers (0x10809540, primitive formatters); idx 3 = none; idx 4+ = named objects: 231 type names (alphabetical contiguous literals @0x10f975b4-0x10f98577, accessoryId..zoneMemberState), 40 event-type names, 11x upnpEvent (one per UPnP-bridge namespace), 57 other literals (namespace names, resource names, verb-adjacent literals). Ordering is semantic+alphabetical hybrid: consecutive indices group related objects (e.g. 44/45/46 = authorizationGrantHeader/Payload/Response).</td>
+</tr>
+<tr>
+<td><code>spec_pair_stream</code></td>
+<td><strong>confirmed</strong></td>
+<td>Spec lists are packed pools of u32 indices into spec_object_table. Two pool families: (a) the 383 descriptor objects' type-member lists, (b) per-op spec lists reachable via op-vtable accessor @+0x58. Each accessor returns {classId, blob}; blobs in a pool are contiguous — list length is implicit (runs to next blob). Grammar: leading pair = shape-dependent root (requests lead networkTestId+authzTokenStatus; responses lead payloadType+authzTokenStatus); remaining entries alternate name/annotation with annotations authzTokenStatus(52)/featureConfigZoneExperiment(130). classId semantics: 1/2=request-ish, 3=response (error-led), 4-7=event/update shapes. Pair-level flag semantics still open.</td>
 </tr>
 <tr>
 <td><code>spotify</code></td>
@@ -12576,20 +12576,6 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ee650c — spdif fmt enum
-
-</details>
-
-<h2 id="spec_pair_stream"><code>spec_pair_stream</code><a class="headerlink" href="#spec_pair_stream" title="Permanent link">&para;</a></h2>
-<p><strong>coverage</strong> <code>partial</code></p>
-<p>How the protocol encodes each object's field list. Every described object carries a short list of numbers pointing into the master vocabulary table: the first number names the object itself and the rest name its fields. Two special names — authzTokenStatus and featureConfigZoneExperiment — appear in almost every object's list, which tells us all protocol messages carry authorization state and feature-gating metadata alongside their real payload fields. Lists for different objects are stored back-to-back and share common tails, which is a space-saving trick typical of schema registries. The exact flag semantics of each pair are still being worked out.</p>
-<p><strong>Technical description:</strong></p>
-<p>RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs — high bytes were index values &lt;331). Each descriptor holds a ptr into a packed rodata pool; list = [root-idx] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established — likely via registration order or the verb table.</p>
-<ul>
-<li><strong>name:</strong> muse spec-pair descriptor stream</li>
-</ul>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10fa51b3 — tag-word blob; format proven, tag semantics partial
 
 </details>
 
@@ -16596,6 +16582,20 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f97088 — 331-pointer table; all targets resolved
+
+</details>
+
+<h2 id="spec_pair_stream"><code>spec_pair_stream</code><a class="headerlink" href="#spec_pair_stream" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>confirmed</code></p>
+<p>How every command's field list is stored. Each operation's spec lives in a packed table of small numbers that point into the master vocabulary — a request spec always opens with networkTestId and authzTokenStatus (the correlation and authorisation fields every call carries) and a response opens with its payload type. The remaining entries alternate between field names and annotation markers; two annotations dominate — authzTokenStatus marks authorisation-scoped fields and featureConfigZoneExperiment marks feature-gated fields. The lists for different operations are stored back-to-back so they can share common tails, a compact schema encoding.</p>
+<p><strong>Technical description:</strong></p>
+<p>Spec lists are packed pools of u32 indices into spec_object_table. Two pool families: (a) the 383 descriptor objects' type-member lists, (b) per-op spec lists reachable via op-vtable accessor @+0x58. Each accessor returns {classId, blob}; blobs in a pool are contiguous — list length is implicit (runs to next blob). Grammar: leading pair = shape-dependent root (requests lead networkTestId+authzTokenStatus; responses lead payloadType+authzTokenStatus); remaining entries alternate name/annotation with annotations authzTokenStatus(52)/featureConfigZoneExperiment(130). classId semantics: 1/2=request-ish, 3=response (error-led), 4-7=event/update shapes. Pair-level flag semantics still open.</p>
+<ul>
+<li><strong>name:</strong> muse spec-pair descriptor stream</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fa51b3 — tag-word blob; format proven, tag semantics partial
 
 </details>
 

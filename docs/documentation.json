@@ -125640,8 +125640,8 @@
   },
   "spec_pair_stream": {
    "name": "muse spec-pair descriptor stream",
-   "status": "partial",
-   "summary": "RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs \u2014 high bytes were index values <331). Each descriptor holds a ptr into a packed rodata pool; list = [root-idx] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established \u2014 likely via registration order or the verb table.",
+   "status": "confirmed",
+   "summary": "Spec lists are packed pools of u32 indices into spec_object_table. Two pool families: (a) the 383 descriptor objects' type-member lists, (b) per-op spec lists reachable via op-vtable accessor @+0x58. Each accessor returns {classId, blob}; blobs in a pool are contiguous \u2014 list length is implicit (runs to next blob). Grammar: leading pair = shape-dependent root (requests lead networkTestId+authzTokenStatus; responses lead payloadType+authzTokenStatus); remaining entries alternate name/annotation with annotations authzTokenStatus(52)/featureConfigZoneExperiment(130). classId semantics: 1/2=request-ish, 3=response (error-led), 4-7=event/update shapes. Pair-level flag semantics still open.",
    "evidence": [
     {
      "type": "firmware",
@@ -390701,7 +390701,7 @@
    "Given URI is not the alarm buzzer URI",
    "LoadContent supports only Sonos Content API resource types"
   ],
-  "spec_binding_note": "Per-op spec binding resolved: each op vtable carries a spec accessor at +0x58 (returns {classId, blob ptr}); blob = packed u32 spec-object index list into spec_object_table (0x10f97088). classId encodes spec shape (1-12); entries are alternating name/annotation indices \u2014 authzTokenStatus(52) and featureConfigZoneExperiment(130) recur as envelope/gating annotations. Pair-level grammar still partial."
+  "spec_binding_note": "Per-op spec binding RESOLVED: each op vtable (route impl.vtables) carries spec accessors at slot +0x58 returning {classId, blob ptr into packed rodata pools}. Two+ vtables per op = request and response spec objects (request blobs lead with networkTestId/authzTokenStatus; response blobs lead with payload type + authzTokenStatus, e.g. getAlarms -> [alarm, authzTokenStatus]). Blob = flat u32 index list into spec_object_table (0x10f97088); entries after the leading pair are alternating {name, annotation} indices \u2014 annotations are authzTokenStatus(52)/featureConfigZoneExperiment(130) envelope markers; exact pair/flag grammar remains partially decoded. 558/603 routes bound; 304 distinct verbs carry spec lists."
  },
  "cert_layer": {
   "keycert_ids": {
