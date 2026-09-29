@@ -563,7 +563,7 @@ impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc
 
 **`800`** `strong`
 
-Resolved-object capability check: vtbl\[+0x14\] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot differently fault 800 ("not a prefix-searchable directory object"). Only three dirObj classes qualify - vtables @0x10ec0ad4/@0x10ec0b08/@0x10ec0c28; the favorites object (installer f_1037ca04 references 0x10ec0ad4/0x10ec0b08) IS one, so FV:2 FindPrefix works, but most other browse-root classes return 800 here.
+Resolved-object capability check: vtbl\[+0x14\] must equal the prefix-search entry point f_10113d94; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -799,7 +799,7 @@ impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail
 
 **`800`** `strong`
 
-Resolved-object capability check: vtbl\[+0x18\] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot differently fault 800 ("not a prefix-searchable directory object"). Only three dirObj classes qualify - vtables @0x10ec0ad4/@0x10ec0b08/@0x10ec0c28; the favorites object (installer f_1037ca04 references 0x10ec0ad4/0x10ec0b08) IS one, so FV:2 FindPrefix works, but most other browse-root classes return 800 here.
+Resolved-object capability check: vtbl\[+0x18\] must equal the prefix-search entry point f_10113da4; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
