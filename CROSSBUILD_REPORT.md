@@ -400,10 +400,10 @@ record-packer prefix bytes; full record `rodata_diff_868_vs_8610` in
   (`HELLO_DONE`, `DOWNLOAD_DONE`, `FLASHWRITE{,_DONE}`, `REBOOT{,ING_DONE}`,
   `POWERING_UP_UPDATED`, `UPDATE_COMPLETE`, `MANIFEST_{DOWNLOAD,PARSE}_FAILED`,
   `NO_DEVICES_NEED_UPDATE`, `WAKING_UP_FROM_USER`, …).
-- **Muse common layer extracted into sonos-muse-1.0** —
+- **Muse common layer moved to the sonos-muse-1.0 build tree** —
   `oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx` literals leave
   anacapad; `sonos-muse/src/sonos/muse/common/{context,eventing,noncehandler}.cxx`
-  appear. The flat 86.8 relative-path subscription table
+  appear (no libsonos-muse*.so in the rootfs — statically linked). The flat 86.8 relative-path subscription table
   (`zones/*`, `*/subscription`, `authorization/*`) is likewise gone as
   standalone literals.
 - **5 new feature flags** — `AUTOMATIC_WIRED_SOFTAP`, `EPHEMERAL_BONDING`,

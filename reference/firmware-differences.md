@@ -189,9 +189,9 @@ FIRMWARE-STATE MATRIX (docs/crossbuild_matrix.json, 3-state per action): REMOVED
 | `86.8` | player update/household |
 | `86.10` | device householdUpdate + update/status |
 
-### Muse common layer moved to sonos-muse shared lib
+### Muse common layer moved to sonos-muse-1.0 build tree
 
-oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx source-path literals present in 86.8 anacapad .rodata are gone in 86.10, replaced by sonos-muse-1.0/sonos-muse/{src/sonos/muse/common/{context,eventing,noncehandler}.cxx, include/sonos/muse/common/history.h} — the muse context/eventing/nonce layer was extracted into the sonos-muse shared library between the builds. ${MUSE_V2_API_STRING} placeholder literal also dropped; muse_target_validator + museItemType added; flat 86.8 relative-path subscription table (zones/*, */subscription, authorization/*) no longer appears as standalone literals.
+oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx source-path literals present in 86.8 anacapad .rodata are gone in 86.10, replaced by sonos-muse-1.0/sonos-muse/{src/sonos/muse/common/{context,eventing,noncehandler}.cxx, include/sonos/muse/common/history.h} — the muse context/eventing/nonce layer was moved to the sonos-muse-1.0 source tree (a build-tree reorganization — no libsonos-muse*.so exists in the rootfs; the code is statically linked, not a runtime library boundary). ${MUSE_V2_API_STRING} placeholder literal also dropped; muse_target_validator + museItemType added; flat 86.8 relative-path subscription table (zones/*, */subscription, authorization/*) no longer appears as standalone literals.
 
 | Build | State |
 |---|---|
