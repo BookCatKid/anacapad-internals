@@ -418,6 +418,8 @@ OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthRe
 
 **coverage** `partial`
 
+The netlink address monitor: subscribes to RTM_NEWLINK/RTM_GETLINK kernel events so IP address changes are seen instantly rather than polled. Runs on the select thread with reset/data/except/timeout event names. This is how the player notices DHCP renewals and cable pulls within milliseconds.
+
 **Technical description:**
 
 RTM_NEWLINK/RTM_GETLINK via netlink; {"read error %d %s","incorrect type","unexpected message %X"}; select events selthrd.RIfAddressMonitor.{reset,data,except,timeout}
@@ -449,6 +451,8 @@ ops {AHA_STOP,AHA_RESTORE,AHA_END_VLI_SESSION,AHA_SUSPEND_VLI_SESSION,AHA_PAUSE_
 ## `arp_assoc`
 
 **coverage** `partial`
+
+Layer-2 connectivity diagnostics: the ARP checker pings the gateway and counts consecutive failures to detect groupcast problems; arping runs async/sync probes on a timer with reset-on-data; the association tracker records Wi-Fi association metrics. When a player 'loses' the network while its IP looks fine, this is usually what detected it first.
 
 **Technical description:**
 
@@ -696,6 +700,8 @@ The eSDK's throughput estimator: it times chunk downloads, computes bytes/sec an
 
 **coverage** `partial`
 
+The boot-sequence manager: tracks boot progress, bumps the sequence counter on events like first Wi-Fi connection, and honors settings like ForceWifiDisable/SonosNetDisable. `bootSequenceId` in the device schema is this counter — cloud clients use it to detect reboots between commands.
+
 **Technical description:**
 
 "updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey}
@@ -796,6 +802,8 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 
 **coverage** `partial`
 
+The per-setting capability gate messages: 'Supported only for devices that support power over ethernet', 'water sensor', 'microphone switch', 'subwoofer', 'suspendable devices', plus requiredMinimumBatteryPercentage. These explain why a settings update can be rejected on one model but accepted on another — the validator checks hardware capabilities, not just the schema.
+
 **Technical description:**
 
 "Supported only for devices that support power over ethernet and have ethernet support"; "Supported only for devices with a water sensor"; "Supported only on devices with a microphone switch"; "Device is not a subwoofer"; "Supported only on suspendable devices" + {requiredMinimumBatteryPercentage,requiredMaximumBatteryPercentage,durationSeconds}; "Supported only on devices with a battery"; "Supported only on devices with bluetooth" + "Unable to set bluetooth pairing, unsupported"; "target is not a home theater source"/"target does not support HDMI CEC" + tvPowerState; "Setting is not valid"
@@ -827,6 +835,8 @@ translateId(%s,%s,%s) with missing-param errors {objectId,serviceId,targetObject
 ## `cec_diagnostics`
 
 **coverage** `partial`
+
+The HDMI-CEC/ARC diagnostic field set: tvCECStatus, tvPowerStatus, deviceCEC, stateSAM/errorSAM, stateARC/errorARC, errorTV, eARCActive, testAudio/testVideo. This is the data behind 'TV won't turn on with the speaker' — the CEC state machine's observable state.
 
 **Technical description:**
 
@@ -1006,6 +1016,8 @@ cloud_synchronizer thread: registerServices (max-count abort, called-once guard)
 
 **coverage** `partial`
 
+The logging infrastructure config: filter/level/fileSize/preserveSize/host settings, the `\[category | timestamp\]` line format, category-name validation, and log-shipping to a host. The log-domain list (anacapa_logger.toml categories) is the vocabulary behind every diagnostic trace.
+
 **Technical description:**
 
 keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.backup,logger,rsettings}; line fmt "\[%s | %07ld%03ld\] <%s,%d> "; "Invalid log category name (%s), length: %zu, range \[%d, %d\]"; IO {stat/ferror/read failed}; E_ codes {E_INVALID_SETTING,E_UNSUPPORTED,E_NETWORK_DATA_ERROR,E_NETWORKIOERROR,E_NETWORKTIMEOUT,E_NETWORKOVERFLOW,E_INTERNALERROR,ADD_ME}; rapidjson errors {Invalid escape character,Surrogate pair invalid,Invalid encoding,Number too big for double,Miss fraction/exponent,Missing name/colon/comma,Parsing terminated,Unspecific syntax error,Missing closing quotation mark,Document empty,Document root not singular}
@@ -1021,6 +1033,8 @@ keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.b
 
 **coverage** `partial`
 
+A /proc/stat reader that logs per-core usr/sys/idle/IRQ percentages with a shutdown-state detector and divide-by-zero guards. Internal telemetry — it explains 'core idle at N%' lines in diagnostics.
+
 **Technical description:**
 
 reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %2u  %2u   %2u   %2u | %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%"
@@ -1035,6 +1049,8 @@ reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %
 ## `crash_report`
 
 **coverage** `partial`
+
+Crash-event telemetry: per-process crash counts with upload responses (procName, numCrashes, uploadResp, playerCrash, lifetime). Reported events feed the crash-upload cloud service; failed uploads are logged for retry.
 
 **Technical description:**
 
@@ -1068,6 +1084,8 @@ The crossfade engine that blends the tail of one track into the head of the next
 
 **coverage** `partial`
 
+The channel-source frame-context manager: a bounded pool of frame contexts that get marked, added, flushed, and popped with timestamps — 'NO FREE CONTEXTS' is the saturation failure. It maintains the playback-position/hint bookkeeping the chsrc engine uses to label each outgoing frame.
+
 **Technical description:**
 
 csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free'}; log fmt '%s:%05d \[%s\] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s'
@@ -1082,6 +1100,8 @@ csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS'
 ## `daemon_ipc`
 
 **coverage** `partial`
+
+The `/X-external` proxy table that forwards requests to sibling daemons — sonospowercoordinator, btmanager, sonosledmgrd, netstartd — plus the watchdog and sentry upload routes (with watchdog_log/watchdog_dmesg attachments and crashdump support). These are the internal control channels between anacapad and the rest of the firmware.
 
 **Technical description:**
 
@@ -1098,6 +1118,8 @@ routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/
 
 **coverage** `partial`
 
+The shared HTTP transport: a poll loop, header parsing (HTTP Result, Last-Modified, Content-Type, SET-COOKIE, cache-control/max-age, ETag, WWW-Authenticate), and guarded reads ('tried to read N bytes where only M available'). Most non-audio HTTP the device makes runs through this layer.
+
 **Technical description:**
 
 dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-control,max-age=,ETag,WWW-Authenticate}; errors {'populate client config failed','unexpected response condition','parse_key failed',"Couldn't load api header, error 1/2"}; awaitAvail {'tried to read %zu bytes where only %zu available','range limited %zu bytes available','socket is closed','took %ldms (e:%d b:%zu w:%zu sbo:%d)'}; SSL 'SSL %s error -0x%x %d to %s with local port %u' + session ticket during dataio SSL read; http {'http readable but 0','http read error %d %s','http timeout'}; header validation {'Bad HTTP Header','BAD HTTP Header EOR mismatch Actual: %zu, Exptd: %zu','BAD HTTP Header EOR out-of-bond'}
@@ -1113,6 +1135,8 @@ dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-con
 
 **coverage** `partial`
 
+The Desired* replicated settings: DesiredTimeFormat, DesiredDateFormat, DesiredTimeServer, DesiredTime, TimeZoneForDesiredTime, HouseholdUTCTime, DesiredDailyIndexRefreshTime. 'Desired' means 'what the household wants', as opposed to what's currently applied — the distinction matters during merges and clock sync.
+
 **Technical description:**
 
 {DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime}
@@ -1127,6 +1151,8 @@ dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-con
 ## `dev_disc`
 
 **coverage** `partial`
+
+The SSDP device-discovery thread (ddt): logs MSEARCH/ALIVE/BYEBYE per device with source addresses, counts lost SSDP messages, handles CDALIVE/CDBYEBYE and QUARANTINE_RECHECK packets, and takes 'hint' hints for faster convergence. This is how players find each other on the LAN before topology forms.
 
 **Technical description:**
 
@@ -1201,6 +1227,8 @@ ETag-cached downloads; metadata {requestTimeMS,downloadStatusCode,httpResultCode
 
 **coverage** `partial`
 
+The distributed diagnostics engine: builds a DiagnosticManifest (v2.0.0), POSTs to `/v2/diags` on product-diagnostics with serial_num, distributes a diagId to every player, triggers per-device collection, and gathers the results. `submitDiagnostics` in the app is the front door to this pipeline.
+
 **Technical description:**
 
 manifest <DiagnosticManifest attrs> ver 2.0.0 → POST /v2/diags product-diagnostics; init body {"serial_num":"%s"}; fields {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason,ZPNetworkInfo}; coordination: distribute diagId to players, trigger diag on controllers, collect submit statuses ("Timed out waiting"/"All devices reported"); files {manifest.xml,%s.xml,%s.sha256,%s.xml.gz}; modes {Diagnostic stub,Local diagnostic}; local aggregate http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x; diag_progress var; counters Num players/Num stubbed players
@@ -1235,6 +1263,8 @@ rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterC
 
 **coverage** `partial`
 
+The DRM key path: `skd://itunes.apple.com/P{pid}/s1/e1` StoreKit URIs for FairPlay content keys, duplicate-entry detection, and the `X-Sonos-Playback-Id` header services use to correlate a playback with the device that requested it. Also houses the OAuth-vs-credentialType check for getDeviceAuthToken.
+
 **Technical description:**
 
 skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry detected from ContentKeys"; X-Sonos-Playback-Id: %s header; "getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)"
@@ -1250,6 +1280,8 @@ skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry d
 
 **coverage** `partial`
 
+The dropout-event telemetry: tracks group-role changes, corrected-context changes, and presentation-time conditions; slots events into a bounded list with per-condition increments ('set pt reached', 'pt in fut - inaud'). This is the data behind 'why did my music skip' support queries.
+
 **Technical description:**
 
 triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,set/reset pt}; slot model {clr slot,slot in use skip incr,set slot %zu idx %zu to %s,no space in list}; conditions {set pt reached,flag report at %zu sbmt,set pos aud,pt in fut - inaud,GCI but no CID}; per-ch incr "incr call: %s, %zu, %zu, ch %zu, %d.%06d"; fields {inputType,SatChCount,HtsnkVersion,msAfterPt,GroupRole,GCTimeValid,GCTime,btRole,submit}; counters {htsnk_missed_total,htsnk_missed_duration_total,htsnk_late_total,htsnk_strm_reset_duration_total,htsnk_strm_silence_duration_total,htsnk_strm_plc_duration_total}; reasons {chsnk_lse,chsnk_ch_data_full,chsnk_w_err,chsrc_framer_uflw,htsnk_invld_sntp,htsnk_late_frames,htsnk_missed_frames,htsnk_time_backw,htsnk_stream_err,htsnk_stream_uflw,htsnk_stream_reset_duration,htsnk_wrong_frame}; bt_audio + injectdropout test cmd {"missing dt param","Injected dropout error"}; "Sat chs %zu"/"Sat htsnk ver %u"
@@ -1264,6 +1296,8 @@ triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,
 ## `dsp_files`
 
 **coverage** `partial`
+
+The DSP file inventory: eqdata.txt, persistentEQ.xml, dsp_preset*.xml, dsp_system_*.bin, satellite_processor.bin under `/dsp` and `/opt/dsp`, plus the sonar-tone flush path and an amp-timer hook. These are the loadable DSP personalities — preset vs system vs satellite variants.
 
 **Technical description:**
 
@@ -1310,6 +1344,8 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 
 **coverage** `partial`
 
+The `/drc`, `/staticparams`, `/dynamicparams` param surfaces: DRC boost, speaker angles (front/height/rear-surround), virtualizer mode, bass extraction, DAP cutoff, filters, and per-mode profiles. `Config not found, loading default` is the fallback path. This is the runtime DSP tuning surface behind `/status` pages.
+
 **Technical description:**
 
 errors {error parsing mode state,error parsing bass extraction mode,error parsing dap profile mode}; /drc {boost}; /staticparams {speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; /dynamicparams {oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal}; "Config %s not found, loading default" + /default
@@ -1325,6 +1361,8 @@ errors {error parsing mode state,error parsing bass extraction mode,error parsin
 
 **coverage** `partial`
 
+The DTS decoder (dcadec): profile taxonomy from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express; endian-checked sync detection; and a status XML with BitDepth/DTSProfile/BitRate/NumPrimaryChannels. Invalid audio modes return an empty speaker layout rather than crashing.
+
 **Technical description:**
 
 profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo}
@@ -1339,6 +1377,8 @@ profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resol
 ## `effective_settings`
 
 **coverage** `partial`
+
+The `effectiveSettings` muse resource: `getAllSettings`/`updateAllSettings` plus per-group get/update, exposed on player and household routes and mirrored at `/settings/api/v1/locations/*/effectiveSettings`. 'Effective' means resolved after layering — what actually applies, not what was last written.
 
 **Technical description:**
 
@@ -1384,6 +1424,8 @@ embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_t
 ## `enet_stats`
 
 **coverage** `partial`
+
+Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats counters (rx/tx packets/bytes/errors/drops/multicasts/collisions), and deep EthIntrf detail (CRC, frame, FIFO, missed errors). The `/enetports` and `/ethportstatistics` endpoints serve this data.
 
 **Technical description:**
 
@@ -1462,6 +1504,8 @@ tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http reque
 
 **coverage** `partial`
 
+The main event loop: a thread pool processing queued work with watchdog timestamps, logging start/stop/drain/shutdown and elapsed time. Virtually everything async in anacapad funnels through this loop.
+
 **Technical description:**
 
 eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,stopped,has no more work,shutdown. Cancelling watchdog,failure,elapsed-time:%lld}
@@ -1477,6 +1521,8 @@ eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,s
 
 **coverage** `partial`
 
+The in-process event loop plus its perf counters: per-observer callback durations are checked against a threshold ('exceeded duration threshold Nms > Mms'), and counters track events queued, failed-to-queue, and per-subject stats. This is how slow event handlers get caught.
+
 **Technical description:**
 
 "Eventloop %p configured/removed"; inprocess-events-loop; "%s callback in observer %s exceeded duration threshold %lldms > %lldms"; counters {"Unique identifier for a set of counters","In-Process Event Subjects","The number of events queued",perf_counter_keyed,queueFail="events that failed to queue","The event size in bytes",dispatchDelay="time waiting to dispatch","In-Process Event Observers",cbTime="observer handler duration. Warn if over threshold"}
@@ -1491,6 +1537,8 @@ eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,s
 ## `exec_pages`
 
 **coverage** `partial`
+
+The `/status` exec pages: a command table mapping diagnostic URLs to shell commands — `/debugfiles` (ls jffs debug dirs), `/du-jffs`, `/ifconfig`, `/lsmod`, `/mount`, `/netstat`, `/ntpsources` (chronyc), `/ps`, `/route`, and more. These are literal shell-outs behind admin pages — their output is raw command text, not a schema.
 
 **Technical description:**
 
@@ -1600,6 +1648,8 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 
 **coverage** `partial`
 
+The fcs diagnostic record: a handler pair where one side reads `sonosClockGetTime` into the response buffer — a timestamp/status page used by field-service diagnostics.
+
 **Technical description:**
 
 f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffer (timestamp page)
@@ -1615,6 +1665,8 @@ f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffe
 
 **coverage** `partial`
 
+The fdevent epoll wrapper: named threads (signal.write, wait.poll, check.poll, reset.read) driving epoll_create1/ctl/wait with fd-capacity and 'already monitored' errors, plus EventSync naming. The async plumbing under sockets, pipes, and file watchers.
+
 **Technical description:**
 
 ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.read,removeFd,waitForEvent}; EventSync %s; epoll {create1,ctl,wait} errors incl "unsupported flags","already monitored","exceeded the fd capacity of %d"
@@ -1629,6 +1681,8 @@ ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.rea
 ## `fdevent`
 
 **coverage** `partial`
+
+Same fdevent layer as fd_event: the epoll-based event engine everything else (addrmon, select thread, audio fds) multiplexes on. fd capacity is bounded and monitored-fd overflow is a hard error.
 
 **Technical description:**
 
@@ -1678,6 +1732,8 @@ complete compile-time feature/config flag vocabulary (48 keys): featureConfig* f
 
 **coverage** `partial`
 
+The feature-flag registry — the build-time map behind featureConfig: same flag vocabulary as the schema plus defaults. Runtime precedence is flag → featureConfig → config → default, so a cloud-pushed value beats the build default.
+
 **Technical description:**
 
 flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,featureConfigSemiSleep,DropoutContext,HomeTheaterWifiPerfTelemetry,MetricsService,Plink,Quickbonding,SemiSleep,SmartPlay,SpotABR,SsdpAdvertiseConfig,ZoneExperiment,featureConfigZoneExperiment}
@@ -1693,6 +1749,8 @@ flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enab
 
 **coverage** `partial`
 
+The fileDataMgr async I/O: stream registration, SMB readdir/open, an 'in memory' fast path, HTTP reopen-at-offset resume via `?after=`, and content-type sniffing (`application/xml`). It's the generic 'open a URI as a stream' layer under playlists, artwork, and library browsing.
+
 **Technical description:**
 
 async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here"
@@ -1707,6 +1765,8 @@ async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "Fi
 ## `fmp4_parser`
 
 **coverage** `partial`
+
+The fragmented-MP4 parser for segmented audio: validates box order (mfhd seq, tfhd before trun, tfdt), builds the trun table (seqnum, sample sizes/offsets/durations), and explicitly rejects senc sub-entry encryption it can't parse — 'Sub-entry encryption isn't supported' means the HLS Sample-AES path isn't this parser.
 
 **Technical description:**
 
@@ -1791,6 +1851,8 @@ group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zone
 
 **coverage** `partial`
 
+The periodic health probe: a timer that schedules the next check (6-gate decision on whether to run), contacts `/ws/diag/diag_instructions.xml?hhid=` for server instructions, honors SubmitPermission, and records ServerDiagInstructions. The device literally asks the cloud 'what should I do for you today' on this schedule.
+
 **Technical description:**
 
 schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}
@@ -1805,6 +1867,8 @@ schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u seco
 ## `healthcheck_contact`
 
 **coverage** `partial`
+
+The healthcheck's server-contact half: instruction fetch, permission gating, and reschedule-on-response. The returned instructions can trigger diagnostics or other maintenance — it's a remote-control backdoor in the benign sense.
 
 **Technical description:**
 
@@ -4089,6 +4153,8 @@ ops {markAccountsForPushLocked,setAndUpdatePreferredSerialNum,addAccountWithUser
 
 **coverage** `strong`
 
+The schema for positioning's acoustic measurements: TDOAs, correlation peaks, threshold/leading-edge energy terms, spectral similarity, noise/signal RMS, and confidence scores. This is the math under Trueroom-style room estimation — the raw numbers the estimator consumes to decide where a speaker sits.
+
 **Technical description:**
 
 {tdoas,scrollbackAttempt,confidence,correlationMaxValue,thresholdPeakMaxValue,leadingEdgeSpectralSimilarity,leadingEdgePriorEnergy,leadingEdgePosteriorEnergy,leadingEdgeEnergyCoherence,maxPeakEnergyCoherence,maxPeakPosteriorEnergy,noiseRms,signalRms,normalisedResiduals,peakMagnitudeRatios,leadingEdgePercentageEnergy,f1SpectralSimilarity,f2SpectralSimilarity,leadingEdgeKurtosis,leadingEdgeRiseTime,normalisedAggregateResidual,decayConstant,numMeasurements,numRetries,orchestrator,debugData,tvUsec,errorTime,expirationTime}
@@ -4497,6 +4563,8 @@ POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name
 
 **coverage** `?`
 
+The data-tap interface — internal hooks that let diagnostics capture state from subsystems that don't otherwise expose it. Related to but distinct from audio_tap (which taps PCM); datatap captures structured records.
+
 - **detail:** "Datatap snapshot failed after %zu" (snapshot bound); ZoneDevDiscThread
 ## `device_props`
 
@@ -4510,6 +4578,8 @@ The DeviceProperties service: device-level attributes — serial, MAC, display s
 ## `devmode`
 
 **coverage** `?`
+
+The developer-mode subsystem: the `/devmode` page and its statement files, plus the unlock challenge/response flow that flips the device into a privileged diagnostic state. Feature-gated — production behavior differs; the unlock endpoints rate-limit attempts.
 
 - **internals:** statement files {debug/devmode.bin,/devmode.bin,/tmp/devmode.tmp.bin} format "0x%s %d.%d-%d.%d" (id+version range); x-rincon-enc3 encryption; R_ALLOW_SSH_PUBKEY_INSTALL "may not be persisted" gate + "Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL" + "Loaded persistent statement"; notify {processes,listeners} on change
 ## `dolby_decoder`
@@ -4533,6 +4603,8 @@ config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"ov
 
 **coverage** `confirmed`
 
+The file-download result enum: ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, SIZE_ERROR, FILE_ERROR, CONNECTION_ERROR, DOWNLOAD_SUCCEEDED, FILE_UNCHANGED, DOWNLOAD_IN_PROGRESS. Used by firmware and resource downloads — 'unchanged' means ETag cache hit.
+
 **Technical description:**
 
 {ERROR_NOT_CALLED,WRITE_ERROR,TRUNCATION_ERROR,SIZE_ERROR,FILE_ERROR,CONNECTION_ERROR,DOWNLOAD_SUCCEEDED,FILE_UNCHANGED,DOWNLOAD_IN_PROGRESS}
@@ -4548,6 +4620,8 @@ config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"ov
 
 **coverage** `strong`
 
+The DSPConfig nanopb blob: `/opt/dsp` files (ht_config, ht_config_sat) decoded with protobuf, holding per-model bonded gains and volume breakpoint tables. Missing entries are per-model errors, not crashes — a model without a breakpoint table just lacks the curve.
+
 **Technical description:**
 
 files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully decoded DSPConfig","Decoding error %s","DSPConfig file is empty","Unable to open DSP config file %s"}; per-model {"Bonded gain for '%s' not found in DSPConfig","Volume breakpoints for '%s' not found"}; breakpoints {"no default volume breakpoints specified","no bonded volume breakpoints specified, using default instead","volume (%i) and gain (%i) lengths differ in default volume breakpoints","... in bonded volume breakpoints","default (%i) and bonded (%i) volume breakpoint lengths differ","... breakpoints differ","Too many volume breakpoints ... `.nanopb_options` ... MAX_VOLUME_BREAKPOINT_LENGTH","DSPConfigParams conversion successful"}; gravity param; trueplay_version x.x.x.x fmt + range {"base version isnt valid","Start or end of range isnt a valid version","Unable to parse version from end/start string"}; "setNumChannels(%d) greater than max (%d)"; fileio {"DSP file path is longer than buffer","unable to open file","fread","file %s does not exist","Could not get size of file"}
@@ -4562,6 +4636,8 @@ files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully dec
 ## `error_codes`
 
 **coverage** `?`
+
+The shared error-code tables: muses's ERROR_* registry, JWT's granular taxonomy, LLA's EFAULT/EUNDERFLOW/... enum, download-status codes, and service-specific fault strings. Cross-referenced per subsystem; the muse table is the one clients see most.
 
 - **rze:** RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}
 ## `esdk_api`
@@ -4647,6 +4723,8 @@ The Dolby Evolution decoder — the DDPI UDC path used for newer Dolby bitstream
 
 **coverage** `strong`
 
+The vendored Expat 2.5.0 XML parser: billion-laughs amplification accounting (direct/indirect byte counts with amplification ratio), debug env vars (EXPAT_ACCOUNTING_DEBUG and friends), /dev/urandom entropy with fallback, and attribute-type handling. Every XML parse in the firmware — SOAP, DIDL, ZGS — runs through this copy.
+
 **Technical description:**
 
 version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f" + debug env {EXPAT_ACCOUNTING_DEBUG,EXPAT_ENTITY_DEBUG,EXPAT_ENTROPY_DEBUG}; entropy /dev/urandom + fallback(4); attr types {CDATA,IDREF,IDREFS,ENTITY,ENTITIES,NMTOKEN,NMTOKENS}; xml namespace; errors {no element found,not well-formed (invalid token),unclosed token,partial character,mismatched tag,duplicate attribute,junk after document element,illegal parameter entity reference,undefined entity,recursive entity reference,asynchronous entity,reference to invalid character number/binary entity/external entity in attribute,"XML or text declaration not at start of entity",unknown encoding,"encoding specified in XML declaration is incorrect",unclosed CDATA section} + errors {error in processing external entity reference,document is not standalone,unexpected parser state,entity declared in parameter entity,"requested feature requires XML_DTD support",cannot change setting once parsing has begun,unbound prefix,must not undeclare prefix,incomplete markup in parameter entity,XML/text declaration not well-formed,illegal char in public id,parser suspended/not suspended/parsing aborted/parsing finished,cannot suspend in external parameter entity,reserved prefix xml/xmlns rules,"limit on input amplification factor (from DTD and entities) breached"}; config {XML_DTD,XML_CONTEXT_BYTES,XML_NS,XML_BLAP_MAX_AMP,XML_BLAP_ACT_THRES,XML_GE}; DTD keywords {SYSTEM,PUBLIC,ENTITY,ATTLIST,ELEMENT,NOTATION,CDATA,REQUIRED,FIXED,EMPTY,PCDATA,NDATA,INCLUDE,IGNORE}; decl {version,encoding,standalone}; encodings {UTF-16LE,UTF-16BE,UTF-8,US-ASCII}
@@ -4661,6 +4739,8 @@ version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %1
 ## `feature_config`
 
 **coverage** `strong`
+
+The complete `featureConfig` schema — the cloud-pushed feature document: flags for Spotify adaptive bitrate + Connect-for-all-accounts, metrics config URLs, preferred RP container, voice data collection, partner integrations (Lutron, Amazon Music DASH, Apple Music HLSv7, TuneIn replacement/migration), semiSleep, trueplay data collection, dropout context, and more. It explains behavior differences between households on identical firmware.
 
 **Technical description:**
 

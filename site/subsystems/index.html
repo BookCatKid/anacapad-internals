@@ -9726,6 +9726,7 @@
 
 <h2 id="addrmon"><code>addrmon</code><a class="headerlink" href="#addrmon" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The netlink address monitor: subscribes to RTM_NEWLINK/RTM_GETLINK kernel events so IP address changes are seen instantly rather than polled. Runs on the select thread with reset/data/except/timeout event names. This is how the player notices DHCP renewals and cable pulls within milliseconds.</p>
 <p><strong>Technical description:</strong></p>
 <p>RTM_NEWLINK/RTM_GETLINK via netlink; {"read error %d %s","incorrect type","unexpected message %X"}; select events selthrd.RIfAddressMonitor.{reset,data,except,timeout}</p>
 <ul>
@@ -9753,6 +9754,7 @@
 
 <h2 id="arp_assoc"><code>arp_assoc</code><a class="headerlink" href="#arp_assoc" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>Layer-2 connectivity diagnostics: the ARP checker pings the gateway and counts consecutive failures to detect groupcast problems; arping runs async/sync probes on a timer with reset-on-data; the association tracker records Wi-Fi association metrics. When a player 'loses' the network while its IP looks fine, this is usually what detected it first.</p>
 <p><strong>Technical description:</strong></p>
 <p>arpchecker "ARP failure: %d consecutive attempts for %s failed: groupcast problem suspected" + "ARP to %s resolved after %d failures" + source_ip/msreplyfailure; arping {async,sync} "started for %s, every %u ms for %u ms" + reset-on-data + timeout adjust + "pending reset in progress" guard; assoctracker CrAssoc metrics {mstime1,mstime2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1,ddtime2,ddnum} + "Skip reporting invalid CrAssoc event"</p>
 <ul>
@@ -9962,6 +9964,7 @@
 
 <h2 id="boot_sequence"><code>boot_sequence</code><a class="headerlink" href="#boot_sequence" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The boot-sequence manager: tracks boot progress, bumps the sequence counter on events like first Wi-Fi connection, and honors settings like ForceWifiDisable/SonosNetDisable. <code>bootSequenceId</code> in the device schema is this counter — cloud clients use it to detect reboots between commands.</p>
 <p><strong>Technical description:</strong></p>
 <p>"updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey}</p>
 <ul>
@@ -10050,6 +10053,7 @@
 
 <h2 id="capability_guards"><code>capability_guards</code><a class="headerlink" href="#capability_guards" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The per-setting capability gate messages: 'Supported only for devices that support power over ethernet', 'water sensor', 'microphone switch', 'subwoofer', 'suspendable devices', plus requiredMinimumBatteryPercentage. These explain why a settings update can be rejected on one model but accepted on another — the validator checks hardware capabilities, not just the schema.</p>
 <p><strong>Technical description:</strong></p>
 <p>"Supported only for devices that support power over ethernet and have ethernet support"; "Supported only for devices with a water sensor"; "Supported only on devices with a microphone switch"; "Device is not a subwoofer"; "Supported only on suspendable devices" + {requiredMinimumBatteryPercentage,requiredMaximumBatteryPercentage,durationSeconds}; "Supported only on devices with a battery"; "Supported only on devices with bluetooth" + "Unable to set bluetooth pairing, unsupported"; "target is not a home theater source"/"target does not support HDMI CEC" + tvPowerState; "Setting is not valid"</p>
 <ul>
@@ -10077,6 +10081,7 @@
 
 <h2 id="cec_diagnostics"><code>cec_diagnostics</code><a class="headerlink" href="#cec_diagnostics" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The HDMI-CEC/ARC diagnostic field set: tvCECStatus, tvPowerStatus, deviceCEC, stateSAM/errorSAM, stateARC/errorARC, errorTV, eARCActive, testAudio/testVideo. This is the data behind 'TV won't turn on with the speaker' — the CEC state machine's observable state.</p>
 <p><strong>Technical description:</strong></p>
 <p>{tvCECStatus,tvPowerStatus,deviceCEC,stateSAM,errorSAM,stateARC,errorARC,errorTV,eARCActive,testAudio,testVideo}</p>
 <ul>
@@ -10236,6 +10241,7 @@
 
 <h2 id="common_logger"><code>common_logger</code><a class="headerlink" href="#common_logger" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The logging infrastructure config: filter/level/fileSize/preserveSize/host settings, the <code>\[category | timestamp\]</code> line format, category-name validation, and log-shipping to a host. The log-domain list (anacapa_logger.toml categories) is the vocabulary behind every diagnostic trace.</p>
 <p><strong>Technical description:</strong></p>
 <p>keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.backup,logger,rsettings}; line fmt "[%s | %07ld%03ld] &lt;%s,%d&gt; "; "Invalid log category name (%s), length: %zu, range [%d, %d]"; IO {stat/ferror/read failed}; E_ codes {E_INVALID_SETTING,E_UNSUPPORTED,E_NETWORK_DATA_ERROR,E_NETWORKIOERROR,E_NETWORKTIMEOUT,E_NETWORKOVERFLOW,E_INTERNALERROR,ADD_ME}; rapidjson errors {Invalid escape character,Surrogate pair invalid,Invalid encoding,Number too big for double,Miss fraction/exponent,Missing name/colon/comma,Parsing terminated,Unspecific syntax error,Missing closing quotation mark,Document empty,Document root not singular}</p>
 <ul>
@@ -10249,6 +10255,7 @@
 
 <h2 id="cpu_monitor"><code>cpu_monitor</code><a class="headerlink" href="#cpu_monitor" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>A /proc/stat reader that logs per-core usr/sys/idle/IRQ percentages with a shutdown-state detector and divide-by-zero guards. Internal telemetry — it explains 'core idle at N%' lines in diagnostics.</p>
 <p><strong>Technical description:</strong></p>
 <p>reads /proc/stat; header " [%d] usr sys idle sIRQ | irqD dMS"; row " [%d]  %2u  %2u   %2u   %2u | %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%"</p>
 <ul>
@@ -10262,6 +10269,7 @@
 
 <h2 id="crash_report"><code>crash_report</code><a class="headerlink" href="#crash_report" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>Crash-event telemetry: per-process crash counts with upload responses (procName, numCrashes, uploadResp, playerCrash, lifetime). Reported events feed the crash-upload cloud service; failed uploads are logged for retry.</p>
 <p><strong>Technical description:</strong></p>
 <p>{procName,numCrashes,uploadResp,playerCrash,lifetime}; "%s %s crash event, crashCount: %i"; Reported/Failed to report</p>
 <ul>
@@ -10289,6 +10297,7 @@
 
 <h2 id="csfcm"><code>csfcm</code><a class="headerlink" href="#csfcm" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The channel-source frame-context manager: a bounded pool of frame contexts that get marked, added, flushed, and popped with timestamps — 'NO FREE CONTEXTS' is the saturation failure. It maintains the playback-position/hint bookkeeping the chsrc engine uses to label each outgoing frame.</p>
 <p><strong>Technical description:</strong></p>
 <p>csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d &lt; %d.%06d) %d/%d free'}; log fmt '%s:%05d [%s] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s'</p>
 <ul>
@@ -10302,6 +10311,7 @@
 
 <h2 id="daemon_ipc"><code>daemon_ipc</code><a class="headerlink" href="#daemon_ipc" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The <code>/X-external</code> proxy table that forwards requests to sibling daemons — sonospowercoordinator, btmanager, sonosledmgrd, netstartd — plus the watchdog and sentry upload routes (with watchdog_log/watchdog_dmesg attachments and crashdump support). These are the internal control channels between anacapad and the rest of the firmware.</p>
 <p><strong>Technical description:</strong></p>
 <p>routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/sonosledmgrd-external,/netstartd-external} proxy to sibling daemons; watchdog {/watchdog,/watchdog-legacy,/legacy-to-sentry,/upload} + attachments {watchdog_log,watchdog_dmesg} + crashdump; sentry {"No URL found to upload dump file: %s",text/plain; charset="us-ascii","Failed to write attachment %s to sentry upload",sentry[tags]}; flags {/tmp/anacapa_prevent_crashdump_upload,/tmp/backtrace,/tmp/crashed_play_state,/jffs/app/debug/sonosledmgrd.dmp,/opt/log/btservice.log}; "writeStream failed - Bytes compressed: %d/%d" + htsnk</p>
 <ul>
@@ -10315,6 +10325,7 @@
 
 <h2 id="dataio"><code>dataio</code><a class="headerlink" href="#dataio" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The shared HTTP transport: a poll loop, header parsing (HTTP Result, Last-Modified, Content-Type, SET-COOKIE, cache-control/max-age, ETag, WWW-Authenticate), and guarded reads ('tried to read N bytes where only M available'). Most non-audio HTTP the device makes runs through this layer.</p>
 <p><strong>Technical description:</strong></p>
 <p>dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-control,max-age=,ETag,WWW-Authenticate}; errors {'populate client config failed','unexpected response condition','parse_key failed',"Couldn't load api header, error 1/2"}; awaitAvail {'tried to read %zu bytes where only %zu available','range limited %zu bytes available','socket is closed','took %ldms (e:%d b:%zu w:%zu sbo:%d)'}; SSL 'SSL %s error -0x%x %d to %s with local port %u' + session ticket during dataio SSL read; http {'http readable but 0','http read error %d %s','http timeout'}; header validation {'Bad HTTP Header','BAD HTTP Header EOR mismatch Actual: %zu, Exptd: %zu','BAD HTTP Header EOR out-of-bond'}</p>
 <ul>
@@ -10328,6 +10339,7 @@
 
 <h2 id="desired_settings"><code>desired_settings</code><a class="headerlink" href="#desired_settings" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The Desired* replicated settings: DesiredTimeFormat, DesiredDateFormat, DesiredTimeServer, DesiredTime, TimeZoneForDesiredTime, HouseholdUTCTime, DesiredDailyIndexRefreshTime. 'Desired' means 'what the household wants', as opposed to what's currently applied — the distinction matters during merges and clock sync.</p>
 <p><strong>Technical description:</strong></p>
 <p>{DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime}</p>
 <ul>
@@ -10341,6 +10353,7 @@
 
 <h2 id="dev_disc"><code>dev_disc</code><a class="headerlink" href="#dev_disc" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The SSDP device-discovery thread (ddt): logs MSEARCH/ALIVE/BYEBYE per device with source addresses, counts lost SSDP messages, handles CDALIVE/CDBYEBYE and QUARANTINE_RECHECK packets, and takes 'hint' hints for faster convergence. This is how players find each other on the LAN before topology forms.</p>
 <p><strong>Technical description:</strong></p>
 <p>devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "%s - rx %s ALIVE %s %s %d %u %s (%zd)", "%s - rx %s BYEBYE %s", "%s - rx CDALIVE %s %s %d", "%s - rx CDBYEBYE %s", "rx  QUARANTINE_RECHECK %s"; "%s - %u SSDP messages lost"; zp byebye; "ddt hint:%d"; "Finished working on type %d"</p>
 <ul>
@@ -10406,6 +10419,7 @@
 
 <h2 id="diagnostics"><code>diagnostics</code><a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The distributed diagnostics engine: builds a DiagnosticManifest (v2.0.0), POSTs to <code>/v2/diags</code> on product-diagnostics with serial_num, distributes a diagId to every player, triggers per-device collection, and gathers the results. <code>submitDiagnostics</code> in the app is the front door to this pipeline.</p>
 <p><strong>Technical description:</strong></p>
 <p>manifest <DiagnosticManifest attrs> ver 2.0.0 → POST /v2/diags product-diagnostics; init body {"serial_num":"%s"}; fields {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason,ZPNetworkInfo}; coordination: distribute diagId to players, trigger diag on controllers, collect submit statuses ("Timed out waiting"/"All devices reported"); files {manifest.xml,%s.xml,%s.sha256,%s.xml.gz}; modes {Diagnostic stub,Local diagnostic}; local aggregate http://localhost:%u/support/aggregate?type=%s&amp;f=%x&amp;e=%x; diag_progress var; counters Num players/Num stubbed players</p>
 <ul>
@@ -10435,6 +10449,7 @@
 
 <h2 id="drm_content_keys"><code>drm_content_keys</code><a class="headerlink" href="#drm_content_keys" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The DRM key path: <code>skd://itunes.apple.com/P{pid}/s1/e1</code> StoreKit URIs for FairPlay content keys, duplicate-entry detection, and the <code>X-Sonos-Playback-Id</code> header services use to correlate a playback with the device that requested it. Also houses the OAuth-vs-credentialType check for getDeviceAuthToken.</p>
 <p><strong>Technical description:</strong></p>
 <p>skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry detected from ContentKeys"; X-Sonos-Playback-Id: %s header; "getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)"</p>
 <ul>
@@ -10448,6 +10463,7 @@
 
 <h2 id="dropout_logging"><code>dropout_logging</code><a class="headerlink" href="#dropout_logging" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The dropout-event telemetry: tracks group-role changes, corrected-context changes, and presentation-time conditions; slots events into a bounded list with per-condition increments ('set pt reached', 'pt in fut - inaud'). This is the data behind 'why did my music skip' support queries.</p>
 <p><strong>Technical description:</strong></p>
 <p>triggers {corr ctx chg evt type %u,grp role chg evt %u-&gt;%u,clear/set cid src=%u,set/reset pt}; slot model {clr slot,slot in use skip incr,set slot %zu idx %zu to %s,no space in list}; conditions {set pt reached,flag report at %zu sbmt,set pos aud,pt in fut - inaud,GCI but no CID}; per-ch incr "incr call: %s, %zu, %zu, ch %zu, %d.%06d"; fields {inputType,SatChCount,HtsnkVersion,msAfterPt,GroupRole,GCTimeValid,GCTime,btRole,submit}; counters {htsnk_missed_total,htsnk_missed_duration_total,htsnk_late_total,htsnk_strm_reset_duration_total,htsnk_strm_silence_duration_total,htsnk_strm_plc_duration_total}; reasons {chsnk_lse,chsnk_ch_data_full,chsnk_w_err,chsrc_framer_uflw,htsnk_invld_sntp,htsnk_late_frames,htsnk_missed_frames,htsnk_time_backw,htsnk_stream_err,htsnk_stream_uflw,htsnk_stream_reset_duration,htsnk_wrong_frame}; bt_audio + injectdropout test cmd {"missing dt param","Injected dropout error"}; "Sat chs %zu"/"Sat htsnk ver %u"</p>
 <ul>
@@ -10461,6 +10477,7 @@
 
 <h2 id="dsp_files"><code>dsp_files</code><a class="headerlink" href="#dsp_files" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The DSP file inventory: eqdata.txt, persistentEQ.xml, dsp_preset<em>.xml, dsp_system_</em>.bin, satellite_processor.bin under <code>/dsp</code> and <code>/opt/dsp</code>, plus the sonar-tone flush path and an amp-timer hook. These are the loadable DSP personalities — preset vs system vs satellite variants.</p>
 <p><strong>Technical description:</strong></p>
 <p>files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,dsp_system_satellite.bin,satellite_processor.bin}; sonar-tone flush {"flushing sonar tones","Flushed"}; htdocs_locked; "modZPAmpTimer() called"; "unable to delete %s even though it exists"/"successfully deleted %s"; settings {ZPLocalSettingsFile,ZPExpirationTime,ZPGroupExpirationTime,ZPForcedUPnPExpirationTimeout,ZPMusicServicesBackstop,ZPTimeZonesBackstop}; "Setting JFFS root to %s" + ServerRoot + ContinueAfterIPChange + #GROUP_NAME# + "Failure generating group description xml"</p>
 <ul>
@@ -10504,6 +10521,7 @@
 
 <h2 id="dsp_params"><code>dsp_params</code><a class="headerlink" href="#dsp_params" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The <code>/drc</code>, <code>/staticparams</code>, <code>/dynamicparams</code> param surfaces: DRC boost, speaker angles (front/height/rear-surround), virtualizer mode, bass extraction, DAP cutoff, filters, and per-mode profiles. <code>Config not found, loading default</code> is the fallback path. This is the runtime DSP tuning surface behind <code>/status</code> pages.</p>
 <p><strong>Technical description:</strong></p>
 <p>errors {error parsing mode state,error parsing bass extraction mode,error parsing dap profile mode}; /drc {boost}; /staticparams {speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; /dynamicparams {oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal}; "Config %s not found, loading default" + /default</p>
 <ul>
@@ -10517,6 +10535,7 @@
 
 <h2 id="dts_decoder"><code>dts_decoder</code><a class="headerlink" href="#dts_decoder" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The DTS decoder (dcadec): profile taxonomy from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express; endian-checked sync detection; and a status XML with BitDepth/DTSProfile/BitRate/NumPrimaryChannels. Invalid audio modes return an empty speaker layout rather than crashing.</p>
 <p><strong>Technical description:</strong></p>
 <p>profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo}</p>
 <ul>
@@ -10530,6 +10549,7 @@
 
 <h2 id="effective_settings"><code>effective_settings</code><a class="headerlink" href="#effective_settings" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The <code>effectiveSettings</code> muse resource: <code>getAllSettings</code>/<code>updateAllSettings</code> plus per-group get/update, exposed on player and household routes and mirrored at <code>/settings/api/v1/locations/*/effectiveSettings</code>. 'Effective' means resolved after layering — what actually applies, not what was last written.</p>
 <p><strong>Technical description:</strong></p>
 <p>routes v1/players/{playerId}/effectiveSettings{,/{groupName}} + household variants; verbs {getAllSettings,getSettingsGroup groupName,updateAllSettings,updateSettingsGroup groupName}; /settings/api/v1/locations/%s/effectiveSettings{,/%s}; keys {isEffectiveP2PPolicyEncrypted,effectiveSettingsDataChanged,patchEffective*,playerSettingsEvent}; "[Mg] getEffectiveSettings() bad groupId [%u]"; "[Mg] internalReadEffectiveValuesLocked_jsonValue(%s) bad keyId %u [grkId:%u|end:%u]" (key-id store)</p>
 <ul>
@@ -10573,6 +10593,7 @@
 
 <h2 id="enet_stats"><code>enet_stats</code><a class="headerlink" href="#enet_stats" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>Ethernet port telemetry: <code>&lt;EnetPorts&gt;</code> XML with per-port link/speed, EthPrtStats counters (rx/tx packets/bytes/errors/drops/multicasts/collisions), and deep EthIntrf detail (CRC, frame, FIFO, missed errors). The <code>/enetports</code> and <code>/ethportstatistics</code> endpoints serve this data.</p>
 <p><strong>Technical description:</strong></p>
 <p><EnetPorts><Port port='%d'><Link>%d</Link><Speed>%d%s</Speed></Port></EnetPorts>; EthPrtStats counters {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u</p>
 <ul>
@@ -10639,6 +10660,7 @@
 
 <h2 id="event_loop"><code>event_loop</code><a class="headerlink" href="#event_loop" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The main event loop: a thread pool processing queued work with watchdog timestamps, logging start/stop/drain/shutdown and elapsed time. Virtually everything async in anacapad funnels through this loop.</p>
 <p><strong>Technical description:</strong></p>
 <p>eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,stopped,has no more work,shutdown. Cancelling watchdog,failure,elapsed-time:%lld}</p>
 <ul>
@@ -10652,6 +10674,7 @@
 
 <h2 id="eventloop_perf"><code>eventloop_perf</code><a class="headerlink" href="#eventloop_perf" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The in-process event loop plus its perf counters: per-observer callback durations are checked against a threshold ('exceeded duration threshold Nms &gt; Mms'), and counters track events queued, failed-to-queue, and per-subject stats. This is how slow event handlers get caught.</p>
 <p><strong>Technical description:</strong></p>
 <p>"Eventloop %p configured/removed"; inprocess-events-loop; "%s callback in observer %s exceeded duration threshold %lldms &gt; %lldms"; counters {"Unique identifier for a set of counters","In-Process Event Subjects","The number of events queued",perf_counter_keyed,queueFail="events that failed to queue","The event size in bytes",dispatchDelay="time waiting to dispatch","In-Process Event Observers",cbTime="observer handler duration. Warn if over threshold"}</p>
 <ul>
@@ -10665,6 +10688,7 @@
 
 <h2 id="exec_pages"><code>exec_pages</code><a class="headerlink" href="#exec_pages" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The <code>/status</code> exec pages: a command table mapping diagnostic URLs to shell commands — <code>/debugfiles</code> (ls jffs debug dirs), <code>/du-jffs</code>, <code>/ifconfig</code>, <code>/lsmod</code>, <code>/mount</code>, <code>/netstat</code>, <code>/ntpsources</code> (chronyc), <code>/ps</code>, <code>/route</code>, and more. These are literal shell-outs behind admin pages — their output is raw command text, not a schema.</p>
 <p><strong>Technical description:</strong></p>
 <p>{/debugfiles:"/bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug",/du-jffs:"/usr/bin/du -a -d 5 -k -x /jffs",/ifconfig:"/sbin/ifconfig",/lsmod:"/sbin/lsmod",mount:"/bin/mount",/netstat:"/bin/netstat -an",/ntpsources:"/bin/chronyc -n sources -v",ps:"/bin/ps",/route:"/sbin/route -n",/scanresults:"/wifi/athconfig scangetresults ath0",/showmacs:"/usr/sbin/brctl showmacs br0",free:"/usr/bin/free",date:"/bin/date"}; jobs {RefreshSSLCache,"Save SSL Client Cache to JFFS",SaveSSLCache}; more {/showports:"brctl showports br0",/showstats:"brctl showstats br0",/showstp:"brctl showstp br0",uptime:"/usr/bin/uptime"}; file pages {/VERSION,/etc/resolv.conf,/jffs/app/log/anacapa.log.backup,/jffs/app/log/upgrade_mgr.log,/jffs/irconfig.txt,/jffs/localsettings.txt,/jffs/netstartd_prev.log,/jffs/recovery.log,/jffs/recovery_prev.log,/jffs/settings/alarmclock.xml,/jffs/settings/areas.json,/jffs/settings/cloudconfig.json,/jffs/settings/householdsettings.json,/jffs/settings/zones.json,/jffs/settings/zpMetricsConfigV2.xml,/jffs/shadow/stats,/jffs/sys/log/setup{,_ok}/setup.{dmesg,log},/jffs/upgrade{,_prev,_tmp_prev}.log}</p>
 <ul>
@@ -10765,6 +10789,7 @@
 
 <h2 id="fcs_detail"><code>fcs_detail</code><a class="headerlink" href="#fcs_detail" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The fcs diagnostic record: a handler pair where one side reads <code>sonosClockGetTime</code> into the response buffer — a timestamp/status page used by field-service diagnostics.</p>
 <p><strong>Technical description:</strong></p>
 <p>f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffer (timestamp page)</p>
 <ul>
@@ -10778,6 +10803,7 @@
 
 <h2 id="fd_event"><code>fd_event</code><a class="headerlink" href="#fd_event" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The fdevent epoll wrapper: named threads (signal.write, wait.poll, check.poll, reset.read) driving epoll_create1/ctl/wait with fd-capacity and 'already monitored' errors, plus EventSync naming. The async plumbing under sockets, pipes, and file watchers.</p>
 <p><strong>Technical description:</strong></p>
 <p>ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.read,removeFd,waitForEvent}; EventSync %s; epoll {create1,ctl,wait} errors incl "unsupported flags","already monitored","exceeded the fd capacity of %d"</p>
 <ul>
@@ -10791,6 +10817,7 @@
 
 <h2 id="fdevent"><code>fdevent</code><a class="headerlink" href="#fdevent" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>Same fdevent layer as fd_event: the epoll-based event engine everything else (addrmon, select thread, audio fds) multiplexes on. fd capacity is bounded and monitored-fd overflow is a hard error.</p>
 <p><strong>Technical description:</strong></p>
 <p>ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read}; EventSync %s; epoll_create1/epoll_ctl/epoll_wait error paths; fd capacity bound "%d already monitored"/"exceeded the fd capacity of %d"</p>
 <ul>
@@ -10834,6 +10861,7 @@
 
 <h2 id="feature_flags"><code>feature_flags</code><a class="headerlink" href="#feature_flags" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The feature-flag registry — the build-time map behind featureConfig: same flag vocabulary as the schema plus defaults. Runtime precedence is flag → featureConfig → config → default, so a cloud-pushed value beats the build default.</p>
 <p><strong>Technical description:</strong></p>
 <p>flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,featureConfigSemiSleep,DropoutContext,HomeTheaterWifiPerfTelemetry,MetricsService,Plink,Quickbonding,SemiSleep,SmartPlay,SpotABR,SsdpAdvertiseConfig,ZoneExperiment,featureConfigZoneExperiment}</p>
 <ul>
@@ -10847,6 +10875,7 @@
 
 <h2 id="fileio"><code>fileio</code><a class="headerlink" href="#fileio" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The fileDataMgr async I/O: stream registration, SMB readdir/open, an 'in memory' fast path, HTTP reopen-at-offset resume via <code>?after=</code>, and content-type sniffing (<code>application/xml</code>). It's the generic 'open a URI as a stream' layer under playlists, artwork, and library browsing.</p>
 <p><strong>Technical description:</strong></p>
 <p>async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here"</p>
 <ul>
@@ -10860,6 +10889,7 @@
 
 <h2 id="fmp4_parser"><code>fmp4_parser</code><a class="headerlink" href="#fmp4_parser" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The fragmented-MP4 parser for segmented audio: validates box order (mfhd seq, tfhd before trun, tfdt), builds the trun table (seqnum, sample sizes/offsets/durations), and explicitly rejects senc sub-entry encryption it can't parse — 'Sub-entry encryption isn't supported' means the HLS Sample-AES path isn't this parser.</p>
 <p><strong>Technical description:</strong></p>
 <p>boxes {mfhd(seq check),tfhd(version),tfdt,trun space bounds} + "tfhd not found before trun"; trun table "seqnum %u truntblnum %zu fsize %zu foffset %zu fsamples %zu bdo %llu trundo %i truneo %zu trunes %zu trunep %zu"; senc "Sub-entry encryption isn't supported" + "Cannot parse all the IVs in senc at %dth entry"; "stream quality: encoder %s, bit depth %u, sample rate %u, bitrate %u, channels %u"; trims {encoder delay,padding} + "skipping frame; seek time offset"/"&lt; usable offset"; atoms {iTunNORM,iTunSMPB,TLOU/ALOU ITU loudness,mehd,trex,traf,esds max/avg bitrate,alac sub,mp4a ch/bitdepth/samplerate}; errors {bad moof,no moov,no dat,unknown fmp4 encoder type,unsupported file ch/bitdepth,unsupported frequency %u-bit %uhz %u channels,frag w/o traf,STZ2 ignored}; formats %ub%u</p>
 <ul>
@@ -10937,6 +10967,7 @@
 
 <h2 id="healthcheck"><code>healthcheck</code><a class="headerlink" href="#healthcheck" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The periodic health probe: a timer that schedules the next check (6-gate decision on whether to run), contacts <code>/ws/diag/diag_instructions.xml?hhid=</code> for server instructions, honors SubmitPermission, and records ServerDiagInstructions. The device literally asks the cloud 'what should I do for you today' on this schedule.</p>
 <p><strong>Technical description:</strong></p>
 <p>schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}</p>
 <ul>
@@ -10950,6 +10981,7 @@
 
 <h2 id="healthcheck_contact"><code>healthcheck_contact</code><a class="headerlink" href="#healthcheck_contact" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
+<p>The healthcheck's server-contact half: instruction fetch, permission gating, and reschedule-on-response. The returned instructions can trigger diagnostics or other maintenance — it's a remote-control backdoor in the benign sense.</p>
 <p><strong>Technical description:</strong></p>
 <p>schedule "Next healthcheck scheduled to run in %u h %u m %u s" + "Not scheduling: %d %d %d %d %d %d" + "Healthcheck timer pop" + "Rescheduling next healthcheck"; server /ws/diag/diag_instructions.xml?hhid= + SubmitPermission + ServerDiagInstructions + "Contacting server for instructions"; errors {I/O Error + HTTP Result,Indeterminate length,Incomplete file,Failed to parse,too large}</p>
 <ul>
@@ -13012,6 +13044,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="acoustic_metrics"><code>acoustic_metrics</code><a class="headerlink" href="#acoustic_metrics" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The schema for positioning's acoustic measurements: TDOAs, correlation peaks, threshold/leading-edge energy terms, spectral similarity, noise/signal RMS, and confidence scores. This is the math under Trueroom-style room estimation — the raw numbers the estimator consumes to decide where a speaker sits.</p>
 <p><strong>Technical description:</strong></p>
 <p>{tdoas,scrollbackAttempt,confidence,correlationMaxValue,thresholdPeakMaxValue,leadingEdgeSpectralSimilarity,leadingEdgePriorEnergy,leadingEdgePosteriorEnergy,leadingEdgeEnergyCoherence,maxPeakEnergyCoherence,maxPeakPosteriorEnergy,noiseRms,signalRms,normalisedResiduals,peakMagnitudeRatios,leadingEdgePercentageEnergy,f1SpectralSimilarity,f2SpectralSimilarity,leadingEdgeKurtosis,leadingEdgeRiseTime,normalisedAggregateResidual,decayConstant,numMeasurements,numRetries,orchestrator,debugData,tvUsec,errorTime,expirationTime}</p>
 <ul>
@@ -13360,6 +13393,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="datatap"><code>datatap</code><a class="headerlink" href="#datatap" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The data-tap interface — internal hooks that let diagnostics capture state from subsystems that don't otherwise expose it. Related to but distinct from audio_tap (which taps PCM); datatap captures structured records.</p>
 <ul>
 <li><strong>detail:</strong> "Datatap snapshot failed after %zu" (snapshot bound); ZoneDevDiscThread</li>
 </ul>
@@ -13373,6 +13407,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 </ul>
 <h2 id="devmode"><code>devmode</code><a class="headerlink" href="#devmode" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The developer-mode subsystem: the <code>/devmode</code> page and its statement files, plus the unlock challenge/response flow that flips the device into a privileged diagnostic state. Feature-gated — production behavior differs; the unlock endpoints rate-limit attempts.</p>
 <ul>
 <li><strong>internals:</strong> statement files {debug/devmode.bin,/devmode.bin,/tmp/devmode.tmp.bin} format "0x%s %d.%d-%d.%d" (id+version range); x-rincon-enc3 encryption; R_ALLOW_SSH_PUBKEY_INSTALL "may not be persisted" gate + "Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL" + "Loaded persistent statement"; notify {processes,listeners} on change</li>
 </ul>
@@ -13392,6 +13427,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="download_status"><code>download_status</code><a class="headerlink" href="#download_status" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>confirmed</code></p>
+<p>The file-download result enum: ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, SIZE_ERROR, FILE_ERROR, CONNECTION_ERROR, DOWNLOAD_SUCCEEDED, FILE_UNCHANGED, DOWNLOAD_IN_PROGRESS. Used by firmware and resource downloads — 'unchanged' means ETag cache hit.</p>
 <p><strong>Technical description:</strong></p>
 <p>{ERROR_NOT_CALLED,WRITE_ERROR,TRUNCATION_ERROR,SIZE_ERROR,FILE_ERROR,CONNECTION_ERROR,DOWNLOAD_SUCCEEDED,FILE_UNCHANGED,DOWNLOAD_IN_PROGRESS}</p>
 <ul>
@@ -13405,6 +13441,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="dsp_config"><code>dsp_config</code><a class="headerlink" href="#dsp_config" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The DSPConfig nanopb blob: <code>/opt/dsp</code> files (ht_config, ht_config_sat) decoded with protobuf, holding per-model bonded gains and volume breakpoint tables. Missing entries are per-model errors, not crashes — a model without a breakpoint table just lacks the curve.</p>
 <p><strong>Technical description:</strong></p>
 <p>files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully decoded DSPConfig","Decoding error %s","DSPConfig file is empty","Unable to open DSP config file %s"}; per-model {"Bonded gain for '%s' not found in DSPConfig","Volume breakpoints for '%s' not found"}; breakpoints {"no default volume breakpoints specified","no bonded volume breakpoints specified, using default instead","volume (%i) and gain (%i) lengths differ in default volume breakpoints","... in bonded volume breakpoints","default (%i) and bonded (%i) volume breakpoint lengths differ","... breakpoints differ","Too many volume breakpoints ... <code>.nanopb_options</code> ... MAX_VOLUME_BREAKPOINT_LENGTH","DSPConfigParams conversion successful"}; gravity param; trueplay_version x.x.x.x fmt + range {"base version isnt valid","Start or end of range isnt a valid version","Unable to parse version from end/start string"}; "setNumChannels(%d) greater than max (%d)"; fileio {"DSP file path is longer than buffer","unable to open file","fread","file %s does not exist","Could not get size of file"}</p>
 <ul>
@@ -13418,6 +13455,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="error_codes"><code>error_codes</code><a class="headerlink" href="#error_codes" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>
+<p>The shared error-code tables: muses's ERROR_* registry, JWT's granular taxonomy, LLA's EFAULT/EUNDERFLOW/... enum, download-status codes, and service-specific fault strings. Cross-referenced per subsystem; the muse table is the one clients see most.</p>
 <ul>
 <li><strong>rze:</strong> RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}</li>
 </ul>
@@ -13491,6 +13529,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="expat"><code>expat</code><a class="headerlink" href="#expat" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The vendored Expat 2.5.0 XML parser: billion-laughs amplification accounting (direct/indirect byte counts with amplification ratio), debug env vars (EXPAT_ACCOUNTING_DEBUG and friends), /dev/urandom entropy with fallback, and attribute-type handling. Every XML parse in the firmware — SOAP, DIDL, ZGS — runs through this copy.</p>
 <p><strong>Technical description:</strong></p>
 <p>version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f" + debug env {EXPAT_ACCOUNTING_DEBUG,EXPAT_ENTITY_DEBUG,EXPAT_ENTROPY_DEBUG}; entropy /dev/urandom + fallback(4); attr types {CDATA,IDREF,IDREFS,ENTITY,ENTITIES,NMTOKEN,NMTOKENS}; xml namespace; errors {no element found,not well-formed (invalid token),unclosed token,partial character,mismatched tag,duplicate attribute,junk after document element,illegal parameter entity reference,undefined entity,recursive entity reference,asynchronous entity,reference to invalid character number/binary entity/external entity in attribute,"XML or text declaration not at start of entity",unknown encoding,"encoding specified in XML declaration is incorrect",unclosed CDATA section} + errors {error in processing external entity reference,document is not standalone,unexpected parser state,entity declared in parameter entity,"requested feature requires XML_DTD support",cannot change setting once parsing has begun,unbound prefix,must not undeclare prefix,incomplete markup in parameter entity,XML/text declaration not well-formed,illegal char in public id,parser suspended/not suspended/parsing aborted/parsing finished,cannot suspend in external parameter entity,reserved prefix xml/xmlns rules,"limit on input amplification factor (from DTD and entities) breached"}; config {XML_DTD,XML_CONTEXT_BYTES,XML_NS,XML_BLAP_MAX_AMP,XML_BLAP_ACT_THRES,XML_GE}; DTD keywords {SYSTEM,PUBLIC,ENTITY,ATTLIST,ELEMENT,NOTATION,CDATA,REQUIRED,FIXED,EMPTY,PCDATA,NDATA,INCLUDE,IGNORE}; decl {version,encoding,standalone}; encodings {UTF-16LE,UTF-16BE,UTF-8,US-ASCII}</p>
 <ul>
@@ -13504,6 +13543,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 <h2 id="feature_config"><code>feature_config</code><a class="headerlink" href="#feature_config" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
+<p>The complete <code>featureConfig</code> schema — the cloud-pushed feature document: flags for Spotify adaptive bitrate + Connect-for-all-accounts, metrics config URLs, preferred RP container, voice data collection, partner integrations (Lutron, Amazon Music DASH, Apple Music HLSv7, TuneIn replacement/migration), semiSleep, trueplay data collection, dropout context, and more. It explains behavior differences between households on identical firmware.</p>
 <p><strong>Technical description:</strong></p>
 <p>{disableWebSocketPerMessageDeflate,metricsConfigURL,metricsConfigV2URL,preferredRPContainer,spotifyAdaptiveBitrate,enableSpotifyConnectForAllAccts,enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,thorTimeout,enableChsrcPerfOptimizations,enableUPnPEventingGNDOptimization,enableSecureAlbumArt,enableCEP20ThreadTweaks,smartPlayConfig,debounceWindowMilliseconds,debounceWindowMillisecondsCEP20,useLegacySpotifySmapiPlayback,quickbondingConfig,ssdpAdvertiseConfig,enablePitchfork,enableSslClientCacheRefresh,plink,enableDhcpProxyFailureTelemetry,homeTheaterWifiPerfTelemetry,enableOnDeviceSoundGeneration,enableRadioSocTemperatureTelemetry,enableHomeTheaterWifi6GHzFronthaul,reportHtSurrounds,reportHtSwap,reportPortableSurrounds,wifiTxRateThreshold,wifiLatencyThresholdMillis,requests,frequencyMins,delayRandPct,enableQuickbonding,enabledHT,thresholdDC,dropoutSensitiveDC,ssdpBroadcastOnlyZonePlayer1,ssdpAdvertiseOnlyEssentialServices,numLFEChannels,numHeightChannels,streamDescription,groupingLatency,enableTrueRoom,enableFlexibleSurroundsTuning,enableVirtualHeight,systemResult,numDevices,numUpdatedDevices}</p>
 <ul>
