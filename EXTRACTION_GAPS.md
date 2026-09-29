@@ -543,18 +543,26 @@ undocumented.
 Everything below is now catalogued with evidence; what's missing is
 the deep semantic layer:
 
-1. **Muse per-route schemas** — 525 routes, namespace structure mapped
-   (upnp* proxy namespaces + native resources); per-route request/
-   response bodies and auth requirements unresolved
+1. **Muse op internals** — 603 routes, 237/265 verbs bound to
+   factory→vtable→exec chains, per-op JSON keys + validation strings +
+   forwarded-paths recovered; still missing: field types/requiredness/
+   defaults, response-body schemas, the 28 unresolved household/
+   registration/reporting verbs
 2. **Lechmere TLV payloads** — framing, close-reason taxonomy and
    deflate negotiation decoded; the inner command namespace (what the
    TLV payloads carry) still undecoded
-3. **Spotify eSDK internals** — module map + Connect surface decoded;
-   mercury/hermes message semantics untouched
+3. **Spotify eSDK internals** — module map + Connect surface decoded
+   (/spotifyzc zeroconf action vocabulary + format strings recovered
+   from the master-route handler); mercury/hermes message semantics
+   untouched
 4. **Chirp profile parameters** — sonos-cdma profile exists; exact
    symbol set/FEC params unextracted
-5. **`/status` subhandler semantics** — 63 names + handler addresses
-   catalogued; per-handler output schemas unwritten
+5. **`/status` + master-route schemas** — master HTTP route table
+   decoded (102 records @ 0x11090c00 stride-28, incl. UPnP /Control +
+   /Event dispatchers, /api muse entry, /websocket/api, /reboot,
+   /tools, /support/*); per-route emit schemas harvested for ~83
+   routes; the remainder delegate via module vfunc +0x24 and need
+   per-module chasing
 6. **R_* integer mappings** — the 403-name enum is complete but enum
    *values* are not proven from the binary
 7. **Certificate wire flows** — lifecycle decoded; the enrolment/

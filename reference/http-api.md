@@ -24,7 +24,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
 - **proc_passthrough:** `/proc/ath_rincon{,_ath1}/{device,dfs,fullstatus,mibcc,nf,phyerr,roam,station,status,primary}`, `/proc/driver/{accel,audioctl,fpga/{circ,data,reg},gravity-vector,ledctl/status,tas5708/data,tdm/{regs,rxring,stats,txring},temp-sensor}`, `/proc/fs/cifs/DebugData`, `/proc/{interrupts,slabinfo,timeinfo}`, `/proc/net/{arp,netstat,snmp,sockstat,tcp,udp}`
 - **debug_files:** `/jffs/irconfig.txt`, `/jffs/localsettings.txt`, `/jffs/settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}`, `/jffs/{recovery,recovery_prev,upgrade,upgrade_prev,upgrade_tmp_prev,watchdog.dmesg,watchdog}.log`, `/jffs/sys/log/setup*`, `/opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.events,ht,hw.events,lechmere.event,musecmdandrsp,musedebug,museevt,rc.upnp,snf,spotify.debug,spotify,sps,trueplay,vl}.log`, `/opt/log/{chronyd,dropbear,ledmgr.debug,netstartd,sddpd}.log`, `/opt/log/mdnsd.log`
 - **status:** confirmed
-- **note:** path literals proven in rodata; per-handler behavior not decoded; presence of a path string does not prove handler registration order
+- **note:** path literals proven in rodata; per-route handler output schemas harvested from handler+callee string refs: elements=XML/format templates emitted, files=shell/proc/jffs paths execd or read, misc_fields=field/token literals. Handlers dispatch through a module registry (vfunc +0x24) or call the shared command-stream helper f_1076b10c.
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e75c5c, notes: subhandler string cluster
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e73e21, notes: ZPInfo field cluster
@@ -37,41 +37,200 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - path: /activeZones, flags: 2, handler: 0x100b9298
     - path: /ai_speech_enhance, flags: 2, handler: 0x100ba8b0
     - path: /alarm, flags: 2, handler: 0x100b9278
-    - path: /analoglinein, flags: 2, handler: 0x100bced0
-    - path: /api, flags: 0x82, handler: 0x105eb124
-    - path: /audiocore, flags: 2, handler: 0x100bb008
+    -
+      - **path:** /analoglinein
+      - **flags:** 2
+      - **handler:** 0x100bced0
+      - **emit:**
+        - **files:** 
+        - **elements:** `<AnalogInInfo/>`
+        - **misc_fields:** 
+    -
+      - **path:** /api
+      - **flags:** 0x82
+      - **handler:** 0x105eb124
+      - **emit:**
+        - **files:** 
+        - **elements:** `<Muse>`, `</Muse>`
+        - **misc_fields:** 
+    -
+      - **path:** /audiocore
+      - **flags:** 2
+      - **handler:** 0x100bb008
+      - **emit:**
+        - **files:** 
+        - **elements:** `<AudioCore>`, `</AudioCore>`, `<SoundDevice><Zones>`, `</Zones></SoundDevice>`, `<DSPStateManager>`, `<Zones>`, `</Zones></DSPStateManager>`, `<PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>`
+        - **misc_fields:** `NONE`, `Unknown`
     - path: /backtrace, flags: 2, handler: 0x100b9260
     - path: /button_triggered.xml, flags: 2, handler: 0x100b91d8
-    - path: /cloud, flags: 2, handler: 0x105eb2c8
-    - path: /cloudqueue, flags: 0x82, handler: 0x100babc0
-    - path: /cpumon, flags: 0xe, handler: 0x100b9200
-    - path: /decoder, flags: 2, handler: 0x100bc068
-    - path: /device, flags: 2, handler: 0x100bf634
-    - path: /dmesg, flags: 0xa, handler: 0x105eaba4
+    -
+      - **path:** /cloud
+      - **flags:** 2
+      - **handler:** 0x105eb2c8
+      - **emit:**
+        - **files:** 
+        - **elements** (24):
+        
+          ```
+          <Cloud>, <ProtocolVersion>%s</ProtocolVersion>, <LastRetryAfter>%lld</LastRetryAfter>, <MillisecondsToNextConnect/>, <WebsocketRegistration>%s (%s)</WebsocketRegistration>, <WebsocketRegistration/>, </Cloud>, <LastRetryAfter/>, <MillisecondsToNextConnect>%ld</MillisecondsToNextConnect>, <State>Closed</State>, <MillisecondsClosed>%ld</MillisecondsClosed>, <OpenCount>%d</OpenCount>, <CloseCount>%d</CloseCount>, <ConsecutiveFailures>%d</ConsecutiveFailures>, <UnackedPings>%d</UnackedPings>, <LastPingTime>%d</LastPingTime>, <PingTimeWeightedAverage>%d</PingTimeWeightedAverage>, <Messages>%d</Messages>, <LastHttpStatus>%d</LastHttpStatus>, <LastWebSocketCode/>, <LastWebSocketCode>%u</LastWebSocketCode>, <LastHttpStatus/>, <PingTimeWeightedAverage/>, <LastPingTime/>
+          ```
+        - **misc_fields:** `Current`, `Pending`, `LoadBalancerHost`, `WebsocketServerHost`, `off`, `https`, `http`
+    -
+      - **path:** /cloudqueue
+      - **flags:** 0x82
+      - **handler:** 0x100babc0
+      - **emit:**
+        - **files:** 
+        - **elements:** `</`, `>`
+        - **misc_fields:** `CloudQueueHistory`, `base`, `name`, `service`, `account`, `Server`, `Unknown`, `Request`, `Duration`, `Time`, `units`, `Resource`, `ListEntry`, `Caller`
+    -
+      - **path:** /cpumon
+      - **flags:** 0xe
+      - **handler:** 0x100b9200
+      - **emit:**
+        - **files:** 
+        - **elements:** `<CpuMonitor>`, `</CpuMonitor>`, `<Counter name="CPU Performance \[%u\]">`, `\[%d\] usr sys idle sIRQ`, `\[%s \| %07ld%03ld\]`, `\[%d\]  %2u  %2u   %2u   %2u`, `</Counter>`
+        - **misc_fields:** `Moment`
+    -
+      - **path:** /decoder
+      - **flags:** 2
+      - **handler:** 0x100bc068
+      - **emit:**
+        - **files:** 
+        - **elements:** `<MusicDecoder>`, `<LastActiveDecoder>%s</LastActiveDecoder>`, `</MusicDecoder>`, `<LastActiveDecoder>None</LastActiveDecoder>`
+        - **misc_fields:** 
+    -
+      - **path:** /device
+      - **flags:** 2
+      - **handler:** 0x100bf634
+      - **emit:**
+        - **files:** 
+        - **elements:** `<DeviceInfo>`, `<ZoneName>`, `</ZoneName>`, `<NetworkHash>%s</NetworkHash>`, `<DHCPServerMac>%s</DHCPServerMac>`, `<NetworkIPAddress>%s</NetworkIPAddress>`, `<NetworkMask>%s</NetworkMask>`, `</DiagLevel>`, `<DiagLevel>%s`, `<DevMode>%s</DevMode>`, `</DeviceInfo>`, `<DiagLevel>`, `0x%s %d.%d-%d.%d`
+        - **misc_fields:** `anacapa.log`
+    -
+      - **path:** /dmesg
+      - **flags:** 0xa
+      - **handler:** 0x105eaba4
+      - **emit:**
+        - **files:** `/bin/dmesg -s 32768`, `/bin/dmesg -s 131072`
+        - **elements:** 
+        - **misc_fields:** 
     - path: /dnscache, flags: 2, handler: 0x100b91f4
     - path: /dropout_triggered.xml, flags: 2, handler: 0x100b91bc
-    - path: /enetports, flags: 0xb, handler: 0x105bc7cc
-    - path: /ethportstatistics, flags: 0xa, handler: 0x105bc918
-    - path: /experiments, flags: 2, handler: 0x100b9170
-    - path: /hardwareevents, flags: 2, handler: 0x100b9aac
+    -
+      - **path:** /enetports
+      - **flags:** 0xb
+      - **handler:** 0x105bc7cc
+      - **emit:**
+        - **files:** 
+        - **elements:** `<EnetPorts>`, `<Port port='%d'><Link>%d</Link><Speed>%d%s</Speed></Port>`, `</EnetPorts>`, `eth%u`
+        - **misc_fields:** 
+    -
+      - **path:** /ethportstatistics
+      - **flags:** 0xa
+      - **handler:** 0x105bc918
+      - **emit:**
+        - **files:** 
+        - **elements:** `%s`, `eth%u`, `</`, `>`
+        - **misc_fields** (22):
+        
+          ```
+          txPackets, txErrors, rxDropped, rxPackets, txDropped, rxBytes, multicasts, EthIntrf, rxErrors, collisions, txBytes, lngthErr, ovrFlwErr, crcErr, frmeErr, missedErr, RxDtlErr, abrtErr, crErr, hrtBeatErr, wndwErr, TxDtlErr
+          ```
+    -
+      - **path:** /experiments
+      - **flags:** 2
+      - **handler:** 0x100b9170
+      - **emit:**
+        - **files:** 
+        - **elements:** 
+        - **misc_fields:** `featureconfig`, `RFeatureConfigManager`, `FeatureConfigManager`
+    -
+      - **path:** /hardwareevents
+      - **flags:** 2
+      - **handler:** 0x100b9aac
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HardwareStatusInfo>`, `</HardwareStatusInfo>`, `<HW Name='CurrentStatus'><Orientation>%s</Orientation></HW>`, `<HWMembers Name='Members'><State>%s</State><Flags>%u</Flags><MicFlags>%u</MicFlags></HWMembers>`, `<Faults Name='WarningsAndFaults'>`, `<FaultState>%s</FaultState>`, `<WarningState>%s</WarningState>`, `<LastBitmask>%d</LastBitmask>`, `<LastBitmask2>%d</LastBitmask2>`, `</Faults>`
+        - **misc_fields:** `Clear`, `Fault`, `Warning`
     - path: /hls, flags: 2, handler: 0x100bacfc
     - path: /htconfig, flags: 2, handler: 0x100bb144
     - path: /leds, flags: 0x82, handler: 0x100b9158
     - path: /libraries, flags: 2, handler: 0x100b9140
-    - path: /location_settings_update, flags: 2, handler: 0x105eaf20
+    -
+      - **path:** /location_settings_update
+      - **flags:** 2
+      - **handler:** 0x105eaf20
+      - **emit:**
+        - **files:** 
+        - **elements:** `<LocationSettingsUpdate>`, `</LocationSettingsUpdate>`, `<Data name="locationTarget_%d_id">%s</Data> <Data name="locationTarget_%d_data">%s</Data>`, `<Counter name="Completed Location Settings Updates"><!\[CDATA\[`, `%s \| %8lld \| %8lld \| %8lld \| %u \| %u \| %-19s \| %-21s \| %s \| %-35s \| %-5s \| %s`, `\]\]></Counter>`, `<Data name="Now">%s</Data>`, `<Data name="NextRetryMoment">%s</Data>`, `code:%X @ %d \[%s\]`
+        - **misc_fields:** `UNK__updateTaskType`, `UNK__updTkCompSts`, `locSetUpdMgr`, `locationsettingsupdatemanager.cxx`
     - path: /musicservices, flags: 2, handler: 0x100b9120
-    - path: /netsettings.json, flags: 2, handler: 0x105eac48
+    -
+      - **path:** /netsettings.json
+      - **flags:** 2
+      - **handler:** 0x105eac48
+      - **emit:**
+        - **files:** 
+        - **elements:** `<ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d">`, `<SonosNet Disable="%d"/>`, `<SonosNet Frequency="%d"/>`, `<Network SSID="%s" Flags="%d"/>`, `<BackupLanSwapPsk id="%s"/>`, `</ReplicatedNetSettings>`, `<LanSwapPsk id="%s"/>`, `<ControlPsk id="%s"/>`, `<BackupControlPsk id="%s"/>`, `<RoomEncPsk id="%s"/>`, `<BackupRoomEncPsk id="%s"/>`, `<BackupHhPsk id="%s"/>`, `<HhPsk id="%s"/>`, `Upgraded %s to file schema %d`, `Entering SonosNet disable test mode, automatic revert in %d seconds`
+        - **misc_fields:** `netsettings.json`, `netsettings`
     - path: /netsettings.txt, flags: 2, handler: 0x105eac18
-    - path: /opt/log/mdnsd.log, flags: 6, handler: 0x100b9030
+    -
+      - **path:** /opt/log/mdnsd.log
+      - **flags:** 6
+      - **handler:** 0x100b9030
+      - **emit:**
+        - **files:** `/opt/log/mdnsd.log`, `/jffs/app/log/`, `/opt/log`, `/jffs/app/settings/player/`, `/opt/`, `/jffs/app/settings/`, `/jffs/`, `/opt/log/player/`, `/opt/log/`, `/jffs/app/log/player/`
+        - **elements:** `%s/app/log`, `%s/app/settings`, `%s%s%s`, `error reading file %s (errno=%d %s)`, `</File>`, `<File name='`, `'>`, `error opening file %s (errno=%d %s)`
+        - **misc_fields:** `mdns`
     - path: /perfcounters, flags: 0xe, handler: 0x100b9004
-    - path: /playmode, flags: 6, handler: 0x100bbe98
-    - path: /policy, flags: 2, handler: 0x100bc97c
+    -
+      - **path:** /playmode
+      - **flags:** 6
+      - **handler:** 0x100bbe98
+      - **emit:**
+        - **files:** 
+        - **elements:** `<Playmode><Shuffle>%s</Shuffle><Repeat>%s</Repeat><Crossfade>%s</Crossfade></Playmode>`
+        - **misc_fields:** `Off`, `Track`
+    -
+      - **path:** /policy
+      - **flags:** 2
+      - **handler:** 0x100bc97c
+      - **emit:**
+        - **files:** 
+        - **elements:** `<Entitlements>`, `<Entitlement type="%s" isTrial="%s" sku="%s" startDate="%s" endDate="%s" codes="%s" />`, `%s%s`, `</Entitlements>`, `<CloudSettings cacheStatus="get_status_fresh" eTag="%s" type="json">`, `</CloudSettings>`, `vector::_M_range_check: __n (which is %zu) >= this->size() (which is %zu)`
+        - **misc_fields** (32):
+        
+          ```
+          entitlements, yes, entmt, global, lobal, uuuuuuuubtnufruuuuuuuuuuuuuuuuuu, obal, value, bal, usageContext, BUSINESS, scheduledChangeValue, cheduledChangeValue, heduledChangeValue, enableContentAccess, nableContentAccess, ableContentAccess, bleContentAccess, playback, layback, ayback, yback, allowDirectControl, allowLineIn, llowLineIn, lowLineIn, owLineIn, allowAirplay, llowAirplay, lowAirplay, owAirplay, uuuuuuubtnufruuuuuuuuuuuuuuuuuu
+          ```
     - path: /radiolog, flags: 2, handler: 0x100b8ff8
     - path: /regcert, flags: 2, handler: 0x105eb984
-    - path: /registration, flags: 2, handler: 0x105eb17c
-    - path: /renderingcontrol, flags: 2, handler: 0x100b8f2c
+    -
+      - **path:** /registration
+      - **flags:** 2
+      - **handler:** 0x105eb17c
+      - **emit:**
+        - **files:** 
+        - **elements:** `<Registration>`, `<RegState>%d</RegState>`, `<CustomerID>%s</CustomerID>`, `</Registration>`
+        - **misc_fields:** 
+    -
+      - **path:** /renderingcontrol
+      - **flags:** 2
+      - **handler:** 0x100b8f2c
+      - **emit:**
+        - **files:** 
+        - **elements:** `<RenderingControl>`, `<DuckingFlags>%s</DuckingFlags>`, `<SodVolume>%d</SodVolume>`, `<ExtVolume>%d</ExtVolume>`, `<AudioCoreReady>%s</AudioCoreReady>`, `<DeviceTime>%d.%06d</DeviceTime>`, `</RenderingControl>`, `<AmpState>%s</AmpState>`, `<MasterVolume>%u</MasterVolume>`, `<MasterMute>%u</MasterMute>`, `<FocusModeMute>%u</FocusModeMute>`, `<VolumeScale>%u</VolumeScale>`, `<PlaybackDucked>%u</PlaybackDucked>`
+        - **misc_fields:** `yes`, `off`
     - path: /root_cert_bundles, flags: 2, handler: 0x105eb9a0
-    - path: /rss, flags: 2, handler: 0x105eadb8
+    -
+      - **path:** /rss
+      - **flags:** 2
+      - **handler:** 0x105eadb8
+      - **emit:**
+        - **files:** 
+        - **elements:** `<ReplicatedSettingsState>`, `</ReplicatedSettingsState>`, `<Setting idx="%u" lud="%s" version="%u" />`
+        - **misc_fields:** 
     - path: /settings/effective, flags: 2, handler: 0x100b8ef8
     - path: /settings/location, flags: 2, handler: 0x100b8f14
     - path: /settings/player, flags: 2, handler: 0x100b8edc
@@ -80,16 +239,63 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - path: /ssidlist.txt, flags: 2, handler: 0x105eac30
     - path: /ssl_client_cache, flags: 2, handler: 0x105eb9ac
     - path: /syssettings, flags: 2, handler: 0x105eada0
-    - path: /temperature, flags: 2, handler: 0x100b8dcc
+    -
+      - **path:** /temperature
+      - **flags:** 2
+      - **handler:** 0x100b8dcc
+      - **emit:**
+        - **files:** 
+        - **elements:** `<TemperatureHistograms><CPUTemperature>%s</CPUTemperature></TemperatureHistograms>`
+        - **misc_fields:** 
     - path: /topology, flags: 0xa, handler: 0x105eaafc
-    - path: /track_queue_summary, flags: 2, handler: 0x100baa84
-    - path: /tracks_summary, flags: 2, handler: 0x10108138
+    -
+      - **path:** /track_queue_summary
+      - **flags:** 2
+      - **handler:** 0x100baa84
+      - **emit:**
+        - **files:** 
+        - **elements:** `<TrackQueueSummary>`, `</TrackQueueSummary>`
+        - **misc_fields:** `Shared`, `Private`, `AVT`
+    -
+      - **path:** /tracks_summary
+      - **flags:** 2
+      - **handler:** 0x10108138
+      - **emit:**
+        - **files:** 
+        - **elements:** `<TrackSummary>`, `<Tables>`, `<Table name='Title' max='%d' count='%d'/>`, `</Tables>`, `<StoreSize>%zu</StoreSize>`, `<StoreUsed>%u</StoreUsed>`, `<EntriesSize>%u</EntriesSize>`, `<EntriesUsed>%u</EntriesUsed>`, `<Conflicts>%u</Conflicts>`, `</TrackSummary>`
+        - **misc_fields:** 
     - path: /trueplayinfo, flags: 2, handler: 0x100b8ea4
     - path: /tvprocessor, flags: 2, handler: 0x100bb318
     - path: /update, flags: 2, handler: 0x100b8e84
-    - path: /upnp, flags: 0xa, handler: 0x105eb0b4
+    -
+      - **path:** /upnp
+      - **flags:** 0xa
+      - **handler:** 0x105eb0b4
+      - **emit:**
+        - **files:** 
+        - **elements** (22):
+        
+          ```
+          <Subscriptions>, </Subscriptions>, <Incoming>, </Incoming>, <Service name='%s' current='%zu' max='%d'>, <Subscription>, <EventKey>%u</EventKey>, <NotifyErrors>%u</NotifyErrors>, <SubscriptionID>%s</SubscriptionID>, </Subscription>, <NotificationAddr>%s</NotificationAddr>, <NotificationAddr>wss://%s:%u (muse)</NotificationAddr>, </Service>, <IsSecure>%d</IsSecure>, <Outgoing>, <LogicalSID>%6s</LogicalSID>, <UPnPSID>%s</UPnPSID>, <EventURI>%s</EventURI>, <FailureCount>%3d</FailureCount>, </Outgoing>, <NextRenew>%ld</NextRenew>, <ExpectedSeq>%u</ExpectedSeq>
+          ```
+        - **misc_fields:** 
     - path: /wireless, flags: 0xb, handler: 0x105eab50
-    - path: /zp, flags: 1, handler: 0x100bfbac
+    -
+      - **path:** /zp
+      - **flags:** 1
+      - **handler:** 0x100bfbac
+      - **emit:**
+        - **files:** 
+        - **elements** (24):
+        
+          ```
+          <ZPInfo>, <ZoneName>, </ZoneName>, <ZoneIcon>%s</ZoneIcon>, <Configuration>%s</Configuration>, <LocalUID>%s</LocalUID>, <SerialNumber>%s</SerialNumber>, <SoftwareVersion>%s</SoftwareVersion>, <BuildType>%s</BuildType>, <SWGen>%u</SWGen>, <SoftwareDate>%s</SoftwareDate>, <SoftwareScm>%s</SoftwareScm>, <HHSwgenState>%s</HHSwgenState>, <MinCompatibleVersion>%s</MinCompatibleVersion>, <LegacyCompatibleVersion>%s</LegacyCompatibleVersion>, <HardwareVersion>%s</HardwareVersion>, <DspVersion>%d.%d.%d</DspVersion>, <SeriesID>%s</SeriesID>, <MfgLocation>%u</MfgLocation>, <DateCode>%u</DateCode>, <HwFlags>0x%x</HwFlags>, <HwFeatures>0x%x</HwFeatures>, <Variant>%u</Variant>, <GeneralFlags>0x%x</GeneralFlags>
+          ```
+        - **misc_fields** (40):
+        
+          ```
+          hhSwgenState, build.date, build.scm.version, release, topology, informLocalPlayerChange, getLocalChannelName, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51, S45, S44, S37
+          ```
 - **description:** Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 write-capable (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).
 - **route_semantics:**
   - **/accounts:** worker f_101b6edc: account-list doc ; emits <AccountsInfo> (f_10291974)
@@ -158,6 +364,870 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
   - **flags_note:** sub-route flag enforcement (0x2/0xa/0xb/0xe/0x82/0x6/0x1) happens inside the generic router path-match (f_1006a690 family) - enforcement site not pinned; values observed: 0x2 default, 0xa/0xb/0xe privileged-family, 0x82 writable, 0x6, 0x1 root
   - **root_fn:** f_1006a690 = anacapad main(): banner 'Anacapa Middleware Server 1.02 (C) Rincon Networks Inc. 2003', usage '\[-h\] \[-c config\] \[-u username\] \[-C caps\]', default conf /opt/conf/anacapa.conf, getopt jump table (optch-'C')*4 -> opts 'C'..'u', sonos_auth_become_capable(user) -> exit(1) on failure
 - **flags_semantics:** route flag values are CAPABILITY BITS checked against the daemon's -C caps set (sonos_auth_become_capable): 0x2=default viewer, 0xa/0xb/0xe=elevated capability combos, 0x82=0x80\|0x2 write+cap, 0x6, 0x1=root/zp - enforced by the router's capability check, not ad-hoc auth
+- **master_route_table:**
+  - **address:** 0x11090c00
+  - **stride:** 28
+  - **layout:** {cstr* path, fn* handler, u32 aux, u32 x2, u32 x3, u32 x4, u32 x5}
+  - **aux_flags:** observed: 0x100 on /unlock /mfgunlock /device_account /ssh/fingerprints /rdm*/mtmhhsetup (restricted/dev-ops class); 0x200 on /websocket/api (websocket upgrade); 0x400 on /testpoint /cloudqueuepoll; 0x10000000 on /support/aggregate /raw (raw-body/streaming class); 0x230401-style values on /getsetting /indexrepl look like packed method+content-type nibbles (unproven)
+  - **routes:**
+    -
+      - **path:** /status
+      - **handler:** 0x105ebb20
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** `/jffs/app/log/`, `/opt/log`, `/jffs/app/settings/player/`, `/opt/`, `/jffs/app/settings/`, `/jffs/`, `/opt/log/player/`, `/opt/log/`, `/jffs/app/log/player/`
+        - **elements:** `<ZPSupportInfo>`, `</ZPSupportInfo>`, `</ZPNetworkInfo>`, `%s`, `<ZPNetworkInfo type='%s' %s='%s'>`, `<?xml version="1.0" ?>`, `<?xml-stylesheet type="text/xsl" href="/xml/review.xsl"?>`, `HTTP/1.1 %d`, `<!-- SDT: %ld ms -->`, `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"> <head><title>Diagnostics</title></head> <body>`, `</body></html>`, `<h2 align="center">Options</h2>`, `<a href=%s%s>%s</a><br>`, `%s/app/log`, `%s/app/settings`, `%s%s%s`
+        - **fields:** `accept`, `CONTENT-TYPE`, `featureconfig`, `RFeatureConfigManager`, `FeatureConfigManager`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `accept`, `CONTENT-TYPE`, `featureconfig`, `RFeatureConfigManager`, `FeatureConfigManager`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /dsp
+      - **handler:** 0x100ba73c
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `Content-type: %s Content-range: bytes %llu-%llu/%llu Content-length: %llu`, `%*s %d %d:%d:%d %d%*s`, `%d %n%*s %d %d:%d:%d GMT%*s`, `%d-%n%*\[A-Za-z\]-%d %d:%d:%d GMT%*s`, `%s, %02d %s %04d %02d:%02d:%02d GMT`, `HTTP/1.1 %d`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`
+        - **fields** (21):
+        
+          ```
+          eqdata.txt, htdocs_locked, no-cache, Cache-Control, connection, staticfile, if-modified-since, Last-Modified, Content-range, Jan, Content-type, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, Content-length
+          ```
+      - **fields_seen** (21):
+      
+        ```
+        eqdata.txt, htdocs_locked, no-cache, Cache-Control, connection, staticfile, if-modified-since, Last-Modified, Content-range, Jan, Content-type, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, Content-length
+        ```
+    -
+      - **path:** /raw
+      - **handler:** 0x105ea98c
+      - **aux:** `268435456`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<ZPSupportInfo>`, `</ZPSupportInfo>`, `</ZPNetworkInfo>`, `%s`, `<ZPNetworkInfo type='%s' %s='%s'>`, `<?xml version="1.0" ?>`, `<?xml-stylesheet type="text/xsl" href="/xml/review.xsl"?>`, `HTTP/1.1 %d`, `<!-- SDT: %ld ms -->`
+        - **fields:** `CONTENT-TYPE`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `CONTENT-TYPE`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /api
+      - **handler:** 0x100d2cf8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** `accept`, `api-version`, `rest`, `origin`, `null`, `http`, `https`, `wss`
+    -
+      - **path:** /musedebug
+      - **handler:** 0x100ba010
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<html><body><pre>`, `</pre></body></html>`, `%s`, `%s, %u, %u, %u`, `HTTP/1.1 %d`, `%x`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`
+        - **fields:** `muse_debug`, `Content-length`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `muse_debug`, `Content-length`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /device_account
+      - **handler:** 0x1065bd70
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **fields_seen:** `accept`, `api-version`, `rest`, `origin`, `null`, `http`, `https`, `wss`
+    -
+      - **path:** /AlarmClock/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /AudioIn/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /DeviceProperties/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /GroupManagement/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /HTControl/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MusicServices/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /SystemProperties/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /ZoneGroupTopology/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /QPlay/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaServer/ConnectionManager/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaServer/ContentDirectory/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/ConnectionManager/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/RenderingControl/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/AVTransport/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/GroupRenderingControl/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/Queue/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/VirtualLineIn/Control
+      - **handler:** 0x105e8274
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /AlarmClock/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /AudioIn/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /DeviceProperties/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /GroupManagement/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /HTControl/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MusicServices/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /SystemProperties/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /ZoneGroupTopology/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaServer/ConnectionManager/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaServer/ContentDirectory/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/ConnectionManager/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/RenderingControl/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/AVTransport/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/GroupRenderingControl/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/Queue/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /MediaRenderer/VirtualLineIn/Event
+      - **handler:** 0x105e8290
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /notify
+      - **handler:** 0x105e82c8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`
+        - **fields:** `nts`, `content-length`, `sid`, `seq`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `nts`, `content-length`, `sid`, `seq`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /xml/device_description.xml
+      - **handler:** 0x105e98d8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /xml/group_description.xml
+      - **handler:** 0x100b95d0
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`
+        - **fields** (58):
+        
+          ```
+          S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51, S45, S44, S37, S48, S41, S40, S39, S55, S46, S24, S26, S36, S58, S57, S30, S29, S32, S31, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, connection
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51
+        ```
+    -
+      - **path:** /getaa
+      - **handler:** 0x100b8c2c
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `queueing album art request %s %u %u %u`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`
+        - **fields:** `mod_zp_aa`, `Content-type`, `Continue`, `ArtFetcher`, `artfetch`
+      - **fields_seen:** `mod_zp_aa`, `Content-type`, `Continue`, `ArtFetcher`, `artfetch`
+    -
+      - **path:** /getrs
+      - **handler:** 0x105e82a8
+      - **aux:** `1`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /getsetting
+      - **handler:** 0x105e82b8
+      - **aux:** `2302209`, `3`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /indexrepl
+      - **handler:** 0x100b8a10
+      - **aux:** `2294017`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`
+        - **fields:** `x-rincon-last-update-device`, `x-rincon-content-version`, `x-rincon-range`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `x-rincon-last-update-device`, `x-rincon-content-version`, `x-rincon-range`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /msprox
+      - **handler:** 0x100b88d0
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`, `POST %s HTTP/1.1 CONNECTION: close HOST: %s:%d USER-AGENT: %s CONTENT-LENGTH: %zu CONTENT-TYPE: text/xml; charset="utf-8" SOAPACTION: %s`, `%u`, `Handshake to %s using %s successful`, `Error in the stream (>32bit). Can't proceed.`
+        - **fields** (22):
+        
+          ```
+          content-length, uuid, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, connection, soapaction, user-agent, Sonos, CONTENT-LENGTH, CONTENT-TYPE, EXT, ssl, connect, dataio, read
+          ```
+      - **fields_seen** (22):
+      
+        ```
+        content-length, uuid, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, connection, soapaction, user-agent, Sonos, CONTENT-LENGTH, CONTENT-TYPE, EXT, ssl, connect, dataio, read
+        ```
+    -
+      - **path:** /unlock
+      - **handler:** 0x10675244
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /unlock.htm
+      - **handler:** 0x10675244
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /mfgunlock
+      - **handler:** 0x10675234
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /devmode
+      - **handler:** 0x105e8d90
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /testenv
+      - **handler:** 0x105eb9dc
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /customsd
+      - **handler:** 0x103429f4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `</form></body></html>`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Cache-Control`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Cache-Control`
+    -
+      - **path:** /customsd.htm
+      - **handler:** 0x103429f4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `</form></body></html>`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Cache-Control`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Cache-Control`
+    -
+      - **path:** /fcs
+      - **handler:** 0x105eba60
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /tools
+      - **handler:** 0x100d4060
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields:** `Cache-Control`, `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Cache-Control`, `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /tools.htm
+      - **handler:** 0x100d4060
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields:** `Cache-Control`, `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Cache-Control`, `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /ping
+      - **handler:** 0x100d3f88
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** `/bin/ping -c 3`
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /traceroute
+      - **handler:** 0x100d3ff4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** `/usr/bin/traceroute`
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /mdnsannounce
+      - **handler:** 0x100c1230
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `register skipped for non-empty SID: %s`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields:** `content-type`, `csrfToken`, `Success`, `mod_zp`, `Content-type`, `Continue`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `content-length`, `spotmdns`, `RegisterZoneProvider`, `VERSION`, `CPath`, `sonos`
+      - **fields_seen:** `content-type`, `csrfToken`, `Success`, `mod_zp`, `Content-type`, `Continue`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `content-length`, `spotmdns`, `RegisterZoneProvider`, `VERSION`, `CPath`, `sonos`
+    -
+      - **path:** /pcap
+      - **handler:** 0x100d416c
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** `/bin/pcap - not (host %s and port %d)`
+        - **elements:** `HTTP/1.1 %d`
+        - **fields:** `Content-Type`, `Cache-Control`, `chunked`, `Transfer-Encoding`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `Content-Type`, `Cache-Control`, `chunked`, `Transfer-Encoding`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /save_eq_presets
+      - **handler:** 0x100ba144
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `%s.tmp`, `Unable To File %s`, `HTTP/1.1 %d`
+        - **fields:** `eqdata.txt`, `content-length`, `mod_zp`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `eqdata.txt`, `content-length`, `mod_zp`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /getDSP
+      - **handler:** 0x100bd9fc
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<?xml version="1.0" ?>`, `<root>`, `</root>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `sonos-dspid`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `Content-type`, `sonos-dspid`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /putDSP
+      - **handler:** 0x100bb63c
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`
+        - **fields:** `content-length`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `content-length`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /setPersistentEQ
+      - **handler:** 0x100ba218
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `%s.tmp`, `Unable To File %s`, `HTTP/1.1 %d`
+        - **fields:** `persistentEQ.xml`, `content-length`, `mod_zp`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `persistentEQ.xml`, `content-length`, `mod_zp`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /removeDSPDebugFiles
+      - **handler:** 0x100bc518
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`
+        - **fields:** `eqdata.txt`, `persistentEQ.xml`, `dsp_preset.xml`, `dsp_preset_default.xml`, `dsp_preset_satellite.xml`, `dsp_system_default.bin`, `dsp_system_satellite.bin`, `satellite_processor.bin`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `eqdata.txt`, `persistentEQ.xml`, `dsp_preset.xml`, `dsp_preset_default.xml`, `dsp_preset_satellite.xml`, `dsp_system_default.bin`, `dsp_system_satellite.bin`, `satellite_processor.bin`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /dolby_config
+      - **handler:** 0x100be454
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`
+        - **fields:** `content-type`, `content-length`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `content-type`, `content-length`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /audio_tap
+      - **handler:** 0x100becc4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `allowed %d mic %d`, `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`, `failed to setup async request %d %s`
+        - **fields** (45):
+        
+          ```
+          tap, header, timeout, hta, linein, codecout, irdecoder, tv_, mixersat, mixergm, as-srcin-chsnk0, as-srcout-chsnk0, mixer, as-, mixerstats, dspout, formatter, llaout, mixerout, mzdsp, extvoice, extchirp, mp_zp, Content-type, connection, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, airplay, piatp_node, as-srcin-chsnk, as-srcout-chsnk, as-srcout, as-srcin, audiotap, audiotap.poll, RIFF, WAVE, data
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        tap, header, timeout, hta, linein, codecout, irdecoder, tv_, mixersat, mixergm, as-srcin-chsnk0, as-srcout-chsnk0, mixer, as-, mixerstats, dspout, formatter, llaout, mixerout, mzdsp, extvoice, extchirp, mp_zp, Content-type, connection, content-type, keep-alive, Connection, close, Server
+        ```
+    -
+      - **path:** /advconfig
+      - **handler:** 0x105e8444
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `FirstZP: \[%d\]`, `PriorityBridge: \[%d\]`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields** (66):
+        
+          ```
+          content-type, FirstZP, PriorityBridge, csrfToken, netsettings_mod.txt, Success., Cache-Control, Content-type, Continue, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51, S45, S44, S37, S48, S41, S40, S39, S55, S46, S24, S26, S36, S58, S57, S30, S29, S32, S31, content-length
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        content-type, FirstZP, PriorityBridge, csrfToken, netsettings_mod.txt, Success., Cache-Control, Content-type, Continue, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16
+        ```
+    -
+      - **path:** /advconfig.htm
+      - **handler:** 0x105e8444
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `FirstZP: \[%d\]`, `PriorityBridge: \[%d\]`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields** (66):
+        
+          ```
+          content-type, FirstZP, PriorityBridge, csrfToken, netsettings_mod.txt, Success., Cache-Control, Content-type, Continue, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51, S45, S44, S37, S48, S41, S40, S39, S55, S46, S24, S26, S36, S58, S57, S30, S29, S32, S31, content-length
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        content-type, FirstZP, PriorityBridge, csrfToken, netsettings_mod.txt, Success., Cache-Control, Content-type, Continue, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16
+        ```
+    -
+      - **path:** /testpoint
+      - **handler:** 0x100b85ec
+      - **aux:** `1024`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<<,Q<W4`, `<h2>Bad Testpoint Request</h2>Usage: <pre>testpoint?name=&lt;name&gt;.&lt;method&gt;</pre>`, `<h2>Testpoint Dispatch Failed</h2>Check query params`, `<h2>Unknown Testpoint Name</h2>`
+        - **fields:** `name`
+      - **fields_seen:** `name`
+    -
+      - **path:** /diaglevel
+      - **handler:** 0x105e93d8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /diagmsg
+      - **handler:** 0x105e93d8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /logger
+      - **handler:** 0x105e93d8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /jobs
+      - **handler:** 0x105523e8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `Requesting "%s" job run`, `Job "%s" scheduled`, `<table border="1">`, `<tr><th>Job</th><th>Shortname</th></tr>`, `<tr><td><a href='jobs?job=%s'>%s</a></td><td>%s</td></tr>`, `</table><br>`, `Shortname may be used to trigger the job directly in a GET request<br>e.g. &#x60;http://\[playerIP\]:1400/jobs?job=UploadEvents&#x60;.`, `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`
+        - **fields:** `job`, `modjob`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `job`, `modjob`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /reboot
+      - **handler:** 0x105e92e0
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /reset
+      - **handler:** 0x105e935c
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /sonarctl
+      - **handler:** 0x100bc354
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `HTTP/1.1 %d`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields:** `flush`, `mod_zp`, `sonar-tone`, `Flushed`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`, `Content-type`
+      - **fields_seen:** `flush`, `mod_zp`, `sonar-tone`, `Flushed`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`, `Content-type`
+    -
+      - **path:** /ttm_helper
+      - **handler:** 0x100b9740
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `%d:%d.%06d`, `HTTP/1.1 %d`, `%x`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`
+        - **fields:** `Content-length`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `Content-length`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /rdmhhsetup
+      - **handler:** 0x105ebeb4
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<html><body>Retail Display HHID setup failed%s</body></html>`, `<html><body>Retail Display HHID %s configured, rebooting...</body></html>`, `HTTP/1.1 %d`, `%x`, `%u`
+        - **fields** (30):
+        
+          ```
+          netsettings.txt, X-Sonos-Api-Key, HouseholdID, Sonos_RDM_, hhid, name, icon, wto, reboot, ForceWifiDisable, ZoneName, Icon, Configuration, TargetRoomName, Content-length, Content-type, connection, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, content-length, mod_zp, unknown, conf
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        netsettings.txt, X-Sonos-Api-Key, HouseholdID, Sonos_RDM_, hhid, name, icon, wto, reboot, ForceWifiDisable, ZoneName, Icon, Configuration, TargetRoomName, Content-length, Content-type, connection, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, content-length, mod_zp, unknown, conf
+        ```
+    -
+      - **path:** /rdmbuttonfwd
+      - **handler:** 0x100b9e58
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`, `Invalid host IP: %s`, `Host not private IP: %s`, `Failed to connect to %s:%d, error %s`, `Invalid port no %d`, `Unable to translate address: %s`, `Unable to open socket, error %s`, `Unable to make socket non-blocking %s:%d, error %s`, `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`
+        - **fields:** `host`, `port`, `failure`, `mod_zp`, `success`, `reset`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `buttons`
+      - **fields_seen:** `host`, `port`, `failure`, `mod_zp`, `success`, `reset`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `buttons`
+    -
+      - **path:** /mtmhhsetup
+      - **handler:** 0x105ec758
+      - **aux:** `256`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `{   "error" : "%d",   "message" : "%s" }`, `{   "hhid" : "%s",   "key" : "%s",   "rebootDelay" : "%d" }`, `HTTP/1.1 %d`, `%x`
+        - **fields** (34):
+        
+          ```
+          netsettings.txt, X-Sonos-Api-Key, HouseholdID, content-length, content-type, hhid, name, icon, key, wifi_pwd, wifi_ssid, Sonos_MTM_, reboot, MTM_, WEPKey, NFWSSID, NFWPwd, ZoneName, Icon, Configuration, TargetRoomName, Content-length, Content-type, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, mod_zp, unknown
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        netsettings.txt, X-Sonos-Api-Key, HouseholdID, content-length, content-type, hhid, name, icon, key, wifi_pwd, wifi_ssid, Sonos_MTM_, reboot, MTM_, WEPKey, NFWSSID, NFWPwd, ZoneName, Icon, Configuration, TargetRoomName, Content-length, Content-type, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options
+        ```
+    -
+      - **path:** /ssh/fingerprints
+      - **handler:** 0x105e9578
+      - **aux:** `257`, `0`, `0`, `0`, `0`
+      - **fields_seen:** 
+    -
+      - **path:** /snapshotspdiftap
+      - **handler:** 0x100bd5e4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`
+        - **fields:** `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /downloadspdiftap
+      - **handler:** 0x100b9ed0
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `%s/%s`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields:** `spdiftap.compressed`, `CONTENT-LENGTH`, `CONTENT-TYPE`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `Content-type`, `connection`
+      - **fields_seen:** `spdiftap.compressed`, `CONTENT-LENGTH`, `CONTENT-TYPE`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `Content-type`, `connection`
+    -
+      - **path:** /cloudqueuepoll
+      - **handler:** 0x100b8260
+      - **aux:** `1024`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `{`, `%d`, `}`, `HTTP/1.1 %d`
+        - **fields:** `timeoutplaying`, `timeoutpaused`, `Content-length`, `Content-type`, `null`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+      - **fields_seen:** `timeoutplaying`, `timeoutpaused`, `Content-length`, `Content-type`, `null`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `connection`
+    -
+      - **path:** /info
+      - **handler:** 0x100c11e4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `%s: __pos (which is %zu) > this->size() (which is %zu)`
+        - **fields:** `getInfo`, `info`, `X-Sonos-Corr-Id`, `content-length`, `MuseContext`, `RHistory`, `muse`
+      - **fields_seen:** `getInfo`, `info`, `X-Sonos-Corr-Id`, `content-length`, `MuseContext`, `RHistory`, `muse`
+    -
+      - **path:** /websocket/api
+      - **handler:** 0x100bb8ac
+      - **aux:** `512`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `Protocol upgrade keepalive: %u`, `%u`
+        - **fields:** `websocketserver`, `upgrade`, `connection`, `sec-websocket-key`, `sec-websocket-version`, `websocket`, `Upgrade`, `Connection`, `Sec-WebSocket-Accept`, `currentConnections`, `muse`
+      - **fields_seen:** `websocketserver`, `upgrade`, `connection`, `sec-websocket-key`, `sec-websocket-version`, `websocket`, `Upgrade`, `Connection`, `Sec-WebSocket-Accept`, `currentConnections`, `muse`
+    -
+      - **path:** /spotifyzc
+      - **handler:** 0x1020f8c4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements** (39):
+        
+          ```
+          Invalid ZeroConf request %s, reject zc req %s, addUser with userName %s; player uuid %s, Action %s RC: %d, Response: %s, %s@%s, addUser, %s@%s, %d, get zc vars err: %d, Sender:%s Desc:%s Data:%s, %u, HTTP/1.1 %d, Failed to find player or group coordinator in getGroupProperties. UUID=%s, UUIDGroup=%s, %s://%s:%hu%s, Guess that %s (%s) is gc of %s, Did not find %s gc, {, }, %x, Using SID %d, findRecord(%u,%s,%d) returning oldest %s, findRecord(%u,%s,%d) could not find any accounts, {null}, %s%u, Failed to get token or key from DC account: %d, login error 0x%x g=%d sn=%su, Failed to download manifest file (%s) for service %u, error %hu, getDeviceAuthToken failed (res = %d), Account added. Returning UDN=%s, can't extract account UID from %s, Account matched g=%d,sn=%u,h=%s, Updating guest account nickname from: %s to: %s, Unable to update guest account sn=%u,h=%s, New account matched to existing guest account with SN=%u, Hash=%s, Error in %s: inputStringSize > max length (%zu> %d), Unable to convert to UTF-16: %d, %s client starting %s with result %d, Last played stream id=%u, pos: %u (VLI: %d \[%d\], SMAPI: %d \[%d\]), Not changing container (%s) playing %s %s
+          ```
+        - **fields** (140):
+        
+          ```
+          path, method, userAgent, esdkVersion, SpotZc_Failure, spotifyzc, action, responseCode, success, spotifyTransferZeroConf, spotify, getInfo, addUser, resetUsers, userName, blob, status, ERROR-INVALID-ARGUMENTS, statusString, spotifyError, version, deviceName, deviceID, publicKey, deviceType, libraryVersion, resolverVersion, groupStatus, authorization_code, tokenType, clientID, productID, scope, availability, supported_drm_media_formats, drm, formats, supported_capabilities, modelDisplayName, Sonos, brandDisplayName, remoteName, SpotZc_Success, ERROR-UNKNOWN, SONOS_DC_UNKNOWN, errorCode, ERROR-SPOTIFY-ERROR, resetUser, ERROR-LOGIN-FAILED, RegisterZoneProvider, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, connection, content-length, topology_base, http, https, wss, topology, null, Content-length, Content-type, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51, S45, S44, S37, S48, S41, S40, S39, S55, S46, S24, S26, S36, S58, S57, S30, S29, S32, S31, svcacct, spot, sn_, isGuest, accountTier, failedLoginMS, refreshAuthMS, loginMS, setAndUpdatePreferredSerialNum, addAccountForOAuthDirectControl, accountsmgr, authToken, type, smapi, service, rsid, dcLogin, zpAM, dup, int_addAccountWithOAuthToken, md5HashUTF16LE, Unknown, Track
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        path, method, userAgent, esdkVersion, SpotZc_Failure, spotifyzc, action, responseCode, success, spotifyTransferZeroConf, spotify, getInfo, addUser, resetUsers, userName, blob, status, ERROR-INVALID-ARGUMENTS, statusString, spotifyError, version, deviceName, deviceID, publicKey, deviceType, libraryVersion, resolverVersion, groupStatus, authorization_code, tokenType
+        ```
+    -
+      - **path:** /spotdbg
+      - **handler:** 0x100b8140
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields:** `Cache-Control`, `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Cache-Control`, `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /spotresetnts
+      - **handler:** 0x100b7fd8
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`, `force reset %s`, `ps %s shutdown...`, `Dns HAL Exit: %s (status = %d, err = %d)`, `Unregistering "%s" observer "%s". Total observers: %zu`
+        - **fields** (28):
+        
+          ```
+          content-type, Success, csrfToken, Content-type, Continue, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, content-length, spot, spot_hal, reportSpotifyEventWork, shutdown, inprocess-events, GroupChangedEvent, GroupVolumeChangedEvent, LocalIpChangedEvent, NewCertRegistrationEvent, RuntimePolicyEvent, SpotifyDelegationNotification, SpotifyMDNSRequest, SystemPropertiesChangeEvent, AVTBecomeStandaloneEvent
+          ```
+      - **fields_seen** (28):
+      
+        ```
+        content-type, Success, csrfToken, Content-type, Continue, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, content-length, spot, spot_hal, reportSpotifyEventWork, shutdown, inprocess-events, GroupChangedEvent, GroupVolumeChangedEvent, LocalIpChangedEvent, NewCertRegistrationEvent, RuntimePolicyEvent, SpotifyDelegationNotification, SpotifyMDNSRequest, SystemPropertiesChangeEvent, AVTBecomeStandaloneEvent
+        ```
+    -
+      - **path:** /sethostip
+      - **handler:** 0x100b9fac
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /nslookup
+      - **handler:** 0x100b96d0
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><HEAD><TITLE>Error %d</TITLE></HEAD><BODY><H1>Error %d</H1><P>%s</P></BODY></HTML>`, `HTTP/1.1 %d`
+        - **fields:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+      - **fields_seen:** `Content-type`, `Continue`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`
+    -
+      - **path:** /forcegtkrekey
+      - **handler:** 0x100b9640
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`
+        - **fields:** `Forbidden`, `ath0`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `Forbidden`, `ath0`, `Content-type`, `connection`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+    -
+      - **path:** /setstring
+      - **handler:** 0x100b7cb4
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<h2>System Settings</h2>HTTP Error %d`, `<h2>System Settings</h2>Setting changed`, `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`
+        - **fields:** `content-type`, `key`, `value`, `csrfToken`, `Cache-Control`, `Content-type`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `content-length`
+      - **fields_seen:** `content-type`, `key`, `value`, `csrfToken`, `Cache-Control`, `Content-type`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `content-length`
+    -
+      - **path:** /removestring
+      - **handler:** 0x100b79e0
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<h2>Remove System Setting</h2>HTTP Error %d`, `<h2>Remove System Setting</h2>Setting removed`, `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`
+        - **fields:** `content-type`, `key`, `csrfToken`, `Cache-Control`, `Content-type`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `content-length`
+      - **fields_seen:** `content-type`, `key`, `csrfToken`, `Cache-Control`, `Content-type`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `content-length`
+    -
+      - **path:** /support/directsubmit
+      - **handler:** 0x105e9b30
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements** (49):
+        
+          ```
+          <h2>%s</h2>HTTP Error %d, <h2>%s</h2><form action="/support/directsubmit" method="POST"><input type="hidden" name="csrfToken" value="%s" /><button type="submit">Submit</button></form>, The diagnostic information was sent.<br><br> Your confirmation number is: <strong>%u</strong>.<br>, <h2>%s</h2><p style="font-family:verdana; font-size:20px;">%s</p>, There was a problem submitting the diagnostic information.<br>, <HTML><BODY>, </BODY></HTML>, HTTP/1.1 %d, %x, Diagnostic unsuccessful, no devices submitted diags (ID: %s), Diagnostic successful (ID: %s), {"serial_num":"%s"}, Diagnostic initiate error: %s, Unable to initiate diagnostics. I/O Error: 0x%x. HTTP Result: %d, Diagnostic (%s) initiated (ID: %s), openStreamForPOST : %s%s, openStream with (RANGE: bytes=%zu-): %s%s, openStream : %s%s, openStream with (RANGE: bytes=%zu-%zu): %s%s, Populated players in this diag (GUID: %s). Num players: %zu, Num stubbed players: %zu, Diagnostic submission (%s) triggered (ID: %s) for %us from now by %s, %s%hu, Diagnostic submission status reported to %s (ID: %s, GUID: %s), Unable to distribute diagId to %s. I/O Error: 0x%x. HTTP Result: %d, Distributed diagId to %s, %x, %u, %02X%s%02X%s%02X%s%02X%s%02X%s%02X%s, %s for %s submit error. I/O Error: 0x%x. HTTP Result: %d, %s for %s (%s) submitted (ID: %s, GUID: %s), %s for %s submit error: confirmation guid (%s) doesn't match actual guid (%s), %s for %s submit error: %s, multipart/%s; boundary=%s, --%s, Content-Disposition: %s, ; name="%s", ; filename="%s", Content-Type: %s, %s: %s, %s.xml, %s.sha256, --%s--, %s.xml.gz, </, >, Diagnostic manifest submission error. I/O Error: 0x%x. HTTP Result: %d, <DiagnosticManifest %s='%s' %s='%s'>, </DiagnosticManifest>, %d
+          ```
+        - **fields** (61):
+        
+          ```
+          content-type, Cache-Control, csrfToken, User, Content-type, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, content-length, ExtraLocal, topology, PUT, guid, type, false, success, zpDiagSubmit, tracking, hardware, true, POST, https, dataio, unknown, secreg, quarantined, swversion, diag_progress, diagId, flags, excludeFlags, coordinator, delay, product-diagnostics, originator, serial_num, SONOSMULTIPARTBOUNDARY.BLAHBLAHBLAH, file, form-data, ZPNetworkInfo, GET, Error, Players, Controllers, Device, SerialNumber, Status, Invalid, manifest, manifest.xml, version, hhSize, hhIdle, numPlayingZPs, topology_base
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        content-type, Cache-Control, csrfToken, User, Content-type, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, content-length, ExtraLocal, topology, PUT, guid, type, false, success, zpDiagSubmit, tracking, hardware, true, POST, https, dataio, unknown
+        ```
+    -
+      - **path:** /support/review
+      - **handler:** 0x105e9e60
+      - **aux:** `0`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<?xml version="1.0"?>`, `<?xml-stylesheet type="text/xsl" href="/xml/review.xsl"?>`, `HTTP/1.1 %d`, `<ZPNetworkInfo type = 'User'>`, `<!-- START UUID: %s -->`, `<!-- END UUID: %s -->`, `</ZPNetworkInfo>`, `openStreamForPOST : %s%s`, `openStream with (RANGE: bytes=%zu-): %s%s`, `openStream : %s%s`, `openStream with (RANGE: bytes=%zu-%zu): %s%s`, `</`, `>`
+        - **fields** (24):
+        
+          ```
+          CONTENT-TYPE, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, connection, GET, Error, dataio, ZPSupportInfo, ZPInfo, ZoneName, LocalUID, IPAddress, SoftwareVersion, HardwareVersion, SWGen, QuarantineReason, StubReason
+          ```
+      - **fields_seen** (24):
+      
+        ```
+        CONTENT-TYPE, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, connection, GET, Error, dataio, ZPSupportInfo, ZPInfo, ZoneName, LocalUID, IPAddress, SoftwareVersion, HardwareVersion, SWGen, QuarantineReason, StubReason
+        ```
+    -
+      - **path:** /support/aggregate
+      - **handler:** 0x105e9fb0
+      - **aux:** `268435456`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<ZPSupportInfo>`, `</ZPSupportInfo>`, `</ZPNetworkInfo>`, `%s`, `<ZPNetworkInfo type='%s' %s='%s'>`, `<?xml version="1.0" ?>`, `<?xml-stylesheet type="text/xsl" href="/xml/review.xsl"?>`, `HTTP/1.1 %d`, `<!-- SDT: %ld ms -->`, `<HTML><BODY>`, `</BODY></HTML>`, `%x`
+        - **fields** (24):
+        
+          ```
+          include_crs, type, CONTENT-TYPE, mod_zp, watchdog.dmesg.old, watchdog.dmesg, watchdog.log.old, watchdog.log, button_triggered.xml, dropout_triggered.xml, default, ap_status_handle_support_request, version, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, Content-type, connection
+          ```
+      - **fields_seen** (24):
+      
+        ```
+        include_crs, type, CONTENT-TYPE, mod_zp, watchdog.dmesg.old, watchdog.dmesg, watchdog.log.old, watchdog.log, button_triggered.xml, dropout_triggered.xml, default, ap_status_handle_support_request, version, content-type, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, Content-type, connection
+        ```
+    -
+      - **path:** /support/asyncsubmit
+      - **handler:** 0x105ea400
+      - **aux:** `196610`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`, `Diagnostic submission (%s) triggered (ID: %s) for %us from now by %s`, `%s%hu`, `Diagnostic submission status reported to %s (ID: %s, GUID: %s)`, `%s for %s submit error. I/O Error: 0x%x. HTTP Result: %d`, `%s for %s (%s) submitted (ID: %s, GUID: %s)`, `%s for %s submit error: confirmation guid (%s) doesn't match actual guid (%s)`, `%s for %s submit error: %s`, `Unable to trigger diag on controller %s. I/O Error: 0x%x`, `Unable to trigger diag on controller %s. HTTP Result: %d, Read Timeout: %s`, `Unable to trigger diag on controller %s. HTTP Result: %d, Response %s`, `Triggered diag on controller %s`, `%s controller %s added to this diag (GUID: %s)`, `Unable to report diagnostic submit status of %s to %s. I/O Error: 0x%x. HTTP Result: %d`, `Diagnostic submission status of %s reported to %s (ID: %s, GUID: %s)`
+        - **fields** (34):
+        
+          ```
+          content-type, diagId, guid, flags, excludeFlags, type, coordinator, delay, Success, Content-type, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, content-length, topology, PUT, product-diagnostics, originator, serial_num, POST, false, true, diag_progress, Secondary, Primary, uuid, success, controller
+          ```
+      - **fields_seen** (30):
+      
+        ```
+        content-type, diagId, guid, flags, excludeFlags, type, coordinator, delay, Success, Content-type, connection, keep-alive, Connection, close, Server, DENY, X-Frame-Options, Content-Security-Policy, Continue, content-length, topology, PUT, product-diagnostics, originator, serial_num, POST, false, true, diag_progress, Secondary
+        ```
+    -
+      - **path:** /support/reportstatus
+      - **handler:** 0x105ea734
+      - **aux:** `258`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<HTML><BODY>`, `</BODY></HTML>`, `HTTP/1.1 %d`, `%x`
+        - **fields:** `content-type`, `guid`, `uuid`, `success`, `controller`, `true`, `Success`, `Content-type`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `content-length`
+      - **fields_seen:** `content-type`, `guid`, `uuid`, `success`, `controller`, `true`, `Success`, `Content-type`, `connection`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`, `content-length`
+    -
+      - **path:** /support/networkmatrix
+      - **handler:** 0x105ea2f0
+      - **aux:** `196608`, `0`, `0`, `0`, `0`
+      - **emit:**
+        - **files:** 
+        - **elements:** `<ZPSupportInfo>`, `</ZPSupportInfo>`, `</ZPNetworkInfo>`, `%s`, `<ZPNetworkInfo type='%s' %s='%s'>`, `<?xml version="1.0" ?>`, `<?xml-stylesheet type="text/xsl" href="/xml/review.xsl"?>`, `HTTP/1.1 %d`, `<!-- SDT: %ld ms -->`
+        - **fields:** `CONTENT-TYPE`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
+      - **fields_seen:** `CONTENT-TYPE`, `default`, `ap_status_handle_support_request`, `version`, `content-type`, `keep-alive`, `Connection`, `close`, `Server`, `DENY`, `X-Frame-Options`, `Content-Security-Policy`, `Continue`
 
 ## `device_account_endpoint`
 
