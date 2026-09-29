@@ -8371,13 +8371,14 @@ The eSDK track pipeline: track insertion, delivery accounting (delivery vs integ
 
 **coverage** `strong`
 
-The Trueplay gRPC service (`sonos.coreaudio.trueplay.v1.TrueplayService`, API v1alpha2): methods SetupDevice, ApplySpatialTuning, ApplySpectralTuning, ApplySatelliteTuning, ClearAllTunings, GetSpatialTuning, GetSpectralTuning, GetDeviceConfig; status enum UNSPECIFIED/SUCCESS/FAILURE with Invalid-API-Version/Service-Address errors. This is the tuning engine's front door on newer platforms.
+The Trueplay gRPC service (`sonos.coreaudio.trueplay.v1.TrueplayService`, API v1alpha2): methods SetupDevice, ApplySpatialTuning, ApplySpectralTuning, ApplySatelliteTuning, ClearAllTunings, GetSpatialTuning, GetSpectralTuning, GetDeviceConfig; status enum UNSPECIFIED/SUCCESS/FAILURE with Invalid-API-Version/Service-Address errors. This is the tuning engine's front door on newer platforms. Its verb dispatch table, all nine handler functions, the protobuf message descriptors and the AudioCoreRpcBuffer transport class are all pinned to exact addresses.
 
 **Technical description:**
 
 service sonos.coreaudio.trueplay.v1.TrueplayService; API v1alpha2; errors {Invalid API Version,Invalid Service Address}; status enum {MESSAGE_STATUS_UNSPECIFIED,MESSAGE_STATUS_SUCCESS,MESSAGE_STATUS_FAILURE}; methods {SetupDevice,ApplySpatialTuning,ApplySpectralTuning,ApplySatelliteTuning,ClearAllTunings,GetSpatialTuning,GetSpectralTuning,GetDeviceConfig} (req+resp names listed)
 
 - **name:** TrueplayService gRPC API
+- **rpc_dispatch_table:** verb->handler table @0x1102a134: 9 fn-ptr slots {f_10e691c8,f_10e69070,f_10e69094,f_10e690bc,f_10e690e4,f_10e6910c,f_10e69134,f_10e6915c,f_10e69184} followed by the verb-name block (GetDeviceConfig..GetSpectralTuning); dispatcher f_10e69f48 references it. Message schemas live as nanopb msgdesc records @0x11029a24/0x11029a74 (3-field msgs), 0x11029c38/0x11029c98/0x11029cf4/0x11029d50 (4/4/2/2-field), reached via the .sdata descriptor registry @0x11095ebc/0x11095ecc/0x11095efc/0x11095f04; AudioCoreRpcBuffer class name @0x110299a8.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x110299ec — trueplay gRPC
