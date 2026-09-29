@@ -106,16 +106,17 @@ Grading each surface against that:
 - **CHSRC/CHSNK inter-player audio framing** — the synced-audio bus
   exists; frame layout not decoded
 - **Bluetooth/AirPlay stacks** — third-party code, presence only
-- **`R_*` integer enum values** — the namespace is clean (61 real
-  tokens + 172 `ERROR_*` literals) but `R_*` names exist **only inside
-  log-format strings** (e.g. `applyLEDMode R_LED_UPGRADE(0x%llx)`),
-  never as standalone literals — so the `{name,len,val}` enum-table
-  method used for `enum_tables` cannot bind them; values need per-use
-  switch/bitmask analysis. **Partially resolved by `enum_tables`**: the
-  binary's real enum registration tables (48 stride-12
-  `{name*, strlen, enumval}` arrays in `.data.rel.ro`) give *proven*
-  integer values for the non-`R_*` enums — muse roles
-  (`OWNER/GUEST/CRM/ADMIN...`), auth types
+- **`R_*` integer enum values** — **RESOLVED** (see the `R_*` section
+  below): every genuine `R_*` family proven by per-use analysis —
+  `R_LED_*` mask via log-arg `(hi,lo)` constants, `R_PLAY_OP_*`/
+  `R_STREAM_OP_*` via PIC jump-table case bucketing,
+  `R_CLIENT_KEYCERT_ID_*` via selector return values. The remaining
+  `R_*` tokens are settings keys, not an enum. Separately,
+  `enum_tables` gives proven integer values for the binary's real enum
+  registration tables (48 stride-12 `{name*, strlen, enumval}` arrays
+  in `.data.rel.ro`) plus two direct-indexed name tables —
+  `muse_result_codes` (107 codes) and `media_service_errors` (71) —
+  covering muse roles (`OWNER/GUEST/CRM/ADMIN...`), auth types
   (`GUEST_TOKEN/ACCESS_TOKEN/API_KEY/GUEST_TOKEN_PIN`), authz
   namespaces, playModes, queue insert modes, content-object classes,
   SMAPI/SRADIO/SFB capability bitmask (1..32 powers of two),
@@ -232,29 +233,53 @@ edge only.
 BAD_ACCOUNT}`, `ERROR_DOCK_INTERRUPT` — fault-code families outside
 the UPnP 4xx/7xx/8xx vocabulary; uncatalogued.
 
-### The `R_*` internal result/status namespace — ~403 codes
-The binary carries a complete internal status enum: `R_ACCOUNT_*`
-(REAUTH_REQUIRED, UPGRADE_REQUIRED, WRONG_SERVICE...),
-`R_CLOUD_QUEUE_*`, `R_PLAY_OP_*`/`R_STREAM_OP_*` (transport/stream op
-codes), `R_INIT_STATUS_*`, `R_READ/WRITE_STATUS_*`, `R_PAND_*`
-(Pandora), `R_LASTFM_*`, `R_WMP_*`, `R_LED_*` (the full LED state
-machine: BEGIN_SETUP_MODE, JOIN_HH, MUTED, PLAYING, UPGRADE, WAC,
-WARN...), `R_MASK_*` speaker-channel masks (THREE_DOT_ONE,
-FIVE_DOT_ONE, FIVE_DOT_ONE_DOT_TWO, SEVEN_DOT_ONE,
-NINE_DOT_ONE_DOT_FOUR), `R_CLIENT_KEYCERT_*` cert types, `R_TYPE_*`
-(Sub/BOOSTED_BATTERY/BUCKED_CAPACITOR...), plus `R_PLAYBACK_*`,
-`R_DOCK_INTERRUPT`, `R_INSUFFICIENT_POWER_FOR_UPDATE`,
-`R_MICROPHONE_NOT_ENABLED`, `R_PEER_FAILED_VERIFICATION`...
-Zero of the ~403 codes are catalogued. They surface into SOAP faults,
-muse responses and logs but the enum itself is unmapped — no table of
-value→meaning, no mapping to UPnP fault codes.
-Plus 29 `R_*` *settings keys* (`R_CrossfadeDuration`,
-`R_ContentFiltering`, `R_VolNormMode`, `R_MuseDuckingPolicy`,
-`R_ServiceBitrate`, `R_AutoUpdatePolicy`, `R_HideTuneIn`,
-`R_ShowNSSServers`, `R_ShowRhapUPnP`, `R_AirplayIncludeLinked`,
-`R_AudioInEncodeType`, `R_AccountTransferMode`...) — the real
-SystemProperties key space is undocumented; the dataset documents the
-Get/Set/Remove *actions* but not the key vocabulary they operate on.
+### The `R_*` internal status namespace — RESOLVED (with corrections)
+Most names previously catalogued as `R_*` families were **substring
+artifacts** inside `ERROR_*`, `FLAC__STREAM_DECODER_*`, and
+`SPEAKER_MASK_*` literals (`R_ACCOUNT_*`, `R_PAND_*`, `R_INIT_STATUS_*`,
+`R_MASK_*`...). Those vocabularies now live in the proper enums:
+
+- `muse_result_codes` — **107 proven wire codes** (direct-indexed
+  `char*` table at `0x10f94d14`; consumer `f_109e0d14` bounds-checks
+  `<=106` then `lwzux` indexes): domain errors 0-51, HTTP-mirroring
+  success 52-56 (`OK/CREATED/ACCEPTED/SUCCESS_NO_CONTENT/
+  SUCCESS_NOT_MODIFIED`), protocol/request errors 57-106
+  (`ERROR_UNSUPPORTED_COMMAND=90`, `ERROR_API_KEY_VALIDATION_FAILED=93`,
+  `ERROR_CMD_FUTURE=96`, `ERROR_CMD_REMOVED=97`,
+  `ERROR_NOT_DESIGNATED_DEVICE=106`...)
+- `media_service_errors` — 71-entry ordered table at `0x110925dc`:
+  generic transport/content errors then per-service ranges
+  (RHAP/AUDIBLE/WMP/SIRIUS/PAND/LASTFM/CLOUD_QUEUE/CERT). Index
+  semantics inferred from ordering — lower confidence than muse codes.
+- The ~19 `FLAC__STREAM_DECODER_*` and `SPEAKER_MASK_*` literals are
+  third-party libFLAC internals / the `speaker_mask` table respectively.
+
+The **genuine** `R_*` families are now all proven:
+
+- `R_LED_*` — 24 proven 64-bit mask bits; `applyLEDMode`
+  (`f_10c918a0`) bit-test chain logs each tested mask as `(hi,lo)`
+  constants (`MUTED=0x1` ... `IDENTIFY_PLAYER=0x4000000000`; `PLAYING`
+  = the no-bits else case).
+- `R_PLAY_OP_*` / `R_STREAM_OP_*` — proven via PIC jump-table case
+  bucketing in `f_104c9270` (7 cases) and the stream-op dispatcher.
+- `R_CLIENT_KEYCERT_ID_*` — proven: selector `f_1057ac60` reads flag
+  bits at cert-ctx+0x0c + a predicate, logs the matching
+  `R_CLIENT_KEYCERT_ID_*` name, and returns 0-3
+  (`SONOS=0`/`SONOS_DEVICE_ACCEPT_LEGACY=1`/`SONOS_DEVICE=2`/
+  `SONOS_REGISTERED_DEVICE=3`). Consumer chain: `f_1057ade8` →
+  `f_1056c738` indexes runtime tables `0x110a5670`/`0x110a56d8`.
+  Cert-manager sources: `devicecertmanager.cxx`, `regdevicecert.cxx`,
+  `certmanager.cxx`; mbedTLS loads CA bundle + client cert; bundle
+  download uses ETag change detection.
+
+Residual `R_*` gap: the 29 `R_*` **settings keys**
+(`R_CrossfadeDuration`, `R_ContentFiltering`, `R_VolNormMode`,
+`R_MuseDuckingPolicy`, `R_ServiceBitrate`, `R_AutoUpdatePolicy`,
+`R_HideTuneIn`, `R_ShowNSSServers`, `R_ShowRhapUPnP`,
+`R_AirplayIncludeLinked`, `R_AudioInEncodeType`,
+`R_AccountTransferMode`...) — the real SystemProperties key space is
+undocumented; the dataset documents the Get/Set/Remove *actions* but
+not the key vocabulary they operate on.
 
 ### CSRF protection on config endpoints
 `/advconfig` POST carries a `csrfToken` hidden field — the player
@@ -582,16 +607,19 @@ the deep semantic layer:
    /tools, /support/*); per-route emit schemas harvested for ~83
    routes; the remainder delegate via module vfunc +0x24 and need
    per-module chasing
-6. **R_* integer mappings** — mostly resolved via `enum_tables`: 48
-   `{name*,strlen,enumval}` registration arrays recovered from
-   `.data.rel.ro` give proven values for ~45 non-`R_*` enums (muse
-   roles/auth-types/playModes, SMAPI capability bitmask, CHSRC classes,
-   FSM states, update results, orientation, trueroom types...). The
-   `R_*`-prefixed enum itself stays unmapped — its names exist only
-   inside log strings, never as standalone literals, so no name-table
-   exists; needs per-use switch analysis
-7. **Certificate wire flows** — lifecycle decoded; the enrolment/
-   renewal request formats unresolved
+6. **R_* integer mappings** — RESOLVED: every genuine `R_*` family is
+   now proven (`R_LED_*` mask via log-arg constants, `R_PLAY_OP_*`/
+   `R_STREAM_OP_*` via PIC jump-table bucketing,
+   `R_CLIENT_KEYCERT_ID_*` via selector `f_1057ac60` returns 0-3);
+   previously catalogued "R_*" families were substring artifacts of
+   `ERROR_*`/`FLAC__*`/`SPEAKER_MASK_*` strings. 48
+   `{name*,strlen,enumval}` registration arrays give proven values for
+   ~45 more enums, plus direct-indexed name tables: `muse_result_codes`
+   (107, proven consumer `f_109e0d14`) and `media_service_errors` (71).
+   Residual: the 29 `R_*` settings keys (SystemProperties vocabulary)
+7. **Certificate wire flows** — selector + id→object path proven
+   (above); enrolment/renewal request formats and the
+   `/regcert` + `/root_cert_bundles` handler internals unresolved
 8. **SemiSleep/WAC/factory-reset state machines** — trigger strings
    catalogued; full FSM transitions not walked
 9. **IBT plan format** — executor decoded (plan→target-list→
