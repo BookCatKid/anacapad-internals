@@ -615,10 +615,16 @@ RINCON_%s01400 per-device results, retry FSM, report files, and the
 `/firmware/swgen/%u/latest/` fetch path. Staging details and the
 migration FSM remain thin.
 
-### Media-player abstraction — VOCAB
-`media_player_mgr`, `media_player_autoplay`, `media_player_vli_ctrl`,
-`extaudiosrc`, `ai_impl_base` — the plug-in layer under AVT sources.
-Vtable/source-mode map undocumented.
+### Media-player abstraction — substantially decoded
+`media_player_mgr` (`mediaplayermanager` domain; per-player config +
+anacapa_logger.toml registration; actor model with target keys
+{uuid,ix,port,ssl,mtls}), `media_player_autoplay` (linein.homeTheater/
+airplay/bluetooth source classes, Spotify-VLI autoplay, coordinator
+resolution, wakeMissingPlayers WoW machinery, AVT/queue backup-
+restore), `media_player_vli_ctrl` (session callbacks,
+VliSession/VolumeProcessingComplete events, scopeVliCtrl,
+x-sonos-vli protocolInfo, VLIGroupIDs). Per-source-mode vtable map
+still undocumented.
 
 ### Group/object model internals — PARTIAL (deepened)
 `group.cxx`, `group_playeronly`, `group_locationandplayer`,
