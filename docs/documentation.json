@@ -104804,6 +104804,12 @@
    "service": "/MediaRenderer/Queue/Control",
    "description": "savedqueues.rsq persistence",
    "fields": "file:///jffs/settings/savedqueues.rsq (+.tmp atomic +savedqueues.d.rsq delta, application/gzip): <SavedQueues LastUpdateDevice Version Next><SavedQueue Id Curated NumTracks playlistSummary><Track URI MD/>; res protocolInfo file:*:audio/mpegurl:*; \"Saved Queue track list corrupted, expected %u, saw %u\"; ID validation {Saved queue ID not valid,Next available queue ID not valid,ID/next mismatch,NumTracks not valid,Version not valid,Num tracks not valid}; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\" + SQ:%s + \"Cannot parse service ID from URI\"; \"No num tracks found, so emitting the first four artworks found\"; mobile- prefix; errors {Replicated file not valid,file at boot not valid,Could not access playlists,Could not find given playlistId,Could not import saved queues file,TQ append error,UPNP error adding URI to saved queue}"
+  },
+  "services_xml_schema": {
+   "status": "strong",
+   "service": "/MusicServices/Control",
+   "description": "replicated services list XML",
+   "fields": "<Services LastUpdateDevice Version SchemaVersion ETag><Presentation/><ServiceIds/><Total/>\u2026</Services>; summary <AvailableSvcsSummary><ServiceIds></ServiceIds><Total></Total></AvailableSvcsSummary>; per-svc {SecureUri,secureUri,ContainerType,BuiltInService,PresentationMap,Strings,PollInterval,Manifest}"
   }
  },
  "uri_formats": {
@@ -121135,7 +121141,8 @@
    "source_manager": "group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM]/[stopLocalPBAsGM] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; \"Recording State Snapshot in state %d\"; \"Starting vli audio input subsystem (type=%d)\"/\"ending vli ai subsystem (cached type=%d; new=%d)\"; cookie validation {\"validate cookie failed for [%d], [%d]\",\"no source to validate cookie\"}; ai_vli thread"
   },
   "wifi": {
-   "idle_mgr": "RZPWifiIdleMgr/idlemgr: \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\""
+   "idle_mgr": "RZPWifiIdleMgr/idlemgr: \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\"",
+   "assoc_tracker": "CrAssoc report \"Reporting CrAssoc event for %s\"; metrics {mstime1/2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1/2,ddnum,zstime1/2,zsnum,zntime1/2,znnum,znscs,znstate}; ARP stuffing \"Stuffing %s MAC to ARP table\" + \"ARP stuffing records are full\" for associating controller; \"ZGT Notification to %s is invalid event\""
   },
   "cert_layer": {
    "files": "cert.xml + metadata.txt; \"Buffer not sufficient to store entire certificate\"; \"loading %s (0x%x) took %ums\"; tmpfile-rename atomic swap; \"failed to load replacement (0x%x)\""
@@ -121581,6 +121588,51 @@
      "notes": "arp/assoc blocks"
     }
    ]
+  },
+  "audio_fifo": {
+   "name": "audiofifo \u2014 record-based circular audio buffer (eSDK)",
+   "status": "partial",
+   "summary": "records with {pos,range}; writes {\"Advance write to next record\",\"Rejecting write, as provided offset %zu != %zu (pending)\",\"not enough fifo records\",\"truncated write\",\"Audio fifo records reset\"}; discontinuity {\"Discontinuity @ offset %zu in record %zu (expecting: %zu)\",\"*** Too many discontinuities\"}; reads {\"Consumed contiguous samples (%zu - %zu)\",\"Advance read to next contiguous record\",\"Read %zu bytes from record\",\"No bytes to read from fifo... EOF\",\"audio fifo read at boundary eof\",\"consumed exactly to the eof marker\",\"reached logical boundary\",\"already has pending offset\"}; prebuffer {\"prebuffering... (used/prebuffer)\",\"Waited %ums for audio from the eSDK\",\"Finished prebuffering in %u ms (st,flush)\",\"prebuffering elapsed %u ms (used/free)\",\"exit waiting for audio, not rendering\"} \u2014 Spotify eSDK feed",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef04f0",
+     "notes": "audio_fifo block"
+    }
+   ]
+  },
+  "boot_sequence": {
+   "name": "boot_sequence_mgr \u2014 bootseq triggers",
+   "status": "partial",
+   "summary": "\"updating boot sequence due to wifi connection event\"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef0a8c",
+     "notes": "boot_seq block"
+    }
+   ]
+  },
+  "cloud": {
+   "get_api": "callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags"
+  },
+  "music_services": {
+   "name": "musicservices \u2014 available-services replication",
+   "status": "partial",
+   "summary": "musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVersion,AvailableServiceDescriptorList,AvailableServiceTypeList,AvailableServiceListVersion}; settings {OnlineUpdateBaseURL,R_TrialZPSerial,R_AvailableSvcTrials}; replication locks {rwlR_msd,rwlW_msd} + msdZonePlayer; accept logic \"deciding whether to accept replicated list from: %s; ver: %u format: %u\"/\"replicating services from %s\"/\"Replicated list accepted\"; zp-vs-rs compare {zpETag,rsETag,zpLUD,rsLUD,zpVer,rsVer}; \"ServiceTypeList, adding built-in: %s\"/\"adding: %s; name: %s\"; \"Warning. No SD found for %d\"; poll \"next check for available services in %u s [source=%s]\"; \"Could not submit Available Services DIAG. Service count is: %zu\"; checkForAvailableMusicServices job; \"Not enough space to write full list\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e76a94",
+     "notes": "musicservices block"
+    }
+   ]
+  },
+  "radiolog": {
+   "detail": "flags {recurse,redir,unsupported}; rc_impl settingsWriteback"
   }
  },
  "muse": {

@@ -481,6 +481,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
 | `replicated_netsettings_schema` | settings replication |  | ? | `strong` |
 | `savedqueues_rsq_schema` | /MediaRenderer/Queue/Control |  | ? | `strong` |
+| `services_xml_schema` | /MusicServices/Control |  | ? | `strong` |
 | `shares_schema` | ContentDirectory |  | ? | `strong` |
 | `sounddevice_status_schema` | /status |  | ? | `strong` |
 | `update_info_schema` | /status |  | ? | `strong` |
@@ -3428,6 +3429,11 @@ netsettings replicated XML
 ### `savedqueues_rsq_schema`
 
 savedqueues.rsq persistence
+
+
+### `services_xml_schema`
+
+replicated services list XML
 
 
 ### `shares_schema`

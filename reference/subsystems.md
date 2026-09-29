@@ -14,10 +14,12 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `async_stream` | **partial** | init {buffersize,multiThread,ratelimit us}; segment table (realloc to %zu entries); alloc policy {satisfied by track transition\|deleting played data\|not satisfied}; "Started reaping played data. Lose fast scrubbing backwards"; CDN fallback {">>>Sync read from CDN at offset %zu","Opportunistic sync read from CDN"}; "File is in memory!"; seek sessions "new seek based PB session"; "Socket has: %zu bytes ... CHSRC ms ahead: %ld"; stats mrrkbs/arrkbs + "Avg read rate %zuKB/sec; min read rate %zu"; "Atom Table Full" bound; threads asyncstrmio/asyncstreamiomgr |
 | `audio_clip` | **partial** | muse routes players/%s/audioClip + groups/%s/playback/%s + "forward to %s"; clip object type audioClip; fields {priority,clipType,clipLEDBehavior,clipBehavior,buzzers}; buzzer clips file://%s/buzzers/%d.mp3 + %u:%c; custom requires streamUrl "Missing streamUrl (required for custom clip type)"; httpAuthorization → "Secure streamUrl required when providing httpAuthorization"; delivery {Using AVT,Using External Audio Source}; priority "Cannot interrupt current clip due to priority policies"; pause content first "Failed to pause content because group info could not be retrieved for UUID=%s, ZoneGroupID=%s"; errors {Invalid clip type,Invalid clip id,Clip id not found,Error starting audio clip,failed getting audio clip response,"unexpected object type %s, expecting audioClip"}; resume content after |
 | `audio_decoder` | **partial** | status <SampleRate><SampleBitDepth><NumChannels><ChannelMap><FrameSize>; lifecycle {decoder create/init,header,seek tvResume=%ld.%ld,"seeking to absolute position = (%llu / %llu)","capping aboslute seek position",scan,get pos}; errors {decode err skip/pos/flush/set pos,too many errors,no progress(eof,o),open failed,streaming hint failed,read out of accum space,read eof,reached expected eof pos,seek failed,len failed}; unsupported {too many samples,channels,bit depth}; REPLAYGAIN_TRACK_GAIN= + gain=%f; ogg errors {seek,bailed out,no mem,no init}; ffmpeg/WMA: wmaSeekPacket offset bound; AVFormatContext alloc/open; stream-info/audio-stream find; resume loc byte→time fallback "Resume location %zu exceeds file size %zu, falling back to time-based seek"; "Seeking to position %zu"/"Seeking to time: %lld microseconds"; "Stream duration: %zu milliseconds"/"File size: %zu bytes"/"Estimated offset %zu exceeds file size"; attached-picture extract image/jpeg; libavformat metadata album_artist; codec ctx {not found id,alloc,params,open,pAVPacket/pAVFrame}; frames {send/recv errors,send result status eof}; payload bounds {Extradata too large,Codec params size,Packet size too large,Codec params too large for cache,Packet too large for cached payload}; "no client, ptvResume, fileURI, or uri opener provided, we won't continue" |
+| `audio_fifo` | **partial** | records with {pos,range}; writes {"Advance write to next record","Rejecting write, as provided offset %zu != %zu (pending)","not enough fifo records","truncated write","Audio fifo records reset"}; discontinuity {"Discontinuity @ offset %zu in record %zu (expecting: %zu)","*** Too many discontinuities"}; reads {"Consumed contiguous samples (%zu - %zu)","Advance read to next contiguous record","Read %zu bytes from record","No bytes to read from fifo... EOF","audio fifo read at boundary eof","consumed exactly to the eof marker","reached logical boundary","already has pending offset"}; prebuffer {"prebuffering... (used/prebuffer)","Waited %ums for audio from the eSDK","Finished prebuffering in %u ms (st,flush)","prebuffering elapsed %u ms (used/free)","exit waiting for audio, not rendering"} — Spotify eSDK feed |
 | `audio_rate_ctrl` | **partial** | ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, "Rate Maxed"/"Rate Inv Maxed" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; "time went back; try again"; "Thread descheduled for %uus. Limit %uus"; SRC mute on \|drift\| "(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u"; "Out of bounds. drift: %f mute count: %d" |
 | `audio_stream_mixer` | **partial** | stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} + stats "E:%d, D:%d, B:%d, PR:%d"; fade engine "fade added: %i.%i sample_len(%u) current_gain target_gain rate" + max/min/fade complete + "no fade slots available"; skipAhead "delta:%u > buffered:%u"; "discontinuity detected after scheduled resync"; mixer: bManageOutputLatency,startup buffers,buffers; fd poll sound.fd.poll.%04X; stall detect "loop(wall): %uus loop(cpu): %uus, sel: %uus"; states MTS_PLAYING transition; DSP drain FSM {"start dsp flushing %i buffers","dsp flushing ended %i frames early","driver draining","dsp flushing complete with od %u"}; stream names as-{dspin,dspout}{-tv,-ext-voice,-ext-chirp}/as-src{in,out}-ext-voice/%s-chsnk%zu; system/audio_out_disable + "Running with audio output disabled"; forcePerfectInitialSync; "KERNEL_PRINTK_ENABLE ... mixer scheduling can't be guaranteed"; "Testpoint delay of %ums" |
 | `audio_taps` | **partial** | PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap |
 | `auto_update` | **partial** | states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {"Upcoming alarm is preventing update","Active device(s) preventing update"}; "Trimming the window to (%d) seconds"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; "RINCON_%s01400 updated to %s"/"update failed (%d)"; "Retrying upgrade (%d/%d)..."/"Giving up after max upgrade attempts"; upgrade_mgr.txt state file |
+| `boot_sequence` | **partial** | "updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey} |
 | `bt_sbc` | **partial** | params "freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu"; errors {Invalid packet header,Failed to parse %zd,Truncated packet. Lost frames,Invalid packet,frame size changed %zu->%zu,decoder error %zd on frame %zu,Bad SBC frame %zu read/decoded,NOTIFYFRAME_ERR_BUFFERING,unknown frame status} |
 | `business_msp` | **partial** | Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION) |
 | `buttons_ir` | **partial** | button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database |
@@ -65,6 +67,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `mpmgr` | **partial** | actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; resolve {getActor,Actor Filter null,unexpected target ID type,found actor,found backup,target resolved,no actor available}; lifecycle {registered \[%zu\],created \[%zu\],Invalid target key abort,Request to shutdown,shutdown}; per-MP config Player%s + anacapa_logger.toml + /localsettings.txt; VLI hooks {onVirtualLineInGetVolume,SessionStartInfoUpdated,StartSession,StopSession,SuspendSession,NameChanged,MetaDataChanged,PlayModesChanged,onPlaybackStateChanged,processSetVolume,waitOnTxBitFlagsClearedLocked}; events {VolumeSetActionEvent(vol,mute),VliVolumeProcessingCompleteEvent(type,success,flags)+signal rc,VliSessionProcessingCompleteEvent(type,action,success,flags),"vliType old: %s new %s cookie %d"} |
 | `multi_daemon_boundary` | **partial** | anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks \| netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test" |
 | `muse_semantics` | **partial** | the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume |
+| `music_services` | **partial** | musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVersion,AvailableServiceDescriptorList,AvailableServiceTypeList,AvailableServiceListVersion}; settings {OnlineUpdateBaseURL,R_TrialZPSerial,R_AvailableSvcTrials}; replication locks {rwlR_msd,rwlW_msd} + msdZonePlayer; accept logic "deciding whether to accept replicated list from: %s; ver: %u format: %u"/"replicating services from %s"/"Replicated list accepted"; zp-vs-rs compare {zpETag,rsETag,zpLUD,rsLUD,zpVer,rsVer}; "ServiceTypeList, adding built-in: %s"/"adding: %s; name: %s"; "Warning. No SD found for %d"; poll "next check for available services in %u s \[source=%s\]"; "Could not submit Available Services DIAG. Service count is: %zu"; checkForAvailableMusicServices job; "Not enough space to write full list" |
 | `netif_monitor` | **partial** | netlink {RTM_NEWLINK,RTM_GETLINK}; errors {read error,incorrect type,unexpected message %X}; selthrd.RIfAddressMonitor.{reset,data,except,timeout} |
 | `noderx` | **partial** | indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight rec " %u r:%d.%06d s:%c p:%d.%06d"; startup {"Starting up; id:%u, delayPkts:%u, delayFrms:%u","Startup large packet gap:%u, don't NACK",bFinalStartPacket,allowing NACK resend of LCG,ignoring discontig NACK resend,ignoring partial frames}; NACK "out of order packet; send nack immediately" + "NACKed for %u IDs, %u packets, ob/lr/lcg/lrx"; pause/resume {thread pausing/resuming, state validation p/sp/pr/ip}; frame layer {wFirstFrameOffset,wBytesOfDataLeftToRead,pwLen,Playtime} + errors {expected frame not found,frame length conflict,Packet stream framing error,frame too large,bufferNextProtocolFrame WOULDBLOCK/E_WOULDBLOCK,readNextDataBlock timeout,forcing decoder reset}; skipAhead entries {immed,shifted,released blocks,too many}; resync {"resynchronization flushing packets %u-%u",resynchronization message}; "Ignore packet with incorrect protocol version"; "Received dup packet id with different class"/oob/mismatch replace; "RX buffer full"/"RX discontig"; threads {noderx-data,noderx-pause,noderx.rxd.usleep,noderx.loc.usleep}; "failing noderx for io error (c=%u t=%lld)" |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
@@ -107,6 +110,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cert_layer` | **?** |  |
 | `chsnk` | **?** |  |
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
+| `cloud` | **?** |  |
 | `cloud_registration` | **?** |  |
 | `content_directory` | **?** |  |
 | `datatap` | **?** |  |
@@ -123,6 +127,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `music_accounts` | **?** |  |
 | `network` | **?** |  |
 | `nodetx` | **?** |  |
+| `radiolog` | **?** |  |
 | `registration` | **?** |  |
 | `registration_machine` | **?** |  |
 | `rendering_control` | **?** |  |
@@ -324,6 +329,21 @@ status <SampleRate><SampleBitDepth><NumChannels><ChannelMap><FrameSize>; lifecyc
 
 </details>
 
+## `audio_fifo`
+
+**coverage** `partial`
+
+**Technical description:**
+
+records with {pos,range}; writes {"Advance write to next record","Rejecting write, as provided offset %zu != %zu (pending)","not enough fifo records","truncated write","Audio fifo records reset"}; discontinuity {"Discontinuity @ offset %zu in record %zu (expecting: %zu)","*** Too many discontinuities"}; reads {"Consumed contiguous samples (%zu - %zu)","Advance read to next contiguous record","Read %zu bytes from record","No bytes to read from fifo... EOF","audio fifo read at boundary eof","consumed exactly to the eof marker","reached logical boundary","already has pending offset"}; prebuffer {"prebuffering... (used/prebuffer)","Waited %ums for audio from the eSDK","Finished prebuffering in %u ms (st,flush)","prebuffering elapsed %u ms (used/free)","exit waiting for audio, not rendering"} — Spotify eSDK feed
+
+- **name:** audiofifo — record-based circular audio buffer (eSDK)
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ef04f0 — audio_fifo block
+
+</details>
+
 ## `audio_rate_ctrl`
 
 **coverage** `partial`
@@ -392,6 +412,21 @@ states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SE
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10eae3f4 — auto_update_scheduler block
+
+</details>
+
+## `boot_sequence`
+
+**coverage** `partial`
+
+**Technical description:**
+
+"updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey}
+
+- **name:** boot_sequence_mgr — bootseq triggers
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ef0a8c — boot_seq block
 
 </details>
 
@@ -1460,6 +1495,21 @@ the muse API is the real product surface: 525 route strings, organized as househ
 
 </details>
 
+## `music_services`
+
+**coverage** `partial`
+
+**Technical description:**
+
+musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVersion,AvailableServiceDescriptorList,AvailableServiceTypeList,AvailableServiceListVersion}; settings {OnlineUpdateBaseURL,R_TrialZPSerial,R_AvailableSvcTrials}; replication locks {rwlR_msd,rwlW_msd} + msdZonePlayer; accept logic "deciding whether to accept replicated list from: %s; ver: %u format: %u"/"replicating services from %s"/"Replicated list accepted"; zp-vs-rs compare {zpETag,rsETag,zpLUD,rsLUD,zpVer,rsVer}; "ServiceTypeList, adding built-in: %s"/"adding: %s; name: %s"; "Warning. No SD found for %d"; poll "next check for available services in %u s \[source=%s\]"; "Could not submit Available Services DIAG. Service count is: %zu"; checkForAvailableMusicServices job; "Not enough space to write full list"
+
+- **name:** musicservices — available-services replication
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e76a94 — musicservices block
+
+</details>
+
 ## `netif_monitor`
 
 **coverage** `partial`
@@ -2337,6 +2387,11 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 </details>
 
+## `cloud`
+
+**coverage** `?`
+
+- **get_api:** callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response\[%s\],unexpected timeout rSz/cL,JSON parse failure \[sz,off\]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags
 ## `cloud_registration`
 
 **coverage** `?`
@@ -2458,6 +2513,11 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **ops_counters:** ops {schedResyncX,immedResync,schedResync,endTX}; ITBTT types {ITBTT_UNKNOWN,ITBTT_CHSRC,ITBTT_LINEIN,ITBTT_VLI}; crossfade state for packetId {lPacketNum-1/lPacketNum-2 fallback,no frames,crossfade on/off}; "checkAndMarkFrameDiscontinuity: %lldus"; "getLocationAtTime earlier than oldest valid packet"; NACK {"nack from %s count=%u, min=%u, max=%u","not transmitting %u stale packets","ignore NACK packet with incompatible protocol version"}; perf-counters {rsend=DataBlock sends,nackr=resync NACK,nackd=data NACK,nacku=unsendable NACK} + "Histogram of transmitted packet info"; params {transmit port,dstaddr unicast/multicast,lastpktid}
+## `radiolog`
+
+**coverage** `?`
+
+- **detail:** flags {recurse,redir,unsupported}; rc_impl settingsWriteback
 ## `registration`
 
 **coverage** `?`
@@ -2578,6 +2638,7 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
 **coverage** `?`
 
 - **idle_mgr:** RZPWifiIdleMgr/idlemgr: "Device set to %08x with primary chan %d code 0x%x cnt %u retry %u"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; "client %s is %s with primary chan %d"
+- **assoc_tracker:** CrAssoc report "Reporting CrAssoc event for %s"; metrics {mstime1/2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1/2,ddnum,zstime1/2,zsnum,zntime1/2,znnum,znscs,znstate}; ARP stuffing "Stuffing %s MAC to ARP table" + "ARP stuffing records are full" for associating controller; "ZGT Notification to %s is invalid event"
 ## `zone_topology`
 
 **coverage** `?`
