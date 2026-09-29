@@ -121860,7 +121860,7 @@
   },
   "protobuf_descriptors": {
    "status": "confirmed",
-   "description": "nanopb pb_msgdesc_t schema inventory. 102 message descriptors (fuller structural census, aux-pointer-in-.sdata descs included) recovered across .rodata + .data.rel.ro: 7-word records {field_info*, aux/submsg*, 0, 0, field_count, 0, field_count} where field_info* points to a packed u32 descriptor array (nanopb PB_FIELD_32BIT-style encoding; observed first-words 0x00011705/0x40011805/0x10011805/0x40022805/0x0010220e pack per-field tag+ltype+offset info).",
+   "description": "nanopb (0.4.x packed FIELDINFO) descriptor set fully decoded: 103 pb_msgdesc_t records, 362 fields total = 150 submsg + 63 uvarint + 58 string + 54 fixed32 + 19 bool + 17 varint + 3 bytes. Each schemas[] entry is tag:ltype:htype(:atype)(->subdesc addr). The muse root 0x10fbee48 is {1:string, 2-6:rep submsg, 7-8:opt submsg}; the 44-field envelope 0x10fbfa8c is {1:string name, 2-4:rep submsg, 5-44:ONEOF of 40 subdescs} = a tagged-union RPC envelope - one of 40 operation payloads per message. Trueplay cluster at 0x11029xxx carries scalar/string payloads (e.g. 0x11029d9c = string,uvarint,string,uvarint,uvarint).",
    "clusters": {
     "muse_region_10fb9xxx": [
      "0x10fb9d64 (2 fields)",
@@ -121892,7 +121892,7 @@
     "audio_pipeline_11029xxx": "0x11029a24(3f)/0x11029a74(4f)/0x11029c38(4f)/0x11029c98(4f)/0x11029cf4(2f)/0x11029d50(2f) - TrueplayService (sonos.coreaudio.trueplay.v1) request/response protos, v1alpha2"
    },
    "callers": "pb_decode/pb_encode/pb_ostream_from_buffer/pb_istream_from_buffer imported from libprotobuf-nanopb.so.0 (plt 0x11098690/0x110994a8/0x11098dd0/0x11098ce8); in-binary callers cluster in the SPDIF module (0x10e68xxx), the chproc/DSP region (0x10dd8xxx), Spotify eSDK (0x10ca8xxx,0x10ca9xxx) and the RPC engine (0x10c5bxxx) - consistent with SCI hw-bus messages, ChProcConfig/DSPConfig, eSDK protos and muse messages all sharing the codec",
-   "residual": "per-field names/types beyond the (tag<<2)|atype low byte require full nanopb iter emulation; message names not embedded; root msg 0x10fbee48 + envelope 0x10fbfa8c identities need .proto-name correlation",
+   "residual": "field NAMES and enum semantics are not stored in nanopb wire descriptors - need .proto correlation; aux->submsg binding shown where statically resolvable; a handful of descs use width-4/8 records (large tags/offsets) decoded identically.",
    "evidence": [
     {
      "type": "firmware",
@@ -121914,7 +121914,579 @@
    },
    "submessage_graph": "aux arrays decode cleanly as per-message submsg descriptor lists. Graph recovered two levels deep: the ROOT muse message is 0x10fbee48 (8 fields, aux @0x10fbee64) whose fields bind subdescs {0x10fbfee4 x3 (the shared 1-field wrapper), 0x10fbfa8c (the 44-field envelope), 0x10fbf9b8 (15f), 0x10fbf970 (3f), 0x10fbee18 (2f)}. 0x10fbfa8c's own aux @0x10fbfaa8 = 43 ptrs to ~30 distinct subdescs spanning 0x10fbf29c-0x10fbfee4 (fields 0-2 again share 0x10fbfee4). NOTE: some descs' aux arrays live in .sdata (0x10fbee18->0x11095bec, 0x10fbfee4->0x11095d78) - part of what earlier looked like an .sdata 'descriptor registry' is actually relocated aux-pointer storage. Field streams are 2 u32/field, low byte (tag<<2)|atype, atype=1 dominant -> flat required-field structs.",
    "sdata_consumers": "access model resolved: NO r13-SDA; slots are reached by lis/addi direct addressing (non-PIC code) or got2 indirection (PIC modules). f_10c9634c (protobuf-RPC engine) indexes the 0x11095a5c-0x11095b08 block heavily (per-msg global slots); trueplay binder fns load 0x11095eb0/0x11095f50; the {api,zc,download,audio,esdk} registry @0x11095d80-0x11095db0 is referenced by ~30 eSDK-region fns (0x10ca-0x10d8) - it is the shared event-channel table, not a nanopb structure.",
-   "datarelro_descs": "desc placement is split three ways by relocation need: 76 in .rodata (fi+aux ptrs resolved), 5 in .data.rel.ro (0x1108b3f0-b46c), and 21 one-field wrapper descs in .rodata whose fi+aux are a single {aux_ptr, field_info_word} pair packed in .sdata - the .sdata 0x40001204/0x40001404/0x10001004 words are field_info words, fully resolving that earlier mystery block"
+   "datarelro_descs": "desc placement is split three ways by relocation need: 76 in .rodata (fi+aux ptrs resolved), 5 in .data.rel.ro (0x1108b3f0-b46c), and 21 one-field wrapper descs in .rodata whose fi+aux are a single {aux_ptr, field_info_word} pair packed in .sdata - the .sdata 0x40001204/0x40001404/0x10001004 words are field_info words, fully resolving that earlier mystery block",
+   "schemas": {
+    "0x10fb9d64": [
+     "1:submsg:opt->0x10fb9f60",
+     "2:submsg:opt->0x10fb9ff8"
+    ],
+    "0x10fb9da0": [
+     "1:submsg:opt->0x10fb9f60",
+     "2:submsg:opt->0x10fb9ff8",
+     "3:string:opt",
+     "4:string:opt",
+     "5:string:opt",
+     "6:varint:opt",
+     "7:varint:opt",
+     "8:string:opt",
+     "9:varint:opt"
+    ],
+    "0x10fb9e14": [
+     "1:submsg:opt->0x10fb9f60",
+     "2:submsg:opt->0x10fb9ff8",
+     "3:string:opt",
+     "4:string:opt",
+     "5:string:opt",
+     "6:string:opt",
+     "7:bool:opt",
+     "8:bool:opt"
+    ],
+    "0x10fb9e80": [
+     "1:submsg:opt->0x10fb9f60",
+     "2:submsg:opt->0x10fb9ff8",
+     "3:string:opt",
+     "4:string:opt",
+     "5:string:opt",
+     "6:string:opt",
+     "7:string:opt",
+     "8:varint:opt",
+     "9:varint:opt",
+     "10:varint:opt"
+    ],
+    "0x10fb9efc": [
+     "1:submsg:opt->0x10fb9f60",
+     "2:submsg:opt->0x10fb9ff8",
+     "3:varint:opt",
+     "4:varint:opt",
+     "5:varint:opt",
+     "6:varint:opt",
+     "7:bool:opt"
+    ],
+    "0x10fb9f60": [
+     "1:string:opt",
+     "2:string:opt",
+     "3:string:opt",
+     "4:string:opt",
+     "5:string:opt",
+     "6:string:opt",
+     "7:string:opt",
+     "8:string:opt",
+     "9:string:opt",
+     "10:string:opt",
+     "11:string:opt",
+     "12:string:opt",
+     "13:varint:opt",
+     "14:string:opt",
+     "15:string:opt"
+    ],
+    "0x10fb9ff8": [
+     "1:string:opt"
+    ],
+    "0x10fbe668": [
+     "1:uvarint:opt",
+     "2:uvarint:opt",
+     "3:uvarint:opt",
+     "4:uvarint:opt"
+    ],
+    "0x10fbe698": [
+     "1:fixed32:opt",
+     "2:fixed32:opt",
+     "3:fixed32:opt",
+     "4:fixed32:opt"
+    ],
+    "0x10fbe6c8": [
+     "1:fixed32:opt"
+    ],
+    "0x10fbe6e4": [
+     "1:fixed32:opt"
+    ],
+    "0x10fbe700": [
+     "1:fixed32:opt"
+    ],
+    "0x10fbe71c": [
+     "1:fixed32:opt"
+    ],
+    "0x10fbe738": [
+     "1:fixed32:opt",
+     "2:fixed32:opt"
+    ],
+    "0x10fbe760": [
+     "1:fixed32:opt",
+     "2:fixed32:opt"
+    ],
+    "0x10fbe788": [
+     "1:fixed32:opt",
+     "2:fixed32:opt",
+     "3:fixed32:opt"
+    ],
+    "0x10fbe7b4": [
+     "1:fixed32:opt"
+    ],
+    "0x10fbe7d0": [
+     "1:fixed32:opt",
+     "2:fixed32:opt"
+    ],
+    "0x10fbe7f8": [
+     "1:fixed32:opt"
+    ],
+    "0x10fbe814": [
+     "1:fixed32:opt",
+     "2:fixed32:opt"
+    ],
+    "0x10fbe874": [
+     "1:fixed32:opt",
+     "2:fixed32:opt",
+     "3:fixed32:opt",
+     "4:fixed32:opt",
+     "5:fixed32:opt"
+    ],
+    "0x10fbe8a8": [
+     "1:submsg:oneof->0x10fbe874",
+     "2:submsg:oneof->0x10fbe858",
+     "3:submsg:oneof->0x10fbe83c",
+     "4:submsg:oneof->0x10fbe814",
+     "5:submsg:oneof->0x10fbe7f8",
+     "6:submsg:oneof->0x10fbe7d0",
+     "7:submsg:oneof->0x10fbe7b4",
+     "8:submsg:oneof->0x10fbe788",
+     "9:submsg:oneof->0x10fbe788",
+     "10:submsg:oneof->0x10fbe788",
+     "11:submsg:oneof->0x10fbe788",
+     "12:submsg:oneof->0x10fbe788",
+     "13:submsg:oneof->0x10fbe788",
+     "14:submsg:oneof->0x10fbe760",
+     "15:submsg:oneof->0x10fbe738",
+     "16:submsg:oneof->0x10fbe71c",
+     "17:submsg:oneof->0x10fbe700",
+     "18:submsg:oneof->0x10fbe6e4",
+     "19:submsg:oneof->0x10fbe6c8",
+     "20:submsg:oneof->0x10fbe698"
+    ],
+    "0x10fbe9bc": [
+     "1:fixed32:opt",
+     "2:fixed32:opt"
+    ],
+    "0x10fbe9e4": [
+     "1:uvarint:rep",
+     "2:fixed32:rep"
+    ],
+    "0x10fbea14": [
+     "1:string:opt",
+     "2:fixed32:opt"
+    ],
+    "0x10fbea40": [
+     "1:string:opt",
+     "2:submsg:opt->0x10fbe9e4"
+    ],
+    "0x10fbea70": [
+     "1:string:opt",
+     "2:string:opt",
+     "3:submsg:rep->0x10fbea40",
+     "4:fixed32:opt",
+     "5:fixed32:opt",
+     "6:fixed32:opt",
+     "7:fixed32:opt",
+     "8:submsg:rep->0x10fbea14",
+     "9:bool:opt",
+     "10:fixed32:opt",
+     "11:uvarint:opt",
+     "12:submsg:opt->0x10fbe668"
+    ],
+    "0x10fbeb00": [
+     "1:submsg:rep->0x10fbe8a8",
+     "2:submsg:rep->0x10fbe8a8"
+    ],
+    "0x10fbeb3c": [
+     "1:submsg:opt->0x10fbeb00",
+     "2:bool:opt",
+     "3:fixed32:opt"
+    ],
+    "0x10fbeb6c": [
+     "1:submsg:rep->0x10fbe8a8"
+    ],
+    "0x10fbeb94": [
+     "1:submsg:opt->0x10fbe9bc",
+     "2:submsg:opt->0x10fbe9bc",
+     "3:submsg:rep->0x10fbeb6c"
+    ],
+    "0x10fbebdc": [
+     "1:submsg:opt->0x10fbeb94",
+     "2:submsg:opt->0x10fbeb94",
+     "3:submsg:opt->0x10fbeb94"
+    ],
+    "0x10fbec24": [
+     "1:submsg:opt->0x10fbeb3c"
+    ],
+    "0x10fbec4c": [
+     "1:fixed32:opt",
+     "2:fixed32:opt",
+     "3:bool:opt",
+     "4:bool:opt",
+     "5:uvarint:opt"
+    ],
+    "0x10fbec80": [
+     "1:string:opt",
+     "2:submsg:opt->0x10fbebdc"
+    ],
+    "0x10fbecb0": [
+     "1:string:opt",
+     "2:submsg:opt->0x10fbec24"
+    ],
+    "0x10fbece0": [
+     "1:string:opt",
+     "2:string:opt",
+     "3:submsg:opt->0x10fbec4c",
+     "4:submsg:rep->0x10fbecb0",
+     "5:submsg:rep->0x10fbec80"
+    ],
+    "0x10fbee18": [
+     "1:submsg:rep->0x10fbef58",
+     "2:uvarint:opt"
+    ],
+    "0x10fbee48": [
+     "1:string:opt",
+     "2:submsg:rep->0x10fbfee4",
+     "3:submsg:rep->0x10fbfee4",
+     "4:submsg:rep->0x10fbfee4",
+     "5:submsg:rep->0x10fbfa8c",
+     "6:submsg:rep->0x10fbf9b8",
+     "7:submsg:opt->0x10fbf970",
+     "8:submsg:opt->0x10fbee18"
+    ],
+    "0x10fbef58": [
+     "1:uvarint:opt",
+     "2:uvarint:opt",
+     "3:uvarint:opt",
+     "4:uvarint:opt"
+    ],
+    "0x10fbef88": [
+     "1:uvarint:opt",
+     "2:fixed32:opt",
+     "3:submsg:rep->0x10fbff94"
+    ],
+    "0x10fbefc0": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbefe8": [
+     "1:uvarint:opt",
+     "2:uvarint:opt",
+     "3:uvarint:opt",
+     "4:uvarint:opt",
+     "5:uvarint:opt"
+    ],
+    "0x10fbf20c": [
+     "1:submsg:opt->0x10fbfcbc",
+     "2:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf248": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf264": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf2b8": [
+     "1:bool:opt"
+    ],
+    "0x10fbf30c": [
+     "1:uvarint:opt",
+     "2:uvarint:opt",
+     "3:uvarint:opt"
+    ],
+    "0x10fbf338": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf3c4": [
+     "1:bool:opt"
+    ],
+    "0x10fbf3e0": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf3fc": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf45c": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf478": [
+     "1:bool:opt",
+     "2:bool:opt"
+    ],
+    "0x10fbf4bc": [
+     "1:bool:opt",
+     "2:bool:opt",
+     "3:bool:opt"
+    ],
+    "0x10fbf4e8": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf548": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf5d4": [
+     "1:bool:opt"
+    ],
+    "0x10fbf5f0": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf618": [
+     "1:bool:opt"
+    ],
+    "0x10fbf634": [
+     "1:fixed32:opt",
+     "2:fixed32:opt",
+     "3:fixed32:opt",
+     "4:fixed32:opt",
+     "5:fixed32:opt",
+     "6:fixed32:opt",
+     "7:fixed32:opt",
+     "8:fixed32:opt",
+     "9:fixed32:opt"
+    ],
+    "0x10fbf678": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf6a0": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf6c8": [
+     "1:uvarint:opt",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf6f0": [
+     "1:submsg:rep->0x10fbfcbc",
+     "2:submsg:rep->0x10fbfcbc"
+    ],
+    "0x10fbf72c": [
+     "1:submsg:rep->0x10fbfcbc"
+    ],
+    "0x10fbf754": [
+     "1:submsg:opt->0x10fbfcbc",
+     "2:uvarint:opt"
+    ],
+    "0x10fbf780": [
+     "1:submsg:opt->0x10fbfcbc",
+     "2:submsg:opt->0x10fbfcbc",
+     "3:submsg:opt->0x10fbfcbc",
+     "4:uvarint:opt"
+    ],
+    "0x10fbf7cc": [
+     "1:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf7f4": [
+     "1:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf81c": [
+     "1:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf844": [
+     "1:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf86c": [
+     "1:submsg:opt->0x10fbfcbc",
+     "2:submsg:opt->0x10fbfcbc",
+     "3:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf8b4": [
+     "1:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf8dc": [
+     "1:submsg:rep->0x10fbfcbc",
+     "2:submsg:rep->0x10fbfcbc"
+    ],
+    "0x10fbf918": [
+     "1:uvarint:opt"
+    ],
+    "0x10fbf934": [
+     "1:submsg:opt->0x10fbfcbc",
+     "2:submsg:opt->0x10fbfcbc"
+    ],
+    "0x10fbf970": [
+     "1:submsg:rep->0x10fbfee4",
+     "2:submsg:rep->0x10fbfee4",
+     "3:submsg:rep->0x10fbfee4"
+    ],
+    "0x10fbf9b8": [
+     "1:string:opt",
+     "2:submsg:oneof->0x10fbf934",
+     "3:submsg:oneof->0x10fbf8dc",
+     "4:submsg:oneof->0x10fbf918",
+     "5:submsg:oneof->0x10fbf86c",
+     "6:submsg:oneof->0x10fbf844",
+     "7:submsg:oneof->0x10fbf7f4",
+     "8:submsg:oneof->0x10fbf780",
+     "9:submsg:oneof->0x10fbf754",
+     "10:submsg:oneof->0x10fbf20c",
+     "11:submsg:oneof->0x10fbf72c",
+     "12:submsg:oneof->0x10fbf6f0",
+     "13:submsg:oneof->0x10fbf81c",
+     "14:submsg:oneof->0x10fbf7cc",
+     "15:submsg:oneof->0x10fbf8b4"
+    ],
+    "0x10fbfa8c": [
+     "1:string:opt",
+     "2:submsg:rep->0x10fbfee4",
+     "3:submsg:rep->0x10fbfee4",
+     "4:submsg:rep->0x10fbfee4",
+     "5:submsg:oneof->0x10fbf6c8",
+     "6:submsg:oneof->0x10fbf6a0",
+     "7:submsg:oneof->0x10fbf678",
+     "8:submsg:oneof->0x10fbf634",
+     "9:submsg:oneof->0x10fbf618",
+     "10:submsg:oneof->0x10fbf5f0",
+     "11:submsg:oneof->0x10fbf5d4",
+     "12:submsg:oneof->0x10fbf5b8",
+     "13:submsg:oneof->0x10fbf59c",
+     "14:submsg:oneof->0x10fbf580",
+     "15:submsg:oneof->0x10fbf564",
+     "16:submsg:oneof->0x10fbf548",
+     "17:submsg:oneof->0x10fbf5f0",
+     "18:submsg:oneof->0x10fbf52c",
+     "19:submsg:oneof->0x10fbf510",
+     "20:submsg:oneof->0x10fbf4e8",
+     "21:submsg:oneof->0x10fbf4bc",
+     "22:submsg:oneof->0x10fbf4a0",
+     "23:submsg:oneof->0x10fbf5f0",
+     "24:submsg:oneof->0x10fbf478",
+     "25:submsg:oneof->0x10fbf45c",
+     "26:submsg:oneof->0x10fbf3e0",
+     "27:submsg:oneof->0x10fbf3c4",
+     "28:submsg:oneof->0x10fbf3a8",
+     "29:submsg:oneof->0x10fbf38c",
+     "30:submsg:oneof->0x10fbf370",
+     "31:submsg:oneof->0x10fbf354",
+     "32:submsg:oneof->0x10fbf264",
+     "33:submsg:oneof->0x10fbf248",
+     "34:submsg:oneof->0x10fbf338",
+     "35:submsg:oneof->0x10fbf5f0",
+     "36:submsg:oneof->0x10fbf440",
+     "37:submsg:oneof->0x10fbf424",
+     "38:submsg:oneof->0x10fbf3fc",
+     "39:submsg:oneof->0x10fbf30c",
+     "40:submsg:oneof->0x10fbf2f0",
+     "41:submsg:oneof->0x10fbf2d4",
+     "42:submsg:oneof->0x10fbf2b8",
+     "43:submsg:oneof->0x10fbf29c",
+     "44:submsg:oneof->0x10fbf280"
+    ],
+    "0x10fbfcbc": [
+     "1:string:opt"
+    ],
+    "0x10fbfee4": [
+     "1:string:opt"
+    ],
+    "0x10fbff94": [
+     "1:fixed32:opt",
+     "2:fixed32:opt",
+     "3:fixed32:opt",
+     "4:fixed32:opt",
+     "5:fixed32:opt"
+    ],
+    "0x11029a24": [
+     "1:string:opt",
+     "2:bytes:opt",
+     "3:string:opt"
+    ],
+    "0x11029a74": [
+     "1:string:opt",
+     "2:string:opt",
+     "3:string:opt",
+     "4:bytes:opt"
+    ],
+    "0x11029b88": [
+     "1:uvarint:opt"
+    ],
+    "0x11029bc0": [
+     "1:uvarint:opt"
+    ],
+    "0x11029bdc": [
+     "1:string:opt",
+     "2:submsg:rep->0x10fbefc0",
+     "3:submsg:rep->0x10fbef88"
+    ],
+    "0x11029c38": [
+     "1:string:opt",
+     "2:uvarint:opt",
+     "3:uvarint:rep",
+     "4:submsg:opt->0x11029cf4"
+    ],
+    "0x11029c98": [
+     "1:string:opt",
+     "2:uvarint:opt",
+     "3:uvarint:rep",
+     "4:submsg:opt->0x11029d50"
+    ],
+    "0x11029cd8": [
+     "1:uvarint:opt"
+    ],
+    "0x11029cf4": [
+     "1:string:opt",
+     "2:submsg:rep->0x10fbef88"
+    ],
+    "0x11029d34": [
+     "1:uvarint:opt"
+    ],
+    "0x11029d50": [
+     "1:string:opt",
+     "2:submsg:rep->0x10fbefc0"
+    ],
+    "0x11029d80": [
+     "1:uvarint:opt"
+    ],
+    "0x11029d9c": [
+     "1:string:opt",
+     "2:uvarint:opt",
+     "3:string:opt",
+     "4:uvarint:opt",
+     "5:uvarint:opt"
+    ],
+    "0x11029dd8": [
+     "1:submsg:rep->0x10fbefe8",
+     "2:string:opt",
+     "3:uvarint:opt",
+     "4:uvarint:opt"
+    ],
+    "0x11029e18": [
+     "1:string:opt"
+    ],
+    "0x1108b3f0": [
+     "1:varint:opt",
+     "2:varint:opt",
+     "3:uvarint:opt",
+     "4:submsg:rep:cb->0x1108b434",
+     "5:varint:opt",
+     "6:bool:opt",
+     "7:submsg:rep:cb->0x1108b418",
+     "8:bytes:rep:cb"
+    ],
+    "0x1108b418": [
+     "1:uvarint:opt",
+     "2:bool:opt"
+    ],
+    "0x1108b434": [
+     "1:fixed32:rep:cb",
+     "2:varint:opt",
+     "3:varint:opt"
+    ],
+    "0x1108b450": [
+     "1:uvarint:opt",
+     "2:submsg:opt->0x1108b46c",
+     "3:string:opt:cb"
+    ],
+    "0x1108b46c": [
+     "1:string:opt:cb",
+     "2:string:opt:cb",
+     "3:uvarint:rep:cb",
+     "4:varint:opt",
+     "5:uvarint:rep:cb",
+     "6:bool:opt"
+    ]
+   }
   }
  },
  "subsystems": {
