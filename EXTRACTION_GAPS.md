@@ -61,11 +61,37 @@ Grading each surface against that:
 - **Scrobbler** — Audioscrobbler 1.2 handshake + submission template +
   `BADTIME` Date-header recovery, fully spelled out.
 - **Device description / SSDP surface** — both description variants,
-  service/SCPD inventory, advertisement vocabulary.
+  service/SCPD inventory, advertisement vocabulary. M-SEARCH response
+  signing + the proprietary header set (`X-RINCON-{HOUSEHOLD,PROXY,
+  REASON}`, `X-SONOS-{DEVICEID,SESSIONRETRIES,SESSIONSECONDS,MDPMODEL,
+  HHSECURELOCATION}`, `HOUSEHOLD.SMARTSPEAKER.AUDIO`, `SECURELOCATION.
+  UPNP.ORG`) + `RMSearchNotifyHandler` select threads catalogued
+  (`dev_disc`).
 - **`/testenv` environment switcher** — full form fields, env table,
   propagation semantics.
 - **Secure-pairing TLV** — 7-byte header, payload bounds, trailing
   MAC, rotate-XOR mixer — implementable.
+- **HTTP server core** — TSocketPoll engine, `anacapa.conf` key set,
+  security-header emission (X-Frame-Options/CSP/frame-ancestors),
+  `multipart/ranges` boundary, status-phrase table, error pages,
+  TServer lifecycle, thread-dump schema, fault-handler taxonomy,
+  watchdog killswitch, TPool allocator diagnostics — `http_engine.
+  server_core`.
+- **SPDIF/IEC-61937 parser** — the SPDIFParser FSM is schema-complete:
+  9 states, PaPb sync acquisition, lookalike-PCM guard, databurst
+  mismatch/repetition checks, `<SPDIFParser>` status XML,
+  `audiotap.spdif` metadata versioning — `htaudio_chproc.spdif_parser`.
+- **Trueplay calibration file** — `spectralcoeffs` store with
+  RoomCalibration{Spatial,Spectral,Config,Data} keys, per-channel
+  gain+biquads+delay schema, calibration-ID version/expiry/UDN binding,
+  HT-Sat orientation skip — `trueplay_tuning.calibration_file_parser`.
+- **iTunes library import** — ITP parser stack validation + playlist
+  persistence guards + abstract-file URI-atom store — `share_indexer.
+  itp_parser`.
+- **Timed-job registry** — full periodic-task name inventory
+  (`pollZPHighRateJobs`, `svcAccountMaint`, `uploadProtoEvents`,
+  `refreshEntitlements`, `fetchFeatureConfiguration`, ...) with display
+  names — `timed_jobs.job_registry`.
 
 ### Below the bar (shape known, wire details missing)
 
@@ -110,7 +136,15 @@ Grading each surface against that:
   the seed→code transform is a runtime-bound impl vfunc — static
   ceiling documented.
 - **Spotify Connect zeroconf** — `/spotifyzc` serves `getInfo` to the
-  GC only, blob transfer is encrypted; blob format unknown.
+  GC only, blob transfer is encrypted; blob format unknown. The
+  *player-side* eSDK is now deeply documented (post-`23341f5`): full
+  callback inventory (connection/device-alias/DNS/17-socket/TLS/debug/
+  error), AP-resolver request format (`apresolve.spotify.com
+  /?client=TSP_VERSION_PLATFORM:5:0:%s&time=%llu`), socket-HAL
+  lifecycle+option enum, and the `mod_media_out` track-pipeline FSM
+  (per-track `{pbid,uri,start_pos,paused,file.id}` records, 14-field
+  pipeline-diff line, `SP_EVENT_*` stale-ID guards, pending start pos).
+  The opaque Mercury/AP internals are third-party — static ceiling.
 - **netstartd IPC / `/X-external`** — wire format recovered
   (post-`0218a43`): 12-byte `{A,B,len}` header via imported
   `ReadIPCHeader` (len validated 4..0x804) + `{id:u32,
