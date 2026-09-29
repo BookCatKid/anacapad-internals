@@ -116716,7 +116716,7 @@
   },
   "embedded_sqlite": {
    "status": "partial",
-   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven table: timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) \u2014 local/suspend timers (timers_impl.cxx)",
+   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) \u2014 local/suspend timers (timers_impl.cxx) | suspend model: pause -> row in paused_timers w/ remaining_seconds+paused_utc_time; resume -> recompute trigger_time",
    "anchors": [
     "sqlite3_exec",
     "LocalTimer from sqlite3",
@@ -116785,7 +116785,8 @@
    "ops": "SELECT id,trigger_time,total_duration,triggered,rowid FROM timers [WHERE id=?1]; SELECT count(*) FROM timers; same pair for paused_timers; PRAGMA user_version used for schema versioning",
    "notes": "'LocalTimer from sqlite3 stmt [%s] FAILED %d %s' / 'from sqlite3 stmt timer' \u2014 row\u2192object hydration; filename timer.db",
    "tables": {
-    "timers": "id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL \u2014 local timers, suspend-aware (timers_impl.cxx @0x10edcf88)"
+    "timers": "id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL \u2014 local timers, suspend-aware (timers_impl.cxx @0x10edcf88)",
+    "paused_timers": "id TEXT PRIMARY KEY, remaining_seconds INTEGER NOT NULL, paused_utc_time TEXT NOT NULL, total_duration INTEGER NOT NULL \u2014 timers parked during suspend; resume recomputes trigger_time from paused_utc_time+remaining (timers_impl.cxx @0x10edd018)"
    }
   },
   "entitlements": {
@@ -118297,7 +118298,7 @@
   },
   "semisleep_power": {
    "status": "partial",
-   "summary": "low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log \"...(considering suspend) %s\" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; \"Unable to remove time on a ringing timer\" guards firing timers.",
+   "summary": "low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log \"...(considering suspend) %s\" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; \"Unable to remove time on a ringing timer\" guards firing timers. | Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018 \u2014 parked timers survive suspend; resume recomputes.",
    "anchors": [
     "enableSemiSleep",
     "featureConfigSemiSleep",
