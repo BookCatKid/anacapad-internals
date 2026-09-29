@@ -236,6 +236,19 @@ Why missed: only the `/status`-table cluster was decoded
 (0x10e75c5c-0x10e75f80); the other route tables/dispatch paths weren't
 enumerated exhaustively.
 
+The embedded HTTP server core itself is now decoded
+(`http_engine.server_core`): TSocketPoll/select engine error paths,
+`anacapa.conf` key set (conntimeoutsecs/timeoutfirstbyte/numthreads/
+MaxConn cap/diagmin/diagmax/PidFile/SSL ports/MIME file), emission of
+`X-Frame-Options`/`frame-ancestors 'none'`/`Content-Security-Policy`,
+`multipart/ranges` boundary `##123456789###BOUNDARY`, full status-
+phrase table + error-page template, TServer lifecycle + per-server
+localsettings, thread-dump schema, segv/abrt/ill fault handler
+taxonomy, `app/debug/prevent_wdog_sigkill` watchdog killswitch, TPool
+allocator diagnostics, and the synthesized VLI UDN
+`RINCON_000E58VLIDID01400`. The `testpoint?name=<name>.<method>`
+dispatch scheme is also catalogued.
+
 ### `/status` subhandler semantics — routes mapped, schemas still open
 The page registry is now fully decoded: a stride-12 `{name*, flag,
 source*/handler*}` table at `0x11090144-0x11090b6c` (immediately
@@ -488,8 +501,12 @@ bridge `spotify_{abr,media,playback_session,queue,smapi,thread,vli}`,
 `mdns_spotify_service` (Connect discovery), `/spotifyzc`, `/spotdbg`.
 `spotify_esdk`/`spotify_connect`/`spotify_zeroconf` records cover the
 Sonos bridge layer + `hm://` channel to hwptp daemons + Connect device
-API paths + zeroconf `getInfo` schema. Mercury/AP frame internals
-remain third-party-code territory; the zeroconf blob is encrypted.
+API paths + zeroconf `getInfo` schema. Callback-registration inventory
+recovered (connection x3, device-alias x2, dns_lookup, socket x17, TLS,
+debug, error) plus the AP-resolver GET format (`/?client=TSP_VERSION_
+PLATFORM:5:0:<build>&time=%llu` against `apresolve.spotify.com`).
+Mercury/AP frame internals remain third-party-code territory; the
+zeroconf blob is encrypted.
 
 ### Chirp acoustic stack — PARTIAL (deepened)
 Embedded chirp-core + chirp-private: encoder/wavetable/decorator,
@@ -504,9 +521,13 @@ preamble, portamento, envelope), encoding keys (alphabet_bits,
 rs_length min/max, crc_length, polyphony, message_length), decoder
 config (fft_size, hop_size, voter configs with reverb-cancellation +
 spectral weighting), and frame limits (≤256 bytes AND ≤256 symbols).
-Actual per-profile *values* are compiled into `new_chirp_builtin_
-profile` data, not static JSON — and modulation internals remain
-opaque (compiled library).
+Built-in profile struct-inits partially decoded (per-voter threshold
+arrays, sonos-cdma 4-channel 17–20kHz frequency-symbol map). The
+chirp-core source layout + complete validator rules + profile dump-
+printer format are now catalogued (`chirp.source_layout`): per-object
+entry-count checks, per-key rejection, voter half-note limit, sample-
+rate support check, CDMA `Detected code` emission. Modulation
+internals remain opaque (compiled library).
 
 ### Trueplay tuning protocol — PARTIAL (deepened)
 SOAP enable/status + muse trueroom op schemas (all spec-bound) +
@@ -515,16 +536,28 @@ bonded satellites + estimatedParams member-map binding + config-mode
 tone URIs documented. Measurement/estimator FSM internals and the
 estimator params payload fields remain the residual tail.
 
-### DSP / home-theater engine — VOCAB
+### DSP / home-theater engine — PARTIAL (deepened)
 `htaudio_*` modules + the full param surface: `BassGain`,
 `LRBassSum`, `SubCrossover`, `InvertSub`, `SubDefaultInversion`,
 `DialogEnhancementLevel`, `AISpeechEnhance`, `MusicSurroundLevel`,
 `TVSurroundLevel`, `HeightChannelLevel`, `MonoMode`, `SpeakerSize`,
 `SPLdB`, `GainTrimDB`, `DRCVolumeScaling`, `Tweaks` bitmask,
 `surround delay %u gain %f`, `/htconfig`, `dspControl`/
-`dspStateManager`. The `<Zone>...<IsSatellite><GainTrimDB><SPLdB>
-<Balance><NumBondedSubs><SubwooferJackConnected>...` audio-state XML
-schema is undocumented too.
+`dspStateManager`. Now also decoded: `htaudio_configuration.cxx`
+status XML (`<Version><SurroundState><SubState><GMDownMixState>
+<DialogEnhancementLevel><AISEDynamicLatency><AISpeechEnhance>
+<AutoPlay><AutoPlaySilenceThresh><AutoStop><AutoStopSilenceThresh>
+<NightMode><SurroundMode><Tweaks><PrimaryEthernet><WirelessEnabled>
+<StartupLatency><DialogDelay><FrontSatDelay><SatelliteVersion>
+<SatelliteTotal><SatelliteSubs><SatelliteTxMixerRate>` + per-satellite
+`<Satellite><Channel><Delay><Gain><IP><Eth><WiEna>` records); the
+SPDIFParser IEC-61937 preamble FSM (9 states incl. UNKNOWN_BITSTREAM/
+BITSTREAM_CONFIRMATION/ALIGN_TO_BURST, PaPb sync acquisition,
+lookalike-PCM guard, `<SPDIFParser>` status XML); nine reset-time
+telemetry counters; five `Inducing*` debug-injection commands;
+mixgm/mixsat select loops; satellite add/remove protocol; and the
+`dsp_file_loader` error taxonomy. DSPConfig is nanopb-protobuf
+(`volume breakpoints`/`.nanopb_options` errors name it).
 
 ### LED animation engine — ABSENT
 `<LedStepEntry rgb="%06X" hold="%u" fade="%u" />` scripted LED
@@ -538,16 +571,30 @@ documented; the `LedPatternEntry`/`LedStepEntry` program format is
 schema-complete in the persistence-format records — what remains is
 the runtime state machine.
 
-### Queue persistence (`.rsq`) — covered
+### Queue persistence (`.rsq`) — covered; live queue deepened
 `savedqueues.rsq`, `savedqueues.d.rsq`, `.tmp` atomic rename,
 `trackqueue.rsq#0`, `<SavedQueues LastUpdateDevice Version Next>` +
 `<TrackQueueSummary>` schema — catalogued among the
-schema-complete persistence formats (see "At the bar").
+schema-complete persistence formats (see "At the bar"). The live
+`tqueue.cxx` engine is now partially decoded: beginAppend/
+cancelAppend/commitAppend(/replace) transaction IDs, ReplaceAll
+index mapping, the metadata ladder (`Md incomplete -> cached ->
+CSV extra md -> pmd.initFromTrackMd`), per-track duration/extra-MD
+updates, stream-open fallback (`Failed to open ... Trying MMS,
+RTSP next`), trueroom `x-rincon-configmode:speaker-detect` tone
+injection, and the MUSE POST error taxonomy for queue additions.
 
-### Play history & ratings sync — VOCAB
+### Play history & ratings sync — PARTIAL (deepened)
 `historymgr.cxx`, `History`/`RestHistory`/`WebSocketHistory`/
 `CloudQueueHistory` XML types, `deleteHistory` cloud op,
-rating-gating string. Per-channel format + sync policy undocumented.
+rating-gating string. TPM (track-play monitor) vocabulary now
+recovered: `TPM update for track uri`/`TPM Position update track
+mismatch`, track-boundary FSM traces (`Track Changed w/o Delivery
+Done`, `next track @`, `Track end time @`, `Logical Track Boundary`),
+seek/stream-reset vocabulary, playback-restriction enum (`License
+Restriction`, `No Previous Track`, `No Next Track`), and the VLI
+ABR downshift/upshift time policy + `BR %3u BL%% %2u/%2u` status
+line. Per-channel wire format still not fully serialized.
 
 ### SNTP household time server — substantially decoded
 `sntpsrv.cxx`/`sntppoll.cxx`/`zone/common/sntp.cxx`: players host an
@@ -562,8 +609,12 @@ topology-selection logic partially recovered.
 `replicated_settings.cxx`: replicated-store inventory +
 offer/GET/verify/install wire pipeline now recovered (headers,
 `<Setting idx lud version/>` elements, validation chain,
-denylist/quarantine, unregistered suppression). Per-setting payload
-schemas remain field-level open.
+denylist/quarantine, unregistered suppression). Group/location ingest
+taxonomy deepened: player-only vs location settings-group split,
+`attemptSettingsIngestFromStorage` success-from-old-schema path,
+`attributeSources` key, `multipleOf` JSON-schema keyword, `[Rq]`
+authz subversion guard + `setupUpdateAllRequest` target-type
+whitelist. Per-setting payload schemas remain field-level open.
 
 ### Accounts/cert lifecycle — selection + status pages proven
 `R_CLIENT_KEYCERT_ID_*` selector proven (`f_1057ac60` returns 0-3
@@ -588,20 +639,28 @@ structures, the runtime cert-object record layout, key storage paths.
 `entitlements` muse resource + `/entitlements/api`. What an
 entitlement gates is unknown.
 
-### Telemetry & diagnostics submission — PARTIAL
+### Telemetry & diagnostics submission — PARTIAL (deepened)
 `reportuploader`, `usagedatasharing`, `zonereportmgr`,
 `zpMetricsConfigV2.xml`, submission queue (`submissionId`,
 `diagnosticSubmissionResults`), `dropout_event_logging` +
 `dropout_triggered`, `radiolog`, `trackplaymonitor`/
 `trackplayrecorder` (per-track play records to Sonos). SOAP
-`SubmitDiagnostics` documented; the periodic uploader + metric
-schemas are not.
+`SubmitDiagnostics` documented. Event persistence now decoded:
+`preserveEvents`/`preserveProtoEvents` write reboot-surviving
+buffers; `restoreEvents` validates length + SHA256 hash (`Error,
+SHA256 hash check failure`); `optOutExempt` flag; bounded-space
+drop policy (`Can't grow space. Losing event %s`); proto-event
+upload with bounded retry (`attempt %u, retrying in %u seconds`).
+The periodic uploader + metric schemas are still not fully mapped.
 
-### Audio taps — PARTIAL
+### Audio taps — PARTIAL (deepened)
 `audiotap_manager`, `datatap`, `spdiftap`, `/snapshotspdiftap`,
 `/downloadspdiftap` — PCM capture taps; the two endpoints' params +
-responses now in `decoded_handlers`. Tap buffer format remains
-undocumented.
+responses now in `decoded_handlers`. SPDIF-tap file handling decoded
+with the SPDIFParser: `audiotap.spdif`, metadata-version checking
+(`tap: %d, expected: %d`), audio/metadata truncation detection,
+`!!!!! rewinding audio tap !!!!!`, read-size mismatch errors. The
+raw buffer serialization layout remains undocumented.
 
 ### Update machinery — PARTIAL (deepened)
 `auto_update_scheduler`, `user_update_scheduler`,
@@ -613,7 +672,9 @@ List), update gates (upcoming alarm, active devices, window trim),
 ST_SCHEDULED_POST_WOW/ST_SESSION_MONITOR states, the updateHHStatus/
 updateZPResult/updateHHResult household rollout protocol with
 RINCON_%s01400 per-device results, retry FSM, report files, and the
-`/firmware/swgen/%u/latest/` fetch path. Staging details and the
+`/firmware/swgen/%u/latest/` fetch path. User-initiated update
+failure taxonomy + `upgrade_mgr_user_report_prev.json` + timezone-
+table download lifecycle recovered. Staging details and the
 migration FSM remain thin.
 
 ### Media-player abstraction — substantially decoded
@@ -641,7 +702,12 @@ forwarding vocabulary). The internal group FSM behind ZGT isn't.
 BUTTON_{PLAYPAUSE,VOL_UP,VOL_DN,MICMUTE}_{PRESSED,HELD},
 MICMUTE_SWITCH, VOL_UP+VOL_DN setup-ready combo, 'Becoming standalone
 due to button press' group unjoin, `ir code submitted with guid %s`.
-IR protocol decode mechanics remain undocumented.
+zp-level FSM now decoded: `playback#skipBack`/`playback#
+skipToNextTrack` dispatch by group UUID, play/pause toggle with
+un-mute-instead-of-pause fallback + fast-volume-zero clear,
+`zp_pre_setup_state`, demo-mode IR remote learn loop (success/
+code-not-in-DB/timeout/fail outcomes). IR protocol decode mechanics
+remain undocumented.
 
 ### Muse API semantics — substantially decoded
 282+ cloud routes + 1116 bound local routes; per-route request/
