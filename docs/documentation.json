@@ -121713,7 +121713,29 @@
      "status": "confirmed",
      "notes": "whole-section pointer-run census: .data.rel.ro 2451 .text ptrs in 284 runs, .data 322 ptrs (10x12-slot connfilter family), .init_array 420 entries, .got2 368 entries"
     }
-   ]
+   ],
+   "text_region_map": {
+    "status": "strong",
+    "method": "per-0x20000-block string sampling (lis/addi literal loads) + bl-target fingerprinting; confident where cross-checked against vtable referrers",
+    "map": {
+     "0x10000000-0x10a9xxxx": "Sonos application code - all SOAP services, dispatchers, content managers, muse engine, protocol handlers (the documented anchor space: ~3600 f_-refs)",
+     "0x1093xxxx": "bundled libcurl (cf_connect/cf_socket_close/cf_shutdown, CURLOPT_*, ALPN; connfilter vtables in .data @0x11093f20-0x11094144)",
+     "0x109cxxxx-0x10a3xxxx": "shared wire/serialization runtime called by both the RPC engine and the JSON-schema validator (hot callee 0x10807034 = arena/alloc)",
+     "0x10aa0000-0x10b9xxxx": "protobuf-RPC namespace dispatch runtime - 'Namespace has no actor' per-verb dispatchers; carries cloud API path 'v1/players/%s/settings/player' (0x10b2 block) and IBT planner ('already generated ibt plan', 0x10b8 block) - the muse/spec engine's generated-message layer",
+     "0x10ba0000-0x10c1xxxx": "household/local-settings engine: [Rq] request builders (setupGetRequest/setupUpdateAllRequest/calculateUserPermissionsJSON), [Gp] group-settings write/storage, [Mg]/[lo] location-settings ingest, LocalSettingsEventing::notifyOnChange, 'DATA_CORRUPTION[.%08X] settings group', write-authorization guards - code body of settings/hhsettings/local_settings_mgr subsystems",
+     "0x10c2xxxx-0x10c6xxxx": "JSON Schema validator (patternProperties vtables 0x10c2ae60 family) + validator runtime",
+     "0x10c4xxxx": "expat XML parser (xmlparse.c line markers, XML/1998/namespace) + base64/encoding helpers + /dev/urandom",
+     "0x10c8xxxx": "LED/captouch driver layer (led_set_applyLEDMode, 'ignoring apply LED mode ... suspend bypass flag', ledWrite patterns, rgb/hold/fade params) - led_engine code body",
+     "0x10caxxxx-0x10ccxxxx": "libvorbis 1.3.7 (Xiph.Org literal) + file-format metadata layer ('error reading file %s', '</File>', '/vorbis')",
+     "0x10ce0000-0x10d4xxxx": "Spotify eSDK runtime (SpCallbackError/kSpConnectionNotify*, hm://hwptp/v1/devices, 'spotify:image:%h', Partner/track notify, fibers) - spotify_esdk/esdk_internals code body",
+     "0x10d6xxxx": "evo decoder (MD Evolution metadata, 'Failed To Init Evo Decoder') - evo_decoder code body",
+     "0x10d80000-0x10dcxxxx": "DSPlib parameter/config layer (ChProcSys*, %s_Xover/%s_SumBass, SlHP Dynamic, Excursion gain, Bass delay, DSPSystem preset xml loading) - dsp_ht_engine/dsp_config code body",
+     "0x10dexxxx": "HT channel-processor stream layer (Tap_%d_ch%d, Alpha_%d, resyncStreamLocked, RESET CHPROCESSING, htaudio_chsnk_processor_stream.cxx vtables) - htaudio_chproc code body",
+     "0x10e00000-0x10e4xxxx": "float-math DSP continuation (lrintf/__sqrtf_finite callers) feeding the SPDIF module",
+     "0x10e50000-0x10e6ffff": "SPDIF/IEC61937 burst-writer + nanopb codec (pb_encode/pb_decode) + enum->name mappers + UPnP service-skeleton tail ('Invalid API Version'/'Invalid Service Address')"
+    },
+    "notes": "Boundaries approximate at 0x20000 granularity; vendored-block identity inferred from sampled literals. Sonos-code subsystems whose bodies live in the 0x10aa-0x10e7 span: muse/spec RPC engine, household-settings engine, LED engine, Spotify eSDK, evo decoder, dsplib, htaudio chproc, SPDIF writer."
+   }
   }
  },
  "subsystems": {
