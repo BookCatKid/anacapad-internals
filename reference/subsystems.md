@@ -39,6 +39,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cloud_synchronizer` | **partial** | cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d" |
 | `cpu_monitor` | **partial** | reads /proc/stat; header " \[%d\] usr sys idle sIRQ \| irqD dMS"; row " \[%d\]  %2u  %2u   %2u   %2u \| %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%" |
 | `crash_report` | **partial** | {procName,numCrashes,uploadResp,playerCrash,lifetime}; "%s %s crash event, crashCount: %i"; Reported/Failed to report |
+| `csfcm` | **partial** | csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free'}; log fmt '%s:%05d \[%s\] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s' |
 | `daemon_ipc` | **partial** | routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/sonosledmgrd-external,/netstartd-external} proxy to sibling daemons; watchdog {/watchdog,/watchdog-legacy,/legacy-to-sentry,/upload} + attachments {watchdog_log,watchdog_dmesg} + crashdump; sentry {"No URL found to upload dump file: %s",text/plain; charset="us-ascii","Failed to write attachment %s to sentry upload",sentry\[tags\]}; flags {/tmp/anacapa_prevent_crashdump_upload,/tmp/backtrace,/tmp/crashed_play_state,/jffs/app/debug/sonosledmgrd.dmp,/opt/log/btservice.log}; "writeStream failed - Bytes compressed: %d/%d" + htsnk |
 | `dataio` | **partial** | dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-control,max-age=,ETag,WWW-Authenticate}; errors {'populate client config failed','unexpected response condition','parse_key failed',"Couldn't load api header, error 1/2"}; awaitAvail {'tried to read %zu bytes where only %zu available','range limited %zu bytes available','socket is closed','took %ldms (e:%d b:%zu w:%zu sbo:%d)'}; SSL 'SSL %s error -0x%x %d to %s with local port %u' + session ticket during dataio SSL read; http {'http readable but 0','http read error %d %s','http timeout'}; header validation {'Bad HTTP Header','BAD HTTP Header EOR mismatch Actual: %zu, Exptd: %zu','BAD HTTP Header EOR out-of-bond'} |
 | `desired_settings` | **partial** | {DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime} |
@@ -126,6 +127,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `noderx` | **partial** | indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight rec " %u r:%d.%06d s:%c p:%d.%06d"; startup {"Starting up; id:%u, delayPkts:%u, delayFrms:%u","Startup large packet gap:%u, don't NACK",bFinalStartPacket,allowing NACK resend of LCG,ignoring discontig NACK resend,ignoring partial frames}; NACK "out of order packet; send nack immediately" + "NACKed for %u IDs, %u packets, ob/lr/lcg/lrx"; pause/resume {thread pausing/resuming, state validation p/sp/pr/ip}; frame layer {wFirstFrameOffset,wBytesOfDataLeftToRead,pwLen,Playtime} + errors {expected frame not found,frame length conflict,Packet stream framing error,frame too large,bufferNextProtocolFrame WOULDBLOCK/E_WOULDBLOCK,readNextDataBlock timeout,forcing decoder reset}; skipAhead entries {immed,shifted,released blocks,too many}; resync {"resynchronization flushing packets %u-%u",resynchronization message}; "Ignore packet with incorrect protocol version"; "Received dup packet id with different class"/oob/mismatch replace; "RX buffer full"/"RX discontig"; threads {noderx-data,noderx-pause,noderx.rxd.usleep,noderx.loc.usleep}; "failing noderx for io error (c=%u t=%lld)" |
 | `nslookup_detail` | **partial** | f_100b96d0: gate → execs nslookup via f_10549cf8 with table arg 0x11097680+0x810 |
 | `overrideconfig` | **partial** | form post committing override file; errors {Error reading request body,Request body size does not match content length,Error initializing object,Error committing override file}; success <html>meta refresh 1;url=/fcs Success</html>; Content-Type application/x-www-form-urlencoded |
+| `perf_counters` | **partial** | headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEndTime='The end of the window as UTC wall clock time',description}; 'average value should be 0' |
 | `perfect_sync` | **partial** | "perfect initial sync %d.%06d, available %u"; forcePerfectInitialSync + "Forced perfect initial sync %s on stream %s"; "forced perfect initial sync, ignoring %d usec diff" |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
 | `playlist_parsers` | **partial** | iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction ("found linkUrl"); Post-stream readData dump {bytesLeft,len,buf} |
@@ -203,6 +205,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cert` | **?** |  |
 | `cert_layer` | **?** |  |
 | `chsnk` | **?** |  |
+| `chsnk_detail` | **strong** | seamless handoff {remote: 'starting seamless transition to remote source','txs can't be parsed','handoff wait loop','timed out','sdbt receive packet failed','Old/New packet mismatch (no full frame/id:%u class:%u/%u offset:%u/%u/%u)','Delayed handoff success, offset:%f','Quick handoff success','Completed in %dms','incompatible protocol version'; local: 'itdbt receive packet failed','failed due to END_TX','no packets from old source?','Completed seamless transition to local src (id=%u)',skipped,'seamless source change %s (local)/failed (remote)'}; SNTP {'Starting SNTP server switch.','Completed SNTP server switch in %dms.','SNTP waiting for valid at %d.%06d','SNTP valid %d continue to play %d','noderx I/O error while waiting for SNTP'}; sync math {'local device time went backwards!','prevLT/prevNT diff %06dus overall %+f','Should play at %d.%06d playable %d.%06d offset %f','sample time offset range %.3f-%.3fms; DAC clock abs offset range','max consec large sync errs','small offset error %f','large sync error triggered resync offset %f','error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'}; LSE {skipAheadLocked,'Adjusted tvLocalPlay by %.0f usec','Resync after LSE','waiting for stream reset to recover','stream underflow, uf %u od %u','Play time %d.%06d too far in the future','setOutputToBeginAt(%d.%06d); diff %i ms','Initial sync -- notify samples'}; req frames {'request frame pbe %X','stop detected','control frame type %u','audio type changed','underflow detected','group coordinator uuid: %s, network I/O error 0x%x','logical track boundary at %u','unplayable frame: type %u','pbe %X; %f usec in buffer','hard stop; state %d','noderx pause request','track boundary','scheduled resync frame @ pkt %d'}; sources {local chsrc,local AI,local VLI,remote chsrc,stopped}; notify {'notify frame: stop detected','unflagging stream for drain; %zums buffered','Local time/remote time','lrp:%u, fppc: %u','notifyframe ret %d play time %d.%06d delta %dms'}; events {chsnk refreshing multicast join (NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent),RemoteIpChangedEvent,chsrc_state_events,CoordChangeAutoStart,newgc}; ASRC {'Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs','ASRC will be reset. Sample Rate changed','illegal sample frequency/channels for Hi-Res music','WARNING! This model shouldn't support Hi-Res Music: %s (%s)'}; volnorm {'inserting volume norm: %d @time %d.%06d','found normalization change','requested w/o applying previous'}; streams {as-srcin-chsnk,as-srcin,as-srcout-chsnk,as-srcout,chsnk%d-as,chsnk%d-proc-as,CHSNK,chsnk-pause,chsnk_framed}; decoder {<MusicDecoder><LastActiveDecoder>,m_bCompressed,'starting %s audio decoder at %d.%06d (dc:%d.%06d)','requested stop %d or shutting down %d'}; ducking {Ducking,Unducking,voice2,google,extaudio,'%s playback stream (%s)'}; underflow acct {'boundary, xfade %d','max below stream %u od %u xfs %zu xlvl %zu now ... corked %d','inserting volume norm','stream reset on write','channelization data full'}; service denylist {'Added listener for service %u','stream limit exceeded for service %u','too many failures, denylisted service %u','clearing all denylists and stream limits','resetting all denylist error counters',denylist}; DAC monitor {'Starting to monitor DAC tvLocalPlay:%d.%06d, tvFirstPlayTime:%d.%06d','unable to fire start playback event','Channel Sink in stopped state (dc)'} |
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
 | `cloud` | **?** |  |
 | `cloud_registration` | **?** |  |
@@ -875,6 +878,21 @@ reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f028b8 — crashreport block
+
+</details>
+
+## `csfcm`
+
+**coverage** `partial`
+
+**Technical description:**
+
+csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free'}; log fmt '%s:%05d \[%s\] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s'
+
+- **name:** channel-source frame-context manager
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb5f04 — csfcm
 
 </details>
 
@@ -2464,6 +2482,21 @@ form post committing override file; errors {Error reading request body,Request b
 
 </details>
 
+## `perf_counters`
+
+**coverage** `partial`
+
+**Technical description:**
+
+headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEndTime='The end of the window as UTC wall clock time',description}; 'average value should be 0'
+
+- **name:** perfcounter schema
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb7e40 — perfcounter
+
+</details>
+
 ## `perfect_sync`
 
 **coverage** `partial`
@@ -3804,6 +3837,21 @@ GET /content/api/catalog/id/%s?destinationServiceId=%s; translateId(objectId,ser
 
 - **crossfade:** sample-level xfade: "attempting to crossfade with underflowed stream"/"recovered crossfade stream underflow"; int16 crossfade; "xfade corked stream: replace buffered data via non-xfade overlap"; "xfade timestamp too far in past, nst %d.%06d"; "xfadeable timestamp"; "set xfade lfnf"; volume-norm ramp insert "%d @time %d.%06d"; "xfade for %zu samples, %f seconds"; gap tracking "xfade gap, samples %zd"
 - **metrics:** gauges {chsnkFillLevel="Amount of audio in stream buffer",largeSyncErrors="Playback (see sync) and downstream errors","Maximum sync mismatch with group coordinator","Amount of output committed to driver"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {"header magic mismatch","md block loc","md header len mismatch","si pos mismatch","si read failed",fsAvail}
+## `chsnk_detail`
+
+**coverage** `strong`
+
+**Technical description:**
+
+seamless handoff {remote: 'starting seamless transition to remote source','txs can't be parsed','handoff wait loop','timed out','sdbt receive packet failed','Old/New packet mismatch (no full frame/id:%u class:%u/%u offset:%u/%u/%u)','Delayed handoff success, offset:%f','Quick handoff success','Completed in %dms','incompatible protocol version'; local: 'itdbt receive packet failed','failed due to END_TX','no packets from old source?','Completed seamless transition to local src (id=%u)',skipped,'seamless source change %s (local)/failed (remote)'}; SNTP {'Starting SNTP server switch.','Completed SNTP server switch in %dms.','SNTP waiting for valid at %d.%06d','SNTP valid %d continue to play %d','noderx I/O error while waiting for SNTP'}; sync math {'local device time went backwards!','prevLT/prevNT diff %06dus overall %+f','Should play at %d.%06d playable %d.%06d offset %f','sample time offset range %.3f-%.3fms; DAC clock abs offset range','max consec large sync errs','small offset error %f','large sync error triggered resync offset %f','error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'}; LSE {skipAheadLocked,'Adjusted tvLocalPlay by %.0f usec','Resync after LSE','waiting for stream reset to recover','stream underflow, uf %u od %u','Play time %d.%06d too far in the future','setOutputToBeginAt(%d.%06d); diff %i ms','Initial sync -- notify samples'}; req frames {'request frame pbe %X','stop detected','control frame type %u','audio type changed','underflow detected','group coordinator uuid: %s, network I/O error 0x%x','logical track boundary at %u','unplayable frame: type %u','pbe %X; %f usec in buffer','hard stop; state %d','noderx pause request','track boundary','scheduled resync frame @ pkt %d'}; sources {local chsrc,local AI,local VLI,remote chsrc,stopped}; notify {'notify frame: stop detected','unflagging stream for drain; %zums buffered','Local time/remote time','lrp:%u, fppc: %u','notifyframe ret %d play time %d.%06d delta %dms'}; events {chsnk refreshing multicast join (NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent),RemoteIpChangedEvent,chsrc_state_events,CoordChangeAutoStart,newgc}; ASRC {'Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs','ASRC will be reset. Sample Rate changed','illegal sample frequency/channels for Hi-Res music','WARNING! This model shouldn't support Hi-Res Music: %s (%s)'}; volnorm {'inserting volume norm: %d @time %d.%06d','found normalization change','requested w/o applying previous'}; streams {as-srcin-chsnk,as-srcin,as-srcout-chsnk,as-srcout,chsnk%d-as,chsnk%d-proc-as,CHSNK,chsnk-pause,chsnk_framed}; decoder {<MusicDecoder><LastActiveDecoder>,m_bCompressed,'starting %s audio decoder at %d.%06d (dc:%d.%06d)','requested stop %d or shutting down %d'}; ducking {Ducking,Unducking,voice2,google,extaudio,'%s playback stream (%s)'}; underflow acct {'boundary, xfade %d','max below stream %u od %u xfs %zu xlvl %zu now ... corked %d','inserting volume norm','stream reset on write','channelization data full'}; service denylist {'Added listener for service %u','stream limit exceeded for service %u','too many failures, denylisted service %u','clearing all denylists and stream limits','resetting all denylist error counters',denylist}; DAC monitor {'Starting to monitor DAC tvLocalPlay:%d.%06d, tvFirstPlayTime:%d.%06d','unable to fire start playback event','Channel Sink in stopped state (dc)'}
+
+- **name:** channel sink internals
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb4860 — chsnk block
+
+</details>
+
 ## `chsrc_chsnk`
 
 **coverage** `substantially decoded`
