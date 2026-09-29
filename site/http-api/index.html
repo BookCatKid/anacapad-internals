@@ -3498,6 +3498,65 @@
 <li>type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e76500, notes: /sonarctl</li>
 <li>type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e765a4, notes: /spotifyzc</li>
 <li><strong>range:</strong> "Session status 0x%x connected %d wantWrite %d wantRead %d" + "Current state: %d Current Status 0x%08x" + HTTP/1.1 206 partial-content support</li>
+<li><strong>decoded_handlers:</strong></li>
+<li><strong>/setstring:</strong> f_100b7cb4 — POST application/x-www-form-urlencoded {key, value, csrfToken} -&gt; "<h2>System Settings</h2>Setting changed" / "HTTP Error %d". CSRF-protected settings write (writes a raw key/value into the settings store).</li>
+<li><strong>/removestring:</strong> f_100b79e0 — POST {key, csrfToken} -&gt; "Setting removed" / "HTTP Error %d". CSRF-protected key delete.</li>
+<li><strong>/sonarctl:</strong> f_100bc354 — param flush -&gt; "flushing sonar tones" / "Flushed" (mod_zp). Sonar-test tone control.</li>
+<li><strong>/mdnsannounce:</strong> f_100c1230 — POST {csrfToken} triggers mDNS ResendResponses ("Failed to trigger ResendResponses: %i" / "Success"). CSRF-protected.</li>
+<li><strong>/ping:</strong> f_100d3f88 — execs /bin/ping -c 3 (host param from query). Shared literal block with /traceroute /pcap.</li>
+<li><strong>/traceroute:</strong> f_100d3ff4 — execs /usr/bin/traceroute.</li>
+<li><strong>/pcap:</strong> f_100d416c — execs /bin/pcap - not (host %s and port %d); returns application/octet-stream as attachment; filename="trace.pcap". Live capture download.</li>
+<li><strong>/jobs:</strong> f_105523e8 — POST {job, modjob?}: "Requesting \"%s\" job run" -&gt; "Job \"%s\" scheduled" or "Please use a valid job shortname or index". Schedules timed-job registry entries on demand.</li>
+<li><strong>/reboot:</strong> f_105e92e0 — minimal confirm page then reboot.</li>
+<li><strong>/reset:</strong> f_105e935c — minimal confirm page then factory reset.</li>
+<li><strong>/sethostip:</strong> f_100b9fac — HTML form page; sets the host IP override.</li>
+<li><strong>/nslookup:</strong> f_100b96d0 — text/plain output; DNS lookup helper.</li>
+<li><strong>/forcegtkrekey:</strong> f_100b9640 — "Forced GTK rekey" / "Forbidden" — auth-gated group-key rotation trigger.</li>
+<li><strong>/advconfig:</strong> f_105e8444 (+/advconfig.htm) — advanced config form; fields {FirstZP,PriorityBridge} + csrfToken POST.</li>
+<li><strong>/audio_tap:</strong> f_100becc4 — params {tap,timeout,header}; source names {as-srcin-chsnk0,codecout,hta,irdecoder,linein,mixergm,mixersat,tv_}; "AudioTap: permission denied" — gated raw-audio tap selector.</li>
+<li><strong>/cloudqueuepoll:</strong> f_100b8260 (flag 0x400) — application/json {timeoutpaused,timeoutplaying} + %zu counts; cloud-queue poll control.</li>
+<li><strong>/customsd:</strong> f_103429f4 (+.htm) — custom service-descriptor upload form (dp_impl.cxx).</li>
+<li><strong>/device_account:</strong> f_1065bd70 (flag 0x100) — device-account endpoint; "Too Many Unlocks" rate limit; x-rincon-signature header.</li>
+<li><strong>/devmode:</strong> f_105e8d90 — dev-mode toggle page; references /tmp/udhcpc_resp_mac_addr.</li>
+<li><strong>/diaglevel /logger /diagmsg:</strong> f_105e93d8 shared handler — minimal <code>&gt;&lt;/html&gt;</code> diag-control pages.</li>
+<li><strong>/dolby_config:</strong> f_100be454 — application/json Dolby config body.</li>
+<li><strong>/downloadspdiftap:</strong> f_100b9ed0 — octet-stream download of %s/%s tap files; "Feature not supported." guard; spdiftap.compressed.</li>
+<li><strong>/dsp:</strong> f_100ba73c — serves /dsp/eqdata.txt and DSP debug files; htdocs_locked gate.</li>
+<li><strong>/fcs:</strong> f_105eba60 — FCS (factory-config-service) page; accept/content-type only.</li>
+<li><strong>/getDSP:</strong> f_100bd9fc — returns text/xml <root>…</root> incl {ZPExpirationTime,ZPGroupExpirationTime,ZPLocalSettingsFile,sonos-dspid}.</li>
+<li><strong>/putDSP:</strong> f_100bb63c — accepts text/xml; charset=UTF-8 DSP data upload.</li>
+<li><strong>/getrs /notify:</strong> f_105e82a8 / f_105e82c8 — GENA notify plumbing {nts,seq,sid,upnp:event,upnp:propchange}.</li>
+<li><strong>/indexrepl:</strong> f_100b8a10 (flag 0x230101) — index replication proxy: params {bytes=,id=} + headers {x-rincon-content-version,x-rincon-last-update-device,x-rincon-range}; "queueing album art request %s %u %u %u" (mod_zp_aa).</li>
+<li><strong>/info:</strong> f_100c11e4 — POST {csrfToken} → ResendResponses trigger (same fn family as /mdnsannounce).</li>
+<li><strong>/mfgunlock:</strong> f_10675234 (flag 0x100) — manufacturing unlock: confirm= param; "refresh update info in %us" (updsched); Success page.</li>
+<li><strong>/msprox:</strong> f_100b88d0 — music-service proxy: params {bytes=,id=,uuid} + rincon replication headers {x-rincon-content-version,x-rincon-last-update-device,x-rincon-range}.</li>
+<li><strong>/mtmhhsetup:</strong> f_105ec758 (flag 0x100) — application/json MTM household-setup body.</li>
+<li><strong>/musedebug:</strong> f_100ba010 — muse_debug page; <pre> dump.</li>
+<li><strong>/raw:</strong> f_105ea98c (flag 0x10000000) — execs /bin/dmesg -s {131072,32768}; also serves /button_triggered,/dropout_triggered raw dumps.</li>
+<li><strong>/rdmbuttonfwd:</strong> f_100b9e58 (flag 0x100) — retail-demo button forward; "invalid method" guard.</li>
+<li><strong>/rdmhhsetup:</strong> f_105ebeb4 (flag 0x100) — Retail Display HHID setup; X-Sonos-Api-Key required; "...setup failed%s".</li>
+<li><strong>/removeDSPDebugFiles:</strong> f_100bc518 — deletes {dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,persistentEQ.xml}.</li>
+<li><strong>/save_eq_presets:</strong> f_100ba144 — writes preset via %s.tmp staging file.</li>
+<li><strong>/setPersistentEQ:</strong> f_100ba218 — persistent EQ write via %s.tmp staging.</li>
+<li><strong>/snapshotspdiftap:</strong> f_100bd5e4 — "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!" / "Feature not supported."</li>
+<li><strong>/spotdbg:</strong> f_100b8140 — spotify debug control {timeoutpaused,timeoutplaying}; "spot: permission denied".</li>
+<li><strong>/spotifyzc:</strong> f_1020f8c4 — Spotify Connect zeroconf relay: POST {method,action,path,userAgent} → {esdkVersion,responseCode,spotifyzc}; "Invalid ZeroConf request %s" / SpotZc_Failure. Only getInfo served to GC per earlier note.</li>
+<li><strong>/spotresetnts:</strong> f_100b7fd8 — POST {csrfToken} → reset spotify NTS; "spot: permission denied" / Success.</li>
+<li><strong>/ssh/fingerprints:</strong> f_105e9578 (flag 0x101) — "Sending device_description.xml to %s (cv=%d)"; {association,Transfer-Encoding: chunked,text/xml} — SSH fingerprint/device-desc association service.</li>
+<li><strong>/support/aggregate:</strong> f_105e9fb0 (flag 0x10000000) — params {type,include_crs} — support-bundle aggregation.</li>
+<li><strong>/support/asyncsubmit:</strong> f_105ea400 (flag 0x30002) — async diagnostic submission; body fields {coordinator,delay,diagId,diagType,excludeFlags,flags,guid} each with "Unable to extract X" error; "Invalid content type","Unable to read request body".</li>
+<li><strong>/support/directsubmit:</strong> f_105e9b30 — "Diagnostic Submission to Sonos, Inc." <h2>%s</h2> / HTTP Error %d.</li>
+<li><strong>/support/networkmatrix:</strong> f_105ea2f0 (flag 0x30000) — network-matrix diagnostic collection.</li>
+<li><strong>/support/reportstatus:</strong> f_105ea734 (flag 0x102) — report-status poll.</li>
+<li><strong>/support/review:</strong> f_105e9e60 — support-bundle review page.</li>
+<li><strong>/testenv:</strong> f_105eb9dc — environment switcher (PROD/PERF/STAGE/TEST/INT + OnlineUpdateBaseURL override).</li>
+<li><strong>/testpoint:</strong> f_100b85ec (flag 0x400) — internal testpoint.</li>
+<li><strong>/tools:</strong> f_100d4060 (+.htm) — tools page.</li>
+<li><strong>/ttm_helper:</strong> f_100b9740 — trueplay/tone-test helper.</li>
+<li><strong>/unlock:</strong> f_10675244 (+.htm, flag 0x100) — unlock flow w/ rate limit.</li>
+<li><strong>/websocket/api:</strong> f_100bb8ac (flag 0x200) — websocket upgrade endpoint for the muse API.</li>
+<li><strong>/device_account_note:</strong> aux 0x100 = POST-ish routes (unlock family, rdm*, device_account); 0x200 = websocket; 0x400 = internal; 0x30000/0x30002 = support-submit variants; 0x10000000 = raw/streaming.</li>
+<li><strong>csrf_note:</strong> All mutating form endpoints carry a csrfToken form field (setstring/removestring/mdnsannounce + the form posts) - the HTTP layer enforces CSRF on writes while reads are open.</li>
 </ul>
 <h2 id="csrf_protection"><code>csrf_protection</code><a class="headerlink" href="#csrf_protection" title="Permanent link">&para;</a></h2>
 <p>Browser-facing config endpoints embed a csrfToken hidden field, so simple cross-site form posts get rejected. If you're automating /advconfig or /status writes you must fetch the form first and echo the token.</p>
