@@ -104777,6 +104777,12 @@
    "service": "settings replication",
    "description": "netsettings replicated XML",
    "fields": "<ReplicatedNetSettings LastUpdateDevice Version FileSchemaVersion><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID Flags/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; keys {sn_en,sn_dis,sn_dis_test} + genTime + {sonosnet,networks} json groups"
+  },
+  "vli_state_snapshot": {
+   "status": "strong",
+   "service": "VirtualLineIn",
+   "description": "VLI handoff snapshot recorded at state transitions",
+   "fields": "(vliType %u): origin %d.%06d, seek time %d.%06d, byte offset %zu, packet num %u, frame offset %u, account %d, playing %d, bitrate %u"
   }
  },
  "uri_formats": {
@@ -120730,7 +120736,8 @@
    ]
   },
   "diagnostics": {
-   "submission_fsm": "bounded queues {\"submission queue full\",\"result queue full\"}; params includeControllers,initiatingDeviceId; states {pending on controllers,already in process,no devices submitted,successful}; zpDiagSubmit job + tracking + diag_mgr; completed{submissionId,status,diagnosticId}; blob wrapper <ZPNetworkInfo type=\"User\"> + <!-- START UUID -->/END UUID per player + \" unreachable\""
+   "submission_fsm": "bounded queues {\"submission queue full\",\"result queue full\"}; params includeControllers,initiatingDeviceId; states {pending on controllers,already in process,no devices submitted,successful}; zpDiagSubmit job + tracking + diag_mgr; completed{submissionId,status,diagnosticId}; blob wrapper <ZPNetworkInfo type=\"User\"> + <!-- START UUID -->/END UUID per player + \" unreachable\"",
+   "manifest": "<DiagnosticManifest %s='%s' %s='%s'>2.0.0</DiagnosticManifest> posted to /v2/diags product-diagnostics; items {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason}; initiate body {\"serial_num\":\"%s\"}; flow {initiate\u2192distribute diagId to players\u2192trigger on controllers\u2192report submit status}; per-player files {%s.xml(ZPNetworkInfo),%s.sha256,%s.xml.gz}; aggregate via http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x; stub flow {\"Diagnostic stub\",\"Local diagnostic\",\"Failed to generate hash on Stubbed Support Document\"}; \"confirmation guid (%s) doesn't match actual guid (%s)\"; progress {\"Populated players ... Num players: %zu, Num stubbed players: %zu\",\"Timed out waiting for devices\",\"All devices reported\"}; diag_progress thread"
   },
   "device_props": {
    "idle_shutdown": "idle events LineInStateChangedEvent/ReplicatedSettingsChangedEvent; vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; dpimpl/dpUpdateIdleState \"idle state is %sidle, changing to %sidle\"",
@@ -120763,7 +120770,8 @@
    ]
   },
   "http_engine": {
-   "auth_challenge": "two-step: \"First Response: [%s] [%s] [%08x] [%d]\"/\"Second Response: ...\"; headers X-Sonos-Mac/X-Sonos-Serial; cred body {\"credentials\":\"%s\",\"nonce\":\"%s\",\"keyType\":%d}; HTTP/1.{0,1} 401 retry; sonoscloudstatus endpoint; httpcaches.json + \"[%s] Force-cleared cache\""
+   "auth_challenge": "two-step: \"First Response: [%s] [%s] [%08x] [%d]\"/\"Second Response: ...\"; headers X-Sonos-Mac/X-Sonos-Serial; cred body {\"credentials\":\"%s\",\"nonce\":\"%s\",\"keyType\":%d}; HTTP/1.{0,1} 401 retry; sonoscloudstatus endpoint; httpcaches.json + \"[%s] Force-cleared cache\"",
+   "hhsettings_api": "category REST paths public/{key}, restricted/{key}, restricted-admin/{key}; errors {Key not found,Failed to delete setting,invalid value size or type,HHSettingsMgr reported invalid value,Failed to store setting,\"Deleting all settings in a category is not allowed. Provide a key.\",Unsupported Request}; /overrideconfig POST form-urlenc \u2192 commit override file \u2192 <meta refresh url=/fcs>; JSON parser errors {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}"
   },
   "fdevent": {
    "name": "fdevent \u2014 epoll event engine",
@@ -121018,6 +121026,34 @@
   },
   "registration": {
    "secreg_fsm": "endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {\"Invalid registration signing key in IPC payload\",\"Registration signing key set/cleared\"}; \"Household customer ID [%s] in conflict with local device [%s]\"; \"regState changed %d -> %d\"; \"Transfer mode old (e:%d) new (e:%d)\" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; \"removed invalid cert\"; \"Unexpected 401 response\"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}"
+  },
+  "virtual_linein": {
+   "source_manager": "group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM]/[stopLocalPBAsGM] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; \"Recording State Snapshot in state %d\"; \"Starting vli audio input subsystem (type=%d)\"/\"ending vli ai subsystem (cached type=%d; new=%d)\"; cookie validation {\"validate cookie failed for [%d], [%d]\",\"no source to validate cookie\"}; ai_vli thread"
+  },
+  "wifi": {
+   "idle_mgr": "RZPWifiIdleMgr/idlemgr: \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\""
+  },
+  "cert_layer": {
+   "files": "cert.xml + metadata.txt; \"Buffer not sufficient to store entire certificate\"; \"loading %s (0x%x) took %ums\"; tmpfile-rename atomic swap; \"failed to load replacement (0x%x)\""
+  },
+  "memory_monitor": {
+   "name": "memmon \u2014 memory tracking",
+   "status": "partial",
+   "summary": "reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /tmp/memorylog/log.%d with .old rotation; \"memory report avail=%s free=%s\"; \"report skipped %s (count: %u)\"; fields {memavailable,memfree}; threads memlog/memmon/memory_status",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f06588",
+     "notes": "memmon block"
+    }
+   ]
+  },
+  "mdns": {
+   "controller": "MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}"
+  },
+  "update_coordinator": {
+   "begin": "beginUpdate {already started guard,updateHookJob,upgradeinfo,/var/run}; \"Current Swgen Min downgrade version %s\"; \"Failed to query cloud settings\""
   }
  },
  "muse": {

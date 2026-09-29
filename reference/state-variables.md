@@ -481,6 +481,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `replicated_netsettings_schema` | settings replication |  | ? | `strong` |
 | `sounddevice_status_schema` | /status |  | ? | `strong` |
 | `update_info_schema` | /status |  | ? | `strong` |
+| `vli_state_snapshot` | VirtualLineIn |  | ? | `strong` |
 | `zone_group_state_schema` | /ZoneGroupTopology/Control |  | ? | `strong` |
 | `zoneplayers_status_schema` | /status |  | ? | `strong` |
 
@@ -3424,6 +3425,11 @@ SoundDevice page (per-zone volume/ducking)
 ### `update_info_schema`
 
 UpdateInfo page
+
+
+### `vli_state_snapshot`
+
+VLI handoff snapshot recorded at state transitions
 
 
 ### `zone_group_state_schema`

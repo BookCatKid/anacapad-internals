@@ -42,6 +42,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `log_domain_map` | **partial** | 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring |
 | `media_player_abstraction` | **partial** | source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source |
 | `media_player_mgr` | **partial** | actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target \[%s\] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming |
+| `memory_monitor` | **partial** | reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /tmp/memorylog/log.%d with .old rotation; "memory report avail=%s free=%s"; "report skipped %s (count: %u)"; fields {memavailable,memfree}; threads memlog/memmon/memory_status |
 | `model_sku_vocabulary` | **partial** | 51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID |
 | `mpegts_id3` | **partial** | TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), eslen, "No audio PID"/"Audio PID is 0x%x", "non-audio and non-timed_id3 PID", PTS, peslen/payload; timed-ID3v2 extraction: tag footer detect, "Ignoring too large timed ID3 size", OOB guards, "unsupported mp3 segment" |
 | `multi_daemon_boundary` | **partial** | anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks \| netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test" |
@@ -75,6 +76,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `autoplay` | **?** |  |
 | `av_transport` | **?** |  |
 | `cert` | **?** |  |
+| `cert_layer` | **?** |  |
 | `chsnk` | **?** |  |
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
 | `cloud_registration` | **?** |  |
@@ -85,6 +87,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `htaudio` | **?** |  |
 | `http_engine` | **?** |  |
 | `lechmere` | **?** |  |
+| `mdns` | **?** |  |
 | `muse` | **?** |  |
 | `music_accounts` | **?** |  |
 | `network` | **?** |  |
@@ -98,9 +101,12 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `sntp` | **?** |  |
 | `spotify_connect` | **?** |  |
 | `stream_metadata` | **?** |  |
+| `update_coordinator` | **?** |  |
 | `upgrade` | **?** |  |
 | `upnp_eventing` | **?** |  |
+| `virtual_linein` | **?** |  |
 | `vli` | **?** |  |
+| `wifi` | **?** |  |
 | `zone_topology` | **?** |  |
 
 ## `ab_experiments`
@@ -1016,6 +1022,21 @@ actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor fo
 
 </details>
 
+## `memory_monitor`
+
+**coverage** `partial`
+
+**Technical description:**
+
+reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /tmp/memorylog/log.%d with .old rotation; "memory report avail=%s free=%s"; "report skipped %s (count: %u)"; fields {memavailable,memfree}; threads memlog/memmon/memory_status
+
+- **name:** memmon — memory tracking
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f06588 — memmon block
+
+</details>
+
 ## `model_sku_vocabulary`
 
 **coverage** `partial`
@@ -1789,6 +1810,11 @@ client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-
 **coverage** `?`
 
 - **metadata_errors:** devcertmgrprovider cert validation codes: BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present; headers X-Sonos-UserId,X-Sonos-Muse-Household-Id,X-Sonos-Denylisted; response {requestTimeMS,downloadStatusCode,httpResultCode,previousETag,download,reasonCode,certError}; states downloaded/unchanged/generating; "Unknown cert metadata state: %s. Scheduling cert refresh job"; "Retrieved manufacturing data: %s"; refresh "%s: refresh check in %ld seconds"/"certificate expired"/"utc time not set"
+## `cert_layer`
+
+**coverage** `?`
+
+- **files:** cert.xml + metadata.txt; "Buffer not sufficient to store entire certificate"; "loading %s (0x%x) took %ums"; tmpfile-rename atomic swap; "failed to load replacement (0x%x)"
 ## `chsnk`
 
 **coverage** `?`
@@ -1856,6 +1882,7 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **submission_fsm:** bounded queues {"submission queue full","result queue full"}; params includeControllers,initiatingDeviceId; states {pending on controllers,already in process,no devices submitted,successful}; zpDiagSubmit job + tracking + diag_mgr; completed{submissionId,status,diagnosticId}; blob wrapper <ZPNetworkInfo type="User"> + <!-- START UUID -->/END UUID per player + " unreachable"
+- **manifest:** <DiagnosticManifest %s='%s' %s='%s'>2.0.0</DiagnosticManifest> posted to /v2/diags product-diagnostics; items {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason}; initiate body {"serial_num":"%s"}; flow {initiate→distribute diagId to players→trigger on controllers→report submit status}; per-player files {%s.xml(ZPNetworkInfo),%s.sha256,%s.xml.gz}; aggregate via http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x; stub flow {"Diagnostic stub","Local diagnostic","Failed to generate hash on Stubbed Support Document"}; "confirmation guid (%s) doesn't match actual guid (%s)"; progress {"Populated players ... Num players: %zu, Num stubbed players: %zu","Timed out waiting for devices","All devices reported"}; diag_progress thread
 ## `dsp_params`
 
 **coverage** `?`
@@ -1876,11 +1903,17 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **auth_challenge:** two-step: "First Response: \[%s\] \[%s\] \[%08x\] \[%d\]"/"Second Response: ..."; headers X-Sonos-Mac/X-Sonos-Serial; cred body {"credentials":"%s","nonce":"%s","keyType":%d}; HTTP/1.{0,1} 401 retry; sonoscloudstatus endpoint; httpcaches.json + "\[%s\] Force-cleared cache"
+- **hhsettings_api:** category REST paths public/{key}, restricted/{key}, restricted-admin/{key}; errors {Key not found,Failed to delete setting,invalid value size or type,HHSettingsMgr reported invalid value,Failed to store setting,"Deleting all settings in a category is not allowed. Provide a key.",Unsupported Request}; /overrideconfig POST form-urlenc → commit override file → <meta refresh url=/fcs>; JSON parser errors {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}
 ## `lechmere`
 
 **coverage** `?`
 
 - **cloudrequest:** cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg ("per msg deflate change %d -> %d") w/ local-run-state override; "Player IP changed. Bouncing connection"; backoff "Following backoff schedule, retry in %lld"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT ("Unexpected TYPE EVENT"), "support for HTTP message dropped", "Unrecognized message type"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/"player request failed: %s"; SwitchingRadiosEvent; museCloudEvtHandler
+## `mdns`
+
+**coverage** `?`
+
+- **controller:** MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}
 ## `muse`
 
 **coverage** `?`
@@ -1992,6 +2025,11 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
 **coverage** `?`
 
 - **cache:** streamingMetadataCache: "Setting metadata reference time %s at %ld"/"Rejecting invalid stream metadata reference time"; framer selection "%d (%s) framer for: %s"; "%d(%s).sd:(%s,%lld)"; mswmext=.asx sniff; sonosapi tag; "unexpected text/html"; getMediaUri %d + "URI expires in %us" + "dereferenced to: %s"; "Disallow playback of Spotify Free content from Sonos queue" — free-tier gate; "%d: StartTime: %s %dms - %ums %s"
+## `update_coordinator`
+
+**coverage** `?`
+
+- **begin:** beginUpdate {already started guard,updateHookJob,upgradeinfo,/var/run}; "Current Swgen Min downgrade version %s"; "Failed to query cloud settings"
 ## `upgrade`
 
 **coverage** `?`
@@ -2002,6 +2040,11 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
 **coverage** `?`
 
 - **renew_fsm:** events {"Unsubscribe in renew ... (oos:%d seq:%d)","Successfully renewed","Failed to renew ... HTTP Result: %d; SR: %08x","Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)","Successfully subscribed ... UDN %s","Received SID %s for deleted client","Received OOS %u / %u for SID %s" (out-of-seq tracking),"Not unsubscribing because bSendUnsubscribeRequest=false"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static
+## `virtual_linein`
+
+**coverage** `?`
+
+- **source_manager:** group hooks {\[groupAdded\] configureLocalTransport(VLI),\[groupRemoved\] configureLocalTransport(null),\[startLocalPBAsGM\]/\[stopLocalPBAsGM\] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; "Recording State Snapshot in state %d"; "Starting vli audio input subsystem (type=%d)"/"ending vli ai subsystem (cached type=%d; new=%d)"; cookie validation {"validate cookie failed for \[%d\], \[%d\]","no source to validate cookie"}; ai_vli thread
 ## `vli`
 
 **coverage** `?`
@@ -2012,6 +2055,11 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
   - **events:** `VolumeSetActionEvent`, `VliVolumeProcessingCompleteEvent{vliType,success,flags}`, `VliSessionProcessingCompleteEvent{vliType,action,success,flags}`, `VliTransportAction`, `AvtHaltActionEvent`, `AvtVliActionEvent`, `GroupVolumeSetActionEvent`, `VolumeChangedEvent(vli source)`, `VliPropertiesChangedEvent{name,md,mode}`
   - **types:** `AirPlay`, `bluetooth/Bluetooth`, `tvproxy/TV Proxy`
   - **details:** cookie-based session tracking; waitOnTxBitFlagsClearedLocked; "StartSession for unusable/unknown type"; protocolInfo="x-sonos-vli:*:audio:*"; "VLIGroupIDs cannot contain commas"; completion-signal timeouts
+## `wifi`
+
+**coverage** `?`
+
+- **idle_mgr:** RZPWifiIdleMgr/idlemgr: "Device set to %08x with primary chan %d code 0x%x cnt %u retry %u"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; "client %s is %s with primary chan %d"
 ## `zone_topology`
 
 **coverage** `?`
