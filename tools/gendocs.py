@@ -1199,10 +1199,15 @@ def render_muse(m):
             specs = []
             for s_ in op.get("spec") or []:
                 for a_ in s_.get("accessors") or []:
-                    mem = a_.get("members") or []
-                    specs.append("c%d:%s" % (
-                        a_.get("class"),
-                        " ".join("`%s`" % _e(x) for x in mem if x)))
+                    mem = [x for x in (a_.get("members") or []) if x]
+                    pairs = []
+                    it = 0
+                    while it + 1 < len(mem):
+                        pairs.append("`%s`:`%s`" % (_e(mem[it]), _e(mem[it + 1])))
+                        it += 2
+                    if it < len(mem):
+                        pairs.append("`%s`" % _e(mem[it]))
+                    specs.append("c%d:%s" % (a_.get("class"), " ".join(pairs)))
             spec_txt = "<br>".join(specs) if specs else "—"
             rows.append(["`%s`" % _e(op["method"]),
                          "`%s`" % _e(op["path"]),
@@ -1214,7 +1219,7 @@ def render_muse(m):
                          spec_txt])
         _table(out, ["Method", "Path", "Op", "Trailing param",
                      "Flags", "Exec (vtable +0x0c)", "Params",
-                     "Spec lists (classId: members)"], rows)
+                     "Spec lists (classId: root, field:type pairs)"], rows)
         if r.get("impl_funcs"):
             out.append("Resource implementation functions (string-block "
                        "registrar family): %s"
