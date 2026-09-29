@@ -636,14 +636,14 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/rdmhhsetup:**
       - **handler:** f_105ebeb4
       - **flags:** `256`
-      - **detail:** Retail Display Mode HHID setup (f_105ebeb4, flag 0x100). form-urlencoded POST; requires factory-reset state else ": not factory reset" failure HTML; on success "Retail Display HHID %s configured, rebooting..."; x-rincon-roomicon:generic.
+      - **detail:** Retail Display Mode HHID setup (f_105ebeb4, flag 0x100). form-urlencoded POST; requires factory-reset state else ": not factory reset" failure HTML; on success "Retail Display HHID %s configured, rebooting..."; x-rincon-roomicon:generic. HHID prefix Sonos_RDM_; same factory-reset + roomicon flow.
     - **/rdmbuttonfwd:**
       - **handler:** f_100b9e58
       - **flags:** `256`
     - **/mtmhhsetup:**
       - **handler:** f_105ec758
       - **flags:** `256`
-      - **detail:** MTM household setup (f_105ec758, flag 0x100). form-urlencoded POST, params prefixed MTM_ + NFWSSID; replies application/json {hhid,key,rebootDelay} or {error,message}. Sends x-rincon-roomicon:generic.
+      - **detail:** MTM household setup (f_105ec758, flag 0x100). form-urlencoded POST, params prefixed MTM_ + NFWSSID; replies application/json {hhid,key,rebootDelay} or {error,message}. Sends x-rincon-roomicon:generic. Param names proven: Sonos_MTM_ prefix, NFWSSID, NFWPwd; per-field validation errors "invalid key\|name\|icon\|wifi_pwd\|hhid\|wifi_ssid" + "wifi_pwd requires wifi_ssid param" + "not factory reset"; HHID charset base62.
     - **/ssh/fingerprints:**
       - **handler:** f_105e9578
       - **flags:** `257`

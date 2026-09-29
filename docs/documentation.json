@@ -109785,7 +109785,7 @@
       "flags": [
        256
       ],
-      "detail": "Retail Display Mode HHID setup (f_105ebeb4, flag 0x100). form-urlencoded POST; requires factory-reset state else \": not factory reset\" failure HTML; on success \"Retail Display HHID %s configured, rebooting...\"; x-rincon-roomicon:generic."
+      "detail": "Retail Display Mode HHID setup (f_105ebeb4, flag 0x100). form-urlencoded POST; requires factory-reset state else \": not factory reset\" failure HTML; on success \"Retail Display HHID %s configured, rebooting...\"; x-rincon-roomicon:generic. HHID prefix Sonos_RDM_; same factory-reset + roomicon flow."
      },
      "/rdmbuttonfwd": {
       "handler": "f_100b9e58",
@@ -109798,7 +109798,7 @@
       "flags": [
        256
       ],
-      "detail": "MTM household setup (f_105ec758, flag 0x100). form-urlencoded POST, params prefixed MTM_ + NFWSSID; replies application/json {hhid,key,rebootDelay} or {error,message}. Sends x-rincon-roomicon:generic."
+      "detail": "MTM household setup (f_105ec758, flag 0x100). form-urlencoded POST, params prefixed MTM_ + NFWSSID; replies application/json {hhid,key,rebootDelay} or {error,message}. Sends x-rincon-roomicon:generic. Param names proven: Sonos_MTM_ prefix, NFWSSID, NFWPwd; per-field validation errors \"invalid key|name|icon|wifi_pwd|hhid|wifi_ssid\" + \"wifi_pwd requires wifi_ssid param\" + \"not factory reset\"; HHID charset base62."
      },
      "/ssh/fingerprints": {
       "handler": "f_105e9578",
@@ -110721,7 +110721,6 @@
    "status": "confirmed",
    "mechanism": "placeholder substitution ('Sending device_description.xml to %s (cv=%d)')",
    "device_types": [
-    "urn:schemas-upnp-org:device:ZonePlayer:1",
     "urn:schemas-upnp-org:device:MediaServer:1",
     "urn:schemas-sonos-com:device:MediaServer:1"
    ],
@@ -110773,7 +110772,51 @@
    "adjacent_surfaces": {
     "muse_async_command": "muse_async_command_handler_impl.cxx; '%s/api/v%d/%s'+'%s/v%d/%s' route formats; Bearer auth; cmdId dedup ('Duplicate cmdId','Invalid cmdId','Command was preempted by a newer command'); queue 'muse-async-cmdq-'; scopeAsyncMuse"
    },
-   "scpd_present": "SCPDURL elements present in served device_description.xml \u2014 16 /xml/<Svc>1.xml service descriptions advertised (CORRECTED: earlier 'no SCPDURL' claim was wrong \u2014 it checked the binary's generated-doc path, but the served doc is the htdocs template which has SCPDURL)"
+   "scpd_present": "SCPDURL elements present in served device_description.xml \u2014 16 /xml/<Svc>1.xml service descriptions advertised (CORRECTED: earlier 'no SCPDURL' claim was wrong \u2014 it checked the binary's generated-doc path, but the served doc is the htdocs template which has SCPDURL)",
+   "name": "device_description.xml token template",
+   "tokens": [
+    "UUID",
+    "HOST",
+    "DISPLAY_VERSION",
+    "SW_VERSION",
+    "SW_GENERATION",
+    "NODE_PROTO_VERSIONS",
+    "HTA_FRAME_VERSIONS",
+    "MUSE_API_VERSIONS",
+    "TRUEPLAY_SDK_VERSIONS",
+    "HW_VERSION",
+    "EXTRA_VERSION",
+    "SERIAL_NUM",
+    "MAC_ADDRESS",
+    "SW_MINCOMPATVER",
+    "SW_LEGACYCOMPATVER",
+    "API_VERSION",
+    "MIN_API_VERSION",
+    "MODEL",
+    "ZONETYPE",
+    "NAME",
+    "DISPLAY_NAME",
+    "VENDOR_NAME",
+    "FEATURE1",
+    "FEATURE2",
+    "FEATURE3",
+    "FEATURE4",
+    "SERIESID",
+    "VARIANT",
+    "INT_SPEAKER_SIZE",
+    "QPLAY_SUPPORT",
+    "AMP_ONTIME",
+    "MEMORY",
+    "FLASH",
+    "FLASH_REPARTITIONED",
+    "RETAIL_MODE",
+    "SSL_PORT",
+    "HHSSL_PORT",
+    "MEDIASERVER_NAMESPACE",
+    "CD_NAMESPACE",
+    "NS_VERSION"
+   ],
+   "qplay": "<qq:X_QPlay_SoftwareCapability xmlns:qq=\"http://www.tencent.com\">QPlay:2</qq:X_QPlay_SoftwareCapability> \u2014 QPlay v2 advertised in description"
   },
   "upnp_client_stack": {
    "status": "confirmed",
@@ -116272,6 +116315,21 @@
   },
   "platform_details": {
    "notes": "U-Boot 17.2.7 banner + OTP: %.32s; KVPair parser \"unable to parse KVPair. %s is an invalid KV pair string.\""
+  },
+  "boot_reasons": {
+   "enum": [
+    "new IP addr",
+    "new HHID",
+    "powered off",
+    "Remote requested",
+    "satellite to normal",
+    "normal to satellite",
+    "low battery",
+    "switch to bluetooth",
+    "switch to wifi",
+    "recover failed delegation",
+    "new SSID"
+   ]
   }
  },
  "subsystems": {
@@ -117910,7 +117968,72 @@
     }
    ],
    "model_ids": "ZPS1, ZPS3, ZPS5, ZPS6, ZPS9, ZPS11, ZPS12, ZPS13, ZPS14, ZPS15, ZPS16, ZPS17, ZPS18, ZPS19, ZPS20, ZPS21, ZPS22, ZPS23, ZPS24, ZPS26, ZPS27, ZPS28, ZPS29, ZPS30, ZPS31, ZPS32, ZPS33, ZPS34, ZPS35, ZPS36, ZPS37, ZPS38, ZPS39, ZPS40, ZPS41, ZPS42, ZPS43, ZPS44, ZPS45, ZPS46, ZPS48, ZPS49, ZPS51, ZPS52, ZPS53, ZPS54, ZPS55, ZPS56, ZPS57, ZPS58, ZPS59, ZPS61 (this build targets ZPS9 = Playbar/S1-era table includes newer ids)",
-   "unresolved": "ZPS->product-name mapping, which capabilities gate on which ids, the S0-S9 submodel series"
+   "unresolved": "ZPS->product-name mapping, which capabilities gate on which ids, the S0-S9 submodel series",
+   "capability_bits": {
+    "AUDIO_IN_MASK": [
+     "RCA_LINE_IN",
+     "35MM_LINE_IN",
+     "DOCK_ANALOG_IN",
+     "USB_LINEIN"
+    ],
+    "HTAUDIO_IN_MASK": [
+     "TOSLINK_HT_IN",
+     "HDMI_ARC",
+     "HDMI_EARC"
+    ],
+    "AUDIO_OUT_MASK": [
+     "RCA_LINE_OUT",
+     "35MM_LINE_OUT",
+     "COAX_DIGITAL_OUT",
+     "TOSLINK_DIGITAL_OUT",
+     "SPEAKER_OUT",
+     "HEADPHONE_OUT",
+     "SUB_OUT"
+    ],
+    "DEV_CLASS_MASK": [
+     "2PORT_SWITCH",
+     "4PORT_SWITCH",
+     "WIFI_2GHZ",
+     "WIFI_5GHZ",
+     "CONCURRENT_2GHZ_5GHZ",
+     "USB_ETHERNET"
+    ],
+    "buttons": [
+     "BUTTON_PLAY_PAUSE",
+     "BUTTON_VOL_ROCKER",
+     "BUTTON_MUTE",
+     "CAPTOUCH_ABC",
+     "BUTTON_WIFIBT_MODE",
+     "CAPTOUCH_JOIN",
+     "MICROPHONE_SWITCH"
+    ],
+    "features": [
+     "HT_SOURCE",
+     "MONO_SPEAKER",
+     "VOICE",
+     "BTCLASSIC",
+     "MICROPHONE",
+     "IR_SENSOR",
+     "IR_TRANSMITTER",
+     "NFC_SENSOR",
+     "12V_TRIGGER",
+     "EXTENDER",
+     "STEREO_PAIR",
+     "CONTROLLER_CFG_SATELLITE",
+     "EQ_COLLECTION",
+     "TUNABLE_CROSSOVER",
+     "EQ_BALANCE",
+     "CUSTOM_SATELLITE",
+     "PORTABLE",
+     "THIRDPARTY",
+     "DETECT_SPEAKERS",
+     "SELF_TRUEPLAY",
+     "DUALBAND_STATION",
+     "WIRELESS_SONOSNET",
+     "MUST_PAUSE_FOR_AUDIOCLIP"
+    ],
+    "note": "ordered literal run 0x10efa2a8-0x10efa5dc bounded by RMuseFeature array check; masks group related bits"
+   }
   },
   "multi_daemon_boundary": {
    "status": "partial",
@@ -193900,6 +194023,49 @@
    "/device_account": "f_1065bd70 - muse-engine-mounted REST namespace (same mount pattern as /api f_100d2cf8); flag 0x100",
    "/api": "f_100d2cf8 - primary muse JSON namespace mount",
    "/websocket/api": "f_100bb8ac - websocket transport mount, flag 0x200"
+  },
+  "client": {
+   "url_formats": [
+    "%s/api/v%d/%s",
+    "%s/v%d/%s"
+   ],
+   "auth": "Bearer scheme; corrId per request (\"Response corrId=%s ... response status: %d (%d msec)\"); request logging \"Request URL/header/completed errorCode\"; fields requestMethod,apiVersion,elapsedMs",
+   "gating": "\"Invalid request conditions (offline, bluetooth, unregistered, open circuit)\" \u2014 outbound requests refused in those states",
+   "forwarding": "\"Forwarding command to %s\"; \"Forwarding lists with more than one player ID are not supported\" \u2014 IBT forwards target exactly one player",
+   "async_queue": "thread muse-async-cmdq- + scopeAsyncMuse; cmdId required (\"Duplicate/Invalid cmdId provided\"); newer command preempts older (\"%s::%s was preempted by a newer command, dropping it\"); shutdown \"Cancelling all async Muse commands. No new commands will be accepted\"; \"Async command processing has been stopped\"",
+   "advertiser": "museadvertiser manages Muse HHID + Location ID settings writes: \"Valid Muse HHID provided. Writing Muse HHID: %s\"/\"Invalid Muse HHID provided.\"/\"Empty Muse HHID provided.\"/\"Writing Location ID: %s\""
+  },
+  "authz": {
+   "policy_files": "conf/%s_auth_offline_policy_%s.json \u2014 per-role offline policy mapping JSONs",
+   "resolution": "lechmere policyKey -> role (\"Role from policy key: %s\"/\"Could not parse role from lechmere policy key\"); token -> resolveToken call (\"Failed to resolve token [token=******%s]: http=%d\" / \"Request to resolveToken successful\"); response {status,role,user,apiKey (logged %.8s),credential}; credential cached in museAuthzCache honoring cache-control-header",
+   "policy_types": [
+    "static policy per role+version",
+    "static fast policy",
+    "guest policy (offline mode)",
+    "mTLS policy",
+    "fast cache"
+   ],
+   "errors": [
+    "Permissions are insufficient",
+    "Access token is invalid",
+    "Role is insufficient",
+    "Could not resolve token",
+    "Credential is not allowed",
+    "Guest access disallowed",
+    "Unauthenticated control disallowed",
+    "Empty policy response body",
+    "Could not fetch policy",
+    "Not in offline mode"
+   ],
+   "endpoints": [
+    "/authz getPermissions (\"Failed to get the permissions: http=%d\")",
+    "resolveToken"
+   ],
+   "jwt": "devices_handler validates JWT: \"JWT parsing failed with error=%s\"/\"Invalid JWT string\"/\"Unable to parse the payload\"/\"Invalid signature\"; registration-request state checks",
+   "mutexes": [
+    "PolicyKeyTableMutex",
+    "InMemoryHttpCacheMutex"
+   ]
   }
  },
  "cert_layer": {
