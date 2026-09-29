@@ -81262,6 +81262,24 @@
         711
        ],
        "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan."
+      },
+      {
+       "code": 800,
+       "code_expr": "r30 accumulator",
+       "meaning": "Resolved-object capability check: vtbl[+0x14] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot differently fault 800 (\"not a prefix-searchable directory object\"). Only three dirObj classes qualify - vtables @0x10ec0ad4/@0x10ec0b08/@0x10ec0c28; the favorites object (installer f_1037ca04 references 0x10ec0ad4/0x10ec0b08) IS one, so FV:2 FindPrefix works, but most other browse-root classes return 800 here.",
+       "status": "strong",
+       "fault_sites": [
+        "0x10302dc4"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "dirObj vtable cluster @0x10ec09xx-0x10ec0cxx enumerated; slot+0x14==prefix-impl only in the three listed tables"
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -81994,6 +82012,24 @@
         711
        ],
        "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan."
+      },
+      {
+       "code": 800,
+       "code_expr": "r30 accumulator",
+       "meaning": "Resolved-object capability check: vtbl[+0x18] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot differently fault 800 (\"not a prefix-searchable directory object\"). Only three dirObj classes qualify - vtables @0x10ec0ad4/@0x10ec0b08/@0x10ec0c28; the favorites object (installer f_1037ca04 references 0x10ec0ad4/0x10ec0b08) IS one, so FV:2 FindPrefix works, but most other browse-root classes return 800 here.",
+       "status": "strong",
+       "fault_sites": [
+        "0x10302d08"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "status": "confirmed",
+         "notes": "dirObj vtable cluster @0x10ec09xx-0x10ec0cxx enumerated; slot+0x18==prefix-impl only in the three listed tables"
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -110422,8 +110458,17 @@
      "status": "confirmed",
      "address": "0x1038e82c",
      "notes": "client-error mapper fn; internal codes {401,402,501,1001,1002,1004}"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f94fa8",
+     "notes": "second HTTP-status map, 51 u32 entries; layout sits immediately after map1 and before the ERROR_* name strings"
     }
-   ]
+   ],
+   "description": " | SECOND parallel map @0x10f94fa8 (51 entries, HTTP-status domain {400,401,403,404,405,409,410,412,415,417,490,491,499,500,501,503,504}): [499,499,499,499,499,499,499,415,499,404,500,504,403,403,400,400,400,404,400,400,499,403,401,499,412,499,410,409,410,499,499,499,404,404,404,405,401,503,499,404,404,499,499,400,400,400,417,490,491,499,500]. Neither map has a direct lis/addi reference - reached via computed base (names-table-relative) or object-field; index alignment with muse_result_codes segments is inferred, NOT proven (map2[0]=499 does not match OK->200 naively)."
   },
   "smapi_capability_bits": {
    "name": "SMaPI capability bitmask (Capabilities field)",
@@ -124950,13 +124995,21 @@
   "saved_queues": {
    "name": "SavedQueues .rsq format",
    "status": "strong",
-   "summary": "file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\"; SQ:%s objid prefix; <res protocolInfo=\"file:*:audio/mpegurl:*\">; album-art: \"No num tracks found, so emitting the first four artworks found\"; mobile- playlist prefix; \"Add Track Move range: %u-%u to %u\"; replication push on save",
+   "summary": "file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\"; SQ:%s objid prefix; <res protocolInfo=\"file:*:audio/mpegurl:*\">; album-art: \"No num tracks found, so emitting the first four artworks found\"; mobile- playlist prefix; \"Add Track Move range: %u-%u to %u\"; replication push on save | export writer f_10478f28(obj,dest,gzipFlag): serializes SavedQueues to a .tmp path then selects MIME application/gzip vs text/xml - the queue-backup/export path feeding the .rsq/gzip artifacts",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
      "address": "0x10ed329c",
      "notes": ".rsq schema literals"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10478f28",
+     "notes": "export fn: builds .tmp filename, fopen64 w, writes </SavedQueues>, r5 flag selects application/gzip vs text/xml"
     }
    ]
   },

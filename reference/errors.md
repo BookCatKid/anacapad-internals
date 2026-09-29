@@ -275,8 +275,10 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
 | `DestroyObject` | `402` | `strong` | impl accumulator r30: {701 on object-resolve failure (0x10302858), call/lwz-derived}; rc forwarded verbatim via req v\[+0x14\] \| Wrapper pa |
 | `DestroyObject` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803 |
 | `FindPrefix` | `402` | `strong` | impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc type check fail - vtbl\[+0x14\] != f_10113d94 (0x10302dc4), |
+| `FindPrefix` | `800` | `strong` | Resolved-object capability check: vtbl\[+0x14\] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot  |
 | `GetAlbumArtistDisplayOption` | `402` | `strong` | impl single-call impl: rc = worker call result verbatim (mr r3 at 0x10307ab8 is the call arg setup; r31 exit is lwz-restored spill - real ex |
 | `GetAllPrefixLocations` | `402` | `strong` | impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail - vtbl\[+0x18\] != f_10113da4 (0x10302d08), call-derived};  |
+| `GetAllPrefixLocations` | `800` | `strong` | Resolved-object capability check: vtbl\[+0x18\] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot  |
 | `GetBrowseable` | `402` | `confirmed` | impl 0x10302470: writes byte 1 to out then returns 0; the action never faults from the impl -- only the handler request-gate can emit 402 \| |
 | `GetLastIndexChange` | `402` | `confirmed` | impl 0x1030259c: single exit returns 0; the action never faults from the impl -- only the handler request-gate can emit 402 \| Wrapper parse |
 | `GetSearchCapabilities` | `402` | `strong` | impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim via req v\[+0x14\] \| Wrapper parse layer rejected an argumen |

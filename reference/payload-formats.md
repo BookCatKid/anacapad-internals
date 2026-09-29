@@ -290,13 +290,16 @@ A lookup table that turns HTTP status codes from cloud/service calls into the pl
 
 **Technical description:**
 
+| SECOND parallel map @0x10f94fa8 (51 entries, HTTP-status domain {400,401,403,404,405,409,410,412,415,417,490,491,499,500,501,503,504}): \[499,499,499,499,499,499,499,415,499,404,500,504,403,403,400,400,400,404,400,400,499,403,401,499,412,499,410,409,410,499,499,499,404,404,404,405,401,503,499,404,404,499,499,400,400,400,417,490,491,499,500\]. Neither map has a direct lis/addi reference - reached via computed base (names-table-relative) or object-field; index alignment with muse_result_codes segments is inferred, NOT proven (map2\[0\]=499 does not match OK->200 naively).
+
 - **name:** HTTP status mapping table (objectStatusMap)
 - **summary:** .rodata table at 0x10f94ec4 (+second page 0x10f94fa8): dense u16/u32 HTTP-status index->code map with sentinel 499. Recognized values {400,401,403,404,405,409,410,412,415,417,490,491,499,500,501,503,504}; unmapped -> 499. Consumed by the client-error mapping layer f_1038e82c ('Client error' string, internal codes {401,402,501,1000,1001,1002,1004}) - this is the 'objectStatusMap' referenced by the auth-layer string 'Error code not found in objectStatusMap'. HTTP errors from SMaPI/lechmere/cloud calls are normalized through this table into the internal fault space.
 
-<details><summary>Evidence (2)</summary>
+<details><summary>Evidence (3)</summary>
 
 - @ 0x10f94ec4 — status map table, 499 sentinel
 - @ 0x1038e82c — client-error mapper fn; internal codes {401,402,501,1001,1002,1004}
+- @ 0x10f94fa8 — second HTTP-status map, 51 u32 entries; layout sits immediately after map1 and before the ERROR_* name strings
 
 </details>
 

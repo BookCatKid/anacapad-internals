@@ -25,9 +25,9 @@ The local music-library service. Browse is the workhorse: hierarchical object id
 | `Browse` | advertised | callable | `strong` | direct | 402, 701 |
 | `CreateObject` | advertised | callable | `strong` | direct | 402 |
 | `DestroyObject` | advertised | callable | `strong` | direct | 402 |
-| `FindPrefix` | advertised | callable | `strong` | direct | 402 |
+| `FindPrefix` | advertised | callable | `strong` | direct | 402, 800 |
 | `GetAlbumArtistDisplayOption` | advertised | callable | `strong` | direct | 402 |
-| `GetAllPrefixLocations` | advertised | callable | `strong` | direct | 402 |
+| `GetAllPrefixLocations` | advertised | callable | `strong` | direct | 402, 800 |
 | `GetBrowseable` | advertised | callable | `strong` | direct | 402 |
 | `GetLastIndexChange` | advertised | callable | `strong` | direct | 402 |
 | `GetSearchCapabilities` | advertised | callable | `strong` | direct | 402 |
@@ -560,6 +560,10 @@ impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc
 **Bounded unknown — proven:** literal exit paths bounded by accumulator scan
 **Bounded unknown — unresolved:** call-derived rc values from worker/delegate chain | resolver f_1034a224 -> f_10349d00 path-walk (ptr/NULL)
 
+**`800`** `strong`
+
+Resolved-object capability check: vtbl\[+0x14\] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot differently fault 800 ("not a prefix-searchable directory object"). Only three dirObj classes qualify - vtables @0x10ec0ad4/@0x10ec0b08/@0x10ec0c28; the favorites object (installer f_1037ca04 references 0x10ec0ad4/0x10ec0b08) IS one, so FV:2 FindPrefix works, but most other browse-root classes return 800 here.
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -791,6 +795,10 @@ impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail
 
 **Bounded unknown — proven:** literal exit paths bounded by accumulator scan
 **Bounded unknown — unresolved:** call-derived rc values from worker/delegate chain | resolver f_1034a224 -> f_10349d00 path-walk (ptr/NULL)
+
+**`800`** `strong`
+
+Resolved-object capability check: vtbl\[+0x18\] must be the prefix-search impl (f_10113d94/f_10113da4); objects whose class fills that slot differently fault 800 ("not a prefix-searchable directory object"). Only three dirObj classes qualify - vtables @0x10ec0ad4/@0x10ec0b08/@0x10ec0c28; the favorites object (installer f_1037ca04 references 0x10ec0ad4/0x10ec0b08) IS one, so FV:2 FindPrefix works, but most other browse-root classes return 800 here.
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
