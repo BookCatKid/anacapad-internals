@@ -314,7 +314,7 @@
   "media_player_abstraction": "Beneath AVTransport sits a plug-in layer of source implementations (media_player_mgr, autoplay, vli_ctrl, extaudiosrc, ai_impl_base) \u2014 each stream type (line-in, TV, Spotify, airplay...) plugs in through the same vtable. The action handlers you're using dispatch into this.",
   "model_sku_vocabulary": "Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability conditionals \u2014 which features a given hardware reports. The model\u2192capability table hasn't been written out yet.",
   "multi_daemon_boundary": "anacapad is one daemon of ~13 on the player. It pushes WiFi/network settings and PSKs to netstartd over /tmp/netstartd.ipc and receives connection-type updates back; LED, Bluetooth and power daemons get /X-external HTTP routes; each daemon has .dmp crash-report machinery. Most device behaviours (WiFi join, LED, BT pairing) are actually owned by the siblings.",
-  "muse_semantics": "The 'muse' API is Sonos's real product API \u2014 the REST-ish surface the S2 app talks to over the cloud/websocket channel. 282 routes are catalogued (households, groups, players, favourites, history, entitlements, update checks, virtual remote control...); per-route request/response schemas are the next layer to decode.",
+  "muse_semantics": "The 'muse' API is Sonos's real product API \u2014 the REST-style surface the app talks to over the cloud/websocket channel. 525 routes are catalogued: every SOAP service is mirrored as an upnp* proxy (call + subscribe), and native namespaces cover players, groups, playback sessions, settings, home theater, alarms, timers, voice, trueplay/trueroom tuning, playlists, diagnostics and 'pinewood' remote control. Per-route request/response schemas remain the open work.",
   "play_history": "Recently-played tracking: plays are recorded by the track monitor/recorder, buffered, and POSTed to the household history API with strict completeness rules; the app fetches an ETag-cached list; clearHistory/removeHistoryItem ops exist. Ratings (like/dislike) exist but only for the cloud queue.",
   "playlist_parsers": "Below the URI layer sit real playlist parsers: ASX/WMP (mswmext), M3U (x-mpegurl), Apple HLS playlists (vnd.apple.mpegurl), DASH manifests. They turn playlist URLs into the track lists the queue consumes.",
   "qplay_protocol": "Tencent's QPlay protocol (QQ\u97f3\u4e50 casting). Only the QPlayAuth SOAP action is documented; the wider protocol \u2014 key derivation, the control channel, why it has a Control route but no Event route \u2014 is still undocumented.",
@@ -445,7 +445,7 @@
   "circuitbreaker": "Circuit-breaker pattern around outbound calls \u2014 failing cloud/peer endpoints get backed off instead of retried hot.",
   "cloud_request": "The generic cloud-request helper \u2014 HTTPS calls to Sonos APIs with cert pinning, env bases and retry policy.",
   "muse_common": "Shared muse-API plumbing \u2014 route table, JSON/request helpers, the layer every /api/v1 handler sits on.",
-  "pinewood_remote": "Pinewood \u2014 an internal codename namespace in the muse API (~10 routes), plausibly a remote-control/companion feature; exact semantics unresolved.",
+  "pinewood_remote": "A remote-control API: the pinewood muse namespace exposes TV-remote verbs \u2014 power, volume up/down, mute, dpad, back, home, settings, play \u2014 callable through the cloud. Likely used to relay remote commands to an attached TV or to drive a remote UI from the app.",
   "migrationmanager": "The migration manager \u2014 moves settings/data between software generations (e.g. favourite migration from old Rhapsody/OAuth formats).",
   "usage_data_sharing": "The telemetry consent layer \u2014 the opt-in/opt-out plumbing that gates product-data telemetry.",
   "telemetry_pipeline": "The telemetry upload pipeline \u2014 event buffering, X-Sonos-MessageType framing, submission scheduling.",
@@ -469,6 +469,7 @@
   "tls_stack": "The TLS stack \u2014 the OpenSSL-ish layer, cert verification modes and cipher handling for outbound HTTPS.",
   "entitlements": "Entitlements vocabulary-level record \u2014 see the entitlements subsystem entry for the decoded version.",
   "audiotap": "Debug audio taps \u2014 /audio_tap and /spdiftap endpoints capture raw audio sections to files for diagnosing lip-sync and dropouts; guarded, versioned file format.",
-  "location": "Live location-settings changes \u2014 how a region change propagates (the /status page + settings store)."
+  "location": "Live location-settings changes \u2014 how a region change propagates (the /status page + settings store).",
+  "albumart_proxy": "The local album-art endpoint: /getaa serves art to controllers, taking a source URL plus size flags (m=/s=) and a version param; artwork is cached on the player as AlbumArt_{guid}_Large.jpg files, and an enableSecureAlbumArt flag can switch fetches to a secured path."
  }
 }

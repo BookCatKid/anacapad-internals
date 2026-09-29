@@ -826,6 +826,10 @@ The full SMAPI capability flag vocabulary exposed by the /customsd form — auth
 
 ## `albumart_proxy`
 
+The local album-art endpoint: /getaa serves art to controllers, taking a source URL plus size flags (m=/s=) and a version param; artwork is cached on the player as AlbumArt_{guid}_Large.jpg files, and an enableSecureAlbumArt flag can switch fetches to a secured path.
+
+**Technical description:**
+
 - **name:** /getaa album-art proxy
 - **role:** local HTTP album-art endpoint: serves cached/proxied art to controllers; URI forms /getaa?u=<url>&v=<ver>, /getaa?m=1&u=<url> and /getaa?s=1&u=<url> (m=/s= size variants), plus upstream '?albumArt=true' fetches; art cached as <dir>/AlbumArt_{GUID}_Large.jpg
 - **params:** u= source URL (validated: 'AlbumArtURI longer than expected.'), v= version/etag-style param, m=1 / s=1 select medium/small variants; '%s?albumArt=true' marks upstream art requests

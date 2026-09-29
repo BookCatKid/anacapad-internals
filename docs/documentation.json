@@ -110251,7 +110251,19 @@
    "network_test": "networkTest ops: temporarilyDisableNetwork, startNetworkTests, getNetworkTestResults on v1/players/{playerId}/networkTest/{start,disableNetwork,{networkTestId}}",
    "api_provider": "the local /api/v1/players/ provider registers api-version '1.1.0' (ctor f_103fc74c builds 'api'+'/v'+'1'+'/players/' \u2014 the '%s/v%d/%s' grammar)",
    "svc_resource": "svc ops: setWeatherConfig,getWeatherConfig,voiceCommand \u2014 voice-assistant companion channel",
-   "time_timers": "time/getRelativeTime + timers {getTimers,createTimer,setDuration,setRelativeDuration,setEnabled,setTimeToStart}/{timerId} \u2014 sleep-timer/clock API"
+   "time_timers": "time/getRelativeTime + timers {getTimers,createTimer,setDuration,setRelativeDuration,setEnabled,setTimeToStart}/{timerId} \u2014 sleep-timer/clock API",
+   "impl": "'pinewood' muse namespace = a remote-control API: routes mute/toggleMute, volumeUp, volumeDown, power, dpad, back, home, settings, play (togglePlay), loadResource \u2014 TV-remote-style keys exposed over the cloud API on players/{playerId}/pinewood/*; plausibly drives HDMI-CEC-style control of an attached TV or a companion-device remote UI",
+   "routes": "mute, volumeUp, volumeDown, power, dpad, back, home, settings, play, loadResource \u2014 each at v1/players/{playerId}/pinewood/<verb> and household-scoped variant",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e7f63c",
+     "notes": "pinewood route family: mute/volumeUp/volumeDown/power/dpad/back/home/settings/play/loadResource"
+    }
+   ]
   },
   "testenv_logger": {
    "status": "confirmed",
@@ -110307,7 +110319,9 @@
   },
   "media_player_mgr": {
    "status": "confirmed",
-   "impl": "media_player_mgr.cxx \u2014 per-port MediaPlayer registry: 'Setting up MediaPlayer for port %u'; config 'MediaPlayer %s config at %s'; create/register/shutdown lifecycle + Invalid-target-key guard"
+   "impl": "media_player_mgr.cxx \u2014 registry of MediaPlayer objects keyed by a 'target key' ('Invalid MediaPlayer target key provided. Aborting construction.'), each bound to a port ('Setting up MediaPlayer for port %u') with its own logger dir ('Failed to create logger conf dir for media player %s'); lifecycle: created '[%zu]' \u2192 registered '[%zu]' \u2192 shutdown; companion media_player_vli_ctrl.cxx wires each player to Virtual Line-In control",
+   "player_types": "HEADPHONE media player exists in this build: IS_HEADPHONE_MEDIAPLAYER, HEADPHONE_OUT, HeadphoneSwapActive, GetHeadphoneConnected/CurrentHeadphoneConnected \u2014 headphone-output support already plumbed even on Playbar-era hardware",
+   "notes": "RZonePlayer owns m_spMediaPlayerMgr (~RZonePlayer_m_spMediaPlayerMgr dtor); ',mediaplayermanager' is a log-domain tag"
   },
   "misc_components": {
    "httpcache_manager": "httpcaches.json + InMemoryHttpCacheMutex \u2014 HTTP response cache (SMAPI content)",
@@ -110378,7 +110392,7 @@
   },
   "extaudiosrc": {
    "status": "confirmed",
-   "impl": "extaudiosrc.cxx \u2014 external audio sources (chirp/voice) w/ extaudiosrc_playid; 'extaudiosrc was playing, stopped it' preemption"
+   "impl": "extaudiosrc.cxx \u2014 external audio source plug-in interface; sources get an extaudiosrc_playid; preemption path 'extaudiosrc was playing, stopped it'; 'Using External Audio Source'; ChirpExtAudioSrc is one concrete source ('ChirpExtAudioSrc does not exist!') \u2014 the chirp/ultrasound pairing tone arrives through this interface"
   },
   "device_registration": {
    "status": "confirmed",
@@ -110781,13 +110795,25 @@
    "status": "confirmed",
    "files": [
     "/oc/zone/zoneplayer/user_update_scheduler.cxx"
-   ]
+   ],
+   "impl": "user_update_scheduler.cxx \u2014 the user-initiated update scheduler behind 'update/check' and BeginSoftwareUpdate; distinct from the automatic update path"
   },
   "topology": {
    "status": "confirmed",
    "files": [
     "/oc/zone/zoneplayer/zones_mgr.cxx",
     "/oc/zone/zoneplayer/zones_storage.cxx"
+   ],
+   "impl": "zones_mgr.cxx + zones_storage.cxx \u2014 in-memory zone manager over a persisted zones store (zones.json under /jffs/settings); feeds ZoneGroupTopology's ZoneGroupState XML and the muse zones namespace",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e95f1c",
+     "notes": "zones_mgr.cxx path + zones_storage peer"
+    }
    ]
   },
   "sonos_concurrency": {
@@ -110804,7 +110830,8 @@
    "files": [
     "group_locationandplayer.cxx",
     "group_playeronly.cxx"
-   ]
+   ],
+   "impl": "group_playeronly.cxx + group_locationandplayer.cxx \u2014 two group implementations: a player-only group (transport+volume sync) vs location-and-player group (also carries location/settings); links to group.cxx coordinator logic"
   },
   "location_engine": {
    "status": "confirmed",
@@ -110812,6 +110839,25 @@
     "location.cxx",
     "locationcontainer.cxx",
     "locationsettingsupdatemanager.cxx"
+   ],
+   "impl": "location.cxx + locationcontainer.cxx + locationsettingsupdatemanager.cxx: LocationSettingsUpdateManager runs a state machine (pcEvt_holdoff/running/exiting/waiting) consuming <LocationSettingsUpdate> documents; merge code '[Mg]' compares generation counters (i:%llu/c:%llu) and rejects stale or unfamiliar-group writes; cloud ingest path ingestLocationSettingsFromCloud/Group drops unfamiliar groups",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ef6a24",
+     "notes": "locationsettingsupdatemanager.cxx + pcEvt_* state machine"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10faf68c",
+     "notes": "[Mg] merge logs with generation counters + write-failure codes"
+    }
    ]
   },
   "muse_common": {
@@ -114753,7 +114799,11 @@
     "x-rincon-sonarcal:testtone.ogg",
     "trueplay_spectral_tuning.bin",
     "RoomCalDelayMidLeft",
-    "v1/players/{playerId}/trueplay/status"
+    "v1/players/{playerId}/trueplay/status",
+    "trueroom",
+    "x-rincon-trueroom:",
+    "trueroomAdaptationStatusEvent",
+    "enableTrueRoom"
    ],
    "evidence": [
     {
@@ -114811,13 +114861,22 @@
      "status": "confirmed",
      "address": "0x10fea0b4",
      "notes": "RoomCalDelay* per-driver delay params"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e83590",
+     "notes": "trueroom route family + estimator/adaptation events"
     }
    ],
    "muse_routes": "v1/players/{playerId}/trueplay/{discovery,presenceDiscovery,presenceRate,config/{id},status} + household variants; ops detectSpeakers, detectSpeakerPresence, setSpeakerPresenceRate, get/setConfiguration, getTrueplayStatus, setSelfTruePlay, resetDetectedSpeaker",
    "calibration": "x-rincon-sonarcal:leader.ogg|testtone.ogg|complete_ht.ogg test tones; <RoomCalibration*> XML family (Info, ActiveState, UserIntent, AvailCalID, Orientation, BondedZoneInfo, State, Enabled, Available); SELF_TRUEPLAY self-tuning + <SelfTrueplayEQ>/<SelfTrueplayInfo>; calibration ID embeds version ('Trueplay Version %d.%d.%d.%d' parsed from ID)",
    "sdk": "TrueplayAPIFactory + trueplay_api.cpp; #TRUEPLAY_SDK_VERSIONS# compat list; 'Trueplay SDK version %s not supported, creating previous version'; assets trueplay_spectral_tuning.bin + trueplay_spatial_tuning.bin etag-synced ('Could not load Trueplay etags, %sresetting'); sonos.coreaudio.trueplay.v1.TrueplayService registration",
    "propagation": "coordinator pushes calibration to bonded satellites: 'Failed to SetRoomCalibrationStatus on SUB/SURROUND'; RoomCalibrationBondedZoneInfo; per-driver delays RoomCalDelay{MidLeft,MidRight,MidCenter,TwtrLeft,TwtrRight,TwtrCenter,Bass} + _RoomCalGains/_RoomCalPanGain",
-   "unresolved": "measurement mic flow (the actual chirp capture), tuning FSM states, RoomCal* units"
+   "unresolved": "measurement mic flow (the actual chirp capture), tuning FSM states, RoomCal* units",
+   "trueroom": "a second tuning system 'trueroom' coexists: muse routes trueroom/{estimatorConfiguration,adaptation,calibrationStatus,successTone,swapInputMute}; x-rincon-trueroom: URIs, x-rincon-configmode:trueroom-tone queue items, trueroom_tone.ogg + a trueroom-tones JFFS folder cleared after tuning; events trueroomStatusEvent/trueroomAdaptationStatusEvent with trueroomEstimatedParams \u2014 an adaptive estimator-based tuner, feature-gated by enableTrueRoom"
   },
   "update_machinery": {
    "status": "partial",
