@@ -117691,82 +117691,17 @@
    }
   },
   "entitlements": {
+   "name": "EntitlementsManager \u2014 cloud entitlements",
    "status": "partial",
-   "summary": "entitlements manager with cloud fetch + local cache, muse-subscribed change events, and a runtime policy hook (RRuntimeZPPolicy takes entitlementsMgr); typed SKU records decide e.g. whether Sonos Radio is preinstalled",
-   "anchors": [
-    "entitlementsmanager.cxx",
-    "entitlementsVersionChanged",
-    "/entitlements/api",
-    "entitlementsmanager.cxx",
-    "RRuntimeZPPolicy",
-    "isEntitlementOn",
-    "internalMuseSubscribeToEntitlements",
-    "<Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\" />"
-   ],
+   "summary": "/entitlements/api + \"using cloud URL: %s\" + X-Sonos-User-Id header + cache {cache-control,etag} + \"cloud entitlements: rc %d, http %d\"; internals {savePendingEntitlementsLocked,entmt,\"unable to fire internal changed event\",\"calling notifyClients\",\"triggering version changed muse event\",entitlements_manager,entitlements_mgr,\"failed to get valid userId\",\"Failed to get Entitlements Cache\",\"No valid HTTPCacheManager\",\"entitlements for \"%s\" changed\",\"scheduled job to consider updating Sonos Radio\"}; \"Insufficient buffer for header line [%s]\"",
    "evidence": [
     {
      "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
      "status": "confirmed",
-     "address": "0x10ebfa1a",
-     "notes": "entitlementsmanager.cxx"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10f9630c",
-     "notes": "entitlementsVersionChanged"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ebf908",
-     "notes": "/entitlements/api"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ebfc8c",
-     "notes": "<Entitlement type isTrial sku startDate endDate codes> schema"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10e9b39c",
-     "notes": "SBiz entitlement gates Sonos Radio preinstall"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10e88d38",
-     "notes": "RRuntimeZPPolicy ctor wires localSettingsMgr+entitlementsMgr"
+     "address": "0x10ebf80c",
+     "notes": "entitlements block"
     }
-   ],
-   "schema": "<Entitlements><Entitlement type= isTrial= sku= startDate= endDate= codes= /></Entitlements> \u2014 entitlement records carry an SKU and validity window",
-   "lifecycle": "cached entitlements returned from local store ('returning entitlements from cache'); refreshEntitlements fetches from cloud ('requesting entitlements from cloud', 'cloud entitlements: rc %d, http %d'); on ENTITLEMENTS_CHANGED the old set is stashed then compared ('stashed existing entitlements to compare later'); 'stale entitlements; scheduling job to refresh'",
-   "muse": "v1/users/{userId}/entitlements, v1/households/{householdId}/entitlements + users/{userId} scoped; internalMuseSubscribeToEntitlements pushes entitlements_changed / entitlementsVersionChanged events; 'savePendingEntitlementsLocked'",
-   "gating": "isEntitlementOn/processEntitlements feed RRuntimeZPPolicy ([localSettingsMgr=%s,entitlementsMgr=%s]) \u2014 the runtime policy engine; SBiz entitlement blocks Sonos Radio preinstall ('found SBiz entitlement; blocking preinstall of Sonos Radio' vs 'no SBiz entitlement; preinstalling Sonos Radio')",
-   "cloud_api": "GET /entitlements/api with X-Sonos-User-Id header + \"Cache-Control: max-age=0\"; \"cloud entitlements: rc %d, http %d\"",
-   "cache": "HTTPCacheManager-backed; stash-compare on refresh (\"stashed existing entitlements to compare later\"); \"cache re-populated on refresh\"/\"TTLs updated on refresh (data unchanged)\"; \"Cache format unexpected\"/\"Corrupt Cache\"/\"Cache unpopulated\"; cold-start only-empty warning",
-   "events": "entitlements for \"%s\" changed -> internal event + \"triggering version changed muse event\" (ENTITLEMENTS_CHANGED) + notifyClients; side-effects: \"scheduled job to consider updating Sonos Radio\" / \"Sonos Business MSP\"",
-   "methods": [
-    "savePendingEntitlementsLocked",
-    "onCacheUpdate",
-    "scheduled refresh",
-    "Fetch from cloud"
-   ],
-   "source": "entitlementsmanager.cxx literals 0x10ebf7d0-0x10ebfdec"
+   ]
   },
   "factory_reset": {
    "status": "partial",
@@ -121155,7 +121090,17 @@
    ]
   },
   "dsp_params": {
-   "pcm_decoder": "decoder_pcm guards {Invalid frame size,Unsupported input rate,Invalid number of input samples}; <DEC_SampleRate>; event-mgr {Add fd for object,Spurious Input Event 0x%x,Object %s was not formally released}"
+   "name": "/drc /staticparams /dynamicparams",
+   "status": "partial",
+   "summary": "errors {error parsing mode state,error parsing bass extraction mode,error parsing dap profile mode}; /drc {boost}; /staticparams {speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; /dynamicparams {oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal}; \"Config %s not found, loading default\" + /default",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe6a4c",
+     "notes": "dsp params block"
+    }
+   ]
   },
   "network": {
    "netsettings_mgr": "file netsettings.json + HHSettings + schema upgrade; 4 PSK classes {HhPsk,ControlPsk,RoomEncPsk(room name encrypt),LanSwapPsk} each + Backup variant, rotation \"PSK rotation successful (HH/Control/RoomEnc/LanSwap)\" + version bump; encoding {SonosNet key,DTLS HH PSK}; netstartd push {netsettings,PSK,channel change \"Pushed SonosNet channel change to %u for %u ms\"}; SonosNet-disable test-mode auto-revert FSM {sn_en,sn_dis,sn_dis_test}: \"schedule automatic revert in %d seconds\"/\"SonosNet was re-enabled\"/\"Disable succeeded (probably)\"/\"automatic revert failed!\"; SSID protection \"Registering for next topology update to protect SSID\"; \"Pending netsettings.json update discarded after replicating\"",
@@ -121665,7 +121610,8 @@
   "cloud": {
    "get_api": "callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags",
    "headers": "outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; \"HTTP Header did not fit in char array\"",
-   "ssl_cache": "ssl_client_cache page + \"private, max-age=15780000\" + \"Skipping HH SSL cache refresh - device is not idle\" + \"SSL client cache refresh next run in %ld seconds\""
+   "ssl_cache": "ssl_client_cache page + \"private, max-age=15780000\" + \"Skipping HH SSL cache refresh - device is not idle\" + \"SSL client cache refresh next run in %ld seconds\"",
+   "fcs_gate": "\"Disabling SSL client cache refresh per FCS\"; \"Loading SSL client cache after UTC time became available\"; TrustDevCertChangedEvent"
   },
   "music_services": {
    "name": "musicservices \u2014 available-services replication",
@@ -122501,6 +122447,32 @@
      "status": "confirmed",
      "address": "0x10fba544",
      "notes": "led hw block"
+    }
+   ]
+  },
+  "ssh_keys": {
+   "name": "/ssh/authorized_keys management",
+   "status": "partial",
+   "summary": "params {ssh_key,button,remove_keys}; ops {\"SSH auth key added to authorized keys file\",\"SSH authorized keys file removed\"}; dropbearkey /usr/bin/dropbearkey + host key /jffs/persist/ssh/dropbear_ecdsa_host_key + ecdsa-sha2-nistp256; fingerprint formats {pubkey,sha256-base64,md5-hex}; gated by R_ALLOW_SSH_PUBKEY_INSTALL (per gap audit)",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10efefb4",
+     "notes": "ssh block"
+    }
+   ]
+  },
+  "exec_pages": {
+   "name": "/status exec-page commands",
+   "status": "partial",
+   "summary": "{/debugfiles:\"/bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug\",/du-jffs:\"/usr/bin/du -a -d 5 -k -x /jffs\",/ifconfig:\"/sbin/ifconfig\",/lsmod:\"/sbin/lsmod\",mount:\"/bin/mount\",/netstat:\"/bin/netstat -an\",/ntpsources:\"/bin/chronyc -n sources -v\",ps:\"/bin/ps\",/route:\"/sbin/route -n\",/scanresults:\"/wifi/athconfig scangetresults ath0\",/showmacs:\"/usr/sbin/brctl showmacs br0\",free:\"/usr/bin/free\",date:\"/bin/date\"}; jobs {RefreshSSLCache,\"Save SSL Client Cache to JFFS\",SaveSSLCache}; more {/showports:\"brctl showports br0\",/showstats:\"brctl showstats br0\",/showstp:\"brctl showstp br0\",uptime:\"/usr/bin/uptime\"}; file pages {/VERSION,/etc/resolv.conf,/jffs/app/log/anacapa.log.backup,/jffs/app/log/upgrade_mgr.log,/jffs/irconfig.txt,/jffs/localsettings.txt,/jffs/netstartd_prev.log,/jffs/recovery.log,/jffs/recovery_prev.log,/jffs/settings/alarmclock.xml,/jffs/settings/areas.json,/jffs/settings/cloudconfig.json,/jffs/settings/householdsettings.json,/jffs/settings/zones.json,/jffs/settings/zpMetricsConfigV2.xml,/jffs/shadow/stats,/jffs/sys/log/setup{,_ok}/setup.{dmesg,log},/jffs/upgrade{,_prev,_tmp_prev}.log}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e74f10",
+     "notes": "exec table"
     }
    ]
   }
