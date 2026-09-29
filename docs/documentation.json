@@ -116330,6 +116330,52 @@
     "recover failed delegation",
     "new SSID"
    ]
+  },
+  "ducking_engine": {
+   "name": "duck.cxx \u2014 muse/voice audio ducking",
+   "policies": [
+    "ignore-if-mic-present-or-tv-playing",
+    "ignore-if-mic-present",
+    "ignore-if-tv-playing",
+    "always-ignore",
+    "always-apply"
+   ],
+   "policy_key": "R_MuseDuckingPolicy consumer: \"muse ducking policy: %x -> %x\",\"initial muse policy %x\"",
+   "flags": "64-bit duck-flag masks queued per zone: \"Queueing ducking bit from %s 0x%016llx - %d\"/\"zone %d received ducking bit\"/\"Dequeueing\"; expireRemoteDuckingFlags + duck_tracker_mtx; local bit DUCKING_LOCAL_MUSE auto-clears by timeout",
+   "targets": [
+    "all secondaries",
+    "group coordinator",
+    "bonded peer"
+   ],
+   "ops": [
+    "fastvolduck (fast volume duck)",
+    "duckOrUnduck",
+    "clearMuseFlag",
+    "runDuckingHeartbeat",
+    "FV:GC-HB/FV:GC (fast-volume GC heartbeat)"
+   ],
+   "gates": "decision chain: globally disabled -> drop; voice-enabled device -> drop muse duck req; playing tv -> drop; gc/avt acquisition failure -> honor anyway; else honor + forward \"Forward %s %d to %s %s\" (fail \"failed to forward duck command %s to %s\")",
+   "vli_types": [
+    "vli_airplay",
+    "vli_bt",
+    "vli_ot (other)"
+   ]
+  },
+  "stream_error_counters": {
+   "streams": "stream_{music,tts,chirp,tv}_{init_sync,lack_data_no_drain,read_err_full,read_err_part_data}",
+   "ht": "stream_ht_{silence_played,plc_played}",
+   "tv_decoder": "tv_decoder_error_{dd,ddp,mat,pcm,dts1,dts2,dts3} + tv_decoder_dsp_error_dap",
+   "tv_misc": [
+    "tv_asrc_error",
+    "tv_dialog_extractor_error",
+    "tv_input_error",
+    "tv_input_overflow"
+   ],
+   "tvp": "tvp_stream_{uflw,err}, tvp_stream_sats_{uflw,err}, tvp_stream_dmix_{uflw,err}",
+   "other": [
+    "xfade_err"
+   ],
+   "note": "perfcounter names from duck.cxx block 0x10ebec14-0x10ebef98 \u2014 these are the audio pipeline error taxonomy"
   }
  },
  "subsystems": {
