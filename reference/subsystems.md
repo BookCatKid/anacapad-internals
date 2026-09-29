@@ -3845,6 +3845,7 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
   - **loop:** submit: Success \| Nothing to submit \| 'Failure (%u events, %zu bytes, attempt %u, retrying in %u seconds)'; proto path separate 'Proto Event Upload Success/Failure'; bounded buffer 'adding %zu bytes, %d free' / 'Can't grow space. Losing event %s' / drop counter LostEvents
   - **naming:** event names parsed "%\[^/\]/%\[^/\]" (namespace/name), malformed rejected; fields locid, sys/run/updateID, uptime, report flags 0x%x, UsageMetrics
   - **confidence:** PROVEN persistence format + retry + integrity
+- **sdata_category_registry:** .sdata registry @0x11095d88: three fn-table ptrs (0x10fce6d8/0x10fce65c/0x10fce638 - callback blocks in the eSDK code region) followed by {name_ptr, u32=4} pairs naming channels {api, zc, download, audio, esdk}. 'esdk' is referenced by 10 fns in the eSDK region (0x10cf8-0x10d4c); 'api'->f_10331f34; 'download'->f_105a7e78/f_1068baa4; 'audio'->f_107d5b0c. Consistent with the libsonoseventreporter init_event_ctx/report_event channel registry; priority/weight word constant 4.
 <details><summary>Evidence (7)</summary>
 
 - @ 0x10eeb50d — reportuploader.cxx
