@@ -3046,10 +3046,7 @@
   - <strong>schema:</strong> <Entitlements><Entitlement type="%s" isTrial="%s" sku="%s" startDate="%s" endDate="%s" codes="%s"/></Entitlements>
   - <strong>fields:</strong> <code>type</code>, <code>isTrial</code>, <code>sku</code>, <code>startDate</code>, <code>endDate</code>, <code>codes</code>
   - <strong>confidence:</strong> PROVEN
-- <strong>/audiocore:</strong>
-  - <strong>render:</strong> f_102a595c
-  - <strong>schema:</strong> <AudioCore> member dump </AudioCore>
-  - <strong>confidence:</strong> PROVEN wrapper
+- <strong>/audiocore:</strong> <AudioCore> + <SoundDevice><Zones>…</Zones></SoundDevice> + <DSPStateManager><Zones>…</Zones></DSPStateManager> + <PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>
 - <strong>/track_queue_summary:</strong>
   - <strong>render:</strong> f_10265324
   - <strong>schema:</strong> <TrackQueueSummary> member dump </TrackQueueSummary>
@@ -3063,43 +3060,47 @@
 - <strong>/root_cert_bundles:</strong>
   - <strong>schema:</strong> <RootCertBundleInfo><Bundles><CurrentBundle><BundleVersion/><BundleID/><IsFallback/></CurrentBundle><CachedCloudBundle><BundleVersion/><BundleID/><ETag/></CachedCloudBundle><PreviousBundle><BundleVersion/><BundleID/></PreviousBundle></Bundles></RootCertBundleInfo>
   - <strong>confidence:</strong> PROVEN (reportuploader 0x10eeb9b4+)
-  - <strong>unresolved_pages:</strong> /ai_speech_enhance /analoglinein /api queue /decoder /dnscache /dmesg /hls /htconfig /renderingcontrol /settings/<em> /spdiftap /topology /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
-- </em><em>admin_post_endpoints:</em><em>
-  - </em><em>provenance:</em><em> master route table {name</em>,handler<em>} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
-  - </em><em>endpoints:</em><em>
-- </em><em>/setstring:</em><em>
-  - </em><em>handler:</em><em> f_100b7cb4
-  - </em><em>method:</em><em> POST
-  - </em><em>content_type:</em><em> application/x-www-form-urlencoded
-  - </em><em>params:</em><em> <code>key</code>, <code>value</code>, <code>csrfToken</code>
-  - </em><em>response:</em><em> <h2>System Settings</h2>Setting changed | HTTP Error %d
-  - </em><em>headers:</em><em> <code>Cache-Control: no-cache, no-store, must-revalidate</code>
-  - </em><em>note:</em><em> raw SystemProperties write — arbitrary settings key/value with CSRF gate
-- </em><em>/removestring:</em><em>
-  - </em><em>handler:</em><em> f_100b79e0
-  - </em><em>method:</em><em> POST
-  - </em><em>params:</em><em> <code>key</code>, <code>csrfToken</code>
-  - </em><em>response:</em><em> <h2>Remove System Setting</h2>Setting removed
-  - </em><em>note:</em><em> raw SystemProperties delete
-- </em><em>/mdnsannounce:</em><em>
-  - </em><em>handler:</em><em> f_100c1230
-  - </em><em>method:</em><em> POST
-  - </em><em>params:</em><em> <code>csrfToken</code>
-  - </em><em>response:</em><em> Success | Failed to trigger ResendResponses: %i
-  - </em><em>note:</em><em> triggers mDNS ResendResponses on mod_zp (re-announce/Goodbye)
-- </em><em>/sonarctl:</em><em>
-  - </em><em>handler:</em><em> f_100bc354
-  - </em><em>method:</em><em> POST
-  - </em><em>params:</em><em> <code>flush</code>
-  - </em><em>response:</em><em> Flushed
-  - </em><em>note:</em><em> flushes pending sonar tones via sonar-tone (mod_zp)
-  - </em><em>ranges_literal:</em><em> /ranges; boundary=##123456789###BOUNDARY @0x10e72241 — multipart range-request response boundary template (HTTP 206 partial content)
-- </em><em>resolved_extra_handlers:</em><em>
-  - </em><em>/content/api:</em><em> f_102fd76c — translateId bridge: fields {objectId,serviceId-&gt;targetSid,targetObjectId}; outbound catalog/id/%s?destinationServiceId=%s; translation cache (cache.h) "saved/retrieved translation from cache"; errors objectId/serviceId/targetObjectId missing, "cannot perform translateId request"
-  - </em><em>/bridge/content/api:</em><em> f_1048f3a4 — getContent proxy w/ "service base path: %s", per-call timing "getContent took %ld ms: %s", "getContent parse failed"
-  - </em><em>/entitlements/api:</em><em> f_1037120c — entmt obj; "using cloud URL: %s"; cache-control/etag headers; onCacheUpdate; "cloud entitlements: rc %d, http %d"
-  - </em><em>/ZPs:</em><em> f_104d1b74 — upgrade_mgr JSON report emit {SystemResult,Result,DownloadDuration,ExtendedError}; "report array size mismatch (%d/%zu)"
-  - </em><em>/authz:</em><em> f_1060363c — resolveToken proxy to muse: logs token masked </em><strong><em>*</em>%s; fields {apiKey,credential,responseResolveToken}; cache-control passthrough; "Failed to resolve token http=%d"/"Failed to parse token response"
+- <strong>/renderingcontrol:</strong> <RenderingControl><DuckingFlags>%s</DuckingFlags><SodVolume>%d</SodVolume><ExtVolume>%d</ExtVolume><AudioCoreReady>%s</AudioCoreReady><DeviceTime>%d.%06d</DeviceTime></RenderingControl> — literals found in f_100b8f2c handler body (previously listed unresolved; the stub tail-calls into the shared emit fn but the schema literals sit in the handler itself)
+- <strong>/decoder:</strong> <MusicDecoder><LastActiveDecoder>%s</LastActiveDecoder></MusicDecoder>
+- <strong>/topology:</strong> <ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d"><SonosNet Disable="%d"/><SonosNet Frequency="%d"/><Network SSID="%s" Flags="%d"/><BackupLanSwapPsk id="%s"/></ReplicatedNetSettings> — shared emitter also used by /wireless,/dmesg,/netsettings.<em>,/ssidlist.txt (same render lib)
+- </em><em>/radiolog:</em><em> <PerformanceCounterTables> (perfcounter table emitter shared with /perfcounters) + radio log tail
+  - </em><em>unresolved_pages:</em><em> /ai_speech_enhance /analoglinein /api queue /dnscache /dmesg /hls /htconfig /settings/</em> /spdiftap /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler) — /dnscache etc. emit via the shared CpuMonitor/member-dump libs (register-indirect member fns on global app object @0x11095f88)
+- <strong>admin_post_endpoints:</strong>
+  - <strong>provenance:</strong> master route table {name<em>,handler</em>} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
+  - <strong>endpoints:</strong>
+- <strong>/setstring:</strong>
+  - <strong>handler:</strong> f_100b7cb4
+  - <strong>method:</strong> POST
+  - <strong>content_type:</strong> application/x-www-form-urlencoded
+  - <strong>params:</strong> <code>key</code>, <code>value</code>, <code>csrfToken</code>
+  - <strong>response:</strong> <h2>System Settings</h2>Setting changed | HTTP Error %d
+  - <strong>headers:</strong> <code>Cache-Control: no-cache, no-store, must-revalidate</code>
+  - <strong>note:</strong> raw SystemProperties write — arbitrary settings key/value with CSRF gate
+- <strong>/removestring:</strong>
+  - <strong>handler:</strong> f_100b79e0
+  - <strong>method:</strong> POST
+  - <strong>params:</strong> <code>key</code>, <code>csrfToken</code>
+  - <strong>response:</strong> <h2>Remove System Setting</h2>Setting removed
+  - <strong>note:</strong> raw SystemProperties delete
+- <strong>/mdnsannounce:</strong>
+  - <strong>handler:</strong> f_100c1230
+  - <strong>method:</strong> POST
+  - <strong>params:</strong> <code>csrfToken</code>
+  - <strong>response:</strong> Success | Failed to trigger ResendResponses: %i
+  - <strong>note:</strong> triggers mDNS ResendResponses on mod_zp (re-announce/Goodbye)
+- <strong>/sonarctl:</strong>
+  - <strong>handler:</strong> f_100bc354
+  - <strong>method:</strong> POST
+  - <strong>params:</strong> <code>flush</code>
+  - <strong>response:</strong> Flushed
+  - <strong>note:</strong> flushes pending sonar tones via sonar-tone (mod_zp)
+  - <strong>ranges_literal:</strong> /ranges; boundary=##123456789###BOUNDARY @0x10e72241 — multipart range-request response boundary template (HTTP 206 partial content)
+- <strong>resolved_extra_handlers:</strong>
+  - <strong>/content/api:</strong> f_102fd76c — translateId bridge: fields {objectId,serviceId-&gt;targetSid,targetObjectId}; outbound catalog/id/%s?destinationServiceId=%s; translation cache (cache.h) "saved/retrieved translation from cache"; errors objectId/serviceId/targetObjectId missing, "cannot perform translateId request"
+  - <strong>/bridge/content/api:</strong> f_1048f3a4 — getContent proxy w/ "service base path: %s", per-call timing "getContent took %ld ms: %s", "getContent parse failed"
+  - <strong>/entitlements/api:</strong> f_1037120c — entmt obj; "using cloud URL: %s"; cache-control/etag headers; onCacheUpdate; "cloud entitlements: rc %d, http %d"
+  - <strong>/ZPs:</strong> f_104d1b74 — upgrade_mgr JSON report emit {SystemResult,Result,DownloadDuration,ExtendedError}; "report array size mismatch (%d/%zu)"
+  - <strong>/authz:</strong> f_1060363c — resolveToken proxy to muse: logs token masked <strong><em>*</em>*%s; fields {apiKey,credential,responseResolveToken}; cache-control passthrough; "Failed to resolve token http=%d"/"Failed to parse token response"
   - </strong>/auth/oauth/v2/validate:<strong> f_1063fe2c — outbound fmt /auth/oauth/v2/validate?access_token=%s
   - </strong>/v2/diags:<strong> f_106b6da0 — diagnostic submit: form-data {originator,serial_num}; submit logs "%s for %s submitted (ID: %s, GUID: %s)" w/ guid-confirm mismatch check; "Local diagnostic" type; Diagnostic stub
   - </strong>/settings/api/v1/locations/:<strong> f_105dd808 — locSetUpdMgr: processUpdateAllSettings GET /settings/api/v1/locations/%s/effectiveSettings conditional [etag|version] + Last-Modified; X-Sonos-Corr-Id; keys {source,initial}
