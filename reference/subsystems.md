@@ -39,6 +39,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cloud_synchronizer` | **partial** | cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d" |
 | `cpu_monitor` | **partial** | reads /proc/stat; header " \[%d\] usr sys idle sIRQ \| irqD dMS"; row " \[%d\]  %2u  %2u   %2u   %2u \| %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%" |
 | `crash_report` | **partial** | {procName,numCrashes,uploadResp,playerCrash,lifetime}; "%s %s crash event, crashCount: %i"; Reported/Failed to report |
+| `crossfade` | **partial** | {"attempting to crossfade with underflowed stream","recovered crossfade stream underflow","crossfade %zu samples","attempting to int16 crossfade with empty stream, clearing crossfade","unknown stream type in int16 crossfade: %d","crossfaded %zu bytes (%zu samples, %zu usec), %zu more samples to fade this frame, %zu samples to fade","unknown stream type in crossfade: %d","ending xfade","xfade already on - %zu samples remain unwritten","xfade corked stream: replace buffered data via non-xfade overlap","xfade timestamp too far in past, nst %d.%06d, pt %d.%06d","set xfade lfnf","xfadeable timestamp","inserting volume norm ramp: %d @time %d.%06d","xfade for %zu samples, %f seconds","xfade gap, samples %zd","starting xfade (xfade %s)"}; fmt %ld:%02ld:%02ld; "notifyStateChange \[%s\]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld" + "notifyStateChange music quality: %s" |
 | `csfcm` | **partial** | csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free'}; log fmt '%s:%05d \[%s\] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s' |
 | `daemon_ipc` | **partial** | routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/sonosledmgrd-external,/netstartd-external} proxy to sibling daemons; watchdog {/watchdog,/watchdog-legacy,/legacy-to-sentry,/upload} + attachments {watchdog_log,watchdog_dmesg} + crashdump; sentry {"No URL found to upload dump file: %s",text/plain; charset="us-ascii","Failed to write attachment %s to sentry upload",sentry\[tags\]}; flags {/tmp/anacapa_prevent_crashdump_upload,/tmp/backtrace,/tmp/crashed_play_state,/jffs/app/debug/sonosledmgrd.dmp,/opt/log/btservice.log}; "writeStream failed - Bytes compressed: %d/%d" + htsnk |
 | `dataio` | **partial** | dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-control,max-age=,ETag,WWW-Authenticate}; errors {'populate client config failed','unexpected response condition','parse_key failed',"Couldn't load api header, error 1/2"}; awaitAvail {'tried to read %zu bytes where only %zu available','range limited %zu bytes available','socket is closed','took %ldms (e:%d b:%zu w:%zu sbo:%d)'}; SSL 'SSL %s error -0x%x %d to %s with local port %u' + session ticket during dataio SSL read; http {'http readable but 0','http read error %d %s','http timeout'}; header validation {'Bad HTTP Header','BAD HTTP Header EOR mismatch Actual: %zu, Exptd: %zu','BAD HTTP Header EOR out-of-bond'} |
@@ -131,7 +132,6 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `perfect_sync` | **partial** | "perfect initial sync %d.%06d, available %u"; forcePerfectInitialSync + "Forced perfect initial sync %s on stream %s"; "forced perfect initial sync, ignoring %d usec diff" |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
 | `playlist_parsers` | **partial** | iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction ("found linkUrl"); Post-stream readData dump {bytesLeft,len,buf} |
-| `protocol_info` | **partial** | rows {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:audio/mpeg3:*,sonos.com-http:*:audio/wma:*,sonos.com-http:*:audio/wav:*,sonos.com-http:*:audio/aiff:*,sonos.com-http:*:audio/flac:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-http:*:application/ogg:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls-static:*:*:*,sonos.com-http:*:application/dash+xml:*,sonos.com-http:*:application/octet-stream:*,x-sonosapi-hls:*:*:*,sonos.com-http:*:audio/mp4:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; prefixes {sonos.com-http,sonos.com-mms,sonos.com-spotify,sonos.com-rtrecent,sonos.com-hls-static,sonos.com-hls-radio,sonos.com-hls-aac}; audio/vnd.radiotime; ext map {.wav,.aiff,.flac,.mpd,.unknown}; "Unsupported mime type (%s) for object id (%s)" |
 | `psk_hierarchy` | **partial** | PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each +Backup mirror id; rotation {"Unable to generate new HH/control/room name encrypt/lan swap PSK","Unable to update settings with new PSKs","PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)","Bumping netsettings version","not rotated"}; encoding {"Encoding SonosNet key failed","Encoding DTLS HH PSK failed"}; "Pending netsettings.json update discarded after replicating"; "Settings Replication changed SN Disable from %d to %d (source: %s)"; SSID protection {"SSID missing from known networks list","Registering for next topology update to protect SSID","Current SSID protected/already protected/not protected, could not get current SSID/missing from networks list","Not connected to a WiFi network, skipping SSID protection"}; "Received netsettings update from netstartd"/"netsettings changed"; app/run/nettestresult.txt |
 | `qplay` | **partial** | QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support |
 | `qplay_protocol` | **partial** | Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route — the only service missing its event pair), a QPlayAuth action taking Seed/Code/MID/DID arguments (seed→code auth handshake: controller sends Seed, device answers with a Code computed from MID machine-id and DID device-id), a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> |
@@ -153,6 +153,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `smartplay` | **partial** | reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge/content/api + "service base path: %s"; timings {"loadContent took %ld ms: GroupId %s GC %s %s","getContent took %ld ms: %s","fetchContentAndStartPlay took %ld ms, success: %s"}; errors {loadContent failed,getContent parse failed,getContent failed} |
 | `sntp_server` | **partial** | Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling |
 | `sonarctl_detail` | **partial** | gate f_105489fc → method check (r9==1 POST?) → f_100b4614+f_100b4364+f_100b4388 response helpers; flushes sonar tones ("flushing sonar tones"/"Flushed") |
+| `sonoscp` | **partial** | vars {reports,playbackPolicies}; errors {"Unable to validate specified service id %u","ignoring unsupported object %s","could not identify default account for object %s","cannot map content type %s to SMAPI protocol \[accountId:%s,sid:%s,obj:%s\]","cannot generate SMAPI URL"}; CQ URI cache {"Fetching CQ itemId %s using cached trackURI.","Adding track URI for itemId %s to cache.","Invalidating CQ track URI cache.","CloudQueueWindow init: %s"}; audio/x-spotify |
 | `sound_device` | **partial** | syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample width inconsistency}; system/src_disable + StdQ ASRC Coeffs + "Running with SRC bypassed"; orientation sensing; "reset vcxo"; health flags {AMP_CURRENT_WARN,AMP_FAULT_WARN,AUDIO_WARN_TEMP,CPU_WARN_TEMP,CPU2_WARN_TEMP,SOC_WARN_TEMP,AMP_CURRENT_FAULT,AMP_FAULT,AUDIO_FAULT_TEMP,CPU_FAULT_TEMP,CPU2_FAULT_TEMP,SOC_FAULT_TEMP,PS36_FAULT,UV36_FAULT,UV14_FAULT,POWER_WARN_TEMP,POWER_FAULT_TEMP,MOTION_FAULT_TEMP,MOTION_WARN_TEMP}_STATUS |
 | `sound_swap` | **partial** | sound_swap/audio_swap; queue audioSwapEventQueue + progress audioSwapProgress; behaviors SWAP_BEHAVIOR_{DO_NOTHING,PUSH_SWAP,PULL_SWAP,UNDEFINED}; push/pull disband target\|initiator group; HTSatelliteChecker gates (isFound,isHTSat,playerUDN,HTPrimaryUDN + topology/group-props/GC-AVT lookups); FSM "New state: %i"/"Event %i not handled in state %i"/transition-failure -> reset; result fields {swapResult,swapType,swapTarget,swapGC,initAction,candCount,respCount}; gates {bonded zone,HT Satellite,unknown state,unswappable audio,already in progress}; muse calls museCmdSetGroupMembers/museCmdModifyGroupMembers via groups/%s/groups/modifyGroupMembers |
 | `spdif_detect` | **partial** | detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3),NULL Burst,Pause Burst}; unsupported taxonomy {AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1/2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1-3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA,Unsupported} |
@@ -211,6 +212,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cloud_registration` | **?** |  |
 | `cloud_services` | **strong** | host patterns {sslauth.sonos.com,https://%s-%s.lower-sslauth.sonos.com%s,https://%s.%s%s,lechmere.%s.ws.sonos.com,/firmware/swgen/%u/latest/}; service names {clientdata,crash-upload,feature-config,music-history,lechmere-v1,music-accounts,myaccount,oauth,player-device-files-ab,product-settings,recommendation,registration,service-catalog,sonos-nonprod,apigee.net,smart-play,system-api,system-api-diagnostics,transfer,translate,universal-search,msmetrics}; CSRFToken var |
 | `content_directory` | **strong** | dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:service:ContentDirectory:1}; locales {zh-CN,ja-JP}; event vars {SystemUpdateID,ContainerUpdateIDs,ShareIndexInProgress,ShareIndexLastError,FavoritesUpdateID,RadioFavoritesUpdateID,RadioLocationUpdateID,SavedQueuesUpdateID,ShareListUpdateID,cdMediaServer}; actions {Browse,CreateObject,DestroyObject,FindPrefix,GetAlbumArtistDisplayOption,GetAllPrefixLocations,GetBrowseable,GetLastIndexChange,GetSearchCapabilities,GetShareIndexInProgress,UpdateObject,SCHED}; args {BrowseDirectChildren,BrowseMetadata,BrowseFlag,RequestedCount,SortCriteria,NumberReturned,TotalMatches,ContainerID,Elements,CurrentTagValue,NewTagValue,SortOrder,TotalPrefixes,PrefixAndIndexCSV,Browseable,IsBrowseable,IsIndexing,SortCaps,SearchCaps}; logs {"UpdateObject returned %d; ObjectID: %s; Elements: %s","notifyUpdateID('%s', %u)","Bad Browse flag %s","Bad Object ID %s","Browse %s ObjectID: %s;","MetaData failed %d"}; DIDL URNs {upnp/\|class,upnp/\|albumArtURI,rinconnetworks/\|http,rinconnetworks/\|albumArtist,rinconnetworks/\|description} |
+| `customsd` | **strong** | POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name (blank erases),secureUri,pollInterval}; authType radio {UserId=Session ID,Anonymous,DeviceLink=Device Link,AppLink=Application Link}; optional {stringsVersion+stringsUri,presentationMapVersion+presentationMapUri,manifestVersion+manifestUri}; containerType {MService=Music Service,SoundLab=Sonos Sound Lab}; caps checkboxes {search,trFavorites,alFavorites,arFavorites(commented out),ucPlaylists,logging,playbackLogging,accountLogging,extendedMD(+radioExtendedMD,playlistExtendedMD gated),disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader} |
 | `datatap` | **?** |  |
 | `device_props` | **?** |  |
 | `devmode` | **?** |  |
@@ -235,6 +237,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `nodetx` | **?** |  |
 | `player_settings` | **strong** | keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq (treble),eq (bass),eq (loudness),gainTrimDB,zone attributes}; volume modes incl PASS_THROUGH ("EQ cannot be adjusted in PASS_THROUGH volume mode") + "Device does not support fixed output"; "Satellites not supported; configure primary device"; "monoMode (not supported in setup)"; wifiDisable reasons {reason unknown,netstart refused,no Ethernet carrier,meshDisable (netstart refused)}; "Netstart failed to modify meshDisable setting"; "Unable to set setting(s): ... (unsupported)"; actors {PlayerSettings,PlayerSettingsManager,playersettingsmgr,gmSat,ukwnt} |
 | `product_models` | **strong** | codenames {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-T,TitanWOW-P,TitanWOW-G,Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Optimo2,Optimo1}; ZPS ids {ZPS11,ZPS12,ZPS13,ZPS14,ZPS15,ZPS16,ZPS17,ZPS18,ZPS19,ZPS20,ZPS21,ZPS22,ZPS23,ZPS24,ZPS26,ZPS27,ZPS31,ZPS35,ZPS37,ZPS38,ZPS43,ZPS54,ZPS55,ZP120,ANVIL}; dspconfigparam + "ConfigParam lookup from player model %d failed" |
+| `protocol_info` | **strong** | schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotify,sonos.com-rtrecent,x-rincon,x-rincon-mp3radio,x-rincon-playlist,x-rincon-queue,x-rincon-stream,x-sonosapi-stream,x-sonosapi-hls,x-sonosapi-hls-static,x-sonosapi-radio,x-rincon-cpcontainer}; mime types {audio/mp3,audio/mp4,audio/x-m4a,audio/mpeg,audio/mpegurl,audio/x-mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/dash+xml,audio/mpeg3,audio/wav,audio/x-wav,audio/wma,audio/x-ms-wma,audio/aiff,audio/x-aiff,audio/flac,application/ogg,audio/ogg,audio/x-spotify,audio/x-sonos-recent,audio/x-sonosapi-radio}; vars {SourceProtocolInfo,SinkProtocolInfo,CurrentConnectionIDs}; actors {ConnectionManagerServer,ConnectionManagerRenderer} |
 | `queue_schema` | **strong** | <Queue Name='%s'><EntriesMax>%d</EntriesMax><EntriesUsed>%d</EntriesUsed><EntriesHighWater>%d</EntriesHighWater><StringTableSize>%d</StringTableSize><StringTableUsed>%d</StringTableUsed><StringTableHighWater>%d</StringTableHighWater><UpdateID>%u</UpdateID><ObjectID>%s</ObjectID><OwnerID>%s</OwnerID><Policy>%d</Policy><CloudQueueHost>%s</CloudQueueHost></Queue>; <TrackQueueSummary>Shared/Private</TrackQueueSummary>; GPM {com.google.RemoteSonosReceiver,Google Play Music} |
 | `radiolog` | **?** |  |
 | `registration` | **?** |  |
@@ -830,6 +833,7 @@ resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isE
 
 - **name:** cloud-queue item-window API
 - **work_ops:** ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}
+- **fsm:** ops {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET}; transitions "\[%s\]Changing State: %s(%d) to %s(%d)"+Exited/Entering; requests {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; req params "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'"; events {contextVersionChanged,contextVersion,authTokenChanged,authTokenRefreshed}; headers {X-Sonos-Playback-Id,X-Sonos-Device-Id}; retry policy {"Retry-After (%ds) not allowed for explicit item request in state %s","Resetting due to unexpected state %s on retry","Will retry(%d) %s request in %d seconds after receiving http error code %d","Retry not allowed in state %s. The retries are exhuasted (count = %d)","request retry loop timed out, failing chsrc interaction","change poll interval to %lld sec"}; fields {units,ResponseCode,RetryWait,Caller,ListEntry,queueType,errorId,heard,skipsRemaining,skipLimitReached,jumpToItemId,WINDOW_MISSING_ITEM_ID,Requested Item Id}; window {"Abort window request because desired itemId is unknown; waiting for skipToItem","refreshWindow is fetching first window","refreshWindow server does not support notification",window-edge-condition}; versioning {"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.","Cloud Queue API 'v%u' is unknown; use v%u with this player.","Cloud queue version is %s, at begin %d, at end %d"}; errors {MEDIA_ERROR:NO_ACCT,CloudQueueHistory,Unknown Account}; ops2 {skipNext,skipPrev,queueCompleted,refresh,PlayTTLExpired}; cqfsm
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ec1f8c — cq window block
@@ -878,6 +882,21 @@ reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f028b8 — crashreport block
+
+</details>
+
+## `crossfade`
+
+**coverage** `partial`
+
+**Technical description:**
+
+{"attempting to crossfade with underflowed stream","recovered crossfade stream underflow","crossfade %zu samples","attempting to int16 crossfade with empty stream, clearing crossfade","unknown stream type in int16 crossfade: %d","crossfaded %zu bytes (%zu samples, %zu usec), %zu more samples to fade this frame, %zu samples to fade","unknown stream type in crossfade: %d","ending xfade","xfade already on - %zu samples remain unwritten","xfade corked stream: replace buffered data via non-xfade overlap","xfade timestamp too far in past, nst %d.%06d, pt %d.%06d","set xfade lfnf","xfadeable timestamp","inserting volume norm ramp: %d @time %d.%06d","xfade for %zu samples, %f seconds","xfade gap, samples %zd","starting xfade (xfade %s)"}; fmt %ld:%02ld:%02ld; "notifyStateChange \[%s\]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld" + "notifyStateChange music quality: %s"
+
+- **name:** crossfade engine
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb9ee8 — xfade block
 
 </details>
 
@@ -2491,6 +2510,7 @@ form post committing override file; errors {Error reading request body,Request b
 headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEndTime='The end of the window as UTC wall clock time',description}; 'average value should be 0'
 
 - **name:** perfcounter schema
+- **fields:** metrics {accum,accumBytes=aggregate size of processed frames,aheadTime=amount of audio prebuffered,frameToFrame=time between frames,wouldBlock=transmits blocked count,queueExpiry=queue expiration time,frameTypes,frameSizeBytes,frameSizeSamples,processing indicators,user action,transport error,initial,perf-counters}; windows {"Creating %s window ending at time %lld","Cannot reverse time","Ringbuffer cannot rotate backwards","Rotation required"}; json {wallClockTimeUTC,timeSinceBoot,windowDuration,processName,counters}; "AFC truncated!"
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10eb7e40 — perfcounter
@@ -2556,21 +2576,6 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ed1854 — play_state_mgr region
-
-</details>
-
-## `protocol_info`
-
-**coverage** `partial`
-
-**Technical description:**
-
-rows {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:audio/mpeg3:*,sonos.com-http:*:audio/wma:*,sonos.com-http:*:audio/wav:*,sonos.com-http:*:audio/aiff:*,sonos.com-http:*:audio/flac:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-http:*:application/ogg:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls-static:*:*:*,sonos.com-http:*:application/dash+xml:*,sonos.com-http:*:application/octet-stream:*,x-sonosapi-hls:*:*:*,sonos.com-http:*:audio/mp4:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; prefixes {sonos.com-http,sonos.com-mms,sonos.com-spotify,sonos.com-rtrecent,sonos.com-hls-static,sonos.com-hls-radio,sonos.com-hls-aac}; audio/vnd.radiotime; ext map {.wav,.aiff,.flac,.mpd,.unknown}; "Unsupported mime type (%s) for object id (%s)"
-
-- **name:** GetProtocolInfo — protocolInfo rows
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10f0f62c — protocolinfo block
 
 </details>
 
@@ -3021,6 +3026,21 @@ gate f_105489fc → method check (r9==1 POST?) → f_100b4614+f_100b4364+f_100b4
 <details><summary>Evidence (1)</summary>
 
 - @ 0x100bc354 — handler disas
+
+</details>
+
+## `sonoscp`
+
+**coverage** `partial`
+
+**Technical description:**
+
+vars {reports,playbackPolicies}; errors {"Unable to validate specified service id %u","ignoring unsupported object %s","could not identify default account for object %s","cannot map content type %s to SMAPI protocol \[accountId:%s,sid:%s,obj:%s\]","cannot generate SMAPI URL"}; CQ URI cache {"Fetching CQ itemId %s using cached trackURI.","Adding track URI for itemId %s to cache.","Invalidating CQ track URI cache.","CloudQueueWindow init: %s"}; audio/x-spotify
+
+- **name:** sonoscp content provider
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb9c50 — sonoscp block
 
 </details>
 
@@ -3888,6 +3908,7 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 - **itbt:** seamless handoff rides ITBTT_CHSRC/LINEIN/VLI InterthreadBlockTransport channels; failures "itdbt receive packet failed","incompatible protocol version","END_TX"
 - **chsrc_detail:** framer {"limiting origin hint (was %dms)","framer origin hint, %dms","Framer context (%d.%06d) not found; use latest %d.%06d","Unable to calculate time this frame. m_samplesHandledSinceOrigin:%zu,m_lLastSampleFrequency:%u"}; "RChannelSource Reported Spotify position: %lldms, state: %s, transitionAck: %d"; "Initialize PlayTTL to %u seconds"; "Ignoring playback policy change for context version %s"; "RCHSRCReq Current Op: %s, Current TransactionID: %d"; segment-fetch {"resetSegmentFetchErrors","countSegmentFetchError -> %d","canFetchSegment -> TRUE (no errors)/FALSE (too many errors)/TRUE (retry %d)/FALSE (too soon to retry)"}; PRIV {"logical track MD: %s with %zu bytes of private data","PRIV data for %s is too big, only %zu bytes allowed"}; {"chsrc hint:%d, state:%d","Successfully got stream offset %zu","May have gotten confused","could not get location, using last resume location","Calling updateSharedTQPlayMode in bad context!"}; xfade "xfade duration (%u -> %u)" + "changing volnorm mode (%d -> %d)" + simple:v; queue {"Queue append in progress; not removing tracks","discard audio, no next track/more tracks","abort current"}
 - **chsrc_detail2:** mime checks {"URI \[%d\|%s\] vs \[%s\] MimeType mismatch \[%s\]","mimeType (%s) inconsistent with URI (%s)"} fields {mimeType,uriFrmrID,uriFrmrName,mtFrmrID,mtFrmrName,uriMimetypeMismatch} + framer triple \[f:%d\|u:%d\|m:%d(%s)\]; txfg {mcast addr & port,ucast addr & port,cleared} + delegating=%d; late-joiner {"resendToLateJoiner: starting send at %u","overslept %ldms next:%u","aborting","restarting for new member at %u"}; oob metadata {"oob metadata (%d) %s","now %d (%ld) next metadata at %d (in %u)",cache reset/enabled/disabled,\|ARTIST ,\|ALBUM }; CQ {"Overriding command positionMillis with windowPlayhead.positionMillis","fetch 1st window","skip to first track","skip from track position %d->%d (offset %ld.%06ld > duration)","Corrupted queue resuming from pause at track %d","retrieved stream MD %s w/ itemId","recording state as %d %s (%d.%06d) w/ itemId = %s \[%u\]","badging info %s",<Cloud queue error>,"appendTracksFromReq request was not handled!","Unable to recover from empty programmed radio queue","Queue is busy handling append, will try append for radio in next iter"}; queue completion {completion,"hwr clearing old avt tracks nx=%d tr=%d ct=%d tt=%d","Entering queueCompletion","stopping all playback immediately","Queue already completed"}; expiry {"SMAPI radio tracks expiry time hit -- dumping.","Cloud queue policy pause expiry time hit","Queue content expired"}; defer {"waited too long in DEFER_PLAYING state",DEFER_PLAYING,TRAN_DEFER_PLAY}; timing {"logical track boundary at %u","notifyFrameInternal: behind %dms","ahead %lldms. Sleeping %lu ms, playtime=%d.%06d, sent at=%d.%06d, now=%d.%06d","tracking E_WOULDBLOCK count","E_WOULDBLOCK: playtime...","setting origin time to %d.%06d"}; play-hints {waiting,fast startup,future,met,none,crossfading} "play time start hint X"; buffering {"buffering underflow after %lld ms, requesting resync \[BH:%lld, FH:%u%%, FA:%lld, FR:%d\]","recovered buffering underflow after %lld ms","time to first byte %d","No QualityInfo available (framer = %s)"}; track filters {"skipped duplicate/restricted/explicit/denylisted track %s","found a playable track","start playable track","Skipping track for transition to pause","Upcoming Spotify track is not playable (i.e. restricted)","Upcoming Spotify track filtered for explicit content"}; crossfade {"Setting up for %d.%06d sec crossfade.","Not fading","Previous track had a length of %llds","Next track has a length of %llds"}; transport error "%s Transport error %s for account type %u, URI: %s, friendly name: %s, share/server: %s, path: %s, ip: %s, host: %s, extra info: %s, http: %d, framer: %s, ahead: %d, rate: %d" vars {ratelimit,ahead,trRate,chsrc:te}; files {file://%s/sonar-tone/%s,file:///opt/buzzers/%s,file://%s/%s}; URIs {x-rincon-sonarcal URI truncated,x-rincon-configmode URI truncated,%s URI truncated}; "Apple Music: use the derefenced URI to determine the framer, see CP-7253"; "Overriding seek with value from SMAPI service: %lds"; "PlayTTL expired, pausing playback"; "reporting enqueued stream URI instead of track URI"; "clearing queue per policy"; "Could not determine resume location, disabling pause-at-end behavior"; states {TRAN_PLAYING,TRAN_PAUSED,TRAN_STOPPED,PLAYING_START}; "Resume position (%lds) at or past max allowed position"; RAsyncBufferedStream; ChsrcSysSettingsEvt; reportRadioFail; "Grouping a new player"; "notifyIdle: overshot by %ldms (%ldms lj)"; "Resetting required group caps \[0x%08x\] -> \[0x%08x\]"; "Start streaming %s track (%d/%d) %s; origin is %d.%06d (%zu samples since)"; "Streaming enqueued %s"; "Hit the end of the programmed radio queue"; "Queue policy stop on error"; "resuming from pause at track %d, %ld sec"; "Reporting radio failure %s %s"; "unrecoverable error flagged"; "Downloading %s"; odelay; chsrc:framed; chlog; tvSeek={0, 0} framerStartLoc=0 framerResumePos={%ld, %ld}
+- **op_enum:** chSrcTransportStatus ops {CHANGE_TRANSPORT_URI,BEGIN_ADD_URI_TO_QUEUE,COMMIT_ADD_URI_TO_QUEUE,REMOVE_TRACK_FROM_QUEUE,REMOVE_ALL_TRACKS_FROM_QUEUE,INVALIDATE_RADIO_TRACK_QUEUE,SEEK_TO_TRACK,SEEK_TO_TIME,SEEK_TO_TIME_WITH_ITEM_ID,SET_PLAY_MODE,SET_CROSSFADE_MODE,REORDER_TRACKS_IN_QUEUE,REMOVE_TRACK_RANGE_FROM_QUEUE,RESET_PRIVATE_QUEUE,COMMIT_REPLACE_QUEUE,SKIP_TO_ITEM,REFRESH_CLOUD_QUEUE,CANCEL_ADD_URI,SUSPEND,PREPARE_FOR_DELEGATION,RATE_ITEM,GET_RESUME_STATE,SET_FIRST_TRACK_MIME_TYPE}
 <details><summary>Evidence (2)</summary>
 
 - @ 0x10ea8620 — chsrc.cxx literal block: ops, work-req, tx-fanout, segment retry, PRIV/oob metadata
@@ -3935,6 +3956,21 @@ dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10eb3aac — cd_impl block
+
+</details>
+
+## `customsd`
+
+**coverage** `strong`
+
+**Technical description:**
+
+POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name (blank erases),secureUri,pollInterval}; authType radio {UserId=Session ID,Anonymous,DeviceLink=Device Link,AppLink=Application Link}; optional {stringsVersion+stringsUri,presentationMapVersion+presentationMapUri,manifestVersion+manifestUri}; containerType {MService=Music Service,SoundLab=Sonos Sound Lab}; caps checkboxes {search,trFavorites,alFavorites,arFavorites(commented out),ucPlaylists,logging,playbackLogging,accountLogging,extendedMD(+radioExtendedMD,playlistExtendedMD gated),disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}
+
+- **name:** /customsd custom service descriptor form
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eba2d4 — customsd form
 
 </details>
 
@@ -4182,6 +4218,21 @@ codenames {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWO
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f24808 — model table
+
+</details>
+
+## `protocol_info`
+
+**coverage** `strong`
+
+**Technical description:**
+
+schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotify,sonos.com-rtrecent,x-rincon,x-rincon-mp3radio,x-rincon-playlist,x-rincon-queue,x-rincon-stream,x-sonosapi-stream,x-sonosapi-hls,x-sonosapi-hls-static,x-sonosapi-radio,x-rincon-cpcontainer}; mime types {audio/mp3,audio/mp4,audio/x-m4a,audio/mpeg,audio/mpegurl,audio/x-mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/dash+xml,audio/mpeg3,audio/wav,audio/x-wav,audio/wma,audio/x-ms-wma,audio/aiff,audio/x-aiff,audio/flac,application/ogg,audio/ogg,audio/x-spotify,audio/x-sonos-recent,audio/x-sonosapi-radio}; vars {SourceProtocolInfo,SinkProtocolInfo,CurrentConnectionIDs}; actors {ConnectionManagerServer,ConnectionManagerRenderer}
+
+- **name:** SourceProtocolInfo/SinkProtocolInfo CSV
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb87e4 — protocolInfo CSV
 
 </details>
 
