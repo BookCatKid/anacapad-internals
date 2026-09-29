@@ -380,7 +380,50 @@ identical* — same paths, cap_flags and enabled-gate kinds. The only JSON diffs
 are recompilation address/offset shifts (same router at `0x1019a31c` vs
 `0x101953c8`; same zp cap-fields at `0x5434`/`0x544c` vs `0x5704`/`0x571c`).
 Between 86.8 and 86.10 limelight changed nothing above the arg-descriptor
-layer — `ClearSource` is the sole surface-visible behavioral delta.
+layer — `ClearSource` is the sole SOAP-surface behavioral delta.
+
+**…but the subsystem layer is not frozen.** A normalized `.rodata` string diff
+(21765 vs 21635 literals → 204 genuinely added / 96 removed after folding
+record-packer prefix bytes; full record `rodata_diff_868_vs_8610` in
+`docs/crossbuild_matrix.json`) shows real change *below* the SOAP surface:
+
+- **Muse update API restructured** — 86.8's player-scoped
+  `v1/players/{playerId}/update/household` is gone; 86.10 adds device-scoped
+  `v1/devices/{deviceId}/householdUpdate/{update,status}` (+households
+  variants) and `v1/players/{playerId}/update/status`, with commands
+  `beginHouseholdSoftwareUpdate`/`getHouseholdUpdateStatus`/`getUpdateStatus`
+  rebound onto `deviceId,householdUpdate`/`playerId,update` targets.
+- **User-initiated household update machinery added** — `UserUpdateScheduler`,
+  `auto_update_scheduler.cxx`/`user_update_scheduler.cxx` (replacing
+  `update_scheduler.cxx`), `upgrade_mgr_user_report{,_prev}.json`,
+  `quarantineRecheck`, and a full upgrade-manager state vocabulary
+  (`HELLO_DONE`, `DOWNLOAD_DONE`, `FLASHWRITE{,_DONE}`, `REBOOT{,ING_DONE}`,
+  `POWERING_UP_UPDATED`, `UPDATE_COMPLETE`, `MANIFEST_{DOWNLOAD,PARSE}_FAILED`,
+  `NO_DEVICES_NEED_UPDATE`, `WAKING_UP_FROM_USER`, …).
+- **Muse common layer extracted into sonos-muse-1.0** —
+  `oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx` literals leave
+  anacapad; `sonos-muse/src/sonos/muse/common/{context,eventing,noncehandler}.cxx`
+  appear. The flat 86.8 relative-path subscription table
+  (`zones/*`, `*/subscription`, `authorization/*`) is likewise gone as
+  standalone literals.
+- **5 new feature flags** — `AUTOMATIC_WIRED_SOFTAP`, `EPHEMERAL_BONDING`,
+  `IS_HEADPHONE_MEDIAPLAYER`, `LAN-SWAPPABLE`, `RECONFIGURABLE_OUTPUTS`, plus
+  new feature-config keys (`enableHTSNKv2`, `enableHomeTheaterWifi6GHzFronthaul`,
+  `settings:frontierLlms`, …).
+- **Ungroupable-player guards** — `Rejecting AddMember: GC or new member is an
+  ungroupable player`, `Rejecting x-rincon URI … ungroupable player`,
+  `Grouping ungroupable player to other players is not supported.`, and the
+  `x-sonos-gc-cleared-content` header — matching the new `ClearSource` arg.
+- **Playback guards** — `Delegated VLI session is not playing; skipping
+  pullContext()/become active device … (SWPBL-259788)`, `music context content
+  cannot be swapped`, `Suppressing phantom playback-start after end-of-queue`.
+- **Bundled curl upgrade** — 17.2.6→17.2.7 / 1.53.1→1.54.1 band bump adding
+  DoH machinery, HTTPS DNS resource-record qtypes (`A+HTTPS`, `A+AAAA+HTTPS`),
+  Alt-Svc tracing, happy-eyeballs "baller" race strings, `SSLKEYLOGFILE` TLS
+  secret logging, and HTTP/3 awareness literals.
+
+So: SOAP/UPnP dispatch frozen, arg layer +1 (`ClearSource`), but the REST
+route surface, update machinery, and bundled-library layer all moved.
 
 ---
 

@@ -2295,5 +2295,167 @@
   "claim": "25.2 embeds NO standard UPnP SCPD XML: zero hits for <scpd/serviceStateTable/actionList/argumentList/<stateVariable/sendEvents/<dataType/direction=. Only device-description elements exist (serviceType, controlURL, eventSubURL).",
   "implication": "Argument metadata lives only in the generated registration wrappers (lookupArg->vfunc+0x10 member binders); the SCPD schema layer either isn't served or is synthesized differently in this pre-86.x generation. Arg types/directions for 25.2 actions are therefore not directly recoverable from string tables - they'd need fuller SH4 dataflow through the binder args.",
   "confidence": "proven (absence verified across the whole rodata)"
+ },
+ "rodata_diff_868_vs_8610": {
+  "claim": "Model-9 limelight 86.8-78270 -> 86.10-80260: the SOAP dispatch surface is frozen (m9_868_to_8610_frozen) but the .rodata string diff shows substantial subsystem-level change \u2014 Muse REST update API restructured, upgrade-manager FSM state vocabulary added, 5 new RMuseFeature flags, bundled-curl upgrade with DoH/HTTPS-RR, muse common code extracted into sonos-muse-1.0 shared lib, and new ungroupable-player group-forming guards.",
+  "method": "ELF32-BE-PPC section-parse -> .rodata NUL-string extraction per binary; set-diff with packing-tag normalization (leading 1-3 junk bytes folded by record packers are filtered by requiring no suffix of a 'new' string appear in the other binary's .rodata blob). 21765 vs 21635 strings -> 204 genuinely new / 96 genuinely removed. Zero-prefix variants confirmed via substring check.",
+  "muse_route_delta": {
+   "removed": [
+    "v1/players/{playerId}/update/household",
+    "v1/households/{householdId}/players/{playerId}/update/household",
+    "command playerId,update,beginHouseholdSoftwareUpdate"
+   ],
+   "added": [
+    "v1/devices/{deviceId}/householdUpdate/update",
+    "v1/devices/{deviceId}/householdUpdate/status",
+    "v1/households/{householdId}/devices/{deviceId}/householdUpdate/update",
+    "v1/households/{householdId}/devices/{deviceId}/householdUpdate/status",
+    "v1/players/{playerId}/update/status",
+    "v1/households/{householdId}/players/{playerId}/update/status",
+    "commands deviceId,householdUpdate,beginHouseholdSoftwareUpdate / deviceId,householdUpdate,getHouseholdUpdateStatus / playerId,update,getUpdateStatus"
+   ],
+   "interpretation": "the software-update control surface was restructured: the per-player update/household action split into a player-level update/status query plus a device-scoped householdUpdate {update,status} resource pair (beginHouseholdSoftwareUpdate/getHouseholdUpdateStatus), matching the new user-initiated household-update machinery.",
+   "subscription_table_delta": "86.8 carried a flat relative-path table (authorization/{authenticateClient,authorizeDevice,permissions,policy}, catalog/id, entitlements/subscription, groups/subscription, history/subscription, playback/subscription, zones/{activate,activeZone,deactivate,join,memberSettings,subscription,unjoin}) as standalone literals; absent from 86.10 .rodata \u2014 consistent with the muse code move into sonos-muse-1.0 (subscription/command routing now lives in the shared lib)."
+  },
+  "module_moves": {
+   "to_sonos_muse_lib": "oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx literals gone from anacapad; sonos-muse-1.0/sonos-muse/{src/sonos/muse/common/{context,eventing,noncehandler}.cxx,include/sonos/muse/common/history.h} appear -> muse common layer extracted into the sonos-muse shared library between 86.8 and 86.10",
+   "new_modules": [
+    "auto_update_scheduler.cxx",
+    "user_update_scheduler.cxx (replaces update_scheduler.cxx)",
+    "htaudio_chsnk_processor.cxx",
+    "htaudio_chsnk_processor_stream.cxx",
+    "async_streamio_mgr.cxx",
+    "trueplay_message_handler",
+    "nodetx_vli"
+   ],
+   "removed_modules": [
+    "update_scheduler.cxx",
+    "spotify_abr.cxx (folded into spotify.cxx)",
+    "vli_playback_tracker.cxx",
+    "zonereportmgr.cxx"
+   ]
+  },
+  "update_fsm_vocabulary_added": [
+   "HELLO_DONE",
+   "DOWNLOAD_DONE",
+   "FLASHWRITE",
+   "FLASHWRITE_DONE",
+   "REBOOT",
+   "REBOOTING_DONE",
+   "POWERING_UP_UPDATED",
+   "UPDATE_COMPLETE",
+   "UPDATE_NEVER_RUN",
+   "UPGRADE_MGR_SPAWN_FAILED",
+   "MANIFEST_DOWNLOAD_FAILED",
+   "MANIFEST_PARSE_FAILED",
+   "NO_DEVICES_NEED_UPDATE",
+   "FINAL_RESULT_UNKNOWN",
+   "WAKING_UP_FROM_USER",
+   "PRIMARY_NETWORK_STATUS_CHANGE",
+   "INFO_FILE_WRITE_FAILED",
+   "wdHELLO",
+   "Unknown upgrade client state / Unknown upgrade server state"
+  ],
+  "user_initiated_hh_update": [
+   "userInitiatedHHUpdate",
+   "UserUpdateScheduler",
+   "Running user-initiated HH update",
+   "User-initiated HH update: {no updates available, manifest download failed, no devices need updating, checkDevicesToUpdate failed, launchUpdate failed}",
+   "Timed out polling for user-initiated HH upgrade report",
+   "User-initiated HH upgrade report consumed",
+   "Upgrade report has more devices than the maximum supported ... householdUpdateStatus event",
+   "upgrade_mgr_user_report{,_prev}.json",
+   "upgrade_report",
+   "quarantineRecheck / rx QUARANTINE_RECHECK / rechecking quarantined player %s",
+   "launching scheduled update on %s",
+   "designatedDeviceId",
+   "numUpdatedDevices",
+   "deviceSoftwareUpdateStatus",
+   "householdSoftwareUpdateStatus",
+   "ERROR_NOT_DESIGNATED_DEVICE",
+   "ERROR_UPDATE_IN_PROGRESS",
+   "reportingIntervalHours"
+  ],
+  "feature_flags_added": [
+   "AUTOMATIC_WIRED_SOFTAP",
+   "EPHEMERAL_BONDING",
+   "IS_HEADPHONE_MEDIAPLAYER",
+   "LAN-SWAPPABLE",
+   "RECONFIGURABLE_OUTPUTS"
+  ],
+  "feature_config_keys_added": [
+   "enableHTSNKv2",
+   "enableHomeTheaterWifi6GHzFronthaul",
+   "enableOnDeviceSoundGeneration",
+   "enableRadioSocTemperatureTelemetry",
+   "featureConfigHomeTheaterWifiPerfTelemetry",
+   "homeTheaterWifiPerfTelemetry",
+   "sourceIsLanSwappable",
+   "settings:frontierLlms",
+   "settings:accessorySettings"
+  ],
+  "group_guards_added": [
+   "Grouping ungroupable player to other players is not supported.",
+   "Rejecting AddMember: GC or new member is an ungroupable player (gcUUID=%s memberID=%s)",
+   "Rejecting x-rincon URI [%s]: source or target is an ungroupable player (sourceUUID=%s targetUUID=%s)",
+   "create new group and cloning from ungroupable player %s failed with error %d",
+   "clone music (from %s to ungroupable %s) failed, error %d",
+   "Resetting required group caps [0x%08x] -> [0x%08x]",
+   "x-sonos-gc-cleared-content header",
+   "BecomeGroupCoordinatorAndSource,bCloningGCState: %d, bSourceGCClearedContent: %d",
+   "BGC line-in: could not resolve source UUID from txs or uri %s"
+  ],
+  "playback_guards_added": [
+   "Delegated VLI session is not playing; skipping pullContext()/become active device (observable=%d) to avoid re-initiating Direct Control (SWPBL-259788)",
+   "music context content cannot be swapped",
+   "Suppressing phantom playback-start after end-of-queue (last streamId: %u)",
+   "Ogg resume header cache (Using cached ogg headers ... on resume / Reset ogg headers: cached '%s' br %u != cur '%s' br %u)",
+   "processHeaders resume tracing (resumeLoc=%zu, seek=%d)",
+   "seamless source change failed (local) -> parameterized seamless source change %s (local)"
+  ],
+  "bundled_curl_upgrade": {
+   "version_strings": "17.2.6->17.2.7, 1.53.1->1.54.1 (nghttp2-band bumps)",
+   "added": [
+    "DoH machinery (DoH: unknown sub request done, ignoring outdated DoH response, cf_dns_start host %s:%u, created DNS filter for %s:%u transport=%x queries=%x, cache negative name resolve type=%s, cache entry does not have type=%s addresses, check for next A address)",
+    "HTTPS DNS resource-record qtypes A+HTTPS / AAAA+HTTPS / A+AAAA+HTTPS",
+    "Alt-Svc connection reuse tracing",
+    "happy-eyeballs v2 'baller' ladder (baller failed/starting, inconclusive after %lld, checked connect attempts ongoing/inconclusive, discarding oldest attempt, delay connect until resolve complete, connected filter chain below, removing connected setup filter)",
+    "SSLKEYLOGFILE support (all TLS secrets logged to '%s')",
+    "HTTP/3 awareness (unable to use HTTP/3, unable to select HTTP version)"
+   ],
+   "removed": [
+    "adding wanted h1/h2/h3 version-negotiation",
+    "Clear auth, redirects scheme/port",
+    "connect+handshake / deferred handshake / query connect reply timings",
+    "Curl_resolv_check",
+    "RESOLVING / Resolving timed out / Connection timed out wording",
+    "Hostname in DNS cache does not have needed family, zapped",
+    "[0] MAX_CONCURRENT_STREAMS"
+   ]
+  },
+  "misc_removed": [
+   "${MUSE_V2_API_STRING} placeholder literal",
+   "museTemporarilyDisableNetwork request received log",
+   "per-field 'X has an invalid parameter' error literals (advertisingInfo, containerId, containerMetadata, id, metadata, playModes, playbackLocation, stationId, tracks) -> replaced by generic Invalid request parameters + muse_target_validator",
+   "rtmpte/rtmpts RTMP transport names",
+   "md5HashUTF16LE",
+   "null-audio",
+   "x-rincon-enc2 standalone literal",
+   "[Rq] isAuthorizedForNamespace verbose authz debug log",
+   "unexpected event when SONOS_ARCH_ATTR_HAS_MICROPHONE... -> reworded 'unexpected event when mics not present'"
+  ],
+  "misc_added": [
+   "SaveSSLCache / Save SSL Client Cache to JFFS / saveSSLClientCache (timed-job path)",
+   "leadingEdgeKurtosis / leadingEdgeRiseTime (trueplay acoustic metrics)",
+   "reportHtSurrounds / reportHtSwap / reportPortableSurrounds",
+   "<ClientVersion> XML element",
+   "websocketUrl / websocket_close",
+   "subrenew_static",
+   "museItemType",
+   "muse_target_validator",
+   "x-rincon-cpcontainer:SCPB:%s/%s",
+   "Rhapsody Media Server"
+  ],
+  "confidence": "proven (literal presence/absence); behavioral interpretation inferred from string context, not decompiled call sites"
  }
 }

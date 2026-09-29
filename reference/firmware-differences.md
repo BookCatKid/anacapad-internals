@@ -177,3 +177,59 @@ FIRMWARE-STATE MATRIX (docs/crossbuild_matrix.json, 3-state per action): REMOVED
 |---|---|
 | `SCPD(all)` | advertised |
 | `86.10` | removed from dispatch table |
+
+### Muse software-update REST surface restructure
+
+86.8 exposes player-scoped v1/players/{playerId}/update/household (+households variant) with command playerId,update,beginHouseholdSoftwareUpdate. 86.10 replaces this with a device-scoped householdUpdate resource pair v1/devices/{deviceId}/householdUpdate/{update,status} (+households variants) and player-scoped v1/players/{playerId}/update/status (+households variant), with commands deviceId,householdUpdate,beginHouseholdSoftwareUpdate / getHouseholdUpdateStatus and playerId,update,getUpdateStatus. New machinery: UserUpdateScheduler/auto_update_scheduler.cxx + user_update_scheduler.cxx (replacing update_scheduler.cxx), upgrade_mgr_user_report{,_prev}.json artifacts, quarantineRecheck broadcast, 'Running user-initiated HH update' failure taxonomy, designatedDeviceId, ERROR_NOT_DESIGNATED_DEVICE / ERROR_UPDATE_IN_PROGRESS, and a full upgrade-mgr state vocabulary (HELLO_DONE, DOWNLOAD_DONE, FLASHWRITE{,_DONE}, REBOOT{,ING_DONE}, POWERING_UP_UPDATED, UPDATE_COMPLETE, UPDATE_NEVER_RUN, UPGRADE_MGR_SPAWN_FAILED, MANIFEST_DOWNLOAD_FAILED, MANIFEST_PARSE_FAILED, NO_DEVICES_NEED_UPDATE, FINAL_RESULT_UNKNOWN, WAKING_UP_FROM_USER).
+
+| Build | State |
+|---|---|
+| `34.16` | n/a (no muse v1) |
+| `57.10` | n/a |
+| `86.8` | player update/household |
+| `86.10` | device householdUpdate + update/status |
+
+### Muse common layer moved to sonos-muse shared lib
+
+oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx source-path literals present in 86.8 anacapad .rodata are gone in 86.10, replaced by sonos-muse-1.0/sonos-muse/{src/sonos/muse/common/{context,eventing,noncehandler}.cxx, include/sonos/muse/common/history.h} — the muse context/eventing/nonce layer was extracted into the sonos-muse shared library between the builds. ${MUSE_V2_API_STRING} placeholder literal also dropped; muse_target_validator + museItemType added; flat 86.8 relative-path subscription table (zones/*, */subscription, authorization/*) no longer appears as standalone literals.
+
+| Build | State |
+|---|---|
+| `86.8` | muse code in anacapad |
+| `86.10` | muse common in sonos-muse-1.0 |
+
+### RMuseFeature flag additions
+
+Five new capability-name literals appear only in 86.10: AUTOMATIC_WIRED_SOFTAP, EPHEMERAL_BONDING, IS_HEADPHONE_MEDIAPLAYER, LAN-SWAPPABLE, RECONFIGURABLE_OUTPUTS. Companion feature-config keys also new: enableHTSNKv2, enableHomeTheaterWifi6GHzFronthaul, enableOnDeviceSoundGeneration, enableRadioSocTemperatureTelemetry, featureConfigHomeTheaterWifiPerfTelemetry, homeTheaterWifiPerfTelemetry, sourceIsLanSwappable, settings:frontierLlms, settings:accessorySettings.
+
+| Build | State |
+|---|---|
+| `86.8` | absent |
+| `86.10` | present |
+
+### Group-forming ungroupable-player guards
+
+86.10 adds a battery of rejection/guard literals absent in 86.8: 'Grouping ungroupable player to other players is not supported.', 'Rejecting AddMember: GC or new member is an ungroupable player (gcUUID=%s memberID=%s)', 'Rejecting x-rincon URI \[%s\]: source or target is an ungroupable player', clone/create-group-to-ungroupable failure logs, 'Resetting required group caps \[0x%08x\] -> \[0x%08x\]', x-sonos-gc-cleared-content header, and BecomeGroupCoordinatorAndSource bCloningGCState/bSourceGCClearedContent tracing — consistent with the new ClearSource dispatch arg.
+
+| Build | State |
+|---|---|
+| `86.8` | absent |
+| `86.10` | present |
+
+### Bundled curl upgrade (DoH + HTTPS-RR + happy-eyeballs v2)
+
+86.10 carries a newer bundled curl: version strings 17.2.6->17.2.7 / 1.53.1->1.54.1 (nghttp2 band), plus new literals for DoH machinery (DoH sub-request, cf_dns_start, DNS filter creation, typed negative-caching), HTTPS resource-record query types (A+HTTPS, AAAA+HTTPS, A+AAAA+HTTPS), Alt-Svc connection tracing, happy-eyeballs 'baller' race ladder, SSLKEYLOGFILE TLS-secret logging, and HTTP/3 awareness. Removed curl literals include the wanted-h1/h2/h3 negotiation wording and Curl_resolv_check.
+
+| Build | State |
+|---|---|
+| `86.8` | older curl (no DoH strings) |
+| `86.10` | DoH/Alt-Svc/HEv2 curl |
+
+### Playback-state guard additions
+
+86.10-only literals: 'Delegated VLI session is not playing; skipping pullContext()/become active device (observable=%d) to avoid re-initiating Direct Control (SWPBL-259788)', 'music context content cannot be swapped', 'Suppressing phantom playback-start after end-of-queue (last streamId: %u)', Ogg resume header caching (Using cached/Reset ogg headers), processHeaders resumeLoc/seek tracing, and 'seamless source change %s (local)' parameterization replacing 'seamless source change failed (local)'.
+
+| Build | State |
+|---|---|
+| `86.8` | absent |
+| `86.10` | present |
