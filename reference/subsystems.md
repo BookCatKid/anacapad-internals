@@ -1008,6 +1008,18 @@ embedded Spotify eSDK (libspotify-derivative) plus a Connect layer: local /spoti
 - **zeroconf:** SpZeroConfGetVars/SpZeroConfAnnouncePause\|Resume/SpConnectionLoginZeroConf calls; ZEROCONF_{START,DEVICE_ADDED,TRANSFER_CRED,TRANSFER_STATUS,AUTH_TOKEN,AUTH_CODE} events; ZeroConfVarsChanged notification; spotifyTransferZeroConf; 'Invalid ZeroConf request %s'
 - **hwptp:** hermes channel registration: 'Will try again to register in HWPTP in %lu ms', 'Got %s from hwptp'; endpoints hm://hwptp/v1/devices (device registry), hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s (track resolve); hm://hwp-events/v1/log_event telemetry
 - **errors:** ERROR_SPOTIFY_CONNECT fault code
+- **mercury_hermes:**
+  - **protocol:** Hermes request/response+push channel over the AP connection: messages {id u32, method enum, uri hm://..., payload bytes} ("id %u method %d uri %s %d bytes"); HermesHeader codec ("Failed to decode HermesHeader"); server pushes logged "Got hermes push from %s"; fragmented packets reassembled via defragmentation buffer (max-size guarded)
+  - **methods:** `GET`, `SEND`, `SUB`, `UNSUB`, `GETX (proven literals SEND/UNSUB/GETX; GET/SUB by enum convention - inferred)`
+  - **content_types:** `vnd.spotify/mercury-mget-request`
+  - **rate_limit:** client-side mercury rate limiter: "Message not sent: rate limited for %llums", "Rate limiting active ... %llu ms"/"deactivated"; server hint header Spotify-Unavailable-For; 429 logged as "Too many requests", 503 "Service unavailable (%d)"
+  - **uris:** `hm://hwptp/v1/devices`, `hm://hwptp/v1/tsv`, `hm://hwptp/v1/`, `hm://hwptp/v2/resolve/%s/%d/%s`, `hm://hwp-events/v1/log_event`
+  - **uri_note:** hm://hwptp/* = hardware push-to-play channels (Spotify Connect cloud pairing/eventing); hwptp v2 resolve takes 3 args (%s/%d/%s)
+  - **login:** login4.c: client-ID login "logging in with client ID %s", SHA1+SIG+modpow signature verification asserts (MODPOW_WORK_RAM_SIZE, SHA1_DIGEST_SIZE+SIG_SIZE+SIG_SIZE bufsz)
+  - **perf_counters:** `EsdkPlaybackStats`, `EsdkPlaybackErrors`, `EsdkHttpErrors`, `EsdkDownload`, `EsdkEvent`, `EsdkCapabilities`
+  - **bandwidth:** streamio adaptive-bitrate estimator: BANDWIDTH %uB/%ums -> B/s kbit/s; sliding WINDOW BANDWIDTH high/low marks; LOW BW threshold counter; stats: first_chunk_request_time/latest_chunk_finished_time
+  - **src:** esdk/src/hermes.c + code/{stream_stats,streamio}.c literal regions 0x10fe3400-0x10fe4600, 0x10fd6200-0x10fdc600
+  - **confidence:** PROVEN literals+framing; full method enum inferred partly
 <details><summary>Evidence (11)</summary>
 
 - @ 0x10fd4cb8 — spotify_esdk.c

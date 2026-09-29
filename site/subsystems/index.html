@@ -1724,7 +1724,7 @@
 <tr>
 <td><code>embedded_sqlite</code></td>
 <td><strong>partial</strong></td>
-<td>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven table: timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx)</td>
+<td>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) | suspend model: pause -&gt; row in paused_timers w/ remaining_seconds+paused_utc_time; resume -&gt; recompute trigger_time</td>
 </tr>
 <tr>
 <td><code>entitlements</code></td>
@@ -1824,7 +1824,7 @@
 <tr>
 <td><code>semisleep_power</code></td>
 <td><strong>partial</strong></td>
-<td>low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers.</td>
+<td>low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers. | Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018 — parked timers survive suspend; resume recomputes.</td>
 </tr>
 <tr>
 <td><code>settings_replication</code></td>
@@ -2120,7 +2120,7 @@
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>A libsqlite3 is linked in; at least the local timer/alarm store persists through SQL statements. Which tables exist and where the database file lives is still unmapped.</p>
 <p><strong>Technical description:</strong></p>
-<p>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven table: timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx)</p>
+<p>embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_<em>/column_</em>/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) | suspend model: pause -&gt; row in paused_timers w/ remaining_seconds+paused_utc_time; resume -&gt; recompute trigger_time</p>
 <ul>
 <li>
 <p>binary anchors: <code>sqlite3_exec</code>, <code>LocalTimer from sqlite3</code>, <code>LocalTimer from sqlite3 stmt</code>, <code>libsqlite3.so.0</code>, <code>CREATE TABLE IF NOT EXISTS timers</code>, <code>paused_timers</code>, <code>timer.db</code>, <code>PRAGMA user_version</code>, <code>LocalTimer</code>, <code>remaining_seconds</code>, <code>paused_utc_time</code></p>
@@ -2133,6 +2133,7 @@
 <li><strong>notes:</strong> 'LocalTimer from sqlite3 stmt [%s] FAILED %d %s' / 'from sqlite3 stmt timer' — row→object hydration; filename timer.db</li>
 <li><strong>tables:</strong></li>
 <li><strong>timers:</strong> id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL — local timers, suspend-aware (timers_impl.cxx @0x10edcf88)</li>
+<li><strong>paused_timers:</strong> id TEXT PRIMARY KEY, remaining_seconds INTEGER NOT NULL, paused_utc_time TEXT NOT NULL, total_duration INTEGER NOT NULL — timers parked during suspend; resume recomputes trigger_time from paused_utc_time+remaining (timers_impl.cxx @0x10edd018)</li>
 </ul>
 <details><summary>Evidence (6)</summary>
 
@@ -2716,7 +2717,7 @@ A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/Am
 
 **Technical description:**
 
-low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers.
+low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers. | Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018 — parked timers survive suspend; resume recomputes.
 
 - binary anchors: `enableSemiSleep`, `featureConfigSemiSleep`, `powerWakeupFromSemiSleep`, `DirectControlIsSuspended`, `semiSleepConfig`, `powerWakeupFromSemiSleep`, `powerWakeupFromSemiSleep`, `<r:DirectControlIsSuspended val="`, `AmplifierPowerStateChangedEvent`, `featureConfigSemiSleep`, `semiSleepConfig`
 
@@ -2825,6 +2826,18 @@ embedded Spotify eSDK (libspotify-derivative) plus a Connect layer: local /spoti
 - **zeroconf:** SpZeroConfGetVars/SpZeroConfAnnouncePause\|Resume/SpConnectionLoginZeroConf calls; ZEROCONF_{START,DEVICE_ADDED,TRANSFER_CRED,TRANSFER_STATUS,AUTH_TOKEN,AUTH_CODE} events; ZeroConfVarsChanged notification; spotifyTransferZeroConf; 'Invalid ZeroConf request %s'
 - **hwptp:** hermes channel registration: 'Will try again to register in HWPTP in %lu ms', 'Got %s from hwptp'; endpoints hm://hwptp/v1/devices (device registry), hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s (track resolve); hm://hwp-events/v1/log_event telemetry
 - **errors:** ERROR_SPOTIFY_CONNECT fault code
+- **mercury_hermes:**
+  - **protocol:** Hermes request/response+push channel over the AP connection: messages {id u32, method enum, uri hm://..., payload bytes} ("id %u method %d uri %s %d bytes"); HermesHeader codec ("Failed to decode HermesHeader"); server pushes logged "Got hermes push from %s"; fragmented packets reassembled via defragmentation buffer (max-size guarded)
+  - **methods:** `GET`, `SEND`, `SUB`, `UNSUB`, `GETX (proven literals SEND/UNSUB/GETX; GET/SUB by enum convention - inferred)`
+  - **content_types:** `vnd.spotify/mercury-mget-request`
+  - **rate_limit:** client-side mercury rate limiter: "Message not sent: rate limited for %llums", "Rate limiting active ... %llu ms"/"deactivated"; server hint header Spotify-Unavailable-For; 429 logged as "Too many requests", 503 "Service unavailable (%d)"
+  - **uris:** `hm://hwptp/v1/devices`, `hm://hwptp/v1/tsv`, `hm://hwptp/v1/`, `hm://hwptp/v2/resolve/%s/%d/%s`, `hm://hwp-events/v1/log_event`
+  - **uri_note:** hm://hwptp/* = hardware push-to-play channels (Spotify Connect cloud pairing/eventing); hwptp v2 resolve takes 3 args (%s/%d/%s)
+  - **login:** login4.c: client-ID login "logging in with client ID %s", SHA1+SIG+modpow signature verification asserts (MODPOW_WORK_RAM_SIZE, SHA1_DIGEST_SIZE+SIG_SIZE+SIG_SIZE bufsz)
+  - **perf_counters:** `EsdkPlaybackStats`, `EsdkPlaybackErrors`, `EsdkHttpErrors`, `EsdkDownload`, `EsdkEvent`, `EsdkCapabilities`
+  - **bandwidth:** streamio adaptive-bitrate estimator: BANDWIDTH %uB/%ums -> B/s kbit/s; sliding WINDOW BANDWIDTH high/low marks; LOW BW threshold counter; stats: first_chunk_request_time/latest_chunk_finished_time
+  - **src:** esdk/src/hermes.c + code/{stream_stats,streamio}.c literal regions 0x10fe3400-0x10fe4600, 0x10fd6200-0x10fdc600
+  - **confidence:** PROVEN literals+framing; full method enum inferred partly
 <details><summary>Evidence (11)</summary>
 
 - @ 0x10fd4cb8 — spotify_esdk.c
