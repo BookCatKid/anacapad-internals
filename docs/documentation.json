@@ -121142,7 +121142,8 @@
   },
   "wifi": {
    "idle_mgr": "RZPWifiIdleMgr/idlemgr: \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\"",
-   "assoc_tracker": "CrAssoc report \"Reporting CrAssoc event for %s\"; metrics {mstime1/2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1/2,ddnum,zstime1/2,zsnum,zntime1/2,znnum,znscs,znstate}; ARP stuffing \"Stuffing %s MAC to ARP table\" + \"ARP stuffing records are full\" for associating controller; \"ZGT Notification to %s is invalid event\""
+   "assoc_tracker": "CrAssoc report \"Reporting CrAssoc event for %s\"; metrics {mstime1/2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1/2,ddnum,zstime1/2,zsnum,zntime1/2,znnum,znscs,znstate}; ARP stuffing \"Stuffing %s MAC to ARP table\" + \"ARP stuffing records are full\" for associating controller; \"ZGT Notification to %s is invalid event\"",
+   "netif_poll": "DeviceNetInterfaceStateEvent + \"fire event: health %s rssi %d\"/\"status: health %s rssi %d\"; subscribe/unsubscribe polling per %s; \"timeout: %s polling\""
   },
   "cert_layer": {
    "files": "cert.xml + metadata.txt; \"Buffer not sufficient to store entire certificate\"; \"loading %s (0x%x) took %ums\"; tmpfile-rename atomic swap; \"failed to load replacement (0x%x)\""
@@ -121633,6 +121634,59 @@
   },
   "radiolog": {
    "detail": "flags {recurse,redir,unsupported}; rc_impl settingsWriteback"
+  },
+  "runtime_policy": {
+   "name": "runtime_zppolicy \u2014 effective policy surface",
+   "status": "partial",
+   "summary": "fields {\"Business subscriber\",\"Cloud Schedule\",\"Effective P2P policy is encrypted\",\"Guest Access Enabled\",\"Unathenticated Control Enabled\"(sic),\"Insecure UPnP Allowed\",\"Auth Pin Set\",\"Thor Timeout\"}; reeval on {\"isBusinessSubscriber has changed\",\"Line In policy has changed\",\"Business Cloud Schedule has changed\"}; settings keys {global,usageContext,BUSINESS,scheduledChangeValue,enableContentAccess,allowDirectControl,allowLineIn,allowAirplay}; \"Failed to fetch latest entitlements [ec=%s]\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e88dc4",
+     "notes": "runtime_zppolicy block"
+    }
+   ]
+  },
+  "share_indexer": {
+   "name": "shadowdir \u2014 share indexer + BBF index",
+   "status": "partial",
+   "summary": "walk {open share path,read folder,entry %s,stat file} skips {.sparsebundle}; cancels {interrupted,recursion limit on share/at //%s,file error,share error}; files {Unplayable,Inaccessible}; shadow/shadow2 dirs + Remote/Local I/O error during %s; index %s/trackinfo + trackinfo.tmp + sorts sort-* + shareindex + \"took %ldms to initialize indexes\"; BBF fields {bbfTitle,bbfFile,bbfTracknum}; URIs {x-file-cifs://,x-rincon-playlist:}; res {x-rincon-playlist:*:*:*}; /getaa?u=%s&v=%u; r:displayTitle; sort orders {ITUNES,DEFAULT,PINYIN} + albumArtist/genre; itunes plist dedup \"Skipping itplist with duplicate size and mtime\"/\"More than %d itplists\"; .version fmt %s,%u; events {CdNotifyUpdateId,CdNotifyShareIx}; indexingTrack job",
+   "status_schema": "<TrackSummary><Tables><Table name=\"Title\" max count/></Tables><StoreSize><StoreUsed><EntriesSize><EntriesUsed><Conflicts></TrackSummary>",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e892a0",
+     "notes": "shadowdir/indexer block"
+    }
+   ]
+  },
+  "user_update": {
+   "name": "UserUpdateScheduler \u2014 user-initiated HH update",
+   "status": "partial",
+   "summary": "flow {\"Running user-initiated HH update\",no updates available,manifest download failed,no devices need updating,checkDevicesToUpdate failed,launchUpdate failed}; reports upgrade_mgr_user_report.json + _prev.json + /tmp/upgrade_mgr_info.txt; \"report has more devices than the maximum ... omitted from the householdUpdateStatus event\"; \"Unknown upgrade client state\"; \"report consumed\"/\"Timed out polling\"; app/run",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e95664",
+     "notes": "user_update block"
+    }
+   ]
+  },
+  "zones_mgr": {
+   "name": "RZonesManager \u2014 zone lifecycle FSM",
+   "status": "partial",
+   "summary": "events {ZoneMemberSettingsChangedEvt,ZonesDefinitionsChangedEvent}; muse ops {museGetZoneDefinition \"found zone [%s]\"}; transitions {\"zone transition on secondary/primary: zoneId %s\",\"zone transition failed on primary\"}; cms (channel-map-set) {\"cms init from %s\",\"cms update from pri: %s\",\"cms update from sec: %s = %s + %s\",\"zoneDef %s inconsistent with cms %s\",\"can't construct channelMapSet\"}; file <File name=\"activeZones\">; ops {adding/removing player,joinZone id+flatChannelMapSet,unjoinZone,activateZone,deactivateZone,updateActiveZone,sendUpdateZoneMemberSettingsCmd}; guards {\"primary change not supported for HT\",\"update with offline primary not supported for HT\",\"update only allows add or remove, not both\",\"can't update both name and channelMapSet\",\"Zone contains incompatible protocol versions\",\"zone is not active\",\"zone id not found\",\"zone def not found\",\"invalid activeZone\",\"invalid channelMapSet\",\"invalid flatChannelMap\",\"invalid zone name\",\"invalid name:\",\"no name\",\"secondary not reachable\",\"more zones active than RMuseActiveZoneList can hold\"}; \"Legacy zone exists on %s\"; \"primary unavailable: sending Remove ops to secondaries\"; \"re-activate the current zone\"; \"updating ActiveZone: %s -> %s\"/\"primary change: %s -> %s\"/\"offline primary: %s -> %s\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e95d24",
+     "notes": "zones_mgr block"
+    }
+   ]
   }
  },
  "muse": {
