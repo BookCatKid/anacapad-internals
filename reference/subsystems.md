@@ -4,23 +4,23 @@ Self-contained protocols/engines living in the same binary beside or below the U
 
 | Subsystem | Coverage | Summary |
 |---|---|---|
-| `ibt_plans` | **absent** | IBT command-plan executor behind the enablePitchfork feature flag: '\[dispatch\] unsupported IBT command (%s)', 'already generated ibt plan, no action taken', 'executing ibt plan for command (%s)', 'failed to generate ibt plan for command' — commands are compiled into plans then executed; dispatch table rejects unknown IBT command names; the command set and plan format are not decoded |
-| `ab_experiments` | **vocab** | ZoneExperiment framework in production firmware: /experiments endpoint, ZoneExperiment id/name/value/defaultValue elements |
-| `entitlements` | **vocab** | entitlementsmanager + entitlementsVersionChanged + /entitlements/api; what an entitlement gates unknown |
-| `semisleep_power` | **vocab** | suspend/resume engine gated by featureConfigSemiSleep with a semiSleepConfig JSON key in cloud config: powerWakeupFromSemiSleep wake path, AmplifierPowerStateChanged events, DirectControlIsSuspended state, VLI suspend sessions. Strings confirmed; the flag suggests it may be dormant/gated on this model |
+| `ibt_plans` | **vocab** | an 'ibt plan' executor: commands are compiled into plans ('executing ibt plan for command (%s)', 'failed to generate ibt plan for command (%s)', 'already generated ibt plan, no action taken', 'unsupported IBT command (%s)'); likely related to feature flag enablePitchfork; command vocabulary and plan format unresolved |
+| `ab_experiments` | **partial** | production A/B experiment framework: a /experiments local endpoint plus a replicated <ZoneExperiments> store of <ZoneExperiment id name value defaultValue> rows; presence gated by featureConfigZoneExperiment; values influence runtime policy |
 | `account_cert_lifecycle` | **partial** | three cert managers: certmanager.cxx (general), devicecertmanager.cxx (device certs), regdevicecert.cxx (registered-device certs); curl selects between R_CLIENT_KEYCERT_ID_{SONOS, SONOS_DEVICE, SONOS_DEVICE_ACCEPT_LEGACY, SONOS_REGISTERED_DEVICE}; device cert sent as X-Sonos-DeviceCert HTTP header to services requiring deviceCerts; fetchRegDeviceCert/refreshRegDeviceCert renewal flow; states DeviceCertRequired/Invalid/Expired/Revoked; 'sonos-key-and-cert' blob + <DeviceCertInfo> doc; sonosCertvalSetSSLToSonosDevice SSL switch |
 | `audio_taps` | **partial** | PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap |
 | `business_msp` | **partial** | Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION) |
 | `buttons_ir` | **partial** | button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database |
 | `chirp_stack` | **partial** | embedded Chirp stack — chirp-core 4.2.1_7265 + chirp-sdk + chirp-private layers with a custom 'sonos-cdma' profile: full encoder (wavetable/multitone/decorator/CDMA) + decoder (peaks/scorer/voter/weighting/RMS/CDMA, reed-solomon FEC, FFT, biquad filters, reverb) + protocol JSON config; driven via roomDetection muse routes (startSignalling/stopSignalling by playId) with SETUP_CHIRP/ROOM_DETECTION_CHIRP/EXT_CHIRP modes and ChirpExtAudioSrc audio-source integration |
 | `cloud_queue` | **partial** | Cloud-queue playback: sessions load cloud-resident queues via v1/playbackSessions/{sessionId}/playbackSession/loadCloudQueue (+WithWindow variant for windowed fetch, refreshCloudQueue); local /cloudqueue + /cloudqueuepoll endpoints; a CloudQueueWindow object wraps the API window; dedicated CLOUD_QUEUE_* error family |
+| `device_unlock` | **partial** | developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state |
 | `dsp_ht_engine` | **partial** | home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks |
-| `embedded_sqlite` | **partial** | libsqlite3.so.0 dynamically linked (open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout/...): used by the LocalTimer persistence ('LocalTimer from sqlite3 stmt \[%s\] FAILED') — local timers live in a sqlite DB; 'SQLite3 libversion %s' logged at init |
+| `embedded_sqlite` | **partial** | embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim |
+| `entitlements` | **partial** | entitlements manager with cloud fetch + local cache, muse-subscribed change events, and a runtime policy hook (RRuntimeZPPolicy takes entitlementsMgr); typed SKU records decide e.g. whether Sonos Radio is preinstalled |
 | `factory_reset` | **partial** | factory-reset machinery: muse route v1/players/{playerId}/management/factoryReset (+household variant), factoryReset.txt sentinel consumed at boot, sonosFactoryResetFull entry point, LED_MODE_FACTORY_RESET visual feedback |
 | `favourites_model` | **partial** | Sonos favourites store + ContentDirectory projection: FV:2 root container paired with FavoritesUpdateID; XML store schema recovered; mutation via CDS CreateObject/UpdateObject/DestroyObject on the dirObjFavorites vtable + muse getFavorites/loadFavorite routes |
 | `feature_flag_registry` | **partial** | feature flags are JSON keys in the settings/cloud config document (featureConfig sits in the same key table as entitlementsList/eqSettings/ethernetPorts/favoritesList/geoLocation/getUsersResponse) — cloud-delivered, not compile-time; 10 featureConfig* subkeys enumerate the gated feature set |
 | `group_object_model` | **partial** | zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push |
-| `lechmere_wss` | **partial** | lechmere.cxx cloud channel: RFC6455 websocket to lechmere.<env>.ws.sonos.com with negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), auth via authzPolicyKeyLechmere whose policy key carries a role; reconnect steering via SONOS_SERVER_LECHMERE_RECONNECT_LATER; separate local WSS server (websocketserver.cxx) on /api/v1/websocket + /websocket/api |
+| `lechmere_wss` | **partial** | lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions |
 | `led_engine` | **partial** | Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only |
 | `log_domain_map` | **partial** | 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring |
 | `media_player_abstraction` | **partial** | source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source |
@@ -29,30 +29,33 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `muse_semantics` | **partial** | the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
 | `playlist_parsers` | **partial** | playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3U/WLP/PLS + iTunes 'ITP' XML parser), a streaming HLS playlist parser with variant switching (#EXTM3U/#EXT-X-PLAYLIST-TYPE validation, codec-variant source switching, Atmos stream rejection), and the muse playlists API + SaveAsSonosPlaylist SOAP path |
-| `qplay_protocol` | **partial** | Tencent QPlay: device advertises <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</..> (protocol v2); /QPlay/Control route with QPlayAuth action; shared TQPlay mode (updateSharedTQPlayMode); #QPLAY_SUPPORT# conditional block marker; no /QPlay/Event route — eventless control service |
+| `qplay_protocol` | **partial** | Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route — the only service missing its event pair), QPlayAuth action, a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> |
 | `queue_persistence` | **partial** | .rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt |
 | `runtime_flag_files` | **partial** | runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, brokendevice, wifidisabled, htdocs_locked, crashed_play_state, anacapa-has-run, fresh_hh.txt, anacapa_prevent_crashdump_upload, sonosConcurrencyUnrecoverableError), /var/run mode files (wac_mode, netstart_mode, netmanager_extender_flags, systemtimeoffset), /tmp/memorylog 4-file ring + .old copy, /tmp/smb/ mount workspace, /tmp/backtrace + diagstdout/diagstdin diag scratch, /tmp/event_preserve + event_reporter_v3 buffers |
 | `scrobbler` | **partial** | Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API |
+| `semisleep_power` | **partial** | low-power 'SemiSleep' suspend/resume engine gated by featureConfigSemiSleep: powerWakeupFromSemiSleep wake path, replicated <r:DirectControlIsSuspended> state element, AmplifierPowerStateChanged events, VLI suspend sessions; player reports SLEEPING to lechmere when suspended |
 | `settings_replication` | **partial** | replicated_settings.cxx household sync protocol: per-setting replicateOne transfers with version+format handshake ('deciding whether to accept replicated list from: %s; ver: %u format: %u'), <Replication>/<ReplicationOperation>/<ReplicationResult>/<ReplicationPlayer>/<ReplicationTime> reporting XML, denylist + quarantine for bad formats/encodings, REPLICATION_IN_PROGRESS/COMPLETE states, distinct account/netsettings/favourites/savedqueue/areas streams |
 | `sntp_server` | **partial** | Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling |
 | `spotify_esdk` | **partial** | embedded Spotify eSDK + Sonos bridge (spotify.cxx, spotify_playback_session.cxx, spotify_queue.cxx, spotify_smapi.cxx, spotify_thread.cxx): RSpotifyPlayback* controller ops, Spotify Connect mDNS discovery + zeroconf transfer, own track queue, SMAPI control channel, ad/interruption URI types, serialized request pipeline |
 | `telemetry_submission` | **partial** | telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-MessageType: product-data-telemetry header, zonereportmgr.cxx zone reports, submitDiagnostics/submitQueuedDiagnostic pipeline with manifest submission, positioning telemetry level route, per-feature telemetry flags |
+| `testenv_environment` | **partial** | POST /testenv switches the player's cloud environment between PROD, PERF, STAGE, TEST and INT, with an optional OnlineUpdateBaseURL override; the page displays the six resolved API bases (Cloud, Service catalog, System, Transfero, Metrics, Update) and CustomerId; the change replicates household-wide ('may take up to 120 seconds ... to replicate throughout household') and logs 'Setting cloud env to %s' |
 | `trueplay_tuning` | **partial** | Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant |
 | `update_machinery` | **partial** | manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled |
 | `wac_mode` | **partial** | WAC (WiFi Accessory Config) setup mode driven by wacd with /var/run/wac_mode state file: 'WAC mode enabled/disabled/timeout' transitions, 'Unknown WAC mode %d', dedicated LED modes R_LED_WAC / R_LED_WAC_TIMEOUT, wacd.log sink |
 
 ## `ibt_plans`
 
-**coverage** `absent`
+**coverage** `vocab`
 
 An 'IBT' command-plan executor ('executing ibt plan for command') gated by the enablePitchfork feature flag — likely in-band tuning/test command plans. Almost nothing decoded.
 
 **Technical description:**
 
-IBT command-plan executor behind the enablePitchfork feature flag: '\[dispatch\] unsupported IBT command (%s)', 'already generated ibt plan, no action taken', 'executing ibt plan for command (%s)', 'failed to generate ibt plan for command' — commands are compiled into plans then executed; dispatch table rejects unknown IBT command names; the command set and plan format are not decoded
+an 'ibt plan' executor: commands are compiled into plans ('executing ibt plan for command (%s)', 'failed to generate ibt plan for command (%s)', 'already generated ibt plan, no action taken', 'unsupported IBT command (%s)'); likely related to feature flag enablePitchfork; command vocabulary and plan format unresolved
 
 - binary anchors: `executing ibt plan for command`, `unsupported IBT command`, `enablePitchfork`
 
+- **unresolved:** what IBT stands for (in-box testing? install-base tooling?), the plan schema, which commands generate plans, and how plans execute
 <details><summary>Evidence (4)</summary>
 
 - @ 0x10fac64c — executing ibt plan for command
@@ -64,64 +67,24 @@ IBT command-plan executor behind the enablePitchfork feature flag: '\[dispatch\]
 
 ## `ab_experiments`
 
-**coverage** `vocab`
+**coverage** `partial`
 
 Sonos can enrol a zone in A/B experiments pushed from the cloud. Each experiment is an id+name with a value and a shipped defaultValue, so a player without an assignment just runs the default. The /experiments HTTP endpoint exposes the active set. Client authors only need to know these exist — they change behaviour silently between households and explain builds that differ despite identical firmware.
 
 **Technical description:**
 
-ZoneExperiment framework in production firmware: /experiments endpoint, ZoneExperiment id/name/value/defaultValue elements
+production A/B experiment framework: a /experiments local endpoint plus a replicated <ZoneExperiments> store of <ZoneExperiment id name value defaultValue> rows; presence gated by featureConfigZoneExperiment; values influence runtime policy
 
-- binary anchors: `<ZoneExperiment`, `/experiments`, `experimentId`
+- binary anchors: `<ZoneExperiment`, `/experiments`, `experimentId`, `/experiments`, `<ZoneExperiment id="%llu" name="%s" value="%u" defaultValue="%u" />`, `featureConfigZoneExperiment`, `zoneExperiments`
 
-<details><summary>Evidence (3)</summary>
+- **schema:** <ZoneExperiments><ZoneExperiment id="%llu" name="%s" value="%u" defaultValue="%u" /></ZoneExperiments> — numeric value vs defaultValue, keyed by 64-bit id and name
+- **keys:** featureConfigZoneExperiment, zoneExperiments, experimentId, experiment
+<details><summary>Evidence (4)</summary>
 
 - @ 0x10ef3d0d — <ZoneExperiment
 - @ 0x10e75d30 — /experiments
 - @ 0x10f9c96c — experimentId
-
-</details>
-
-## `entitlements`
-
-**coverage** `vocab`
-
-Sonos-side licensing: each account/household can carry <Entitlement> records (type, isTrial, sku, date range, codes). The runtime policy consults them — e.g. a Sonos Business (SBiz) entitlement blocks Sonos Radio preinstall. Changes fire entitlements_changed events. Fetched cloud-side, cached locally, and diffed on refresh.
-
-**Technical description:**
-
-entitlementsmanager + entitlementsVersionChanged + /entitlements/api; what an entitlement gates unknown
-
-- binary anchors: `entitlementsmanager.cxx`, `entitlementsVersionChanged`, `/entitlements/api`
-
-<details><summary>Evidence (3)</summary>
-
-- @ 0x10ebfa1a — entitlementsmanager.cxx
-- @ 0x10f9630c — entitlementsVersionChanged
-- @ 0x10ebf908 — /entitlements/api
-
-</details>
-
-## `semisleep_power`
-
-**coverage** `vocab`
-
-A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/AmplifierPowerStateChanged/DirectControlIsSuspended strings indicate players can enter a low-power 'semi sleep' and resume — relevant to idle latency and why a sleeping player can lag on first command. Not yet decoded.
-
-**Technical description:**
-
-suspend/resume engine gated by featureConfigSemiSleep with a semiSleepConfig JSON key in cloud config: powerWakeupFromSemiSleep wake path, AmplifierPowerStateChanged events, DirectControlIsSuspended state, VLI suspend sessions. Strings confirmed; the flag suggests it may be dormant/gated on this model
-
-- binary anchors: `enableSemiSleep`, `featureConfigSemiSleep`, `powerWakeupFromSemiSleep`, `DirectControlIsSuspended`, `semiSleepConfig`, `powerWakeupFromSemiSleep`
-
-<details><summary>Evidence (6)</summary>
-
-- @ 0x10e86d24 — enableSemiSleep
-- @ 0x10f97b58 — featureConfigSemiSleep
-- @ 0x10e86c60 — powerWakeupFromSemiSleep
-- @ 0x10eb2c7b — DirectControlIsSuspended
-- @ 0x10e86d24 — enableSemiSleep + powerWakeupFromSemiSleep
-- @ 0x10f9c084 — semiSleepConfig JSON key
+- @ 0x10ef3d34 — <ZoneExperiment id name value defaultValue> element schema
 
 </details>
 
@@ -278,6 +241,30 @@ Cloud-queue playback: sessions load cloud-resident queues via v1/playbackSession
 
 </details>
 
+## `device_unlock`
+
+**coverage** `partial`
+
+A hidden developer-unlock feature: hitting /devunlock or /mfgunlock marks the player as unlocked (a flag file in /tmp) and reboots it. There's a server-side limit on how many times a unit can be unlocked, and diagnostic tests refuse to run on unlocked hardware — unlocked units are treated as non-production.
+
+**Technical description:**
+
+developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state
+
+- binary anchors: `/unlock`, `/devunlock`, `/mfgunlock`, `/tmp/device_unlocked_flag`, `Too Many Unlocks`, `RdeviceIsUnlocked`, `RabortIfUnlocked`, `deviceUnlock`, `unlockedBld`, `<Unlocked>1</Unlocked>`
+
+- **endpoints:** /unlock, /devunlock, /mfgunlock, /unlock.htm (browser form)
+- **behavior:** unlock writes /tmp/device_unlocked_flag and an <Unlocked>1</Unlocked> record; the deviceUnlock op + 'DevUnlock' page return 'Rebooting...'; a server-side cap yields '<h2>Too Many Unlocks</h2>' when the per-device unlock budget is exhausted
+- **safety:** RdeviceIsUnlocked + RabortIfUnlocked R_* hooks let diagnostic/self-test code abort on unlocked hardware — unlocked units are treated as non-production
+<details><summary>Evidence (4)</summary>
+
+- @ 0x10f00014 — /devunlock endpoint literal
+- @ 0x10f00020 — 'Too Many Unlocks' rate-limit page
+- @ 0x10efff88 — /tmp/device_unlocked_flag
+- @ 0x10efffb0 — DevUnlock page → Rebooting...
+
+</details>
+
 ## `dsp_ht_engine`
 
 **coverage** `partial`
@@ -316,16 +303,49 @@ A libsqlite3 is linked in; at least the local timer/alarm store persists through
 
 **Technical description:**
 
-libsqlite3.so.0 dynamically linked (open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout/...): used by the LocalTimer persistence ('LocalTimer from sqlite3 stmt \[%s\] FAILED') — local timers live in a sqlite DB; 'SQLite3 libversion %s' logged at init
+embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim
 
-- binary anchors: `sqlite3_exec`, `LocalTimer from sqlite3`, `LocalTimer from sqlite3 stmt`, `libsqlite3.so.0`
+- binary anchors: `sqlite3_exec`, `LocalTimer from sqlite3`, `LocalTimer from sqlite3 stmt`, `libsqlite3.so.0`, `CREATE TABLE IF NOT EXISTS timers`, `paused_timers`, `timer.db`, `PRAGMA user_version`, `LocalTimer`, `remaining_seconds`, `paused_utc_time`
 
 - **users:** LocalTimer store (timer persistence across reboot); the full table inventory is unmapped — imports suggest prepared-statement CRUD, no bulk exec-heavy workload
-<details><summary>Evidence (3)</summary>
+- **schema:** CREATE TABLE IF NOT EXISTS timers(id TEXT PRIMARY KEY,trigger_time TEXT NOT NULL,total_duration INTEGER NOT NULL,triggered NUMERIC NOT NULL); plus a paused_timers table queried as (id, remaining_seconds, paused_utc_time, total_duration) — paused timers freeze remaining_seconds + the UTC pause instant
+- **ops:** SELECT id,trigger_time,total_duration,triggered,rowid FROM timers \[WHERE id=?1\]; SELECT count(*) FROM timers; same pair for paused_timers; PRAGMA user_version used for schema versioning
+- **notes:** 'LocalTimer from sqlite3 stmt \[%s\] FAILED %d %s' / 'from sqlite3 stmt timer' — row→object hydration; filename timer.db
+<details><summary>Evidence (6)</summary>
 
 - @ 0x1006282c — sqlite3_exec
 - @ 0x10edd644 — LocalTimer from sqlite3
 - @ 0x10edd644 — LocalTimer sqlite3 statement failure log
+- @ 0x10edcf88 — timers table CREATE TABLE DDL, verbatim
+- @ 0x10edd38c — paused_timers SELECT (remaining_seconds,paused_utc_time)
+- @ 0x10edd464 — timer.db filename
+
+</details>
+
+## `entitlements`
+
+**coverage** `partial`
+
+Sonos-side licensing: each account/household can carry <Entitlement> records (type, isTrial, sku, date range, codes). The runtime policy consults them — e.g. a Sonos Business (SBiz) entitlement blocks Sonos Radio preinstall. Changes fire entitlements_changed events. Fetched cloud-side, cached locally, and diffed on refresh.
+
+**Technical description:**
+
+entitlements manager with cloud fetch + local cache, muse-subscribed change events, and a runtime policy hook (RRuntimeZPPolicy takes entitlementsMgr); typed SKU records decide e.g. whether Sonos Radio is preinstalled
+
+- binary anchors: `entitlementsmanager.cxx`, `entitlementsVersionChanged`, `/entitlements/api`, `entitlementsmanager.cxx`, `RRuntimeZPPolicy`, `isEntitlementOn`, `internalMuseSubscribeToEntitlements`, `<Entitlement type="%s" isTrial="%s" sku="%s" startDate="%s" endDate="%s" codes="%s" />`
+
+- **schema:** <Entitlements><Entitlement type= isTrial= sku= startDate= endDate= codes= /></Entitlements> — entitlement records carry an SKU and validity window
+- **lifecycle:** cached entitlements returned from local store ('returning entitlements from cache'); refreshEntitlements fetches from cloud ('requesting entitlements from cloud', 'cloud entitlements: rc %d, http %d'); on ENTITLEMENTS_CHANGED the old set is stashed then compared ('stashed existing entitlements to compare later'); 'stale entitlements; scheduling job to refresh'
+- **muse:** v1/users/{userId}/entitlements, v1/households/{householdId}/entitlements + users/{userId} scoped; internalMuseSubscribeToEntitlements pushes entitlements_changed / entitlementsVersionChanged events; 'savePendingEntitlementsLocked'
+- **gating:** isEntitlementOn/processEntitlements feed RRuntimeZPPolicy (\[localSettingsMgr=%s,entitlementsMgr=%s\]) — the runtime policy engine; SBiz entitlement blocks Sonos Radio preinstall ('found SBiz entitlement; blocking preinstall of Sonos Radio' vs 'no SBiz entitlement; preinstalling Sonos Radio')
+<details><summary>Evidence (6)</summary>
+
+- @ 0x10ebfa1a — entitlementsmanager.cxx
+- @ 0x10f9630c — entitlementsVersionChanged
+- @ 0x10ebf908 — /entitlements/api
+- @ 0x10ebfc8c — <Entitlement type isTrial sku startDate endDate codes> schema
+- @ 0x10e9b39c — SBiz entitlement gates Sonos Radio preinstall
+- @ 0x10e88d38 — RRuntimeZPPolicy ctor wires localSettingsMgr+entitlementsMgr
 
 </details>
 
@@ -446,19 +466,25 @@ The persistent secure-websocket channel between player and cloud ('lechmere'): R
 
 **Technical description:**
 
-lechmere.cxx cloud channel: RFC6455 websocket to lechmere.<env>.ws.sonos.com with negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), auth via authzPolicyKeyLechmere whose policy key carries a role; reconnect steering via SONOS_SERVER_LECHMERE_RECONNECT_LATER; separate local WSS server (websocketserver.cxx) on /api/v1/websocket + /websocket/api
+lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions
 
-- binary anchors: `websocket_lechmere`, `lechmere.event`
+- binary anchors: `websocket_lechmere`, `lechmere.event`, `wspmd`, `SONOS_FCS_DISABLE_PER_MSG_DEFLATE`, `SONOS_CLIENT_TOO_MANY_UNACKED_PINGS`, `SONOS_SERVER_LECHMERE_RECONNECT_LATER`, `SONOS_CLIENT_DATA_COLLECTION_OPTED_OUT`
 
 - **endpoint:** lechmere.%s.ws.sonos.com — %s is the region/env token; Sec-WebSocket-Protocol: lechmere.%u
 - **auth:** authzPolicyKeyLechmere; 'Could not parse role from lechmere policy key' — role encoded in key
 - **local_ws:** websocketserver.cxx serves /api/v1/websocket and /websocket/api with RFC6455 headers; opcode logs websocket(data/ping/pong/close/cont); disableWebSocketPerMessageDeflate config key
-<details><summary>Evidence (4)</summary>
+- **framing:** RFC6455 with per-message-deflate negotiation: 'wspmd' log domain, deflate/inflate stream ops, 'expected empty deflate block', 'deflate out buffer requirement not met'; config keys SONOS_FCS_DISABLE/ENABLE_PER_MSG_DEFLATE toggle it at runtime — 'FCS' is the internal name of this channel
+- **close_reasons:** standard codes GOING_AWAY/PROTOCOL_ERROR/BAD_DATA/NOT_CONSISTENT/VIOLATED_POLICY/MESSAGE_TOO_BIG/SERVICE_RESTART/TRY_AGAIN_LATER/TLS_HANDSHAKE plus SONOS_* extensions: client-side (REGISTRATION_CERT_REMOVED/CHANGED, DATA_COLLECTION_OPTED_OUT — telemetry opt-out tears down the channel, ACCESS_TOKEN_EXPIRED, TOO_MANY_UNACKED_PINGS, READ/WRITE_ERROR, CUSTOMER_ID_CHANGED, AUTH_METHOD_CHANGED); player-side (SHUTDOWN, IP_ADDRESS_CHANGED, BLUETOOTH, POWERED_OFF, UPGRADE, NEW_SSID, LOW_BATTERY, SLEEPING, RECONNECT); server-side (LECHMERE_RECONNECT_LATER — server steering, PLAYER_UNSUPPORTED)
+- **keepalive:** application-level ping/pong: client disconnects on SONOS_CLIENT_TOO_MANY_UNACKED_PINGS
+<details><summary>Evidence (7)</summary>
 
 - @ 0x10e75541 — lechmere.event
 - @ 0x10ee71a0 — lechmere.%s.ws.sonos.com endpoint template
 - @ 0x10ef64e0 — Sec-WebSocket-Protocol: lechmere.%u
 - @ 0x10ef9d2c — lechmere policy key role parse
+- @ 0x10f1706c — wspmd per-message-deflate log domain + deflate op codes
+- @ 0x10f1714c — close-reason enum: RFC6455 codes then SONOS_CLIENT_/PLAYER_/SERVER_/FCS_ extensions
+- @ 0x10f172b6 — SONOS_CLIENT_TOO_MANY_UNACKED_PINGS — app-level keepalive
 
 </details>
 
@@ -682,15 +708,18 @@ Tencent's QPlay protocol (QQ音乐 casting). Only the QPlayAuth SOAP action is d
 
 **Technical description:**
 
-Tencent QPlay: device advertises <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</..> (protocol v2); /QPlay/Control route with QPlayAuth action; shared TQPlay mode (updateSharedTQPlayMode); #QPLAY_SUPPORT# conditional block marker; no /QPlay/Event route — eventless control service
+Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route — the only service missing its event pair), QPlayAuth action, a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability>
 
-- binary anchors: `urn:schemas-tencent-com:service:QPlay`, `QPlayAuth`, `QPlay:2`, `updateSharedTQPlayMode`, `#QPLAY_SUPPORT#`
+- binary anchors: `urn:schemas-tencent-com:service:QPlay`, `QPlayAuth`, `QPlay:2`, `updateSharedTQPlayMode`, `#QPLAY_SUPPORT#`, `updateSharedTQPlayMode`, `#QPLAY_SUPPORT#`, `QPlay:2`, `QPlayAuth`, `/QPlay/Control`
 
-- **unresolved:** the wider Tencent protocol — key derivation, the UDP control channel, session lifecycle — lives mostly outside this binary's strings or under different names
-<details><summary>Evidence (2)</summary>
+- **unresolved:** QPlayAuth request/response schema, key derivation, and the UDP media/control channel are still undecoded
+- **soap:** /QPlay/Control registered; QPlayAuth the visible action; xmlns:qq="http://www.tencent.com" capability element advertises 'QPlay:2' in device description
+<details><summary>Evidence (4)</summary>
 
 - @ 0x10f11d58 — QPlayAuth
 - @ 0x10ef8cc0 — qq:X_QPlay_SoftwareCapability = QPlay:2 in device description
+- @ 0x10ef8cc0 — <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:...> device-description element
+- @ 0x10ea8db4 — updateSharedTQPlayMode context guard
 
 </details>
 
@@ -791,6 +820,32 @@ Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sock
 - @ 0x10ee4ce4 — POST template + form fields &a\[0\]=..&m\[0\]= at 0x10ee4cd4-0x10ee4df4
 - @ 0x10ee4ca0 — 'BADTIME -- stealing time from Date: header'
 - @ 0x105240c8 — submission builder in f_105236c8
+
+</details>
+
+## `semisleep_power`
+
+**coverage** `partial`
+
+A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/AmplifierPowerStateChanged/DirectControlIsSuspended strings indicate players can enter a low-power 'semi sleep' and resume — relevant to idle latency and why a sleeping player can lag on first command. Not yet decoded.
+
+**Technical description:**
+
+low-power 'SemiSleep' suspend/resume engine gated by featureConfigSemiSleep: powerWakeupFromSemiSleep wake path, replicated <r:DirectControlIsSuspended> state element, AmplifierPowerStateChanged events, VLI suspend sessions; player reports SLEEPING to lechmere when suspended
+
+- binary anchors: `enableSemiSleep`, `featureConfigSemiSleep`, `powerWakeupFromSemiSleep`, `DirectControlIsSuspended`, `semiSleepConfig`, `powerWakeupFromSemiSleep`, `powerWakeupFromSemiSleep`, `<r:DirectControlIsSuspended val="`, `AmplifierPowerStateChangedEvent`, `featureConfigSemiSleep`, `semiSleepConfig`
+
+- **evidence_bits:** featureConfigSemiSleep + semiSleepConfig JSON key in cloud config; powerWakeupFromSemiSleep wake entry point; '<r:DirectControlIsSuspended val=' is an r:-namespace replicated element; AmplifierPowerStateChangedEvent; SONOS_PLAYER_SLEEPING and SONOS_PLAYER_LOW_BATTERY are lechmere close reasons — suspension tears down the cloud channel
+<details><summary>Evidence (8)</summary>
+
+- @ 0x10e86d24 — enableSemiSleep
+- @ 0x10f97b58 — featureConfigSemiSleep
+- @ 0x10e86c60 — powerWakeupFromSemiSleep
+- @ 0x10eb2c7b — DirectControlIsSuspended
+- @ 0x10e86d24 — enableSemiSleep + powerWakeupFromSemiSleep
+- @ 0x10f9c084 — semiSleepConfig JSON key
+- @ 0x10e86c5d — powerWakeupFromSemiSleep wake entry point
+- @ 0x10eb2c78 — <r:DirectControlIsSuspended> replicated state element
 
 </details>
 
@@ -906,6 +961,28 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
 - @ 0x10f03bcb — X-Sonos-MessageType: product-data-telemetry header
 - @ 0x10ea13ec — Telemetry 1.0 Event field format
 - @ 0x10e81dc0 — positioning/telemetryLevel muse route
+
+</details>
+
+## `testenv_environment`
+
+**coverage** `partial`
+
+A hidden /testenv page lets a tester point the whole player at a different Sonos cloud environment (production, perf, staging, test or int) and override the update URL. It lists the six backend APIs the player will use, and the change spreads to every player in the household within about two minutes.
+
+**Technical description:**
+
+POST /testenv switches the player's cloud environment between PROD, PERF, STAGE, TEST and INT, with an optional OnlineUpdateBaseURL override; the page displays the six resolved API bases (Cloud, Service catalog, System, Transfero, Metrics, Update) and CustomerId; the change replicates household-wide ('may take up to 120 seconds ... to replicate throughout household') and logs 'Setting cloud env to %s'
+
+- binary anchors: `/testenv`, `Setting cloud env to %s`, `OnlineUpdateBaseURL`, `CustomerId`, `perf`, `PROD`, `STAGE`, `TEST`, `INT`
+
+- **form:** GET renders a form: env selector (prod/perf/stage/test/int), url text input (OnlineUpdateBaseURL override), submit/reset buttons; POST returns a 1-second meta-refresh 'Success' page
+- **api_bases:** Cloud API, Service catalog API, System API, Transfero API, Metrics API, Update API — six resolved service bases per environment
+- **propagation:** change is written through the replicated-settings layer — 120s household-wide convergence warning on the form
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10f1756c — full /testenv form: env select + URL override + 6-API table
+- @ 0x10f174e8 — 'Setting cloud env to %s' log
 
 </details>
 

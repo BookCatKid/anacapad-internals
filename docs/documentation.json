@@ -112275,12 +112275,16 @@
  },
  "subsystems": {
   "ab_experiments": {
-   "status": "vocab",
-   "summary": "ZoneExperiment framework in production firmware: /experiments endpoint, ZoneExperiment id/name/value/defaultValue elements",
+   "status": "partial",
+   "summary": "production A/B experiment framework: a /experiments local endpoint plus a replicated <ZoneExperiments> store of <ZoneExperiment id name value defaultValue> rows; presence gated by featureConfigZoneExperiment; values influence runtime policy",
    "anchors": [
     "<ZoneExperiment",
     "/experiments",
-    "experimentId"
+    "experimentId",
+    "/experiments",
+    "<ZoneExperiment id=\"%llu\" name=\"%s\" value=\"%u\" defaultValue=\"%u\" />",
+    "featureConfigZoneExperiment",
+    "zoneExperiments"
    ],
    "evidence": [
     {
@@ -112306,8 +112310,18 @@
      "status": "confirmed",
      "address": "0x10f9c96c",
      "notes": "experimentId"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ef3d34",
+     "notes": "<ZoneExperiment id name value defaultValue> element schema"
     }
-   ]
+   ],
+   "schema": "<ZoneExperiments><ZoneExperiment id=\"%llu\" name=\"%s\" value=\"%u\" defaultValue=\"%u\" /></ZoneExperiments> \u2014 numeric value vs defaultValue, keyed by 64-bit id and name",
+   "keys": "featureConfigZoneExperiment, zoneExperiments, experimentId, experiment"
   },
   "account_cert_lifecycle": {
    "status": "partial",
@@ -112777,12 +112791,19 @@
   },
   "embedded_sqlite": {
    "status": "partial",
-   "summary": "libsqlite3.so.0 dynamically linked (open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout/...): used by the LocalTimer persistence ('LocalTimer from sqlite3 stmt [%s] FAILED') \u2014 local timers live in a sqlite DB; 'SQLite3 libversion %s' logged at init",
+   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim",
    "anchors": [
     "sqlite3_exec",
     "LocalTimer from sqlite3",
     "LocalTimer from sqlite3 stmt",
-    "libsqlite3.so.0"
+    "libsqlite3.so.0",
+    "CREATE TABLE IF NOT EXISTS timers",
+    "paused_timers",
+    "timer.db",
+    "PRAGMA user_version",
+    "LocalTimer",
+    "remaining_seconds",
+    "paused_utc_time"
    ],
    "evidence": [
     {
@@ -112808,17 +112829,49 @@
      "status": "confirmed",
      "address": "0x10edd644",
      "notes": "LocalTimer sqlite3 statement failure log"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10edcf88",
+     "notes": "timers table CREATE TABLE DDL, verbatim"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10edd38c",
+     "notes": "paused_timers SELECT (remaining_seconds,paused_utc_time)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10edd464",
+     "notes": "timer.db filename"
     }
    ],
-   "users": "LocalTimer store (timer persistence across reboot); the full table inventory is unmapped \u2014 imports suggest prepared-statement CRUD, no bulk exec-heavy workload"
+   "users": "LocalTimer store (timer persistence across reboot); the full table inventory is unmapped \u2014 imports suggest prepared-statement CRUD, no bulk exec-heavy workload",
+   "schema": "CREATE TABLE IF NOT EXISTS timers(id TEXT PRIMARY KEY,trigger_time TEXT NOT NULL,total_duration INTEGER NOT NULL,triggered NUMERIC NOT NULL); plus a paused_timers table queried as (id, remaining_seconds, paused_utc_time, total_duration) \u2014 paused timers freeze remaining_seconds + the UTC pause instant",
+   "ops": "SELECT id,trigger_time,total_duration,triggered,rowid FROM timers [WHERE id=?1]; SELECT count(*) FROM timers; same pair for paused_timers; PRAGMA user_version used for schema versioning",
+   "notes": "'LocalTimer from sqlite3 stmt [%s] FAILED %d %s' / 'from sqlite3 stmt timer' \u2014 row\u2192object hydration; filename timer.db"
   },
   "entitlements": {
-   "status": "vocab",
-   "summary": "entitlementsmanager + entitlementsVersionChanged + /entitlements/api; what an entitlement gates unknown",
+   "status": "partial",
+   "summary": "entitlements manager with cloud fetch + local cache, muse-subscribed change events, and a runtime policy hook (RRuntimeZPPolicy takes entitlementsMgr); typed SKU records decide e.g. whether Sonos Radio is preinstalled",
    "anchors": [
     "entitlementsmanager.cxx",
     "entitlementsVersionChanged",
-    "/entitlements/api"
+    "/entitlements/api",
+    "entitlementsmanager.cxx",
+    "RRuntimeZPPolicy",
+    "isEntitlementOn",
+    "internalMuseSubscribeToEntitlements",
+    "<Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\" />"
    ],
    "evidence": [
     {
@@ -112844,8 +112897,36 @@
      "status": "confirmed",
      "address": "0x10ebf908",
      "notes": "/entitlements/api"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ebfc8c",
+     "notes": "<Entitlement type isTrial sku startDate endDate codes> schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e9b39c",
+     "notes": "SBiz entitlement gates Sonos Radio preinstall"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e88d38",
+     "notes": "RRuntimeZPPolicy ctor wires localSettingsMgr+entitlementsMgr"
     }
-   ]
+   ],
+   "schema": "<Entitlements><Entitlement type= isTrial= sku= startDate= endDate= codes= /></Entitlements> \u2014 entitlement records carry an SKU and validity window",
+   "lifecycle": "cached entitlements returned from local store ('returning entitlements from cache'); refreshEntitlements fetches from cloud ('requesting entitlements from cloud', 'cloud entitlements: rc %d, http %d'); on ENTITLEMENTS_CHANGED the old set is stashed then compared ('stashed existing entitlements to compare later'); 'stale entitlements; scheduling job to refresh'",
+   "muse": "v1/users/{userId}/entitlements, v1/households/{householdId}/entitlements + users/{userId} scoped; internalMuseSubscribeToEntitlements pushes entitlements_changed / entitlementsVersionChanged events; 'savePendingEntitlementsLocked'",
+   "gating": "isEntitlementOn/processEntitlements feed RRuntimeZPPolicy ([localSettingsMgr=%s,entitlementsMgr=%s]) \u2014 the runtime policy engine; SBiz entitlement blocks Sonos Radio preinstall ('found SBiz entitlement; blocking preinstall of Sonos Radio' vs 'no SBiz entitlement; preinstalling Sonos Radio')"
   },
   "factory_reset": {
    "status": "partial",
@@ -113126,8 +113207,8 @@
    "xml": "<ZoneGroup Coordinator=..>, <ZoneGroupState><ZoneGroups></ZoneGroups></ZoneGroupState>, <Satellites>, /xml/satellite_device.xml satellite device description"
   },
   "ibt_plans": {
-   "status": "absent",
-   "summary": "IBT command-plan executor behind the enablePitchfork feature flag: '[dispatch] unsupported IBT command (%s)', 'already generated ibt plan, no action taken', 'executing ibt plan for command (%s)', 'failed to generate ibt plan for command' \u2014 commands are compiled into plans then executed; dispatch table rejects unknown IBT command names; the command set and plan format are not decoded",
+   "status": "vocab",
+   "summary": "an 'ibt plan' executor: commands are compiled into plans ('executing ibt plan for command (%s)', 'failed to generate ibt plan for command (%s)', 'already generated ibt plan, no action taken', 'unsupported IBT command (%s)'); likely related to feature flag enablePitchfork; command vocabulary and plan format unresolved",
    "anchors": [
     "executing ibt plan for command",
     "unsupported IBT command",
@@ -113166,14 +113247,20 @@
      "address": "0x10fac64c",
      "notes": "'executing ibt plan for command (%s)' + dispatch rejection"
     }
-   ]
+   ],
+   "unresolved": "what IBT stands for (in-box testing? install-base tooling?), the plan schema, which commands generate plans, and how plans execute"
   },
   "lechmere_wss": {
    "status": "partial",
-   "summary": "lechmere.cxx cloud channel: RFC6455 websocket to lechmere.<env>.ws.sonos.com with negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), auth via authzPolicyKeyLechmere whose policy key carries a role; reconnect steering via SONOS_SERVER_LECHMERE_RECONNECT_LATER; separate local WSS server (websocketserver.cxx) on /api/v1/websocket + /websocket/api",
+   "summary": "lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions",
    "anchors": [
     "websocket_lechmere",
-    "lechmere.event"
+    "lechmere.event",
+    "wspmd",
+    "SONOS_FCS_DISABLE_PER_MSG_DEFLATE",
+    "SONOS_CLIENT_TOO_MANY_UNACKED_PINGS",
+    "SONOS_SERVER_LECHMERE_RECONNECT_LATER",
+    "SONOS_CLIENT_DATA_COLLECTION_OPTED_OUT"
    ],
    "evidence": [
     {
@@ -113207,11 +113294,38 @@
      "status": "confirmed",
      "address": "0x10ef9d2c",
      "notes": "lechmere policy key role parse"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f1706c",
+     "notes": "wspmd per-message-deflate log domain + deflate op codes"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f1714c",
+     "notes": "close-reason enum: RFC6455 codes then SONOS_CLIENT_/PLAYER_/SERVER_/FCS_ extensions"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f172b6",
+     "notes": "SONOS_CLIENT_TOO_MANY_UNACKED_PINGS \u2014 app-level keepalive"
     }
    ],
    "endpoint": "lechmere.%s.ws.sonos.com \u2014 %s is the region/env token; Sec-WebSocket-Protocol: lechmere.%u",
    "auth": "authzPolicyKeyLechmere; 'Could not parse role from lechmere policy key' \u2014 role encoded in key",
-   "local_ws": "websocketserver.cxx serves /api/v1/websocket and /websocket/api with RFC6455 headers; opcode logs websocket(data/ping/pong/close/cont); disableWebSocketPerMessageDeflate config key"
+   "local_ws": "websocketserver.cxx serves /api/v1/websocket and /websocket/api with RFC6455 headers; opcode logs websocket(data/ping/pong/close/cont); disableWebSocketPerMessageDeflate config key",
+   "framing": "RFC6455 with per-message-deflate negotiation: 'wspmd' log domain, deflate/inflate stream ops, 'expected empty deflate block', 'deflate out buffer requirement not met'; config keys SONOS_FCS_DISABLE/ENABLE_PER_MSG_DEFLATE toggle it at runtime \u2014 'FCS' is the internal name of this channel",
+   "close_reasons": "standard codes GOING_AWAY/PROTOCOL_ERROR/BAD_DATA/NOT_CONSISTENT/VIOLATED_POLICY/MESSAGE_TOO_BIG/SERVICE_RESTART/TRY_AGAIN_LATER/TLS_HANDSHAKE plus SONOS_* extensions: client-side (REGISTRATION_CERT_REMOVED/CHANGED, DATA_COLLECTION_OPTED_OUT \u2014 telemetry opt-out tears down the channel, ACCESS_TOKEN_EXPIRED, TOO_MANY_UNACKED_PINGS, READ/WRITE_ERROR, CUSTOMER_ID_CHANGED, AUTH_METHOD_CHANGED); player-side (SHUTDOWN, IP_ADDRESS_CHANGED, BLUETOOTH, POWERED_OFF, UPGRADE, NEW_SSID, LOW_BATTERY, SLEEPING, RECONNECT); server-side (LECHMERE_RECONNECT_LATER \u2014 server steering, PLAYER_UNSUPPORTED)",
+   "keepalive": "application-level ping/pong: client disconnects on SONOS_CLIENT_TOO_MANY_UNACKED_PINGS"
   },
   "led_engine": {
    "status": "partial",
@@ -113716,13 +113830,18 @@
   },
   "qplay_protocol": {
    "status": "partial",
-   "summary": "Tencent QPlay: device advertises <qq:X_QPlay_SoftwareCapability xmlns:qq=\"http://www.tencent.com\">QPlay:2</..> (protocol v2); /QPlay/Control route with QPlayAuth action; shared TQPlay mode (updateSharedTQPlayMode); #QPLAY_SUPPORT# conditional block marker; no /QPlay/Event route \u2014 eventless control service",
+   "summary": "Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route \u2014 the only service missing its event pair), QPlayAuth action, a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability>",
    "anchors": [
     "urn:schemas-tencent-com:service:QPlay",
     "QPlayAuth",
     "QPlay:2",
     "updateSharedTQPlayMode",
-    "#QPLAY_SUPPORT#"
+    "#QPLAY_SUPPORT#",
+    "updateSharedTQPlayMode",
+    "#QPLAY_SUPPORT#",
+    "QPlay:2",
+    "QPlayAuth",
+    "/QPlay/Control"
    ],
    "evidence": [
     {
@@ -113740,9 +113859,26 @@
      "status": "confirmed",
      "address": "0x10ef8cc0",
      "notes": "qq:X_QPlay_SoftwareCapability = QPlay:2 in device description"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ef8cc0",
+     "notes": "<qq:X_QPlay_SoftwareCapability>QPlay:2</qq:...> device-description element"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea8db4",
+     "notes": "updateSharedTQPlayMode context guard"
     }
    ],
-   "unresolved": "the wider Tencent protocol \u2014 key derivation, the UDP control channel, session lifecycle \u2014 lives mostly outside this binary's strings or under different names"
+   "unresolved": "QPlayAuth request/response schema, key derivation, and the UDP media/control channel are still undecoded",
+   "soap": "/QPlay/Control registered; QPlayAuth the visible action; xmlns:qq=\"http://www.tencent.com\" capability element advertises 'QPlay:2' in device description"
   },
   "queue_persistence": {
    "status": "partial",
@@ -113996,15 +114132,20 @@
    "unresolved": "submission trigger policy (when a track scrobbles), queueing/retry on failure, where session creds live (SystemProperties?), which player state gates scrobbling, ws.audioscrobbler.com/2.0 usage"
   },
   "semisleep_power": {
-   "status": "vocab",
-   "summary": "suspend/resume engine gated by featureConfigSemiSleep with a semiSleepConfig JSON key in cloud config: powerWakeupFromSemiSleep wake path, AmplifierPowerStateChanged events, DirectControlIsSuspended state, VLI suspend sessions. Strings confirmed; the flag suggests it may be dormant/gated on this model",
+   "status": "partial",
+   "summary": "low-power 'SemiSleep' suspend/resume engine gated by featureConfigSemiSleep: powerWakeupFromSemiSleep wake path, replicated <r:DirectControlIsSuspended> state element, AmplifierPowerStateChanged events, VLI suspend sessions; player reports SLEEPING to lechmere when suspended",
    "anchors": [
     "enableSemiSleep",
     "featureConfigSemiSleep",
     "powerWakeupFromSemiSleep",
     "DirectControlIsSuspended",
     "semiSleepConfig",
-    "powerWakeupFromSemiSleep"
+    "powerWakeupFromSemiSleep",
+    "powerWakeupFromSemiSleep",
+    "<r:DirectControlIsSuspended val=\"",
+    "AmplifierPowerStateChangedEvent",
+    "featureConfigSemiSleep",
+    "semiSleepConfig"
    ],
    "evidence": [
     {
@@ -114054,8 +114195,25 @@
      "status": "confirmed",
      "address": "0x10f9c084",
      "notes": "semiSleepConfig JSON key"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e86c5d",
+     "notes": "powerWakeupFromSemiSleep wake entry point"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb2c78",
+     "notes": "<r:DirectControlIsSuspended> replicated state element"
     }
-   ]
+   ],
+   "evidence_bits": "featureConfigSemiSleep + semiSleepConfig JSON key in cloud config; powerWakeupFromSemiSleep wake entry point; '<r:DirectControlIsSuspended val=' is an r:-namespace replicated element; AmplifierPowerStateChangedEvent; SONOS_PLAYER_SLEEPING and SONOS_PLAYER_LOW_BATTERY are lechmere close reasons \u2014 suspension tears down the cloud channel"
   },
   "settings_replication": {
    "status": "partial",
@@ -114538,6 +114696,95 @@
      "status": "confirmed",
      "address": "0x10fbb0fc",
      "notes": "R_LED_WAC / R_LED_WAC_TIMEOUT LED modes"
+    }
+   ]
+  },
+  "device_unlock": {
+   "status": "partial",
+   "summary": "developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state",
+   "endpoints": "/unlock, /devunlock, /mfgunlock, /unlock.htm (browser form)",
+   "behavior": "unlock writes /tmp/device_unlocked_flag and an <Unlocked>1</Unlocked> record; the deviceUnlock op + 'DevUnlock' page return 'Rebooting...'; a server-side cap yields '<h2>Too Many Unlocks</h2>' when the per-device unlock budget is exhausted",
+   "safety": "RdeviceIsUnlocked + RabortIfUnlocked R_* hooks let diagnostic/self-test code abort on unlocked hardware \u2014 unlocked units are treated as non-production",
+   "anchors": [
+    "/unlock",
+    "/devunlock",
+    "/mfgunlock",
+    "/tmp/device_unlocked_flag",
+    "Too Many Unlocks",
+    "RdeviceIsUnlocked",
+    "RabortIfUnlocked",
+    "deviceUnlock",
+    "unlockedBld",
+    "<Unlocked>1</Unlocked>"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f00014",
+     "notes": "/devunlock endpoint literal"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f00020",
+     "notes": "'Too Many Unlocks' rate-limit page"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10efff88",
+     "notes": "/tmp/device_unlocked_flag"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10efffb0",
+     "notes": "DevUnlock page \u2192 Rebooting..."
+    }
+   ]
+  },
+  "testenv_environment": {
+   "status": "partial",
+   "summary": "POST /testenv switches the player's cloud environment between PROD, PERF, STAGE, TEST and INT, with an optional OnlineUpdateBaseURL override; the page displays the six resolved API bases (Cloud, Service catalog, System, Transfero, Metrics, Update) and CustomerId; the change replicates household-wide ('may take up to 120 seconds ... to replicate throughout household') and logs 'Setting cloud env to %s'",
+   "form": "GET renders a form: env selector (prod/perf/stage/test/int), url text input (OnlineUpdateBaseURL override), submit/reset buttons; POST returns a 1-second meta-refresh 'Success' page",
+   "api_bases": "Cloud API, Service catalog API, System API, Transfero API, Metrics API, Update API \u2014 six resolved service bases per environment",
+   "propagation": "change is written through the replicated-settings layer \u2014 120s household-wide convergence warning on the form",
+   "anchors": [
+    "/testenv",
+    "Setting cloud env to %s",
+    "OnlineUpdateBaseURL",
+    "CustomerId",
+    "perf",
+    "PROD",
+    "STAGE",
+    "TEST",
+    "INT"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f1756c",
+     "notes": "full /testenv form: env select + URL override + 6-API table"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f174e8",
+     "notes": "'Setting cloud env to %s' log"
     }
    ]
   }
