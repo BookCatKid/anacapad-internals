@@ -1070,12 +1070,30 @@ def render_muse(m):
             "tables below), `+0x10` shared default, and `+0x14`..`+0x60` "
             "a fixed hook ladder whose base defaults live at "
             "`0x101c0638..0x101c06ac`. Ops override subsets of the hooks: "
-            "the low hooks read body params (`muted`, `volume`, ...), "
-            "higher hooks build forwarded requests (e.g. `setVolume` "
-            "overrides `+0x60` to emit `v1/players/{id}/playerVolume/mute` "
-            "and `v1/groups/{id}/groupVolume`). Each verb registers two "
-            "op classes — a player-channel variant and a fatter "
-            "household-channel variant.", ""]
+            "the low hooks read body params — each overridden hook is one "
+            "**declared parameter**, reading exactly one named JSON member "
+            "through `f_108337b0` (e.g. setVolume: `+0x1c`→`muted`, "
+            "`+0x20`→`volume`; seek: `+0x1c`→`playOnCompletion`, "
+            "`+0x20`→`positionMillis`, `+0x28`→`itemId`, `+0x2c`→`window`) "
+            "— the Params column lists them — and higher hooks build "
+            "forwarded requests (e.g. `setVolume` overrides `+0x60` to emit "
+            "`v1/players/{id}/playerVolume/mute` and "
+            "`v1/groups/{id}/groupVolume`). Each verb registers two op "
+            "classes — a player-channel variant and a fatter "
+            "household-channel variant.", "",
+            "**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
+            "validators keyed by field name — `f_109ca3b4` emits "
+            "'Missing required field: ', `f_109c9cc0` 'Unexpected type "
+            "given for key: ', `f_109c8c60` 'Found unexpected array for '/"
+            "'Unable to parse array for ', `f_109c90ec` 'Found object "
+            "for ', `f_109ca92c` coerces strings "
+            "('Unable to coerce string to boolean for key: '/"
+            "' to number for key: '), `f_109c7cb4`/`f_109c8004`/"
+            "`f_109c8354`/`f_109c86dc` numeric bounds ('below minimum "
+            "of '/'above maximum of '), `f_109c7954` 'Parameter '…' "
+            "out of range: ', `f_109c74b0` timestamps (' failed "
+            "timestamp validation'), `f_109c7740` ' not a valid Muse "
+            "error code'.", ""]
     pipe = mu.get("pipeline") or {}
     if pipe:
         out += ["## Request pipeline", ""]
@@ -1144,14 +1162,17 @@ def render_muse(m):
             for p_ in op.get("op_paths") or []:
                 if p_ not in paths_seen:
                     paths_seen.append(p_)
+            prm = op.get("op_params") or []
+            prm_txt = ", ".join("`%s`" % _e(n) for _, n in prm) if prm else "—"
             rows.append(["`%s`" % _e(op["method"]),
                          "`%s`" % _e(op["path"]),
                          "`%s`" % _e(op["verb"]),
                          "`%s`" % _e(op["subparam"] or "-"),
                          "`%s`" % _e(op["flags"]),
-                         execs])
+                         execs,
+                         prm_txt])
         _table(out, ["Method", "Path", "Op", "Trailing param",
-                     "Flags", "Exec (vtable +0x0c)"], rows)
+                     "Flags", "Exec (vtable +0x0c)", "Params"], rows)
         if r.get("impl_funcs"):
             out.append("Resource implementation functions (string-block "
                        "registrar family): %s"
