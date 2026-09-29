@@ -17,6 +17,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `audio_fifo` | **partial** | records with {pos,range}; writes {"Advance write to next record","Rejecting write, as provided offset %zu != %zu (pending)","not enough fifo records","truncated write","Audio fifo records reset"}; discontinuity {"Discontinuity @ offset %zu in record %zu (expecting: %zu)","*** Too many discontinuities"}; reads {"Consumed contiguous samples (%zu - %zu)","Advance read to next contiguous record","Read %zu bytes from record","No bytes to read from fifo... EOF","audio fifo read at boundary eof","consumed exactly to the eof marker","reached logical boundary","already has pending offset"}; prebuffer {"prebuffering... (used/prebuffer)","Waited %ums for audio from the eSDK","Finished prebuffering in %u ms (st,flush)","prebuffering elapsed %u ms (used/free)","exit waiting for audio, not rendering"} — Spotify eSDK feed |
 | `audio_rate_ctrl` | **partial** | ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, "Rate Maxed"/"Rate Inv Maxed" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; "time went back; try again"; "Thread descheduled for %uus. Limit %uus"; SRC mute on \|drift\| "(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u"; "Out of bounds. drift: %f mute count: %d" |
 | `audio_stream_mixer` | **partial** | stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} + stats "E:%d, D:%d, B:%d, PR:%d"; fade engine "fade added: %i.%i sample_len(%u) current_gain target_gain rate" + max/min/fade complete + "no fade slots available"; skipAhead "delta:%u > buffered:%u"; "discontinuity detected after scheduled resync"; mixer: bManageOutputLatency,startup buffers,buffers; fd poll sound.fd.poll.%04X; stall detect "loop(wall): %uus loop(cpu): %uus, sel: %uus"; states MTS_PLAYING transition; DSP drain FSM {"start dsp flushing %i buffers","dsp flushing ended %i frames early","driver draining","dsp flushing complete with od %u"}; stream names as-{dspin,dspout}{-tv,-ext-voice,-ext-chirp}/as-src{in,out}-ext-voice/%s-chsnk%zu; system/audio_out_disable + "Running with audio output disabled"; forcePerfectInitialSync; "KERNEL_PRINTK_ENABLE ... mixer scheduling can't be guaranteed"; "Testpoint delay of %ums" |
+| `audio_tap` | **partial** | errors {no tap specified,syntax error,invalid request,permission denied} + audio/wav; mic gate "allowed %d mic %d"; taps {linein,codecout,irdecoder,mixersat,mixergm,as-srcin-chsnk0,as-srcout-chsnk0,mixerstats,dspout,formatter,llaout,mixerout,mzdsp,extvoice,extchirp}; spdiftap.compressed + "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!"; sonos-dspid header |
 | `audio_taps` | **partial** | PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap |
 | `auto_update` | **partial** | states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {"Upcoming alarm is preventing update","Active device(s) preventing update"}; "Trimming the window to (%d) seconds"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; "RINCON_%s01400 updated to %s"/"update failed (%d)"; "Retrying upgrade (%d/%d)..."/"Giving up after max upgrade attempts"; upgrade_mgr.txt state file |
 | `boot_sequence` | **partial** | "updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey} |
@@ -33,6 +34,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `didl_extractor` | **partial** | rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd,streamContent,audioInputIcon,radioShowMd,streamInfo,rating,policies,podcast,episodeNumber,releaseDate,narrator,albumArtist,numSections} + upnp {originalTrackNumber,album}; classes {object.item.audioItem.podcast,.show,.audioBook.chapter,.musicTrack.recentShow}; loadFromExtraMd(trackURI,extraMd); extractMimeTypeFromHttpContentType (trunc/mtParams errors); protocolInfos {http-get,rtsp-rtp-udp,x-sonos-vli:*:audio:*,x-rincon-queue:*:*:*}; " duration=" attr; &#10; newline; -yYy- marker |
 | `dolby_decoder` | **partial** | config files /opt/dsp/dolby_config.json + app/debug/dsp/dolby_config.json jffs override; keys {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle,oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal} + DRC {movie,night,disable} + crossover 100-200HZ + speaker roles lrrse/lrrs1/lrrs2; Evolution mem {static,dynamic byte allocs}, timeslice processing, malformed-input detect; status <DEC_SampleRate><LFEPresence><DEC_ChanCount> + <BlocksInTimeSlice><ACMOD><DataRate><DialNorm><SURRMOD> |
 | `dropout_logging` | **partial** | triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,set/reset pt}; slot model {clr slot,slot in use skip incr,set slot %zu idx %zu to %s,no space in list}; conditions {set pt reached,flag report at %zu sbmt,set pos aud,pt in fut - inaud,GCI but no CID}; per-ch incr "incr call: %s, %zu, %zu, ch %zu, %d.%06d"; fields {inputType,SatChCount,HtsnkVersion,msAfterPt,GroupRole,GCTimeValid,GCTime,btRole,submit}; counters {htsnk_missed_total,htsnk_missed_duration_total,htsnk_late_total,htsnk_strm_reset_duration_total,htsnk_strm_silence_duration_total,htsnk_strm_plc_duration_total}; reasons {chsnk_lse,chsnk_ch_data_full,chsnk_w_err,chsrc_framer_uflw,htsnk_invld_sntp,htsnk_late_frames,htsnk_missed_frames,htsnk_time_backw,htsnk_stream_err,htsnk_stream_uflw,htsnk_stream_reset_duration,htsnk_wrong_frame}; bt_audio + injectdropout test cmd {"missing dt param","Injected dropout error"}; "Sat chs %zu"/"Sat htsnk ver %u" |
+| `dsp_files` | **partial** | files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,dsp_system_satellite.bin,satellite_processor.bin}; sonar-tone flush {"flushing sonar tones","Flushed"}; htdocs_locked; "modZPAmpTimer() called"; "unable to delete %s even though it exists"/"successfully deleted %s"; settings {ZPLocalSettingsFile,ZPExpirationTime,ZPGroupExpirationTime,ZPForcedUPnPExpirationTimeout,ZPMusicServicesBackstop,ZPTimeZonesBackstop}; "Setting JFFS root to %s" + ServerRoot + ContinueAfterIPChange + #GROUP_NAME# + "Failure generating group description xml" |
 | `dsp_ht_engine` | **partial** | home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks |
 | `dts_decoder` | **partial** | profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo} |
 | `embedded_sqlite` | **partial** | embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim \| proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) \| suspend model: pause -> row in paused_timers w/ remaining_seconds+paused_utc_time; resume -> recompute trigger_time \| libFLAC embedded codec: reference libFLAC 1.3.4 20220220 |
@@ -139,7 +141,8 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `htaudio` | **?** |  |
 | `http_engine` | **?** |  |
 | `lechmere` | **?** |  |
-| `mdns` | **?** |  |
+| `mdns` | **Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file** |  |
+| `mod_zp` | **?** |  |
 | `muse` | **?** |  |
 | `muse_engine` | **?** |  |
 | `music_accounts` | **?** |  |
@@ -389,6 +392,21 @@ stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} +
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f29ab7 — audio_stream/mixing blocks
+
+</details>
+
+## `audio_tap`
+
+**coverage** `partial`
+
+**Technical description:**
+
+errors {no tap specified,syntax error,invalid request,permission denied} + audio/wav; mic gate "allowed %d mic %d"; taps {linein,codecout,irdecoder,mixersat,mixergm,as-srcin-chsnk0,as-srcout-chsnk0,mixerstats,dspout,formatter,llaout,mixerout,mzdsp,extvoice,extchirp}; spdiftap.compressed + "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!"; sonos-dspid header
+
+- **name:** AudioTap — debug tap points
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e73cb8 — audiotap block
 
 </details>
 
@@ -702,6 +720,21 @@ triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ebe644 — dropout handler block
+
+</details>
+
+## `dsp_files`
+
+**coverage** `partial`
+
+**Technical description:**
+
+files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,dsp_system_satellite.bin,satellite_processor.bin}; sonar-tone flush {"flushing sonar tones","Flushed"}; htdocs_locked; "modZPAmpTimer() called"; "unable to delete %s even though it exists"/"successfully deleted %s"; settings {ZPLocalSettingsFile,ZPExpirationTime,ZPGroupExpirationTime,ZPForcedUPnPExpirationTimeout,ZPMusicServicesBackstop,ZPTimeZonesBackstop}; "Setting JFFS root to %s" + ServerRoot + ContinueAfterIPChange + #GROUP_NAME# + "Failure generating group description xml"
+
+- **name:** DSP preset/system files + settings
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e7390c — dsp files block
 
 </details>
 
@@ -2631,6 +2664,7 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 - **get_api:** callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response\[%s\],unexpected timeout rSz/cL,JSON parse failure \[sz,off\]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags
 - **headers:** outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; "HTTP Header did not fit in char array"
+- **ssl_cache:** ssl_client_cache page + "private, max-age=15780000" + "Skipping HH SSL cache refresh - device is not idle" + "SSL client cache refresh next run in %ld seconds"
 ## `cloud_registration`
 
 **coverage** `?`
@@ -2717,9 +2751,14 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 - **cloudrequest:** cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg ("per msg deflate change %d -> %d") w/ local-run-state override; "Player IP changed. Bouncing connection"; backoff "Following backoff schedule, retry in %lld"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT ("Unexpected TYPE EVENT"), "support for HTTP message dropped", "Unrecognized message type"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/"player request failed: %s"; SwitchingRadiosEvent; museCloudEvtHandler
 ## `mdns`
 
-**coverage** `?`
+**coverage** `Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file`
 
 - **controller:** MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}
+## `mod_zp`
+
+**coverage** `?`
+
+- **detail:** mod_zp + mod_zp_aa album-art queue "queueing album art request %s %u %u %u"; timeout states {timeoutplaying,timeoutpaused}; headers {x-rincon-last-update-device,x-rincon-content-version,x-rincon-range}; "%s.tmp" staging + "Unable To File %s"/"Unable To Rename Temp EQ File"; "Forced GTK rekey"; button-forward errors {no handler,invalid method,No button handler unable to forward buttons,Feature not supported.}; build props {build.date,build.scm.version,/build.properties,legacyanacapad,hhSwgenState}
 ## `muse`
 
 **coverage** `?`

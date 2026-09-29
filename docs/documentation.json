@@ -104816,6 +104816,12 @@
    "service": "favorites",
    "description": "userradio.xml (+.d.xml delta) replicated favorites",
    "fields": "<Favorites SchemaVersion><Radio LastUpdateDevice NextFavorite><Station Id Title URI/><Show Id/><Genre Id Name/>; favorite URIs FV:2/%s + FV:%s/%s; class object.itemobject.item.sonos-favorite; rincon md {favoriteId,ordinal,resMD,room,playmode,type,description}; res {x-rincon-mp3radio:*:*:*,x-sonosapi-show:*:*:*,x-sonosapi-stream:*:*:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; categories {:tracks,:stations,:shortcuts,:albums,:playlists,:misc,:shows,:audiobooks}; names {TuneIn Station,Custom Station,Radio Show}; SA_RINCON%d_ svc URI; HR:0/1 + R:%s/%s/%s recents; itemsMoved/radioFavoritesMoved events; instantPlay; dirObjFavorites"
+  },
+  "zpinfo_schema": {
+   "status": "strong",
+   "service": "mod_zp /status",
+   "description": "ZPInfo + DeviceInfo + Playmode",
+   "fields": "<ZPInfo><ZoneIcon><Configuration><LocalUID><SerialNumber><SoftwareVersion><BuildType>(release)<SWGen><SoftwareDate><SoftwareScm><HHSwgenState><MinCompatibleVersion><LegacyCompatibleVersion><HardwareVersion><DspVersion>%d.%d.%d<SeriesID><MfgLocation><DateCode><HwFlags>0x%x<HwFeatures>0x%x<Variant><GeneralFlags>0x%x<IPAddress><MACAddress><Copyright><ExtraInfo><HTAudioInCode><IdxTrk><MDP2Ver></ZPInfo>; <DeviceInfo><ZoneName><NetworkHash><DHCPServerMac><NetworkIPAddress><NetworkMask><DiagLevel><DevMode></DeviceInfo>; <Playmode><Shuffle><Repeat><Crossfade></Playmode>; <TemperatureHistograms><CPUTemperature>; <CpuMonitor>; <HardwareStatusInfo>"
   }
  },
  "uri_formats": {
@@ -109954,7 +109960,9 @@
      },
      "/mdnsannounce": {
       "handler": "f_100c1230",
-      "flags": []
+      "flags": [],
+      "detail": "mDNS announce button on /spotifyzc",
+      "status": "strong"
      },
      "/pcap": {
       "handler": "f_100d416c",
@@ -110094,7 +110102,9 @@
      "/spotifyzc": {
       "handler": "f_1020f8c4",
       "flags": [],
-      "detail": "Spotify Connect ZeroConf endpoint (f_1020f8c4). POST application/x-www-form-urlencoded; addUser action takes userName + player uuid, replies application/json. Error vocabulary ERROR-INVALID-ARGUMENTS/ERROR-UNKNOWN/ERROR-SPOTIFY-ERROR/ERROR-LOGIN-FAILED; pulls token/key from DC account (\"%s@%s\" user@device fmt, SONOS_DC_UNKNOWN)."
+      "detail": "Spotify Connect ZeroConf endpoint (f_1020f8c4). POST application/x-www-form-urlencoded; addUser action takes userName + player uuid, replies application/json. Error vocabulary ERROR-INVALID-ARGUMENTS/ERROR-UNKNOWN/ERROR-SPOTIFY-ERROR/ERROR-LOGIN-FAILED; pulls token/key from DC account (\"%s@%s\" user@device fmt, SONOS_DC_UNKNOWN).",
+      "page": "<h3>Tools for debugging Spotify issues</h3> + forms {mDNS Announce\u2192/mdnsannounce,Reset NTS\u2192/spotresetnts} both csrfToken POSTs; \"spot: permission denied\"",
+      "status": "strong"
      },
      "/spotdbg": {
       "handler": "f_100b8140",
@@ -110102,7 +110112,9 @@
      },
      "/spotresetnts": {
       "handler": "f_100b7fd8",
-      "flags": []
+      "flags": [],
+      "detail": "Reset NTS button on /spotifyzc",
+      "status": "strong"
      },
      "/sethostip": {
       "handler": "f_100b9fac",
@@ -110118,11 +110130,15 @@
      },
      "/setstring": {
       "handler": "f_100b7cb4",
-      "flags": []
+      "flags": [],
+      "form": "<h2>System Settings</h2> POST {csrfToken hidden,key size=80,value size=80}; responses {\"Setting changed\",\"HTTP Error %d\"}",
+      "status": "strong"
      },
      "/removestring": {
       "handler": "f_100b79e0",
-      "flags": []
+      "flags": [],
+      "form": "<h2>Remove System Setting</h2> POST {csrfToken hidden,key size=64}; responses {\"Setting removed\",\"HTTP Error %d\"}; cache-control \"no-cache, no-store, must-revalidate\" + application/x-www-form-urlencoded",
+      "status": "strong"
      },
      "/support/directsubmit": {
       "handler": "f_105e9b30",
@@ -121046,7 +121062,8 @@
    ]
   },
   "mdns": {
-   "controller": "MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}"
+   "controller": "MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}",
+   "status": "Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file"
   },
   "update_coordinator": {
    "begin": "beginUpdate {already started guard,updateHookJob,upgradeinfo,/var/run}; \"Current Swgen Min downgrade version %s\"; \"Failed to query cloud settings\""
@@ -121503,7 +121520,8 @@
   },
   "cloud": {
    "get_api": "callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags",
-   "headers": "outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; \"HTTP Header did not fit in char array\""
+   "headers": "outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; \"HTTP Header did not fit in char array\"",
+   "ssl_cache": "ssl_client_cache page + \"private, max-age=15780000\" + \"Skipping HH SSL cache refresh - device is not idle\" + \"SSL client cache refresh next run in %ld seconds\""
   },
   "music_services": {
    "name": "musicservices \u2014 available-services replication",
@@ -121773,6 +121791,35 @@
      "notes": "iocompress block"
     }
    ]
+  },
+  "audio_tap": {
+   "name": "AudioTap \u2014 debug tap points",
+   "status": "partial",
+   "summary": "errors {no tap specified,syntax error,invalid request,permission denied} + audio/wav; mic gate \"allowed %d mic %d\"; taps {linein,codecout,irdecoder,mixersat,mixergm,as-srcin-chsnk0,as-srcout-chsnk0,mixerstats,dspout,formatter,llaout,mixerout,mzdsp,extvoice,extchirp}; spdiftap.compressed + \"Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!\"; sonos-dspid header",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e73cb8",
+     "notes": "audiotap block"
+    }
+   ]
+  },
+  "dsp_files": {
+   "name": "DSP preset/system files + settings",
+   "status": "partial",
+   "summary": "files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,dsp_system_satellite.bin,satellite_processor.bin}; sonar-tone flush {\"flushing sonar tones\",\"Flushed\"}; htdocs_locked; \"modZPAmpTimer() called\"; \"unable to delete %s even though it exists\"/\"successfully deleted %s\"; settings {ZPLocalSettingsFile,ZPExpirationTime,ZPGroupExpirationTime,ZPForcedUPnPExpirationTimeout,ZPMusicServicesBackstop,ZPTimeZonesBackstop}; \"Setting JFFS root to %s\" + ServerRoot + ContinueAfterIPChange + #GROUP_NAME# + \"Failure generating group description xml\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e7390c",
+     "notes": "dsp files block"
+    }
+   ]
+  },
+  "mod_zp": {
+   "detail": "mod_zp + mod_zp_aa album-art queue \"queueing album art request %s %u %u %u\"; timeout states {timeoutplaying,timeoutpaused}; headers {x-rincon-last-update-device,x-rincon-content-version,x-rincon-range}; \"%s.tmp\" staging + \"Unable To File %s\"/\"Unable To Rename Temp EQ File\"; \"Forced GTK rekey\"; button-forward errors {no handler,invalid method,No button handler unable to forward buttons,Feature not supported.}; build props {build.date,build.scm.version,/build.properties,legacyanacapad,hhSwgenState}"
   }
  },
  "muse": {

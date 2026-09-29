@@ -577,6 +577,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/mdnsannounce:**
       - **handler:** f_100c1230
       - **flags:** 
+      - **detail:** mDNS announce button on /spotifyzc
+      - **status:** strong
     - **/pcap:**
       - **handler:** f_100d416c
       - **flags:** 
@@ -674,12 +676,16 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
       - **handler:** f_1020f8c4
       - **flags:** 
       - **detail:** Spotify Connect ZeroConf endpoint (f_1020f8c4). POST application/x-www-form-urlencoded; addUser action takes userName + player uuid, replies application/json. Error vocabulary ERROR-INVALID-ARGUMENTS/ERROR-UNKNOWN/ERROR-SPOTIFY-ERROR/ERROR-LOGIN-FAILED; pulls token/key from DC account ("%s@%s" user@device fmt, SONOS_DC_UNKNOWN).
+      - **page:** <h3>Tools for debugging Spotify issues</h3> + forms {mDNS Announce→/mdnsannounce,Reset NTS→/spotresetnts} both csrfToken POSTs; "spot: permission denied"
+      - **status:** strong
     - **/spotdbg:**
       - **handler:** f_100b8140
       - **flags:** 
     - **/spotresetnts:**
       - **handler:** f_100b7fd8
       - **flags:** 
+      - **detail:** Reset NTS button on /spotifyzc
+      - **status:** strong
     - **/sethostip:**
       - **handler:** f_100b9fac
       - **flags:** 
@@ -692,9 +698,13 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/setstring:**
       - **handler:** f_100b7cb4
       - **flags:** 
+      - **form:** <h2>System Settings</h2> POST {csrfToken hidden,key size=80,value size=80}; responses {"Setting changed","HTTP Error %d"}
+      - **status:** strong
     - **/removestring:**
       - **handler:** f_100b79e0
       - **flags:** 
+      - **form:** <h2>Remove System Setting</h2> POST {csrfToken hidden,key size=64}; responses {"Setting removed","HTTP Error %d"}; cache-control "no-cache, no-store, must-revalidate" + application/x-www-form-urlencoded
+      - **status:** strong
     - **/support/directsubmit:**
       - **handler:** f_105e9b30
       - **flags:** 
