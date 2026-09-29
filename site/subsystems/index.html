@@ -862,6 +862,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#healthcheck" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>healthcheck</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#history_mgr" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>history_mgr</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hls_player" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>hls_player</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#household_settings" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2729,6 +2762,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#healthcheck" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>healthcheck</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#history_mgr" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>history_mgr</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hls_player" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>hls_player</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#household_settings" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3832,6 +3898,21 @@
 <td><code>group_object_model</code></td>
 <td><strong>partial</strong></td>
 <td>zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator[AndSource] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push</td>
+</tr>
+<tr>
+<td><code>healthcheck</code></td>
+<td><strong>partial</strong></td>
+<td>schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}</td>
+</tr>
+<tr>
+<td><code>history_mgr</code></td>
+<td><strong>partial</strong></td>
+<td>muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} "Updating history cache: [status][key][etag][cache-control]" + max-age + 304 handling + "corrupt cache could not be served after a 304"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; "Post History Buffer Cleared"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY</td>
+</tr>
+<tr>
+<td><code>hls_player</code></td>
+<td><strong>partial</strong></td>
+<td>variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forcing a source switch due to multiple codec variants in playlist"; ADTS md + "seconds advanced" tracking + "doesn't line up with seek"; encryption {encrypted-but-no-key-URI,no-data,"No IV, using seq. num.","SAMPLE-AES detected. Setting up audio framer decryption",key-uri http status,read size mismatch}; byte-range map "couldn't get file size from http headers for map"/"found offset %zu"; InitFramerForTrackList; seg index "starting at bitrate %u stream %u segment %llu offset %zu"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,"Failed to calculate absolute media URI"}; ABR {"downgrade bitrate","already at the minimum","upgrade bitrate","advancing stream index"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,"rejecting binaural/downmix rendition",BANDWIDTH unsupported/0}; "unexpected, we have %zu dolby streams in the playlist"; BR P|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist}</td>
 </tr>
 <tr>
 <td><code>household_settings</code></td>
@@ -4943,6 +5024,48 @@
 - @ 0x10ebce88 — recoverBondedZone FSM strings
 - @ 0x10e73ab4 — dsp_system_satellite.bin + satellite_processor.bin
 - @ 0x10e878b4 — HT_BONDED_MASTER/SATELLITE role enum
+
+</details>
+
+<h2 id="healthcheck"><code>healthcheck</code><a class="headerlink" href="#healthcheck" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}</p>
+<ul>
+<li><strong>name:</strong> healthcheck — periodic health probe</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4574 — healthcheck block
+
+</details>
+
+<h2 id="history_mgr"><code>history_mgr</code><a class="headerlink" href="#history_mgr" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} "Updating history cache: [status][key][etag][cache-control]" + max-age + 304 handling + "corrupt cache could not be served after a 304"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; "Post History Buffer Cleared"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY</p>
+<ul>
+<li><strong>name:</strong> historyMgr — recentlyPlayed cloud sync</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4878 — historymgr block
+
+</details>
+
+<h2 id="hls_player"><code>hls_player</code><a class="headerlink" href="#hls_player" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forcing a source switch due to multiple codec variants in playlist"; ADTS md + "seconds advanced" tracking + "doesn't line up with seek"; encryption {encrypted-but-no-key-URI,no-data,"No IV, using seq. num.","SAMPLE-AES detected. Setting up audio framer decryption",key-uri http status,read size mismatch}; byte-range map "couldn't get file size from http headers for map"/"found offset %zu"; InitFramerForTrackList; seg index "starting at bitrate %u stream %u segment %llu offset %zu"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,"Failed to calculate absolute media URI"}; ABR {"downgrade bitrate","already at the minimum","upgrade bitrate","advancing stream index"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,"rejecting binaural/downmix rendition",BANDWIDTH unsupported/0}; "unexpected, we have %zu dolby streams in the playlist"; BR P|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist}</p>
+<ul>
+<li><strong>name:</strong> hlsaudio — HLS stream player</li>
+<li><strong>status_schemas:</strong></li>
+<li><strong>hls:</strong> <HLS Name="Playlist"><HLSVersion><IsStatic><IsEncrypted><TargetDurationSec><CurrentBitRate><TrackEncryptionMethod><TrackEncryptionFormat></HLS></li>
+<li><strong>bitrates:</strong> <BitrateStreams numBitrates="%zu"><StreamEntry br strm codec segidx/></li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4f88 — hlsaudio block
 
 </details>
 

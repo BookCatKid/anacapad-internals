@@ -121317,6 +121317,49 @@
      "notes": "noderx block"
     }
    ]
+  },
+  "healthcheck": {
+   "name": "healthcheck \u2014 periodic health probe",
+   "status": "partial",
+   "summary": "schedule \"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\" + \"Not scheduling: %d %d %d %d %d %d\" 6-gate + \"Healthcheck timer pop\"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec4574",
+     "notes": "healthcheck block"
+    }
+   ]
+  },
+  "history_mgr": {
+   "name": "historyMgr \u2014 recentlyPlayed cloud sync",
+   "status": "partial",
+   "summary": "muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} \"Updating history cache: [status][key][etag][cache-control]\" + max-age + 304 handling + \"corrupt cache could not be served after a 304\"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; \"Post History Buffer Cleared\"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec4878",
+     "notes": "historymgr block"
+    }
+   ]
+  },
+  "hls_player": {
+   "name": "hlsaudio \u2014 HLS stream player",
+   "status": "partial",
+   "summary": "variants {hls-live,hls-static,hls-???}; \"requires group capabilities %u\"; \"forcing a source switch due to multiple codec variants in playlist\"; ADTS md + \"seconds advanced\" tracking + \"doesn't line up with seek\"; encryption {encrypted-but-no-key-URI,no-data,\"No IV, using seq. num.\",\"SAMPLE-AES detected. Setting up audio framer decryption\",key-uri http status,read size mismatch}; byte-range map \"couldn't get file size from http headers for map\"/\"found offset %zu\"; InitFramerForTrackList; seg index \"starting at bitrate %u stream %u segment %llu offset %zu\"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,\"Failed to calculate absolute media URI\"}; ABR {\"downgrade bitrate\",\"already at the minimum\",\"upgrade bitrate\",\"advancing stream index\"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,\"rejecting binaural/downmix rendition\",BANDWIDTH unsupported/0}; \"unexpected, we have %zu dolby streams in the playlist\"; BR P|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist}",
+   "status_schemas": {
+    "hls": "<HLS Name=\"Playlist\"><HLSVersion><IsStatic><IsEncrypted><TargetDurationSec><CurrentBitRate><TrackEncryptionMethod><TrackEncryptionFormat></HLS>",
+    "bitrates": "<BitrateStreams numBitrates=\"%zu\"><StreamEntry br strm codec segidx/>"
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec4f88",
+     "notes": "hlsaudio block"
+    }
+   ]
   }
  },
  "muse": {

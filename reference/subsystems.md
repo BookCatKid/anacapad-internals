@@ -35,6 +35,9 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `feature_config` | **partial** | GET /features/v1/config? (cache-control: no-cache); files cloudconfig.json/cloudconfig_override.json with {swVersion,hwVersion}; precedence: override > cloud-cached > cloud-persisted; "failed to fetch config: not securely registered"; "Already have fresh data. Skipping Fetch."; "failed to connect. rescheduling in 1 hour"; stale markers; FCS Cache via g_pZone |
 | `feature_flag_registry` | **partial** | complete compile-time feature/config flag vocabulary (48 keys): featureConfig* family keys in the cloud-config JSON doc plus enable*/disable* booleans read at init — the build's feature map showing which subsystems are switchable |
 | `group_object_model` | **partial** | zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push |
+| `healthcheck` | **partial** | schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large} |
+| `history_mgr` | **partial** | muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + max-age + 304 handling + "corrupt cache could not be served after a 304"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; "Post History Buffer Cleared"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY |
+| `hls_player` | **partial** | variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forcing a source switch due to multiple codec variants in playlist"; ADTS md + "seconds advanced" tracking + "doesn't line up with seek"; encryption {encrypted-but-no-key-URI,no-data,"No IV, using seq. num.","SAMPLE-AES detected. Setting up audio framer decryption",key-uri http status,read size mismatch}; byte-range map "couldn't get file size from http headers for map"/"found offset %zu"; InitFramerForTrackList; seg index "starting at bitrate %u stream %u segment %llu offset %zu"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,"Failed to calculate absolute media URI"}; ABR {"downgrade bitrate","already at the minimum","upgrade bitrate","advancing stream index"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,"rejecting binaural/downmix rendition",BANDWIDTH unsupported/0}; "unexpected, we have %zu dolby streams in the playlist"; BR P\|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist} |
 | `household_settings` | **partial** | file householdsettings.json {fileVersion,fileSchemaVersion,householdSettings}; JSON \[{version,lastUpdateDevice},\[{name:"restricted-admin",readPermission:null,writePermission:"hh-config-admin",settings:\[{explicitContentFiltering,recentlyPlayed}\]}\]\]; categories {restricted-admin,protected-admin,protected}; frozen:1 marker; "File upgraded to v%d schema"/"File overwritten due to invalid setting"; UMTracking→userMetricsTracking migration; "version incremented after invalid settings offered"; hhSwgenState swgen must be >= player; /householdsettings.json status-page ALERT |
 | `ibt_plans` | **partial** | a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init |
 | `ir_decoder` | **partial** | irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -> auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; "Short Code not recognized"/"unrecognized %d"; read "ir: %d length: %d","IR Event read: %zd, msgcount: %u" |
@@ -844,6 +847,54 @@ zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_
 - @ 0x10ebce88 — recoverBondedZone FSM strings
 - @ 0x10e73ab4 — dsp_system_satellite.bin + satellite_processor.bin
 - @ 0x10e878b4 — HT_BONDED_MASTER/SATELLITE role enum
+
+</details>
+
+## `healthcheck`
+
+**coverage** `partial`
+
+**Technical description:**
+
+schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}
+
+- **name:** healthcheck — periodic health probe
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4574 — healthcheck block
+
+</details>
+
+## `history_mgr`
+
+**coverage** `partial`
+
+**Technical description:**
+
+muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + max-age + 304 handling + "corrupt cache could not be served after a 304"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; "Post History Buffer Cleared"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY
+
+- **name:** historyMgr — recentlyPlayed cloud sync
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4878 — historymgr block
+
+</details>
+
+## `hls_player`
+
+**coverage** `partial`
+
+**Technical description:**
+
+variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forcing a source switch due to multiple codec variants in playlist"; ADTS md + "seconds advanced" tracking + "doesn't line up with seek"; encryption {encrypted-but-no-key-URI,no-data,"No IV, using seq. num.","SAMPLE-AES detected. Setting up audio framer decryption",key-uri http status,read size mismatch}; byte-range map "couldn't get file size from http headers for map"/"found offset %zu"; InitFramerForTrackList; seg index "starting at bitrate %u stream %u segment %llu offset %zu"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,"Failed to calculate absolute media URI"}; ABR {"downgrade bitrate","already at the minimum","upgrade bitrate","advancing stream index"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,"rejecting binaural/downmix rendition",BANDWIDTH unsupported/0}; "unexpected, we have %zu dolby streams in the playlist"; BR P|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist}
+
+- **name:** hlsaudio — HLS stream player
+- **status_schemas:**
+  - **hls:** <HLS Name="Playlist"><HLSVersion><IsStatic><IsEncrypted><TargetDurationSec><CurrentBitRate><TrackEncryptionMethod><TrackEncryptionFormat></HLS>
+  - **bitrates:** <BitrateStreams numBitrates="%zu"><StreamEntry br strm codec segidx/>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4f88 — hlsaudio block
 
 </details>
 
