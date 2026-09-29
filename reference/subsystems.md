@@ -2085,6 +2085,7 @@ Intended-target fan-out: a single muse command can name `intendedTargets` — a 
 plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "\[dispatch\] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag
 
 - **name:** IBT — intended-target command fan-out
+- **target_param_check:** intendedTargets support is decided by a per-command declared-param match, not a static whitelist table: f_10a1cc00 builds {name,namelen} ranges from the command's registered param list and a memcmp chain (f_10a1dbxx region) tests for 'intendedTargets'. No route spec declares it -- it is a transport-ctx parameter (ctx {householdId,intendedTargets,explicitTargets,muse-async-cmd-id,upnpAnacapaPort}); commands opt in by declaring it in their param list at registration. The exact opt-in command set is therefore data-driven from the runtime command registry -- static ceiling for the whitelist.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fac620 — ibt block
