@@ -141,7 +141,7 @@ HLS radio variant scheme token in the protocol vocabulary.
 
 **Technical description:**
 
-Daemon-routing URL scheme -- see hm_scheme. Hosts seen: hwptp (device/tsv/resolve APIs incl. v2/resolve/%s/%d/%s) and hwp-events (v1/log_event). Earlier 'Spotify hermes' attribution was wrong: these literals are hardware-platform daemon endpoints.
+Spotify Hermes-style daemon channel (see hm_scheme): hwptp = hardware-platform player bridge carrying the Connect device API; hwp-events = v1/log_event sink. The Connect device paths (%s/devices/%s/{play,pause-state,volume,set_shuffle,set_repeat,pull_playback,queue}, content_encryption_key, offline/restrictions) are Spotify eSDK cache_restrictions.c/api layer.
 
 - **scheme:** hm://<daemon>/vN/
 
@@ -151,13 +151,13 @@ Daemon-routing URL scheme -- see hm_scheme. Hosts seen: hwptp (device/tsv/resolv
 
 </details>
 
-## `hm_scheme` `partial`
+## `hm_scheme` `confirmed`
 
 hm: scheme token — the hermes/mercury-style URI family used by the embedded Spotify stack for device registration and track resolution.
 
 **Technical description:**
 
-hm:// host-scheme for daemon-internal REST routing: anacapad's HTTP client addresses sibling hardware-platform daemons as hm://<service>/vN/<path>. Confirmed hosts: 'hwptp' (hm://hwptp/v1/devices, hm://hwptp/v1/tsv, hm://hwptp/v1, hm://hwptp/v2/resolve/%s/%d/%s, hm://hwptp/v1/) and 'hwp-events' (hm://hwp-events/v1/log_event -- outbound event sink with 'Error encoding envelope'/'Error sending %s' emit path). Not Spotify-specific; 'hm' = hardware-muse internal transport.
+hm:// host-scheme for the Spotify Connect Hermes channel: the embedded Spotify eSDK (buildagent esdk paths, sp_ auth keys) addresses the device's hardware-platform daemons as hm://<service>/vN/<path>. Confirmed hosts: 'hwptp' = hw-platform player bridge (hm://hwptp/v1/devices, hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s) and 'hwp-events' = event sink (hm://hwp-events/v1/log_event). The Spotify Connect device API rides it: %s/devices/%s/{state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue} plus %s/content_encryption_key/%s, %s/cache_key, %s/offline/restrictions.
 
 - **name:** hm:
 - **pattern:** hm:
