@@ -40,13 +40,13 @@ The playback engine of the zone - the largest service. Covers transport control 
 | `EndDirectControlSession` | advertised | callable | `strong` | direct | 402, 718 |
 | `GetCrossfadeMode` | advertised | callable | `strong` | direct | 402, 718 |
 | `GetCurrentTransportActions` | advertised | callable | `strong` | direct | 718 |
-| `GetDeviceCapabilities` | advertised | callable | `confirmed` | direct |  |
-| `GetMediaInfo` | advertised | callable | `confirmed` | direct |  |
-| `GetPositionInfo` | advertised | callable | `confirmed` | direct |  |
-| `GetRemainingSleepTimerDuration` | advertised | callable | `confirmed` | direct |  |
-| `GetRunningAlarmProperties` | advertised | callable | `confirmed` | direct |  |
+| `GetDeviceCapabilities` | advertised | callable | `strong` | direct | 402, 718 |
+| `GetMediaInfo` | advertised | callable | `strong` | direct | 402, 718 |
+| `GetPositionInfo` | advertised | callable | `strong` | direct | 402, 718 |
+| `GetRemainingSleepTimerDuration` | advertised | callable | `strong` | direct | 402, 718, 800 |
+| `GetRunningAlarmProperties` | advertised | callable | `strong` | direct | 402, 800 |
 | `GetTransportInfo` | advertised | callable | `strong` | direct | 718 |
-| `GetTransportSettings` | advertised | callable | `confirmed` | direct |  |
+| `GetTransportSettings` | advertised | callable | `strong` | direct | 402, 718 |
 | `Next` | advertised | callable | `strong` | direct | 402, 701, 711, 718, 800 |
 | `NotifyDeletedURI` | advertised | callable | `strong` | direct | 402, 718 |
 | `Pause` | advertised | callable | `strong` | direct | 402, 718 |
@@ -520,6 +520,8 @@ Request parse layer rejected an argument before the impl was invoked.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -649,6 +651,8 @@ worker-call rejection path
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -789,6 +793,8 @@ Request parse layer rejected an argument before the impl was invoked.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -1269,6 +1275,8 @@ worker-call rejection path
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1404,6 +1412,8 @@ Request parse layer rejected an argument before the impl was invoked.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1686,6 +1696,8 @@ Request parse layer rejected an argument before the impl was invoked.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -1940,6 +1952,8 @@ Request parse layer rejected an argument before the impl was invoked.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -2207,7 +2221,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 ### `GetDeviceCapabilities`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
 Returns what media this player can play/record and its recording quality modes.
 
@@ -2302,6 +2316,21 @@ None - pure read.
 </details>
 
 
+#### Errors
+
+**`402`** `strong`
+
+request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter
+
+- malformed/missing SOAP arg envelope
+
+**`718`** `strong`
+
+Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+
+- InstanceID parses to nonzero / session object fails to resolve
+
+
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8970`
@@ -2324,7 +2353,7 @@ None - pure read.
 
 ### `GetMediaInfo`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
 Returns metadata about the current media source: track count and duration, current/next URIs + metadata, and the medium (queue, stream, line-in) - i.e. what container is loaded rather than where playback is within it (use GetPositionInfo for that).
 
@@ -2437,6 +2466,21 @@ None - pure read.
 </details>
 
 
+#### Errors
+
+**`402`** `strong`
+
+request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter
+
+- malformed/missing SOAP arg envelope
+
+**`718`** `strong`
+
+Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+
+- InstanceID parses to nonzero / session object fails to resolve
+
+
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa9e4`
@@ -2464,7 +2508,7 @@ None - pure read.
 
 ### `GetPositionInfo`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
 Returns where playback sits inside the media: current track number/URI/metadata, track duration, relative and absolute position times, and track counts.
 
@@ -2574,6 +2618,21 @@ None - pure read.
 </details>
 
 
+#### Errors
+
+**`402`** `strong`
+
+request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter
+
+- malformed/missing SOAP arg envelope
+
+**`718`** `strong`
+
+Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+
+- InstanceID parses to nonzero / session object fails to resolve
+
+
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fbda4`
@@ -2598,7 +2657,7 @@ None - pure read.
 
 ### `GetRemainingSleepTimerDuration`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
 Returns the time left on the sleep timer and the timer generation counter.
 
@@ -2690,6 +2749,27 @@ None - pure read.
 </details>
 
 
+#### Errors
+
+**`402`** `strong`
+
+request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter
+
+- malformed/missing SOAP arg envelope
+
+**`718`** `strong`
+
+Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+
+- InstanceID parses to nonzero / session object fails to resolve
+
+**`800`** `strong`
+
+800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified
+
+- impl worker returns an 800-class store/commit fault
+
+
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb518`
@@ -2710,7 +2790,7 @@ None - pure read.
 
 ### `GetRunningAlarmProperties`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
 If an alarm is currently ringing, returns its ID, group and the logged start time.
 
@@ -2803,6 +2883,21 @@ None - pure read.
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
 </details>
+
+
+#### Errors
+
+**`402`** `strong`
+
+request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter
+
+- malformed/missing SOAP arg envelope
+
+**`800`** `strong`
+
+800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified
+
+- impl worker returns an 800-class store/commit fault
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -2955,7 +3050,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 ### `GetTransportSettings`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
 Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quality mode.
 
@@ -3045,6 +3140,21 @@ None - pure read.
 - fn f_102ad634 @ f_102ad634 — impl decode
 
 </details>
+
+
+#### Errors
+
+**`402`** `strong`
+
+request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter
+
+- malformed/missing SOAP arg envelope
+
+**`718`** `strong`
+
+Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+
+- InstanceID parses to nonzero / session object fails to resolve
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -3188,6 +3298,8 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -3316,6 +3428,8 @@ Request parse layer rejected an argument before the impl was invoked.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -3574,6 +3688,8 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -3706,6 +3822,8 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -4401,6 +4519,8 @@ Request parse layer rejected an argument before the impl was invoked.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -4695,6 +4815,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, calle
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -4835,6 +4957,8 @@ Illegal seek target: malformed time, negative REL_TIME, out-of-range track, or f
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -4969,6 +5093,8 @@ Request parse layer rejected an argument before the impl was invoked.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -5237,6 +5363,8 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -5501,6 +5629,8 @@ rec+4 u16 is returned; codes 718/402/800/701 enumerated.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -5780,6 +5910,8 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

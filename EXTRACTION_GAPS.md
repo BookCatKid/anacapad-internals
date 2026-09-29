@@ -1018,3 +1018,50 @@ the deep semantic layer:
     misclassified ASCII-pair constants (9587/25455/...) from the old
     over-broad scan - doc-quality cleanup pending; (d) f_100c960f
     {801-804} worker identity unknown.
+11d. **Indexed enum-table sweep + getter error floor** — DONE:
+    rodata scan for every contiguous char*-name array and
+    {name,u32} pair table recovered ~35 previously uncaptured
+    registries now in shared_primitives.enum_tables: the ~340-entry
+    SMaPI/service-player event registry @0x10fd64fc, the 140-entry
+    hardware/UI event registry @0x10ef4eec (buttons, CAPZONE sensors,
+    orientation, HW fault states, volume verbs, LED actions), the
+    ~80-entry audio-pipeline stream-error taxonomy @0x10ebe20c/2a0,
+    full HTTP/2 RST_STREAM codes @0x10f8ab34, queue-edit op enum
+    @0x10eb843c (26 entries incl. PREPARE_FOR_DELEGATION/RATE_ITEM),
+    service playback-event enum @0x10ea1cd4 (Play=1..TrackDownloadStalled
+    =19), SONOS_DC_* cert-account results @0x10ea1688, codec
+    ext/mime->id registry @0x10ecc538, SMaPI media-type map
+    @0x10ed9524, DSP bass-extraction params @0x10fe6d08 (45-200HZ
+    crossover + disable/enable/auto modes), channel-name map
+    @0x10fe6bb8, cert-failure names @0x10ef1ee0, HT terminate-reasons
+    @0x10f2990c, HT swap FSM @0x10f288e0, audio-clip types
+    @0x10ec0010, chime-block reasons @0x10ec6b5c, cache-FSM names
+    @0x10f96738, Lechmere pipeline stages @0x10f98ab4, VLI session
+    ops @0x10f044bc, download-status @0x10ee9a50, zone-transfer FSM
+    @0x10ef68f4, orientation/bond strings @0x10feef58/74, bundled
+    libFLAC state/error enums @0x10fbb860/89c, proto enum vocab
+    (channel_type @0x10fbef08, tone_handler/array_sub_system/
+    voltage_gain @0x10fbf1d4, device_orientation/measurement/tuning
+    @0x10fbff4c).
+    Getter error floor: the six AVT getters that had empty error
+    lists (GetMediaInfo/GetPositionInfo/GetDeviceCapabilities/
+    GetTransportSettings/GetRemainingSleepTimerDuration/
+    GetRunningAlarmProperties) now carry the shared parse-layer 402
+    floor + proven 718 nonzero-InstanceID rejection (+ reachable 800
+    where the impl chain surfaces it). GetTransportSettings/
+    GetRunningAlarmProperties action statuses honestly downgraded to
+    'strong' by the new children.
+    Namespace classification: 1001/1002/1019-class constants that
+    pollute every propagated reach set are the OUTBOUND SOAP-client
+    result codes (f_10181eb8 POST emitter, f_10716614 sonoscp proxy
+    'SOAP fault %s returning %d' + DeviceCertInvalid/Expired,
+    f_1038e82c cloudqueue 'Client error') — internal client-side
+    results, NOT per-action wire faults; recorded on
+    internal_result_namespace.
+    RESIDUAL: (a) table extents proven only as contiguous name-ptr
+    runs — sub-table boundaries inside merged blocks (e.g. stream-
+    error 'uninit' sentinels, trailing 'aud/paud/inaud' type names)
+    are editorial splits; (b) SMaPI registries' index->consumer
+    functions unidentified (no direct lis+addi refs — bases passed
+    via struct stores); (c) AlarmClock legacy ASCII-pair junk codes
+    still pending cleanup per 11c.

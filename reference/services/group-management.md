@@ -179,6 +179,8 @@ gm_impl AddMember impl-level failure
 
 impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,808}: documented set missed 802/806/807. Strings: 'Adding member failed - invalid argument', 'Rejecting AddMember: GC or new member is an ungroupable player', 'Adding member to satellite is not supported'.
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -301,6 +303,8 @@ MemberID not in member list ('failed (not a member before?)')
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 group-membership rc domain reachable {800} plus internal codes via gm_impl chain
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

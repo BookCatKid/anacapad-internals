@@ -189,6 +189,8 @@ Wrapper parse layer rejected an argument before the impl call.
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -307,6 +309,8 @@ Wrapper parse layer rejected an argument before the impl call.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1483,6 +1487,8 @@ Wrapper parse layer rejected an argument before the impl call.
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1612,6 +1618,8 @@ format-string validation gate
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1731,6 +1739,8 @@ Wrapper parse layer rejected an argument before the impl call.
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1849,6 +1859,8 @@ Wrapper parse layer rejected an argument before the impl call.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1972,6 +1984,8 @@ Wrapper parse layer rejected an argument before the impl call.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -2131,6 +2145,8 @@ Wrapper parse layer rejected an argument before the impl call.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

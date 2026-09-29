@@ -151,6 +151,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -266,6 +268,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -384,6 +388,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1929,6 +1935,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -2040,6 +2048,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -2393,6 +2403,8 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -3197,6 +3209,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

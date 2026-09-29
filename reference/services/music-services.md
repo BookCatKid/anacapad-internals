@@ -362,6 +362,8 @@ Wrapper parse layer rejected an argument before the impl call.
 
 music-services list refresh rc domain adds {801} via service-catalog worker
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 

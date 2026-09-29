@@ -161,6 +161,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -321,6 +323,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -552,6 +556,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -669,6 +675,8 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -1263,6 +1271,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -1384,6 +1394,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -1503,6 +1515,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
@@ -1645,6 +1659,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -1772,6 +1788,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -1891,6 +1909,8 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>

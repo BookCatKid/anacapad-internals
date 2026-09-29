@@ -78,7 +78,20 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
 | `GetCrossfadeMode` | `718` | `strong` | nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head) |
 | `GetCrossfadeMode` | `402` | `confirmed` | Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs. |
 | `GetCurrentTransportActions` | `718` | `strong` | nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head) |
+| `GetDeviceCapabilities` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
+| `GetDeviceCapabilities` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetMediaInfo` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
+| `GetMediaInfo` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetPositionInfo` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
+| `GetPositionInfo` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetRemainingSleepTimerDuration` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
+| `GetRemainingSleepTimerDuration` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetRemainingSleepTimerDuration` | `800` | `strong` | 800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified |
+| `GetRunningAlarmProperties` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
+| `GetRunningAlarmProperties` | `800` | `strong` | 800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified |
 | `GetTransportInfo` | `718` | `strong` | nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head) |
+| `GetTransportSettings` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
+| `GetTransportSettings` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
 | `Next` | `718` | `strong` | apply worker f_102b60b0 exit accumulator r30: literal {701 x2, 0, 800} plus call-derived; impl-side 718 on InstanceID!=0 stands; rc forwarde |
 | `Next` | `701` | `confirmed` | Operation not currently possible - streamer vfunc returned 0 (no session/rejected) or indexed submit returned an unmapped rc. |
 | `Next` | `711` | `confirmed` | Indexed submit rc==3 - request rejected by impl+0x580 (queue end / illegal target). |

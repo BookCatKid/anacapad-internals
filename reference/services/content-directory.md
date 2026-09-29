@@ -315,6 +315,8 @@ impl accumulator r29: {710 literal (0x10302800), arg r7-seeded, call/lwz-derived
 
 favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field *(ctx+0x20)>=70 (favorites cap); 806 = ftell()>0x20000 (serialized XML >128KiB); 807 = phase *(ctx+0x1c)>=6 with flag +0x30; 803 = phase *(ctx+0x1c)<2; 702 = flag *(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability
 
 
@@ -427,6 +429,8 @@ impl accumulator r30: {701 on object-resolve failure (0x10302858), call/lwz-deri
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field *(ctx+0x20)>=70 (favorites cap); 806 = ftell()>0x20000 (serialized XML >128KiB); 807 = phase *(ctx+0x1c)>=6 with flag +0x30; 803 = phase *(ctx+0x1c)<2; 702 = flag *(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability
 
@@ -1540,6 +1544,8 @@ impl impl literal exit returns 0; two out-branches tail into sched thunks -> f_1
 
 worker/delegate rc domain adds \[710\] beyond the documented accumulator bound
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 propagated reachability; site-level trigger undecoded
 
 
@@ -1650,6 +1656,8 @@ impl impl literal exit returns 0; one out-branch tail into sched thunk -> f_1010
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 worker/delegate rc domain adds \[701, 711\] beyond the documented accumulator bound
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 propagated reachability; site-level trigger undecoded
 
@@ -1884,6 +1892,8 @@ impl accumulator r30: {711 literal (0x10302e88), 701 resolver fail (0x10302ef0),
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field *(ctx+0x20)>=70 (favorites cap); 806 = ftell()>0x20000 (serialized XML >128KiB); 807 = phase *(ctx+0x1c)>=6 with flag +0x30; 803 = phase *(ctx+0x1c)<2; 702 = flag *(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability
 

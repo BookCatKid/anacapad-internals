@@ -124,6 +124,22 @@ The mask-before-validate ordering looks alarming but is inert: the record field 
 
 </details>
 
+## `codec_mime_flags` `strong`
+
+A small lookup that tags audio formats (wav/wma/adts) and MIME types with internal flags — used to pick the right decoder for a stream before playback starts.
+
+**Technical description:**
+
+- **name:** codec/MIME flag tables
+- **summary:** Two adjacent tables: format-name flags at .rodata 0x10ecc540 {wav=0x1, wma=0x2, adts=0x4} and the MIME->flag map at 0x10ecc618 {audio/wav\|audio/x-wav\|audio/vnd.wave=0x1, audio/wma\|audio/x-ms-wma=0x2, audio/x-mpegurl=0x8}. x-mpegurl carries bit 0x8 (playlist/m3u class) - the MIME table drives stream-type classification for HTTP fetches.
+
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10ecc540 — format flags
+- @ 0x10ecc618 — MIME map
+
+</details>
+
 ## `contentdir_root_map` `strong`
 
 The ContentDirectory browse root map — FV:2→FavoritesUpdateID, R:0→RadioFavoritesUpdateID, SQ:→SavedQueuesUpdateID, S:→ShareListUpdateID — the top-level browse tree.
@@ -410,6 +426,36 @@ Fields: `s`, `a\[\]`, `t\[\]`, `i\[\]`, `o\[\]`, `r\[\]`, `l\[\]`, `b\[\]`, `n\[
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10523e18 — 's=' then &a\[0\]= &t\[0\]= &i\[0\]= &o\[0\]= &r\[0\]=&l\[0\]= &b\[0\]= &n\[0\]= &m\[0\]= emit order in f_105236c8
+
+</details>
+
+## `skip_restriction_bits` `strong`
+
+Why a stream won't let you skip: a bitmask of restriction reasons — the track is an ad, licensing forbids it, there's no next/previous track, or you're paused. Radio services set these per-track.
+
+**Technical description:**
+
+- **name:** skip/restriction bitmask (stream restriction enum)
+- **summary:** {name,u32} table at .rodata 0x10ed9d30 - proven bit values for the restriction enum previously documented name-only: 'Already Paused'=0x2, 'Not Paused'=0x4, 'License Restriction'=0x8, 'Ad'=0x10, 'No Previous Track'=0x20, 'No Next Track'=0x40. Bit0/0x1 unused in the table; 'Restriction Unknown'/'Full reset' are non-table sentinels. These bits are what SMaPI streams OR into their skip/track-control metadata (e.g. Ad blocks skip).
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ed9d30 — restriction bit table, 6 entries
+
+</details>
+
+## `smapi_capability_bits` `strong`
+
+The menu of features a music service can advertise: each name maps to one bit in the service's Capabilities number — search, three kinds of favorites (track/album/artist), extended metadata, alarms, playlists, logging, headers, and so on. When a service says it supports track favorites, that's bit 0x2 set in this table.
+
+**Technical description:**
+
+- **name:** SMaPI capability bitmask (Capabilities field)
+- **summary:** {name,u32} table at .rodata 0x10e769cc - the full 22-bit SMaPI Capabilities vocabulary with PROVEN bit assignments: search=0x1, trFavorites=0x2 (track favorites), authorizationHeader=0x8, alFavorites=0x10 (album), arFavorites=0x20 (artist), logging=0x40, extendedMD=0x200, disableAlarms=0x400, ucPlaylists=0x800 (user-content playlists), playbackLogging=0x1000, accountLogging=0x2000, noMultiAccount=0x4000, mediaUriActions=0x8000, contextHeaders=0x10000, deviceCerts=0x20000, playerIds=0x40000, contextReporting=0x80000, userInfo=0x100000, contentFiltering=0x200000, manifest=0x400000, radioExtendedMD=0x800000, playlistExtendedMD=0x1000000. This is the bitmask OR'd into a music service's Capabilities value; the favorites trio (tr/al/ar) gates which favorite classes a service may contribute to the FV: store.
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e769cc — {name,flag} table, 22 entries, 8-byte records
 
 </details>
 
@@ -998,6 +1044,21 @@ trackqueue.rsq live-queue persistence store — transactional append/replace w/ 
 <details><summary>Evidence (1)</summary>
 
 - firmware — 'trackqueue.rsq' + commitAppend/commitReplace txn-id + ReplaceAll range-remap literals
+
+</details>
+
+## `transport_action_bits` `strong`
+
+The fixed vocabulary behind GetCurrentTransportActions — each transport verb (Play, Stop, Pause, Next, Previous, Seek, Set) owns one bit; the player sets the bits for whatever the current source can actually do and prints the names as a comma-separated list.
+
+**Technical description:**
+
+- **name:** transport-action capability bitmask (GetCurrentTransportActions)
+- **summary:** {name,u32} table at .rodata 0x10eb39d4 - action-name->bit map used to synthesize the CSV in GetCurrentTransportActions: Set=0x10000, X_DLNA_SeekTime=0x20000, Play=0x200000, Next=0x100000, Previous=0x400000, Pause=0x1000000, Stop=0x8000. The 'action list computed live from engine capability state' noted on that action resolves to this fixed name->bit vocabulary; which bits are set at runtime is engine-state-dependent.
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10eb39d4 — action bit table, 7 entries
 
 </details>
 

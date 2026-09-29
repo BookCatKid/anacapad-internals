@@ -335,6 +335,8 @@ Wrapper parse layer rejected an argument before the impl call.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+
 
 #### Notes
 
@@ -1506,6 +1508,8 @@ Wrapper parse layer rejected an argument before the impl call.
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
+
+- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 <details><summary>Implementation & reverse-engineering evidence</summary>
