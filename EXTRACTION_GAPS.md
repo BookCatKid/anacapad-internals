@@ -949,3 +949,13 @@ the deep semantic layer:
    bundle section-mask hypothesis; exact bit semantics unproven
 10. **XML schema clusters** — element lists recovered; attribute
     types/ranges/defaults mostly unvalidated against parsers
+11. **86.8↔86.10 cross-version diff** — DONE at string/structure
+    level (post-`63ab617`/`8df48e8`): normalized `.rodata` literal
+    diff (21765 vs 21635 → 204 new / 96 removed), muse v1 route
+    diff (+6/−2), `DT_NEEDED` identical (35 libs), `.dynsym` delta =
+    one dropped `__atomic_compare_exchange_8` import, `/status` and
+    all slash-path tables identical, dispatch surface confirmed
+    frozen. Findings recorded under `rodata_diff_868_vs_8610` in
+    `docs/crossbuild_matrix.json`. Remaining: no function-level
+    diff (e.g. per-handler codegen), no sonos-muse-1.0 `.so`
+    extraction of the moved muse-common code
