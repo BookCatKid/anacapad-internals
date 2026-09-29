@@ -92314,7 +92314,19 @@
      }
     ]
    },
-   "dispatch note": "name->action_id map at 0x10f110f0 (stride 0xc {name_ptr,id,0}); EXACTLY 15 dispatched actions (AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,Remove,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString) matching the DB table. 2 advertised-but-undispatched: ProvisionCredentialedTrialAccountX (string absent -> removed after 34.16, dispatched in 34.16) and ResetThirdPartyCredentials (dead string 0x10f184cc, zero ptr/code refs -> never wired; present in both 86.8 & 86.10 binaries as a leftover)."
+   "dispatch note": "name->action_id map at 0x10f110f0 (stride 0xc {name_ptr,id,0}); EXACTLY 15 dispatched actions (AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,Remove,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString) matching the DB table. 2 advertised-but-undispatched: ProvisionCredentialedTrialAccountX (string absent -> removed after 34.16, dispatched in 34.16) and ResetThirdPartyCredentials (dead string 0x10f184cc, zero ptr/code refs -> never wired; present in both 86.8 & 86.10 binaries as a leftover).",
+   "removed_actions": [
+    {
+     "name": "ProvisionCredentialedTrialAccountX",
+     "reason": "SCPD-advertised but absent from the 86.x dispatch surface; related_action references in A_ARG_TYPE_* vars are SCPD-derived",
+     "evidence": "meta.counts.scpd_defined (2 undispatched SystemProperties actions)"
+    },
+    {
+     "name": "ResetThirdPartyCredentials",
+     "reason": "SCPD-advertised but absent from the 86.x dispatch surface",
+     "evidence": "meta.counts.scpd_defined (2 undispatched SystemProperties actions)"
+    }
+   ]
   },
   "/ZoneGroupTopology/Control": {
    "name": "ZoneGroupTopology",
@@ -104732,57 +104744,66 @@
   },
   "renderingcontrol_status_schema": {
    "status": "strong",
-   "service": "/MediaRenderer/RenderingControl/Control",
+   "service": "RenderingControl",
    "description": "/status/renderingcontrol emitted XML",
-   "fields": "{MasterVolume,MasterMute,FocusModeMute,VolumeScale,PlaybackDucked,DuckingFlags,SodVolume,ExtVolume,AmpState,AudioCoreReady,DeviceTime %d.%06d}"
+   "fields": "{MasterVolume,MasterMute,FocusModeMute,VolumeScale,PlaybackDucked,DuckingFlags,SodVolume,ExtVolume,AmpState,AudioCoreReady,DeviceTime %d.%06d}",
+   "surface": "/MediaRenderer/RenderingControl/Control"
   },
   "playstatemanager_schema": {
    "status": "strong",
-   "service": "internal",
+   "service": "",
    "description": "/status page",
-   "fields": "<PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>; transitions \"got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u\""
+   "fields": "<PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>; transitions \"got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u\"",
+   "surface": "internal"
   },
   "alarm_status_schema": {
    "status": "strong",
-   "service": "/AlarmClock/Control",
+   "service": "AlarmClock",
    "description": "/status/alarm emitted XML",
-   "fields": "<Alarm><Mode/><Scheduler/><UTCTime/><LocalTime/><Pending><PendingAlarm><ID>%u</ID><Type>%s</Type><Time>%s</Time><TimeUTC/><Recurrence/><NextUTC/><NextLocal/></PendingAlarm></Pending></Alarm>; types {Expired,AVS Alarm,AVS Timer,AVS Reminder,Muse Timer}"
+   "fields": "<Alarm><Mode/><Scheduler/><UTCTime/><LocalTime/><Pending><PendingAlarm><ID>%u</ID><Type>%s</Type><Time>%s</Time><TimeUTC/><Recurrence/><NextUTC/><NextLocal/></PendingAlarm></Pending></Alarm>; types {Expired,AVS Alarm,AVS Timer,AVS Reminder,Muse Timer}",
+   "surface": "/AlarmClock/Control"
   },
   "zone_group_state_schema": {
    "status": "strong",
-   "service": "/ZoneGroupTopology/Control",
+   "service": "ZoneGroupTopology",
    "description": "evented ZoneGroupState XML emitted by topology_base",
-   "fields": "<ZoneGroupState><ZoneGroups><ZoneGroup Coordinator=\"...\" ID=\"...\"> devices + </ZoneGroup>; device attrs {QuarantineReason,UUID,ZoneName,Icon,Configuration,Invisible=\"1\",IsZoneBridge=\"1\",SoftwareVersion,SWGen,MinCompatibleVersion,LegacyCompatibleVersion,ChannelMapSet,HTSatChanMapSet,ActiveZoneID,BootSeq,TVConfigurationError,HdmiCecAvailable,WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,Orientation,RoomCalibrationState,SecureRegState,VoiceConfigState,MicEnabled,HeadphoneSwapActive,AirPlayEnabled,VirtualLineInSource,IdleState,MoreInfo,SSLPort,HHSSLPort}; <VanishedDevices>/<QuarantinedDevices> hold <Device UUID Reason ModelInfo Mac LastKnownIP LastSeenUTC>; \":orphan\" group suffix; NetsettingsUpdateID"
+   "fields": "<ZoneGroupState><ZoneGroups><ZoneGroup Coordinator=\"...\" ID=\"...\"> devices + </ZoneGroup>; device attrs {QuarantineReason,UUID,ZoneName,Icon,Configuration,Invisible=\"1\",IsZoneBridge=\"1\",SoftwareVersion,SWGen,MinCompatibleVersion,LegacyCompatibleVersion,ChannelMapSet,HTSatChanMapSet,ActiveZoneID,BootSeq,TVConfigurationError,HdmiCecAvailable,WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,Orientation,RoomCalibrationState,SecureRegState,VoiceConfigState,MicEnabled,HeadphoneSwapActive,AirPlayEnabled,VirtualLineInSource,IdleState,MoreInfo,SSLPort,HHSSLPort}; <VanishedDevices>/<QuarantinedDevices> hold <Device UUID Reason ModelInfo Mac LastKnownIP LastSeenUTC>; \":orphan\" group suffix; NetsettingsUpdateID",
+   "surface": "/ZoneGroupTopology/Control"
   },
   "zoneplayers_status_schema": {
    "status": "strong",
-   "service": "/status",
+   "service": "",
    "description": "/status ZonePlayers page",
-   "fields": "<ZonePlayers><ZonePlayer group prevgroup virtuallineingroupid htsat wirelessmode connectiontype channelfreq behindwifiext wifienabled ethlink ssdp mdns location inbondedzone inhtconfig model modeldisplayname serialnumber hwversion version audiotxver htaudiotxver tpsdkver swgen quarantinereason mincompatibleversion legacycompatibleversion compatible apiversions idle uuid>; <VanishedZonePlayer uuid curgroup reasonforvanish vanishbatterypercentage vanishbatterytemperature timesincevanish>; coordinator='%s' designateddevice='%u'"
+   "fields": "<ZonePlayers><ZonePlayer group prevgroup virtuallineingroupid htsat wirelessmode connectiontype channelfreq behindwifiext wifienabled ethlink ssdp mdns location inbondedzone inhtconfig model modeldisplayname serialnumber hwversion version audiotxver htaudiotxver tpsdkver swgen quarantinereason mincompatibleversion legacycompatibleversion compatible apiversions idle uuid>; <VanishedZonePlayer uuid curgroup reasonforvanish vanishbatterypercentage vanishbatterytemperature timesincevanish>; coordinator='%s' designateddevice='%u'",
+   "surface": "/status"
   },
   "device_props_update_ids": {
    "status": "strong",
-   "service": "/DeviceProperties/Control",
+   "service": "DeviceProperties",
    "description": "update counters",
-   "fields": "{DeviceName,AuthorizationGrantedUpdateID,AuthorizationDeniedUpdateID,HdmiCecAvailable,MicEnabled,HeadphoneSwapActive,SvcActive}"
+   "fields": "{DeviceName,AuthorizationGrantedUpdateID,AuthorizationDeniedUpdateID,HdmiCecAvailable,MicEnabled,HeadphoneSwapActive,SvcActive}",
+   "surface": "/DeviceProperties/Control"
   },
   "update_info_schema": {
    "status": "strong",
-   "service": "/status",
+   "service": "",
    "description": "UpdateInfo page",
-   "fields": "<UpdateInfo><AutoUpdate>%d</AutoUpdate><State>%s</State><Window>%02u:%02u:%02u - %02u:%02u:%02u</Window><UpgradeManager>%s</UpgradeManager><HoursPending>%u</HoursPending><ActiveDeviceList/></UpdateInfo>"
+   "fields": "<UpdateInfo><AutoUpdate>%d</AutoUpdate><State>%s</State><Window>%02u:%02u:%02u - %02u:%02u:%02u</Window><UpgradeManager>%s</UpgradeManager><HoursPending>%u</HoursPending><ActiveDeviceList/></UpdateInfo>",
+   "surface": "/status"
   },
   "sounddevice_status_schema": {
    "status": "strong",
-   "service": "/status",
+   "service": "",
    "description": "SoundDevice page (per-zone volume/ducking)",
-   "fields": "<SoundDevice><Zones><Zone><Zone>%d</Zone><UnscaledVolume><Volume><DeferredVolume><Ducked><DuckingVolume><DuckingPercent><OverrideVolume><Muted><DeferredMute><ExtSrcVolume><SurroundLevel><ZoneChannelCount></Zone></Zones></SoundDevice>"
+   "fields": "<SoundDevice><Zones><Zone><Zone>%d</Zone><UnscaledVolume><Volume><DeferredVolume><Ducked><DuckingVolume><DuckingPercent><OverrideVolume><Muted><DeferredMute><ExtSrcVolume><SurroundLevel><ZoneChannelCount></Zone></Zones></SoundDevice>",
+   "surface": "/status"
   },
   "replicated_netsettings_schema": {
    "status": "strong",
-   "service": "settings replication",
+   "service": "",
    "description": "netsettings replicated XML",
-   "fields": "<ReplicatedNetSettings LastUpdateDevice Version FileSchemaVersion><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID Flags/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; keys {sn_en,sn_dis,sn_dis_test} + genTime + {sonosnet,networks} json groups"
+   "fields": "<ReplicatedNetSettings LastUpdateDevice Version FileSchemaVersion><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID Flags/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; keys {sn_en,sn_dis,sn_dis_test} + genTime + {sonosnet,networks} json groups",
+   "surface": "settings replication"
   },
   "vli_state_snapshot": {
    "status": "strong",
@@ -104798,63 +104819,73 @@
   },
   "device_props_extra_vars": {
    "status": "strong",
-   "service": "/DeviceProperties/Control",
+   "service": "DeviceProperties",
    "description": "more state vars",
-   "fields": "{AudioInputIcon,AudioInputLevel,AudioInputLatency,MuseHouseholdID,LocationID,ShadowStorageLimit,ActiveZoneID,ChannelMapSetTime,UnpairedLED,UnpairedButtonLock,UnpairedZoneName,UnpairedIcon,UnpairedConfiguration,AutoplayIncludeLinked,AutoplayVolume,UseAutoplayVolume,AmpOffTimerSec,AutoplayRoomUUID,HTSatelliteDefn,HTAUsecDelay,HTASilenceThresholdAutoPlaySec}"
+   "fields": "{AudioInputIcon,AudioInputLevel,AudioInputLatency,MuseHouseholdID,LocationID,ShadowStorageLimit,ActiveZoneID,ChannelMapSetTime,UnpairedLED,UnpairedButtonLock,UnpairedZoneName,UnpairedIcon,UnpairedConfiguration,AutoplayIncludeLinked,AutoplayVolume,UseAutoplayVolume,AmpOffTimerSec,AutoplayRoomUUID,HTSatelliteDefn,HTAUsecDelay,HTASilenceThresholdAutoPlaySec}",
+   "surface": "/DeviceProperties/Control"
   },
   "savedqueues_rsq_schema": {
    "status": "strong",
-   "service": "/MediaRenderer/Queue/Control",
+   "service": "Queue",
    "description": "savedqueues.rsq persistence",
-   "fields": "file:///jffs/settings/savedqueues.rsq (+.tmp atomic +savedqueues.d.rsq delta, application/gzip): <SavedQueues LastUpdateDevice Version Next><SavedQueue Id Curated NumTracks playlistSummary><Track URI MD/>; res protocolInfo file:*:audio/mpegurl:*; \"Saved Queue track list corrupted, expected %u, saw %u\"; ID validation {Saved queue ID not valid,Next available queue ID not valid,ID/next mismatch,NumTracks not valid,Version not valid,Num tracks not valid}; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\" + SQ:%s + \"Cannot parse service ID from URI\"; \"No num tracks found, so emitting the first four artworks found\"; mobile- prefix; errors {Replicated file not valid,file at boot not valid,Could not access playlists,Could not find given playlistId,Could not import saved queues file,TQ append error,UPNP error adding URI to saved queue}"
+   "fields": "file:///jffs/settings/savedqueues.rsq (+.tmp atomic +savedqueues.d.rsq delta, application/gzip): <SavedQueues LastUpdateDevice Version Next><SavedQueue Id Curated NumTracks playlistSummary><Track URI MD/>; res protocolInfo file:*:audio/mpegurl:*; \"Saved Queue track list corrupted, expected %u, saw %u\"; ID validation {Saved queue ID not valid,Next available queue ID not valid,ID/next mismatch,NumTracks not valid,Version not valid,Num tracks not valid}; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\" + SQ:%s + \"Cannot parse service ID from URI\"; \"No num tracks found, so emitting the first four artworks found\"; mobile- prefix; errors {Replicated file not valid,file at boot not valid,Could not access playlists,Could not find given playlistId,Could not import saved queues file,TQ append error,UPNP error adding URI to saved queue}",
+   "surface": "/MediaRenderer/Queue/Control"
   },
   "services_xml_schema": {
    "status": "strong",
-   "service": "/MusicServices/Control",
+   "service": "MusicServices",
    "description": "replicated services list XML",
-   "fields": "<Services LastUpdateDevice Version SchemaVersion ETag><Presentation/><ServiceIds/><Total/>\u2026</Services>; summary <AvailableSvcsSummary><ServiceIds></ServiceIds><Total></Total></AvailableSvcsSummary>; per-svc {SecureUri,secureUri,ContainerType,BuiltInService,PresentationMap,Strings,PollInterval,Manifest}"
+   "fields": "<Services LastUpdateDevice Version SchemaVersion ETag><Presentation/><ServiceIds/><Total/>\u2026</Services>; summary <AvailableSvcsSummary><ServiceIds></ServiceIds><Total></Total></AvailableSvcsSummary>; per-svc {SecureUri,secureUri,ContainerType,BuiltInService,PresentationMap,Strings,PollInterval,Manifest}",
+   "surface": "/MusicServices/Control"
   },
   "userradio_schema": {
    "status": "strong",
-   "service": "favorites",
+   "service": "",
    "description": "userradio.xml (+.d.xml delta) replicated favorites",
-   "fields": "<Favorites SchemaVersion><Radio LastUpdateDevice NextFavorite><Station Id Title URI/><Show Id/><Genre Id Name/>; favorite URIs FV:2/%s + FV:%s/%s; class object.itemobject.item.sonos-favorite; rincon md {favoriteId,ordinal,resMD,room,playmode,type,description}; res {x-rincon-mp3radio:*:*:*,x-sonosapi-show:*:*:*,x-sonosapi-stream:*:*:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; categories {:tracks,:stations,:shortcuts,:albums,:playlists,:misc,:shows,:audiobooks}; names {TuneIn Station,Custom Station,Radio Show}; SA_RINCON%d_ svc URI; HR:0/1 + R:%s/%s/%s recents; itemsMoved/radioFavoritesMoved events; instantPlay; dirObjFavorites"
+   "fields": "<Favorites SchemaVersion><Radio LastUpdateDevice NextFavorite><Station Id Title URI/><Show Id/><Genre Id Name/>; favorite URIs FV:2/%s + FV:%s/%s; class object.itemobject.item.sonos-favorite; rincon md {favoriteId,ordinal,resMD,room,playmode,type,description}; res {x-rincon-mp3radio:*:*:*,x-sonosapi-show:*:*:*,x-sonosapi-stream:*:*:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; categories {:tracks,:stations,:shortcuts,:albums,:playlists,:misc,:shows,:audiobooks}; names {TuneIn Station,Custom Station,Radio Show}; SA_RINCON%d_ svc URI; HR:0/1 + R:%s/%s/%s recents; itemsMoved/radioFavoritesMoved events; instantPlay; dirObjFavorites",
+   "surface": "favorites"
   },
   "zpinfo_schema": {
    "status": "strong",
-   "service": "mod_zp /status",
+   "service": "",
    "description": "ZPInfo + DeviceInfo + Playmode",
-   "fields": "<ZPInfo><ZoneIcon><Configuration><LocalUID><SerialNumber><SoftwareVersion><BuildType>(release)<SWGen><SoftwareDate><SoftwareScm><HHSwgenState><MinCompatibleVersion><LegacyCompatibleVersion><HardwareVersion><DspVersion>%d.%d.%d<SeriesID><MfgLocation><DateCode><HwFlags>0x%x<HwFeatures>0x%x<Variant><GeneralFlags>0x%x<IPAddress><MACAddress><Copyright><ExtraInfo><HTAudioInCode><IdxTrk><MDP2Ver></ZPInfo>; <DeviceInfo><ZoneName><NetworkHash><DHCPServerMac><NetworkIPAddress><NetworkMask><DiagLevel><DevMode></DeviceInfo>; <Playmode><Shuffle><Repeat><Crossfade></Playmode>; <TemperatureHistograms><CPUTemperature>; <CpuMonitor>; <HardwareStatusInfo>"
+   "fields": "<ZPInfo><ZoneIcon><Configuration><LocalUID><SerialNumber><SoftwareVersion><BuildType>(release)<SWGen><SoftwareDate><SoftwareScm><HHSwgenState><MinCompatibleVersion><LegacyCompatibleVersion><HardwareVersion><DspVersion>%d.%d.%d<SeriesID><MfgLocation><DateCode><HwFlags>0x%x<HwFeatures>0x%x<Variant><GeneralFlags>0x%x<IPAddress><MACAddress><Copyright><ExtraInfo><HTAudioInCode><IdxTrk><MDP2Ver></ZPInfo>; <DeviceInfo><ZoneName><NetworkHash><DHCPServerMac><NetworkIPAddress><NetworkMask><DiagLevel><DevMode></DeviceInfo>; <Playmode><Shuffle><Repeat><Crossfade></Playmode>; <TemperatureHistograms><CPUTemperature>; <CpuMonitor>; <HardwareStatusInfo>",
+   "surface": "mod_zp /status"
   },
   "netsettings_schema": {
    "status": "strong",
-   "service": "ReplicatedNetSettings",
+   "service": "",
    "description": "netsettings.json replicated network+PSK store",
-   "fields": "<ReplicatedNetSettings><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID=\"%s\" Flags=\"%d\"/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; json paths {/sonosnet,sonosnetDisable,/networks,backupPsk,backupControlPsk,backupRoomEncPsk,backupLanSwapPsk,genTime}; sn keys {sn_en,sn_dis,sn_dis_test}"
+   "fields": "<ReplicatedNetSettings><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID=\"%s\" Flags=\"%d\"/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; json paths {/sonosnet,sonosnetDisable,/networks,backupPsk,backupControlPsk,backupRoomEncPsk,backupLanSwapPsk,genTime}; sn keys {sn_en,sn_dis,sn_dis_test}",
+   "surface": "ReplicatedNetSettings"
   },
   "avt_lastchange": {
    "status": "strong",
-   "service": "/MediaRenderer/AVTransport/Event",
+   "service": "AVTransport",
    "description": "AVTransport LastChange evented fields",
-   "fields": "PlaybackStorageMedium,AVTransportURI,AVTransportURIMetaData,NextAVTransportURI,NextAVTransportURIMetaData,CurrentTransportActions,r:CurrentValidPlayModes,r:DirectControlClientID,r:DirectControlIsSuspended,r:DirectControlAccountID,TransportStatus,TransportErrorDescription,TransportErrorURI,TransportErrorHttpCode,TransportErrorHttpHeaders,r:SleepTimerGeneration,r:RestartPending,r:NextTrackURI,r:NextTrackMetaData,r:AlarmRunning,r:SnoozeRunning \u2014 each as <name val=\"\">"
+   "fields": "PlaybackStorageMedium,AVTransportURI,AVTransportURIMetaData,NextAVTransportURI,NextAVTransportURIMetaData,CurrentTransportActions,r:CurrentValidPlayModes,r:DirectControlClientID,r:DirectControlIsSuspended,r:DirectControlAccountID,TransportStatus,TransportErrorDescription,TransportErrorURI,TransportErrorHttpCode,TransportErrorHttpHeaders,r:SleepTimerGeneration,r:RestartPending,r:NextTrackURI,r:NextTrackMetaData,r:AlarmRunning,r:SnoozeRunning \u2014 each as <name val=\"\">",
+   "surface": "/MediaRenderer/AVTransport/Event"
   },
   "zp_support_info": {
    "status": "strong",
-   "service": "/status support info",
+   "service": "",
    "description": "ZPSupportInfo schema",
-   "fields": "<ZPSupportInfo><ZPSupportItem title=\"%s\">\u2026</ZPSupportItem></ZPSupportInfo>"
+   "fields": "<ZPSupportInfo><ZPSupportItem title=\"%s\">\u2026</ZPSupportItem></ZPSupportInfo>",
+   "surface": "/status support info"
   },
   "zps_page": {
    "status": "strong",
-   "service": "/ZPs",
+   "service": "",
    "description": "household update status page fields",
-   "fields": "{program,SystemVersion,NumZPs,NumUpdateZPs,CurrentVersion,TargetVersion,HardwareVersion,DownloadDuration,ServerIP,ErrorMsg,ExtendedError}; \"Request type [%s] != response type [%s]\"; \"report array size mismatch (%d/%zu)\"; \"report %s error\"; \"failed to rename report %s to %s\""
+   "fields": "{program,SystemVersion,NumZPs,NumUpdateZPs,CurrentVersion,TargetVersion,HardwareVersion,DownloadDuration,ServerIP,ErrorMsg,ExtendedError}; \"Request type [%s] != response type [%s]\"; \"report array size mismatch (%d/%zu)\"; \"report %s error\"; \"failed to rename report %s to %s\"",
+   "surface": "/ZPs"
   },
   "ht_input_session": {
    "status": "strong",
-   "service": "zpHTInputSession",
+   "service": "",
    "description": "HT input-session telemetry fields",
-   "fields": "{tv_usage,corrId(cid set/clr),sessionLength,sessionPlayTime,connectionType,GCUUID,GCBootSeq,GCTimeStart,GCTimeEnd,inputRate,dataBurstType,contentType,playSeconds,forced,topoType,zpHTInputSession,dump-proc-anacapa,build.version}"
+   "fields": "{tv_usage,corrId(cid set/clr),sessionLength,sessionPlayTime,connectionType,GCUUID,GCBootSeq,GCTimeStart,GCTimeEnd,inputRate,dataBurstType,contentType,playSeconds,forced,topoType,zpHTInputSession,dump-proc-anacapa,build.version}",
+   "surface": "zpHTInputSession"
   }
  },
  "uri_formats": {

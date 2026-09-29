@@ -688,6 +688,15 @@ def render_service(s):
                 out.append("- action table `%s`" % d["action_table"])
         out.append("")
     n_impl = sum(1 for a in s.actions.values() if a.is_implemented)
+    if s.removed_actions:
+        out += ["## Removed / stale advertisements", ""]
+        for r in s.removed_actions:
+            if isinstance(r, dict):
+                out.append("- `%s` — %s" % (_e(r.get("name")),
+                                            _e(r.get("reason"))))
+            else:
+                out.append("- `%s`" % _e(r))
+        out.append("")
     out += ["## Actions", ""]
     rows = []
     for n, a in s.actions.items():

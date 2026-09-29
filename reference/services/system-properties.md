@@ -18,6 +18,11 @@ A generic key/value store plus the music-service account manager. SetString/GetS
 - dispatcher `0x1073186c` kind `table`
 - action table `0x10f110f0`
 
+## Removed / stale advertisements
+
+- `ProvisionCredentialedTrialAccountX` — SCPD-advertised but absent from the 86.x dispatch surface; related_action references in A_ARG_TYPE_* vars are SCPD-derived
+- `ResetThirdPartyCredentials` — SCPD-advertised but absent from the 86.x dispatch surface
+
 ## Actions
 
 | Action | Visibility | Reachability | Confidence | Dispatch | Error codes |

@@ -574,13 +574,14 @@ class Service:
     visibility_note: Optional[str] = None
     impl_files: list = field(default_factory=list)
     impl_return_pattern: Optional[str] = None
+    removed_actions: list = field(default_factory=list)
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"name", "control_path", "description", "status", "visibility",
              "registration", "availability", "object", "dispatcher",
              "actions", "state_variables", "events", "errors", "evidence",
              "notes", "visibility_note", "impl_files",
-             "impl_return_pattern"}
+             "impl_return_pattern", "removed_actions"}
 
     @classmethod
     def from_raw(cls, control_path, raw):
@@ -607,6 +608,7 @@ class Service:
             visibility_note=raw.get("visibility_note"),
             impl_files=list(raw.get("impl_files") or []),
             impl_return_pattern=raw.get("impl_return_pattern"),
+            removed_actions=list(raw.get("removed_actions") or []),
             extra=extra)
 
     @property
@@ -1033,15 +1035,20 @@ def _check_duplicates(qa, model):
                          "paths: handlers %s" % (name, an, sorted(hs)))
 
 
+def _ra_name(r):
+    return r.get("name") if isinstance(r, dict) else r
+
+
 def _check_ownership(qa, model):
     for s in model.services:
         for a in s.actions.values():
             if a.control_path != s.control_path:
                 qa.error("service ownership: %s.%s claims control_path %s"
                          % (s.name, a.name, a.control_path))
+        removed = {_ra_name(r) for r in s.removed_actions}
         for n, sv in s.state_variables.items():
             for ra in sv.related_actions:
-                if ra and ra not in s.actions:
+                if ra and ra not in s.actions and ra not in removed:
                     qa.warn("%s state variable %s: related_action %r not "
                             "an action of this service"
                             % (s.name, n, ra))

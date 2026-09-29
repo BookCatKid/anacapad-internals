@@ -474,27 +474,27 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `ZoneGroupTopology.ZoneGroupName` | ZoneGroupTopology | string | yes | `confirmed` |
 | `ZoneGroupTopology.ZoneGroupState` | ZoneGroupTopology | string | yes | `confirmed` |
 | `ZoneGroupTopology.ZonePlayerUUIDsInGroup` | ZoneGroupTopology | string | yes | `confirmed` |
-| `alarm_status_schema` | /AlarmClock/Control |  | ? | `strong` |
-| `avt_lastchange` | /MediaRenderer/AVTransport/Event |  | ? | `strong` |
-| `device_props_extra_vars` | /DeviceProperties/Control |  | ? | `strong` |
-| `device_props_update_ids` | /DeviceProperties/Control |  | ? | `strong` |
-| `ht_input_session` | zpHTInputSession |  | ? | `strong` |
-| `netsettings_schema` | ReplicatedNetSettings |  | ? | `strong` |
-| `playstatemanager_schema` | internal |  | ? | `strong` |
-| `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
-| `replicated_netsettings_schema` | settings replication |  | ? | `strong` |
-| `savedqueues_rsq_schema` | /MediaRenderer/Queue/Control |  | ? | `strong` |
-| `services_xml_schema` | /MusicServices/Control |  | ? | `strong` |
+| `alarm_status_schema` | AlarmClock |  | ? | `strong` |
+| `avt_lastchange` | AVTransport |  | ? | `strong` |
+| `device_props_extra_vars` | DeviceProperties |  | ? | `strong` |
+| `device_props_update_ids` | DeviceProperties |  | ? | `strong` |
+| `ht_input_session` |  |  | ? | `strong` |
+| `netsettings_schema` |  |  | ? | `strong` |
+| `playstatemanager_schema` |  |  | ? | `strong` |
+| `renderingcontrol_status_schema` | RenderingControl |  | ? | `strong` |
+| `replicated_netsettings_schema` |  |  | ? | `strong` |
+| `savedqueues_rsq_schema` | Queue |  | ? | `strong` |
+| `services_xml_schema` | MusicServices |  | ? | `strong` |
 | `shares_schema` | ContentDirectory |  | ? | `strong` |
-| `sounddevice_status_schema` | /status |  | ? | `strong` |
-| `update_info_schema` | /status |  | ? | `strong` |
-| `userradio_schema` | favorites |  | ? | `strong` |
+| `sounddevice_status_schema` |  |  | ? | `strong` |
+| `update_info_schema` |  |  | ? | `strong` |
+| `userradio_schema` |  |  | ? | `strong` |
 | `vli_state_snapshot` | VirtualLineIn |  | ? | `strong` |
-| `zone_group_state_schema` | /ZoneGroupTopology/Control |  | ? | `strong` |
-| `zoneplayers_status_schema` | /status |  | ? | `strong` |
-| `zp_support_info` | /status support info |  | ? | `strong` |
-| `zpinfo_schema` | mod_zp /status |  | ? | `strong` |
-| `zps_page` | /ZPs |  | ? | `strong` |
+| `zone_group_state_schema` | ZoneGroupTopology |  | ? | `strong` |
+| `zoneplayers_status_schema` |  |  | ? | `strong` |
+| `zp_support_info` |  |  | ? | `strong` |
+| `zpinfo_schema` |  |  | ? | `strong` |
+| `zps_page` |  |  | ? | `strong` |
 
 ### `AC.AlarmListVersion`
 
