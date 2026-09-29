@@ -119621,7 +119621,8 @@
      "address": "0x10fd7d54",
      "notes": "esdk blocks"
     }
-   ]
+   ],
+   "api": "Sp{Free,RegisterConnectionCallbacks,RegisterDeviceAliasCallbacks,RegisterPlaybackCallbacks,RegisterStreamCallbacks,RegisterDebugCallbacks,PlaybackPlay,PlaybackPause,PlaybackSkipToNext,PlaybackSkipToPrev}"
   },
   "telemetry_submission": {
    "status": "partial",
@@ -120154,75 +120155,17 @@
    "metrics": "gauges {chsnkFillLevel=\"Amount of audio in stream buffer\",largeSyncErrors=\"Playback (see sync) and downstream errors\",\"Maximum sync mismatch with group coordinator\",\"Amount of output committed to driver\"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {\"header magic mismatch\",\"md block loc\",\"md header len mismatch\",\"si pos mismatch\",\"si read failed\",fsAvail}"
   },
   "chirp": {
-   "name": "chirp-core SDK \u2014 acoustic pairing/setup protocol (third-party chirp.io-derived stack)",
-   "profiles": [
-    "audible",
-    "sonos-cdma",
-    "sonos_secure_setup",
-    "ultrasonic"
-   ],
-   "acoustic_params": [
-    "base_frequency(>=20)",
-    "channel_count",
-    "channel_interval",
-    "envelope_attack",
-    "envelope_release",
-    "preamble(>=1byte, code within symbol range)",
-    "header_note_duration",
-    "header_silence_duration",
-    "frequency_interval",
-    "body_note_duration",
-    "body_silence_duration",
-    "portamento",
-    "template"
-   ],
-   "encoding_params": [
-    "alphabet_bits",
-    "crc_length",
-    "message_length_max",
-    "message_length_min",
-    "polyphony",
-    "rs_length_max",
-    "rs_length_min",
-    "total frame <= 256 bytes",
-    "symbols <= 64-bit"
-   ],
-   "decoder_config": [
-    "fft_size",
-    "hop_size",
-    "sample_rate_min",
-    "payload_metrics_enabled",
-    "buffer_metrics_enabled",
-    "voters[] {amplitude_threshold,frame_offset,preamble_threshold,reverb_cancellation_exponent,reverb_cancellation_magnitude,spectral_weighting(float)}"
-   ],
-   "fec": "GF(2^8) reed-solomon: gf_calc_syndromes, gf_correct_errata, gf_forney_syndromes, gf_poly_{mul,add,concatenate,zero_pad}, trim_gf_poly, new_gf/del_gf/del_gf_poly; decoder pipeline decoder.c->peaks.c->scorer.c->voter.c->weighting.c; cdma cdma_{encoder,decoder,codebook}; fsk chirp_private_fsk",
-   "api": [
-    "new/del_chirp_payload",
-    "chirp_payload_randomise",
-    "new/del_chirp_profile",
-    "new/del_chirp_protocol",
-    "new_chirp_protocol_from_json_value",
-    "chirp_protocol_corrupt_random_symbols",
-    "new/del_chirp_acoustic",
-    "new/del_chirp_encoding",
-    "new/del_chirp_config",
-    "new_chirp_default_config",
-    "new_chirp_decoder_config_from_json_value",
-    "new_chirp_default_voter_configs",
-    "new/del_chirp_voter_config"
-   ],
-   "json_config": "protocol + decoder configs are JSON-described (schema_version, decoder_config keys) \u2014 profiles load via new_chirp_protocol_from_json_value",
+   "name": "chirp acoustic stack (Asynchronous Inc SDK 4.2.3 b1898)",
    "status": "partial",
-   "summary": "/code/chirp-core/source/{core,dsp,maths}/src/** paths in rodata 0x10fd0188-0x10fd4c74",
+   "summary": "profile sonos-cdma; decode pipeline {chirp_decoder_t,chirp_cdma_decoder_t,chirp_cdma_match_t,chirp_note_estimate_t(u16),chirp_peaks_t/chirp_peak_t,chirp_scorer_t(u64),chirp_voter_t}; encode {chirp_cdma_encoder_t,chirp_codebook_t(u8*),chirp_rms_t,chirp_decorator_t}; fft {chirp_maths_fft_init/deinit,double}; errors {\"No frames selected to decode (is sustain period too short?)\",\"payload contains unknown symbols\",\"Preamble payload has too few symbols ... TODO: #741\",\"Payload does not support symbol sizes beyond 64-bit\",\"Preamble code is outside of symbol range\",\"corrupt_random_symbols\",\"symbol_bits will overflow a cast\",\"failed to read fixed config and codebook\"}; sdk {chirp_sdk_random_payload,chirp_sdk_get_info,_chirp_on_received_cdma}; playback {\"Start chirping with unique device value:%d\",\"current chirp output volume: %d\",\"A chirp signal is already playing with playId %d\",\"Stop chirp playId %d differ than m_chirpPlayId\",\"Failed to stop chirp\",\"Couldn't create a chirp audio stream\",\"Error initializing chirp\",\"Chirp setup failed - chirp sender does not exist!\",\"Unable to play chirp\"}; stream taps {as-dspin-ext-chirp,as-dspout-ext-chirp,ext-chirp-as,setup-chirp-as}; stream errors {stream_chirp_init_sync,lack_data_no_drain,read_err_full,read_err_part_data}; \"Ignoring busy transition due to chirp only\"; muse routes v1/players/{playerId}/roomDetection/chirp{,/{playId}} + household variants",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10fd0188",
-     "notes": "chirp-core rodata block"
+     "address": "0x10fd04d6",
+     "notes": "chirp blocks"
     }
-   ],
-   "audio_src": "ChirpExtAudioSrc: chirp generation API {set_config,sample_rate,start,max payload,is valid,send,generation status/incomplete,duration truncated,\"generated signal (%zu bytes)\",\"generation took %u ms\",stop}; \"Start chirping with unique device value:%d\" \u2014 device id encoded into payload; playId mgmt (REA_PLAY_ID_NULL guard, m_chirpPlayId match); \"Chirp volume not yet calibrated\"; \"Chirp payload %s not supported\""
+   ]
   },
   "qplay": {
    "name": "QPlay (Tencent) \u2014 minimal presence in this build",
@@ -122449,6 +122392,34 @@
      "status": "confirmed",
      "address": "0x10fe4094",
      "notes": "hermes.c block"
+    }
+   ]
+  },
+  "sync": {},
+  "perfect_sync": {
+   "name": "forced perfect initial sync",
+   "status": "partial",
+   "summary": "\"perfect initial sync %d.%06d, available %u\"; forcePerfectInitialSync + \"Forced perfect initial sync %s on stream %s\"; \"forced perfect initial sync, ignoring %d usec diff\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f29c37",
+     "notes": "sync block"
+    }
+   ]
+  },
+  "settings": {},
+  "effective_settings": {
+   "name": "effectiveSettings muse resource",
+   "status": "partial",
+   "summary": "routes v1/players/{playerId}/effectiveSettings{,/{groupName}} + household variants; verbs {getAllSettings,getSettingsGroup groupName,updateAllSettings,updateSettingsGroup groupName}; /settings/api/v1/locations/%s/effectiveSettings{,/%s}; keys {isEffectiveP2PPolicyEncrypted,effectiveSettingsDataChanged,patchEffective*,playerSettingsEvent}; \"[Mg] getEffectiveSettings() bad groupId [%u]\"; \"[Mg] internalReadEffectiveValuesLocked_jsonValue(%s) bad keyId %u [grkId:%u|end:%u]\" (key-id store)",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e7ceb8",
+     "notes": "effsettings block"
     }
    ]
   }
