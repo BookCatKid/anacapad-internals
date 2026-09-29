@@ -6,6 +6,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 |---|---|---|
 | `ab_experiments` | **partial** | production A/B experiment framework: a /experiments local endpoint plus a replicated <ZoneExperiments> store of <ZoneExperiment id name value defaultValue> rows; presence gated by featureConfigZoneExperiment; values influence runtime policy |
 | `account_cert_lifecycle` | **partial** | three cert managers (certmanager/devicecertmanager/regdevicecert) over four keycert identities; the registration cert carries the device's SonosID and is required for token generation ('sr: reg cert not available; cannot generate token'); a /regcert status endpoint exposes DeviceCertInfo XML; root-of-trust bundles are fetched from /certbundles/v4/trusted_roots.rcb with ETag caching and retry backoff |
+| `amp_manager` | **partial** | ops {power,mute,hipower} with "ignored unsupported amp command" guard; power rails {"transition to high power rail","to low power rail"}; off-decision fields "roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d"; "scheduling off in %d sec"; "failed to unmute amps to clear fault"; "ampState %d -> %d" + notifyAmpState; threads ampMgr |
 | `areas` | **partial** | areas.json file; Everywhere area UUID 7055133f-81e7-45e6-ba70-8803966c7185; validation {"Area IDs must be distinct","Maximum area limit (%d) reached","Cannot update read-only area"}; fields {areaId,playerIds array}; accept-file staging {accepted file load/rename} + schema version check "Loaded areas schema version (%d) differs from local version (%d)" |
 | `async_stream` | **partial** | init {buffersize,multiThread,ratelimit us}; segment table (realloc to %zu entries); alloc policy {satisfied by track transition\|deleting played data\|not satisfied}; "Started reaping played data. Lose fast scrubbing backwards"; CDN fallback {">>>Sync read from CDN at offset %zu","Opportunistic sync read from CDN"}; "File is in memory!"; seek sessions "new seek based PB session"; "Socket has: %zu bytes ... CHSRC ms ahead: %ld"; stats mrrkbs/arrkbs + "Avg read rate %zuKB/sec; min read rate %zu"; "Atom Table Full" bound; threads asyncstrmio/asyncstreamiomgr |
 | `audio_rate_ctrl` | **partial** | ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, "Rate Maxed"/"Rate Inv Maxed" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; "time went back; try again"; "Thread descheduled for %uus. Limit %uus"; SRC mute on \|drift\| "(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u"; "Out of bounds. drift: %f mute count: %d" |
@@ -20,7 +21,9 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cloud_synchronizer` | **partial** | cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d" |
 | `dev_disc` | **partial** | devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "%s - rx %s ALIVE %s %s %d %u %s (%zd)", "%s - rx %s BYEBYE %s", "%s - rx CDALIVE %s %s %d", "%s - rx CDBYEBYE %s", "rx  QUARANTINE_RECHECK %s"; "%s - %u SSDP messages lost"; zp byebye; "ddt hint:%d"; "Finished working on type %d" |
 | `device_unlock` | **partial** | developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state |
+| `dolby_decoder` | **partial** | config files /opt/dsp/dolby_config.json + app/debug/dsp/dolby_config.json jffs override; keys {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle,oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal} + DRC {movie,night,disable} + crossover 100-200HZ + speaker roles lrrse/lrrs1/lrrs2; Evolution mem {static,dynamic byte allocs}, timeslice processing, malformed-input detect; status <DEC_SampleRate><LFEPresence><DEC_ChanCount> + <BlocksInTimeSlice><ACMOD><DataRate><DialNorm><SURRMOD> |
 | `dsp_ht_engine` | **partial** | home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks |
+| `dts_decoder` | **partial** | profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo} |
 | `embedded_sqlite` | **partial** | embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db — the alarm/sleep-timer store; two tables with full DDL recovered verbatim \| proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) — local/suspend timers (timers_impl.cxx) \| suspend model: pause -> row in paused_timers w/ remaining_seconds+paused_utc_time; resume -> recompute trigger_time \| libFLAC embedded codec: reference libFLAC 1.3.4 20220220 |
 | `entitlements` | **partial** | entitlements manager with cloud fetch + local cache, muse-subscribed change events, and a runtime policy hook (RRuntimeZPPolicy takes entitlementsMgr); typed SKU records decide e.g. whether Sonos Radio is preinstalled |
 | `factory_reset` | **partial** | factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted confirm form, /jffs/factoryReset.txt marker file ('unable to create factory reset file.', 'factory reset had errors', ': not factory reset'), LED_MODE_FACTORY_RESET pattern, sonosFactoryResetFull entry point, household-wide consequence ('device: %s %s removed from vanished list after factory reset'), and 'Invalid system settings (%s), resetting to factory defaults' as a self-heal path; muse route management/factoryReset can trigger it remotely |
@@ -35,6 +38,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `ir_learn` | **partial** | htaudio.cxx IR subsystem: code lists vol_up_codes/vol_down_codes/vol_mute_codes/input_codes (bounded); learn FSM passes{1,3} redundancy checks "first and third passes have different sizes"/"don't match"; repeat styles {alternating,repeating,non-repeating}; one-button learn with timeout (UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND); config /opt/ir/irconfig.txt; cloud database http://ir.ws.sonos.com/IRCode/ — submit <IRCode><code><value><guid> XML (guid from //dev//urandom), query "Requesting: %s" -> "Code found for remote id \[%s\]"; embedded remote-name table {Sharp,LG/Haier L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA 46LA45RQ,Orion SLED3280,Mitsubishi WD-65638/60738,JVC JLC42BC3000/LT-19E610,Seiki LC-32B56,SuperSonic SC-240/491,ViewSonic VT4210LED/VT3205LED,Loewe}; "Denylisted pyle!"; "Outstanding codes yet to be learned: Lengths are: %d, %d, %d" |
 | `lechmere_wss` | **partial** | lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions |
 | `led_engine` | **partial** | Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only |
+| `lla` | **partial** | errors {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; devices {lla_hdmi out, lla_in_%s in}; out: "Setting tx latency %u", combined time+output delay, play-time-in-past reject, "time requested %d.%06d current time ... devPlayTime/devCurrentTime", "callback failed, playing zeros", underflow-count cache; in: descriptor "id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu", rx time in ticks, nonblocking pipe, buffer copy maxbytes bound; fds lla-select/lla.in.poll |
 | `log_domain_map` | **partial** | 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring |
 | `media_player_abstraction` | **partial** | source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source |
 | `media_player_mgr` | **partial** | actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target \[%s\] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming |
@@ -77,6 +81,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `content_directory` | **?** |  |
 | `device_props` | **?** |  |
 | `diagnostics` | **?** |  |
+| `dsp_params` | **?** |  |
 | `htaudio` | **?** |  |
 | `http_engine` | **?** |  |
 | `lechmere` | **?** |  |
@@ -149,6 +154,21 @@ three cert managers (certmanager/devicecertmanager/regdevicecert) over four keyc
 - @ 0x10ef1fbc — full <DeviceCertInfo> XML schema (14 fields)
 - @ 0x10eeb82c — /certbundles/v4/trusted_roots.rcb + ETag flow
 - @ 0x10f043a4 — reg cert required for token generation
+
+</details>
+
+## `amp_manager`
+
+**coverage** `partial`
+
+**Technical description:**
+
+ops {power,mute,hipower} with "ignored unsupported amp command" guard; power rails {"transition to high power rail","to low power rail"}; off-decision fields "roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d"; "scheduling off in %d sec"; "failed to unmute amps to clear fault"; "ampState %d -> %d" + notifyAmpState; threads ampMgr
+
+- **name:** RAmpManager — amp power/mute/rail FSM
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fe5640 — ampManager block
 
 </details>
 
@@ -463,6 +483,22 @@ developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unl
 
 </details>
 
+## `dolby_decoder`
+
+**coverage** `partial`
+
+**Technical description:**
+
+config files /opt/dsp/dolby_config.json + app/debug/dsp/dolby_config.json jffs override; keys {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle,oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal} + DRC {movie,night,disable} + crossover 100-200HZ + speaker roles lrrse/lrrs1/lrrs2; Evolution mem {static,dynamic byte allocs}, timeslice processing, malformed-input detect; status <DEC_SampleRate><LFEPresence><DEC_ChanCount> + <BlocksInTimeSlice><ACMOD><DataRate><DialNorm><SURRMOD>
+
+- **name:** dlbdec — Dolby DD+/Evolution (JOC) decoder
+- **control_ids:** `DDPI_UDC_OUTCTL_OUTLFEON_ID`, `OUTMODE_ID`, `DUALMODE_ID`, `COMPMODE_ID`, `OUTPCMSCALE_ID`, `STEREOMODE_ID`, `DRCSCALEHIGH_ID`, `DRCSCALELOW_ID`, `DDPI_UDC_CTL_SUBSTREAMSELECT_ID`, `ERRORCONCEAL_ID`, `ERRORMAXRPTS_ID`, `EVOMODE_ID`, `EVOQUICK_SWITCH`, `EVOQUICK_SUBSTREAM_ID`, `EVOQUICK_STREAMTYPE`, `MIXER_SWITCH_ID`, `FORCE_JOC_OUTPUT_DMX_ID`, `MIXPREF_ID`
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fe6998 — dlbdec/evo block
+
+</details>
+
 ## `dsp_ht_engine`
 
 **coverage** `partial`
@@ -490,6 +526,21 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 - @ 0x10f253d8 — HT config XML schema (24 fields incl. Tweaks bitmask)
 - @ 0x10feabd8 — per-Zone audio XML schema (37 fields)
 - @ 0x10f2b138 — Zone volume/ducking XML schema
+
+</details>
+
+## `dts_decoder`
+
+**coverage** `partial`
+
+**Technical description:**
+
+profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo}
+
+- **name:** dcadec — DTS decoder
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fe7670 — dcadec block
 
 </details>
 
@@ -879,6 +930,21 @@ Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time 
 - @ 0x10e990a0 — <LedStepEntry rgb hold fade> step schema
 - @ 0x10fba55c — setHwFeatures LED capability flags
 - @ 0x10fbb590 — resumeDefaultLEDPattern R_LED_* mapping
+
+</details>
+
+## `lla`
+
+**coverage** `partial`
+
+**Technical description:**
+
+errors {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; devices {lla_hdmi out, lla_in_%s in}; out: "Setting tx latency %u", combined time+output delay, play-time-in-past reject, "time requested %d.%06d current time ... devPlayTime/devCurrentTime", "callback failed, playing zeros", underflow-count cache; in: descriptor "id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu", rx time in ticks, nonblocking pipe, buffer copy maxbytes bound; fds lla-select/lla.in.poll
+
+- **name:** liblla — low-level audio (output+input)
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fe5ad4 — liblla blocks
 
 </details>
 
@@ -1786,6 +1852,11 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **submission_fsm:** bounded queues {"submission queue full","result queue full"}; params includeControllers,initiatingDeviceId; states {pending on controllers,already in process,no devices submitted,successful}; zpDiagSubmit job + tracking + diag_mgr; completed{submissionId,status,diagnosticId}; blob wrapper <ZPNetworkInfo type="User"> + <!-- START UUID -->/END UUID per player + " unreachable"
+## `dsp_params`
+
+**coverage** `?`
+
+- **pcm_decoder:** decoder_pcm guards {Invalid frame size,Unsupported input rate,Invalid number of input samples}; <DEC_SampleRate>; event-mgr {Add fd for object,Spurious Input Event 0x%x,Object %s was not formally released}
 ## `htaudio`
 
 **coverage** `?`
