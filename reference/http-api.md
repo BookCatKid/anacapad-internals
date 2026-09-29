@@ -1273,6 +1273,19 @@ The auth helper shared by muse/websocket endpoints — checks tokens and househo
 - **status:** confirmed
 - **impl:** museclient_authhelper.cxx
 - **semantics:** museauth module + museAuthzCache — cached cloud-authz tokens for Muse clients
+- **oauth:**
+  - **status:** confirmed
+  - **evidence:**
+    - type: firmware, address: 0x1009a0d4, notes: grant/scope table (init table 0x11085328)
+  - **grant_types:** `urn:ietf:params:oauth:grant-type:jwt-bearer`
+  - **subject_urns:** `urn:sonos:hhid:`, `urn:sonos:unit-hhid:`
+  - **scopes:** `playback-control-all`
+  - **policy_keys:** `guestPermissionsPolicyKey`
+  - **jwt_algs:** `RS256`, `HS256`
+  - **thor:**
+    - **name:** thor
+    - **strings:** `UserAuthorization`, `ThorOperations`, `PolicyKeyTableMutex`
+    - **note:** muse authorization is evaluated by the Thor policy subsystem — op calls carry credType through the <Command> envelope and Thor checks the caller against UserAuthorization policy keys
 
 ## `muse_common`
 
@@ -1823,6 +1836,16 @@ The 29 R_* SystemProperties keys — the real key space that GetString/SetString
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ecb0ec, notes: R_VolNormMode
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e9a9f0, notes: R_MuseDuckingPolicy
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efebec, notes: R_ThirdPartyCredentials
+- **o_star_url_keys:**
+  - **status:** confirmed
+  - **evidence:**
+    - type: firmware, address: 0x10086df4, notes: cloud-URL override key registration block (init table 0x11085328); each key is a SystemProperties entry whose value is a service endpoint URL
+  - **note:** The complete O_* override-key space: SystemProperties keys whose values are cloud endpoint URLs — the binary registers every tunable endpoint here (diagnostics, music services, customer registration, update, metrics, Sonar calibration, Spotify device-context, Amazon/Google voice, universal search, SVE/TTS, timezones, helpsheet). Setting an O_* key via SystemProperties SetString/Set overrides the default endpoint — this is the service-routing override mechanism.
+  - **keys** (69):
+  
+    ```
+    OnlineUpdateBaseURL, RSystemOverrides, O_SUBMIT_DIAG_URL, O_SUBMIT_AUTO_DIAG_URL, O_INITIATE_DIAG_URL, O_DISABLE_SUBMIT_AUTO_DIAG, O_DIAG_SERVER_INSTRUCT_URL, O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_CUSTREG_REGSW_URL, O_UPDATE_MSG_URL, O_USAGE_TRACKING_OPTIN_URL, O_PRODUCT_EVENT_LOGGING_URL, O_USER_ENTRY_URL, O_BETAPROGRAM_URL, O_FIRMWARE_UPGRADE_LOGGING_URL, O_EVENTMETRICS_URL, O_EVENTMETRICS_CONFIG_URL, O_EVENTMETRICS_EVENT_REPORTING_INTERVAL, O_EVENTMETRICS_CONFIG_REPORTING_INTERVAL, O_DZ_STREAMED_MESSAGES_URL, O_DZ_TRANSFERO_URL, O_MUSIC_SERVICE_CATALOG_URL, O_SONAR_SERVER_URL, O_SONAR_CALIBRATION_ID, O_SONAR_GAIN_ID, O_SONAR_DATA_UPLOAD_URL, O_CLOUD_API_BASE_URL, O_SETUP_SERVER_URL, O_HH_ASSOCZPUDN, O_TEMPERATURE_REPORTING_INTERVAL, O_IR_DB_WS_IRCODE_URL, O_SLOW_WIFI_REPORTING_INTERVAL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_HRMETRICS_INTERVAL, O_TRACKPLAYBASE_URL, O_SPOTIFY_DC_SID, O_DC_DESCRIPTOR_BASE_URL, O_SONOS_CLOUD_API_TEST_ENV, O_HISTORY_SERVICE_URL, O_UPDATE_SERVER_URL, O_AMAZON_LWA_URL, O_AMAZON_PCO_URL, O_AMAZON_PROFILE_URL, O_AMAZON_VOICE_SERVICES_ENDPOINT, O_AMAZON_ALEXA_SKILL_ENABLEMENT_BYPASS, O_WAKE_WORD_SERVER_URL, O_VOICE_WELCOME_BASE_URL, O_AUTOMATION_CLOUD_DOMAIN, O_AUTOMATION_CLOUD_DOMAIN_MUTUAL_SSL, O_AMAZON_SKILL_STAGE_ENV, O_UPNP_CONTROL_REQ_EVENT_BITS, O_VOICE_LOCALES_SERVER_URL, O_VOICE_LOCALES_MAX_DOWNLOAD_INTERVAL_SEC, O_VOICE_LOCALES_SKILL_GROUP, O_VOICE_GOOGLE_ACTION_ENV, O_CLOUD_CONFIG_BASE_URL, O_MINIDUMP_SUBMIT_URL, O_AMAZON_SHOW_MSP_EDUCATION, O_GOOGLE_SHOW_MSP_EDUCATION, O_CRASH_UPLOAD_SUBMIT_URL, O_VOICE_CLIENT_INT_RESPONSE_CODE, O_ZONE_EXPERIMENTS, O_UNIVERSAL_SEARCH_URL, O_HELPSHEET_SERVER_URL, O_SVE_SERVICES_URL, O_SVE_TTS_URL, O_TIMEZONE_URL
+    ```
 
 ## `internal_result_namespace`
 

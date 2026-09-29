@@ -95,6 +95,12 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 | `updateZoneMemberSettings` | suffix `/memberSettings` |
 
 
+## Event channels
+
+The complete muse event-channel namespace emitted over /websocket/api — each channel name below is a subscription target in the muse event bus (SUBSCRIBE/NOTIFY per channel). Includes several channels with no public documentation: waterStatus, poeStatus, speakerPresenceRateChange, microphoneSwitchStatus, bluetoothPairingStatus/ConnectionStatus, wiredSubConnectionStatus, trueroomAdaptationStatusEvent.
+
+`groups`, `groupVolume`, `localDevices`, `playbackError`, `playerVolume`, `queue`, `timers`, `accessorySwapStatus`, `tvAudioSignalStatus`, `activeZonesChange`, `zoneDefinitionsChange`, `zoneError`, `alarmClock`, `alarmVersionChange`, `areasVersionChange`, `audioClipStatus`, `audioInput`, `availableSoftwareUpdate`, `avTransport`, `batteryStatus`, `wirelessNetworkStatus`, `microphoneSwitchStatus`, `waterStatus`, `bluetoothPairingStatus`, `bluetoothConnectionStatus`, `poeStatus`, `lineInStatus`, `wiredSubConnectionStatus`, `cloudRegistration`, `connectionManager`, `contentDirectory`, `deviceProperties`, `diagnosticSubmissionResults`, `diagnosticMetadata`, `effectiveSettingsDataChanged`, `entitlementsVersionChanged`, `extendedDeviceStatus`, `extendedPlaybackStatus`, `favoritesVersionChange`, `groupCoordinatorChanged`, `groupManagement`, `groupRendering`, `hdmiStatus`, `historyVersionChanged`, `householdUpdateStatus`, `upgradeManager`, `htControl`, `indexerStatus`, `musicServices`, `musicServicesChanged`, `playbackMetadataStatus`, `playbackStatus`, `playlistsVersionChange`, `positioningSessionStatus`, `positioningSessionError`, `positioningDeviceStatus`, `renderingControl`, `sessionError`, `sessionInfo`, `settingsVersionChanged`, `settingsDataChanged`, `settingsPlayerSettingsChanged`, `sleepTimerStatus`, `systemProperties`, `trueplayStatus`, `speakerPresenceStatus`, `speakerPresenceRateChange`, `trueroomAdaptationStatusEvent`, `trueroomCalibrationStatus`, `trueroomStatusEvent`, `virtualLineIn`, `voiceAccountsVersionChange`, `zoneGroupTopology`
+
 ## Resources
 
 | Resource | Ops | Methods | Scope params |
@@ -224,14 +230,14 @@ The auth surface for the muse API itself. Ops: `authenticateClient`, `authorizeD
 | `POST` | `v1/households/{householdId}/authorization/tokens` | `resolveToken` | `-` | `0x20000102` | `0x10ad4b7c` | `token`, `attributes`, `attributes` |
 | `GET` | `v1/households/{householdId}/authorization/policy/{policyKey}` | `getPolicyKey` | `policyKey` | `0x20000101` | `0x10ad4b7c` `0x10ad4b8c` | `token`, `attributes`, `attributes`, `policyKey` |
 | `GET` | `v1/households/{householdId}/authorization/permissions/{role}` | `getPermissions` | `role` | `0x20000101` | `0x10ad4b8c` `0x10ad4b9c` | `policyKey`, `role` |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/invite` | `createInvite` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/authorization/invite` | `createInvite` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | — | — |
-| `GET` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `getUsers` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/authorization/users` | `getUsers` | `-` | `0x20000101` | — | — |
-| `DELETE` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `deleteInvite` | `-` | `0x20000108` | — | — |
-| `DELETE` | `v1/households/{householdId}/authorization/users` | `deleteInvite` | `-` | `0x20000108` | — | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/invite` | `createInvite` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/households/{householdId}/authorization/invite` | `createInvite` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/households/{householdId}/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | outbound-fwd | — |
+| `GET` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `getUsers` | `-` | `0x20000101` | outbound-fwd | — |
+| `GET` | `v1/households/{householdId}/authorization/users` | `getUsers` | `-` | `0x20000101` | outbound-fwd | — |
+| `DELETE` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `deleteInvite` | `-` | `0x20000108` | outbound-fwd | — |
+| `DELETE` | `v1/households/{householdId}/authorization/users` | `deleteInvite` | `-` | `0x20000108` | outbound-fwd | — |
 | `POST` | `v1/players/{playerId}/authorization/authorizeDevice` | `authorizeDevice` | `-` | `0x20000102` | `0x10ad4b9c` `0x10ad4bac` | `role`, `grantType` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/authorization/authorizeDevice` | `authorizeDevice` | `-` | `0x20000102` | `0x10ad4b9c` `0x10ad4bac` | `role`, `grantType` |
 | `POST` | `v1/players/{playerId}/authorization/authenticateClient` | `authenticateClient` | `-` | `0x20000102` | `0x10ad4bac` `0x10ad4bbc` | `grantType` |
@@ -254,10 +260,10 @@ Catalog lookups for music services. `serviceId`-scoped GETs resolve service cata
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `GET` | `v1/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | — | — |
-| `GET` | `v1/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | — | — |
+| `GET` | `v1/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | outbound-fwd | — |
+| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | outbound-fwd | — |
+| `GET` | `v1/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | outbound-fwd | — |
+| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | outbound-fwd | — |
 
 Resource implementation functions (string-block registrar family): `0x10ad6210`
 
@@ -269,15 +275,15 @@ Device CRUD and discovery for the household. Lists players in a household, regis
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/devices` | `getDevices` | `-` | `0x20000101` | — | — |
-| `DELETE` | `v1/households/{householdId}/devices/{playerId}` | `removeDevice` | `playerId` | `0x20000108` | — | — |
-| `GET` | `v1/households/{householdId}/devices/registrations` | `getDeviceRegistrations` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | — | — |
-| `POST` | `v1/households/{householdId}/devices/registrations` | `initDeviceRegistration` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `completeDeviceRegistration` | `deviceId` | `0x20000102` | — | — |
-| `PUT` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `refreshDeviceRegistration` | `deviceId` | `0x20000104` | — | — |
-| `DELETE` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `deregisterDevice` | `deviceId` | `0x20000108` | — | — |
+| `GET` | `v1/households/{householdId}/devices` | `getDevices` | `-` | `0x20000101` | resource-block | — |
+| `DELETE` | `v1/households/{householdId}/devices/{playerId}` | `removeDevice` | `playerId` | `0x20000108` | resource-block | — |
+| `GET` | `v1/households/{householdId}/devices/registrations` | `getDeviceRegistrations` | `-` | `0x20000101` | resource-block | — |
+| `GET` | `v1/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | resource-block | — |
+| `GET` | `v1/households/{householdId}/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | resource-block | — |
+| `POST` | `v1/households/{householdId}/devices/registrations` | `initDeviceRegistration` | `-` | `0x20000102` | resource-block | — |
+| `POST` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `completeDeviceRegistration` | `deviceId` | `0x20000102` | resource-block | — |
+| `PUT` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `refreshDeviceRegistration` | `deviceId` | `0x20000104` | resource-block | — |
+| `DELETE` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `deregisterDevice` | `deviceId` | `0x20000108` | resource-block | — |
 | `GET` | `v1/players/{playerId}/devices/registration` | `getRegistrationStatus` | `-` | `0x20000101` | `0x10ad8908` `0x10ad8918` | — |
 | `GET` | `v1/households/{householdId}/players/{playerId}/devices/registration` | `getRegistrationStatus` | `-` | `0x20000101` | `0x10ad8908` `0x10ad8918` | — |
 | `PUT` | `v1/players/{playerId}/devices/registration` | `setRegistrationState` | `-` | `0x20000104` | `0x10ad8918` `0x10ad8928` | `assertion` |
@@ -586,13 +592,13 @@ Top-level household object: create/lookup, members, the `none`-scoped ops are un
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `GET` | `v1/\[error:  'none' is not a valid target\]/households` | `getHouseholds` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/households` | `getHouseholds` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/\[error:  'none' is not a valid target\]/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | — | — |
-| `POST` | `v1/households/{householdId}/households/name` | `setName` | `-` | `0x20000102` | — | — |
-| `GET` | `v1/households/{householdId}/households/location` | `getHouseholdLocation` | `-` | `0x20000101` | — | — |
-| `PUT` | `v1/households/{householdId}/households/location` | `setLocation` | `-` | `0x20000104` | — | — |
+| `GET` | `v1/\[error:  'none' is not a valid target\]/households` | `getHouseholds` | `-` | `0x20000101` | resource-block | — |
+| `GET` | `v1/households/{householdId}/households` | `getHouseholds` | `-` | `0x20000101` | resource-block | — |
+| `GET` | `v1/\[error:  'none' is not a valid target\]/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | resource-block | — |
+| `GET` | `v1/households/{householdId}/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | resource-block | — |
+| `POST` | `v1/households/{householdId}/households/name` | `setName` | `-` | `0x20000102` | `0x10af3468` `0x10af58e0` `0x10af58f0` `0x10af5900` `0x10af5910` | — |
+| `GET` | `v1/households/{householdId}/households/location` | `getHouseholdLocation` | `-` | `0x20000101` | resource-block | — |
+| `PUT` | `v1/households/{householdId}/households/location` | `setLocation` | `-` | `0x20000104` | resource-block | — |
 
 Resource implementation functions (string-block registrar family): `0x10af3488`
 
@@ -604,8 +610,8 @@ Read-only per-player info — identity, capabilities, version. The cheap 'what i
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | — | — |
+| `GET` | `v1/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | resource-block | — |
+| `GET` | `v1/households/{householdId}/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | resource-block | — |
 
 Resource implementation functions (string-block registrar family): `0x10a38570`, `0x10a3890c`, `0x10a38e50`
 
@@ -990,8 +996,8 @@ Player power ops — POST-only power transitions (the player has no soft-power v
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | — | — |
+| `POST` | `v1/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | `0x10b20c04` `0x10b22460` `0x10b22470` `0x10b2b8f4` | — |
+| `POST` | `v1/households/{householdId}/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | `0x10b20c04` `0x10b22460` `0x10b22470` `0x10b2b8f4` | — |
 
 Resource implementation functions (string-block registrar family): `0x10b20c24`, `0x10b05ea8`, `0x100d5240`
 
@@ -1078,7 +1084,7 @@ SmartPlay per-household state — the update/firmware-reporting context that car
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/smartplay/content` | `getContent` | `-` | `0x20000101` | — | — |
+| `GET` | `v1/households/{householdId}/smartplay/content` | `getContent` | `-` | `0x20000101` | `0x10b3446c` `0x10b35b38` `0x10b35b48` `0x10b37854` | — |
 
 Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `currentVersion`, `downloadSpeed`, `fromVersion`, `hardwareVersion`, `householdId`, `requestPath`, `serialNumber`, `sonosId`, `systemVersion`, `updateId`
 
@@ -1116,14 +1122,14 @@ First-party telemetry/crash-report uploads — POST-only, `none`-scoped (these r
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | — | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/households/{householdId}/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/households/{householdId}/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/households/{householdId}/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | outbound-fwd | — |
+| `POST` | `v1/households/{householdId}/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | outbound-fwd | — |
 
 Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `channelMapSet`, `name`, `zoneDefinition`
 
@@ -1148,8 +1154,8 @@ Player-local time reads — GETs return the player's clock/status for alarm-trig
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | — | — |
-| `GET` | `v1/households/{householdId}/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | — | — |
+| `GET` | `v1/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | `0x10b39434` `0x10b3a534` `0x10b3eac4` `0x10b3ead4` `0x10b3eae4` `0x10b3eaf4` | — |
+| `GET` | `v1/households/{householdId}/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | `0x10b39434` `0x10b3a534` `0x10b3eac4` `0x10b3ead4` `0x10b3eae4` `0x10b3eaf4` | — |
 
 Resource implementation functions (string-block registrar family): `0x10b3a554`, `0x101827e4`
 
@@ -1538,8 +1544,8 @@ Virtual remote — send remote-button events to a player through muse (related t
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params |
 |---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | — | — |
-| `POST` | `v1/households/{householdId}/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | — | — |
+| `POST` | `v1/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | `0x10b8541c` `0x10b894b0` `0x10b894c0` `0x10b894d0` `0x10b894e0` | — |
+| `POST` | `v1/households/{householdId}/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | `0x10b8541c` `0x10b894b0` `0x10b894c0` `0x10b894d0` `0x10b894e0` | — |
 
 Resource implementation functions (string-block registrar family): `0x10b85458`
 
@@ -1602,9 +1608,6 @@ Related enum registrations (proven integer values — see `enum_tables`):
 
 Op-level JSON keys recovered from op-object methods: `muse`, `zoneId`, `channelMapSet`, `name`, `zoneDefinition`, `settings`, `isHomeTheater`, `fronthaulChannel`, `backhaulChannel`, `flatChannelMapSet`
 
-## Unresolved
-
-237 of 265 verbs have factory->vtable->exec chains. The remaining 28 split into two mechanisms rather than one gap: (a) 11 verbs — invite/user/translate/systemReporting ops — are registered in the OUTBOUND client registry at 0x110941d4 ({resource,verb} pairs + path-suffix/query-param stream at 0x1108df14), i.e. the player acts as a muse client and forwards these to the coordinator/cloud; their outbound shapes are documented in the outbound section. (b) 17 verbs — devices/registrations, households, info, power/policy, time, virtualRemoteControl, catalog-translate — are registered by each resource's own string-block registrar (e.g. f_10af3488 for households, which builds path+csv registrations inline); the resource implementation functions and their JSON field vocabulary are recorded per resource as impl_funcs/impl_fields, but the internal verb->method fan-out inside those functions is not yet walked.
 
 <details><summary>Evidence (5)</summary>
 

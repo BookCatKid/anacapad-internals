@@ -323,7 +323,7 @@ _SOAP_PRIM_KEYS = [
     "xml_parser", "mega_impl_object", "svc_array",
     "composite_subobject_interfaces", "native_protocols",
     "hwmessagelib", "wifi_sonosnet", "bt_sbc", "ssdp_discovery",
-    "ssdp_signed_msearch", "proprietary_headers",
+    "ssdp_signed_msearch", "proprietary_headers", "chirp_sdk",
 ]
 
 
@@ -1122,6 +1122,16 @@ def render_muse(m):
             rows.append(["`%s`" % name, " ".join(bits) or "—"])
         _table(out, ["Outbound op", "Wire shape"], rows)
         out.append("")
+    ec = mu.get("event_channels") or {}
+    if ec:
+        out += ["## Event channels", ""]
+        if ec.get("note"):
+            out.append(_para(ec["note"]))
+            out.append("")
+        ch = ec.get("channels") or []
+        if ch:
+            out.append(", ".join("`%s`" % _e(c) for c in ch))
+            out.append("")
     res = mu.get("resources") or {}
     out += ["## Resources", ""]
     rows = [["`%s`" % n, str(r.get("op_count") or 0),

@@ -500,6 +500,15 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
   AVTBecomeStandaloneEvent, AVTStateChangedEvent, AVTStateLastChangedEvent, ActiveZonesChangedEvent, AdvertisementUrlChangedEvent, AlarmClockTimeZoneChangedEvent, AmplifierPowerStateChangedEvent, AreasVersionChangedEvent, AudioClipEvent, AudioInputAttributesEvent, AudioInputDisconnectedEvent, AutoPlaySettingsEvent, AvtHaltActionEvent, BootSequenceEvent, ChsrcEvent, CloudConnectionChangedEvent, CloudSessionEvent, DefunctDeviceRemovedEvent, DesignatedDeviceChangedEvent, DeviceNetInterfaceStateEvent, DeviceStartupEvent, DuckingEvent, EsdkEvent, ExtAudioPlayStateChangedEvent, FeatureConfigChangedEvent, GroupAdvertiseRequestEvent, GroupChangedEvent, GroupVolumeChangedEvent, GroupVolumeSetActionEvent, HouseholdSettingsChangeEvent, InfoUpdatedEvent, LineInStateChangedEvent, LocalIpChangedEvent, LocalPlayerChangeEvent, MissingBondedZoneMemberDetectedEvent, MusePlaybackContextChangeEvent, MusicAccountChangedEvent, NetworkIpAddrAssignedEvent, NewCertRegistrationEvent, NewLocationIdEvent, NewMuseHHIDEvent, NewSSIDEvent, NewZPEvent, OrientationChangeEvent, PlaybackEvent, PlaybackStateChangedEvent, PortableWifiReconnectEvent, PreportProtoEvent, ProxiedFastVol0Event, RManualResetEvent, RcNotifyGrcEvent, RegCertUpdateEvent, RemoteConnectionTypeChangedEvent, RemoteHTSwapStateChangedEvent, RemoteIpChangedEvent, ReplicatedSettingsChangedEvent, ReplicatedSettingsNeedsUpdateEvent, RequestTVTransitionEvent, SatConfigEvent, SecureRegistrationChangeEvent, SecureRegistrationStateUpdateEvent, ServerHandleShutdownEvent, SpotifyInternalEvent, StereoPairStateEvent, SwitchingRadiosEvent, SystemPropertiesChangeEvent, TVInputSelectedEvent, TVSignalDetectedEvent, TopologyEventsReportEvent, TopologyGroupMemberRemovedEvent, TopologyZpListChangedEvent, TrueplayCalibrationChangedEvent, TrueplayStateEvent, TrustDevCertChangedEvent, UTCTimeAvailableEvent, UpdateSonarEvent, UpdatedZPExpirationEvent, VliTransportActionEvent, VoiceAccountTransactionEvent, VolumeChangedEvent, VolumeSetActionEvent, WakeOnLANRequestEvent, ZonePlayerConfigurationEvent, ZonesDefinitionsChangedEvent
   ```
 - **count:** 84
+- **channels:**
+  - **status:** confirmed
+  - **note:** init-table registrants (0x11085328) each subscribe named internal events to three observer classes: ie-obs (immediate observers), ie-schd (scheduled dispatch), ie-cache (cached/latest-value subscribers). ~60 *Event names recovered from registrant string refs.
+  - **classes:** `ie-obs`, `ie-schd`, `ie-cache`
+  - **events** (60):
+  
+    ```
+    PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEvent, ZoneMemberSettingsChangedEvt, ZonesDefinitionsChangedEvent, MusicAccountChangedEvent, AVTBecomeStandaloneEvent, BootSequenceEvent, SpotifyInternalEvent, RequestTVTransitionEvent, TVSignalDetectedEvent, TVInputSelectedEvent, PlaybackCorrelationEvt, ChsrcEvent, ChsrcSysSettingsEvt, UTCTimeAvailableEvent, AlarmClockTimeZoneChangedEvent, AreasVersionChangedEvent, OrientationChangeEvent, VliTransportActionEvent, DuckingEvent, RecordDuckingActionEvent, CloudConnectionChangedEvent, ExtAudioPlayStateChangedEvent, HouseholdSettingsChangeEvent, MissingBondedZoneMemberDetectedEvent, DefunctDeviceRemovedEvent, FeatureConfigChangedEvent, GroupAdvertiseRequestEvent, LineInStateChangedEvent, NetworkIfaceBouncedEvt, LocalIpChangedEvent, NewCertRegistrationEvent, SatConfigEvent, WakeOnLANRequestEvent, AvtHaltActionEvent, AutoPlaySettingsEvent, AirplayIncludeGroupedEvt, AVTStateLastChangedEvent, RemoteIpChangedEvent, AdvertisementUrlChangedEvent, DeferredSettingsChangeEvent, PortableWifiReconnectEvent, RegCertUpdateEvent, ReplicatedSettingsNeedsUpdateEvent, ReplicatedSettingsChangedEvent, SystemPropertiesChangeEvent, TrustDevCertChangedEvent, NewZPEvent, UpdatedZPExpirationEvent, TopologyZpListChangedEvent, InfoUpdatedEvent, PlaybackStateChangedEvent, VliVolumeProcessingCompleteEvt, VolumeSetActionEvent, RcSetEqActionEvt, AudioClipEvent, AmplifierPowerStateChangedEvent, CdNotifyShareIx
+    ```
 
 ### `device_description_template`
 
@@ -842,6 +851,17 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
 - **hls_vocabulary:** `#EXT-X-VERSION`, `#EXT-X-TARGETDURATION`, `#EXT-X-MEDIA-SEQUENCE`, `#EXT-X-PLAYLIST-TYPE`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-KEY:`, `#EXT-X-SESSION-KEY:`, `#EXT-X-MAP:`, `#EXT-X-DISCONTINUITY`, `#EXT-X-BYTERANGE`, `#EXT-X-ENDLIST`, `#EXT-X-MEDIA`, `#EXT-X-STREAM-INF`, `#EXT-X-PROGRAM-DATE-TIME`
 - **hls_validation:** 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA' (rendition-group enforcement)
 - **mime_vocabulary:** `application/x-mpegurl`, `audio/x-mpegurl`, `audio/x-scpls`, `audio/x-sonos-recent`, `audio/x-spotify`, `audio/x-spotify-ogg`, `audio/x-aac`, `audio/x-aiff`, `audio/x-m4a`, `audio/x-ms-wma`, `audio/x-wav`
+
+### `chirp_sdk`
+
+- **status:** confirmed
+- **name:** Chirp ultrasonic SDK 4.2.3 (chirp-sdk, build 1898)
+- **evidence:**
+  - type: firmware, address: 0x10fcf2d4, notes: chirp_sdk error-string table + /code/src/chirp-sdk/ paths + version literals
+- **note:** Asynchronous Inc's Chirp SDK v4.2.3 — ultrasonic data-over-audio for device setup (sonos-cdma profile). Error vocabulary recovered: profile/channel validation, modulation-scheme mismatches, payload decode failures ('payload contains unknown symbols', 'Couldn't decode the payload'), gain-level errors, muted-device guard. Source paths leak the SDK layout: /code/src/chirp-sdk/chirp_sdk_process.c, chirp_sdk_states.c, /code/chirp-core/source/utils/src/utils/helpers.c; internal funcs chirp_sdk_process_shorts_{input,output}, chirp_sdk_send, chirp_levenshtein.
+- **version:** 4.2.3
+- **build:** 1898
+- **internals:** `chirp_sdk_process_shorts_input`, `chirp_sdk_process_shorts_output`, `chirp_sdk_send`, `chirp_levenshtein`
 
 ### Other recovered subsystems
 
