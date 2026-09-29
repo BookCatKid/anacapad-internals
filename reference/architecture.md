@@ -263,6 +263,8 @@ Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/A
 | `0x107396d0` | action_reject_stub | Shared HTControl base-class action stub. Calls the request object's v\[+0x08\] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req v\ |
 | `0x10242118` | impl_ctor | Derived HTControl impl-class constructor. Calls the base-class ctor f_10739e2c (which installs vptr 0x10f11b64), then overwrites the vptr with the derived vtabl |
 | `0x1018d27c` | service_factory | HTControl impl factory - allocates and constructs the derived impl object via f_10242118. |
+| `0x104661fc` | action_wrapper | Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse tab |
+| `0x10464200` | action_table_trampoline | Queue.Browse dispatch-table entry - calls req v\[+0x3c\] (alternate in-arg context fetch) then tail-dispatches impl v\[+0x28\] -> f_104661fc. |
 
 ## Dispatch candidates
 

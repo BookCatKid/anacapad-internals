@@ -196,6 +196,7 @@ invalid BrowseFlag: value is neither "BrowseDirectChildren" nor "BrowseMetadata"
 - handler `0x10306b3c`
 - dispatch entry `0x10eb4264`
 - req vcall `0x10306b64` slot `60` (other)
+- table entry is a trampoline; real chain: req v\[+0x3c\] then f_10304390 -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)
 
 - fn 0x10306b3c @ 0x10306b3c — action wrapper handler
 - @ 0x10eb4264 — action dispatch table entry

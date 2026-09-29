@@ -591,7 +591,7 @@ Used by: speaker-detect/sonar calibration playback
 
 ## `x-rincon-cpcontainer` `strong`
 
-ContentDirectory provider containers — RDCPA:/RDCPI: variants address browsable music-service container roots.
+ContentDirectory provider containers — x-rincon-cpcontainer:RDCPA:/RDCPI: URIs address browsable music-service container roots. A 12-entry firmware table maps each container id (e.g. RDCPA:GLBALBUM:, RDCPA:LIBPLAYLISTS:, RDCPI:GLBSTATION:) onto the SMaPI browse path it delegates to (explore:artist:mainreleases::art.<id>, mymusic:playlists, station::ps.<id>...), plus a short item-id prefix (art./alb./pp./mp./ps./sas.) used to build children ids and a flag marking local-library vs cloud-service containers.
 
 **Technical description:**
 
@@ -603,13 +603,84 @@ x-rincon-cpcontainer:<provider-ns>:<id>[/<sub>]
 
 Used by: ContentDirectory object IDs; AVTransport EnqueueURI container refs
 
-RDCPA/RDCPI/SCPB namespace semantics unresolved.
+RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Residual: kind_enum/flag-word semantics inferred.
 
-<details><summary>Evidence (3)</summary>
+- **cp_id_map:**
+  - **table:** 0x10e7747c
+  - **stride:** 0x18
+  - **record_shape:** {cp_id, kind_enum, flags, lib_flag(0x1000000=local-library), short_id_prefix, smapi_path_template}
+  - **entries:**
+    - **RDCPA:ARTALBUM::**
+      - **kind:** 0xd
+      - **flags:** 0x2064
+      - **short:** Art.
+      - **path:** explore:artist:mainreleases::art.%s
+    - **RDCPA:ARTCOMPILATIONS::**
+      - **kind:** 0xd
+      - **flags:** 0x2064
+      - **short:** Art.
+      - **path:** explore:artist:compilations::art.%s
+    - **RDCPA:ARTSINGLESEPS::**
+      - **kind:** 0xd
+      - **flags:** 0x2064
+      - **short:** Art.
+      - **path:** explore:artist:singlesandeps::art.%s
+    - **RDCPA:ARTTOPTRACKS::**
+      - **kind:** 0xf
+      - **flags:** 0x206c
+      - **short:** Art.
+      - **path:** explore:artist:toptracks::art.%s
+    - **RDCPA:GLBALBUM::**
+      - **kind:** 0x4
+      - **flags:** 0x20ec
+      - **short:** Alb.
+      - **path:** explore:album::alb.%s
+    - **RDCPA:GLBARTIST::**
+      - **kind:** 0x5
+      - **flags:** 0xc4
+      - **short:** Art.
+      - **path:** explore:artist::art.%s
+    - **RDCPA:GLBPLAYLIST::**
+      - **kind:** 0xe
+      - **flags:** 0x4c
+      - **short:** pp.
+      - **path:** explore:playlist::pp.%s
+    - **RDCPA:LIBPLAYLISTS::**
+      - **kind:** 0xe
+      - **flags:** 0x4c
+      - **lib:** True
+      - **short:** mp.
+      - **path:** explore:playlist::mp.%s
+    - **RDCPA:LIBPLAYLISTS:**
+      - **kind:** 0xd
+      - **flags:** 0x2066
+      - **lib:** True
+      - **path:** mymusic:playlists
+    - **RDCPA:LIBALBUM::**
+      - **kind:** 0x4
+      - **flags:** 0x20ec
+      - **lib:** True
+      - **short:** Alb.
+      - **path:** mymusic:album::alb.%s
+    - **RDCPI:ARTSTATION::**
+      - **kind:** 0xc
+      - **flags:** 0x4c
+      - **short:** Art.
+      - **path:** station::sas.%s
+    - **RDCPI:GLBSTATION::**
+      - **kind:** 0xc
+      - **flags:** 0x4c
+      - **short:** ps.
+      - **path:** station::ps.%s
+  - **status:** confirmed
+  - **notes:** kind_enum f1 (4=album,5=artist,0xc=station,0xd=playlist/artist-album-list,0xe=playlist,0xf=track-list) and flag words f2 are inferred groupings, not proven semantics; f3 bit 0x1000000 marks the local-library (mymusic/LIB) entries; short_id is the derived item-id prefix embedded in the path template.
+
+<details><summary>Evidence (4)</summary>
 
 - @ 0x10e77970 — RDCPA ns
 - @ 0x10e7798c — RDCPI ns
 - @ 0x10f0dbd4 — SCPB:%s/%s form
+- @ 0x10e7747c — 12 x stride-0x18 cp-id translation records
 
 </details>
 

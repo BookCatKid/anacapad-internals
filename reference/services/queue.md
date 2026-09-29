@@ -718,6 +718,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - dispatch entry `0x10ed1a1c`
 - impl call `0x10464250` obj `r5-in` slot `40` arg4 `?`
 - req vcall `0x10464228` slot `60` (other)
+- table entry is a trampoline; real chain: req v\[+0x3c\] then impl v\[+0x28\] -> f_104661fc -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)
 
 - fn 0x10464200 @ 0x10464200 — action wrapper handler
 - @ 0x10ed1a1c — action dispatch table entry

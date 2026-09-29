@@ -60422,7 +60422,8 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": null,
+     "implementation_notes": "table entry is a trampoline; real chain: req v[+0x3c] then impl v[+0x28] -> f_104661fc -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)"
     },
     "CreateQueue": {
      "description": "Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x14](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
@@ -79751,7 +79752,8 @@
        "notes": "action dispatch table entry"
       }
      ],
-     "notes": null
+     "notes": null,
+     "implementation_notes": "table entry is a trampoline; real chain: req v[+0x3c] then f_10304390 -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)"
     },
     "CreateObject": {
      "description": "Creates a CDS object: ContainerID/Elements -> impl->v[+0x20], returning ObjectID/Result.",
@@ -105603,6 +105605,66 @@
     }
    ],
    "notes": null
+  },
+  "0x104661fc": {
+   "address": "0x104661fc",
+   "role": "action_wrapper",
+   "description": "Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse table trampoline f_10464200.",
+   "why_external": "Proves Queue.Browse executes the ContentDirectory browse engine.",
+   "required_for_behavior": true,
+   "status": "confirmed",
+   "used_by": [
+    {
+     "arg": "Browse",
+     "direction": "in",
+     "site": "0x10464200"
+    }
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10466250",
+     "notes": "bl f_103042f0"
+    }
+   ],
+   "notes": null
+  },
+  "0x10464200": {
+   "address": "0x10464200",
+   "role": "action_table_trampoline",
+   "description": "Queue.Browse dispatch-table entry - calls req v[+0x3c] (alternate in-arg context fetch) then tail-dispatches impl v[+0x28] -> f_104661fc.",
+   "why_external": "Table-registered Browse handler for the Queue service.",
+   "required_for_behavior": true,
+   "status": "confirmed",
+   "used_by": [
+    {
+     "arg": "Browse",
+     "direction": "in",
+     "site": "0x10ed1a1c"
+    }
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed1a1c",
+     "notes": "Queue action-table entry"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10464228",
+     "notes": "bctrl req v[+0x3c]; then impl v[+0x28] tail call"
+    }
+   ],
+   "notes": null
   }
  },
  "dispatch_candidates": {
@@ -107931,9 +107993,101 @@
      "status": "confirmed",
      "address": "0x10f0dbd4",
      "notes": "SCPB:%s/%s form"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e7747c",
+     "notes": "12 x stride-0x18 cp-id translation records"
     }
    ],
-   "notes": "RDCPA/RDCPI/SCPB namespace semantics unresolved."
+   "notes": "RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Residual: kind_enum/flag-word semantics inferred.",
+   "cp_id_map": {
+    "table": "0x10e7747c",
+    "stride": "0x18",
+    "record_shape": "{cp_id, kind_enum, flags, lib_flag(0x1000000=local-library), short_id_prefix, smapi_path_template}",
+    "entries": {
+     "RDCPA:ARTALBUM:": {
+      "kind": "0xd",
+      "flags": "0x2064",
+      "short": "Art.",
+      "path": "explore:artist:mainreleases::art.%s"
+     },
+     "RDCPA:ARTCOMPILATIONS:": {
+      "kind": "0xd",
+      "flags": "0x2064",
+      "short": "Art.",
+      "path": "explore:artist:compilations::art.%s"
+     },
+     "RDCPA:ARTSINGLESEPS:": {
+      "kind": "0xd",
+      "flags": "0x2064",
+      "short": "Art.",
+      "path": "explore:artist:singlesandeps::art.%s"
+     },
+     "RDCPA:ARTTOPTRACKS:": {
+      "kind": "0xf",
+      "flags": "0x206c",
+      "short": "Art.",
+      "path": "explore:artist:toptracks::art.%s"
+     },
+     "RDCPA:GLBALBUM:": {
+      "kind": "0x4",
+      "flags": "0x20ec",
+      "short": "Alb.",
+      "path": "explore:album::alb.%s"
+     },
+     "RDCPA:GLBARTIST:": {
+      "kind": "0x5",
+      "flags": "0xc4",
+      "short": "Art.",
+      "path": "explore:artist::art.%s"
+     },
+     "RDCPA:GLBPLAYLIST:": {
+      "kind": "0xe",
+      "flags": "0x4c",
+      "short": "pp.",
+      "path": "explore:playlist::pp.%s"
+     },
+     "RDCPA:LIBPLAYLISTS:": {
+      "kind": "0xe",
+      "flags": "0x4c",
+      "lib": true,
+      "short": "mp.",
+      "path": "explore:playlist::mp.%s"
+     },
+     "RDCPA:LIBPLAYLISTS": {
+      "kind": "0xd",
+      "flags": "0x2066",
+      "lib": true,
+      "short": null,
+      "path": "mymusic:playlists"
+     },
+     "RDCPA:LIBALBUM:": {
+      "kind": "0x4",
+      "flags": "0x20ec",
+      "lib": true,
+      "short": "Alb.",
+      "path": "mymusic:album::alb.%s"
+     },
+     "RDCPI:ARTSTATION:": {
+      "kind": "0xc",
+      "flags": "0x4c",
+      "short": "Art.",
+      "path": "station::sas.%s"
+     },
+     "RDCPI:GLBSTATION:": {
+      "kind": "0xc",
+      "flags": "0x4c",
+      "short": "ps.",
+      "path": "station::ps.%s"
+     }
+    },
+    "status": "confirmed",
+    "notes": "kind_enum f1 (4=album,5=artist,0xc=station,0xd=playlist/artist-album-list,0xe=playlist,0xf=track-list) and flag words f2 are inferred groupings, not proven semantics; f3 bit 0x1000000 marks the local-library (mymusic/LIB) entries; short_id is the derived item-id prefix embedded in the path template."
+   }
   },
   "x-sonos-vli": {
    "status": "strong",
