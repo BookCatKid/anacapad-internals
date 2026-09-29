@@ -119235,7 +119235,8 @@
     "last.fm-radio-http URI scheme (func ~0x1041d43c)"
    ],
    "result_codes": "R_LASTFM_BAD_ACCOUNT, R_LASTFM_BAD_SUBLEVEL, R_LASTFM_NO_ACCOUNT, R_LASTFM_NO_CONTENT, R_LASTFM_STREAM_LIMIT",
-   "unresolved": "submission trigger policy (when a track scrobbles), queueing/retry on failure, where session creds live (SystemProperties?), which player state gates scrobbling, ws.audioscrobbler.com/2.0 usage"
+   "unresolved": "submission trigger policy (when a track scrobbles), queueing/retry on failure, where session creds live (SystemProperties?), which player state gates scrobbling, ws.audioscrobbler.com/2.0 usage",
+   "endpoint": "https://ws.audioscrobbler.com/2.0/ (Audioscrobbler 2.0 REST); xmlpost CONTENT-LENGTH; \"openConnection to %s failed\"; \"Data overflowed; ignore submit\""
   },
   "semisleep_power": {
    "status": "partial",
@@ -120727,6 +120728,49 @@
      "status": "confirmed",
      "address": "0x10ef3fec",
      "notes": "fdevent block"
+    }
+   ]
+  },
+  "upnp_eventing": {
+   "renew_fsm": "events {\"Unsubscribe in renew ... (oos:%d seq:%d)\",\"Successfully renewed\",\"Failed to renew ... HTTP Result: %d; SR: %08x\",\"Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)\",\"Successfully subscribed ... UDN %s\",\"Received SID %s for deleted client\",\"Received OOS %u / %u for SID %s\" (out-of-seq tracking),\"Not unsubscribing because bSendUnsubscribeRequest=false\"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static"
+  },
+  "usage_metrics": {
+   "name": "usagemetrics \u2014 periodic health report",
+   "status": "partial",
+   "summary": "<UsageMetrics><ver>2</ver> + <ucs>/<uc> records {ms_cdctrluri,ms_regctrluri,ms_croot,ms_fn} posted to submit.aspx under /HRMetrics/; cfg fetches {pollInterval.htm,wifiTxRateThreshold.htm,wifiLatencyThreshold.htm}?hhid=%s; wifi counters {ath%u,rxPrr,beacon_flags,datarx,secdrp,roaming,trf2g,trf5g,trg2g,trg5g,tbtm2g,tbtm5g,rfail,q*_nbf,q*_cmp,q*_bpk,q*_ltc,hwstat,rxbhs,rxhang,rxfMax,rxcMax,txfMax,bprowar,gtkfm,gtkfc,nogcfc,links}; per-AP \"MAC/rssiF/rssiT/PktMin/PER\" + \"BSSID/perAP/rssiAP\"; \"Audio-drop ... include with future periodic submission\" + rate-limit; WD daily write; CPUTempHist <temperatures>; unlocked/hw_warn/hw_fault flags; usageDataSharing optin",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f0c724",
+     "notes": "usagemetrics block"
+    }
+   ]
+  },
+  "ws_client": {
+   "name": "websocketclient \u2014 outbound WS (lechmere/cloud)",
+   "status": "partial",
+   "summary": "client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-Accept,Sec-WebSocket-Extensions}; \"failing connection due to unsolicited per msg deflate\"; per-msg deflate only before open; openSession retry; nonce gen/encode; {\"disconnectedReason\":\"%s\"}; close codes on close frame; LoadBalancerHost/WebsocketServerHost; reasons {NEW_IP,BLUETOOTH,POWERED_OFF,UPGRADE,NEW_SSID,SLEEPING,RECONNECT}; threads wsc_mtx/wsc_smtx/wsc_cond",
+   "status_schema": "<State>Open|Closed</State><MillisecondsOpen|Closed><PerMsgDeflate><TotalUncompressedKBytesSent><TotalCompressedKBytesSent><TotalKBytesSent><TotalUncompressedKBytesReceived><TotalCompressedKBytesDecompressed><TotalKBytesReceived><OpenCount><CloseCount><ConsecutiveFailures><UnackedPings><LastPingTime><PingTimeWeightedAverage><Messages><LastHttpStatus><LastWebSocketCode>",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f0d018",
+     "notes": "websocketclient block"
+    }
+   ]
+  },
+  "wmp_provider": {
+   "name": "sonos_cprovider \u2014 WMP content provider",
+   "status": "partial",
+   "summary": "WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:class derivedfrom \"object.item.audioItem\" and @refID exists false' + container class specs {person.musicArtist,album.musicAlbum,genre.musicGenre,playlistContainer}; sort/filter \"+upnp:album,+upnp:originalTrackNumber,+dc:title\" + microsoft:{artistAlbumArtist,artistPerformer,authorComposer} + upnp:genre + \"1+upnp:originalTrackNumber\"; field set dc:title,res,res@duration,upnp:artist,upnp:artist@role,upnp:album,upnp:originalTrackNumber; rincon md ns urn:schemas-rinconnetworks-com:metadata-1-0/|otherArtist; albumArt via %s?albumArt=true and /getaa?m=1&u=%s; \"URI already has a serial number\"/\"not enough room for account ID\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f0dbf8",
+     "notes": "cprovider block"
     }
    ]
   }
