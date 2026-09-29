@@ -975,6 +975,10 @@ How strictly the player's HTTP parser enforces chunked transfer-encoding. Matter
 
 ## `httpcache_manager`
 
+A small HTTP response cache for music-service (SMAPI) content, keyed by content hashes with local and remote variants. It remembers things like browse artwork and service lists so the controller doesn't re-fetch them constantly.
+
+**Technical description:**
+
 - **status:** confirmed
 - **file:** httpcachemgr/httpcaches.json — httpcache_manager.cxx
 - **protocol:** {cacheHashes, hashLocal, hashRemote} + Force-cleared cache + Invalidated local cache + Invalidating remote caches — distributed HTTP-cache invalidation across zones w/ hash comparison
@@ -1817,6 +1821,10 @@ The complete operation list of the muse (app/cloud) API: every resource and what
 - **status:** confirmed
 
 ## `enum_tables`
+
+Throughout the binary there are fixed lookup tables mapping enum names to numbers — service states, error codes, LED modes. These tables are how names seen in XML and JSON (like STOPPED or PLAYING) translate into the values the code actually switches on.
+
+**Technical description:**
 
 - **status:** confirmed
 - **name:** Static enum name->integer registration tables

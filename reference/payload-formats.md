@@ -313,6 +313,10 @@ the three LastChange/Event doc root templates + per-service xmlns
 
 ## `ncd_device_payload` `confirmed`
 
+Inside the firmware update there's a small blob that's the factory-default manufacturing record — the template that gets filled in with a serial number, MAC addresses, and calibration data when a unit is built. Shipping it empty in the update is how every player starts with the right shape of identity data before the factory programs real values.
+
+**Technical description:**
+
 device-payload.bin (section type 13, 54757B) = the factory-default NCD (non-volatile config data) template programmed per-device at manufacturing. Header 0009 0ff0 0ff0 0ff0 0ff0 0000 0161; ASCII node "top_level.ncd;UserID=0xFFFFFFFF"; tagged records {tag u8, len u8, data}: 62="3s50avq100" (limelight board ID), 63="2012/06/14", 64="23:19:49" (template mfg date — the ORIGINAL 2012 Playbar factory image embedded verbatim in the 2026 update), 65=20x0xFF empty serial/MAC slots; ffaa99 marker @0x7e; then packed field records with nibble-typed tags (30/31/32/33 container+attr, 20* = 16-char space-padded placeholder strings) — serial/MAC/calibration fields shipped EMPTY, filled at factory. This is the blob mdputil -B initializes.
 
 ## `protocolinfo` `confirmed`

@@ -1402,6 +1402,8 @@ profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resol
 
 **coverage** `partial`
 
+When a speaker needs to quiet the music for something urgent — a voice reply, a chime, a page — the players agree on it over a ducking protocol. The requesting player raises a flag, others dequeue it under a lock, and expired requests are cleaned up so a stray duck can't leave a room muted. This is why the whole group dips together and recovers together.
+
 **Technical description:**
 
 duck.cxx inter-player ducking protocol: 64-bit ducking flags queued per-source ('Queueing ducking bit from %s 0x%016llx - %d', 'zone %d received ducking bit 0x%016llx - %d', 'too many pending ducking bits', 'Dequeueing ducking bit 0x%016llx'), tracked under duck_tracker_mtx with expireRemoteDuckingFlags + runDuckingHeartbeat (a liveness heartbeat that expires remote duck flags); commands forwarded to members ('failed to forward duck command %s to %s'). Policy gates on the request path: 'ducking globally enabled/disabled, honoring/dropping duck req', 'voice enabled device, dropping muse duck request', 'failed to acquire gc/avt, honoring duck req', 'playing tv, drop duck req'; muse ducking policy setting ('muse ducking policy: %x -> %x', key R_MuseDuckingPolicy) + fastvolduck/duckOrUnduck paths; 'process ducking flags 0x%016llx -> %s' + 'Ducking flags unchanged. No update to send.'; DUCKING_LOCAL_MUSE bit auto-cleared by timeout ('WARNING: DUCKING_LOCAL_MUSE cleared by timeout'). Evented XML <PlaybackDucked>%u</PlaybackDucked> + <DuckingFlags>%s</DuckingFlags> + DuckingEvent + isDucking + RecordDuckingActionEvent telemetry. Alert/chime layer: alertContent loop player ('alertContent: %s no read source', 'could not open default content for %s', 'default interrupted %s', 'completed default loop \[rclS:%lld\]'), household chimes ('playing join household chime', 'stopping/ramping down discovery chime', JOIN_CHIME_UNAVAILABLE/REGISTRATION_CHIME_UNAVAILABLE), transport restore after chime ('restoring after {pause,stop,end} chime: ret=%d ar=%d wrca=%d pavt=%d'), AUDIOCLIP/ALEXA_ALERT clip types, spotify:interruption: URIs, muse audioClip resource + /duck//unduck endpoints + v1/players/%s/playerVolume/{duck,unduck} outbound fan-out.
@@ -2376,6 +2378,8 @@ setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHa
 ## `libsonos_certval`
 
 **coverage** `partial`
+
+Device-certificate verification lives in its own shared library, separate from the main player code. It checks a presented certificate against a bundled set of roots, honors a fallback bundle, and watches for bundle updates at runtime. The practical effect: TLS trust for device identity is maintained as a separate, updateable component rather than baked into the app binary.
 
 **Technical description:**
 
@@ -4258,6 +4262,8 @@ client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-
 
 **coverage** `partial`
 
+The player runs a local WebSocket endpoint so apps can hold a live control connection instead of polling. It does the standard handshake, negotiates compression, and then carries the command channel — the reason the app feels instant compared to the older UPnP polling.
+
 **Technical description:**
 
 websocketserver.cxx serves a local RFC6455 endpoint at /api/v1/websocket (route literal '/websocket/api' also present) for controller/UI clients. Server-side handshake headers sec-websocket-key + sec-websocket-version + 'Upgrade: websocket'; per-message deflate negotiated ('could not initialize per message deflate on ws client'); opcodes emitted as websocket(data|ping|pong|close|cont); 'Websocket protocol error'/'Write to websocket failed. opcode: %u, len: %zu'/'Connection already closed'. Status XML: <WebsocketRegistration>%s (%s)</WebsocketRegistration> or empty <WebsocketRegistration/>; connection cap telemetry <TruncatedConnectionList maxwebsockets="%zu" connections="%zu"/>. Internal state key ws_per_msg_deflate_run_state; event field 'websocketUrl' in the name table.
@@ -4854,6 +4860,8 @@ Developer mode: `/devmode` page, statement files, and the unlock challenge — g
 ## `diag_build_artifact`
 
 **coverage** `confirmed`
+
+There's a separate factory/retail test firmware — the 'diag' build — that isn't the normal product. It exists to run production-line audio tests, to offer a retail-display mode that sets idle volumes per model and can switch the radio off, and to scrub credentials out of settings files before a diagnostic upload leaves the device. You never see it in normal use; it's the image a manufacturing fixture or a service bench would run.
 
 **Technical description:**
 
@@ -5546,6 +5554,8 @@ Music-service accounts as embedded in ZoneGroupState: per-account nickname/seria
 
 **coverage** `confirmed`
 
+The actual network bring-up is a mode state machine driven by a shell script: each call takes a mode — join the mesh, join a home WiFi, run the open setup hotspot, check credentials without committing, run as an island with no uplink — plus flags for things like spanning tree. This script is why the player can move between 'SonosNet' mesh and plain WiFi without a rewrite: the whole reconfigure is one mode switch.
+
 - **name:** /usr/sbin/netconfig.sh — the network-mode FSM driver
 - **modes:** argv1 {sonosnet, station, satellite, sta_and_sat, open, credcheck, deauth, wacexit, island, up} + WAC family {wacstart, wacapclose, wactimeout, waccredcheck->credcheck, wacapopen->open, wacstation->station} + argv2 STP {stp_disable, stp_enable} + PARAM1-4 payload
 - **decoded_semantics:** `open = the setup SoftAP: athconfig setopenmode+setchannel (default 2412MHz, /jffs/debug/openchannel override), setmac -L, ifconfig ath0 10.69.69.1 — the 10.69.69.x bootstrap AP confirmed`, `credcheck = credential validation WITHOUT join: stasetenable ath0 2 + wpa_supplicant -B, then exits — used by waccredcheck to test new WiFi creds against /ramdisk/tmp/netsettings_check.txt before committing`, `deauth = bridge+MAC only teardown (no supplicant)`, `island = SonosNet with NO ethernet uplink (eth0/eth1 down, br0 uplink=0)`, `sonosnet = mesh member: eth0+eth1 bridged uplink=0 + netmanager_extender_flags=0 sentinel`, `station/satellite/sta_and_sat = wpa_supplicant -D sonos -i ath0 -b br0; satellite/sta_and_sat with PARAM1=atheros ALSO write /var/run/htapsatwpa.conf {ssid=PARAM2, psk=PARAM3, bssid=PARAM4?, priority=4, scan_ssid=1, eapol_version=1, ap_scan=1} and stassidlistadd the SonosNet-5G backhaul AP — the bonded-satellite joins the primary's ath1 network as a station`, `PrimaryUUID netsettings key present => ISHTSATELLITE=1: setprimaryuuid ath0 + satenable 1 + ath1 down. Otherwise IS_HT_WIRELESS_PRIMARY arch attr => ath1 becomes the HT 5G AP: setuuid/acs/acslmenable/wepkey/hhid`, `UUID construction proven at shell level: RINCON_<eth0 MAC>0<Port> where Port = keyval ^Port /opt/conf/anacapa.conf`, `netsettings keys read: {WEPKey, HouseholdID, Channel, PriorityBridge(->br0 prio 28672/0x7000 else 38912/0x9800), BonjourName(->DHCP hostname else SonosZB if IS_BRIDGE else SonosZP), PrimaryUUID, ForceMeshDisable(->blockadvertisedpath)}; file /jffs/netsettings.txt or /ramdisk/tmp/netsettings_check.txt (credcheck/station)`, `bridge tuning: sethello 1.0 setfd 4.0 setmaxage 6.0; uplink br0 1 for routed modes, 0 for mesh`, `DHCP: udhcpc -f -s /etc/dhcp.script -i br0 -w ath0 -h HOST -d access.bestbuy.com — domain arg literally 'access.bestbuy.com' (legacy retail-demo remnant); island uses -fF -W 20; station modes add -z flag; SIGKILL stale udhcpc after 5s`, `waitforip lifecycle: touched for non-WAC non-open modes; cleared by dhcp.script bound/renew or /jffs/debug/static_ipaddr path`
@@ -5732,6 +5742,8 @@ The reporting/telemetry umbrella: usage metrics, dropout events, TV sessions, sp
 
 **coverage** `confirmed`
 
+The boot chain is layered and safe-by-default: mount the virtual filesystems, lay down the RAM disk, pull in the kernel drivers, check whether a factory reset is being asked for (either a button hold or a marker file), then bring up networking and the daemons — with a developer override file that can take over the whole sequence on unlocked units. Every boot decision you'd want to trace runs through this one script.
+
 **Technical description:**
 
 inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {run_sshd.sh,runledmgrd,runnetstartd,runmdns,rundiagprocessd,runanacapa,runchrony,runsddp} + secure_console_login.sh ttyS0; ctrlaltdel=reboot; shutdown=init.d/rcK. All daemon logs go to /dev/kmsg.
@@ -5749,6 +5761,8 @@ inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {ru
 ## `rootfs_data_files`
 
 **coverage** `confirmed`
+
+The firmware ships with a handful of data files that do real work: the speaker's DSP tuning coefficients for its six woofer channels, the factory IR codes for TV remotes, a one-entry music-service seed (just TuneIn) that gets replaced by the cloud list, the button-click sounds, and the web pages the player's status server serves. Small files, but they define a lot of the out-of-box behavior.
 
 **Technical description:**
 
@@ -5826,6 +5840,8 @@ ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,"Turnin
 ## `sibling_daemons`
 
 **coverage** `confirmed`
+
+Anacapad is the brain, but a team of small daemons does the physical work: netstartd owns the radios and the setup handshake, wacd speaks Apple's WAC for iOS setup, the LED manager drives the status light, and a couple of monitors handle watchdog, discovery and time. Keeping them separate is why a networking crash doesn't kill a playing song.
 
 **Technical description:**
 
