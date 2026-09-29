@@ -3564,6 +3564,8 @@ detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (D
 
 **coverage** `partial`
 
+How the protocol encodes each object's field list. Every described object carries a short list of numbers pointing into the master vocabulary table: the first number names the object itself and the rest name its fields. Two special names — authzTokenStatus and featureConfigZoneExperiment — appear in almost every object's list, which tells us all protocol messages carry authorization state and feature-gating metadata alongside their real payload fields. Lists for different objects are stored back-to-back and share common tails, which is a space-saving trick typical of schema registries. The exact flag semantics of each pair are still being worked out.
+
 **Technical description:**
 
 RESOLVED FORMAT: spec lists are flat u32 index sequences into spec_object_table (not byte-tag pairs — high bytes were index values <331). Each descriptor holds a ptr into a packed rodata pool; list = \[root-idx\] + member/marker index entries (markers 52/130 = authzTokenStatus/featureConfigZoneExperiment envelope fields). Pools suffix-share across objects. Still partial: pair-level flag semantics and classId meaning (1-12) undecoded; per-descriptor op-binding (which verb each serves) not yet established — likely via registration order or the verb table.
@@ -5333,6 +5335,8 @@ The registry of ~203 type names (alphabetical, `accessorySwap` through `zoneMemb
 
 **coverage** `confirmed`
 
+The complete menu of commands the cloud protocol supports, organised as namespace/verb pairs — for example 'authorization.resolveToken' means the resolveToken command inside the authorization namespace. Roughly 320 pairs cover everything a client can do: play music (playback.play), manage groups (groups.createGroup), look up zones (zones.getZoneDefinition), translate catalog IDs (catalog.translate), report firmware status (systemReporting.reportFirmwareDownload), and bridge to classic UPnP services. Two-character event codes (AA through AK) sit alongside, which is how subscriptions address event channels.
+
 **Technical description:**
 
 Pair table @.data 0x110941d8: {namespace_name_ptr, verb_name_ptr} x~320 entries, terminated ffffffff. Binds every verb to its namespace (authorization/resolveToken, catalog/translate, entitlements/*, groups/*, history/*, playback/*, zones/*, systemReporting/*, smartplay/getContent...). Preceded by 2-char event-code table (AA..AK @0x110941a4) and hash seeds h1/h2.
@@ -5657,6 +5661,8 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
 ## `spec_descriptors`
 
 **coverage** `confirmed`
+
+The full type system behind the cloud API: 383 machine-readable descriptions of every request, response, event and data structure the protocol uses. Each description names the object's root type and lists its fields, so a reader can reconstruct what parameters any command takes and what its reply contains. The most common roots tell a story: 151 objects start with networkTestId (a correlation field almost every message carries) and 45 start with upnpError (the UPnP bridge's error envelope). Real payload types include group, alarm, playlist, deviceInfo, shareList and translatedObjectIds. Binding each description to its exact verb is the remaining open task.
 
 **Technical description:**
 
@@ -7551,6 +7557,8 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
 ## `spec_object_table`
 
 **coverage** `confirmed`
+
+The master vocabulary table for Sonos' internal cloud protocol. It lists every named object the protocol understands — 331 entries covering message types (alarm, group, playlist, zone), event names (activeZonesChange, playbackStatus), namespace names (authorization, groups, playback), and miscellaneous resource names. Everything else in the protocol's schema refers to objects by their position in this table, so it is the key that makes the schema records readable: an index of 45, for example, means 'authorizationGrantPayload' no matter where it appears.
 
 **Technical description:**
 
