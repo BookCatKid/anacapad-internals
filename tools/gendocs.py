@@ -1131,6 +1131,16 @@ def render_muse(m):
             rows.append(["`%s`" % name, " ".join(bits) or "—"])
         _table(out, ["Outbound op", "Wire shape"], rows)
         out.append("")
+        fv = ob.get("field_vocab") or {}
+        if fv:
+            if ob.get("field_vocab_note"):
+                out.append(_para(ob["field_vocab_note"]))
+                out.append("")
+            rows = [["`%s`" % n,
+                     ", ".join("`%s`" % _e(f) for f in fs) or "—"]
+                    for n, fs in sorted(fv.items())]
+            _table(out, ["Namespace", "Request fields"], rows)
+            out.append("")
     ec = mu.get("event_channels") or {}
     if ec:
         out += ["## Event channels", ""]
@@ -1186,15 +1196,25 @@ def render_muse(m):
                     paths_seen.append(p_)
             prm = op.get("op_params") or []
             prm_txt = ", ".join("`%s`" % _e(n) for _, n in prm) if prm else "—"
+            specs = []
+            for s_ in op.get("spec") or []:
+                for a_ in s_.get("accessors") or []:
+                    mem = a_.get("members") or []
+                    specs.append("c%d:%s" % (
+                        a_.get("class"),
+                        " ".join("`%s`" % _e(x) for x in mem if x)))
+            spec_txt = "<br>".join(specs) if specs else "—"
             rows.append(["`%s`" % _e(op["method"]),
                          "`%s`" % _e(op["path"]),
                          "`%s`" % _e(op["verb"]),
                          "`%s`" % _e(op["subparam"] or "-"),
                          "`%s`" % _e(op["flags"]),
                          execs,
-                         prm_txt])
+                         prm_txt,
+                         spec_txt])
         _table(out, ["Method", "Path", "Op", "Trailing param",
-                     "Flags", "Exec (vtable +0x0c)", "Params"], rows)
+                     "Flags", "Exec (vtable +0x0c)", "Params",
+                     "Spec lists (classId: members)"], rows)
         if r.get("impl_funcs"):
             out.append("Resource implementation functions (string-block "
                        "registrar family): %s"
