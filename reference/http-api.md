@@ -2849,6 +2849,119 @@ The complete operation list of the muse (app/cloud) API: every resource and what
       - **8:** R_STREAM_OP_SCHED_RESYNC
       - **9:** R_STREAM_OP_ORIGIN_TIME_SELECTED
       - **10:** R_STREAM_OP_QUALITY_SELECTED
+  - **muse_result_codes:**
+    - **provenance:** direct-indexed char* table @0x10f94d14; consumer f_109e0d14 does cmplwi 106 bound-check + table\[code\] name lookup; f_109e0e10 the reverse (name->code). PROVEN — index IS the wire result code
+    - **kind:** enum
+    - **count:** 107
+    - **names:**
+      - **0:** ERROR_ALARM_CONFLICT
+      - **1:** ERROR_ALARM_NO_SPACE
+      - **2:** ERROR_ALARM_BAD_TIME_SERVER
+      - **3:** ERROR_AREAS_READ_ONLY
+      - **4:** ERROR_AUDIO_CLIP_ID_NOT_FOUND
+      - **5:** ERROR_AUDIO_CLIP_MEDIA_ERROR
+      - **6:** ERROR_AUDIO_CLIP_PAUSE_CONTENT_FAILED
+      - **7:** ERROR_AUDIO_CLIP_VOICE_ASSISTANT_PLAYING
+      - **8:** ERROR_CACHE_NOT_FOUND
+      - **9:** ERROR_CACHE_RECORD_NOT_FOUND
+      - **10:** ERROR_CANT_CONNECT_REMOTE
+      - **11:** ERROR_NO_UPDATE_AVAILABLE
+      - **12:** ERROR_INVALID_UPM_FORMAT
+      - **13:** ERROR_INSUFFICIENT_POWER_FOR_UPDATE
+      - **14:** ERROR_DEVICE_ALREADY_REGISTERED
+      - **15:** ERROR_DEVICE_UNAVAILABLE
+      - **16:** ERROR_INVALID_ACTION
+      - **17:** ERROR_DOWNSTREAM_CONNECT_FAILED
+      - **18:** ERROR_CANT_CONNECT
+      - **19:** ERROR_PLAYBACK_FAILED
+      - **20:** ERROR_PLAYBACK_NO_CONTENT
+      - **21:** ERROR_PLAYBACK_NO_PLAYABLE_CONTENT
+      - **22:** ERROR_PLAYBACK_EXPLICIT_NOT_ALLOWED
+      - **23:** ERROR_PLAYBACK_EXPIRED_TOKEN
+      - **24:** ERROR_NOT_PLAYABLE
+      - **25:** ERROR_SPOTIFY_CONNECT
+      - **26:** ERROR_FAILURE_TO_ENQUEUE
+      - **27:** ERROR_CLOUD_QUEUE_SERVER
+      - **28:** ERROR_SKIP_LIMIT_REACHED
+      - **29:** ERROR_PLAYBACK_STREAM_LIMIT
+      - **30:** ERROR_PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE
+      - **31:** ERROR_PREFERRED_ACCOUNT_NOT_SET
+      - **32:** ERROR_PREFERRED_ACCOUNT_NOT_FOUND
+      - **33:** ERROR_ROOM_DETECTION_SIGNALLING_FAILED
+      - **34:** ERROR_ROOM_DETECTION_SIGNALLING_BUSY
+      - **35:** ERROR_SESSION_IN_PROGRESS
+      - **36:** ERROR_SESSION_JOIN_FAILED
+      - **37:** ERROR_SESSION_EVICTED
+      - **38:** ERROR_SHARES_CONFLICT
+      - **39:** ERROR_SHARES_NO_SUCH_SHARE
+      - **40:** ERROR_SHARES_NO_SPACE
+      - **41:** ERROR_SHARES_REQUEST_FAILED
+      - **42:** ERROR_STIMULUS_ALREADY_PLAYING
+      - **43:** ERROR_MICROPHONE_NOT_ENABLED
+      - **44:** ERROR_INVALID_SESSION_ID
+      - **45:** ERROR_NO_POSITIONING_RESULTS
+      - **46:** ERROR_UNSUPPORTED_POSITIONING_REQUEST
+      - **47:** ERROR_SVC_DISABLED
+      - **48:** ERROR_TIMER_NOT_FOUND
+      - **49:** ERROR_UNSUPPORTED_VOLUME_MODE
+      - **50:** ERROR_INVALID_RESOURCE
+      - **51:** ERROR_UPDATE_IN_PROGRESS
+      - **52:** OK
+      - **53:** CREATED
+      - **54:** ACCEPTED
+      - **55:** SUCCESS_NO_CONTENT
+      - **56:** SUCCESS_NOT_MODIFIED
+      - **57:** ERROR_ACCOUNT_FULL
+      - **58:** ERROR_ACCOUNT_INVALID_ID
+      - **59:** ERROR_ACCOUNT_NO_DEFAULT_FOUND
+      - **60:** ERROR_ACCOUNT_REAUTH_REQUIRED
+      - **61:** ERROR_ACCOUNT_UPGRADE_REQUIRED
+      - **62:** ERROR_ACCOUNT_WRONG_SERVICE
+      - **63:** ERROR_COMMAND_FAILED
+      - **64:** ERROR_CONTENT_TYPE_NOT_SUPPORTED
+      - **65:** ERROR_DISALLOWED_BY_POLICY
+      - **66:** ERROR_GROUP_CHANGED
+      - **67:** ERROR_INTERNAL
+      - **68:** ERROR_COMMAND_TIMEOUT
+      - **69:** ERROR_INVALID_AUTH_HEADER
+      - **70:** ERROR_INVALID_CERT
+      - **71:** ERROR_INVALID_OBJECT_ID
+      - **72:** ERROR_INVALID_PARAMETER
+      - **73:** ERROR_INVALID_SYNTAX
+      - **74:** ERROR_TARGET_ID_NOT_FOUND
+      - **75:** ERROR_LOAD_COMMAND_FAILED
+      - **76:** ERROR_MISSING_PARAMETERS
+      - **77:** ERROR_NO_CONTENT
+      - **78:** ERROR_NO_PERMISSION
+      - **79:** ERROR_NOT_AUTHORIZED
+      - **80:** ERROR_NOT_CAPABLE
+      - **81:** ERROR_PRECONDITION_FAILED
+      - **82:** ERROR_QUEUE_FULL
+      - **83:** ERROR_RESOURCE_GONE
+      - **84:** ERROR_RESOURCE_CONFLICT
+      - **85:** ERROR_REQUIRES_GROUP_COORDINATOR
+      - **86:** ERROR_SERVICE_NOT_AVAILABLE
+      - **87:** ERROR_SERVICE_NOT_CONFIGURED
+      - **88:** ERROR_SERVICE_NOT_SUPPORTED
+      - **89:** ERROR_UNSUPPORTED_NAMESPACE
+      - **90:** ERROR_UNSUPPORTED_COMMAND
+      - **91:** ERROR_UNSUPPORTED_REQUEST
+      - **92:** ERROR_UNSUPPORTED_REQUEST_METHOD
+      - **93:** ERROR_API_KEY_VALIDATION_FAILED
+      - **94:** ERROR_SERVICE_UNAVAILABLE
+      - **95:** ERROR_NYI
+      - **96:** ERROR_CMD_FUTURE
+      - **97:** ERROR_CMD_REMOVED
+      - **98:** ERROR_INSUFFICIENT_RESOURCES
+      - **99:** ERROR_INCORRECT_STATE
+      - **100:** ERROR_INVALID_HEADER
+      - **101:** ERROR_INVALID_LENGTH
+      - **102:** ERROR_INVALID_TRANSPORT
+      - **103:** ERROR_EXPECTATION_FAILED
+      - **104:** ERROR_INCOMPATIBLE_API_VERSION
+      - **105:** ERROR_INCOMPATIBLE_CLIENT_VERSION
+      - **106:** ERROR_NOT_DESIGNATED_DEVICE
+    - **note:** the muse/lechmere result-code enum (systemResult/result fields, cmd responses). 0-51 domain errors, 52-56 success (OK/CREATED/ACCEPTED/NO_CONTENT/NOT_MODIFIED mirroring HTTP 200/201/202/204/304), 57-106 protocol/request errors. Out-of-range renders UNKNOWN
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
-- **r_star_status:** PROVEN via per-use methods: R_LED_* (64-bit mask, log-arg constants in applyLEDMode f_10c918a0), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table case bucketing). Remaining unproven: R_INIT_STATUS/R_READ_STATUS/R_WRITE_STATUS/R_ACCOUNT_*/R_PAND_*/R_LASTFM_*/R_WMP_*/R_CLOUD_QUEUE_*/R_MASK_*/R_CLIENT_KEYCERT_*/R_TYPE_*/R_PLAYBACK_* + singles — their use sites are compare-chains or non-switch dispatch; same method applies but needs per-site masked-compare decoding
+- **r_star_status:** PROVEN: R_LED_* (64-bit mask, applyLEDMode log-arg constants), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table bucketing), muse result codes 0-106 (direct-indexed name table — the enum the R_-adjacent ERROR_* strings actually belong to). CORRECTION: most names previously catalogued as R_* namespaces (R_ACCOUNT_*, R_PAND_*, R_WMP_*, R_LASTFM_*, R_CLOUD_QUEUE_*, R_PLAYBACK_*, R_INIT/READ/WRITE_STATUS_*, R_MASK_*, R_TYPE_*, R_DOCK_INTERRUPT, R_MICROPHONE_*, R_PEER_*, R_INSUFFICIENT_*) were SUBSTRING ARTIFACTS inside ERROR_*, FLAC__STREAM_DECODER_*, SPEAKER_MASK_* and FRAME_NUMBER_TYPE_* strings — not a Sonos R_ namespace. Genuine remaining R_*: R_CLIENT_KEYCERT_ID_* (curl cert-selection ids, log only) and the ~29 R_* settings keys (separate vocabulary)
