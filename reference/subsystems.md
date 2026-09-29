@@ -2011,6 +2011,7 @@ The satellite-transmission stats schema: time-to-play, bytes sent, tx errors, se
 stats schema {timeToPlay/Time between send and play,txSent/Total bytes transmitted,txErrors/Total number of transmission errors,serializationErrors/Total number of serialization errors,numLateFrames/number of times we were late to transmit a frame,Total resynchronization frames,playbackEnd/Total playback ended frames,mx_proc/Highest SatMixer processing time,tx_proc/Highest SatTx processing time}; "HT Audio Satellite TX General"
 
 - **name:** HT audio satellite TX stats
+- **control_frames:** htsat_tx control frame = 16 bytes {u8 code, payload/pad 15B}; header region ctx+0x9b4-0x9bb = {zeros x7, type=0x36}; 'invalid control frame. len (%u) vs (%zu)' is the TX-side length check (f_104f0d6c region).
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ee5c90 — ht tx stats
@@ -3245,7 +3246,7 @@ f_100b9fac: gate → tail f_105499fc (host-ip set + respond)
 
 **coverage** `partial`
 
-Household state is kept in sync by a replication protocol: each named store (accounts, netsettings, favourites, saved queues, areas) has a version+format handshake and per-item transfers between players; incompatible or malformed data gets the offending setting denylisted and the peer quarantined. This is why a setting changed on one player appears everywhere — and why joined players converge.
+Household state is kept in sync by a replication protocol: each named store (accounts, netsettings, favourites, saved queues, areas) has a version+format handshake and per-item transfers between players. The wire exchange is now decoded: a peer that has a newer setting announces it ('offerUpdatedSetting: src, settingId, lastDevice, version, format') and the receiver pulls it with a plain HTTP GET '...?id=N' carrying an X-RINCON-CONTENT-FORMAT header; the response must echo X-RINCON-CONTENT-VERSION, X-RINCON-LAST-UPDATE-DEVICE, CONTENT-ENCODING and an X-RINCON-SIGNATURE which is verified before install. Downloaded settings land in setrepl.tmp and are atomically promoted. A bad format or encoding gets the setting denylisted (and it stays denylisted until the player re-registers); a signature mismatch, bad version or algorithm aborts the pull. The index itself is an XML list of <Setting idx lud version> records where 'lud' is the last-update device UUID — that's how a player knows which of its settings are stale. The whole protocol is gated on registration: an unregistered player refuses to replicate.
 
 **Technical description:**
 
@@ -3269,6 +3270,17 @@ the household replication bus: per-setting transfers ('replicateOne from %s to %
   - **validation_chain:** `openStream fail`, `filesize bad/unavail`, `bad version/last-update-id`, `denylisted setting`, `badFormat (denylisting)`, `badEncoding (denylisting)`, `bad version`, `Cannot open temp file`, `bad algorithm`, `signature mismatch`
   - **behavior:** "Not replicating while unregistered"; "Removing settings denylists after registration"; denies unknown/blocked settings ("denylisting replicated setting %u"); async ReplicatedSettingsChangedEvent; unexpected content version/format rejected
   - **confidence:** PROVEN headers+validation chain; blob body format/codec unresolved
+- **wire_protocol:**
+  - **fetch:** GET %s%s?id=%u HTTP/1.1 — per-setting pull by numeric id
+  - **request_headers:** `CONNECTION: close`, `ACCEPT: */*`, `HOST: %s:%d`, `USER-AGENT: %s`, `X-RINCON-CONTENT-FORMAT: %u`
+  - **response_headers:** `X-RINCON-CONTENT-VERSION`, `X-RINCON-LAST-UPDATE-DEVICE`, `X-RINCON-CONTENT-FORMAT`, `CONTENT-ENCODING`, `X-RINCON-SIGNATURE`
+  - **index_record:** <Setting idx="%u" lud="%s" version="%u" /> — lud = last-update-device uuid
+  - **offer_flow:** 'offerUpdatedSetting: src=%s set=%u ldev=%s ver=%u fmt=%u' — peers offer updated settings {src, settingId, lastDevice, version, format}; receiver pulls via GET
+  - **failure_taxonomy:** `openStream 0x%08x %s \[%d\]`, `filesize bad/unavail %zu`, `bad version/last update id`, `denylisted setting %u %s`, `badFormat %u -> denylisting`, `badEncoding %d -> denylisting`, `bad version %u`, `Cannot open temp file`, `bad algorithm`, `signature mismatch`, `Not replicating while unregistered`, `replicating from URI %s (%u) failed with %u`
+  - **install:** download to setrepl.tmp then atomic promote
+  - **denylist:** 'denylisting replicated setting %u, unknown or blocked'; 'Removing settings denylists after registration'; 'Setting %u needs to call addServiceSetting'
+  - **magic:** 'RINCON_FFFFFFFFFFFF99999' — device-id/magic pattern literal
+  - **gate:** 'Not replicating while unregistered' — replication requires completed registration
 <details><summary>Evidence (9)</summary>
 
 - @ 0x10efd14e — replicated_settings.cxx
