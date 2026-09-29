@@ -104,6 +104,18 @@ The mask-before-validate ordering looks alarming but is inert: the record field 
 
 </details>
 
+## `contentdir_root_map` `strong`
+
+Top-level ContentDirectory browse tree recovered from the root-enumeration function (f_10303de4, 'cd' log domain): each well-known object ID is paired with its UpdateID state variable. FV:2->FavoritesUpdateID, R:0->RadioFavoritesUpdateID, R:->RadioLocationUpdateID, SQ:->SavedQueuesUpdateID, S:->ShareListUpdateID. R: prefix = radio favourites (TuneIn-era 'Favorite Stations'), SQ: = saved Sonos playlists (.rsq store), S: = music-library shares.
+
+Fields: `object-id prefix`, `UpdateID state variable`
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10304098 — literal table load: FV:2, FavoritesUpdateID, R:0, RadioFavoritesUpdateID, R:, RadioLocationUpdateID, SQ:, SavedQueuesUpdateID, S:, ShareListUpdateID, near 'cdMediaServer'/'cd' domain
+
+</details>
+
 ## `device_description` `confirmed`
 
 UPnP root device-description htdocs template + 35 substitution tokens; advertises 16 SCPD service descriptions
@@ -161,6 +173,18 @@ DIDL res protocolInfo emitters by scheme: x-rincon-playlist:*:*:* (0x10e89314), 
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10e89314 — literal family
+
+</details>
+
+## `fixed_volume_tokens` `strong`
+
+RenderingControl-internal token space parsed by the extended SetEQ/EQType dispatcher in rc_impl: 'FV' (bare), 'FV:%zu' (numeric form), 'FV:GC' (group-coordinator), 'FV:GC-HB' (coordinator with household-bonded satellites), 'FVPXY'. Sits in the same dispatcher as SubGain, SubCrossover, SubPolarity, SpeakerSize, VolumeScalingFactor — i.e. the hidden home-theatre parameter surface exposed through the EQ-type argument.
+
+Fields: `FV`, `FV:<n>`, `FV:GC`, `FV:GC-HB`, `FVPXY`
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x100e173c — strncasecmp 'FV:' / strcmp 'FV' / strcasecmp 'FVPXY' chain in f_100e1654
 
 </details>
 
@@ -269,6 +293,18 @@ SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml — advert
 <details><summary>Evidence (1)</summary>
 
 - firmware — opt/htdocs/xml/*.xml + device_description.xml SCPDURL
+
+</details>
+
+## `scrobble_submission` `strong`
+
+Audioscrobbler submissions-protocol form body: s=<session>&a\[n\]=artist&t\[n\]=title&i\[n\]=timestamp&o\[n\]=source&r\[n\]=rating&l\[n\]=secs&b\[n\]=album&n\[n\]=tracknum&m\[n\]=MBID. Handshake GET /?hs=true&p=1.2&c=<client>; BADTIME answered by re-reading the HTTP Date: header.
+
+Fields: `s`, `a\[\]`, `t\[\]`, `i\[\]`, `o\[\]`, `r\[\]`, `l\[\]`, `b\[\]`, `n\[\]`, `m\[\]`
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10523e18 — 's=' then &a\[0\]= &t\[0\]= &i\[0\]= &o\[0\]= &r\[0\]=&l\[0\]= &b\[0\]= &n\[0\]= &m\[0\]= emit order in f_105236c8
 
 </details>
 
@@ -418,13 +454,15 @@ Fields: `HH`, `MM`, `SS`
 
 ## `sonos_favorites_version` `strong`
 
-Favorites-version token grammar: sscanf FV:%zu — FV: prefix + size_t; parser f_100e1654 (RenderingControl-region worker)
+FV: token grammar — DUAL-USE prefix. In f_100e1654 (rc_impl/RenderingControl SetEQ param parser): sscanf 'FV:%zu' parses FV:<n>, then strcmp(arg+3,'GC') catches the literal 'FV:GC' form; the same function also accepts bare 'FV' and 'FVPXY' — this is the Fixed-Volume parameter space sitting alongside SubGain/SubCrossover/SpeakerSize/VolumeScalingFactor. In ContentDirectory, 'FV:2' is the favourites root container object ID (see favorites_root_map). duck.cxx uses 'FV:GC'/'FV:GC-HB'/'C-HB' as correlation IDs when forwarding duck/unduck commands to bonded peers ('Forward %s %d to %s %s', 'all secondaries', muse route {playerId}/playerVolume/unduck).
 
-Fields: `FV prefix`, `version int`
+Fields: `FV prefix`, `version int \| 'GC' literal \| 'GC-HB' suffix`
 
-<details><summary>Evidence (1)</summary>
+<details><summary>Evidence (3)</summary>
 
-- @ 0x100e18a8 — sscanf site; fmt at 0x10ea0374
+- @ 0x100e18a8 — sscanf('FV:%zu') inside rc_impl SetEQ param parser; fmt at 0x10e88574
+- @ 0x10e885a8 — 'FVPXY' token, same function
+- @ 0x10eb40c8 — 'FV:2' favourites container literal, ContentDirectory side
 
 </details>
 

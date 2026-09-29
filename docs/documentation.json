@@ -106057,7 +106057,7 @@
   },
   "sonos_favorites_version": {
    "status": "strong",
-   "description": "Favorites-version token grammar: sscanf FV:%zu \u2014 FV: prefix + size_t; parser f_100e1654 (RenderingControl-region worker)",
+   "description": "FV: token grammar \u2014 DUAL-USE prefix. In f_100e1654 (rc_impl/RenderingControl SetEQ param parser): sscanf 'FV:%zu' parses FV:<n>, then strcmp(arg+3,'GC') catches the literal 'FV:GC' form; the same function also accepts bare 'FV' and 'FVPXY' \u2014 this is the Fixed-Volume parameter space sitting alongside SubGain/SubCrossover/SpeakerSize/VolumeScalingFactor. In ContentDirectory, 'FV:2' is the favourites root container object ID (see favorites_root_map). duck.cxx uses 'FV:GC'/'FV:GC-HB'/'C-HB' as correlation IDs when forwarding duck/unduck commands to bonded peers ('Forward %s %d to %s %s', 'all secondaries', muse route {playerId}/playerVolume/unduck).",
    "evidence": [
     {
      "type": "firmware",
@@ -106065,12 +106065,28 @@
      "build": "86.10-80260",
      "status": "confirmed",
      "address": "0x100e18a8",
-     "notes": "sscanf site; fmt at 0x10ea0374"
+     "notes": "sscanf('FV:%zu') inside rc_impl SetEQ param parser; fmt at 0x10e88574"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e885a8",
+     "notes": "'FVPXY' token, same function"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb40c8",
+     "notes": "'FV:2' favourites container literal, ContentDirectory side"
     }
    ],
    "fields": [
     "FV prefix",
-    "version int"
+    "version int | 'GC' literal | 'GC-HB' suffix"
    ]
   },
   "sonos_mac_parse": {
@@ -106936,6 +106952,71 @@
      "status": "confirmed",
      "notes": "opt/htdocs/xml/*.xml + device_description.xml SCPDURL"
     }
+   ]
+  },
+  "contentdir_root_map": {
+   "status": "strong",
+   "description": "Top-level ContentDirectory browse tree recovered from the root-enumeration function (f_10303de4, 'cd' log domain): each well-known object ID is paired with its UpdateID state variable. FV:2->FavoritesUpdateID, R:0->RadioFavoritesUpdateID, R:->RadioLocationUpdateID, SQ:->SavedQueuesUpdateID, S:->ShareListUpdateID. R: prefix = radio favourites (TuneIn-era 'Favorite Stations'), SQ: = saved Sonos playlists (.rsq store), S: = music-library shares.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10304098",
+     "notes": "literal table load: FV:2, FavoritesUpdateID, R:0, RadioFavoritesUpdateID, R:, RadioLocationUpdateID, SQ:, SavedQueuesUpdateID, S:, ShareListUpdateID, near 'cdMediaServer'/'cd' domain"
+    }
+   ],
+   "fields": [
+    "object-id prefix",
+    "UpdateID state variable"
+   ]
+  },
+  "fixed_volume_tokens": {
+   "status": "strong",
+   "description": "RenderingControl-internal token space parsed by the extended SetEQ/EQType dispatcher in rc_impl: 'FV' (bare), 'FV:%zu' (numeric form), 'FV:GC' (group-coordinator), 'FV:GC-HB' (coordinator with household-bonded satellites), 'FVPXY'. Sits in the same dispatcher as SubGain, SubCrossover, SubPolarity, SpeakerSize, VolumeScalingFactor \u2014 i.e. the hidden home-theatre parameter surface exposed through the EQ-type argument.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x100e173c",
+     "notes": "strncasecmp 'FV:' / strcmp 'FV' / strcasecmp 'FVPXY' chain in f_100e1654"
+    }
+   ],
+   "fields": [
+    "FV",
+    "FV:<n>",
+    "FV:GC",
+    "FV:GC-HB",
+    "FVPXY"
+   ]
+  },
+  "scrobble_submission": {
+   "status": "strong",
+   "description": "Audioscrobbler submissions-protocol form body: s=<session>&a[n]=artist&t[n]=title&i[n]=timestamp&o[n]=source&r[n]=rating&l[n]=secs&b[n]=album&n[n]=tracknum&m[n]=MBID. Handshake GET /?hs=true&p=1.2&c=<client>; BADTIME answered by re-reading the HTTP Date: header.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10523e18",
+     "notes": "'s=' then &a[0]= &t[0]= &i[0]= &o[0]= &r[0]=&l[0]= &b[0]= &n[0]= &m[0]= emit order in f_105236c8"
+    }
+   ],
+   "fields": [
+    "s",
+    "a[]",
+    "t[]",
+    "i[]",
+    "o[]",
+    "r[]",
+    "l[]",
+    "b[]",
+    "n[]",
+    "m[]"
    ]
   }
  },
@@ -112264,12 +112345,15 @@
    ]
   },
   "audio_taps": {
-   "status": "vocab",
-   "summary": "audiotap/datatap/spdiftap PCM capture + /snapshotspdiftap /downloadspdiftap endpoints",
+   "status": "partial",
+   "summary": "PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap",
    "anchors": [
     "audiotap_manager.cxx",
     "spdiftap.c",
-    "/downloadspdiftap"
+    "/downloadspdiftap",
+    "/snapshotspdiftap",
+    "audiotap.spdif",
+    "<SPDIFTap>"
    ],
    "evidence": [
     {
@@ -112295,8 +112379,35 @@
      "status": "confirmed",
      "address": "0x10e76568",
      "notes": "/downloadspdiftap"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e76554",
+     "notes": "/snapshotspdiftap + /downloadspdiftap endpoints"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f287d0",
+     "notes": "tap metadata version check"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f26ea4",
+     "notes": "TV input sample-rate mismatch vs audio tap"
     }
-   ]
+   ],
+   "endpoints": "/audio_tap, /spdiftap, /snapshotspdiftap, /downloadspdiftap; request errors 'AudioTap: no tap specified', 'syntax error', 'invalid request', 'permission denied'",
+   "file_format": "tap files carry metadata+audio sections with a metadata version: 'Audio tap metadata version mismatch (tap: %d, expected: %d)', truncation checks ('last %zu audio bytes missing', 'last %zu metadata bytes missing'), 'Audio tap file valid (%zu/%zu)', rewind/start markers; snapshot file audiotap.spdif; compressed state 'spdiftap.compressed' \u2014 'Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!'",
+   "tv_sync": "'Synchronize SPDIF tap playback with output tap (%s)', 'TV input sample rate mismatch with audio tap (tv:%u tap:%u)', 'TV input read error during audio tap playback' \u2014 the SPDIF tap doubles as the TV-input capture path for lip-sync"
   },
   "business_msp": {
    "status": "absent",
@@ -112326,11 +112437,15 @@
   },
   "buttons_ir": {
    "status": "partial",
-   "summary": "longpress gesture detection + irdecoder + irconfig.txt; HTControl SOAP surface documented, mechanics not",
+   "summary": "button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered[.xml] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database",
    "anchors": [
     "longpress.cxx",
     "irdecoder.cxx",
-    "/jffs/irconfig.txt"
+    "/jffs/irconfig.txt",
+    "virtualRemoteControl/buttonCommand",
+    "ir.ws.sonos.com/IRCode/",
+    "/button_triggered.xml",
+    "LearnIRCode"
    ],
    "evidence": [
     {
@@ -112356,8 +112471,45 @@
      "status": "confirmed",
      "address": "0x10e751e8",
      "notes": "/jffs/irconfig.txt"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e85fe8",
+     "notes": "virtualRemoteControl/buttonCommand muse route"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea72ac",
+     "notes": "http://ir.ws.sonos.com/IRCode/ cloud IR database"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec74e0",
+     "notes": "'%s button pressed (cid: %s)' forwarding log"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea701c",
+     "notes": "UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND learn-mode fault"
     }
-   ]
+   ],
+   "button_vocabulary": "BUTTON_PLAYPAUSE(+_PRESSED/_HELD), BUTTON_VOL_UP/DN(+_PRESSED), BUTTON_JOIN(+_PRESSED), BUTTON_MODE, BUTTON_POWER, BUTTON_MICMUTE/STATE_BUTTON_MICMUTE_PRESSED, BUTTON_PAIRING, BUTTON_VOL_ROCKER, BUTTON_MUTE, BUTTON_WIFIBT_MODE, SWIPED",
+   "forwarding": "hwmessagelib_multicast_group_BUTTON bus; 'No button handler, unable to forward buttons'; '%s button pressed (cid: %s)'/'Play button held (cid: %s)' correlation ids; PlayerButtons XML with required-field validation",
+   "lock": "SetButtonLockState/GetButtonLockState/GetButtonState SOAP surface; DesiredButtonLockState/CurrentButtonLockState vars; UnpairedButtonLock; BUTTONS_LOCKED + IN_BUTTON_OBSERVATION_MODE + DAT_IN_BUTTONLESS_SETUP_MODE states; 'button-notify' config mode (cm_button/buttonAction); 'Becoming standalone due to button press'",
+   "ir": "irdecoder.cxx select-thread (selthrd.RIRDecoder.*); LearnIRCode/CommitLearnedIRCodes/GetButtonState actions; one-button learn mode with timeout + UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND fault; codes fetched from http://ir.ws.sonos.com/IRCode/ (O_IR_DB_WS_IRCODE_URL key), <IRCode> XML schema; demo-mode missing-code path",
+   "cloud": "v1/players/{playerId}/virtualRemoteControl/buttonCommand + household-scoped variant, sendButtonCommand op \u2014 cloud-injected virtual remote"
   },
   "chirp_stack": {
    "status": "vocab",
@@ -112421,14 +112573,18 @@
    ]
   },
   "dsp_ht_engine": {
-   "status": "vocab",
-   "summary": "home-theater DSP parameter surface (SubCrossover, InvertSub, DialogEnhancementLevel, AISpeechEnhance, HeightChannelLevel, Tweaks bitmask, lip-sync AudioDelay*) + zone audio-state XML schema + R_MASK_* layouts",
+   "status": "partial",
+   "summary": "home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks",
    "anchors": [
     "SubCrossover",
     "DialogEnhancementLevel",
     "AISpeechEnhance",
     "/htconfig",
-    "R_MASK_NINE_DOT_ONE_DOT_FOUR"
+    "R_MASK_NINE_DOT_ONE_DOT_FOUR",
+    "<DialogEnhancementLevel>",
+    "<SubCrossover>%dHz</SubCrossover>",
+    "<GainTrimDB>",
+    "<Tweaks>0x%08X</Tweaks>"
    ],
    "evidence": [
     {
@@ -112470,8 +112626,37 @@
      "status": "confirmed",
      "address": "0x10fbedfa",
      "notes": "R_MASK_NINE_DOT_ONE_DOT_FOUR"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f253d8",
+     "notes": "HT config XML schema (24 fields incl. Tweaks bitmask)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10feabd8",
+     "notes": "per-Zone audio XML schema (37 fields)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f2b138",
+     "notes": "Zone volume/ducking XML schema"
     }
-   ]
+   ],
+   "ht_config_xml": "<Version><SurroundState><SubState><GMDownMixState><DialogEnhancementLevel><AISEDynamicLatency><AISpeechEnhance><MusicSurroundLevel><TVSurroundLevel><HeightChannelLevel><AutoPlay><AutoPlaySilenceThresh><AutoStop><AutoStopSilenceThresh><NightMode><SurroundMode><Tweaks>0x%08X<PrimaryEthernet><WirelessEnabled>",
+   "zone_audio_xml": "<Zone><IsSatellite><Volume><GainTrimDB><SPLdB><LoudnessSPLdB><LoudnessScaling><BassLevel><TrebleLevel><LoudnessEnabled><StereoPairEnabled><IsOnLeft><BalanceInitial><Balance><LeftMute><RightMute><HeightLevel><HeightLeveldB><NumBondedSubs><BondedSubModel><SubwooferEnabled><SubwooferJackConnected><DRCVolumeScaling><NightMode><DialogEnhancementLevel><TrueplayEnabled><SubLeveldB><InvertSub><ConstrainSubLevelToVolume><SubDefaultInversion><SourceGainOffsetdB><MusicSurroundLeveldB><TVSurroundLeveldB><FullSurroundMode><PlaybackStreamSampleType><MonoMode><SubCrossover>NHz</SubCrossover><SpeakerSize>",
+   "zone_volume_xml": "<Zone><UnscaledVolume><Volume><DeferredVolume><Ducked><DuckingVolume><DuckingPercent><OverrideVolume><Muted><DeferredMute><ExtSrcVolume><SurroundLevel><ZoneChannelCount>",
+   "channel_masks": "R_MASK_THREE_DOT_ONE, R_MASK_FIVE_DOT_ONE, R_MASK_FIVE_DOT_ONE_DOT_TWO, R_MASK_SEVEN_DOT_ONE, R_MASK_NINE_DOT_ONE_DOT_FOUR, R_MASK_UNSPECIFIED \u2014 Atmos-era layouts compiled in",
+   "rc_params": "hidden RenderingControl EQ-param tokens driving this layer: SubGain, SubCrossover, SubPolarity, SpeakerSize, VolumeScalingFactor, FV*/FVPXY fixed-volume forms"
   },
   "embedded_sqlite": {
    "status": "vocab",
@@ -112570,12 +112755,17 @@
    ]
   },
   "favourites_model": {
-   "status": "vocab",
-   "summary": "FV: grammar + GC variants documented; enumerate/mutate path, favourites\u2194muse sync, NextFavorite sequencing not",
+   "status": "partial",
+   "summary": "Sonos favourites store + ContentDirectory projection: FV:2 root container paired with FavoritesUpdateID; XML store schema recovered; mutation via CDS CreateObject/UpdateObject/DestroyObject on the dirObjFavorites vtable + muse getFavorites/loadFavorite routes",
    "anchors": [
     "favorites.cxx",
     "NextFavorite",
-    "sonos_favorites_version"
+    "sonos_favorites_version",
+    "FV:2",
+    "dirObjFavorites",
+    "object.item.sonos-favorite",
+    "replicating favorites from %s",
+    "r:favoriteId"
    ],
    "evidence": [
     {
@@ -112593,16 +112783,67 @@
      "status": "confirmed",
      "address": "0x10ec0ce2",
      "notes": "NextFavorite"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10304098",
+     "notes": "root browse map literal table (FV:2/FavoritesUpdateID ...)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec0d1e",
+     "notes": "'<Favorites SchemaVersion=\"%d\">' store schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x1037cab8",
+     "notes": "dirObjFavorites object install in f_1037ca04"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec13a4",
+     "notes": "'Invalid favorite id.' used in f_1037d984"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec0f04",
+     "notes": "urn:schemas-rinconnetworks-com:metadata-1-0/|favoriteId"
     }
-   ]
+   ],
+   "root_browse_map": "FV:2 -> FavoritesUpdateID; R:0 -> RadioFavoritesUpdateID; R: -> RadioLocationUpdateID; SQ: -> SavedQueuesUpdateID; S: -> ShareListUpdateID (root enumerator f_10303de4)",
+   "store_schema": "<Favorites SchemaVersion=\"%d\" NextFavorite=\"..\"> document with a sibling <Radio LastUpdateDevice=\"%s\" Version=\"%u\" NextFavorite=\"0\"> section for radio favourites; NextFavorite is the replicated monotonic counter; 'replicating favorites from %s' shows household replication of the store",
+   "didl": "class object.item.sonos-favorite; favourite id carried in r:favoriteId under urn:schemas-rinconnetworks-com:metadata-1-0; service-derived favourites parse 'account service ID / serial number' from the sonos: URI",
+   "mutation": "dirObjFavorites directory object (f_1037ca04) installs an op-table (f_1037e030/f_1037e12c/f_1037e124/f_1037e134/f_103811fc/f_1038122c) driven by CDS CreateObject(impl->v[+0x20])/UpdateObject(v[+0x24])/DestroyObject(v[+0x28]); errors 'Invalid favorite id.' / 'Could not access favorites.' in f_1037d984; reorder exists: 'Did not move favorite (%s \"%s\"); rc %d' + radioFavoritesMoved event",
+   "cloud_routes": "v1/households/{householdId}/favorites, v1/groups/{groupId}/favorites, v1/households/{householdId}/groups/{groupId}/favorites; ops getFavorites / loadFavorite",
+   "migration": "legacy conversion strings: 'Successfully converted old rhapsody favorite', 'Failure converting old non-OAuth favorite' \u2014 favourites migrate with service renames/OAuth transitions",
+   "smapi_caps": "trFavorites (tracks), alFavorites (albums) exposed in /customsd; arFavorites (artists) present but commented out; SMAPI-side vocabulary isFavorite/canAddToFavorites/containsFavorite",
+   "unresolved": "exact Favorites XML element schema per-favourite; which op-table slot maps to which CDS verb; whether UpdateObject reorder or a dedicated move path drives 'radioFavoritesMoved'"
   },
   "feature_flag_registry": {
-   "status": "vocab",
-   "summary": "featureConfig* flags enumerate the gated feature set: DropoutContext, HomeTheaterWifiPerfTelemetry, MetricsService, Plink, Quickbonding, SemiSleep, SmartPlay, SpotABR, SsdpAdvertiseConfig, ZoneExperiment",
+   "status": "partial",
+   "summary": "feature flags are JSON keys in the settings/cloud config document (featureConfig sits in the same key table as entitlementsList/eqSettings/ethernetPorts/favoritesList/geoLocation/getUsersResponse) \u2014 cloud-delivered, not compile-time; 10 featureConfig* subkeys enumerate the gated feature set",
    "anchors": [
     "featureConfigPlink",
     "featureConfigSmartPlay",
-    "featureConfigQuickbonding"
+    "featureConfigQuickbonding",
+    "featureConfigZoneExperiment",
+    "<ZoneExperiment id=",
+    "/experiments"
    ],
    "evidence": [
     {
@@ -112628,8 +112869,38 @@
      "status": "confirmed",
      "address": "0x10f97b3c",
      "notes": "featureConfigQuickbonding"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f97ab4",
+     "notes": "featureConfig + 10 subkeys in JSON key table"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ef3d34",
+     "notes": "<ZoneExperiment id name value defaultValue> schema"
     }
-   ]
+   ],
+   "mechanism": "'featureConfig' parent key with per-feature subkeys; ZoneExperiment layer adds <ZoneExperiments><ZoneExperiment id name value defaultValue> docs + /experiments HTTP endpoint + O_ZONE_EXPERIMENTS config key + experimentId field \u2014 A/B values carry explicit defaults so absent assignment falls back to defaultValue",
+   "flags": {
+    "DropoutContext": null,
+    "HomeTheaterWifiPerfTelemetry": null,
+    "MetricsService": null,
+    "Plink": null,
+    "Quickbonding": null,
+    "SemiSleep": null,
+    "SmartPlay": null,
+    "SpotABR": null,
+    "SsdpAdvertiseConfig": null,
+    "ZoneExperiment": null
+   },
+   "unresolved": "which config file/route carries featureConfig (householdsettings.json? muse?), per-flag gate sites"
   },
   "group_object_model": {
    "status": "partial",
@@ -112720,12 +112991,15 @@
    ]
   },
   "led_engine": {
-   "status": "absent",
-   "summary": "scripted LED animation programs + full R_LED_* state vocabulary; SetLEDState on/off only documented surface",
+   "status": "partial",
+   "summary": "Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only",
    "anchors": [
     "<LedStepEntry",
     "R_LED_BEGIN_SETUP_MODE",
-    "/jffs/app/debug/sonosledmgrd.dmp"
+    "/jffs/app/debug/sonosledmgrd.dmp",
+    "<LedStepEntry",
+    "cksum=%08x, flags=%04x",
+    "resumeDefaultLEDPattern"
    ],
    "evidence": [
     {
@@ -112751,8 +113025,45 @@
      "status": "confirmed",
      "address": "0x10ea7f34",
      "notes": "/jffs/app/debug/sonosledmgrd.dmp"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e99048",
+     "notes": "<LedPatternEntry> schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e990a0",
+     "notes": "<LedStepEntry rgb hold fade> step schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10fba55c",
+     "notes": "setHwFeatures LED capability flags"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10fbb590",
+     "notes": "resumeDefaultLEDPattern R_LED_* mapping"
     }
-   ]
+   ],
+   "program_schema": "<LedPatternInfo><LedPatternEntry time=\"%s\" led_ids=\"%08x\" repeats=\"%u\" steps=\"%u\"><LedStepEntry rgb=\"%06X\" hold=\"%u\" fade=\"%u\"/>...</LedPatternEntry></LedPatternInfo>; serialized blob header 'cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x'",
+   "hardware_map": "setHwFeatures: bHasMicrophone, bHasMuteLED, bHasStatusLED, bHasOnlyStatusLED, bHasHardwareLedSwap, bCanSetWhiteBrightness \u2014 per-model LED capability flags; 64-bit m_lLEDFlags state word",
+   "state_machine": "applyLEDModeLocked tracks m_fLedBrightness, m_nextLedPatternPriorityLevel, m_lastClr, m_fade_effect; interacts with BT mode (m_bIsInExclusiveBTMode/m_bIsBTConnected) and aux toggle; feedbackFlash + executeDiagMode + updateCaptouchBrightness + setLEDBrightness entry points; 'led_set_resumeDefaultLedPattern has bFlashMode set. Returning saved pattern'",
+   "default_patterns": "resumeDefaultLEDPattern maps R_LED_* to patterns: R_LED_BROKEN_DEVICE, R_LED_JOIN_HH, R_LED_BEGIN_SETUP_MODE, R_LED_IN_SETUP_MODE, R_LED_MUTED, R_LED_AUDIO_OFF, R_LED_PLAYING, R_LED_HHID (+ WAC/WAC_TIMEOUT/UPGRADE/etc. in the R_LED family)",
+   "unresolved": "pattern priority arbitration rules, the SetLEDState vs. override stack, which patterns correspond to which R_LED codes"
   },
   "log_domain_map": {
    "status": "vocab",
@@ -112851,13 +113162,16 @@
    ]
   },
   "multi_daemon_boundary": {
-   "status": "vocab",
-   "summary": "anacapad is one of ~13 daemons (btmanager, wacd, netstartd, sonosledmgrd, sonospowercoordinator, mdnsd, sddpd, chronyd, dropbear, udhcpc, wpa_supplicant, upgrade_mgr); /X-external routes are the IPC contracts",
+   "status": "partial",
+   "summary": "anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks",
    "anchors": [
     "/btmanager-external",
     "/netstartd-external",
     "wacd.log",
-    "sddpd.log"
+    "sddpd.log",
+    "/tmp/netstartd.ipc",
+    "netstartd hello",
+    "sonospowercoordinator.dmp"
    ],
    "evidence": [
     {
@@ -112891,8 +113205,44 @@
      "status": "confirmed",
      "address": "0x10e756f9",
      "notes": "sddpd.log"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea7ec4",
+     "notes": "/anacapad-external route string"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ef601c",
+     "notes": "/tmp/netstartd.ipc socket path"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10efab18",
+     "notes": "'Pushed netsettings update to netstartd'"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea7cc0",
+     "notes": "per-daemon .dmp/.properties/backtrace crash files"
     }
-   ]
+   ],
+   "ipc_routes": "/anacapad-external, /btmanager-external, /netstartd-external, /sonosledmgrd-external, /sonospowercoordinator-external, tpapi-external-endsong",
+   "netstartd_contract": "socket /tmp/netstartd.ipc + /tmp/netstartd.pid; handshake 'netstartd hello'; anacapad->netstartd: 'Pushed netsettings update to netstartd', 'Pushed PSK update to netstartd', satellite-addition notify, 'signaling netstartd (%s) %s'; netstartd->anacapad: 'Received netsettings update from netstartd', 'Got connection type update from netstartd: [%s]'",
+   "crash_machinery": "per-daemon *.dmp + *.properties + *_backtrace strings + CrashCount/count files (sonospowercoordinator, btmanager, netstartd); logs /opt/log/{netstartd,sonosledmgrd,btmanager}.log + /jffs/netstartd_prev.log + /jffs/app/debug/*.dmp",
+   "daemons": "anacapad, netstartd (network), btmanager (Bluetooth), sonosledmgrd (LEDs), sonospowercoordinator (power), wacd (WAC setup), mdnsd, sddpd, chronyd, dropbear (SSH), udhcpc (DHCP), wpa_supplicant, upgrade_mgr"
   },
   "muse_semantics": {
    "status": "vocab",
@@ -112921,12 +113271,17 @@
    ]
   },
   "play_history": {
-   "status": "vocab",
-   "summary": "historymgr + History/RestHistory/WebSocketHistory/CloudQueueHistory XML types + deleteHistory cloud op + rating gating",
+   "status": "partial",
+   "summary": "historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings \u2014 explicitly 'only implemented for cloud queue'",
    "anchors": [
     "historymgr.cxx",
     "<WebSocketHistory",
-    "deleteHistory"
+    "deleteHistory",
+    "v1/households/{householdId}/history",
+    "postHistory",
+    "<RestHistory>",
+    "Updating history cache",
+    "rating is only implemented for cloud queue"
    ],
    "evidence": [
     {
@@ -112952,8 +113307,46 @@
      "status": "confirmed",
      "address": "0x10ec4d68",
      "notes": "deleteHistory"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e7e1d8",
+     "notes": "v1/households/{householdId}/history route"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec4928",
+     "notes": "ETag cache update log"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ec4a90",
+     "notes": "'History is disabled, history is not POSTed'"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb0bb8",
+     "notes": "'rating is only implemented for cloud queue'"
     }
-   ]
+   ],
+   "cloud_routes": "v1/households/{householdId}/history (getHistory/postHistory), v1/households/{householdId}/history/{id} (removeHistoryItem), clearHistory; ratings: v1/groups/{groupId}/playbackMetadata/ratings + household-scoped variant; per-item 'item/%s/rating'",
+   "xml": "<History> container; sibling <RestHistory>/<WebSocketHistory> type tags",
+   "caching": "'Updating history cache: [status][key][etag][cache-control]', 'getHistory is serving the cache', lazy regen 'file not available yet, generating (%d). Elapsed=%ums, current eTag=' \u2014 server-driven ETag caching",
+   "gating": "'History is disabled, history is not POSTed' \u2014 opt-out gate; entries dropped when 'resource incomplete - name, type, or objectId missing' / 'group incomplete - name, id, or coordinatorId missing'; 'Failed to queue history entry, buffer full' + 'Post History Buffer Cleared'",
+   "ratings": "r:rating DIDL element + urn:schemas-rinconnetworks-com:metadata-1-0/|rating; 'rating is only implemented for cloud queue', 'cloud queue server does not supporting rating', 'rating.type is not recognized'",
+   "pipeline": "trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory"
   },
   "playlist_parsers": {
    "status": "vocab",
@@ -113009,11 +113402,15 @@
    ]
   },
   "queue_persistence": {
-   "status": "absent",
-   "summary": ".rsq on-disk format: savedqueues.rsq + trackqueue.rsq XML schemas, .d.rsq backup, atomic .tmp rename",
+   "status": "partial",
+   "summary": ".rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt",
    "anchors": [
     "savedqueues.rsq",
     "<SavedQueues",
+    "trackqueue.rsq",
+    "<SavedQueue Id=",
+    "<Track URI=",
+    "savedqueues.rsq.tmp",
     "trackqueue.rsq"
    ],
    "evidence": [
@@ -113040,8 +113437,49 @@
      "status": "confirmed",
      "address": "0x10e93f98",
      "notes": "trackqueue.rsq"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed3448",
+     "notes": "<SavedQueues LastUpdateDevice=.. Version=.. Next=..> root"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed350c",
+     "notes": "<SavedQueue Id=.. Curated=.. NumTracks=..> element"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed34f4",
+     "notes": "<Track URI=.. MD=..> entry element"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed329c",
+     "notes": "file:///jffs/settings/savedqueues.rsq"
     }
-   ]
+   ],
+   "schema": "<SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\"> / <SavedQueue Id=\"...\" Curated=\"...\" NumTracks=\"...\"> / <Track URI=\"...\" MD=\"...\"/> / </SavedQueues>",
+   "files": [
+    "/jffs/settings/savedqueues.rsq (file:/// URI form)",
+    "savedqueues.rsq.tmp (atomic write staging)",
+    "savedqueues.d.rsq (backup/dirty variant)",
+    "trackqueue.rsq + /trackqueue.rsq#0 fragment (live queue)"
+   ],
+   "semantics": "'Version not valid'/'Num tracks not valid'/'SavedQueue file at boot is not valid'/'Replicated SavedQueue file is not valid' \u2014 validated on read; 'Add Track Move range: %u-%u to %u' reorder mechanics; 'Migrated tracks for account sn=%u' \u2014 account migration rewrites saved queues; application/gzip string nearby suggests the replicated/transport form can be gzipped",
+   "related_actions": "Queue service: CreateSavedQueue, AddURIToSavedQueue, ReorderTracksInSavedQueue, RemoveSavedQueue operate on this store; SavedQueuesUpdateID is the change counter; SQ: object-ID prefix projects saved queues into ContentDirectory"
   },
   "runtime_flag_files": {
    "status": "vocab",
@@ -113079,13 +113517,16 @@
    ]
   },
   "scrobbler": {
-   "status": "absent",
-   "summary": "audioscrobbler/Last.fm submission client in the streamer layer \u2014 handshake, submission format and trigger policy undocumented",
+   "status": "partial",
+   "summary": "Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API",
    "anchors": [
     "http://post.audioscrobbler.com/",
     "https://ws.audioscrobbler.com/2.0/",
     "scrobbling submission %s",
-    "last.fm-radio-http"
+    "last.fm-radio-http",
+    "/?hs=true&p=1.2&c=",
+    "&a[0]=",
+    "BADTIME -- stealing time from Date: header"
    ],
    "evidence": [
     {
@@ -113119,8 +113560,50 @@
      "status": "confirmed",
      "address": "0x10eccfcc",
      "notes": "last.fm-radio-http"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ee4c38",
+     "notes": "'/?hs=true&p=1.2&c=' handshake path template"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ee4ce4",
+     "notes": "POST template + form fields &a[0]=..&m[0]= at 0x10ee4cd4-0x10ee4df4"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ee4ca0",
+     "notes": "'BADTIME -- stealing time from Date: header'"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x105240c8",
+     "notes": "submission builder in f_105236c8"
     }
-   ]
+   ],
+   "handshake": "GET /?hs=true&p=1.2&c= HTTP/1.1 to http://post.audioscrobbler.com/ (c= = client id); service token 'lastfm'; on BADTIME response it logs 'BADTIME -- stealing time from Date: header' and resyncs clock from the HTTP Date: response header",
+   "submission": "Raw 'POST %s HTTP/1.1' + HOST/CONNECTION: close/CONTENT-TYPE: application/x-www-form-urlencoded/CONTENT-LENGTH template; body fields 's=' (session from handshake) then per-track '&a[0]=' artist '&t[0]=' title '&i[0]=' timestamp '&o[0]=' source '&r[0]=&l[0]=' rating+length '&b[0]=' album '&n[0]=' tracknumber '&m[0]=' MBID \u2014 the classic submissions-protocol array",
+   "transport": "Owns its own connection ('scrobbling openConnection to %s %s failed'), not the shared HTTP client; checks 'OK' status line ('Scrobbling failed. Status returned: %s')",
+   "endpoints": [
+    "http://post.audioscrobbler.com/ (handshake + legacy submission)",
+    "https://ws.audioscrobbler.com/2.0/ (v2 API, usage unresolved)",
+    "last.fm-radio-http URI scheme (func ~0x1041d43c)"
+   ],
+   "result_codes": "R_LASTFM_BAD_ACCOUNT, R_LASTFM_BAD_SUBLEVEL, R_LASTFM_NO_ACCOUNT, R_LASTFM_NO_CONTENT, R_LASTFM_STREAM_LIMIT",
+   "unresolved": "submission trigger policy (when a track scrobbles), queueing/retry on failure, where session creds live (SystemProperties?), which player state gates scrobbling, ws.audioscrobbler.com/2.0 usage"
   },
   "semisleep_power": {
    "status": "absent",
@@ -113167,12 +113650,16 @@
    ]
   },
   "settings_replication": {
-   "status": "vocab",
-   "summary": "replicated_settings store inventory known; merge/version-vector/dissemination protocol + Replication* wire elements not",
+   "status": "partial",
+   "summary": "replicated_settings.cxx household sync protocol: per-setting replicateOne transfers with version+format handshake ('deciding whether to accept replicated list from: %s; ver: %u format: %u'), <Replication>/<ReplicationOperation>/<ReplicationResult>/<ReplicationPlayer>/<ReplicationTime> reporting XML, denylist + quarantine for bad formats/encodings, REPLICATION_IN_PROGRESS/COMPLETE states, distinct account/netsettings/favourites/savedqueue/areas streams",
    "anchors": [
     "replicated_settings.cxx",
     "<ReplicationOperation",
-    "NextFavorite"
+    "NextFavorite",
+    "<ReplicatedNetSettings",
+    "replicateOne from %s to %s",
+    "X-Sonos-Denylisted",
+    "REPLICATION_IN_PROGRESS"
    ],
    "evidence": [
     {
@@ -113198,16 +113685,50 @@
      "status": "confirmed",
      "address": "0x10ec0ce2",
      "notes": "NextFavorite"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10efd374",
+     "notes": "replicateOne from %s to %s setting %u version %u"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10efad64",
+     "notes": "<ReplicatedNetSettings LastUpdateDevice Version FileSchemaVersion>"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10efd4b0",
+     "notes": "denylist failure taxonomy strings"
     }
-   ]
+   ],
+   "envelope": "<Replication><ReplicationOperation>%s</..><ReplicationResult>%d</..><ReplicationPlayer>%s</..><ReplicationTime>%s</..></Replication></AccountsInfo>",
+   "negotiation": "'replication skipped: local fmt %u, remote fmt %u' \u2014 format-version handshake per store; 'ignoring replicated file: incompatible schema'",
+   "failure_taxonomy": "denylisted setting / badFormat / badEncoding / bad algorithm / bad version / bad version+last-update-id / temp file failure \u2014 offenders denylisted ('denylisting replicated setting %u, unknown or blocked', 'Denylisted pyle!'), peers quarantined via <QuarantinedDevices> + X-Sonos-Denylisted header",
+   "streams": "accounts (musicAccountReplicationPush/Pull + tombstone migration), netsettings (<ReplicatedNetSettings LastUpdateDevice Version FileSchemaVersion>), favourites, savedqueues, areas (replicatedAreas), TV channel ('TvPreplicating %zu bytes for resourceId: %u')",
+   "events": "ReplicatedSettingsChangedEvent, ReplicatedSettingsNeedsUpdateEvent, ReplicatedSettingsState, SettingsReplicationState; entry points informReplicationAndNotify[+ForDestroy], informLocalReplicatedSettingVersion, informReplicatedSettingsChange; 'Not replicating while unregistered'"
   },
   "sntp_server": {
-   "status": "vocab",
-   "summary": "player-hosted SNTP server for household time (sntpsrv + sntppoll); role/topology unknown",
+   "status": "partial",
+   "summary": "Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling",
    "anchors": [
     "sntpsrv.cxx",
     "handleSntpRequest",
-    "Created SNTP Server"
+    "Created SNTP Server",
+    "Created SNTP Server, port: %hu clock: %s",
+    "Starting SNTP server switch.",
+    "sonostime.pool.ntp.org",
+    "SNTP waiting for valid",
+    "vli sntp port %u"
    ],
    "evidence": [
     {
@@ -113233,8 +113754,46 @@
      "status": "confirmed",
      "address": "0x10ed6418",
      "notes": "Created SNTP Server"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eaac68",
+     "notes": "0-3.sonostime.pool.ntp.org pool list"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ed6418",
+     "notes": "'Created SNTP Server, port: %hu clock: %s' (sntpsrv.cxx)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb4bd4",
+     "notes": "'Starting SNTP server switch.'"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eb5758",
+     "notes": "synchronizedPlay SNTP wait"
     }
-   ]
+   ],
+   "upstream": "0-3.sonostime.pool.ntp.org pool; /ntpsources HTTP endpoint; ntpSync poll op; 'set SNTP server: %d.%d.%d.%d'",
+   "server": "'Created SNTP Server, port: %hu clock: %s', thread loop with 'sntp-%u-clock' request handling \u2014 MULTIPLE named clocks; server role switches at runtime ('Completed SNTP server switch in %dms'), plausibly to the group coordinator",
+   "client": "sntppoll.cxx: 'SNTP request to group coordinator failed', 'SNTP success after %u failures', 'Time went backward, discard SNTP offset'; ToS marking attempted ('Unable to set ToS for SNTP'); offset persisted via sntp.txt/save_sntp",
+   "sync_play": "'SNTP waiting for valid at %d.%06d', 'SNTP valid %d continue to play %d at %d.%06d', 'synchronizedPlay: noderx I/O error while waiting for SNTP' \u2014 grouped playback start times are scheduled on SNTP time; htsnk_invld_sntp faults the HT sink",
+   "vli": "VLI streams carry SNTP config: 'vli sntp port %u', 'vli src tx settings sntp port'",
+   "unresolved": "server-election rule, clock-domain semantics, port number, jitter/drift thresholds"
   },
   "spotify_esdk": {
    "status": "vocab",
@@ -113282,12 +113841,15 @@
   },
   "telemetry_submission": {
    "status": "partial",
-   "summary": "reportuploader/usagedatasharing/zonereportmgr + submission queue + dropout/trackplay recorders + zpMetricsConfigV2; SubmitDiagnostics SOAP documented, periodic machinery not",
+   "summary": "telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-MessageType: product-data-telemetry header, zonereportmgr.cxx zone reports, submitDiagnostics/submitQueuedDiagnostic pipeline with manifest submission, positioning telemetry level route, per-feature telemetry flags",
    "anchors": [
     "reportuploader.cxx",
     "trackplayrecorder.cxx",
     "zpMetricsConfigV2.xml",
-    "diagnosticSubmissionResults"
+    "diagnosticSubmissionResults",
+    "product-data-telemetry",
+    "Telemetry 1.0 Event field",
+    "positioning/telemetryLevel"
    ],
    "evidence": [
     {
@@ -113321,8 +113883,36 @@
      "status": "confirmed",
      "address": "0x10f962bc",
      "notes": "diagnosticSubmissionResults"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f03bcb",
+     "notes": "X-Sonos-MessageType: product-data-telemetry header"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ea13ec",
+     "notes": "Telemetry 1.0 Event field format"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e81dc0",
+     "notes": "positioning/telemetryLevel muse route"
     }
-   ]
+   ],
+   "channels": "X-Sonos-MessageType: product-data-telemetry header; 'Diagnostic manifest submitted.'; 'Unable to report diagnostic submit status of %s to %s'; submitDiagnostics muse op + playerId,diagnostics,submitDiagnostics route",
+   "format": "'Telemetry 1.0 Event field %s = %s'; reportTelemetryLocked(%s) t[%s] L_id[%s] g[%s] s[%s] field tags; TelemetryBasePlayer + TelemetryCategoryContext classes",
+   "flags": "featureConfigHomeTheaterWifiPerfTelemetry, homeTheaterWifiPerfTelemetry, enableRadioSocTemperatureTelemetry, enableDhcpProxyFailureTelemetry, circuitBreakerTelemetry, ucsTelemetry, positioningTelemetry",
+   "control": "v1/players/{playerId}/positioning/telemetryLevel (setTelemetryLevel) + household variant \u2014 positioning telemetry is user-controllable"
   },
   "trueplay_tuning": {
    "status": "partial",
@@ -113361,11 +113951,15 @@
   },
   "update_machinery": {
    "status": "partial",
-   "summary": "BeginSoftwareUpdate documented; auto_update_scheduler, user_update_scheduler, migrationmanager, /softwareDownload, /testenv update-URL override not",
+   "summary": "manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled",
    "anchors": [
     "auto_update_scheduler.cxx",
     "migrationmanager.cxx",
-    "/softwareDownload"
+    "/softwareDownload",
+    "update_manifest",
+    "BeginSoftwareUpdate",
+    "/firmwareDownload",
+    "update check zp: udn %s"
    ],
    "evidence": [
     {
@@ -113391,8 +113985,38 @@
      "status": "confirmed",
      "address": "0x10e82b39",
      "notes": "/softwareDownload"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10eeea5c",
+     "notes": "manifest: Setting base update url=%s"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10f076a4",
+     "notes": "per-device manifest row fields"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10e838ac",
+     "notes": "v1/players/{playerId}/update/check muse route"
     }
-   ]
+   ],
+   "manifest": "'manifest: Setting base update url=%s', 'manifest: AutoUpdate min version=%s'; per-device rows 'update check zp: udn %s, model %d, submodel %d, ver %s, URI %s, updateID %s'; non-listed devices skipped ('not in manifest, skipping update'); below-min devices need 'manual update required: below manifest's min auto-update version'",
+   "endpoints": "UPnP BeginSoftwareUpdate (UPnP result faults surfaced), muse v1/players/{playerId}/update/check + household variant (checkForUpdate), /firmwareDownload + v1/.../systemReporting/firmwareDownload reporting route, version?updateToken=true& query param",
+   "config": "O_UPDATE_SERVER_URL, O_UPDATE_MSG_URL, O_FIRMWARE_UPGRADE_LOGGING_URL, OnlineUpdateBaseURL, UpdateURL/updateURL ('Update URL is malformed' validation)",
+   "group_update": "household-wide: 'Max ZPs reached while checking for auto updates', sendUpdateZoneMemberSettingsCmd, updateActiveZone; member image fetch failures 'RINCON_%s01400 update failed'",
+   "file_schema": "local stores self-migrate: 'File upgraded to v%d schema', 'Upgraded %s to file schema %d', 'load failed: incorrect schema [%d != %d]'",
+   "unresolved": "manifest document schema (fields beyond the log strings), image format/verification, upgrade_mgr hand-off protocol"
   },
   "wac_mode": {
    "status": "vocab",
