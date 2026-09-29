@@ -116716,7 +116716,7 @@
   },
   "embedded_sqlite": {
    "status": "partial",
-   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim",
+   "summary": "embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db \u2014 the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven table: timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL) \u2014 local/suspend timers (timers_impl.cxx)",
    "anchors": [
     "sqlite3_exec",
     "LocalTimer from sqlite3",
@@ -116783,7 +116783,10 @@
    "users": "LocalTimer store (timer persistence across reboot); the full table inventory is unmapped \u2014 imports suggest prepared-statement CRUD, no bulk exec-heavy workload",
    "schema": "CREATE TABLE IF NOT EXISTS timers(id TEXT PRIMARY KEY,trigger_time TEXT NOT NULL,total_duration INTEGER NOT NULL,triggered NUMERIC NOT NULL); plus a paused_timers table queried as (id, remaining_seconds, paused_utc_time, total_duration) \u2014 paused timers freeze remaining_seconds + the UTC pause instant",
    "ops": "SELECT id,trigger_time,total_duration,triggered,rowid FROM timers [WHERE id=?1]; SELECT count(*) FROM timers; same pair for paused_timers; PRAGMA user_version used for schema versioning",
-   "notes": "'LocalTimer from sqlite3 stmt [%s] FAILED %d %s' / 'from sqlite3 stmt timer' \u2014 row\u2192object hydration; filename timer.db"
+   "notes": "'LocalTimer from sqlite3 stmt [%s] FAILED %d %s' / 'from sqlite3 stmt timer' \u2014 row\u2192object hydration; filename timer.db",
+   "tables": {
+    "timers": "id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL \u2014 local timers, suspend-aware (timers_impl.cxx @0x10edcf88)"
+   }
   },
   "entitlements": {
    "status": "partial",
@@ -118294,7 +118297,7 @@
   },
   "semisleep_power": {
    "status": "partial",
-   "summary": "low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info')",
+   "summary": "low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log \"...(considering suspend) %s\" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; \"Unable to remove time on a ringing timer\" guards firing timers.",
    "anchors": [
     "enableSemiSleep",
     "featureConfigSemiSleep",
@@ -118396,6 +118399,14 @@
      "status": "confirmed",
      "address": "0x10fba624",
      "notes": "LED apply gated by suspend bypass flag"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10edccbc",
+     "notes": "timers_impl.cxx literal block: timer op logs + SQLite DDL"
     }
    ],
    "evidence_bits": "featureConfigSemiSleep + semiSleepConfig JSON key in cloud config; powerWakeupFromSemiSleep wake entry point; '<r:DirectControlIsSuspended val=' is an r:-namespace replicated element; AmplifierPowerStateChangedEvent; SONOS_PLAYER_SLEEPING and SONOS_PLAYER_LOW_BATTERY are lechmere close reasons \u2014 suspension tears down the cloud channel",
