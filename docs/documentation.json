@@ -72594,7 +72594,74 @@
    "impl_files": [
     "zoneplayer/rc_impl.cxx",
     "zoneplayer/rc_impl_stp.cxx"
-   ]
+   ],
+   "implementation_notes": {
+    "source": "rc_impl.cxx literals 0x10e87728-0x10e88d8c; rcMediaRenderer + sonosAsyncFastState(+Cond) fast-state channel; ie-schd/ie-cache threads",
+    "eq_settings": [
+     "SubGain",
+     "SubCrossover",
+     "SubPolarity",
+     "SubEnable",
+     "VolumeScalingFactor",
+     "HeightChannelLevel",
+     "DialogLevel",
+     "SpeechEnhanceEnabled",
+     "SupportsMaxDialogLevel",
+     "SurroundLevel",
+     "MusicSurroundLevel",
+     "SurroundEnable",
+     "SurroundMode",
+     "AudioDelay",
+     "AudioDelayLeftRear",
+     "AudioDelayRightRear",
+     "NightMode"
+    ],
+    "internal_verbs": [
+     "SetMute",
+     "SetMuteWithoutProxy",
+     "SetLoudness",
+     "SetVolumeAndMuteWithoutProxy",
+     "ResetBasicEQ",
+     "ResetExtEQ",
+     "SetChannelMap",
+     "RestoreVolumePriorToRamp",
+     "SetVolumeScaling",
+     "SetVolume",
+     "SetVolumeWithoutProxy",
+     "SetRelativeVolume",
+     "SetVolumeDB",
+     "SetBass",
+     "SetTreble",
+     "SetOutputFixed",
+     "RampToVolume",
+     "ButtonToggleMute",
+     "ButtonSetMute"
+    ],
+    "ramp_types": [
+     "ALARM_RAMP_TYPE",
+     "AUTOPLAY_RAMP_TYPE",
+     "SLEEP_TIMER_RAMP_TYPE",
+     "DIRECT_RAMP_TYPE",
+     "INSTANT_RAMP_TYPE",
+     "SLOW_RAMP_TYPE"
+    ],
+    "bonded_states": [
+     "HT_BONDED_MASTER",
+     "HT_BONDED_SATELLITE",
+     "UNBONDED_DEVICE",
+     "BONDED_STEREOPAIR_AND_SUB",
+     "BONDED_TO_SUB",
+     "BONDED_STEREOPAIR"
+    ],
+    "validation": [
+     "Muted is required",
+     "Cannot set volume in fixed output mode",
+     "volumeDelta: At least one is required: {volumeDelta,muted}",
+     "At least one is required: {volume,muted}"
+    ],
+    "volume_internals": "\"Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d\" \u2014 balance+per-channel mutes; \"ramping to %d\"; GainTrimdB %.2f; FocusModeMute; \"setMonoMode %s\"; \"Set real channel map to L: %u - R: %u\"; \"bonded; set primary's default loudness %d\"; save collision policy delay|drop [cSC:%u|sC:%u|sCC:%u]",
+    "sonar": "\"sonar %sACTIVE (t:%d e:%d ac:%d id:%s)\"; \"sonar state changing %s -> %s\"; \"Will apply and store Sonar calibration %s\"/\"Will apply HT spatial coefficients\"; CalibrationMode must be spectral|spatial; events sonarEnabledChangedTo/sonarCalibConsistentChangedTo/sonarHasCalibrationChangedTo/orientationChangedTo"
+   }
   },
   "/MediaRenderer/VirtualLineIn/Control": {
    "name": "VirtualLineIn",
@@ -104656,7 +104723,8 @@
      "address": "literal"
     }
    ]
-  }
+  },
+  "renderingcontrol_status_schema": "<RenderingControl>{MasterVolume,MasterMute,FocusModeMute,VolumeScale,PlaybackDucked,DuckingFlags,SodVolume,ExtVolume,AmpState,AudioCoreReady,DeviceTime %d.%06d}</RenderingControl>"
  },
  "uri_formats": {
   "x-rincon-queue": {
@@ -120282,6 +120350,73 @@
      "notes": "QPlay:2 capability + #QPLAY_SUPPORT# + QPlayAuth"
     }
    ]
+  },
+  "music_accounts": {
+   "accountsmgr": {
+    "guest": "guest accounts: link-code required; sn_%d serials; \"guest upgrade not allowed via reauth\"; matched by {g,sn,h(ash)}; nickname update; tombstone migration \"Migrated tombstoned %s replication account\"",
+    "errors": [
+     "no account",
+     "stale account",
+     "unsupported service",
+     "unexpected",
+     "login failed",
+     "serviceId is out of range",
+     "serviceId is malformed",
+     "Either linkCode or accountId should be provided",
+     "Could not resolve serviceId",
+     "Unsupported account authentication method",
+     "missing required Token or OAuthDevID"
+    ],
+    "corruption": "detectors {emptyUUID,dupUUID,serial}->\"Found corrupted accounts\"; removals corruptedAccountRemoval/duplicateAccountRemoval; \"Removed account multiple. SN=%d, SID=%u, UID=%u\"",
+    "replication": "\"replicating accounts file from %s\"; \"Rejected version %u, schema %u from %s\"; \"Invalid replication operation\"",
+    "migration": "\"Created new accounts file; migrated %d accounts\"; \"Migrated Pandora built-in\"; pre-cloud/anonymous account migration; legacyTuneInReplaced; \"Migrated Account with SID %u. (%u,%u->%u)\"",
+    "preferred": "getPreferredAccount no preferred set/no matching; setPreferred via serialNum extraction from accountId; performsSMAPIAccountMatching; \"Account matched g=%d,sn=%u,h=%s\"",
+    "ops": [
+     "restore",
+     "addAccount",
+     "migrate",
+     "maintenance"
+    ],
+    "reporting": "\"Pending report for account %u\"; \"Failure to mark accounts for reporting\"; \"Failed to report svc %u\"; numAccounts",
+    "manifest": "\"Failed to download manifest file (%s) for service %u, error %hu\"",
+    "directcontrol": "\"End direct control context UUID: %s\"; spotifyTransferStartDirectControlEx; authToken/smapi keys"
+   }
+  },
+  "htaudio": {
+   "tv_session_fields": [
+    "cid set/clr",
+    "corrId",
+    "sessionLength",
+    "sessionPlayTime",
+    "connectionType",
+    "GCUUID",
+    "GCBootSeq",
+    "GCTimeStart",
+    "GCTimeEnd",
+    "inputRate",
+    "dataBurstType",
+    "contentType",
+    "playSeconds",
+    "forced",
+    "topoType",
+    "zpHTInputSession"
+   ]
+  },
+  "ir_decoder": {
+   "name": "RIRDecoder \u2014 IR receive/decoder",
+   "status": "partial",
+   "summary": "irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -> auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; \"Short Code not recognized\"/\"unrecognized %d\"; read \"ir: %d length: %d\",\"IR Event read: %zd, msgcount: %u\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea75d8",
+     "notes": "irdecoder.cxx rodata"
+    }
+   ]
+  },
+  "reporting": {
+   "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump"
   }
  },
  "muse": {
