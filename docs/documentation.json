@@ -122329,7 +122329,8 @@
     "virtualRemoteControl": "{playerId}/virtualRemoteControl/buttonCommand->sendButtonCommand",
     "voice": "{playerId}/voice/accounts->{getVoiceAccounts,createVoiceAccount}; accounts/{accountId}->{updateVoiceAccount,removeVoiceAccount}; amazonChallenge->createAmazonChallenge; setup->notifyInitiateOnboarding",
     "zones": "households/{hh}/zones->getActiveZoneList; zones/definition->{getZoneDefinitionList,addZoneDefinition}; definition/{zoneId}->{get,update,remove}ZoneDefinition; missingDefinition->addMissingZoneDefinition; activeZone/{zoneId}->updateActiveZone; memberSettings/{zoneId}->updateZoneMemberSettings; activate/{zoneId}->activateZone; deactivate/{zoneId}->deactivateZone; players/{playerId}/zones/{join,unjoin}/{zoneId}"
-   }
+   },
+   "url_segments": "{households/,players/,groups/,services/,users/,/tokens,/permissions,/invite,/redeem,/users,/extended,/createGroup,/duck,/unduck,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent,/definition,/missingDefinition,/activeZone,/memberSettings,/activate,/deactivate,/unjoin}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds}; verbs {deleteInvite,getUsers,redeemInvite,createInvite,batchTranslate,reportProductEvent,reportAccountSubscription,reportSoftwareDownload,reportFirmwareDownload}; fields {targetType,targetid,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue}"
   },
   "local_routes_2": {
    "name": "zone/group route paths + duck",
@@ -123623,13 +123624,52 @@
   "expat": {
    "name": "expat 2.5.0 XML parser",
    "status": "strong",
-   "summary": "version expat_2.5.0; billion-laughs accounting \"expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f\" + debug env {EXPAT_ACCOUNTING_DEBUG,EXPAT_ENTITY_DEBUG,EXPAT_ENTROPY_DEBUG}; entropy /dev/urandom + fallback(4); attr types {CDATA,IDREF,IDREFS,ENTITY,ENTITIES,NMTOKEN,NMTOKENS}; xml namespace; errors {no element found,not well-formed (invalid token),unclosed token,partial character,mismatched tag,duplicate attribute,junk after document element,illegal parameter entity reference,undefined entity,recursive entity reference,asynchronous entity,reference to invalid character number/binary entity/external entity in attribute,\"XML or text declaration not at start of entity\",unknown encoding,\"encoding specified in XML declaration is incorrect\",unclosed CDATA section}",
+   "summary": "version expat_2.5.0; billion-laughs accounting \"expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f\" + debug env {EXPAT_ACCOUNTING_DEBUG,EXPAT_ENTITY_DEBUG,EXPAT_ENTROPY_DEBUG}; entropy /dev/urandom + fallback(4); attr types {CDATA,IDREF,IDREFS,ENTITY,ENTITIES,NMTOKEN,NMTOKENS}; xml namespace; errors {no element found,not well-formed (invalid token),unclosed token,partial character,mismatched tag,duplicate attribute,junk after document element,illegal parameter entity reference,undefined entity,recursive entity reference,asynchronous entity,reference to invalid character number/binary entity/external entity in attribute,\"XML or text declaration not at start of entity\",unknown encoding,\"encoding specified in XML declaration is incorrect\",unclosed CDATA section} + errors {error in processing external entity reference,document is not standalone,unexpected parser state,entity declared in parameter entity,\"requested feature requires XML_DTD support\",cannot change setting once parsing has begun,unbound prefix,must not undeclare prefix,incomplete markup in parameter entity,XML/text declaration not well-formed,illegal char in public id,parser suspended/not suspended/parsing aborted/parsing finished,cannot suspend in external parameter entity,reserved prefix xml/xmlns rules,\"limit on input amplification factor (from DTD and entities) breached\"}; config {XML_DTD,XML_CONTEXT_BYTES,XML_NS,XML_BLAP_MAX_AMP,XML_BLAP_ACT_THRES,XML_GE}; DTD keywords {SYSTEM,PUBLIC,ENTITY,ATTLIST,ELEMENT,NOTATION,CDATA,REQUIRED,FIXED,EMPTY,PCDATA,NDATA,INCLUDE,IGNORE}; decl {version,encoding,standalone}; encodings {UTF-16LE,UTF-16BE,UTF-8,US-ASCII}",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
      "address": "0x10fb2548",
      "notes": "expat"
+    }
+   ]
+  },
+  "telemetry_client": {
+   "name": "telemetry_client",
+   "status": "partial",
+   "summary": "reportKVEvent; \"report: %s %s %s %u %u\"; \"name: %s, schemaver: %s, category: %s\"; \"Encoding failed/succeeded: %zu bytes\"; \"Callback is not set to call in %s\"/\"Callback not set in %s\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fb9c2c",
+     "notes": "telemetry"
+    }
+   ]
+  },
+  "select_thread": {
+   "name": "RSelectThread epoll wrapper",
+   "status": "partial",
+   "summary": "{epollAddFD,selthrd,RSelectThreadMutex,SelthrdUpdateMutex,epollReset}; errors {\"Error in addUser - too many users\",\"Error adding/removing interrupt fd to epoll\",\"%s improperly changed its FD to %d (watching %d)\",\"Error in eventfd (%d)\",\"Error removing fd %d for %p %s (%s)\",\"%s: %p %s already watching fd %d, removing it first\",\"Error adding fd %d\",\"Update error stu %p not in st %p\",\"Error %d in epoll wait (%s)\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fba020",
+     "notes": "select thread"
+    }
+   ]
+  },
+  "leds_zp": {
+   "name": "LED engine (leds_zp)",
+   "status": "strong",
+   "summary": "HW features \"setHwFeatures bHasMicrophone=%s, bHasMuteLED=%s, bHasStatusLED=%s, bHasOnlyStatusLED=%s, bHasHardwareLedSwap=%s, bCanSetWhiteBrightness=%s\"; mode flags {R_LED_UPGRADE,R_LED_BROKEN_DEVICE,audiodev_flag,LED_MANAGER_HAS_AUDIODEV}; state \"applyLEDModeLocked m_fLedBrightness=%5.2f, m_nextLedPatternPriorityLevel=%u m_lastClr=%d m_fade_effect=%d m_lLEDFlags=0x%llx m_bIsInExclusiveBTMode=%d m_bIsBTConnected=%d m_bHasStatusLED=%d m_bHasMuteLED=%d useOnlyStatusLED=%d\"; ops {applyLEDMode,setWhiteBrightness,feedbackFlash,feedbackIrFlash,resumeDefaultLEDPattern[Flash],demoModeErrorFlash,executeDiagMode,updateCaptouchBrightness,setLEDBrightness,led_set_turnOffLocked,led_set_updateCaptouchBrightness,led_set_feedbackFlash}; \"ignoring apply LED mode. m_bReady=%d\"/\"due to suspend bypass flag\"; pattern fmt \"ledWrite pattern: led_ids %08x repeat %d\" + \"rgb %d %d %d, hold %d, fade %d\" + \"cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x\" + \"step[%d]= r=%02x, g=%02x b=%02x hold_time=%u fade=%u\"; HAL {led_get_hal_token,hal_led_diag,hal_led_flash,hal_led_write,hal_led_close,hal_led_brightness,hal_led_ir,led_util_open/close}; saved pattern {\"ERROR allocating saved led pattern struct\",\"enqueue restore pattern for LED state:0x%llx\",\"has bFlashMode set. Returning saved pattern\",\"no saved led pattern to flash\"}; colors {white,\"set default captouch feedback color to %s\"}; mutexes {leds_zp mutex,leds_zp_internal}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fba544",
+     "notes": "leds_zp"
     }
    ]
   }
