@@ -5266,9 +5266,21 @@ OnlineUpdateBaseURL, RSystemOverrides, O_SUBMIT_DIAG_URL, O_SUBMIT_AUTO_DIAG_URL
 <li><strong>note:</strong> tz abbrev table (CST appears twice - US Central + China Standard)</li>
 </ul>
 </li>
+<li><strong>r_client_keycert_id:</strong><ul>
+<li><strong>provenance:</strong> selector f_1057ac60 returns id in r3; each arm loads its R_CLIENT_KEYCERT_ID_* log string then returns 0-3 — PROVEN name-&gt;id</li>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 4</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> R_CLIENT_KEYCERT_ID_SONOS (generic sonos cert; logged "...for %s")</li>
+<li><strong>1:</strong> R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY</li>
+<li><strong>2:</strong> R_CLIENT_KEYCERT_ID_SONOS_DEVICE</li>
+<li><strong>3:</strong> R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE (registered-device cert; host arg %s)</li>
+<li><strong>note:</strong> selection driven by flag bits at cert-ctx+0x0c (bit0/bit2) plus a predicate call; consumer f_1057ade8 (cert path builder) feeds id into f_1056c738 which indexes bss tables 0x110a5670/0x110a56d8 (runtime-populated cert objects). Cert manager source units: devicecertmanager.cxx, regdevicecert.cxx, certmanager.cxx; mbedTLS does CA/client-cert file+blob loading; bundle download w/ ETag change detection; /regcert + /root_cert_bundles HTTP endpoints</li>
+</ul>
+</li>
 <li><strong>evidence:</strong></li>
 <li>type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12</li>
-<li><strong>r_star_status:</strong> PROVEN: R_LED_<em> (64-bit mask, applyLEDMode log-arg constants), R_PLAY_OP_</em> + R_STREAM_OP_<em> (PIC jump-table bucketing), muse result codes 0-106 (direct-indexed name table — the enum the R_-adjacent ERROR_</em> strings actually belong to). CORRECTION: most names previously catalogued as R_<em> namespaces (R_ACCOUNT_</em>, R_PAND_<em>, R_WMP_</em>, R_LASTFM_<em>, R_CLOUD_QUEUE_</em>, R_PLAYBACK_<em>, R_INIT/READ/WRITE_STATUS_</em>, R_MASK_<em>, R_TYPE_</em>, R_DOCK_INTERRUPT, R_MICROPHONE_<em>, R_PEER_</em>, R_INSUFFICIENT_<em>) were SUBSTRING ARTIFACTS inside ERROR_</em>, FLAC__STREAM_DECODER_<em>, SPEAKER_MASK_</em> and FRAME_NUMBER_TYPE_<em> strings — not a Sonos R_ namespace. Genuine remaining R_</em>: R_CLIENT_KEYCERT_ID_<em> (curl cert-selection ids, log only) and the ~29 R_</em> settings keys (separate vocabulary)</li>
+<li><strong>r_star_status:</strong> ALL genuine R_<em> namespaces now resolved or accounted: R_LED_</em> (proven mask), R_PLAY_OP_<em>/R_STREAM_OP_</em> (proven jump-table), R_CLIENT_KEYCERT_ID_<em> (proven selector returns 0-3), ~29 R_</em> settings keys (separate key vocabulary, no integer semantics). Earlier catalogued "R_<em>" families were substring artifacts of ERROR_</em>/FLAC__<em>/SPEAKER_MASK_</em> strings — those belong to the media_service_errors and muse_result_codes enums instead</li>
 </ul>
 
 

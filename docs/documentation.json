@@ -119608,6 +119608,18 @@
       "10": "JST"
      },
      "note": "tz abbrev table (CST appears twice - US Central + China Standard)"
+    },
+    "r_client_keycert_id": {
+     "provenance": "selector f_1057ac60 returns id in r3; each arm loads its R_CLIENT_KEYCERT_ID_* log string then returns 0-3 \u2014 PROVEN name->id",
+     "kind": "enum",
+     "count": 4,
+     "names": {
+      "0": "R_CLIENT_KEYCERT_ID_SONOS (generic sonos cert; logged \"...for %s\")",
+      "1": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY",
+      "2": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE",
+      "3": "R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE (registered-device cert; host arg %s)"
+     },
+     "note": "selection driven by flag bits at cert-ctx+0x0c (bit0/bit2) plus a predicate call; consumer f_1057ade8 (cert path builder) feeds id into f_1056c738 which indexes bss tables 0x110a5670/0x110a56d8 (runtime-populated cert objects). Cert manager source units: devicecertmanager.cxx, regdevicecert.cxx, certmanager.cxx; mbedTLS does CA/client-cert file+blob loading; bundle download w/ ETag change detection; /regcert + /root_cert_bundles HTTP endpoints"
     }
    },
    "evidence": [
@@ -119620,7 +119632,7 @@
      "notes": "SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12"
     }
    ],
-   "r_star_status": "PROVEN: R_LED_* (64-bit mask, applyLEDMode log-arg constants), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table bucketing), muse result codes 0-106 (direct-indexed name table \u2014 the enum the R_-adjacent ERROR_* strings actually belong to). CORRECTION: most names previously catalogued as R_* namespaces (R_ACCOUNT_*, R_PAND_*, R_WMP_*, R_LASTFM_*, R_CLOUD_QUEUE_*, R_PLAYBACK_*, R_INIT/READ/WRITE_STATUS_*, R_MASK_*, R_TYPE_*, R_DOCK_INTERRUPT, R_MICROPHONE_*, R_PEER_*, R_INSUFFICIENT_*) were SUBSTRING ARTIFACTS inside ERROR_*, FLAC__STREAM_DECODER_*, SPEAKER_MASK_* and FRAME_NUMBER_TYPE_* strings \u2014 not a Sonos R_ namespace. Genuine remaining R_*: R_CLIENT_KEYCERT_ID_* (curl cert-selection ids, log only) and the ~29 R_* settings keys (separate vocabulary)"
+   "r_star_status": "ALL genuine R_* namespaces now resolved or accounted: R_LED_* (proven mask), R_PLAY_OP_*/R_STREAM_OP_* (proven jump-table), R_CLIENT_KEYCERT_ID_* (proven selector returns 0-3), ~29 R_* settings keys (separate key vocabulary, no integer semantics). Earlier catalogued \"R_*\" families were substring artifacts of ERROR_*/FLAC__*/SPEAKER_MASK_* strings \u2014 those belong to the media_service_errors and muse_result_codes enums instead"
   },
   "chirp_sdk": {
    "status": "confirmed",
