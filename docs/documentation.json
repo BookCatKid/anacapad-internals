@@ -120781,9 +120781,9 @@
    "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; artfetch thread"
   },
   "areas": {
-   "name": "areasMgr \u2014 multi-room area persistence",
-   "status": "partial",
-   "summary": "areas.json file; Everywhere area UUID 7055133f-81e7-45e6-ba70-8803966c7185; validation {\"Area IDs must be distinct\",\"Maximum area limit (%d) reached\",\"Cannot update read-only area\"}; fields {areaId,playerIds array}; accept-file staging {accepted file load/rename} + schema version check \"Loaded areas schema version (%d) differs from local version (%d)\"",
+   "name": "Areas manager",
+   "status": "strong",
+   "summary": "areas.json persistence + atomic-write cycle {accepted file load,rename accepted\u2192store,rename failed paths,saving failed,setup load/save}; schema versioning 'Loaded areas schema version (%d) differs from local version (%d)'; builtin 'Everywhere' + GUID 7055133f-81e7-45e6-ba70-8803966c7185; constraints {'Area IDs must be distinct','Maximum area limit (%d) reached','Cannot update read-only area','Set of players in area (array playerIds)'}; vars {areaId,areasMgr,artfetch}",
    "evidence": [
     {
      "type": "firmware",
@@ -120794,9 +120794,9 @@
    ]
   },
   "async_stream": {
-   "name": "RAsyncBufferedStream \u2014 HTTP/CDN stream buffer",
-   "status": "partial",
-   "summary": "init {buffersize,multiThread,ratelimit us}; segment table (realloc to %zu entries); alloc policy {satisfied by track transition|deleting played data|not satisfied}; \"Started reaping played data. Lose fast scrubbing backwards\"; CDN fallback {\">>>Sync read from CDN at offset %zu\",\"Opportunistic sync read from CDN\"}; \"File is in memory!\"; seek sessions \"new seek based PB session\"; \"Socket has: %zu bytes ... CHSRC ms ahead: %ld\"; stats mrrkbs/arrkbs + \"Avg read rate %zuKB/sec; min read rate %zu\"; \"Atom Table Full\" bound; threads asyncstrmio/asyncstreamiomgr",
+   "name": "RAsyncBufferedStream internals",
+   "status": "strong",
+   "summary": "init 'buffersize=%zu; multiThread=%u; ratelimit=%zu us'; segment model {'Data segment follows segment with EOF!','Tried to delete segment with I/O in progress','SegmentTable reallocated to %zu entries','Unexpected: I/O to block %zu; not last block in segment'}; positions {'Pause; framed to stream pos %zu; resume at pos at %zu; reaped to pos %zu','Played to stream pos %zu. Reaped %zu blocks of played data in track %5.5s','Started reaping played data. Lose fast scrubbing backwards'}; alloc {'Alloc satisfied by track transition','Alloc satisfied by deleting played data','Alloc not satisified, returning anyway','Unable to satisfy allocation request! Played to pos','Satisfed allocation request but should not have required this!'}; CDN fallback {'File is in memory!','>>>Start reading at offset %zu ; streamPos %zu','>>>Sync read from CDN at offset %zu','Opportunistic sync read from CDN','readSync unable to allocate a buffer; transport error will ensue','>>>>readSync: read %zu blocks in %lld ms'}; rates {'Playing at ~%zu KB/sec. Blocks read this series: %zu','Avg read rate: %zuKB/sec; min read rate','download time %zu ms','Stop async reading. Filled %zu buffers; %zu bytes in %zu ms. (%zu KB/sec)'}; tracking {'Socket has: %zu bytes (%zu blocks and %zu bytes). CHSRC ms ahead: %ld','new seek based PB session','Restart current track','start streaming track %d [%5.5s]. Filesize=%zu, startPos=%zu'}; actors {asyncstrm,asyncstrmio,asyncstreamiomgr,asyncBufferedStream,mrrkbs,arrkbs}; 'Atom Table Full'",
    "evidence": [
     {
      "type": "firmware",
@@ -123114,6 +123114,20 @@
      "status": "confirmed",
      "address": "0x10eaba78",
      "notes": "accounts replication"
+    }
+   ],
+   "detail": "matching {performsSMAPIAccountMatching,\"Account matched g=%d,sn=%u,h=%s\",\"New account matched to existing guest account with SN=%u, Hash=%s\"}; DC outcomes {login failed,no account,stale account,unsupported service,unexpected,Could not resolve serviceId}; corruption {emptyUUID,dupUUID,caller,accountCorruption,\"Error reading file while detecting stale anonymous/corrupted accounts\",\"Found corrupted accounts\"}; guest {\"Link code required to add guest account\",\"Added guest account with SN=%u\",\"Updating guest account nickname\",\"addAccount failed: guest upgrade not allowed via reauth.\",\"account already exists on household\"}; maintenance {restore,addAccount,migrate,\"Removed account with corrupted type. SN=%d, SID=%u, UID=%u\",corruptedAccountRemoval,\"removing duplicate account with SID\",duplicateAccountRemoval,\"Removed account multiple\",numAccounts}; migrations {\"Migrated Pandora built-in (%d,%d->%d)\",pre-cloud,anonymous,\"Migrated Account with SID %u. (%u,%u->%u)\",legacyTuneInReplaced,\"UserIdHash [%s] already exists and will not be updated for SN=%u\"}; replication status XML <AccountsInfo><Replication><ReplicationOperation>%s|n/a</ReplicationOperation><ReplicationResult>%d|n/a</ReplicationResult></Replication><ReplicationPlayer>%s</ReplicationPlayer><ReplicationTime>%Y-%m-%d %H:%M:%S</ReplicationTime></AccountsInfo>; outcomes {\"Pull successful\",\"Corrupted accounts not updated\",\"Pull rescheduled in %lld\",\"Push successful\",\"Push rescheduled in %lld\"}; \"Rejected version %u, schema %u from %s\"; \"replicating accounts file from %s\"; spotifyTransferStartDirectControlEx; R_SvcAccounts"
+  },
+  "audioin_groups": {
+   "name": "AudioIn group management (ai_impl)",
+   "status": "partial",
+   "summary": "groups keyed by coordinator {'Removing group with coord %s','Adding group with coord %s demoMode %d','addGroup: coordinator %s already added','addGroup: no room available for coordinator %s','added %s number of groups %zu remote %zu','removed %s remaining number of groups %zu remote %zu',\"StopTransmissionToGroup: couldn't find coordinator %s\"}; URI x-rincon-stream:; formats {UNCOMPRESSED,COMPRESSED,v-spdif} + 'Running demo mode forcing uncompressed'",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10eacd98",
+     "notes": "ai_impl block"
     }
    ]
   }
