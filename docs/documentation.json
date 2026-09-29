@@ -120584,7 +120584,8 @@
      "address": "0x10f05460",
      "notes": "certmanager block diag region"
     }
-   ]
+   ],
+   "coordinator": "DiagMgr: types {Healthcheck,Feedback,ExtraLocal,Diagnostics}+diag_metadata; ops {submitQueuedDiagnostic,SubmitDiagnostics}; queue bounds {\"submission queue full\",\"result queue full\"}; params {includeControllers,initiatingDeviceId} fmt %s%hu; delayed \"triggered ... for %us from now\"; results {unrecognized status,Failed to update status,failed-other submission in process,unsuccessful-no devices submitted,successful}; completed log \"submissionId: %s, status: %d, diagnosticId: %d\"; zpDiagSubmit+tracking+diag_mgr vars; <ZPNetworkInfo type = 'User'> + <!-- START/END UUID: %s --> markers + \" unreachable\""
   },
   "device_props": {
    "idle_shutdown": "idle events LineInStateChangedEvent/ReplicatedSettingsChangedEvent; vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; dpimpl/dpUpdateIdleState \"idle state is %sidle, changing to %sidle\"",
@@ -120592,15 +120593,15 @@
    "fields2": "{oldAddr,newAddr,playingAudio,zoneRole,lineInBusy,ipAddrChange,network,PrimarySupportsFlexSurrounds}; soapaction + text/xml; charset=\"utf-8\""
   },
   "feature_config": {
-   "name": "RFeatureConfigManager \u2014 cloud feature flags",
+   "name": "feature config manager",
    "status": "partial",
-   "summary": "GET /features/v1/config? (cache-control: no-cache); files cloudconfig.json/cloudconfig_override.json with {swVersion,hwVersion}; precedence: override > cloud-cached > cloud-persisted; \"failed to fetch config: not securely registered\"; \"Already have fresh data. Skipping Fetch.\"; \"failed to connect. rescheduling in 1 hour\"; stale markers; FCS Cache via g_pZone",
+   "summary": "cloud GET /features/v1/config? + cache-control: no-cache; files {cloudconfig.json,cloudconfig_override.json} + {swVersion,hwVersion}; precedence: override > cloud-cached (\"stale\" marker) > cloud-persisted; \"failed to fetch config: not securely registered\" gate; fetch cycle {\"Already have fresh data. Skipping Fetch.\",\"failed to get service url\",\"failed to connect. rescheduling in 1 hour.\",\"Fetching cloud data.\"}; managers {RFeatureConfigManager,FeatureConfigManager}; FCS Cache requires g_pZone init",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10ef3c60",
-     "notes": "feature cfg mgr block"
+     "address": "0x10ef3848",
+     "notes": "feature config region"
     }
    ]
   },
@@ -122530,7 +122531,8 @@
      "address": "0x10f063f8",
      "notes": "hhsettings region"
     }
-   ]
+   ],
+   "visibility": "\"ALERT! Display of these settings on status page (/householdsettings.json) needs to be addressed before setting this category\"; vars {householdsettings,userMetricsTracking,householdsettings.json,hhsettingsfile}; frozen:1 flag"
   },
   "memmon": {
    "name": "memory monitor",
@@ -122596,6 +122598,61 @@
      "notes": "eventloop region"
     }
    ]
+  },
+  "devicecertmanager": {
+   "name": "device cert download manager",
+   "status": "partial",
+   "summary": "ETag-cached downloads; metadata {requestTimeMS,downloadStatusCode,httpResultCode,previousETag}; outcomes {downloaded,unchanged}; \"Cert download attempt finished\"; \"Unknown cert metadata state: %s. Scheduling cert refresh job.\"; error taxonomy {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present}; headers {X-Sonos-Muse-Household-Id,X-Sonos-Denylisted}; \"Retrieved manufacturing data: %s\"; files generated lazily \"file not available yet, generating\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef2224",
+     "notes": "devicecertmanager block"
+    }
+   ]
+  },
+  "zpinfo_dpimpl": {
+   "name": "ZPInfo/dpimpl fields",
+   "status": "partial",
+   "summary": "vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo}; events {LineInStateChangedEvent,ReplicatedSettingsChangedEvent}; idle FSM \"idle state is %sidle, changing to %sidle\" + \"Reporting device %sidle\"; actors {dpimpl,RDPZoneImpl,dpZoneImpl,dpUpdateIdleState}; /dev/audioctl + U-Boot 17.2.7 + \"OTP: %.32s\"; KVPair parse; battery {RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef31cc",
+     "notes": "dpimpl region"
+    }
+   ]
+  },
+  "enet_stats": {
+   "name": "ethernet port stats",
+   "status": "partial",
+   "summary": "<EnetPorts><Port port='%d'><Link>%d</Link><Speed>%d%s</Speed></Port></EnetPorts>; EthPrtStats counters {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef3494",
+     "notes": "enet stats region"
+    }
+   ]
+  },
+  "fd_event": {
+   "name": "fdevent epoll wrapper",
+   "status": "partial",
+   "summary": "ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.read,removeFd,waitForEvent}; EventSync %s; epoll {create1,ctl,wait} errors incl \"unsupported flags\",\"already monitored\",\"exceeded the fd capacity of %d\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef3fec",
+     "notes": "fdevent region"
+    }
+   ]
+  },
+  "error_codes": {
+   "rze": "RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}"
   }
  },
  "muse": {
