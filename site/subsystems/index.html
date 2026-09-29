@@ -1522,17 +1522,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ibt_plans" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>ibt_plans</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#inprocess_events" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3253,6 +3242,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>ibt_planner</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ibt_plans" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>ibt_plans</code>
       </span>
     </span>
   </a>
@@ -5640,17 +5640,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ibt_plans" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>ibt_plans</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#inprocess_events" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -7378,6 +7367,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ibt_plans" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>ibt_plans</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ir_decoder" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -8607,11 +8607,6 @@
 <td>plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "[dispatch] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag</td>
 </tr>
 <tr>
-<td><code>ibt_plans</code></td>
-<td><strong>partial</strong></td>
-<td>a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init</td>
-</tr>
-<tr>
 <td><code>inprocess_events</code></td>
 <td><strong>partial</strong></td>
 <td>subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,"We timed out on %zu devices after %u attempts",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache</td>
@@ -9400,6 +9395,11 @@
 <td><code>ibt_planner</code></td>
 <td><strong>strong</strong></td>
 <td>{"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list for command (%s)","failed to generate ibt plan for command (%s)","implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; JWT cert chain {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}</td>
+</tr>
+<tr>
+<td><code>ibt_plans</code></td>
+<td><strong>strong</strong></td>
+<td>a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init</td>
 </tr>
 <tr>
 <td><code>ir_decoder</code></td>
@@ -11262,32 +11262,6 @@
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fac620 — ibt block
-
-</details>
-
-<h2 id="ibt_plans"><code>ibt_plans</code><a class="headerlink" href="#ibt_plans" title="Permanent link">&para;</a></h2>
-<p><strong>coverage</strong> <code>partial</code></p>
-<p>An 'IBT' command-plan executor ('executing ibt plan for command') gated by the enablePitchfork feature flag — likely in-band tuning/test command plans. Almost nothing decoded.</p>
-<p><strong>Technical description:</strong></p>
-<p>a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init</p>
-<ul>
-<li>
-<p>binary anchors: <code>executing ibt plan for command</code>, <code>unsupported IBT command</code>, <code>enablePitchfork</code></p>
-</li>
-<li>
-<p><strong>unresolved:</strong> full command vocabulary (only 'ibt' command-name seen in dispatch compare), plan serialization format, what the targets are (players in household?), what enablePitchfork bundles</p>
-</li>
-<li><strong>mechanics:</strong> executor f_10b985c4: look up command → generate ibt plan → generate target list → for each target '[dispatch] dispatched (%s) to target (%s), result [%s]'; 'already generated ibt plan, no action taken' = idempotent re-entry; 'unsupported IBT command (%s)' rejects unknown verbs</li>
-</ul>
-<details><summary>Evidence (7)</summary>
-
-- @ 0x10fac64c — executing ibt plan for command
-- @ 0x10ec7903 — unsupported IBT command
-- @ 0x10f9c2b4 — enablePitchfork
-- @ 0x10fac64c — 'executing ibt plan for command (%s)' + dispatch rejection
-- @ 0x10b985c4 — ibt plan executor: plan→target-list→per-target dispatch
-- @ 0x10ec78c0 — \[dispatch\] dispatched (%s) to target (%s), result \[%s\]
-- @ 0x10a581b0 — enablePitchfork gate checked twice in init fn
 
 </details>
 
@@ -13860,7 +13834,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <p>The HTTP header vocabulary the device emits and parses: auth challenges, <code>X-Sonos-*</code> extensions (playback-id, VLI markers), GENA headers for eventing, and the content-negotiation used by SMAPI and cloud calls. Quirks like malformed substitution anomalies are preserved in the route records.</p>
 <h2 id="ibt_planner"><code>ibt_planner</code><a class="headerlink" href="#ibt_planner" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>strong</code></p>
-<p>The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets, and rejects commands that don't support the <code>intendedTargets</code> parameter. Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable.</p>
+<p>The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets ('implicit target parsed [...]' / 'explicit target parsed [...]'), and rejects commands that don't support the intendedTargets parameter or that aren't in the IBT-eligible set ('unsupported IBT command'). Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable, and a generated plan can still fail per target at dispatch time.</p>
 <p><strong>Technical description:</strong></p>
 <p>{"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list for command (%s)","failed to generate ibt plan for command (%s)","implicit target parsed [%s]","explicit target parsed [%s]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; JWT cert chain {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}</p>
 <ul>
@@ -13869,6 +13843,39 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fac5a4 — ibt planner
+
+</details>
+
+<h2 id="ibt_plans"><code>ibt_plans</code><a class="headerlink" href="#ibt_plans" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>strong</code></p>
+<p>IBT ('intended targets') is how cloud-issued household commands fan out to specific players. A command arriving over the muse channel is compiled into a 'plan' — a generated target list — then dispatched one target at a time with a per-target result ('[dispatch] dispatched (cmd) to target (player), result [...]'). The targets are players and/or areas ('no players or areas were specified'); plans are idempotent ('already generated ibt plan, no action taken'). Dispatched commands authenticate outbound with a bearer token plus the X-Sonos-Type header, and a protocol-version compatibility check runs before forwarding. The observed command surface is group/zone management — '[group] adding player to group', 'created new group' — matching the 'zones' verb namespace (activateZone, joinZone, unjoinZone, addZoneDefinition, updateZoneMemberSettings...). It is feature-gated by enablePitchfork. The plan serialization format itself and the full whitelist of IBT-eligible commands are the pieces still undecoded.</p>
+<p><strong>Technical description:</strong></p>
+<p>a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init</p>
+<ul>
+<li>
+<p>binary anchors: <code>executing ibt plan for command</code>, <code>unsupported IBT command</code>, <code>enablePitchfork</code></p>
+</li>
+<li>
+<p><strong>unresolved:</strong> full command vocabulary (only 'ibt' command-name seen in dispatch compare), plan serialization format, what the targets are (players in household?), what enablePitchfork bundles</p>
+</li>
+<li><strong>mechanics:</strong> executor f_10b985c4: look up command → generate ibt plan → generate target list → for each target '[dispatch] dispatched (%s) to target (%s), result [%s]'; 'already generated ibt plan, no action taken' = idempotent re-entry; 'unsupported IBT command (%s)' rejects unknown verbs</li>
+<li><strong>dispatch_vocabulary:</strong></li>
+<li><strong>log_domain:</strong> [dispatch] / [group]</li>
+<li><strong>lines:</strong> <code>\[dispatch\] dispatched (%s) to target (%s), result \[%s\]</code>, <code>\[dispatch\] unsupported IBT command (%s)</code>, <code>\[group\] adding player \[%s\] to group</code>, <code>\[group\] forwarding player \[%s\]</code>, <code>\[group\] created new group \[%s, %s\]</code>, <code>\[group\] created new group, but no GC!</code>, <code>\[group\] no players or areas were specified</code>, <code>validateProtocolVersionCompatibility</code></li>
+<li><strong>targets:</strong> 'players or areas' — intendedTargets names players and/or areas; implicit vs explicit target forms parsed separately</li>
+<li><strong>transport_headers:</strong> <code>bearer</code>, <code>X-Sonos-Type</code></li>
+<li><strong>provenance:</strong> literal block .rodata 0x10ec78a8-0x10ec79dc</li>
+<li><strong>zone_command_namespace:</strong> The '{verb,namespace}' registry tail at .data 0x11094380-0x110943f4 binds these verbs to namespace 'zones': subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone, unjoinZone — terminated {0xffffffff,0xffffffff}. Same record format as the main muse_verb_ns_registry @0x110941d8.</li>
+</ul>
+<details><summary>Evidence (7)</summary>
+
+- @ 0x10fac64c — executing ibt plan for command
+- @ 0x10ec7903 — unsupported IBT command
+- @ 0x10f9c2b4 — enablePitchfork
+- @ 0x10fac64c — 'executing ibt plan for command (%s)' + dispatch rejection
+- @ 0x10b985c4 — ibt plan executor: plan→target-list→per-target dispatch
+- @ 0x10ec78c0 — \[dispatch\] dispatched (%s) to target (%s), result \[%s\]
+- @ 0x10a581b0 — enablePitchfork gate checked twice in init fn
 
 </details>
 

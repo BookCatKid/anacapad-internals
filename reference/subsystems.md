@@ -95,7 +95,6 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `httpcache` | **partial** | hash-based invalidation {cacheHashes,"\[%s\] Cache not found. Cannot invalidate.","\[%s\] Invalidated local cache","\[%s\] hashLocal = %s","\[%s\] hashRemote = %s","\[%s\] Invalidating remote caches"} — propagates invalidation to remote players; /jffs mount check via statvfs + /proc/mounts; null hash 12 zeros |
 | `hw_events` | **partial** | hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}; readEvent {overflow,unknown,readNextMsg ERROR}; button forwarding {'Forwarding button events','Disabling button event forwarding'} to private-IP-only target {Unable to translate address,Host not private IP,Invalid host IP,Invalid port no,socket errors}; FSM states {NOT_IN_HOUSEHOLD,PROCESSING_PLAYBACK,IN_DEMO_MODE,IN_RDM_MODE,IN_BUTTON_OBSERVATION_MODE,IN_TRANSFER_MODE,PROCESSING_JOIN,JOIN_CHIME_UNAVAILABLE,REGISTRATION_CHIME_UNAVAILABLE,BUTTONS_LOCKED,DAT_IN_BUTTONLESS_SETUP_MODE,DAT_IN_SETUP_DISCOVERY}; setup combo {VOL_DN\|VOL_UP starts timer → setup-ready on pop, VOL_UP+VOL_DN timer popped}; '%s press/release count = %zu'; '%s ignored in notify mode'; 'Disallowed action (%d - %s) because (%d - %s)'; 'inline action'; allowPlaybackRequests; 'collecting triggered diags'; 'enter %s household mode'; 'cancel join household mode'; PLAYPAUSE; '%s button pressed (cid)'; 'Play button held'; orientation {old->new,orientation_change,syslib orient}; led_diags {'Diag mode:%u, leftMS:%u; timeMS:%u; next mode: %u','set diag mode:%d'}; setup {'join hh','enabling wifi and %s','signaling netstartd (%s) %s',openap} |
 | `ibt` | **partial** | plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "\[dispatch\] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag |
-| `ibt_plans` | **partial** | a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init |
 | `inprocess_events` | **partial** | subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,"We timed out on %zu devices after %u attempts",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache |
 | `interrupt_reasons` | **partial** | {CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL}; CEC errors {CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS} |
 | `iocompress` | **partial** | RCompressBuffer {deflateInit2,deflate,deflateEnd failed} + RDecompressBuffer {inflateInit2,inflate,inflateEnd failed} |
@@ -254,6 +253,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `http_engine` | **?** |  |
 | `http_headers` | **?** |  |
 | `ibt_planner` | **strong** | {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list for command (%s)","failed to generate ibt plan for command (%s)","implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; JWT cert chain {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"} |
+| `ibt_plans` | **strong** | a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init |
 | `ir_decoder` | **strong** | encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,input_codes} with "Cannot add X: list full." bounds; config /opt/ir/irconfig.txt + ":vol_up_codes:" keys + "IR not configured"; device {"Failed to open IR device!","Could not get IR file descriptor!","Loading active codes...","IR Controls %s"}; learn FSM {Capturing short code,"Short code is first of a series. Ignored!",Storing short code,"short so far %d and max: %d",Successful short code learn,First short long code learned}; algorithm {"Pass %d length %d learn count: %d",hex dumps,"first and third passes have different sizes!","don't match!","Insufficient redundancy in alternate code.","Successfully recognized code as Alternating.","Successfully recognized repeat code.","Mismatched short messages in suspected repeat code.","Successfully recognized a non - repeating code.","Learn summary: Success/Repeat style/Alt style %c","Over ten codes received... not a repeat style code","Ignoring excessively long code"}; one-button {"Entered one button learn",waiting/"no longer waiting",UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND,"One button code not found in DB due to timeout","Timeout during IR code learn for target %s"}; embedded remote DB {Sharp,LG / Haier TV L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA TV 46LA45RQ,Orion TV SLED3280-HDLCD3250,Mitsubishi WD-65638 & WD-60738,JVC TV JLC42BC3000 & LT-19E610,Seiki TV LC-32B56,SuperSonicSC-240 & 491,ViewSonic VT4210LED & VT3205LED,Loewe}; targets {VolUp,VolDown,VolMute}; DB ops {"attempting to add null remote","add remote to full db","too long a controller name","excessively long main/alt/repeat code",Uninstalled all codes}; cloud: submit POST http://ir.ws.sonos.com/IRCode/ XML <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> (guid via /dev/urandom); lookup "Requesting: %s" → "Code found for remote id \[%s\]!" / "Requested code not found in IR database"; "Outstanding codes yet to be learned: Lengths are: %d, %d, %d"; "Denylisted pyle!" |
 | `jwt_auth` | **strong** | JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; alg HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,"Failed to get the real/relative time","Failed to stringify JWT","Device failed to generate device/guest token","Invalid Base64 encoded JSON object","Device unavailable due to other requests","Player not securely registered","An unexpected grant type was provided","An invalid JWT was provided. Reason:","A malformed JWT header/payload was provided","Player not in the assertion's aud field","POST /authorizeDevice request failed"}; claims exp+rexp {"exp is missing","Invalid exp value","Expired exp value",same for rexp}; token validation {"Device token not minted in this HH","Token is expired, security settings have changed since the token was issued","Device token expired","missing/invalid expiration time","not minted by this device","Device token is valid"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE} |
 | `korn_events` | **strong** | {KORN_INITIALIZED,KORN_SHUTDOWN,WEBSERVER_START,WEBSERVER_STARTED,WEBSERVER_UPDATED,ZEROCONF_START,ZEROCONF_DEVICE_ADDED,ZEROCONF_TRANSFER_CRED,ZEROCONF_TRANSFER_STATUS,ZEROCONF_AUTH_TOKEN,ZEROCONF_AUTH_CODE,MDNS_START,MDNS_PAUSE,MDNS_RESUME,MDNS_DEVICES,MDNS_DEVICE_DISCOVERED,MDNS_DEVICE_EVICTED,MDNS_RETRIGGER_DISCOVERED_DEVICES,HOSTNAME,PLAYBACK_RESUME,PLAYBACK_RESUMED,TRACK_RESUME,OBSERVE_PLAY,SKIP_NEXT,SKIP_PREV,PLAYBACK_SEEK,PLAY_URI,QUEUE_URI,QUEUE_FINISHED,TRACK_STARTED,SET_SHUFFLE,SET_REPEAT,INTERNAL_SHUFFLE,INTERNAL_REPEAT,CONNECT_SET_VOLUME,AUDIO_DELIVERY_DONE,CONTEXT_FAILED,TW_UPDATED,PLAY_FALLBACK_FILE,QUEUE_FILE,TRACK_FINISHED,TRACK_FAILED,NOTIFY_TRACK_FAILED,INTERNAL_TRACK_STARTED,MEDIA_SEEK,PLAYBACK_INITIATED,PREVIOUS_POSITION,PLAYBACK_PROGRESS_STARTED,SET_DOWNLOAD_POSITION,NOTIFY_INTEGRATION_PLAYBACK_STARTED,NOTIFY_INTEGRATION_FINISHED_TRACK,NOTIFY_INTEGRATION_HAS_TRACK_LENGTH,NOTIFY_TRACK_ERROR,SEEK_COMPLETE,EXTERNAL_UNDERRUN_COUNT_POINTER,NOTIFY_STREAM_DELIVERED,STREAM_START,STREAM_START2,STREAM_STOP,STREAM_STARTED,STREAM_FINISHED,STREAM_FAILED,STREAM_CAPPED,FILE_SIZE,DATA_DOWNLOAD_LATENCY,CONNECTIVITY,DBG_DECODER_STARTED,DBG_DISCONNECT,DBG_UNDERRUN_TIMEOUT,DBG_DOWNLOAD_UNDERRUN,DBG_MDNS_ANNOUNCE,DBG_RESOLVE,DBG_PERIODIC_STATE_UPDATE,DBG_SET_KEY_RATE_LIMIT_ERROR,DBG_FORCE_STATE_UPDATE,DBG_INTERNAL_CDN_FINISHED,HWP_VERSION,ITEM_LIST_CHANGED,LOGOUT_REQUESTED,AP_CREATED,AP_CONNECT_ERROR,AP_DISCONNECTED,CONNECTION_STATE_CHANGED,AP_LOGIN,AP_SET_SESSION,NEW_PRODUCT_STATE,AP_LOGIN_OFFLINE,LOGIN_OFFLINE_ERROR,TPAPI_STATE_CHANGE,TPAPI_SHARED_STATE_POINTER,CACHE_ID,CACHE_KEY} + {OFFLINE_RESTRICTIONS,CACHE_RESTRICTIONS,OFFLINE_WAS_REQUESTED,API_RATE_LIMIT,AD_STREAM_TIME_POINTER,INIT_DONE,UPDATE_PLAYBACK_POS,SEEK_COMPLETED,MEDIA_SEEK_COMPLETED,ENDSONG,ENDSONG_FAILED,ACCESS_POINT_HOST,CONNECT_NAME,VOLUME_STEPS,GROUP_STATE,DISABLE_CONNECT,UPDATE_AD_USERAGENT,UPDATE_ALIASES,SELECTED_DEVICE_ALIAS_INDEX,CAN_PLAY,LOCAL_APRESOLVE,LOCAL_AP_PING_TIMEOUT,CONTEXT_STATE_POINTER,CONTEXT_OFFSET_OFFLINE,IMAGE_BASE_URL,STORAGE_MANAGER,SM_CACHE_CLEARED,PULL_PLAYBACK,PULL_PLAYBACK_NO_PLAYBACK_INTERRUPTION,UPDATE_CAPABILITIES,LOGGED_OUT,RELOGIN,DOWNLOAD_BITRATE_LOW,DOWNLOAD_BITRATE_HIGH,REQUEST_BITRATE,LOCK_BITRATE,NETLOG_START,NETLOG_CALLBACK,BANDWIDTH_LIMIT,STREAMER_TRACK_PERCENTAGE,OFFLINE_GET_ITEMS_IN_CONTAINER,REDELIVER_AUDIO_AT_RESUME,ACTIVATE_OFFLINE_PLAYER,ACTIVATE_ONLINE_PLAYER,NOTIFY_OFFLINE,CONNECTIVITY_CHANGE_REQUEST,RESOLVE_OFFLINE,OFFLINE_RESOLVE_FINISHED,CURRENT_OFFLINE_ITEM_POINTER,SHUFFLE_SEED}; modules {MediaOut,APConn,Streamer,TrackPlayback} |
@@ -2084,32 +2084,6 @@ plan {"already generated ibt plan, no action taken","executing ibt plan for comm
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fac620 — ibt block
-
-</details>
-
-## `ibt_plans`
-
-**coverage** `partial`
-
-An 'IBT' command-plan executor ('executing ibt plan for command') gated by the enablePitchfork feature flag — likely in-band tuning/test command plans. Almost nothing decoded.
-
-**Technical description:**
-
-a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init
-
-- binary anchors: `executing ibt plan for command`, `unsupported IBT command`, `enablePitchfork`
-
-- **unresolved:** full command vocabulary (only 'ibt' command-name seen in dispatch compare), plan serialization format, what the targets are (players in household?), what enablePitchfork bundles
-- **mechanics:** executor f_10b985c4: look up command → generate ibt plan → generate target list → for each target '\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'; 'already generated ibt plan, no action taken' = idempotent re-entry; 'unsupported IBT command (%s)' rejects unknown verbs
-<details><summary>Evidence (7)</summary>
-
-- @ 0x10fac64c — executing ibt plan for command
-- @ 0x10ec7903 — unsupported IBT command
-- @ 0x10f9c2b4 — enablePitchfork
-- @ 0x10fac64c — 'executing ibt plan for command (%s)' + dispatch rejection
-- @ 0x10b985c4 — ibt plan executor: plan→target-list→per-target dispatch
-- @ 0x10ec78c0 — \[dispatch\] dispatched (%s) to target (%s), result \[%s\]
-- @ 0x10a581b0 — enablePitchfork gate checked twice in init fn
 
 </details>
 
@@ -5054,7 +5028,7 @@ The HTTP header vocabulary the device emits and parses: auth challenges, `X-Sono
 
 **coverage** `strong`
 
-The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets, and rejects commands that don't support the `intendedTargets` parameter. Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable.
+The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets ('implicit target parsed \[...\]' / 'explicit target parsed \[...\]'), and rejects commands that don't support the intendedTargets parameter or that aren't in the IBT-eligible set ('unsupported IBT command'). Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable, and a generated plan can still fail per target at dispatch time.
 
 **Technical description:**
 
@@ -5064,6 +5038,39 @@ The planner half of intended-target execution: generates the target list, parses
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10fac5a4 — ibt planner
+
+</details>
+
+## `ibt_plans`
+
+**coverage** `strong`
+
+IBT ('intended targets') is how cloud-issued household commands fan out to specific players. A command arriving over the muse channel is compiled into a 'plan' — a generated target list — then dispatched one target at a time with a per-target result ('\[dispatch\] dispatched (cmd) to target (player), result \[...\]'). The targets are players and/or areas ('no players or areas were specified'); plans are idempotent ('already generated ibt plan, no action taken'). Dispatched commands authenticate outbound with a bearer token plus the X-Sonos-Type header, and a protocol-version compatibility check runs before forwarding. The observed command surface is group/zone management — '\[group\] adding player to group', 'created new group' — matching the 'zones' verb namespace (activateZone, joinZone, unjoinZone, addZoneDefinition, updateZoneMemberSettings...). It is feature-gated by enablePitchfork. The plan serialization format itself and the full whitelist of IBT-eligible commands are the pieces still undecoded.
+
+**Technical description:**
+
+a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init
+
+- binary anchors: `executing ibt plan for command`, `unsupported IBT command`, `enablePitchfork`
+
+- **unresolved:** full command vocabulary (only 'ibt' command-name seen in dispatch compare), plan serialization format, what the targets are (players in household?), what enablePitchfork bundles
+- **mechanics:** executor f_10b985c4: look up command → generate ibt plan → generate target list → for each target '\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'; 'already generated ibt plan, no action taken' = idempotent re-entry; 'unsupported IBT command (%s)' rejects unknown verbs
+- **dispatch_vocabulary:**
+  - **log_domain:** \[dispatch\] / \[group\]
+  - **lines:** `\[dispatch\] dispatched (%s) to target (%s), result \[%s\]`, `\[dispatch\] unsupported IBT command (%s)`, `\[group\] adding player \[%s\] to group`, `\[group\] forwarding player \[%s\]`, `\[group\] created new group \[%s, %s\]`, `\[group\] created new group, but no GC!`, `\[group\] no players or areas were specified`, `validateProtocolVersionCompatibility`
+  - **targets:** 'players or areas' — intendedTargets names players and/or areas; implicit vs explicit target forms parsed separately
+  - **transport_headers:** `bearer`, `X-Sonos-Type`
+  - **provenance:** literal block .rodata 0x10ec78a8-0x10ec79dc
+- **zone_command_namespace:** The '{verb,namespace}' registry tail at .data 0x11094380-0x110943f4 binds these verbs to namespace 'zones': subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone, unjoinZone — terminated {0xffffffff,0xffffffff}. Same record format as the main muse_verb_ns_registry @0x110941d8.
+<details><summary>Evidence (7)</summary>
+
+- @ 0x10fac64c — executing ibt plan for command
+- @ 0x10ec7903 — unsupported IBT command
+- @ 0x10f9c2b4 — enablePitchfork
+- @ 0x10fac64c — 'executing ibt plan for command (%s)' + dispatch rejection
+- @ 0x10b985c4 — ibt plan executor: plan→target-list→per-target dispatch
+- @ 0x10ec78c0 — \[dispatch\] dispatched (%s) to target (%s), result \[%s\]
+- @ 0x10a581b0 — enablePitchfork gate checked twice in init fn
 
 </details>
 
