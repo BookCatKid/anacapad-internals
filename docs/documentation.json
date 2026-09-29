@@ -119850,7 +119850,7 @@
    }
   },
   "trueplay_tuning": {
-   "status": "partial",
+   "status": "strong",
    "summary": "Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant",
    "anchors": [
     "trueplay-node",
@@ -119972,6 +119972,31 @@
     "muse_path": "players/%s/trueplay/config/%s + trueplayConfig; MUSE POST response base64 -> tone asset",
     "assets": "x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg + trueroom_tone.ogg staged under trueroom-tones dir; sonarcal served from https://sonar.ws.sonos.com",
     "etag": "etags.txt per-file eTag cache (\"Parsed eTag: key ... value ... matching a known file\"); \"Downloading %s to %s. Etag is %s\"; force-load flag; dir create/delete guards"
+   },
+   "trueroom_ops": {
+    "routes": {
+     "estimatorConfiguration": "v1/players/{playerId}/trueroom/estimatorConfiguration (+household-qualified)",
+     "adaptation": "v1/players/{playerId}/trueroom/adaptation (+household-qualified)",
+     "getCalibrationStatus": "v1/players/{playerId}/trueroom/calibrationStatus (+household-qualified)",
+     "playSuccessTone": "v1/players/{playerId}/trueroom/successTone (+household-qualified)",
+     "setSwapInputMute": "v1/players/{playerId}/trueroom/swapInputMute (+household-qualified)"
+    },
+    "spec_types": [
+     "trueroomStatus",
+     "trueroomAdaptationStatus",
+     "trueroomEstimatorConfig",
+     "trueroomEstimatedParams",
+     "trueroomCalibrationStatus",
+     "trueroomStatusEvent",
+     "trueroomAdaptationStatusEvent",
+     "enableTrueRoom"
+    ],
+    "descriptor_members": {
+     "trueroomStatus": "{authzTokenStatus, featureConfigZoneExperiment, deeplink, bluetooth} \u2014 cls3 response/event; deeplink = resume-playback link after the tone",
+     "trueroomAdaptationStatus": "{authzTokenStatus, featureConfigZoneExperiment, bluetoothPolicySettings, bluetooth} \u2014 cls3"
+    },
+    "tone_mechanism": "x-rincon-trueroom: URI scheme + x-rincon-configmode:trueroom-tone; tone asset trueroom_tone.ogg fetched to a JFFS 'trueroom-tones' folder ('Clearing Trueroom tone folder on JFFS'); the AVT transport state is saved and restored around config mode ('Not restoring the AVT' vs 'restoring the AVT'); validation literal 'One or more Trueroom options amongst (%s, %s) are missing or invalid'",
+    "unbound": "the 5 ops' op-vtables carry no +0x58 spec accessor \u2014 request bodies unresolved; trueroomEstimatedParams inner field names not emitted as standalone literals"
    }
   },
   "update_machinery": {
