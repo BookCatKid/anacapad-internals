@@ -888,6 +888,52 @@ Reusable primitives recovered from the binary — prefer these over re-reading p
 - **hls_vocabulary:** `#EXT-X-VERSION`, `#EXT-X-TARGETDURATION`, `#EXT-X-MEDIA-SEQUENCE`, `#EXT-X-PLAYLIST-TYPE`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-KEY:`, `#EXT-X-SESSION-KEY:`, `#EXT-X-MAP:`, `#EXT-X-DISCONTINUITY`, `#EXT-X-BYTERANGE`, `#EXT-X-ENDLIST`, `#EXT-X-MEDIA`, `#EXT-X-STREAM-INF`, `#EXT-X-PROGRAM-DATE-TIME`
 - **hls_validation:** 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA' (rendition-group enforcement)
 - **mime_vocabulary:** `application/x-mpegurl`, `audio/x-mpegurl`, `audio/x-scpls`, `audio/x-sonos-recent`, `audio/x-spotify`, `audio/x-spotify-ogg`, `audio/x-aac`, `audio/x-aiff`, `audio/x-m4a`, `audio/x-ms-wma`, `audio/x-wav`
+- **full_header_census:**
+  - **method:** whole-.rodata scan for X-Sonos-*/X-RINCON-* literals; addresses are literal sites
+  - **headers:**
+    - **X-RINCON-BOOTSEQ:** 0x10eea2f8 (SSDP/discovery signature)
+    - **X-RINCON-CONTENT-FORMAT:** 0x10efd058 (repset content-format index)
+    - **X-RINCON-CONTENT-VERSION:** 0x10ed4510 (content sync)
+    - **X-RINCON-HOUSEHOLD:** 0x10eea2e4
+    - **X-RINCON-LAST-UPDATE-DEVICE:** 0x10ed4510
+    - **X-RINCON-PROXY:** 0x10eea30c
+    - **X-RINCON-RANGE:** 0x10ed4510
+    - **X-RINCON-REASON:** 0x10eea378
+    - **X-RINCON-SIGNATURE:** 0x10efd0a8 (repset sig)
+    - **X-RINCON-VARIANT:** 0x10eea344
+    - **X-Sonos-Accept-Language:** 0x10ec1f20 region (SMaPI)
+    - **X-Sonos-Api-Key:** 0x10eb09b0
+    - **X-Sonos-Context-TimeZone:** 0x10ec1f44
+    - **X-Sonos-Corr-Id:** 0x10e74534
+    - **X-Sonos-Denylisted:** 0x10ef241c
+    - **X-Sonos-Device-Id:** 0x10eb9474
+    - **X-Sonos-DeviceCert:** 0x10ec1f20 (SMaPI deviceCerts)
+    - **X-Sonos-Diagnostics-Api-Key:** 0x10f08334
+    - **X-Sonos-ErrorType:** 0x10ee6d7c (NEW: error-classification header)
+    - **X-Sonos-Firmware:** 0x10ee8250
+    - **X-Sonos-GroupAttribute:** 0x10ec221c (cloudqueue)
+    - **X-Sonos-GroupCapability:** 0x10ec2238 (cloudqueue)
+    - **X-Sonos-Household-Id:** 0x10f0ba54
+    - **X-Sonos-Id-Hash:** 0x10ee8290 (NEW: sibling of X-Sonos-Firmware telemetry)
+    - **X-Sonos-Latency:** 0x10f2c874
+    - **X-Sonos-LatestSWGen:** 0x10f13708
+    - **X-Sonos-Mac:** 0x10ef4b6c
+    - **X-Sonos-MAID:** 0x10ec1f60
+    - **X-Sonos-MessageType:** 0x10f03b4c (octet-stream POST)
+    - **X-Sonos-MS-Sig:** 0x10ec1ee0 (music-service signature)
+    - **X-Sonos-Muse-Api:** 0x10ee8250 (NEW: muse API version header)
+    - **X-Sonos-MuseHouseholdId:** 0x10edef34 (NEW)
+    - **X-Sonos-Playback-Id:** 0x10eb9460
+    - **X-Sonos-Serial:** 0x10ef4bb8
+    - **X-Sonos-SWGen:** 0x10ec280c
+    - **X-Sonos-Type:** 0x10ec78b0
+    - **X-Sonos-Udn:** 0x10ef64d4 (also Lechmere tunnel pseudo-header)
+    - **X-Sonos-User-Id:** 0x10ebf930
+    - **X-Sonos-User-Role:** 0x10ed96a4
+    - **X-Sonos-UserId:** 0x10ef21e0
+    - **X-Sonos-VClockCloud:** 0x10edef34 (NEW: vector-clock cloud sync)
+  - **status:** confirmed
+  - **notes:** Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.
 
 ### `chirp_sdk`
 

@@ -3421,9 +3421,14 @@ The Shoutcast/ICY stream client: request headers (icy-name, location, CONTENT-TY
 request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; responses {ICY 200,HTTP/1.1 200,HTTP/1.0 200,HTTP/1.1 30x,HTTP/1.0 30x} + redirect to %s; "request buffer is too small"; "add header \[%s : %s\]"; "opening connection with \[%s\]"; "Redirect audio/x-mpegurl to %s" (M3U); inline metadata {StreamTitle,text=""} + "end of file or I/O error"; shoutcastradio type; explicitContentFiltering + rsmapicontextzp; private-frame extraction: 'Found %zu bytes of%s private frame data for %s' (' (incomplete)' marker), 'get meta: %f %s, %s', 'new meta: %s', 'new artwork: %s' — artwork URLs ride ICY private frames
 
 - **name:** shoutcast/ICY stream client
-<details><summary>Evidence (1)</summary>
+- **request_template:**
+  - **literal:** GET %s HTTP/1.1\r\nCONNECTION: close\r\nACCEPT: */*\r\nHOST: %s%s\r\nUser-Agent: %s Nullsoft Winamp3 version 3.0 (compatible)\r\nIcy-MetaData: 1\r\n
+  - **address:** 0x10ed46d0
+  - **notes:** The stream client spoofs 'Nullsoft Winamp3 version 3.0 (compatible)' as the User-Agent suffix and sets Icy-MetaData: 1 to opt into inline ICY metadata blocks (the metaint interval stream interleave). ACCEPT-ENCODING is NOT offered - streams are read raw.
+<details><summary>Evidence (2)</summary>
 
 - @ 0x10ed462c — shoutcast block
+- @ 0x10ed46d0 — GET template w/ Winamp3 UA spoof + Icy-MetaData: 1
 
 </details>
 
