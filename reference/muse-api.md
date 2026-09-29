@@ -181,6 +181,12 @@ Alarm management for the modern API. Mirrors the legacy AlarmClock service but r
 | `POST` | `v1/households/{householdId}/groups/{groupId}/alarms/snooze` | `snoozeAlarm` | `-` | `0x20000102` | `0x10ac7874` `0x10ac7884` | `enabled`, `alarmId`, `description`, `description`, `duration` |
 | `DELETE` | `v1/households/{householdId}/alarms/{alarmId}` | `removeAlarm` | `alarmId` | `0x20000108` | `0x10ac7884` `0x10ac7894` | `duration`, `alarmId` |
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **alarm_state**: `ALARM_DISABLED`=1, `ALARM_PENDING`=2, `ALARM_SNOOZED`=3, `ALARM_FIRING`=4
+- **instance_state**: `ACTIVE`=1, `DONE`=2, `DISMISSED`=3, `INACTIVE`=4, `INTERRUPTED`=5, `ERROR`=6
+- **weekday_bits**: `SU`=1, `MO`=2, `TU`=3, `WE`=4, `TH`=5, `FR`=6, `SA`=7
+
 Op-level JSON keys recovered from op-object methods: `muse`, `alarmId`, `createAlarm`, `enabled`, `description`, `duration`
 
 ## `areas`
@@ -230,6 +236,13 @@ The auth surface for the muse API itself. Ops: `authenticateClient`, `authorizeD
 | `POST` | `v1/households/{householdId}/players/{playerId}/authorization/authorizeDevice` | `authorizeDevice` | `-` | `0x20000102` | `0x10ad4b9c` `0x10ad4bac` | `role`, `grantType` |
 | `POST` | `v1/players/{playerId}/authorization/authenticateClient` | `authenticateClient` | `-` | `0x20000102` | `0x10ad4bac` `0x10ad4bbc` | `grantType` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/authorization/authenticateClient` | `authenticateClient` | `-` | `0x20000102` | `0x10ad4bac` `0x10ad4bbc` | `grantType` |
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **auth_roles**: `OWNER`=1, `GUEST`=2, `CRM`=3, `ADMIN`=4, `EMPLOYEE`=5, `PLAYER_TO_PLAYER`=6, `BLE_DTLS`=7
+- **authz_namespaces**: `AUTHZTOKENS`=1, `AUTHZPOLICIES`=2, `DEVICES`=3, `ENTITLEMENTS`=4, `FCS`=5, `SETTINGS`=6, `HISTORY`=7
+- **shared_queue_policies**: `PAUSE_CONTENT`=1, `PLAY_TO_BONDED`=2, `STOP_CONTENT`=3, `USE_SHARED_QUEUE`=4
+- **token_types**: `GUEST_TOKEN`=1, `ACCESS_TOKEN`=2, `API_KEY`=3, `GUEST_TOKEN_PIN`=4
 
 Op-level JSON keys recovered from op-object methods: `token`, `objectId`, `objectType`, `attributes`, `muse`, `policyKey`, `role`, `route`, `protocolVersion`, `grantType`, `assertion`
 
@@ -281,6 +294,17 @@ Implementation messages:
 
 - `\u%04X`
 - `%d`
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **net_state**: `SONOSNET`=1, `STATION`=2, `DISCONNECTED`=3, `STATION_SATELLITE`=4
+- **netmode**: `NETMODE_SONOSNET_WIRED`=1, `NETMODE_SONOSNET_WIRELESS`=2, `NETMODE_WIRED`=3, `NETMODE_WIRED_NO_WIFI`=4, `NETMODE_STATION`=5, `NETMODE_SATELLITE_V1`=6, `NETMODE_SATELLITE_V1_WIRED`=7, `NETMODE_SATELLITE_V2`=8
+- **playback_button**: `PLAY`=1, `PAUSE`=2, `NEXT_TRACK`=3, `PREV_TRACK`=4
+- **power_command**: `UNKNOWN`=1, `ON`=2, `STANDBY`=3, `TO_ON`=4, `TO_STANDBY`=5
+- **quarantine_reason**: `UNKNOWN`=1, `SW_GEN`=2, `SECURE_REG`=3, `UPNP_OVER_TLS`=4
+- **registration_class**: `UNKNOWN`=1, `UNREGISTERED`=2, `LEGACY_REGISTERED`=3, `SECURE_REGISTERED`=4, `TRANSFER`=5, `OFFLINE`=6, `PREP_TRANSFER`=7
+- **speaker_orientation**: `UNDEFINED`=1, `HORIZONTAL`=2, `VERTICAL_WALL_ABOVE`=3, `VERTICAL_WALL_BELOW`=4, `VERTICAL_TAG_LEFT`=5, `VERTICAL_TAG_RIGHT`=6, `HORIZONTAL_WALL_MOUNTED`=7, `HORIZONTAL_LEFT`=8, `HORIZONTAL_RIGHT`=9, `VERTICAL_WALL_MOUNTED`=10, `VERTICAL_WALL_LEFT`=11, `VERTICAL_WALL_RIGHT`=12, `FACEDOWN`=13, `INVERTED`=14, `INVALID`=15
+- **vanish_reason**: `BLUETOOTH`=1, `ERROR`=2, `EXPIRED`=3, `LOW_BATTERY`=4, `NEW_IP`=5, `NEW_SSID`=6, `POWERED_OFF`=7, `SLEEPING`=8, `UNKNOWN`=9, `UPGRADE`=10
 
 Op-level JSON keys recovered from op-object methods: `muse`, `assertion`
 
@@ -353,6 +377,11 @@ Sonos favorites via the modern API. Scoped to group or household; GET lists the 
 | `GET` | `v1/households/{householdId}/favorites` | `getFavorites` | `-` | `0x20000101` | `0x101cc9d0` `0x101cc9e0` | — |
 | `POST` | `v1/groups/{groupId}/favorites` | `loadFavorite` | `-` | `0x20000102` | `0x101cc9e0` `0x101cc9f0` | `playOnCompletion`, `favoriteId`, `playModes`, `playModes`, `action` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/favorites` | `loadFavorite` | `-` | `0x20000102` | `0x101cc9e0` `0x101cc9f0` | `playOnCompletion`, `favoriteId`, `playModes`, `playModes`, `action` |
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
+- **rating_values**: `STAR`=1, `THUMBSUP`=2, `THUMBSDOWN`=3, `LOVE`=4, `HATE`=5, `BAN`=6, `NONE`=7, `SHELVED`=8
 
 Op-level JSON keys recovered from op-object methods: `muse`, `playOnCompletion`, `favoriteId`, `action`, `playModes`
 
@@ -476,6 +505,10 @@ Household playback history. Stores the tracks/stations the household played, wit
 | `DELETE` | `v1/households/{householdId}/history/{id}` | `removeHistoryItem` | `id` | `0x20000108` | `0x10aefce4` `0x10aefcf4` | `postHistory`, `postHistory`, `postHistory`, `postHistory`, `id` |
 | `DELETE` | `v1/households/{householdId}/history` | `clearHistory` | `-` | `0x20000108` | `0x10aefcf4` `0x10aefd04` | `id` |
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
+
 Op-level JSON keys recovered from op-object methods: `muse`, `postHistory`, `id`
 
 Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `action`, `advertisingInfo`, `allowTvPauseRestore`, `containerId`, `containerMetadata`, `defaults`, `deltaMillis`, `deviceFeedback`, `deviceId`, `id`, `instanceId`, `itemId`, `metadata`, `playModes`, `playOnCompletion`, `playbackAction`, `playbackLocation`, `positionMillis`, `queueAction`, `stationId`, `trackNumber`, `tracks`, `type`
@@ -511,6 +544,10 @@ Home-theater configuration — a large resource covering the HT player, its bond
 | `GET` | `v1/players/{playerId}/homeTheater/tvAudioSignalStatus` | `getTVAudioSignalStatus` | `-` | `0x20000101` | `0x101de9d4` `0x101de9e4` | — |
 | `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/tvAudioSignalStatus` | `getTVAudioSignalStatus` | `-` | `0x20000101` | `0x101de9d4` `0x101de9e4` | — |
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **dd_surround_config**: `DD_SAT_CONF`=1, `DD_NO_SURROUND`=2, `DD_NO_SURROUND_TO_SAT`=3, `DD_SURROUND`=4, `DD_SURROUND_TO_SAT`=5
+
 Op-level JSON keys recovered from op-object methods: `muse`, `tvPowerState`, `nightMode`, `enhanceDialog`, `wifiMacAddress`, `details`, `macAddress`
 
 Validation / log strings recovered from op-object methods:
@@ -534,6 +571,12 @@ Per-device household software update — a single player checks and applies firm
 Resource implementation functions (string-block registrar family): `0x10af5930`
 
 Field vocabulary recovered from the resource's implementation functions: `householdUpdate`
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **device_update_fsm**: `UNDEFINED`=1, `CONNECT`=2, `HELLO`=3, `DOWNLOAD`=4, `FLASHWRITE`=5, `WAIT`=6, `REBOOT`=7, `ERROR`=8, `FINISHED`=9
+- **device_update_fsm2**: `INIT`=1, `HELLO`=2, `HELLO_DONE`=3, `DOWNLOAD`=4, `DOWNLOAD_DONE`=5, `FLASHWRITE`=6, `FLASHWRITE_DONE`=7, `REBOOT`=8, `REBOOTING_DONE`=9
+- **household_update_result**: `NO_DEVICES_NEED_UPDATE`=1, `UPDATE_COMPLETE`=2, `INFO_FILE_WRITE_FAILED`=3, `BSU_FAILED`=4, `UPGRADE_MGR_SPAWN_FAILED`=5, `MANIFEST_DOWNLOAD_FAILED`=6, `MANIFEST_PARSE_FAILED`=7, `UPDATE_NEVER_RUN`=8, `FINAL_RESULT_UNKNOWN`=9
 
 Op-level JSON keys recovered from op-object methods: `muse`
 
@@ -598,6 +641,10 @@ The local music library (shared folders) via muse — browse/index/control for S
 | `GET` | `v1/players/{playerId}/localContentLibrary/indexer` | `getIndexerStatus` | `-` | `0x20000101` | `0x10afb984` `0x10afb994` | — |
 | `GET` | `v1/households/{householdId}/players/{playerId}/localContentLibrary/indexer` | `getIndexerStatus` | `-` | `0x20000101` | `0x10afb984` `0x10afb994` | — |
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **replication_state**: `PENDING_ADD`=1, `ADD_IN_PROGRESS`=2, `ADD_COMPLETE`=3, `PENDING_REINDEXING`=4, `REINDEXING_IN_PROGRESS`=5, `REINDEXING_COMPLETE`=6, `REPLICATION_IN_PROGRESS`=7, `REPLICATION_COMPLETE`=8, `PENDING_DELETE`=9, `DELETE_COMPLETE`=10
+
 Op-level JSON keys recovered from op-object methods: `muse`, `path`, `username`, `password`, `shareId`
 
 ## `management`
@@ -615,6 +662,11 @@ Resource implementation functions (string-block registrar family): `0x10afe1dc`
 
 Field vocabulary recovered from the resource's implementation functions: `management`
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **net_state**: `SONOSNET`=1, `STATION`=2, `DISCONNECTED`=3, `STATION_SATELLITE`=4
+- **wifi_state_fsm**: `INACTIVE`=1, `WIFI_ENABLING`=2, `ACK_AWAIT`=3, `WIFI_DISABLING`=4, `WIFI_DISABLED`=5, `ACK_NOT_RECEIVED`=6
+
 Op-level JSON keys recovered from op-object methods: `muse`, `fullSync`, `setting`, `operation`
 
 ## `musicServiceAccounts`
@@ -630,6 +682,16 @@ Music-service account linking for the household/group — add, remove and inspec
 | `POST` | `v1/households/{householdId}/groups/{groupId}/musicServiceAccounts/startDirectControlEx` | `startDirectControlEx` | `-` | `0x20000102` | `0x10b01adc` `0x10b01aec` | `appId` |
 | `POST` | `v1/groups/{groupId}/musicServiceAccounts/endDirectControl` | `endDirectControl` | `-` | `0x20000102` | `0x10b01aec` `0x10b01afc` | `appId` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/musicServiceAccounts/endDirectControl` | `endDirectControl` | `-` | `0x20000102` | `0x10b01aec` `0x10b01afc` | `appId` |
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **account_link_state**: `RESET`=1, `OFFLINE`=2, `INITIATING`=3, `ONLINE`=4, `TERMINATING`=5, `ERROR`=6
+- **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
+- **service_kind**: `radio`=1, `reporting`=2, `audiobook`=3, `browse`=4
+- **service_tier**: `none`=1, `free`=2, `paidLimited`=3, `paidPremium`=4
+- **session_state**: `RESET`=1, `OFFLINE`=2, `ONLINE`=3, `ROOT_INDIRECT`=4, `BROADCAST_BLOCKED`=5
+- **session_state2**: `RESET`=1, `OFFLINE`=2, `INITIATING`=3, `ONLINE`=4, `ERROR`=5
+- **smapi_capability_bits**: `basic-ui`=1, `content`=1, `no-ads`=1, `media-sources`=1, `commercial-msp`=2, `content-saving`=2, `hd-content`=2, `third-party-integ`=2, `essentials-msp`=4, `settings`=4, `special-content`=4, `premium-msp`=8, `alarms`=8, `on-demand-archive`=8, `dashboard-access`=16, `messaging`=16, `can-skip`=16, `schedules-access`=32, `save-groups`=32
 
 Op-level JSON keys recovered from op-object methods: `muse`, `userIdHashCode`, `nickname`, `serviceId`, `linkCode`, `linkDeviceId`, `accountId`, `appId`, `restartToken`
 
@@ -734,6 +796,13 @@ The big one: transport control for a group. `play`, `pause`, `seek`, `loadStream
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playback/content` | `loadContent` | `-` | `0x20000002` | `0x101ea614` `0x101ea624` | `playOnCompletion`, `deviceId`, `type`, `id`, `id` |
 | `POST` | `v1/groups/{groupId}/playback/skipToTrack` | `skipToTrack` | `-` | `0x20000002` | `0x101ea624` `0x101ea634` | `type`, `id`, `id`, `trackNumber` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playback/skipToTrack` | `skipToTrack` | `-` | `0x20000002` | `0x101ea624` `0x101ea634` | `type`, `id`, `id`, `trackNumber` |
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **play_modes**: `NORMAL`=1, `REPEAT_ALL`=2, `SHUFFLE`=3, `SHUFFLE_NOREPEAT`=4
+- **playback_button**: `PLAY`=1, `PAUSE`=2, `NEXT_TRACK`=3, `PREV_TRACK`=4
+- **playback_states**: `PLAYBACK_STATE_IDLE`=1, `PLAYBACK_STATE_BUFFERING`=2, `PLAYBACK_STATE_PAUSED`=3, `PLAYBACK_STATE_PLAYING`=4
+- **queue_insert_mode**: `REPLACE`=1, `APPEND`=2, `INSERT`=3, `INSERT_NEXT`=4, `PLAY_NOW`=5
 
 Op-level JSON keys recovered from op-object methods: `muse`, `allowTvPauseRestore`, `deviceFeedback`, `playModes`, `positionMillis`, `itemId`, `playOnCompletion`, `window`, `bridgeContext`, `deltaMillis`, `action`, `containerId`, `containerMetadata`, `playbackLocation`, `tracks`, `stationId`, `deviceId`, `instanceId`, `type`, `defaults`, `playbackAction`, `queueAction`, `id`, `metadata`, `advertisingInfo`, `trackNumber`
 
@@ -868,6 +937,10 @@ Household/group playlist surface — Sonos playlists (saved queue snapshots) lis
 | `POST` | `v1/groups/{groupId}/playlists` | `loadPlaylist` | `-` | `0x20000102` | `0x10b12ea8` `0x10b12eb8` | `playlistId`, `playOnCompletion`, `playModes`, `playModes` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playlists` | `loadPlaylist` | `-` | `0x20000102` | `0x10b12ea8` `0x10b12eb8` | `playlistId`, `playOnCompletion`, `playModes`, `playModes` |
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
+
 Op-level JSON keys recovered from op-object methods: `muse`, `playlistId`, `playOnCompletion`, `action`, `playModes`, `playbackLocation`
 
 ## `positioning`
@@ -923,6 +996,12 @@ Player power ops — POST-only power transitions (the player has no soft-power v
 Resource implementation functions (string-block registrar family): `0x10b20c24`, `0x10b05ea8`, `0x100d5240`
 
 Field vocabulary recovered from the resource's implementation functions: `power`, `volumeUp`, `volumeDown`, `toggleMute`, `loadResource`, `dpad`, `back`, `home`, `settings`, `togglePlay`, `secondary`, `role`, `stp`, `useCase`, `powerWakeupFromSemiSleep`, `primary`, `ht`
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **playback_button**: `PLAY`=1, `PAUSE`=2, `NEXT_TRACK`=3, `PREV_TRACK`=4
+- **power_states**: `MOTION_DETECTED`=1, `MOTION_SETTLED`=2, `SLEEPING`=3, `WAKING_UP`=4, `POWERING_DOWN`=5, `POWERING_UP`=6, `SMART_DOCKED`=7, `CHARGING`=8, `PRIMARY_PLAYBACK_STARTED`=9, `POWERING_UP_UPDATED`=10, `WAKING_UP_FROM_USER`=11, `PRIMARY_NETWORK_STATUS_CHANGE`=12
+- **remote_buttons**: `POWER`=1, `BACK`=2, `HOME`=3, `MENU`=4, `PLAY_PAUSE`=5, `MUSIC`=6, `DPAD_UP`=7, `DPAD_DOWN`=8, `DPAD_LEFT`=9, `DPAD_RIGHT`=10, `DPAD_SELECT`=11
 
 ## `roomDetection`
 
@@ -1127,6 +1206,12 @@ Trueplay room-tuning ops — start/update/query a tuning run on a home-theater p
 | `POST` | `v1/households/{householdId}/players/{playerId}/trueplay/config/{id}` | `setConfiguration` | `id` | `0x20000102` | `0x10b44694` `0x10b446a4` | `id`, `trueplayConfig`, `trueplayConfig` |
 | `GET` | `v1/players/{playerId}/trueplay/status` | `getTrueplayStatus` | `-` | `0x20000101` | `0x10b446a4` `0x10b446b4` | `id`, `trueplayConfig`, `trueplayConfig` |
 | `GET` | `v1/households/{householdId}/players/{playerId}/trueplay/status` | `getTrueplayStatus` | `-` | `0x20000101` | `0x10b446a4` `0x10b446b4` | `id`, `trueplayConfig`, `trueplayConfig` |
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **measurement_type**: `NONE`=1, `SESSION_RESULTS`=2, `MEASUREMENT_RESULTS`=3, `MEASUREMENT_RAW_AUDIO`=4
+- **positioning_measure**: `ANGLE`=1, `BEARING`=2, `DISTANCE`=3, `MAP`=4, `ACOUSTIC_SPACE_MAP`=5, `PORTABLE_SURROUNDS`=6
+- **room_detect_state**: `INAUDIBLE`=1, `MULTI_INAUDIBLE`=2, `INAUDIBLE_WIDE`=3, `MULTI_INAUDIBLE_WIDE`=4, `AUDIBLE`=5, `MULTI_AUDIBLE`=6, `BLE`=7
 
 Op-level JSON keys recovered from op-object methods: `muse`, `duration`, `rate`, `id`, `trueplayConfig`
 
@@ -1440,6 +1525,11 @@ Native muse virtual-line-in surface (distinct from the upnp* proxy): configure/m
 | `POST` | `v1/players/{playerId}/virtualLineIn/stopAudio` | `stopAudio` | `-` | `0x20000102` | `0x10b82fa8` `0x10b82fb8` | — |
 | `POST` | `v1/households/{householdId}/players/{playerId}/virtualLineIn/stopAudio` | `stopAudio` | `-` | `0x20000102` | `0x10b82fa8` `0x10b82fb8` | — |
 
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **abort_reasons**: `NONE`=1, `ABORT_UNRECOGNIZED_OP`=2, `ABORT_INCORRECT_MODE`=3, `ABORT_NO_SOURCE`=4, `ABORT_INVALID_OP`=5, `ABORT_REFUSED`=6, `ABORT_UNDETERMINED`=7, `DEVICE`=8, `NACK`=9, `REPLY_TIMEOUT`=10, `ROOT_INDIRECT`=11, `BROADCAST_BLOCKED`=12, `UNKNOWN`=13
+- **linein_conn_state**: `NO_CONNECTION`=1, `CONNECTED`=2, `SONGLE`=3, `UNKNOWN`=4
+
 Op-level JSON keys recovered from op-object methods: `source`, `muse`, `backChannelCmd`
 
 ## `virtualRemoteControl`
@@ -1454,6 +1544,13 @@ Virtual remote — send remote-button events to a player through muse (related t
 Resource implementation functions (string-block registrar family): `0x10b85458`
 
 Field vocabulary recovered from the resource's implementation functions: `virtualRemoteControl`
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **dpad_directions**: `UP`=1, `DOWN`=2, `LEFT`=3, `RIGHT`=4, `SELECT`=5
+- **remote_buttons**: `POWER`=1, `BACK`=2, `HOME`=3, `MENU`=4, `PLAY_PAUSE`=5, `MUSIC`=6, `DPAD_UP`=7, `DPAD_DOWN`=8, `DPAD_LEFT`=9, `DPAD_RIGHT`=10, `DPAD_SELECT`=11
+- **vrc_event_source**: `HEALTHCHECK`=1, `SERVER`=2, `USER`=3, `SNF`=4, `FEEDBACK`=5, `EXTRALOCAL`=6
+- **vrc_state**: `CLOSED`=1, `ERROR`=2, `INIT`=3, `OFFLINE`=4, `CONFIGURING`=5, `NO_LOGICAL_ADDRESS`=6, `READY`=7
 
 ## `voice`
 
@@ -1497,6 +1594,11 @@ Zone listing for a household — the zone view of topology (players + groups as 
 | `PUT` | `v1/households/{householdId}/players/{playerId}/zones/join/{zoneId}` | `joinZone` | `zoneId` | `0x20000104` | `0x10b930a0` `0x10b930b0` | `zoneId`, `isHomeTheater`, `fronthaulChannel` |
 | `PUT` | `v1/players/{playerId}/zones/unjoin/{zoneId}` | `unjoinZone` | `zoneId` | `0x20000104` | `0x10b930b0` `0x10b930c0` | `isHomeTheater`, `fronthaulChannel`, `zoneId` |
 | `PUT` | `v1/households/{householdId}/players/{playerId}/zones/unjoin/{zoneId}` | `unjoinZone` | `zoneId` | `0x20000104` | `0x10b930b0` `0x10b930c0` | `isHomeTheater`, `fronthaulChannel`, `zoneId` |
+
+Related enum registrations (proven integer values — see `enum_tables`):
+
+- **compression_level**: `OFF`=1, `LOW`=2, `DEFAULT`=3, `MAX`=4
+- **zone_availability**: `UNDEFINED`=1, `ENABLED_AVAILABLE`=2, `ENABLED_UNAVAILABLE`=3, `DISABLED_AVAILABLE`=4, `DISABLED_UNAVAILABLE`=5, `SECONDARY_STATE_IGNORED_BY_CR`=6
 
 Op-level JSON keys recovered from op-object methods: `muse`, `zoneId`, `channelMapSet`, `name`, `zoneDefinition`, `settings`, `isHomeTheater`, `fronthaulChannel`, `backhaulChannel`, `flatChannelMapSet`
 

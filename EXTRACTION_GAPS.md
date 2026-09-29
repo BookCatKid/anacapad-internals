@@ -107,8 +107,22 @@ Grading each surface against that:
   exists; frame layout not decoded
 - **Bluetooth/AirPlay stacks** — third-party code, presence only
 - **`R_*` integer enum values** — the namespace is clean (61 real
-  tokens + 172 `ERROR_*` literals); vtable-order inference could yield
-  values but is unproven
+  tokens + 172 `ERROR_*` literals) but `R_*` names exist **only inside
+  log-format strings** (e.g. `applyLEDMode R_LED_UPGRADE(0x%llx)`),
+  never as standalone literals — so the `{name,len,val}` enum-table
+  method used for `enum_tables` cannot bind them; values need per-use
+  switch/bitmask analysis. **Partially resolved by `enum_tables`**: the
+  binary's real enum registration tables (48 stride-12
+  `{name*, strlen, enumval}` arrays in `.data.rel.ro`) give *proven*
+  integer values for the non-`R_*` enums — muse roles
+  (`OWNER/GUEST/CRM/ADMIN...`), auth types
+  (`GUEST_TOKEN/ACCESS_TOKEN/API_KEY/GUEST_TOKEN_PIN`), authz
+  namespaces, playModes, queue insert modes, content-object classes,
+  SMAPI/SRADIO/SFB capability bitmask (1..32 powers of two),
+  registration classes, netmodes, alarm/timer/power/replication FSM
+  states, remote buttons, speaker orientation, CHSRC source classes,
+  update-FSM results, vanish reasons, trueroom data types, positioning
+  measure types, ratings — see `shared_primitives.enum_tables`
 
 ---
 
@@ -563,8 +577,14 @@ the deep semantic layer:
    /tools, /support/*); per-route emit schemas harvested for ~83
    routes; the remainder delegate via module vfunc +0x24 and need
    per-module chasing
-6. **R_* integer mappings** — the 403-name enum is complete but enum
-   *values* are not proven from the binary
+6. **R_* integer mappings** — mostly resolved via `enum_tables`: 48
+   `{name*,strlen,enumval}` registration arrays recovered from
+   `.data.rel.ro` give proven values for ~45 non-`R_*` enums (muse
+   roles/auth-types/playModes, SMAPI capability bitmask, CHSRC classes,
+   FSM states, update results, orientation, trueroom types...). The
+   `R_*`-prefixed enum itself stays unmapped — its names exist only
+   inside log strings, never as standalone literals, so no name-table
+   exists; needs per-use switch analysis
 7. **Certificate wire flows** — lifecycle decoded; the enrolment/
    renewal request formats unresolved
 8. **SemiSleep/WAC/factory-reset state machines** — trigger strings

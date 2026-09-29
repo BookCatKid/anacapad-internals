@@ -941,7 +941,7 @@ _HTTP_KEYS = [
     "xml_schema_clusters", "internal_error_families",
     "system_property_keys", "internal_result_namespace",
     "smapi_capability_vocabulary", "albumart_proxy",
-    "muse_route_verbs",
+    "muse_route_verbs", "enum_tables",
 ]
 
 
@@ -1189,6 +1189,18 @@ def render_muse(m):
             out.append("")
             for m_ in r["impl_msgs"]:
                 out.append("- `%s`" % _e(m_))
+            out.append("")
+        ens = r.get("enums") or {}
+        if ens:
+            out.append("Related enum registrations (proven integer "
+                       "values — see `enum_tables`):")
+            out.append("")
+            for enm, mem in sorted(ens.items()):
+                out.append("- **%s**: %s"
+                           % (_e(enm), ", ".join(
+                               "`%s`=%s" % (_e(s), v)
+                               for s, v in sorted(
+                                   mem.items(), key=lambda kv: kv[1]))))
             out.append("")
         if fields_seen:
             out.append("Op-level JSON keys recovered from op-object "
