@@ -120574,8 +120574,17 @@
    ]
   },
   "diagnostics": {
-   "submission_fsm": "bounded queues {\"submission queue full\",\"result queue full\"}; params includeControllers,initiatingDeviceId; states {pending on controllers,already in process,no devices submitted,successful}; zpDiagSubmit job + tracking + diag_mgr; completed{submissionId,status,diagnosticId}; blob wrapper <ZPNetworkInfo type=\"User\"> + <!-- START UUID -->/END UUID per player + \" unreachable\"",
-   "manifest": "<DiagnosticManifest %s='%s' %s='%s'>2.0.0</DiagnosticManifest> posted to /v2/diags product-diagnostics; items {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason}; initiate body {\"serial_num\":\"%s\"}; flow {initiate\u2192distribute diagId to players\u2192trigger on controllers\u2192report submit status}; per-player files {%s.xml(ZPNetworkInfo),%s.sha256,%s.xml.gz}; aggregate via http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x; stub flow {\"Diagnostic stub\",\"Local diagnostic\",\"Failed to generate hash on Stubbed Support Document\"}; \"confirmation guid (%s) doesn't match actual guid (%s)\"; progress {\"Populated players ... Num players: %zu, Num stubbed players: %zu\",\"Timed out waiting for devices\",\"All devices reported\"}; diag_progress thread"
+   "name": "distributed diagnostics",
+   "status": "partial",
+   "summary": "manifest <DiagnosticManifest attrs> ver 2.0.0 \u2192 POST /v2/diags product-diagnostics; init body {\"serial_num\":\"%s\"}; fields {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason,ZPNetworkInfo}; coordination: distribute diagId to players, trigger diag on controllers, collect submit statuses (\"Timed out waiting\"/\"All devices reported\"); files {manifest.xml,%s.xml,%s.sha256,%s.xml.gz}; modes {Diagnostic stub,Local diagnostic}; local aggregate http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x; diag_progress var; counters Num players/Num stubbed players",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f05460",
+     "notes": "certmanager block diag region"
+    }
+   ]
   },
   "device_props": {
    "idle_shutdown": "idle events LineInStateChangedEvent/ReplicatedSettingsChangedEvent; vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; dpimpl/dpUpdateIdleState \"idle state is %sidle, changing to %sidle\"",
@@ -120983,7 +120992,17 @@
    "status": "Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file"
   },
   "update_coordinator": {
-   "begin": "beginUpdate {already started guard,updateHookJob,upgradeinfo,/var/run}; \"Current Swgen Min downgrade version %s\"; \"Failed to query cloud settings\""
+   "name": "update coordinator",
+   "status": "partial",
+   "summary": "beginUpdate/beginUpdate called./Update already started.; updateHookJob + upgradeinfo + /var/run; \"Current Swgen Min downgrade version %s\"; \"error updating %s\"; \"Failed to query cloud settings\"; update_coordinator actor; cert.xml+metadata.txt loads \"loading %s (0x%x) took %ums\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f0526c",
+     "notes": "update coordinator region"
+    }
+   ]
   },
   "datatap": {
    "detail": "\"Datatap snapshot failed after %zu\" (snapshot bound); ZoneDevDiscThread"
@@ -122484,6 +122503,97 @@
      "status": "confirmed",
      "address": "0x10fbd900",
      "notes": "trueplay_api block"
+    }
+   ]
+  },
+  "device_registration": {
+   "name": "secure device registration (regdevicecert)",
+   "status": "partial",
+   "summary": "Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh then ?action=complete&token={tok}; FSM \"regState changed %d -> %d\" + \"Transfer mode old (e:%d) new (e:%d)\"; logs {during suspend,time expired,success,retrying registration at time %ld,error,Unexpected 401 response}; vars {regStatus,playerReg,sslerror,errno,mutualssl,sslError}; cert lifecycle {Flushed cert,removed invalid cert}; secure-reg-transfer IPC: signing key via {\"Invalid registration signing key in IPC payload\",\"Registration signing key set/cleared\"}, jobs {tjmgrExitSecureRegTransferState,newRegisteredCertSonosIDLocked,exitSecRegTransferState}; household-customer conflict {\"Household customer ID [%s] in conflict with local device [%s]\",\"changed [%s] -> [%s]\"} vars {RegisteredCustomerID,RegisteredCertSonosID}; events {Received %s event. Sonos ID,NewCertRegistrationEvent inprocess-event}; RegisterZoneProvider UPnP action; replicated headers {X-RINCON-LAST-UPDATE-DEVICE,X-RINCON-CONTENT-FORMAT,CONTENT-ENCODING,X-RINCON-SIGNATURE} + \"unexpected content version/format\"; {ReplicatedSettings,settingsReplication,netsettingsReplication}; \"Removing settings denylists after registration\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10efc8f8",
+     "notes": "regdevicecert rodata block"
+    }
+   ]
+  },
+  "hhsettings_rest": {
+   "name": "household settings REST API",
+   "status": "partial",
+   "summary": "path grammar {public/{key},restricted/{key},restricted-admin/{key}}; errors {Key not found.,Failed to delete setting.,invalid value size or type for setting key,HHSettingsMgr reported invalid setting value for key,Failed to store setting.,HHSettingsMgr failed to store settings,Deleting all settings in a category is not allowed. Provide a key.,Unsupported Request}; get path logs \"key = %s not found in processGetRequest\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f063f8",
+     "notes": "hhsettings region"
+    }
+   ]
+  },
+  "memmon": {
+   "name": "memory monitor",
+   "status": "partial",
+   "summary": "reads /proc/meminfo {MemAvailable:,MemFree:} + /proc/%s/{statm,cmdline}; writes /tmp/memorylog/log.%d (+.old rotation); vars {memlog,memavailable,memfree,memory_status,memmon}; \"memory report avail=%s free=%s\"; \"report skipped %s (count: %u)\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f06588",
+     "notes": "memmon region"
+    }
+   ]
+  },
+  "mdns_controller": {
+   "name": "mDNS service controller",
+   "status": "partial",
+   "summary": "Service lifecycle: register-once guard (\"Attempted to register ... twice\"), TXTRecord populate, value update/remove with dup guards (\"ignoring duplicate value\",\"ignoring removal of non-existant value\"), unregister; player discovery \"Unable to start mDNS player discovery; error %i\" + QueryRecord; local. domain; \"[%s] vs [%s]\" compare",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f0671c",
+     "notes": "mdnscontroller region"
+    }
+   ]
+  },
+  "overrideconfig": {
+   "name": "/overrideconfig endpoint",
+   "status": "partial",
+   "summary": "form post committing override file; errors {Error reading request body,Request body size does not match content length,Error initializing object,Error committing override file}; success <html>meta refresh 1;url=/fcs Success</html>; Content-Type application/x-www-form-urlencoded",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f06248",
+     "notes": "overrideconfig region"
+    }
+   ]
+  },
+  "json_parser": {
+   "name": "embedded JSON parser error enum",
+   "status": "partial",
+   "summary": "error enum {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f05a74",
+     "notes": "json error enum"
+    }
+   ]
+  },
+  "event_loop": {
+   "name": "main event loop",
+   "status": "partial",
+   "summary": "eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,stopped,has no more work,shutdown. Cancelling watchdog,failure,elapsed-time:%lld}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f05d80",
+     "notes": "eventloop region"
     }
    ]
   }
