@@ -113339,7 +113339,8 @@
      "address": "0x10e765a4",
      "notes": "/spotifyzc"
     }
-   ]
+   ],
+   "range": "\"Session status 0x%x connected %d wantWrite %d wantRead %d\" + \"Current state: %d Current Status 0x%08x\" + HTTP/1.1 206 partial-content support"
   },
   "internal_result_namespace": {
    "status": "strong",
@@ -121387,9 +121388,9 @@
    "mdns": "_spotify-connect._tcp mDNS service; CPath sonos; \"deregister skipped for empty SID\"/\"register skipped for non-empty SID: %s\""
   },
   "player_settings": {
-   "name": "PlayerSettingsManager \u2014 settingsv2",
-   "status": "partial",
-   "summary": "keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq(treble/bass/loudness),gainTrimDB,zone attributes}; gates {\"Device does not support fixed output\",\"Satellites not supported; configure primary device\",\"monoMode (not supported in setup)\",wifiDisable {reason unknown,netstart refused,no Ethernet carrier},meshDisable (netstart refused),\"EQ cannot be adjusted in PASS_THROUGH volume mode\"}; error fmt \"Unable to set setting(s): X (unsupported)\"; settingsv2; gmSat/ukwnt/unhandled handlers",
+   "name": "PlayerSettingsManager (settingsv2)",
+   "status": "strong",
+   "summary": "keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq (treble),eq (bass),eq (loudness),gainTrimDB,zone attributes}; volume modes incl PASS_THROUGH (\"EQ cannot be adjusted in PASS_THROUGH volume mode\") + \"Device does not support fixed output\"; \"Satellites not supported; configure primary device\"; \"monoMode (not supported in setup)\"; wifiDisable reasons {reason unknown,netstart refused,no Ethernet carrier,meshDisable (netstart refused)}; \"Netstart failed to modify meshDisable setting\"; \"Unable to set setting(s): ... (unsupported)\"; actors {PlayerSettings,PlayerSettingsManager,playersettingsmgr,gmSat,ukwnt}",
    "evidence": [
     {
      "type": "firmware",
@@ -122677,7 +122678,8 @@
      "address": "0x10ea14c4",
      "notes": "spotify.cxx zc block"
     }
-   ]
+   ],
+   "mdns": "service _spotify-connect._tcp + CPath sonos; \"deregister skipped for empty SID.\"; \"register skipped for non-empty SID: %s\""
   },
   "spotify_smapi_ctrl": {
    "name": "RSpotifySMAPIControl",
@@ -122900,7 +122902,8 @@
      "address": "0x10f1a010",
      "notes": "decoder block"
     }
-   ]
+   ],
+   "detail": "ogg/vorbis {nullaudio \"starting null audio play\"+\"dropping %zu bytes\",\"oob, num samples larger than max vorbis packet size\",\"we have gapless ogg, %d samples, %zu frame size\",\"gapless requested %d samples > decoded frame size\",\"ogg eof\",\"ogg only header byte found\",\"ogg hard stop requested\"}; SBC {\"Invalid packet header\",\"params: freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu\",\"Truncated packet. Lost %zu of %zu frames\",\"frame size changed %zu->%zu\",\"decoder error %zd on frame %zu\",\"Bad SBC frame %zu. read %zd/%zd, decoded %zu/%zu\",\"unexpected NOTIFYFRAME_ERR_BUFFERING\",\"unknown frame status %d\"}; WMA {\"oob, num samples larger than max wma packet size (%zu * %zu == %zu) > %zu\",\"wma player end of file\",\"notify frame stop/do not decode\",\"skipping wma frame\",\"wma decoder error, resetting/no reset/hard stopping\",\"number of channels encoded %d, will not decode > stereo\"}; ALAC {\"alac decoder status: %d\",\"producing zeros only\",\"alac out-of-bounds read prevented\",\"error initializing ALAC\",\"created alac for %u-bit samples, %d sample freq, %d-channel\",\"unexpected sample bit depth: %u\"}"
   },
   "product_models": {
    "name": "product codename + ZPS model table",
@@ -122912,6 +122915,58 @@
      "status": "confirmed",
      "address": "0x10f24808",
      "notes": "model table"
+    }
+   ]
+  },
+  "htaudio_satellite_tx": {
+   "name": "HT audio satellite TX stats",
+   "status": "partial",
+   "summary": "stats schema {timeToPlay/Time between send and play,txSent/Total bytes transmitted,txErrors/Total number of transmission errors,serializationErrors/Total number of serialization errors,numLateFrames/number of times we were late to transmit a frame,Total resynchronization frames,playbackEnd/Total playback ended frames,mx_proc/Highest SatMixer processing time,tx_proc/Highest SatTx processing time}; \"HT Audio Satellite TX General\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee5c90",
+     "notes": "ht tx stats"
+    }
+   ]
+  },
+  "spdif_burst": {
+   "name": "SPDIF burst-format taxonomy",
+   "status": "strong",
+   "summary": "supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3)}; unsupported enum {NULL Burst,Pause Burst,AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1,MPEG1 Layer 2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1/2/3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA} all prefixed \"Unsupported \"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee650c",
+     "notes": "burst enum"
+    }
+   ]
+  },
+  "addrmon": {
+   "name": "netlink interface-address monitor",
+   "status": "partial",
+   "summary": "RTM_NEWLINK/RTM_GETLINK via netlink; {\"read error %d %s\",\"incorrect type\",\"unexpected message %X\"}; select events selthrd.RIfAddressMonitor.{reset,data,except,timeout}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee69ac",
+     "notes": "addrmon"
+    }
+   ]
+  },
+  "audiotap_manager": {
+   "name": "audiotap async requests",
+   "status": "partial",
+   "summary": "raudiotapMutex; \"failed to setup async request %d %s\"; \"can't consume from a closed request\"; audiotap.poll; \"failed write %d %s\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee6170",
+     "notes": "audiotap reqs"
     }
    ]
   }
