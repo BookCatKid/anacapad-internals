@@ -4663,6 +4663,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#additional-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Additional records
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Additional records">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation_notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>implementation_notes</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -8478,6 +8506,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#additional-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Additional records
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Additional records">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation_notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>implementation_notes</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -11774,6 +11830,18 @@
 </ul>
 <h2 id="notes_27">Notes<a class="headerlink" href="#notes_27" title="Permanent link">&para;</a></h2>
 <p>Impl vtables found in .rodata: base 0x10e872f0 (slots +0x08..+0x64, ends at GetRoomCalibrationStatus - no SetRoomCalibrationStatus/RampToVolume/RestoreVolumePriorToRamp entries) and derived 0x10ed279c. Neither vtable address is stored or materialized anywhere - objects are installed dynamically and derived classes may further override slots (this-adjusting thunks exist at 0x100d6600/0x100d6608/0x100d735c/0x100e32ec/0x100e34dc/0x100e4214 for secondary bases). Common field map established from impl bodies: mute bytes +0x7f1 Master / +0x7f2 LF / +0x7f3 RF / +0x7f4 'FocusMode' (SetMute only), volume u16 +0x7da mirrored to +0x3c8 on write, secondary u16 +0x7e0, flag bytes +0x7ff and +0x801 gating a volume-sync path, event-dirty flag +0x7f5, EQ word +0x898, context/state objects +0x3ac/+0x3c4/+0x9c8/+0xbc8, recursive mutex +0x938 (f_10988564/f_10988990 guard pair).</p>
+<h2 id="additional-records">Additional records<a class="headerlink" href="#additional-records" title="Permanent link">&para;</a></h2>
+<h3 id="implementation_notes"><code>implementation_notes</code><a class="headerlink" href="#implementation_notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>source:</strong> rc_impl.cxx literals 0x10e87728-0x10e88d8c; rcMediaRenderer + sonosAsyncFastState(+Cond) fast-state channel; ie-schd/ie-cache threads</li>
+<li><strong>eq_settings:</strong> <code>SubGain</code>, <code>SubCrossover</code>, <code>SubPolarity</code>, <code>SubEnable</code>, <code>VolumeScalingFactor</code>, <code>HeightChannelLevel</code>, <code>DialogLevel</code>, <code>SpeechEnhanceEnabled</code>, <code>SupportsMaxDialogLevel</code>, <code>SurroundLevel</code>, <code>MusicSurroundLevel</code>, <code>SurroundEnable</code>, <code>SurroundMode</code>, <code>AudioDelay</code>, <code>AudioDelayLeftRear</code>, <code>AudioDelayRightRear</code>, <code>NightMode</code></li>
+<li><strong>internal_verbs:</strong> <code>SetMute</code>, <code>SetMuteWithoutProxy</code>, <code>SetLoudness</code>, <code>SetVolumeAndMuteWithoutProxy</code>, <code>ResetBasicEQ</code>, <code>ResetExtEQ</code>, <code>SetChannelMap</code>, <code>RestoreVolumePriorToRamp</code>, <code>SetVolumeScaling</code>, <code>SetVolume</code>, <code>SetVolumeWithoutProxy</code>, <code>SetRelativeVolume</code>, <code>SetVolumeDB</code>, <code>SetBass</code>, <code>SetTreble</code>, <code>SetOutputFixed</code>, <code>RampToVolume</code>, <code>ButtonToggleMute</code>, <code>ButtonSetMute</code></li>
+<li><strong>ramp_types:</strong> <code>ALARM_RAMP_TYPE</code>, <code>AUTOPLAY_RAMP_TYPE</code>, <code>SLEEP_TIMER_RAMP_TYPE</code>, <code>DIRECT_RAMP_TYPE</code>, <code>INSTANT_RAMP_TYPE</code>, <code>SLOW_RAMP_TYPE</code></li>
+<li><strong>bonded_states:</strong> <code>HT_BONDED_MASTER</code>, <code>HT_BONDED_SATELLITE</code>, <code>UNBONDED_DEVICE</code>, <code>BONDED_STEREOPAIR_AND_SUB</code>, <code>BONDED_TO_SUB</code>, <code>BONDED_STEREOPAIR</code></li>
+<li><strong>validation:</strong> <code>Muted is required</code>, <code>Cannot set volume in fixed output mode</code>, <code>volumeDelta: At least one is required: {volumeDelta,muted}</code>, <code>At least one is required: {volume,muted}</code></li>
+<li><strong>volume_internals:</strong> "Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d" — balance+per-channel mutes; "ramping to %d"; GainTrimdB %.2f; FocusModeMute; "setMonoMode %s"; "Set real channel map to L: %u - R: %u"; "bonded; set primary's default loudness %d"; save collision policy delay|drop [cSC:%u|sC:%u|sCC:%u]</li>
+<li><strong>sonar:</strong> "sonar %sACTIVE (t:%d e:%d ac:%d id:%s)"; "sonar state changing %s -&gt; %s"; "Will apply and store Sonar calibration %s"/"Will apply HT spatial coefficients"; CalibrationMode must be spectral|spatial; events sonarEnabledChangedTo/sonarCalibConsistentChangedTo/sonarHasCalibrationChangedTo/orientationChangedTo</li>
+</ul>
 <p>Implementation sources (recovered): <code>zoneplayer/rc_impl.cxx</code>, <code>zoneplayer/rc_impl_stp.cxx</code></p>
 <details><summary>Service evidence (6)</summary>
 

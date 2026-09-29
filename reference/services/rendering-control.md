@@ -2626,6 +2626,19 @@ Service/implementation unavailable at dispatch: the dispatcher found the action 
 
 Impl vtables found in .rodata: base 0x10e872f0 (slots +0x08..+0x64, ends at GetRoomCalibrationStatus - no SetRoomCalibrationStatus/RampToVolume/RestoreVolumePriorToRamp entries) and derived 0x10ed279c. Neither vtable address is stored or materialized anywhere - objects are installed dynamically and derived classes may further override slots (this-adjusting thunks exist at 0x100d6600/0x100d6608/0x100d735c/0x100e32ec/0x100e34dc/0x100e4214 for secondary bases). Common field map established from impl bodies: mute bytes +0x7f1 Master / +0x7f2 LF / +0x7f3 RF / +0x7f4 'FocusMode' (SetMute only), volume u16 +0x7da mirrored to +0x3c8 on write, secondary u16 +0x7e0, flag bytes +0x7ff and +0x801 gating a volume-sync path, event-dirty flag +0x7f5, EQ word +0x898, context/state objects +0x3ac/+0x3c4/+0x9c8/+0xbc8, recursive mutex +0x938 (f_10988564/f_10988990 guard pair).
 
+## Additional records
+
+### `implementation_notes`
+
+- **source:** rc_impl.cxx literals 0x10e87728-0x10e88d8c; rcMediaRenderer + sonosAsyncFastState(+Cond) fast-state channel; ie-schd/ie-cache threads
+- **eq_settings:** `SubGain`, `SubCrossover`, `SubPolarity`, `SubEnable`, `VolumeScalingFactor`, `HeightChannelLevel`, `DialogLevel`, `SpeechEnhanceEnabled`, `SupportsMaxDialogLevel`, `SurroundLevel`, `MusicSurroundLevel`, `SurroundEnable`, `SurroundMode`, `AudioDelay`, `AudioDelayLeftRear`, `AudioDelayRightRear`, `NightMode`
+- **internal_verbs:** `SetMute`, `SetMuteWithoutProxy`, `SetLoudness`, `SetVolumeAndMuteWithoutProxy`, `ResetBasicEQ`, `ResetExtEQ`, `SetChannelMap`, `RestoreVolumePriorToRamp`, `SetVolumeScaling`, `SetVolume`, `SetVolumeWithoutProxy`, `SetRelativeVolume`, `SetVolumeDB`, `SetBass`, `SetTreble`, `SetOutputFixed`, `RampToVolume`, `ButtonToggleMute`, `ButtonSetMute`
+- **ramp_types:** `ALARM_RAMP_TYPE`, `AUTOPLAY_RAMP_TYPE`, `SLEEP_TIMER_RAMP_TYPE`, `DIRECT_RAMP_TYPE`, `INSTANT_RAMP_TYPE`, `SLOW_RAMP_TYPE`
+- **bonded_states:** `HT_BONDED_MASTER`, `HT_BONDED_SATELLITE`, `UNBONDED_DEVICE`, `BONDED_STEREOPAIR_AND_SUB`, `BONDED_TO_SUB`, `BONDED_STEREOPAIR`
+- **validation:** `Muted is required`, `Cannot set volume in fixed output mode`, `volumeDelta: At least one is required: {volumeDelta,muted}`, `At least one is required: {volume,muted}`
+- **volume_internals:** "Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d" — balance+per-channel mutes; "ramping to %d"; GainTrimdB %.2f; FocusModeMute; "setMonoMode %s"; "Set real channel map to L: %u - R: %u"; "bonded; set primary's default loudness %d"; save collision policy delay\|drop \[cSC:%u\|sC:%u\|sCC:%u\]
+- **sonar:** "sonar %sACTIVE (t:%d e:%d ac:%d id:%s)"; "sonar state changing %s -> %s"; "Will apply and store Sonar calibration %s"/"Will apply HT spatial coefficients"; CalibrationMode must be spectral\|spatial; events sonarEnabledChangedTo/sonarCalibConsistentChangedTo/sonarHasCalibrationChangedTo/orientationChangedTo
+
 Implementation sources (recovered): `zoneplayer/rc_impl.cxx`, `zoneplayer/rc_impl_stp.cxx`
 
 <details><summary>Service evidence (6)</summary>

@@ -21,6 +21,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `feature_flag_registry` | **partial** | complete compile-time feature/config flag vocabulary (48 keys): featureConfig* family keys in the cloud-config JSON doc plus enable*/disable* booleans read at init — the build's feature map showing which subsystems are switchable |
 | `group_object_model` | **partial** | zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push |
 | `ibt_plans` | **partial** | a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init |
+| `ir_decoder` | **partial** | irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -> auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; "Short Code not recognized"/"unrecognized %d"; read "ir: %d length: %d","IR Event read: %zd, msgcount: %u" |
 | `lechmere_wss` | **partial** | lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions |
 | `led_engine` | **partial** | Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only |
 | `log_domain_map` | **partial** | 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring |
@@ -46,7 +47,10 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `wac_mode` | **partial** | WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed int, 'Unknown WAC mode %d') with enabled/disabled/timeout transitions; driven by netstartd via /tmp/netstartd.ipc ('WAC mode enabled/disabled/timeout', 'In setup mode', 'Netstart SSID set/clear'); LED goes to R_LED_WAC mode \| netstartd IPC drives WAC: dispatcher f_10691034 msg ids 35/36=WAC disabled/enabled, 37/39/41=WAC timeout cluster; ids 42/46/47=setup-mode enter/setup start/stop. |
 | `chsnk` | **?** |  |
 | `chsrc_chsnk` | **substantially decoded** | chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path. |
+| `htaudio` | **?** |  |
+| `music_accounts` | **?** |  |
 | `registration_machine` | **?** |  |
+| `reporting` | **?** |  |
 
 ## `ab_experiments`
 
@@ -568,6 +572,21 @@ a remote-management command executor: commands named in log domain 'ibt' are com
 - @ 0x10b985c4 — ibt plan executor: plan→target-list→per-target dispatch
 - @ 0x10ec78c0 — \[dispatch\] dispatched (%s) to target (%s), result \[%s\]
 - @ 0x10a581b0 — enablePitchfork gate checked twice in init fn
+
+</details>
+
+## `ir_decoder`
+
+**coverage** `partial`
+
+**Technical description:**
+
+irdecoder.cxx: selthrd.RIRDecoder.{reset,data,except,timeout}; debouncer FSM (recent/bIsRepeat, playing/not-playing -> auto play); actions vol_up,vol_down,IR Mute,IR Input + testpoint press; decode via histogram peak detection (avgA/avgB/threshold) then pulse-width OR pulse-distance OR biphase; "Short Code not recognized"/"unrecognized %d"; read "ir: %d length: %d","IR Event read: %zd, msgcount: %u"
+
+- **name:** RIRDecoder — IR receive/decoder
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ea75d8 — irdecoder.cxx rodata
 
 </details>
 
@@ -1361,6 +1380,26 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 </details>
 
+## `htaudio`
+
+**coverage** `?`
+
+- **tv_session_fields:** `cid set/clr`, `corrId`, `sessionLength`, `sessionPlayTime`, `connectionType`, `GCUUID`, `GCBootSeq`, `GCTimeStart`, `GCTimeEnd`, `inputRate`, `dataBurstType`, `contentType`, `playSeconds`, `forced`, `topoType`, `zpHTInputSession`
+## `music_accounts`
+
+**coverage** `?`
+
+- **accountsmgr:**
+  - **guest:** guest accounts: link-code required; sn_%d serials; "guest upgrade not allowed via reauth"; matched by {g,sn,h(ash)}; nickname update; tombstone migration "Migrated tombstoned %s replication account"
+  - **errors:** `no account`, `stale account`, `unsupported service`, `unexpected`, `login failed`, `serviceId is out of range`, `serviceId is malformed`, `Either linkCode or accountId should be provided`, `Could not resolve serviceId`, `Unsupported account authentication method`, `missing required Token or OAuthDevID`
+  - **corruption:** detectors {emptyUUID,dupUUID,serial}->"Found corrupted accounts"; removals corruptedAccountRemoval/duplicateAccountRemoval; "Removed account multiple. SN=%d, SID=%u, UID=%u"
+  - **replication:** "replicating accounts file from %s"; "Rejected version %u, schema %u from %s"; "Invalid replication operation"
+  - **migration:** "Created new accounts file; migrated %d accounts"; "Migrated Pandora built-in"; pre-cloud/anonymous account migration; legacyTuneInReplaced; "Migrated Account with SID %u. (%u,%u->%u)"
+  - **preferred:** getPreferredAccount no preferred set/no matching; setPreferred via serialNum extraction from accountId; performsSMAPIAccountMatching; "Account matched g=%d,sn=%u,h=%s"
+  - **ops:** `restore`, `addAccount`, `migrate`, `maintenance`
+  - **reporting:** "Pending report for account %u"; "Failure to mark accounts for reporting"; "Failed to report svc %u"; numAccounts
+  - **manifest:** "Failed to download manifest file (%s) for service %u, error %hu"
+  - **directcontrol:** "End direct control context UUID: %s"; spotifyTransferStartDirectControlEx; authToken/smapi keys
 ## `registration_machine`
 
 **coverage** `?`
@@ -1370,3 +1409,8 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 - **fsm:** states regStatus + regState %d->%d; events registration during suspend\|time expired\|success\|error\|"retrying registration at time %ld"; secureRegTransfer tjmgr flow: exitSecRegTransferState scheduled/de-scheduled/run via tjmgrExitSecureRegTransferState; currentAccount
 - **signing:** Registration signing key set/cleared via IPC payload ("Invalid registration signing key in IPC payload")
 - **events:** NewCertRegistrationEvent inprocess-event {SonosID}; newRegisteredCertSonosIDLocked; RegisteredCertSonosID/RegisteredCustomerID keys; Household customer ID conflict/changed detection
+## `reporting`
+
+**coverage** `?`
+
+- **crashdump:** sentry uploader: dump-proc-anacapa w/ build.version, sentry\[release\], sentry\[tags\]\[%s\], %s\[sonosID\]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; "Failed to write attachment %s to sentry upload"; htsnk dump
