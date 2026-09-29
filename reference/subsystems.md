@@ -37,6 +37,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `cpu_monitor` | **partial** | reads /proc/stat; header " \[%d\] usr sys idle sIRQ \| irqD dMS"; row " \[%d\]  %2u  %2u   %2u   %2u \| %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%" |
 | `crash_report` | **partial** | {procName,numCrashes,uploadResp,playerCrash,lifetime}; "%s %s crash event, crashCount: %i"; Reported/Failed to report |
 | `daemon_ipc` | **partial** | routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/sonosledmgrd-external,/netstartd-external} proxy to sibling daemons; watchdog {/watchdog,/watchdog-legacy,/legacy-to-sentry,/upload} + attachments {watchdog_log,watchdog_dmesg} + crashdump; sentry {"No URL found to upload dump file: %s",text/plain; charset="us-ascii","Failed to write attachment %s to sentry upload",sentry\[tags\]}; flags {/tmp/anacapa_prevent_crashdump_upload,/tmp/backtrace,/tmp/crashed_play_state,/jffs/app/debug/sonosledmgrd.dmp,/opt/log/btservice.log}; "writeStream failed - Bytes compressed: %d/%d" + htsnk |
+| `desired_settings` | **partial** | {DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime} |
 | `dev_disc` | **partial** | devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "%s - rx %s ALIVE %s %s %d %u %s (%zd)", "%s - rx %s BYEBYE %s", "%s - rx CDALIVE %s %s %d", "%s - rx CDBYEBYE %s", "rx  QUARANTINE_RECHECK %s"; "%s - %u SSDP messages lost"; zp byebye; "ddt hint:%d"; "Finished working on type %d" |
 | `device_registration` | **partial** | Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh then ?action=complete&token={tok}; FSM "regState changed %d -> %d" + "Transfer mode old (e:%d) new (e:%d)"; logs {during suspend,time expired,success,retrying registration at time %ld,error,Unexpected 401 response}; vars {regStatus,playerReg,sslerror,errno,mutualssl,sslError}; cert lifecycle {Flushed cert,removed invalid cert}; secure-reg-transfer IPC: signing key via {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}, jobs {tjmgrExitSecureRegTransferState,newRegisteredCertSonosIDLocked,exitSecRegTransferState}; household-customer conflict {"Household customer ID \[%s\] in conflict with local device \[%s\]","changed \[%s\] -> \[%s\]"} vars {RegisteredCustomerID,RegisteredCertSonosID}; events {Received %s event. Sonos ID,NewCertRegistrationEvent inprocess-event}; RegisterZoneProvider UPnP action; replicated headers {X-RINCON-LAST-UPDATE-DEVICE,X-RINCON-CONTENT-FORMAT,CONTENT-ENCODING,X-RINCON-SIGNATURE} + "unexpected content version/format"; {ReplicatedSettings,settingsReplication,netsettingsReplication}; "Removing settings denylists after registration" |
 | `device_unlock` | **partial** | developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state |
@@ -175,9 +176,11 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `wac_mode` | **partial** | WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed int, 'Unknown WAC mode %d') with enabled/disabled/timeout transitions; driven by netstartd via /tmp/netstartd.ipc ('WAC mode enabled/disabled/timeout', 'In setup mode', 'Netstart SSID set/clear'); LED goes to R_LED_WAC mode \| netstartd IPC drives WAC: dispatcher f_10691034 msg ids 35/36=WAC disabled/enabled, 37/39/41=WAC timeout cluster; ids 42/46/47=setup-mode enter/setup start/stop. |
 | `wmp_provider` | **partial** | WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:class derivedfrom "object.item.audioItem" and @refID exists false' + container class specs {person.musicArtist,album.musicAlbum,genre.musicGenre,playlistContainer}; sort/filter "+upnp:album,+upnp:originalTrackNumber,+dc:title" + microsoft:{artistAlbumArtist,artistPerformer,authorComposer} + upnp:genre + "1+upnp:originalTrackNumber"; field set dc:title,res,res@duration,upnp:artist,upnp:artist@role,upnp:album,upnp:originalTrackNumber; rincon md ns urn:schemas-rinconnetworks-com:metadata-1-0/\|otherArtist; albumArt via %s?albumArt=true and /getaa?m=1&u=%s; "URI already has a serial number"/"not enough room for account ID" |
 | `ws_client` | **partial** | client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-Accept,Sec-WebSocket-Extensions}; "failing connection due to unsolicited per msg deflate"; per-msg deflate only before open; openSession retry; nonce gen/encode; {"disconnectedReason":"%s"}; close codes on close frame; LoadBalancerHost/WebsocketServerHost; reasons {NEW_IP,BLUETOOTH,POWERED_OFF,UPGRADE,NEW_SSID,SLEEPING,RECONNECT}; threads wsc_mtx/wsc_smtx/wsc_cond |
+| `zgt_errors` | **partial** | "Handling ReportUnresponsiveDevice %s/%s from %s:%hu"; GetZoneGroupAttributes {"No valid UUID in request server","TServer is not valid for request","TRequest is invalid in the control server"} |
 | `zones_mgr` | **partial** | events {ZoneMemberSettingsChangedEvt,ZonesDefinitionsChangedEvent}; muse ops {museGetZoneDefinition "found zone \[%s\]"}; transitions {"zone transition on secondary/primary: zoneId %s","zone transition failed on primary"}; cms (channel-map-set) {"cms init from %s","cms update from pri: %s","cms update from sec: %s = %s + %s","zoneDef %s inconsistent with cms %s","can't construct channelMapSet"}; file <File name="activeZones">; ops {adding/removing player,joinZone id+flatChannelMapSet,unjoinZone,activateZone,deactivateZone,updateActiveZone,sendUpdateZoneMemberSettingsCmd}; guards {"primary change not supported for HT","update with offline primary not supported for HT","update only allows add or remove, not both","can't update both name and channelMapSet","Zone contains incompatible protocol versions","zone is not active","zone id not found","zone def not found","invalid activeZone","invalid channelMapSet","invalid flatChannelMap","invalid zone name","invalid name:","no name","secondary not reachable","more zones active than RMuseActiveZoneList can hold"}; "Legacy zone exists on %s"; "primary unavailable: sending Remove ops to secondaries"; "re-activate the current zone"; "updating ActiveZone: %s -> %s"/"primary change: %s -> %s"/"offline primary: %s -> %s" |
 | `zones_storage` | **partial** | zone defs {name,id,channelMapSet} + "reached maximum zone definitions"/"too many zones defined in the config file \[max=%d\]" + "zone def full: %s removed"; ops {create,update id,remove (active-guard "zone currently active")}; replication {"received replicated file","failed to rename offered replicated file","failed to load offered replicated file","ignoring replicated file: incompatible schema"}; JSON load errors {missing value,zones data array,root not object,incorrect schema \[%d != %d\],parsing offset,open errno} + RapidJSON vocab; gainTrimDB remote apply; forwarding {activateZone,updateActiveZone,joinZone,updateZoneMemberSettings cmd to %s} + "primary %s not found" + "output buffer full" |
 | `zpinfo_dpimpl` | **partial** | vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo}; events {LineInStateChangedEvent,ReplicatedSettingsChangedEvent}; idle FSM "idle state is %sidle, changing to %sidle" + "Reporting device %sidle"; actors {dpimpl,RDPZoneImpl,dpZoneImpl,dpUpdateIdleState}; /dev/audioctl + U-Boot 17.2.7 + "OTP: %.32s"; KVPair parse; battery {RawBattPct,BattPct,BattChg,BattTmp,BtSrcName} |
+| `account_actions` | **strong** | args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUID,NewAccountID,NewAccountUDN,RDMValue}; actions {AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString} |
 | `alarm_clock` | **?** |  |
 | `album_art` | **?** |  |
 | `audio_in` | **?** |  |
@@ -218,6 +221,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `saved_queues` | **strong** | file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration "Migrating ObjID=%s SN=%u from SID: %u to %u"; SQ:%s objid prefix; <res protocolInfo="file:*:audio/mpegurl:*">; album-art: "No num tracks found, so emitting the first four artworks found"; mobile- playlist prefix; "Add Track Move range: %u-%u to %u"; replication push on save |
 | `sentry_upload` | **strong** | routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; dumps {anacapad.core,anacapad.dmp,sonospowercoordinator.dmp,btmanager.dmp,netstartd.dmp,/jffs/app/debug/sonosledmgrd.dmp}; sidecars {.properties per daemon,sonospowercoordinatorCrashCount,netstartd.count}; attachments {watchdog.log,watchdog.dmesg,/opt/log/anacapa.hdmi.log,/opt/log/anacapa.tv.log,/tmp/AirPlay.log,/opt/log/btmanager.log,/opt/log/btservice.log,/tmp/backtrace}; opt-out flag prevent_crashdump_upload + /tmp/anacapa_prevent_crashdump_upload; sentry schema {sentry\[release\]=build.version,sentry\[tags\]\[%s\],sentry\[user\]\[id\],%s\[sonosID\],%s\[hhid\],%s\[serial\],%s\[upload_sw_version\],%s\[hardware_version\],%s\[model\],%s\[upload_spotifyesdk_version\],%s\[play_state\],%s\[watchdog_crash\]}; form-data + text/plain; charset=UTF-8/us-ascii + application/octet-stream; gzip stream "writeStream failed - Bytes compressed: %d/%d"; play-state file /tmp/crashed_play_state + htsnk; results {"Minidump \[%s\] uploaded to sentry.io. UUID: %s","Coredump \[%s\] successfully uploaded","didn't finish upload; http resp: \[%d\]; last error: \[%s\]","did not return a UUID","No URL found"}; dump file %s-anacapa_dump.gz + originator + Version: |
 | `settings` | **?** |  |
+| `smapi_client` | **strong** | action namespace http://www.sonos.com/Services/1.1\|{...}; actions {getSessionId,refreshAuthToken,getDeviceAuthToken,getStreamingMetadata,getUserInfo,getMediaURI,getMediaMetadata,getMetadata,search,reportAccountAction,reportPlayStatus,reportPlaySeconds,setPlayedSeconds,reportStatus,getAlbumArtURI}; session/key vocab {deviceSessionToken,deviceSessionKey,CK_deviceSessionKey,contentKey,CK_contentKey,MU_deviceSessionKey,MU_contentKey,authToken,privateKey,userInfo,algorithm,keySize,value,expiration,httpHeaders,mediaRequestInfo,uriTimeout,contentKeys,callbackPath}; mediaURI fields {positionInformation,privateDataFieldName,contentKeys}; browse params {recursive,count,index,total,mediaCollection,mediaMetadata}; report schema "reportPlayStatus: %s; context: %s; uri: %s; cid: %s; id: %s; seconds: %lld; offset: %lld" + contextId + interval; semantics enum {IMPLICIT,EXPLICIT:PLAY,EXPLICIT:SEEK,EXPLICIT:SKIP_FORWARD,EXPLICIT:SKIP_BACK,EXPLICIT:PAUSE}; metadata URNs http://purl.org/dc/elements/1.1/\|{id,creatorId} + urn:schemas-rinconnetworks-com:metadata-1-0/\|{narratorId,podcastId,summary,total,duration,authorId,bookId,producerId} + urn:schemas-upnp-org:metadata-1-0/upnp/\|artistId; browse hierarchies {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:}; skd://itunes.apple.com/P000000000/s1/e1 FairPlay; X-Sonos-Playback-Id header; "reauthorizing preinstalled service SID %u"; "mult-key decrypt params not found"; "WARNING! getDeviceAuthToken ... credentialType = %u (not OAuth)"; secondsSinceExplicit; "flushing on cert change"; media-sens cache {cont_prov_media_sens,content_prov_list,billboard,"cached/loaded/reset session %u:%u"} |
 | `smb` | **?** |  |
 | `sntp` | **?** |  |
 | `spotify` | **?** |  |
@@ -815,6 +819,21 @@ routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ea7e40 — daemon ipc block
+
+</details>
+
+## `desired_settings`
+
+**coverage** `partial`
+
+**Technical description:**
+
+{DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime}
+
+- **name:** Desired* setting keys
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f1164c — desired settings
 
 </details>
 
@@ -3415,6 +3434,21 @@ client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-
 
 </details>
 
+## `zgt_errors`
+
+**coverage** `partial`
+
+**Technical description:**
+
+"Handling ReportUnresponsiveDevice %s/%s from %s:%hu"; GetZoneGroupAttributes {"No valid UUID in request server","TServer is not valid for request","TRequest is invalid in the control server"}
+
+- **name:** ZGT error paths
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f1143c — zgt error paths
+
+</details>
+
 ## `zones_mgr`
 
 **coverage** `partial`
@@ -3457,6 +3491,21 @@ vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,Eth
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ef31cc — dpimpl region
+
+</details>
+
+## `account_actions`
+
+**coverage** `strong`
+
+**Technical description:**
+
+args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUID,NewAccountID,NewAccountUDN,RDMValue}; actions {AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString}
+
+- **name:** DeviceProperties account actions
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f111a4 — account action vocab
 
 </details>
 
@@ -3825,6 +3874,22 @@ routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/wa
 
 **coverage** `?`
 
+## `smapi_client`
+
+**coverage** `strong`
+
+**Technical description:**
+
+action namespace http://www.sonos.com/Services/1.1|{...}; actions {getSessionId,refreshAuthToken,getDeviceAuthToken,getStreamingMetadata,getUserInfo,getMediaURI,getMediaMetadata,getMetadata,search,reportAccountAction,reportPlayStatus,reportPlaySeconds,setPlayedSeconds,reportStatus,getAlbumArtURI}; session/key vocab {deviceSessionToken,deviceSessionKey,CK_deviceSessionKey,contentKey,CK_contentKey,MU_deviceSessionKey,MU_contentKey,authToken,privateKey,userInfo,algorithm,keySize,value,expiration,httpHeaders,mediaRequestInfo,uriTimeout,contentKeys,callbackPath}; mediaURI fields {positionInformation,privateDataFieldName,contentKeys}; browse params {recursive,count,index,total,mediaCollection,mediaMetadata}; report schema "reportPlayStatus: %s; context: %s; uri: %s; cid: %s; id: %s; seconds: %lld; offset: %lld" + contextId + interval; semantics enum {IMPLICIT,EXPLICIT:PLAY,EXPLICIT:SEEK,EXPLICIT:SKIP_FORWARD,EXPLICIT:SKIP_BACK,EXPLICIT:PAUSE}; metadata URNs http://purl.org/dc/elements/1.1/|{id,creatorId} + urn:schemas-rinconnetworks-com:metadata-1-0/|{narratorId,podcastId,summary,total,duration,authorId,bookId,producerId} + urn:schemas-upnp-org:metadata-1-0/upnp/|artistId; browse hierarchies {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:}; skd://itunes.apple.com/P000000000/s1/e1 FairPlay; X-Sonos-Playback-Id header; "reauthorizing preinstalled service SID %u"; "mult-key decrypt params not found"; "WARNING! getDeviceAuthToken ... credentialType = %u (not OAuth)"; secondsSinceExplicit; "flushing on cert change"; media-sens cache {cont_prov_media_sens,content_prov_list,billboard,"cached/loaded/reset session %u:%u"}
+
+- **name:** SMAPI SOAP client (sonos_cprovider)
+- **protocol_info:** protocolInfo CSV {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:{audio/mpeg3,audio/wma,audio/wav,audio/aiff,audio/flac,application/ogg,application/dash+xml,application/octet-stream}:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*}; exts {.aiff,.flac,.unknown}; audio/vnd.radiotime; "Unsupported mime type (%s) for object id (%s)"
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10f0f4b0 — sonos_cprovider block 1
+
+</details>
+
 ## `smb`
 
 **coverage** `?`
@@ -3936,6 +4001,7 @@ state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING
 
 - **renew_fsm:** events {"Unsubscribe in renew ... (oos:%d seq:%d)","Successfully renewed","Failed to renew ... HTTP Result: %d; SR: %08x","Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)","Successfully subscribed ... UDN %s","Received SID %s for deleted client","Received OOS %u / %u for SID %s" (out-of-seq tracking),"Not unsubscribing because bSendUnsubscribeRequest=false"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static
 - **gates:** "Invalid transport: WSS is required"; "Invalid namespace: UPnP {subscribe,renew,unsubscribe} not supported"; "unexpected target id %d %s; overriding to: %s"; "Unable to retrieve the relative time."; "Rejecting unsupported replication request for %s"; "UPnP Eventing denied. 403 Forbidden returned."; Second-/%u SID form; sourceHasEventsToSend(%s) initial
+- **tunneled:** tunneled UPnP "Tunneled UPnP call: %s:%s returned %d to %s:%d"/"returned 200"/"from %s:%d" + TRANSFER-ENCODING + "set LOBS = %d"; CM actions {ConnectionIDs,GetProtocolInfo,GetCurrentConnectionInfo,RcsID,AVTransportID,PeerConnectionManager,PeerConnectionID}; MS actions {ListAvailableServices,GetSessionId,ServiceId,Username,SessionId}
 ## `virtual_linein`
 
 **coverage** `?`

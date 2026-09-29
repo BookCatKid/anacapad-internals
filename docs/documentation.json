@@ -120646,7 +120646,8 @@
   },
   "upnp_eventing": {
    "renew_fsm": "events {\"Unsubscribe in renew ... (oos:%d seq:%d)\",\"Successfully renewed\",\"Failed to renew ... HTTP Result: %d; SR: %08x\",\"Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)\",\"Successfully subscribed ... UDN %s\",\"Received SID %s for deleted client\",\"Received OOS %u / %u for SID %s\" (out-of-seq tracking),\"Not unsubscribing because bSendUnsubscribeRequest=false\"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static",
-   "gates": "\"Invalid transport: WSS is required\"; \"Invalid namespace: UPnP {subscribe,renew,unsubscribe} not supported\"; \"unexpected target id %d %s; overriding to: %s\"; \"Unable to retrieve the relative time.\"; \"Rejecting unsupported replication request for %s\"; \"UPnP Eventing denied. 403 Forbidden returned.\"; Second-/%u SID form; sourceHasEventsToSend(%s) initial"
+   "gates": "\"Invalid transport: WSS is required\"; \"Invalid namespace: UPnP {subscribe,renew,unsubscribe} not supported\"; \"unexpected target id %d %s; overriding to: %s\"; \"Unable to retrieve the relative time.\"; \"Rejecting unsupported replication request for %s\"; \"UPnP Eventing denied. 403 Forbidden returned.\"; Second-/%u SID form; sourceHasEventsToSend(%s) initial",
+   "tunneled": "tunneled UPnP \"Tunneled UPnP call: %s:%s returned %d to %s:%d\"/\"returned 200\"/\"from %s:%d\" + TRANSFER-ENCODING + \"set LOBS = %d\"; CM actions {ConnectionIDs,GetProtocolInfo,GetCurrentConnectionInfo,RcsID,AVTransportID,PeerConnectionManager,PeerConnectionID}; MS actions {ListAvailableServices,GetSessionId,ServiceId,Username,SessionId}"
   },
   "usage_metrics": {
    "name": "usagemetrics \u2014 periodic health report",
@@ -122789,6 +122790,59 @@
      "status": "confirmed",
      "address": "0x10f273d8",
      "notes": "chproc block"
+    }
+   ]
+  },
+  "smapi_client": {
+   "name": "SMAPI SOAP client (sonos_cprovider)",
+   "status": "strong",
+   "summary": "action namespace http://www.sonos.com/Services/1.1|{...}; actions {getSessionId,refreshAuthToken,getDeviceAuthToken,getStreamingMetadata,getUserInfo,getMediaURI,getMediaMetadata,getMetadata,search,reportAccountAction,reportPlayStatus,reportPlaySeconds,setPlayedSeconds,reportStatus,getAlbumArtURI}; session/key vocab {deviceSessionToken,deviceSessionKey,CK_deviceSessionKey,contentKey,CK_contentKey,MU_deviceSessionKey,MU_contentKey,authToken,privateKey,userInfo,algorithm,keySize,value,expiration,httpHeaders,mediaRequestInfo,uriTimeout,contentKeys,callbackPath}; mediaURI fields {positionInformation,privateDataFieldName,contentKeys}; browse params {recursive,count,index,total,mediaCollection,mediaMetadata}; report schema \"reportPlayStatus: %s; context: %s; uri: %s; cid: %s; id: %s; seconds: %lld; offset: %lld\" + contextId + interval; semantics enum {IMPLICIT,EXPLICIT:PLAY,EXPLICIT:SEEK,EXPLICIT:SKIP_FORWARD,EXPLICIT:SKIP_BACK,EXPLICIT:PAUSE}; metadata URNs http://purl.org/dc/elements/1.1/|{id,creatorId} + urn:schemas-rinconnetworks-com:metadata-1-0/|{narratorId,podcastId,summary,total,duration,authorId,bookId,producerId} + urn:schemas-upnp-org:metadata-1-0/upnp/|artistId; browse hierarchies {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:}; skd://itunes.apple.com/P000000000/s1/e1 FairPlay; X-Sonos-Playback-Id header; \"reauthorizing preinstalled service SID %u\"; \"mult-key decrypt params not found\"; \"WARNING! getDeviceAuthToken ... credentialType = %u (not OAuth)\"; secondsSinceExplicit; \"flushing on cert change\"; media-sens cache {cont_prov_media_sens,content_prov_list,billboard,\"cached/loaded/reset session %u:%u\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f0f4b0",
+     "notes": "sonos_cprovider block 1"
+    }
+   ],
+   "protocol_info": "protocolInfo CSV {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:{audio/mpeg3,audio/wma,audio/wav,audio/aiff,audio/flac,application/ogg,application/dash+xml,application/octet-stream}:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*}; exts {.aiff,.flac,.unknown}; audio/vnd.radiotime; \"Unsupported mime type (%s) for object id (%s)\""
+  },
+  "account_actions": {
+   "name": "DeviceProperties account actions",
+   "status": "strong",
+   "summary": "args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUID,NewAccountID,NewAccountUDN,RDMValue}; actions {AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f111a4",
+     "notes": "account action vocab"
+    }
+   ]
+  },
+  "zgt_errors": {
+   "name": "ZGT error paths",
+   "status": "partial",
+   "summary": "\"Handling ReportUnresponsiveDevice %s/%s from %s:%hu\"; GetZoneGroupAttributes {\"No valid UUID in request server\",\"TServer is not valid for request\",\"TRequest is invalid in the control server\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f1143c",
+     "notes": "zgt error paths"
+    }
+   ]
+  },
+  "desired_settings": {
+   "name": "Desired* setting keys",
+   "status": "partial",
+   "summary": "{DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f1164c",
+     "notes": "desired settings"
     }
    ]
   }
