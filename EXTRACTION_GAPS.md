@@ -557,20 +557,25 @@ undocumented.
 Everything below is now catalogued with evidence; what's missing is
 the deep semantic layer:
 
-1. **Muse op internals** — 603 routes, 237/265 verbs bound to
-   factory→vtable→exec chains, per-op JSON keys + validation strings +
-   forwarded-paths recovered; still missing: field types/requiredness/
-   defaults, response-body schemas, the 28 unresolved household/
-   registration/reporting verbs
-2. **Lechmere TLV payloads** — framing, close-reason taxonomy and
-   deflate negotiation decoded; the inner command namespace (what the
-   TLV payloads carry) still undecoded
+1. **Muse op internals** — 603 routes, all 265 verbs classified
+   (factory→vtable→exec chains + descriptor-vtable binds + proven
+   outbound-forward stubs + resource-block registrars); op-descriptor
+   stream recovered from .data.rel.ro (spec-pair headers + verb/param
+   literals + positional vtables); still missing: per-field type/
+   requiredness/defaults (spec-pair tag semantics undecoded),
+   response-body schemas
+2. **Lechmere inner payloads** — largely resolved: msgType-3 frames
+   carry v{api}:{ns}#{cmd} where ns/cmd = the muse resource/verb space;
+   events ride the inprocess-events bus with {json} payloads. The "TLV
+   header" read is mercury/AP (Spotify) framing, not lechmere
 3. **Spotify eSDK internals** — module map + Connect surface decoded
-   (/spotifyzc zeroconf action vocabulary + format strings recovered
-   from the master-route handler); mercury/hermes message semantics
-   untouched
-4. **Chirp profile parameters** — sonos-cdma profile exists; exact
-   symbol set/FEC params unextracted
+   (/spotifyzc zeroconf action vocabulary); AP packet layer recovered
+   (7-byte TLV header, 16KB cap, per-packet MAC); mercury/hermes
+   message-type semantics still untouched
+4. **Chirp profile parameters** — SDK identified as Asynchronous Inc
+   Chirp SDK 4.2.3 (build 1898) with full error-table + source-path +
+   internal-func vocabulary; sonos-cdma profile symbol set/FEC params
+   still unextracted
 5. **`/status` + master-route schemas** — master HTTP route table
    decoded (102 records @ 0x11090c00 stride-28, incl. UPnP /Control +
    /Event dispatchers, /api muse entry, /websocket/api, /reboot,
