@@ -130647,6 +130647,44 @@
      "notes": "shipped binaries"
     }
    ]
+  },
+  "netconfig_fsm": {
+   "name": "/usr/sbin/netconfig.sh \u2014 the network-mode FSM driver",
+   "status": "confirmed",
+   "modes": "argv1 {sonosnet, station, satellite, sta_and_sat, open, credcheck, deauth, wacexit, island, up} + WAC family {wacstart, wacapclose, wactimeout, waccredcheck->credcheck, wacapopen->open, wacstation->station} + argv2 STP {stp_disable, stp_enable} + PARAM1-4 payload",
+   "decoded_semantics": [
+    "open = the setup SoftAP: athconfig setopenmode+setchannel (default 2412MHz, /jffs/debug/openchannel override), setmac -L, ifconfig ath0 10.69.69.1 \u2014 the 10.69.69.x bootstrap AP confirmed",
+    "credcheck = credential validation WITHOUT join: stasetenable ath0 2 + wpa_supplicant -B, then exits \u2014 used by waccredcheck to test new WiFi creds against /ramdisk/tmp/netsettings_check.txt before committing",
+    "deauth = bridge+MAC only teardown (no supplicant)",
+    "island = SonosNet with NO ethernet uplink (eth0/eth1 down, br0 uplink=0)",
+    "sonosnet = mesh member: eth0+eth1 bridged uplink=0 + netmanager_extender_flags=0 sentinel",
+    "station/satellite/sta_and_sat = wpa_supplicant -D sonos -i ath0 -b br0; satellite/sta_and_sat with PARAM1=atheros ALSO write /var/run/htapsatwpa.conf {ssid=PARAM2, psk=PARAM3, bssid=PARAM4?, priority=4, scan_ssid=1, eapol_version=1, ap_scan=1} and stassidlistadd the SonosNet-5G backhaul AP \u2014 the bonded-satellite joins the primary's ath1 network as a station",
+    "PrimaryUUID netsettings key present => ISHTSATELLITE=1: setprimaryuuid ath0 + satenable 1 + ath1 down. Otherwise IS_HT_WIRELESS_PRIMARY arch attr => ath1 becomes the HT 5G AP: setuuid/acs/acslmenable/wepkey/hhid",
+    "UUID construction proven at shell level: RINCON_<eth0 MAC>0<Port> where Port = keyval ^Port /opt/conf/anacapa.conf",
+    "netsettings keys read: {WEPKey, HouseholdID, Channel, PriorityBridge(->br0 prio 28672/0x7000 else 38912/0x9800), BonjourName(->DHCP hostname else SonosZB if IS_BRIDGE else SonosZP), PrimaryUUID, ForceMeshDisable(->blockadvertisedpath)}; file /jffs/netsettings.txt or /ramdisk/tmp/netsettings_check.txt (credcheck/station)",
+    "bridge tuning: sethello 1.0 setfd 4.0 setmaxage 6.0; uplink br0 1 for routed modes, 0 for mesh",
+    "DHCP: udhcpc -f -s /etc/dhcp.script -i br0 -w ath0 -h HOST -d access.bestbuy.com \u2014 domain arg literally 'access.bestbuy.com' (legacy retail-demo remnant); island uses -fF -W 20; station modes add -z flag; SIGKILL stale udhcpc after 5s",
+    "waitforip lifecycle: touched for non-WAC non-open modes; cleared by dhcp.script bound/renew or /jffs/debug/static_ipaddr path"
+   ],
+   "debug_hooks": [
+    "/jffs/debug/testpoints.sh sourced when /proc/sonos-lock/exec_enable==1 \u2014 arbitrary shell injection point gated on device unlock",
+    "/jffs/debug/wpa_supplicant.conf overrides generated config (output -> /dev/null)",
+    "/jffs/debug/supplicant -> wpa_supplicant -dd -t -K verbose",
+    "/jffs/debug/wpa_supplicant + exec_enable -> replaces the wpa_supplicant BINARY itself",
+    "/jffs/debug/static_ipaddr -> static br0 IP, skips DHCP, clears waitforip",
+    "/jffs/debug/openchannel -> open-AP channel override",
+    "SSID_FILE=1 /wifi/wpaconfig /jffs/net/settings/ssidlist.txt (or /var/run/softapssidlist.txt for recovery) \u2014 the UseSSIDList provisioning path",
+    "wacd spawn: wacstart/wactimeout -> /wifi/wacd [-timeout]; non-WAC modes kill wacd"
+   ],
+   "shutdown": "etc/init.d/rcK: touch 10 /var/run/stop* sentinels {stopupgrade,stopledmgrd,stopdiagapp,stopsonospowercoordinator,stopmdns,stopdiagprocessd,stopanacapa,stopchrony,stopsddp,stopnetstartd} -> TERM {sonosledmgrd,sonosdiagd,sonospowercoordinator,anacapad,chronyd,sddpd,dropbear,netstartd,mdnsd,udhcpc,rngd} -> sync -> KILL -> ampmcu-down.sh -> umount /jffs. Srandom/Krandom carry /jffs/random-seed across reboots.",
+   "evidence": [
+    {
+     "type": "rootfs",
+     "status": "confirmed",
+     "address": "/usr/sbin/netconfig.sh + /etc/init.d/{rcK,Srandom,Krandom}",
+     "notes": "shipped shell"
+    }
+   ]
   }
  },
  "muse": {
