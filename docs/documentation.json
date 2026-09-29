@@ -120655,7 +120655,7 @@
   "ir_decoder": {
    "name": "IR decoder + learn + cloud DB",
    "status": "strong",
-   "summary": "encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,input_codes} with \"Cannot add X: list full.\" bounds; config /opt/ir/irconfig.txt + \":vol_up_codes:\" keys + \"IR not configured\"; device {\"Failed to open IR device!\",\"Could not get IR file descriptor!\",\"Loading active codes...\",\"IR Controls %s\"}; learn FSM {Capturing short code,\"Short code is first of a series. Ignored!\",Storing short code,\"short so far %d and max: %d\",Successful short code learn,First short long code learned}; algorithm {\"Pass %d length %d learn count: %d\",hex dumps,\"first and third passes have different sizes!\",\"don't match!\",\"Insufficient redundancy in alternate code.\",\"Successfully recognized code as Alternating.\",\"Successfully recognized repeat code.\",\"Mismatched short messages in suspected repeat code.\",\"Successfully recognized a non - repeating code.\",\"Learn summary: Success/Repeat style/Alt style %c\",\"Over ten codes received... not a repeat style code\",\"Ignoring excessively long code\"}; one-button {\"Entered one button learn\",waiting/\"no longer waiting\",UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND,\"One button code not found in DB due to timeout\",\"Timeout during IR code learn for target %s\"}; embedded remote DB {Sharp,LG / Haier TV L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA TV 46LA45RQ,Orion TV SLED3280-HDLCD3250,Mitsubishi WD-65638 & WD-60738,JVC TV JLC42BC3000 & LT-19E610,Seiki TV LC-32B56,SuperSonicSC-240 & 491,ViewSonic VT4210LED & VT3205LED,Loewe}; targets {VolUp,VolDown,VolMute}; DB ops {\"attempting to add null remote\",\"add remote to full db\",\"too long a controller name\",\"excessively long main/alt/repeat code\",Uninstalled all codes}; cloud: submit POST http://ir.ws.sonos.com/IRCode/ XML <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> (guid via /dev/urandom); lookup \"Requesting: %s\" \u2192 \"Code found for remote id [%s]!\" / \"Requested code not found in IR database\"; \"Outstanding codes yet to be learned: Lengths are: %d, %d, %d\"; \"Denylisted pyle!\"",
+   "summary": "encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,input_codes} with \"Cannot add X: list full.\" bounds; config /opt/ir/irconfig.txt + \":vol_up_codes:\" keys + \"IR not configured\"; device {\"Failed to open IR device!\",\"Could not get IR file descriptor!\",\"Loading active codes...\",\"IR Controls %s\"}; learn FSM {Capturing short code,\"Short code is first of a series. Ignored!\",Storing short code,\"short so far %d and max: %d\",Successful short code learn,First short long code learned}; shipped codes: /opt/ir/irconfig.txt = NEC-family {repeat:4f 13 05, vol_up:2,25 01, vol_down:2,27 01, vol_mute:2,29 01}; algorithm {\"Pass %d length %d learn count: %d\",hex dumps,\"first and third passes have different sizes!\",\"don't match!\",\"Insufficient redundancy in alternate code.\",\"Successfully recognized code as Alternating.\",\"Successfully recognized repeat code.\",\"Mismatched short messages in suspected repeat code.\",\"Successfully recognized a non - repeating code.\",\"Learn summary: Success/Repeat style/Alt style %c\",\"Over ten codes received... not a repeat style code\",\"Ignoring excessively long code\"}; one-button {\"Entered one button learn\",waiting/\"no longer waiting\",UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND,\"One button code not found in DB due to timeout\",\"Timeout during IR code learn for target %s\"}; embedded remote DB {Sharp,LG / Haier TV L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA TV 46LA45RQ,Orion TV SLED3280-HDLCD3250,Mitsubishi WD-65638 & WD-60738,JVC TV JLC42BC3000 & LT-19E610,Seiki TV LC-32B56,SuperSonicSC-240 & 491,ViewSonic VT4210LED & VT3205LED,Loewe}; targets {VolUp,VolDown,VolMute}; DB ops {\"attempting to add null remote\",\"add remote to full db\",\"too long a controller name\",\"excessively long main/alt/repeat code\",Uninstalled all codes}; cloud: submit POST http://ir.ws.sonos.com/IRCode/ XML <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> (guid via /dev/urandom); lookup \"Requesting: %s\" \u2192 \"Code found for remote id [%s]!\" / \"Requested code not found in IR database\"; \"Outstanding codes yet to be learned: Lengths are: %d, %d, %d\"; \"Denylisted pyle!\"",
    "evidence": [
     {
      "type": "firmware",
@@ -130591,6 +130591,27 @@
     }
    ],
    "notes": "dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init)."
+  },
+  "rootfs_data_files": {
+   "name": "shipped rootfs data files \u2014 DSP array, IR codes, musicservices seed, web UI assets",
+   "status": "confirmed",
+   "summary": [
+    "opt/dsp/S9_array.xml \u2014 Playbar woofer-array beamforming definition: <arrayDefinition> with 3 <config> variants per hardware rev {Production_H_design123, Production_VA_design123, Production_VB_design123}; each is a 'woofer' driverset of numChan=6 x numTaps=16 with 3 arrayDefs {ArrayLeftLows,ArrayRightLows,ArrayCenterLows}: 96 hex-float weights + 16 alphas (L/R=-0.7775, C=-0.9303) + 6 per-channel delays {44,33,8,14,0,0} / mirrored R / {0,19,63,54,49,19} C. L/R weight lists are palindromic mirrors (steered dipole pair). Confirms 6-channel woofer array with stereo beamforming.",
+    "opt/ir/irconfig.txt \u2014 shipped NEC-family code map: repeat=4f 13 05; vol_up=2,25 01; vol_down=2,27 01; vol_mute=2,29 01 \u2014 the factory-default TV remote codes.",
+    "opt/musicservices/musicservices.xml \u2014 bootstrap seed contains ONLY TuneIn: <Service Id=254 Name=TuneIn Uri=http://legato.radiotime.com/Radio.asmx SecureUri=https://... Capabilities=0><Policy Auth=Anonymous PollInterval=0>; the real catalog is fetched at runtime.",
+    "opt/htdocs \u2014 serving root: /xml/*.xml (16 advertised SCPDs + device/group descriptions + factory_reset.xsl + review.xsl), review.js, perfcounters.js, img/icon-S9.png; pub -> /tmp/pub symlink (ramdisk; Configure creates /ramdisk/tmp/pub) so web-uploaded artifacts live in volatile RAM.",
+    "opt/localsettings/*.json \u2014 all 6 attrdata files (global/playback/playerBasic/playerUI/security/settings_targettypes) ship as EMPTY 0-byte placeholders; the attribute schemas are compiled into the binary, files are runtime-populated.",
+    "opt/buzzers \u2014 button-feedback audio {0,1,100,101}.mp3 + speaker-detect.mp3 (x-rincon-buzzer:// URIs).",
+    "opt/timezones/timezones.xml \u2014 fallback tz table (cloud feed overrides via update-timezone.sonos.com)."
+   ],
+   "evidence": [
+    {
+     "type": "rootfs",
+     "status": "confirmed",
+     "address": "opt/",
+     "notes": "shipped files"
+    }
+   ]
   }
  },
  "muse": {
