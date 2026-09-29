@@ -323,8 +323,9 @@ metadata URN), :shortcuts/:playlists/:audiobooks categories, TuneIn/
 Custom/RadioShow/instantPlay station classes, DIDL class set,
 SA_RINCON%d_ account URIs, rhapsody-favorite conversion, and the
 informReplicationAndNotify → offerRemoteSetting → userradio{,.d}.xml
-replication pipeline. `FV:GC`/`FV:GC-HB` per-item semantics still
-opaque.
+replication pipeline. (`FV:GC`/`FV:GC-HB` turned out to be ducking
+forward-target selectors in duck.cxx, not favourites URIs — now in
+`ducking.forward_targets`.)
 
 ### Alert/chime engine — covered
 `ducking` record: 64-bit ducking-flag protocol, DuckingEvent/
