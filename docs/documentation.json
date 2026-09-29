@@ -107422,7 +107422,9 @@
      "AmplifierPowerStateChangedEvent",
      "CdNotifyShareIx"
     ]
-   }
+   },
+   "bus_name": "inprocess-events",
+   "observer_api": "Registering \"%s\" observer \"%s\". Total observers: %zu \u2014 events are named *Event objects; observers register by event name; delivery logs \"Queued %s(%u) from \\\"%s\\\" : { %s }\" and \"Beginning delivery of %s(%u) event on thread %zu\" \u2014 each event has a name, numeric id and a {json} payload string."
   },
   "alarm_store_object": {
    "status": "confirmed",
@@ -114376,7 +114378,18 @@
     "/oc/zone/zoneplayer/spotify/spotify_playback_session.cxx",
     "/oc/zone/zoneplayer/spotify/spotify_thread.cxx",
     "/oc/zone/zoneplayer/spotify/spotify_vli.cxx"
-   ]
+   ],
+   "ap_packet_layer": {
+    "status": "confirmed",
+    "evidence": [
+     {
+      "type": "firmware",
+      "address": "0x10d0af44",
+      "notes": "AP packet reader"
+     }
+    ],
+    "note": "AP (access point) packet layer: reads TLV headers (\"Failed reading TLV header %d %d/7 oserr %d\" \u2014 7-byte header), enforces ap->packet_size <= 16384, validates a MAC on each packet (\"Corrupted packet, invalid MAC\"), skips oversize packets (\"Skipped %s(%d) (%d > %d)\"). Assert domain sp_a5335660d494963ab7b783a270417bb8."
+   }
   },
   "component_map": {
    "status": "confirmed",
@@ -115536,7 +115549,28 @@
    "content_load": "loadPlaylist|loadFavorite|loadContainer|loadTrackList|loadStream + getMetadata + muse_alarms \u2014 Content API types {favorite,episode.show,station.broadcast,audioBroadcast.live,linein.bluetooth,trackList,playlistContainer.tracklist,podcast,sonos-favorite}",
    "tunneled_actions": "GetButtonLockState|GetLEDState|RoomDetection{Start,Stop}Chirping|PlayId|GetButtonState|GetHouseholdID|CreateStereoPair|SeparateStereoPair|RemoveHTSatellite|ExitConfigMode|{Get,Set}Autoplay{Volume,LinkedZones,RoomUUID}|GetUseAutoplayVolume|SetUseAutoplayVolume|ChirpIfPlayingSwappableAudio \u2014 UPnP device-props/autoplay/HT actions invokable from cloud",
    "alarm_grammar": "recurrence {DAILY,WEEKENDS,WEEKDAYS,ISO PT0S-duration} + error domain {No alarm active to silence,Invalid alarm ID/Recurrence/StartTime,Not a valid content for alarm,buzzer object-id checks}",
-   "dispatch": "RMuseController activating namespace (apiVersion,ns,cmd); unsupported ns/apiVersion rejected; explicitTargets target-list validation (invalid target id/too many targets)"
+   "dispatch": "RMuseController activating namespace (apiVersion,ns,cmd); unsupported ns/apiVersion rejected; explicitTargets target-list validation (invalid target id/too many targets)",
+   "inner_namespace_resolution": {
+    "status": "confirmed",
+    "note": "The lechmere inner command namespace is the muse op namespace: msgType-3 frames carry v{apiVersion}:{ns}#{cmd}(args) commands where {ns} is a muse resource name and {cmd} its verb \u2014 i.e. the 67-resource/332-op table already catalogued, plus the tunneled UPnP actions and muse_alarms grammar. Event traffic uses the inprocess-events bus: events are named *Event objects delivered to registered observers (observer classes ie-obs/ie-schd/ie-cache) with {json} payloads; the cloud path additionally wraps commands in the <Command namespace/cmd/method/credType/> XML envelope. NB: a separate \"TLV header\" read exists in the Spotify eSDK AP-packet layer (f_10d0af44, sp_ assert family, 16KB packet cap, MAC validation) \u2014 that is mercury/AP framing, NOT lechmere.",
+    "evidence": [
+     {
+      "type": "firmware",
+      "address": "0x1059c088",
+      "notes": "lechmere read-loop message-type dispatch"
+     },
+     {
+      "type": "firmware",
+      "address": "0x1059b188",
+      "notes": "inprocess-events observer registration"
+     },
+     {
+      "type": "firmware",
+      "address": "0x10d0af44",
+      "notes": "spotify AP packet TLV reader \u2014 separate protocol"
+     }
+    ]
+   }
   },
   "audio_subsystem_files": {
    "status": "confirmed",
@@ -119108,6 +119142,22 @@
     "chirp_sdk_send",
     "chirp_levenshtein"
    ]
+  },
+  "tsclient": {
+   "status": "confirmed",
+   "name": "tsclient \u2014 track-service/cloud-queue client",
+   "evidence": [
+    {
+     "type": "firmware",
+     "address": "0x104cdff0",
+     "notes": "payload-type dispatcher"
+    }
+   ],
+   "note": "Inbound payload dispatcher for the track-service client: switches on a small payload-type field (observed cases 0 and 1; anything else logs \"Unknown payload type: %d\"). Type-0 payloads are processed through the shared weak-ptr registry slots (r29-32336/-32328/-32320 globals); type-1 goes through a different handler path. Two-type binary payload protocol.",
+   "payload_types": {
+    "0": "registry-slot processor",
+    "1": "alternate processor"
+   }
   }
  },
  "subsystems": {
