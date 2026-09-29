@@ -120503,7 +120503,8 @@
     "control_frame": "\"sending control frame: ctrl 0x%x unscV %d curV %d extV %d extVM %d B %d T %d led %d SPL %d SC %d\" \u2014 {ctrl flags, unscaled/current/ext volume, extV-muted, B, T, led, SPL, SC}",
     "audio_frame": "\"pkt: %zu channels, %zu samples, payload:%zu, rl:%d\" \u2014 multichannel framed audio; \"Last audio frame %d\"; \"frame serialization failed\"",
     "sat_mgmt": "\"satellites active [0x%x]\" mask; \"bonded sub(s) %zu\"; satellite sub receives non-sub channels; \"Sonar center delay %d samples, %d usec\"; play start/end handled with disabled sats; \"changing surround time delta mode\"; \"sample type changed\"; \"Request resync\"; volume/mute/LED propagation (\"vol change %u (%u%%) -> %u\",\"mute change %d -> %d\",\"LED brightness %d -> %d\"); \"Send playback ended if count %d > 0 or remote audio disabled %d\""
-   }
+   },
+   "tx_stats": "counters {timeToPlay=\"Time between send and play\",txSent=\"Total bytes transmitted\",txErrors,serializationErrors,numLateFrames=\"late to transmit a frame\",\"Total resynchronization frames\",playbackEnd=\"Total playback ended frames\",mx_proc=\"Highest SatMixer processing time\",tx_proc=\"Highest SatTx processing time\"} \u2014 \"HT Audio Satellite TX General\""
   },
   "ir_decoder": {
    "name": "RIRDecoder \u2014 IR receive/decoder",
@@ -120819,7 +120820,8 @@
   "http_engine": {
    "auth_challenge": "two-step: \"First Response: [%s] [%s] [%08x] [%d]\"/\"Second Response: ...\"; headers X-Sonos-Mac/X-Sonos-Serial; cred body {\"credentials\":\"%s\",\"nonce\":\"%s\",\"keyType\":%d}; HTTP/1.{0,1} 401 retry; sonoscloudstatus endpoint; httpcaches.json + \"[%s] Force-cleared cache\"",
    "hhsettings_api": "category REST paths public/{key}, restricted/{key}, restricted-admin/{key}; errors {Key not found,Failed to delete setting,invalid value size or type,HHSettingsMgr reported invalid value,Failed to store setting,\"Deleting all settings in a category is not allowed. Provide a key.\",Unsupported Request}; /overrideconfig POST form-urlenc \u2192 commit override file \u2192 <meta refresh url=/fcs>; JSON parser errors {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}",
-   "cookies": "bounded cookie jar \"Exceeded max cookie count of %d, overwriting cookie %d/%d\" + Domain attr + \"unable to send complete list of cookies\"; UA strings {\"Linux UPnP/1.0 Sonos/%s (%s)\",\"Sonos/\",\"PlayToSonos/\"}; WD100 tag; MAC fmt variants {:,-,none,upper,lower}"
+   "cookies": "bounded cookie jar \"Exceeded max cookie count of %d, overwriting cookie %d/%d\" + Domain attr + \"unable to send complete list of cookies\"; UA strings {\"Linux UPnP/1.0 Sonos/%s (%s)\",\"Sonos/\",\"PlayToSonos/\"}; WD100 tag; MAC fmt variants {:,-,none,upper,lower}",
+   "session": "session state \"Session status 0x%x connected %d wantWrite %d wantRead %d\"; HTTP 206 partial-content accepted (range requests); \"Remote close hostname %s FD %d\"; SSL session cache \"Cached SSL session for %s:%d\""
   },
   "fdevent": {
    "name": "fdevent \u2014 epoll event engine",
@@ -121480,7 +121482,8 @@
      "address": "0x10edde80",
      "notes": "decoder blocks"
     }
-   ]
+   ],
+   "ogg_vorbis": "nullaudio \"starting null audio play\"+\"dropping %zu bytes\"; gapless ogg \"we have gapless ogg, %d samples, %zu frame size\"/\"gapless requested %d samples > decoded frame size\"; bounds {oob num samples > max vorbis packet}; states {ogg eof,ogg only header byte found,ogg hard stop requested}"
   },
   "audio_clip": {
    "name": "AudioClipManager \u2014 doorbell/alert clips",
@@ -121508,6 +121511,74 @@
      "status": "confirmed",
      "address": "0x10ee9a88",
      "notes": "download enum"
+    }
+   ]
+  },
+  "spotify": {
+   "mdns": "_spotify-connect._tcp mDNS service; CPath sonos; \"deregister skipped for empty SID\"/\"register skipped for non-empty SID: %s\""
+  },
+  "player_settings": {
+   "name": "PlayerSettingsManager \u2014 settingsv2",
+   "status": "partial",
+   "summary": "keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq(treble/bass/loudness),gainTrimDB,zone attributes}; gates {\"Device does not support fixed output\",\"Satellites not supported; configure primary device\",\"monoMode (not supported in setup)\",wifiDisable {reason unknown,netstart refused,no Ethernet carrier},meshDisable (netstart refused),\"EQ cannot be adjusted in PASS_THROUGH volume mode\"}; error fmt \"Unable to set setting(s): X (unsupported)\"; settingsv2; gmSat/ukwnt/unhandled handlers",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee5144",
+     "notes": "playersettings block"
+    }
+   ]
+  },
+  "bt_sbc": {
+   "name": "SBC decoder (Bluetooth RX)",
+   "status": "partial",
+   "summary": "params \"freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu\"; errors {Invalid packet header,Failed to parse %zd,Truncated packet. Lost frames,Invalid packet,frame size changed %zu->%zu,decoder error %zd on frame %zu,Bad SBC frame %zu read/decoded,NOTIFYFRAME_ERR_BUFFERING,unknown frame status}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee54d0",
+     "notes": "sbc block"
+    }
+   ]
+  },
+  "spdif_detect": {
+   "name": "SPDIF IEC61937 burst-format detection",
+   "status": "partial",
+   "summary": "detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3),NULL Burst,Pause Burst}; unsupported taxonomy {AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1/2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1-3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA,Unsupported}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee650c",
+     "notes": "spdif fmt enum"
+    }
+   ]
+  },
+  "netif_monitor": {
+   "name": "RIfAddressMonitor \u2014 netlink ifaddr watch",
+   "status": "partial",
+   "summary": "netlink {RTM_NEWLINK,RTM_GETLINK}; errors {read error,incorrect type,unexpected message %X}; selthrd.RIfAddressMonitor.{reset,data,except,timeout}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ee69ac",
+     "notes": "addrmon block"
+    }
+   ]
+  },
+  "arp_assoc": {
+   "name": "arpchecker+arping+assoctracker \u2014 L2 connectivity",
+   "status": "partial",
+   "summary": "arpchecker \"ARP failure: %d consecutive attempts for %s failed: groupcast problem suspected\" + \"ARP to %s resolved after %d failures\" + source_ip/msreplyfailure; arping {async,sync} \"started for %s, every %u ms for %u ms\" + reset-on-data + timeout adjust + \"pending reset in progress\" guard; assoctracker CrAssoc metrics {mstime1,mstime2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1,ddtime2,ddnum} + \"Skip reporting invalid CrAssoc event\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10eefee8",
+     "notes": "arp/assoc blocks"
     }
    ]
   }
