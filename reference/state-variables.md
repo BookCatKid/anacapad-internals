@@ -474,6 +474,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `ZoneGroupTopology.ZoneGroupName` | ZoneGroupTopology | string | yes | `confirmed` |
 | `ZoneGroupTopology.ZoneGroupState` | ZoneGroupTopology | string | yes | `confirmed` |
 | `ZoneGroupTopology.ZonePlayerUUIDsInGroup` | ZoneGroupTopology | string | yes | `confirmed` |
+| `alarm_status_schema` | /AlarmClock/Control |  | ? | `strong` |
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
 
@@ -3383,6 +3384,11 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
 
 - related actions: `GetZoneGroupAttributes`
+
+### `alarm_status_schema`
+
+/status/alarm emitted XML
+
 
 ### `playstatemanager_schema`
 
