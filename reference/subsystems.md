@@ -236,6 +236,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `datatap` | **?** |  |
 | `device_props` | **?** |  |
 | `devmode` | **?** |  |
+| `diag_build_artifact` | **confirmed** | separate 4.4MB diag image (fenway-public, S1-era lineage, GNU/Linux 2.0.0 tag). Exposes production endpoints {/audiotest{line,spkr4,spkr4_14v,spkr4-NA,spkr4snr,spkr8,spkr8_14v,spkr8-NA,spkr8snr,subw,subw-NA,subwsnr},/synctest,/testpoint,/wifictrl}; drives /jffs/audio_analyze with modes {line,spkr4,spkr8,subw}x{nomfgdata,no-aweight,nolimitsfile,snr} + "TEST HARNESS: Perform test... frames %u; every %u; repeat %u; skipBy %u"; serial capture files {audioSerial,cpuSerial,sonosSerial}.txt; /jffs/system/{dsp_disable,play3loudness} toggles; lockup dumps /jffs/lockup.{anacapa.trace,dmesg}; libwifi.so.1 (pre-netstartd WiFi); Pandora xmlrpc endpoints tuner.pandora.com + tuner-beta.savagebeast.com; test.checkLicensing op. |
 | `dolby_decoder` | **strong** | config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"override dolby config with jffs",/opt/dsp/dolby_config.json,"loaded player dolby json config","unable to load player dolby json config, loading defaults","Config %s not found, loading default"}; decoder {dlbdec,"dolby decoder unable to decode","<DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount>"}; parse errors {mode state,bass extraction mode,dap profile mode}; staticparams {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; dynamicparams {oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal}; modes {/default,movie,disable,night,sonosdolbyconfig,"drc config is invalid"}; DRC cutoffs 100HZ-200HZ in 10Hz steps; LRR EQ {lrrse,lrrs1,lrrs2}; PCM decoder {decoder_pcm,"Invalid frame size detected %zu","Unsupported input rate detected %zu","Invalid number of input samples detected %zu","<DEC_SampleRate>%zu</DEC_SampleRate>"} |
 | `download_status` | **confirmed** | {ERROR_NOT_CALLED,WRITE_ERROR,TRUNCATION_ERROR,SIZE_ERROR,FILE_ERROR,CONNECTION_ERROR,DOWNLOAD_SUCCEEDED,FILE_UNCHANGED,DOWNLOAD_IN_PROGRESS} |
 | `dsp_config` | **strong** | files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully decoded DSPConfig","Decoding error %s","DSPConfig file is empty","Unable to open DSP config file %s"}; per-model {"Bonded gain for '%s' not found in DSPConfig","Volume breakpoints for '%s' not found"}; breakpoints {"no default volume breakpoints specified","no bonded volume breakpoints specified, using default instead","volume (%i) and gain (%i) lengths differ in default volume breakpoints","... in bonded volume breakpoints","default (%i) and bonded (%i) volume breakpoint lengths differ","... breakpoints differ","Too many volume breakpoints ... `.nanopb_options` ... MAX_VOLUME_BREAKPOINT_LENGTH","DSPConfigParams conversion successful"}; gravity param; trueplay_version x.x.x.x fmt + range {"base version isnt valid","Start or end of range isnt a valid version","Unable to parse version from end/start string"}; "setNumChannels(%d) greater than max (%d)"; fileio {"DSP file path is longer than buffer","unable to open file","fread","file %s does not exist","Could not get size of file"} |
@@ -4849,6 +4850,23 @@ The DeviceProperties service: device-level attributes — serial, MAC, display s
 Developer mode: `/devmode` page, statement files, and the unlock challenge — gated diagnostic behavior that differs from production.
 
 - **internals:** statement files {debug/devmode.bin,/devmode.bin,/tmp/devmode.tmp.bin} format "0x%s %d.%d-%d.%d" (id+version range); x-rincon-enc3 encryption; R_ALLOW_SSH_PUBKEY_INSTALL "may not be persisted" gate + "Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL" + "Loaded persistent statement"; notify {processes,listeners} on change
+## `diag_build_artifact`
+
+**coverage** `confirmed`
+
+**Technical description:**
+
+separate 4.4MB diag image (fenway-public, S1-era lineage, GNU/Linux 2.0.0 tag). Exposes production endpoints {/audiotest{line,spkr4,spkr4_14v,spkr4-NA,spkr4snr,spkr8,spkr8_14v,spkr8-NA,spkr8snr,subw,subw-NA,subwsnr},/synctest,/testpoint,/wifictrl}; drives /jffs/audio_analyze with modes {line,spkr4,spkr8,subw}x{nomfgdata,no-aweight,nolimitsfile,snr} + "TEST HARNESS: Perform test... frames %u; every %u; repeat %u; skipBy %u"; serial capture files {audioSerial,cpuSerial,sonosSerial}.txt; /jffs/system/{dsp_disable,play3loudness} toggles; lockup dumps /jffs/lockup.{anacapa.trace,dmesg}; libwifi.so.1 (pre-netstartd WiFi); Pandora xmlrpc endpoints tuner.pandora.com + tuner-beta.savagebeast.com; test.checkLicensing op.
+
+- **name:** anacapad-diag-jffs — the factory/retail diagnostic firmware build
+- **rdm_form:** /rdm POST form (full HTML in binary): Retail Display Mode — enable checkbox; "Disable Wifi radio when RDM is enabled"; inactivity timeout minutes (0=disable); tosl checkbox (revert to TOSLink after timeout on PLAYBAR); per-model idle volumes vol:{ZP100,ZP80,ZP90=CONNECT,ZP120=CONNECT:AMP,S5=PLAY:5,S3=PLAY:3,S1=PLAY:1,S9=PLAYBAR} — the historical model-name map preserved in the form field names
+- **diag_scrub:** credential-redaction sed recipes embedded verbatim: for /jffs/settings/syssettings.xml + securesettings.xml — drop X_* and R_ThirdPartyCredentials settings lines entirely; in SvcAccounts rows, match records with flag pattern \[0-9\]*,\[^,\]*,1\[^,\]*,\[^,\]* and rewrite field-3 to XXXX (password-position masking), preserving backslash-escapes via _DOUBLEBACKSLASH_/_BACKSLASHCOMMA_ staging tokens. This is the privacy filter applied to settings before diagnostic upload.
+<details><summary>Evidence (1)</summary>
+
+- @ sonos-research/fenway-public/anacapad-diag-jffs — diag image strings
+
+</details>
+
 ## `dolby_decoder`
 
 **coverage** `strong`
