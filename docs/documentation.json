@@ -105982,8 +105982,8 @@
   "hm_scheme": {
    "name": "hm:",
    "pattern": "hm:",
-   "description": "Scheme token in the streamer URI vocabulary; semantics unresolved.",
-   "status": "strong",
+   "description": "hm:// host-scheme for daemon-internal REST routing: anacapad's HTTP client addresses sibling hardware-platform daemons as hm://<service>/vN/<path>. Confirmed hosts: 'hwptp' (hm://hwptp/v1/devices, hm://hwptp/v1/tsv, hm://hwptp/v1, hm://hwptp/v2/resolve/%s/%d/%s, hm://hwptp/v1/) and 'hwp-events' (hm://hwp-events/v1/log_event -- outbound event sink with 'Error encoding envelope'/'Error sending %s' emit path). Not Spotify-specific; 'hm' = hardware-muse internal transport.",
+   "status": "partial",
    "evidence": [
     {
      "type": "firmware",
@@ -105993,6 +105993,14 @@
      "address": "0x10fd6244",
      "string": "hm:",
      "notes": "rodata scheme literal"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10fd6244",
+     "notes": "hm://hwptp/v1/devices literal"
     }
    ]
   },
@@ -106107,9 +106115,9 @@
    ]
   },
   "hm": {
-   "scheme": "hm://",
+   "scheme": "hm://<daemon>/vN/",
    "status": "partial",
-   "description": "Spotify hermes/mercury channel URI",
+   "description": "Daemon-routing URL scheme -- see hm_scheme. Hosts seen: hwptp (device/tsv/resolve APIs incl. v2/resolve/%s/%d/%s) and hwp-events (v1/log_event). Earlier 'Spotify hermes' attribution was wrong: these literals are hardware-platform daemon endpoints.",
    "evidence": [
     {
      "type": "firmware",
@@ -596873,7 +596881,8 @@
    "LoadContent supports only Sonos Content API resource types"
   ],
   "spec_binding_note": "Per-op spec binding RESOLVED: each op vtable (route impl.vtables) carries spec accessors at slot +0x58 returning {classId, blob ptr into packed u32 rodata pools}. The index->name lookup is f_109ecb5c (cmplwi 0x146 bound, slwi x4, lwzux on base 0x10f97094 = name-table slot 3) and the name->index reverse lookup is f_109ecb90 (strcmp walk from 'none'). SEMANTIC INDEX i MAPS TO TABLE SLOT 3+i: the first three pointer-table slots at 0x10f97088 are function pointers (f_10809540...), semantic index 0 = 'none'. 331 name entries, 383 object-spec descriptors across 0x10e9ba80 (96) + 0x10f9f87c (287), ~0x80B each, common accessor +0x58, classIds 1-12. Blob grammar = flat {fieldName, typeName} pairs: field slots carry wire keys (ok leads 170 response specs; globalError 561x; upnpResponse/upnpError for bridge ops; accountError/sessionError/playbackError), type slots carry 'upnpEvent' (the universal value wrapper) or concrete types. Repeated field name = type union (e.g. globalError:{chirpRequest|accessoryId|none|wiredSubStatus}); 'none' marks absent/optional slots. 'networkTestId' is an ordinary optional request field (16 ops, typed upnpEvent) whose name comes from the real resource v1/players/{playerId}/networkTest/{networkTestId} -- not an envelope marker. ~1116/1206 routes bound; ~45 unbound routes are outbound/client ops (no impl vtables) whose request shape is the per-namespace verb vocabulary.",
-  "outbound_ops_note": "~45 ops ({authorization,catalog,entitlements,groups,history,playback,smartplay,systemReporting,zones} verbs \u2014 the full {ns,verb} registry at .data 0x110941d4-0x110943f4) are registered as 'outbound_registry': the player is the CLIENT, requests forward to the cloud over lechmere/WSS. They carry no local impl vtables and no +0x58 spec accessor BY DESIGN \u2014 the request body is serialized from the per-namespace field vocabulary (shared_primitives outbound vocab extraction). Per-verb field subsetting is code-driven and not statically enumerable."
+  "outbound_ops_note": "~45 ops ({authorization,catalog,entitlements,groups,history,playback,smartplay,systemReporting,zones} verbs \u2014 the full {ns,verb} registry at .data 0x110941d4-0x110943f4) are registered as 'outbound_registry': the player is the CLIENT, requests forward to the cloud over lechmere/WSS. They carry no local impl vtables and no +0x58 spec accessor BY DESIGN \u2014 the request body is serialized from the per-namespace field vocabulary (shared_primitives outbound vocab extraction). Per-verb field subsetting is code-driven and not statically enumerable.",
+  "local_client_routes": "Outbound LOCAL muse REST calls (player->player and player->daemon), distinct from the inbound route table: group playback fan-out 'v1/groups/%s/playback/{play,pause,playMode,seek,seekRelative,skipToNextTrack,skipToPreviousTrack,trackList,loadContainer,loadStream}' and 'v1/groups/%s/groups/modifyGroupMembers' + 'v1/groups/%s/groupVolume/mute' (body keys near the literals: playbackAction, queueAction, advertisingInfo, defaults); per-member volume 'v1/players/%s/playerVolume/{mute,duck,unduck}'; 'v1/players/%s/settings/player'; 'v1/players/%s/hardwareStatus/battery'; 'v1/players/%s/homeTheater{,/tvPowerState}'; 'v1/locations/%s/effectiveSettings{,/%s}' fetched via '/settings/api/v1/locations/...' (processUpdateAllSettings() GET %s conditional [%s|%llu]); 'v1/devices', 'v1/log_event' (emitted as hm://hwp-events/v1/log_event), 'v1/websocket' (as /api/v1/websocket -- 'could not initialize ws client'), 'v1/config?' (as /features/v1/config?); catalog form 'v1/households/%s/services/%u/accounts/%u/catalog/%ss/%s'. The '/settings/api/', '/api/', '/features/' prefixes are per-daemon mount roots on the local REST surface."
  },
  "cert_layer": {
   "keycert_ids": {

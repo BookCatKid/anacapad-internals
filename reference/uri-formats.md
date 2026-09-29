@@ -141,9 +141,9 @@ HLS radio variant scheme token in the protocol vocabulary.
 
 **Technical description:**
 
-Spotify hermes/mercury channel URI
+Daemon-routing URL scheme -- see hm_scheme. Hosts seen: hwptp (device/tsv/resolve APIs incl. v2/resolve/%s/%d/%s) and hwp-events (v1/log_event). Earlier 'Spotify hermes' attribution was wrong: these literals are hardware-platform daemon endpoints.
 
-- **scheme:** hm://
+- **scheme:** hm://<daemon>/vN/
 
 <details><summary>Evidence (1)</summary>
 
@@ -151,20 +151,21 @@ Spotify hermes/mercury channel URI
 
 </details>
 
-## `hm_scheme` `strong`
+## `hm_scheme` `partial`
 
 hm: scheme token — the hermes/mercury-style URI family used by the embedded Spotify stack for device registration and track resolution.
 
 **Technical description:**
 
-Scheme token in the streamer URI vocabulary; semantics unresolved.
+hm:// host-scheme for daemon-internal REST routing: anacapad's HTTP client addresses sibling hardware-platform daemons as hm://<service>/vN/<path>. Confirmed hosts: 'hwptp' (hm://hwptp/v1/devices, hm://hwptp/v1/tsv, hm://hwptp/v1, hm://hwptp/v2/resolve/%s/%d/%s, hm://hwptp/v1/) and 'hwp-events' (hm://hwp-events/v1/log_event -- outbound event sink with 'Error encoding envelope'/'Error sending %s' emit path). Not Spotify-specific; 'hm' = hardware-muse internal transport.
 
 - **name:** hm:
 - **pattern:** hm:
 
-<details><summary>Evidence (1)</summary>
+<details><summary>Evidence (2)</summary>
 
 - @ 0x10fd6244 — rodata scheme literal
+- @ 0x10fd6244 — hm://hwptp/v1/devices literal
 
 </details>
 
