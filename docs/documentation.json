@@ -196981,7 +196981,9 @@
    "provenance": "f_109eb04c disassembled \u2014 it is vtable slot+32 on op objects AND the generic command dispatcher (\"Dispatching command (ns=v%u/%s, cmd=%s)\")",
    "flow": "dispatcher reads *(this->vt+32) exec slot; if == f_109ec9e0 (null stub returning 0) -> result 90 ERROR_UNSUPPORTED_COMMAND; else bctrl the real exec; result object built via setter family 0x109dbxxx; iterates sub-target objects at stride 304 (IBT fan-out); refcounted via lwarx/stwcx.",
    "exec_slot": "vtable index 8 (+0x20): real exec fn or null stub \u2014 this IS the feature-gate / compiled-out-op mechanism (unsupported ops keep the stub and fault 90)",
-   "exec_family": "f_1015xxxx generated serializers: install primary+secondary vtables (secondary-vtable back-offset pattern), then walk member arrays at obj+92..+96 and obj+144..+148 serializing each member \u2014 household/VRC/registration ops exec by serializing their descriptor into the lechmere envelope"
+   "exec_family": "f_1015xxxx generated serializers: install primary+secondary vtables (secondary-vtable back-offset pattern), then walk member arrays at obj+92..+96 and obj+144..+148 serializing each member \u2014 household/VRC/registration ops exec by serializing their descriptor into the lechmere envelope",
+   "auth_gate": "f_109db080 (tag \"museauth\") is invoked inside dispatch: emits \"Secure connection required\" (cmd needs WSS/secure transport), \"Credential is missing\", \"Scope is insufficient\", \"Client auth exception\" \u2014 the enforcement point of the per-op role/scope model; result codes flow back through the 107-entry muse_result_codes table",
+   "exec_call": "cmd->vt[8](cmd, ctx...) invoked via bctrl; cmd object passed in r4->r27; response object r29 built with fields at +160/+180; targets iterated at stride 304 with refcounted (lwarx/stwcx) sub-objects"
   },
   "spec_pair_decode_v2": {
    "structure": "{u32 a, u32 b} runs terminated by {ffffffff,ffffffff} inside each op-descriptor block, positioned between the 23-slot vtable and the verb literals + count fields",
