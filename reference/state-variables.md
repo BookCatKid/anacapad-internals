@@ -477,6 +477,10 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 
 ### `AC.AlarmListVersion`
 
+Bumps when alarms change — re-fetch the list on change.
+
+**Technical description:**
+
 AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 - form: `<e:property><NAME>value</e:property>`
@@ -501,11 +505,19 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeServer`
 
+Configured time source — the household SNTP setup.
+
+**Technical description:**
+
 AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 - form: `<e:property><NAME>value</e:property>`
 
 ### `AI.IRRepeaterState`
+
+IR-repeater state on AudioIn-capable hardware.
+
+**Technical description:**
 
 AudioIn evented variable; emitted by f_10243170 e:property dump.
 
@@ -513,11 +525,19 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 
 ### `AI.TOSLinkConnected`
 
+Whether the optical input has signal (AudioIn).
+
+**Technical description:**
+
 AudioIn evented variable; emitted by f_10243170 e:property dump.
 
 - form: `<e:property><NAME>value</e:property>`
 
 ### `AVT.AVTransportURI`
+
+The URI of the current source — what you set with SetAVTransportURI. Not always the same as the playing track (queue vs stream).
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -543,6 +563,10 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.CurrentPlayMode`
 
+Shuffle/repeat mode — NORMAL, SHUFFLE_NOREPEAT, REPEAT_ALL etc.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
@@ -561,11 +585,19 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrack`
 
+1-based index of the playing track in the queue.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.CurrentTrackDuration`
+
+Length of the current track (H:MM:SS).
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -573,17 +605,29 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackMetaData`
 
+DIDL-Lite metadata for the playing track — title/artist/album/art. Arrives inside LastChange events; parse the XML inside the val attribute.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.CurrentTrackURI`
 
+The URI of the current track — e.g. a stream URL or x-rincon-queue ref.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.CurrentTransportActions`
+
+Which transport ops are valid right now (Play, Pause, Seek, Next...) — drive your UI's enabled buttons from this.
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -602,6 +646,10 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.NumberOfTracks`
+
+How many tracks are in the current queue/transport.
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -651,6 +699,10 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorHttpCode`
 
+HTTP status when a stream fetch failed — useful for diagnosing why playback stopped.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
@@ -675,17 +727,29 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.TransportState`
 
+The player's transport state — PLAYING, PAUSED_PLAYBACK, STOPPED, TRANSITIONING. This is the first thing most clients subscribe to.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.TransportStatus`
 
+OK or an error indicator for the current transport operation.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.r:AlarmRunning`
+
+True while an alarm is sounding.
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -705,6 +769,10 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlClientID`
 
+When a service has direct control (Spotify Connect etc.), this is the controlling client's ID.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
@@ -716,6 +784,10 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.r:EnqueuedTransportURI`
+
+The URI that was originally queued — differs from AVTransportURI when the source resolved to something else (e.g. queue → stream).
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -747,11 +819,19 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:SleepTimerGeneration`
 
+Bumps whenever a sleep timer is set/changed — watch it to keep timer UI in sync.
+
+**Technical description:**
+
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `AVT.r:SnoozeRunning`
+
+True while a snoozed alarm is pending.
+
+**Technical description:**
 
 AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
@@ -1415,30 +1495,54 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 ### `CD.ContainerUpdateIDs`
 
+Per-container update ids — the standard UPnP change signal for browse caches.
+
+**Technical description:**
+
 ContentDirectory evented variable in f_103035c4
 
 
 ### `CD.FavoritesUpdateID`
+
+Bumps whenever Sonos Favorites change — re-browse FV:2 when you see this.
+
+**Technical description:**
 
 ContentDirectory evented variable in f_10303de4
 
 
 ### `CD.RadioFavoritesUpdateID`
 
+Bumps when saved radio favorites change.
+
+**Technical description:**
+
 ContentDirectory evented variable in f_10303de4
 
 
 ### `CD.SavedQueuesUpdateID`
+
+Bumps when Sonos Playlists (saved queues) change.
+
+**Technical description:**
 
 ContentDirectory evented variable in f_10303de4
 
 
 ### `CD.ShareIndexInProgress`
 
+True while the library index is rebuilding — browsing shares may be incomplete.
+
+**Technical description:**
+
 ContentDirectory evented variable in f_103035c4
 
 
 ### `CD.ShareListUpdateID`
+
+Bumps when the local music-library share list changes.
+
+**Technical description:**
 
 ContentDirectory evented variable in f_10303de4
 
@@ -1668,15 +1772,27 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 ### `DP.CurrentZoneName`
 
+The room name — 'ZoneNameChangedEvent' fires on rename.
+
+**Technical description:**
+
 DeviceProperties evented variable (ZoneNameChangedEvent)
 
 
 ### `DP.Invisible`
 
+Whether the player is hidden from room lists.
+
+**Technical description:**
+
 DeviceProperties evented variable (DeviceInfo attr literal)
 
 
 ### `DP.MicEnabled`
+
+Whether the microphone is enabled (on voice-capable hardware).
+
+**Technical description:**
 
 DeviceProperties evented variable (DeviceInfo attr literal)
 
@@ -2029,30 +2145,54 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 ### `GM.DelegatedGroupCoordinatorID`
 
+When control is delegated, the acting coordinator's ID.
+
+**Technical description:**
+
 GroupManagement evented variable (event-pool literal)
 
 
 ### `GM.LocalGroupUUID`
+
+This player's group UUID — which group it currently belongs to.
+
+**Technical description:**
 
 GroupManagement evented variable (event-pool literal)
 
 
 ### `GM.VirtualLineInGroupID`
 
+The group hosting virtual line-in — which group a VLI source belongs to.
+
+**Technical description:**
+
 GroupManagement evented variable (setVirtualLineInGroupIDLocked worker)
 
 
 ### `GRC.GroupMute`
+
+Group mute — coordinator-level.
+
+**Technical description:**
 
 GroupRenderingControl evented variable (SetGroupMute rc-log literal)
 
 
 ### `GRC.GroupVolume`
 
+The whole group's volume — settable only on the group coordinator.
+
+**Technical description:**
+
 GroupRenderingControl evented variable (SetGroupVolume rc-log literal)
 
 
 ### `GRC.GroupVolumeChangeable`
+
+Whether group volume is adjustable right now.
+
+**Technical description:**
 
 GroupRenderingControl evented variable (GroupVolumeChangedEvent pool)
 
@@ -2153,10 +2293,18 @@ evented state variable — appears in GroupRenderingControl LastChange/GENA even
 
 ### `HT.LEDFeedbackState`
 
+LED feedback state for HT control ops.
+
+**Technical description:**
+
 HTControl evented variable in f_10739c34
 
 
 ### `HT.RemoteConfigured`
+
+Whether the TV remote is configured (HTControl).
+
+**Technical description:**
 
 HTControl evented variable in f_10782194
 
@@ -2204,6 +2352,10 @@ evented state variable — appears in HTControl LastChange/GENA event notificati
 
 
 ### `MS.ServiceListVersion`
+
+Bumps when the music-service list changes — re-read GetAvailableServices.
+
+**Technical description:**
 
 MusicServices evented variable; emitted by f_100c7084 e:property dump.
 
@@ -2378,6 +2530,10 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 ### `Queue.Curated`
 
+Whether the queue is service-curated (cloud-queue playlists mark this).
+
+**Technical description:**
+
 curated-queue flag
 
 
@@ -2387,6 +2543,10 @@ evented state variable — appears in Queue LastChange/GENA event notifications
 
 
 ### `Queue.QueueID`
+
+Opaque queue identifier for the Queue events channel (a Sonos-proprietary event namespace).
+
+**Technical description:**
 
 queue identifier assigned at AttachQueue/CreateQueue
 
@@ -2398,10 +2558,18 @@ queue owner UDN
 
 ### `Queue.UpdateID`
 
+Queue version — increments on every queue edit; use it for change detection.
+
+**Technical description:**
+
 queue content update id
 
 
 ### `RCS.AudioDelay`
+
+Lip-sync offset — delay applied to align audio with video.
+
+**Technical description:**
 
 RenderingControl evented variable; emit-literal at RCS template
 
@@ -2421,11 +2589,19 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Bass`
 
+Bass EQ level (-10..10).
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `RCS.DialogLevel`
+
+Speech-enhancement/dialog level — HT feature.
+
+**Technical description:**
 
 RenderingControl evented variable; emit-literal at RCS template
 
@@ -2439,6 +2615,10 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Loudness`
 
+Loudness compensation on/off.
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template (per-channel via @channel)
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
@@ -2451,11 +2631,19 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Mute`
 
+Mute state per channel — '1'/'0'.
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template (per-channel via @channel)
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `RCS.NightMode`
+
+Night mode (DRC compression) state — HT feature.
+
+**Technical description:**
 
 RenderingControl evented variable; emit-literal at RCS template
 
@@ -2469,6 +2657,10 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.PresetNameList`
 
+EQ preset names — includes 'FactoryDefaults' used by factory reset.
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
@@ -2480,6 +2672,10 @@ RenderingControl evented variable; emit-literal at RCS template
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `RCS.SonarEnabled`
+
+Whether Trueplay/sonar calibration is active on this player.
+
+**Technical description:**
 
 RenderingControl evented variable; emit-literal at RCS template
 
@@ -2511,6 +2707,10 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubGain`
 
+Sub output level — only on setups with a bonded Sub.
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
@@ -2529,11 +2729,19 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundEnabled`
 
+Whether bonded surrounds are active.
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `RCS.SurroundLevel`
+
+Surround speaker level.
+
+**Technical description:**
 
 RenderingControl evented variable; emit-literal at RCS template
 
@@ -2547,11 +2755,19 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Treble`
 
+Treble EQ level (-10..10).
+
+**Technical description:**
+
 RenderingControl evented variable; emit-literal at RCS template
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
 
 ### `RCS.Volume`
+
+The player's volume (0-100-ish; Master channel). Subscribe for slider UIs.
+
+**Technical description:**
 
 RenderingControl evented variable; emit-literal at RCS template (per-channel via @channel)
 
@@ -3007,6 +3223,10 @@ non-evented VirtualLineIn state variable — read via action out-args, not pushe
 
 
 ### `ZGT.ZoneGroupState`
+
+The full household topology document — every zone, its coordinator, members and names. The topological ground truth; subscribe to it for 'what's grouped with what'.
+
+**Technical description:**
 
 ZGT evented state doc: full <ZoneGroupState>+<ZoneGroups>+<MediaServers> XML pushed via f_1074d9b4 emitter (serializer f_10743328, MediaServers section f_10129888); not LastChange attribute-form
 

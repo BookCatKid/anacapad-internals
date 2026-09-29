@@ -107603,7 +107603,8 @@
    "role": "*svc+0x4 of /DeviceProperties and /SystemProperties svc objs; single shared impl instance Notify/commit helpers: f_10557d70 appends {key,value} as key\\0value\\0 into a flat change-list buffer at obj+0x14 (capacity check vs 0x1000, returns 1 appended / 0 overflow - flag, not fault). f_10558000 formats numeric value via snprintf(%d) then calls f_10557d70 (numeric-setting notify). f_1055847c conditional notify (skips when key ptr/byte null -> return 0). These close the DP/SP setter residual chain: impl applies change then appends dirty keys to the notify list.",
    "dispatch": "handlers call store->v[slot] directly (SP: GetString +0xc f_1017fbcc, SetString +0x8 f_101939a4, Remove +0x10 f_10188024); SP action impl vfuncs are adjuster thunks into the same worker family (f_101981f0/f_10193708/f_101939a4/f_10188024/f_1017fbcc)",
    "vtable": "0x10e97e10 (slice)",
-   "evidence": "disasm 0x10e97e10 vtable dump; handler impl_calls obj=*(r3-in+0x4); disasm 0x10557d70/0x10558000/0x1055847c notify-helper family"
+   "evidence": "disasm 0x10e97e10 vtable dump; handler impl_calls obj=*(r3-in+0x4); disasm 0x10557d70/0x10558000/0x1055847c notify-helper family",
+   "status": "confirmed"
   },
   "rmd_op_worker_class": {
    "name": "ZoneGroupTopology client-side outbound-call class",
@@ -107612,7 +107613,8 @@
    "methods": "+0x00 f_106ea5ac? (ctor-installed table slots: +0x00 f_106ea5ac? no - +0x00 f_106ea5ac is the ctor itself; vtable slots +0x00..+0x2c: f_106ea5ac? see doc)",
    "note": "slots: +0x00 f_106ea5ac(ctor ref), +0x04 f_106c7ba4, +0x08 f_106ea33c, +0x0c f_106e9ec0, +0x10 f_106e9814, +0x14 f_106e9494, +0x18 f_106e9a24, +0x1c f_106ea0f8 (RMD marshaller), +0x20 f_106e9c50, +0x24 f_1012b9b4, +0x28 f_106e963c, +0x2c f_106e91e4",
    "evidence": "rodata table dump 0x10f0918c; ctor disasm f_106ea5ac installs vptr",
-   "role_correction": "outbound SOAP call builders, one slot per ZGT action; used when this device issues ZGT calls (e.g. RegisterMobileDevice to a coordinator)"
+   "role_correction": "outbound SOAP call builders, one slot per ZGT action; used when this device issues ZGT calls (e.g. RegisterMobileDevice to a coordinator)",
+   "status": "confirmed"
   },
   "soap_fault_wire_format": {
    "name": "SOAP fault wire template",
@@ -108820,7 +108822,8 @@
   "device_account_endpoint": {
    "handler": "f_1065bd70",
    "flow": "path claim '/device_account' (f_10655ea4) -> f_106570bc validate -> f_1065b730('int_setTransferMode') transfer-mode int; serialize device-account via f_1065a8dc(strlen+encode)/f_109cd7a4/f_1065e99c; state word *(r30+8) in {3,4} selects account variant; constant block 0x110b9044 (6 bytes) feeds the blob; f_10807034 XML append; stack-canary guarded",
-   "semantics": "device-account provisioning/read endpoint; response is an encoded account blob whose variant depends on registration state (3 vs 4)"
+   "semantics": "device-account provisioning/read endpoint; response is an encoded account blob whose variant depends on registration state (3 vs 4)",
+   "status": "strong"
   },
   "native_protocols": {
    "sp_tlv": {
@@ -109241,25 +109244,29 @@
     "role": "cloud transport \u2014 REST/ws API sessions over HTTP/2",
     "surface": "nghttp2_session_{send,upgrade2}; nghttp2_submit_{request,ping,goaway,settings,window_update}; nghttp2_{set_,session_set_}local_window_size",
     "behavior": "h1->h2 upgrade ('(via h1 upgrade)','(upgraded to SSL)','session_upgrade2'); ping/goaway keepalive; per-stream window mgmt; 'send request NOT allowed (via nghttp2)' gating; 'PRIORITY: stream_id == 0' frame error; 'pack_settings_payload' path"
-   }
+   },
+   "status": "strong"
   },
   "device_state_store": {
    "model": "embedded settings/state object at member+0x498; key convention: DesiredX (write-intent) / CurrentX (read-back state) / MuseX (household-bound values)",
    "set_pipeline": "impl -> member vfunc -> f_1035xxxx per-key stub -> f_10562388(store,'DesiredX',value) -> member->v[+0x10] notify -> f_10557d70 dirty-list append (key\\0value\\0 pairs, 0x1000-bounded)",
    "evidence": "f_103505b4 (DesiredLEDState), f_10350604 (ChannelMapSet), f_10562388 store worker; GetLEDState impl 0x10737b1c reads 'CurrentLEDState'; f_101bc458/f_10507b9c read 'MuseHouseholdID'",
    "notification": "v[+0x10] = change-notify vfunc on the member interface; dirty keys accumulate until commit/emit",
-   "actions_using": "DeviceProperties setters (SetLEDState, SetButtonLockState, SetAutoplayVolume, SetUseAutoplayVolume, AddBondedZones, AddHTSatellite, SetZoneAttributes) and SystemProperties setters via the same key-store"
+   "actions_using": "DeviceProperties setters (SetLEDState, SetButtonLockState, SetAutoplayVolume, SetUseAutoplayVolume, AddBondedZones, AddHTSatellite, SetZoneAttributes) and SystemProperties setters via the same key-store",
+   "status": "confirmed"
   },
   "composite_subobject_interfaces": {
    "signal_accessor": "+0x124-family vtable slots (0x10e98098 etc.): f_10187d14 = this-adjust thunk (-0x124) -> f_10187c18; the real method mutex-guarded (f_1098dfe0/f_10990bcc) registers a {callback f_101804d4, dtor f_10180cf4} pair via f_10694308 (signal-connect) and returns a shared_ptr'd observable (stwcx. atomic refcount in f_10187d1c at 0x10187da8) - the composite's per-subsystem event-source accessors",
    "doc_writer": "f_100e5628 = adapted span-writer: stw self-ptr fixup then f_100d698c(*(in+4), *(in+4)+*(in+8)) byte-span append into a doc; sibling f_100e5670 = mode dispatch on {1,2,3}",
-   "implication": "the 'queue engine' and sibling embedded objects are the composite's OBSERVABLE SURFACE - runtime-wired interfaces bridging subsystems to the subscription/event layer; their vtables are runtime-bound exactly as documented"
+   "implication": "the 'queue engine' and sibling embedded objects are the composite's OBSERVABLE SURFACE - runtime-wired interfaces bridging subsystems to the subscription/event layer; their vtables are runtime-bound exactly as documented",
+   "status": "strong"
   },
   "subscription_manager": {
    "singleton": "0x11097680",
    "register": "v[+0x3c] invoked by GENA handler f_105e8290 on valid SUBSCRIBE (NT/NTS/SID/SEQ checks pass); concrete class runtime-bound",
    "sid": "generated by f_109e117c via sonos_uuid_generate+unparse",
-   "record_fields": "sub obj: frame@+0x30, flag@+0x34, state@+0x38"
+   "record_fields": "sub obj: frame@+0x30, flag@+0x34, state@+0x38",
+   "status": "strong"
   },
   "queue_engine": {
    "resolution": "FULLY STATIC - previously marked runtime-bound; wiring proven end-to-end",
@@ -110295,13 +110302,15 @@
   },
   "misc_mgrs": {
    "wifi_idle_mgr": "RZPWifiIdleMgr: WifiFuncsSetIdleScan fronthaul ('result %d attempt %d') + WiFiIdleScanUpdateRetry + idle_evt_listener idle events",
-   "auto_update_scheduler": "auto_update_scheduler.cxx \u2014 scheduled auto-update window"
+   "auto_update_scheduler": "auto_update_scheduler.cxx \u2014 scheduled auto-update window",
+   "status": "strong"
   },
   "misc_health": {
    "healthcheck": "healthcheck.cxx \u2014 periodic 'Next healthcheck scheduled in %u h %u m %u s' + timer-pop reschedule",
    "longpress": "longpress.cxx \u2014 long-press button handler",
    "arpchecker": "arpchecker.cxx \u2014 ARP peer verification",
-   "topology_events_report": "topology_events_report.cxx \u2014 ZGT change reports"
+   "topology_events_report": "topology_events_report.cxx \u2014 ZGT change reports",
+   "status": "strong"
   },
   "device_auth": {
    "status": "confirmed",
@@ -110333,7 +110342,8 @@
    "ai_impl_base/ai_spotify": "AudioIn impls incl. Spotify audio-in",
    "timers_impl/storage": "timers API impl + persistence (timers cloud resource)",
    "areas": "room-area model (areas cloud resource)",
-   "zones_mgr/zones_storage": "zone membership mgmt+persistence"
+   "zones_mgr/zones_storage": "zone membership mgmt+persistence",
+   "status": "strong"
   },
   "audio_pipeline": {
    "status": "confirmed",
@@ -110418,7 +110428,8 @@
    "favorites": "<Favorites SchemaVersion=\"%d\"> XML + dirObjFavorites; household-replicated ('replicating favorites from %s'); FavoritesUpdateID/RadioFavoritesUpdateID/radioFavoritesMoved; 'Invalid favorites directory state'",
    "history": "historymgr.cxx \u2014 play history (history cloud resource + getHistory)",
    "radiolog": "radiolog.cxx \u2014 <RadioStationLog> station-play log; /radiolog status route",
-   "tv_processor_usage": "tv_processor_usage.cxx \u2014 HT TV-processor usage tracking"
+   "tv_processor_usage": "tv_processor_usage.cxx \u2014 HT TV-processor usage tracking",
+   "status": "strong"
   },
   "timedjobs": {
    "status": "confirmed",
@@ -112208,7 +112219,8 @@
      "address": "0x10f9c1f0",
      "notes": "enableSecureAlbumArt flag"
     }
-   ]
+   ],
+   "status": "confirmed"
   },
   "muse_route_verbs": {
    "name": "muse route registration verbs \u2014 complete table",
@@ -112608,7 +112620,8 @@
      "address": "0x10e7f660",
      "notes": "playerId,pinewood,toggleMute \u2014 pinewood verb form"
     }
-   ]
+   ],
+   "status": "confirmed"
   }
  },
  "subsystems": {

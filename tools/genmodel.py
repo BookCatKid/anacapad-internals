@@ -470,11 +470,13 @@ class StateVariable:
     emitter: Optional[str] = None
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
+    client_summary: Optional[str] = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"service", "status", "evented", "data_type", "description",
              "accepted_values", "range", "related_actions", "form",
-             "template_addr", "emitter", "evidence", "notes"}
+             "template_addr", "emitter", "evidence", "notes",
+             "client_summary"}
 
     @classmethod
     def from_raw(cls, key, raw, service_name=None):
@@ -509,10 +511,11 @@ class FormatSpec:
     used_by: list = field(default_factory=list)
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
+    client_summary: Optional[str] = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"status", "description", "format", "fields", "used_by",
-             "evidence", "notes"}
+             "evidence", "notes", "client_summary"}
 
     @classmethod
     def from_raw(cls, key, kind, raw):
@@ -795,6 +798,19 @@ def _apply_client_text(model, overlay):
             model.shared_primitives[k]["client_summary"] = txt
         else:
             unmatched.append("primitive %s" % k)
+    for sect, table in (("uri_formats", model.uri_formats),
+                        ("payload_formats", model.payload_formats)):
+        for k, txt in (overlay.get(sect) or {}).items():
+            if k in table:
+                table[k].client_summary = txt
+            else:
+                unmatched.append("%s %s" % (sect, k))
+    allsv = model.all_state_variables()
+    for k, txt in (overlay.get("state_variables") or {}).items():
+        if k in allsv:
+            allsv[k].client_summary = txt
+        else:
+            unmatched.append("state_variable %s" % k)
     return unmatched
 
 

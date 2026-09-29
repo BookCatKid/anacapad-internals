@@ -777,10 +777,16 @@ def render_state_variables(m):
     for k in sorted(allsv):
         sv = allsv[k]
         if not (sv.description or sv.accepted_values or sv.range
-                or sv.related_actions or sv.notes):
+                or sv.related_actions or sv.notes
+                or getattr(sv, "client_summary", None)):
             continue
         out.append("### `%s`" % k)
         out.append("")
+        if getattr(sv, "client_summary", None):
+            out.append(_para(sv.client_summary))
+            out.append("")
+            out.append("**Technical description:**")
+            out.append("")
         if sv.description:
             out.append(_para(sv.description))
             out.append("")
@@ -886,6 +892,11 @@ def render_formats(m, kind, title, blurb):
     for k, f in sorted(src.items()):
         out.append("## `%s` %s" % (k, _status(f.status)))
         out.append("")
+        if getattr(f, "client_summary", None):
+            out.append(_para(f.client_summary))
+            out.append("")
+            out.append("**Technical description:**")
+            out.append("")
         if f.description:
             out.append(_para(f.description))
             out.append("")
