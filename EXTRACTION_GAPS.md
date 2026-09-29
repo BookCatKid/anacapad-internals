@@ -1095,3 +1095,37 @@ the deep semantic layer:
     map (51 vtable-like runs in 0x10ec09xx-0x10ec3exx) is only
     partially attributed to ObjectID prefixes — the resolver
     f_10349d00 path-walk is the documented ceiling.
+
+13. Section/table census round (8681737-87e6b90) — verified + corrected:
+    ContentDirectory cp-source table at 0x10e77464 fully decoded:
+    12 six-word {cp_id,kind,flags,lib_flag,short_id,smapi_template}
+    records (RDCPA:*/RDCPI:* -> explore:*/mymusic:*/station:*/
+    ondemand_track::* SMaPI paths) plus five eight-word URI-rewrite
+    records canonicalizing radea:/npsdy:/rdradio: legacy service URIs
+    onto x-sonos-http:/x-sonosapi-radio: forms. Proprietary-header
+    census: 37 X-Sonos-*/X-RINCON-* literals (added ErrorType, Id-Hash,
+    Muse-Api, MuseHouseholdId, VClockCloud). Shoutcast client request
+    template recovered (Nullsoft Winamp3 UA spoof + Icy-MetaData:1).
+    CORRECTION: FindPrefix/GetAllPrefixLocations 800 — earlier "three
+    dirObj classes" was a region-limited scan; full-.rodata census finds
+    SEVENTEEN vtables carrying the prefix-search pair (queue/share/
+    saved-queue family @0x10ebb598-0x10ebb7f4, favorites cluster,
+    dirObjAttr @0x10eadf80, AI: classes @0x10ea11f4/0x10ea129c, 9-slot
+    variant @0x10ea0f7c). dirObjAttr named-class literal @0x10eae0f8
+    was previously undocumented. Section map: .data.rel.ro hosts 284
+    relocated table runs (vendored curl connfilters in .data
+    @0x11093f20-0x11094144, json-schema validator 47/39-slot vtables,
+    perfcounters); .init_array 420 static ctors (startup registry);
+    .got2 368 entries incl the SDA string-indirection map.
+    NEW: previously unanchored .text region 0x10e50000-0x10e6ffff
+    (~128KB) identified as the SPDIF/IEC61937 burst-writer module +
+    co-located nanopb codec (pb_encode/pb_decode callers);
+    'OVERSIZE SPDIF block @ %d frames'/'Restart SPDIF block' literals,
+    163-slot table @0x1108b594, enum->name mappers f_10e6e5ac.
+    RESIDUAL: (a) per-slot semantics of the 163-slot table and full
+    burst-writer callgraph unmapped; (b) upper-.text blocks (0x10c0+)
+    are vendored libraries (curl, json-schema, dsplib, nanopb) and are
+    intentionally unanchored — per-library coverage lives in
+    linked_libraries, not per-function anchors; (c) dirObj vtable->name
+    pairing for the queue/share family inferred from referrer strings
+    rather than ctor stores (registered via computed bases).
