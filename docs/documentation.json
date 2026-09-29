@@ -116072,6 +116072,45 @@
    },
    "volume_hint": "executor body contains PlayerVolume::setVolume \"cannot set volume AND mute parameter\" \u2014 group/volume-style commands fan out to target players",
    "acronym": "IBT expansion unresolved \u2014 consistent with Inter-Box/Target broadcast; mechanism proven, expansion inferred only"
+  },
+  "netstart_ipc": {
+   "name": "netstartd IPC event dispatcher",
+   "protocol": {
+    "transport": "/tmp/netstartd.ipc (see wac_mode anchors)",
+    "dispatcher": "f_10691034 (zp log tag)",
+    "message_id": "big-endian u32 at msg+12..15; dispatched as id-31 -> PIC jump table 0x10f01d6c, 61 entries (ids 31..91); unhandled ids -> shared default case f_10691188-region",
+    "cases": {
+     "31": "Netstart is idle (-range param path)",
+     "32": "Netstart open",
+     "33": "Netstart SSID set",
+     "34": "Netstart SSID clear",
+     "35": "WAC mode disabled",
+     "36": "WAC mode enabled",
+     "37/39/41": "WAC mode timeout cluster",
+     "40": "Netstart alive",
+     "42": "In setup mode",
+     "44": "Netstart triggered upgrade (0x%x): %s",
+     "46": "Setup start",
+     "47": "Setup stop (-range)",
+     "48": "WiFi connected -> posts muse event wifiConnected {eventType, hardware:wifi}",
+     "49": "WiFi disconnected -> wifiDisconnected muse event",
+     "50/52": "netstartd hello",
+     "53": "Received set Muse HHID -> calls f_109c??? muse HHID setter then f_109dbe58 f_10652d88",
+     "80/88": "hello/keepalive cases near wifi-disconnect region",
+     "90": "ignoring network bounce mid-shutdown",
+     "91": "recovery AP connection: %02X%02X%02X%02X%02X%02X + set recovery AP state (else \"unable to set recovery AP state\")",
+     "54-79,81-87,89": "default stub (reserved/unhandled)",
+     "conn-type names": "sub-case maps conn type int -> {WiFi, Ethernet, Ethernet (WiFi Disabled), SonosNet (wireless), SonosNet (Ethernet), Home Theater, Home Theater (Ethernet), Home Theater 2.0, Unknown} via offset-table name jump (b 0x1057f8a0 epilogue)"
+    }
+   },
+   "confidence": "PROVEN: jump table 0x10f01d6c (61 entries, base-relative offsets) + per-case zp log literals; msg ids 31-91",
+   "evidence": [
+    "f_10691034",
+    "jump table 0x10f01d6c",
+    "msg-id field msg+12..15",
+    "zp log tag",
+    "wifiConnected/wifiDisconnected muse event posts"
+   ]
   }
  },
  "subsystems": {
@@ -118883,7 +118922,7 @@
   },
   "wac_mode": {
    "status": "partial",
-   "summary": "WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed int, 'Unknown WAC mode %d') with enabled/disabled/timeout transitions; driven by netstartd via /tmp/netstartd.ipc ('WAC mode enabled/disabled/timeout', 'In setup mode', 'Netstart SSID set/clear'); LED goes to R_LED_WAC mode",
+   "summary": "WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed int, 'Unknown WAC mode %d') with enabled/disabled/timeout transitions; driven by netstartd via /tmp/netstartd.ipc ('WAC mode enabled/disabled/timeout', 'In setup mode', 'Netstart SSID set/clear'); LED goes to R_LED_WAC mode | netstartd IPC drives WAC: dispatcher f_10691034 msg ids 35/36=WAC disabled/enabled, 37/39/41=WAC timeout cluster; ids 42/46/47=setup-mode enter/setup start/stop.",
    "anchors": [
     "wacd.log",
     "WAC mode enabled",
