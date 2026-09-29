@@ -4,94 +4,71 @@ Self-contained protocols/engines living in the same binary beside or below the U
 
 | Subsystem | Coverage | Summary |
 |---|---|---|
-| `business_msp` | **absent** | Sonos Business managed-service-provider hooks (AddRemove/Sync Sonos Business MSP) |
-| `ibt_plans` | **absent** | IBT command plan-execution engine ('executing ibt plan for command') + enablePitchfork feature flag |
-| `semisleep_power` | **absent** | suspend/resume engine: enableSemiSleep, powerWakeupFromSemiSleep, AmplifierPowerStateChanged, DirectControlIsSuspended, VLI suspend sessions |
+| `ibt_plans` | **absent** | IBT command-plan executor behind the enablePitchfork feature flag: '\[dispatch\] unsupported IBT command (%s)', 'already generated ibt plan, no action taken', 'executing ibt plan for command (%s)', 'failed to generate ibt plan for command' — commands are compiled into plans then executed; dispatch table rejects unknown IBT command names; the command set and plan format are not decoded |
 | `ab_experiments` | **vocab** | ZoneExperiment framework in production firmware: /experiments endpoint, ZoneExperiment id/name/value/defaultValue elements |
-| `chirp_stack` | **vocab** | chirp-core/chirp-private acoustic codec (encoder/decoder/voter, CDMA+FSK profiles) driving RoomDetection chirps and trueplay discovery |
-| `cloud_queue` | **vocab** | /cloudqueue(+poll), trackQueueAdditions, CloudQueueHistory, rating gating; lifecycle undocumented |
-| `embedded_sqlite` | **vocab** | libsqlite3 linked; local timers persist via sqlite3 statements; tables undocumented |
 | `entitlements` | **vocab** | entitlementsmanager + entitlementsVersionChanged + /entitlements/api; what an entitlement gates unknown |
-| `factory_reset` | **vocab** | factoryReset.txt sentinel, sonosFactoryResetFull, LED_MODE_FACTORY_RESET, remote management/factoryReset muse route |
-| `log_domain_map` | **vocab** | 21 anacapa.*.log domains = subsystem boundary map (avt.play, chsrc.state, dc, gm.events, ht, muse*, snf, sps, trueplay, vl...) |
-| `media_player_abstraction` | **vocab** | media_player_mgr/autoplay/vli_ctrl + extaudiosrc/ai_impl_base plug-in layer under AVT sources; vtable map undocumented |
-| `model_sku_vocabulary` | **vocab** | ZPS9-ZPS61 / S0-S9 model ids + product names embedded for capability conditionals; model->capability map untabulated |
-| `muse_semantics` | **vocab** | 282 cloud routes catalogued; per-route request/response schemas and auth undocumented |
-| `playlist_parsers` | **vocab** | ASX (mswmext), M3U (x-mpegurl), vnd.apple.mpegurl, DASH metadata parsers below the URI layer |
-| `qplay_protocol` | **vocab** | only QPlayAuth SOAP action documented; the wider Tencent protocol (key derivation, control channel) is not |
-| `runtime_flag_files` | **vocab** | /tmp + /var/run flag-file semantics: device_unlocked_flag, brokendevice, wifidisabled, crashed_play_state, event_preserve, memorylog ring, wac_mode, netmanager_extender_flags |
-| `spotify_esdk` | **vocab** | embedded libspotify (mercury/hermes AP stack) + Sonos bridge modules + mDNS Connect discovery; names catalogued, protocol internals not |
-| `wac_mode` | **vocab** | WiFi Accessory Config setup mode (wacd, /var/run/wac_mode, WAC mode enabled/timeout) |
-| `account_cert_lifecycle` | **partial** | certmanager/devicecertmanager/regdevicecert/cloudregistration endpoints catalogued; enrolment/renewal flows and cert formats not |
+| `semisleep_power` | **vocab** | suspend/resume engine gated by featureConfigSemiSleep with a semiSleepConfig JSON key in cloud config: powerWakeupFromSemiSleep wake path, AmplifierPowerStateChanged events, DirectControlIsSuspended state, VLI suspend sessions. Strings confirmed; the flag suggests it may be dormant/gated on this model |
+| `account_cert_lifecycle` | **partial** | three cert managers: certmanager.cxx (general), devicecertmanager.cxx (device certs), regdevicecert.cxx (registered-device certs); curl selects between R_CLIENT_KEYCERT_ID_{SONOS, SONOS_DEVICE, SONOS_DEVICE_ACCEPT_LEGACY, SONOS_REGISTERED_DEVICE}; device cert sent as X-Sonos-DeviceCert HTTP header to services requiring deviceCerts; fetchRegDeviceCert/refreshRegDeviceCert renewal flow; states DeviceCertRequired/Invalid/Expired/Revoked; 'sonos-key-and-cert' blob + <DeviceCertInfo> doc; sonosCertvalSetSSLToSonosDevice SSL switch |
 | `audio_taps` | **partial** | PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap |
+| `business_msp` | **partial** | Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION) |
 | `buttons_ir` | **partial** | button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database |
+| `chirp_stack` | **partial** | embedded Chirp stack — chirp-core 4.2.1_7265 + chirp-sdk + chirp-private layers with a custom 'sonos-cdma' profile: full encoder (wavetable/multitone/decorator/CDMA) + decoder (peaks/scorer/voter/weighting/RMS/CDMA, reed-solomon FEC, FFT, biquad filters, reverb) + protocol JSON config; driven via roomDetection muse routes (startSignalling/stopSignalling by playId) with SETUP_CHIRP/ROOM_DETECTION_CHIRP/EXT_CHIRP modes and ChirpExtAudioSrc audio-source integration |
+| `cloud_queue` | **partial** | Cloud-queue playback: sessions load cloud-resident queues via v1/playbackSessions/{sessionId}/playbackSession/loadCloudQueue (+WithWindow variant for windowed fetch, refreshCloudQueue); local /cloudqueue + /cloudqueuepoll endpoints; a CloudQueueWindow object wraps the API window; dedicated CLOUD_QUEUE_* error family |
 | `dsp_ht_engine` | **partial** | home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks |
+| `embedded_sqlite` | **partial** | libsqlite3.so.0 dynamically linked (open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout/...): used by the LocalTimer persistence ('LocalTimer from sqlite3 stmt \[%s\] FAILED') — local timers live in a sqlite DB; 'SQLite3 libversion %s' logged at init |
+| `factory_reset` | **partial** | factory-reset machinery: muse route v1/players/{playerId}/management/factoryReset (+household variant), factoryReset.txt sentinel consumed at boot, sonosFactoryResetFull entry point, LED_MODE_FACTORY_RESET visual feedback |
 | `favourites_model` | **partial** | Sonos favourites store + ContentDirectory projection: FV:2 root container paired with FavoritesUpdateID; XML store schema recovered; mutation via CDS CreateObject/UpdateObject/DestroyObject on the dirObjFavorites vtable + muse getFavorites/loadFavorite routes |
 | `feature_flag_registry` | **partial** | feature flags are JSON keys in the settings/cloud config document (featureConfig sits in the same key table as entitlementsList/eqSettings/ethernetPorts/favoritesList/geoLocation/getUsersResponse) — cloud-delivered, not compile-time; 10 featureConfig* subkeys enumerate the gated feature set |
-| `group_object_model` | **partial** | group.cxx/group_playeronly/group_locationandplayer + play_state_mgr + zones_mgr/zones_storage internals behind ZGT |
-| `lechmere_wss` | **partial** | RFC6455+TLV framing confirmed; full WSS command vocabulary, reconnect/auth, per-namespace payloads not |
+| `group_object_model` | **partial** | zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push |
+| `lechmere_wss` | **partial** | lechmere.cxx cloud channel: RFC6455 websocket to lechmere.<env>.ws.sonos.com with negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), auth via authzPolicyKeyLechmere whose policy key carries a role; reconnect steering via SONOS_SERVER_LECHMERE_RECONNECT_LATER; separate local WSS server (websocketserver.cxx) on /api/v1/websocket + /websocket/api |
 | `led_engine` | **partial** | Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only |
+| `log_domain_map` | **partial** | 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring |
+| `media_player_abstraction` | **partial** | source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source |
+| `model_sku_vocabulary` | **partial** | 51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID |
 | `multi_daemon_boundary` | **partial** | anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks |
+| `muse_semantics` | **partial** | the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
+| `playlist_parsers` | **partial** | playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3U/WLP/PLS + iTunes 'ITP' XML parser), a streaming HLS playlist parser with variant switching (#EXTM3U/#EXT-X-PLAYLIST-TYPE validation, codec-variant source switching, Atmos stream rejection), and the muse playlists API + SaveAsSonosPlaylist SOAP path |
+| `qplay_protocol` | **partial** | Tencent QPlay: device advertises <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</..> (protocol v2); /QPlay/Control route with QPlayAuth action; shared TQPlay mode (updateSharedTQPlayMode); #QPLAY_SUPPORT# conditional block marker; no /QPlay/Event route — eventless control service |
 | `queue_persistence` | **partial** | .rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt |
+| `runtime_flag_files` | **partial** | runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, brokendevice, wifidisabled, htdocs_locked, crashed_play_state, anacapa-has-run, fresh_hh.txt, anacapa_prevent_crashdump_upload, sonosConcurrencyUnrecoverableError), /var/run mode files (wac_mode, netstart_mode, netmanager_extender_flags, systemtimeoffset), /tmp/memorylog 4-file ring + .old copy, /tmp/smb/ mount workspace, /tmp/backtrace + diagstdout/diagstdin diag scratch, /tmp/event_preserve + event_reporter_v3 buffers |
 | `scrobbler` | **partial** | Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API |
 | `settings_replication` | **partial** | replicated_settings.cxx household sync protocol: per-setting replicateOne transfers with version+format handshake ('deciding whether to accept replicated list from: %s; ver: %u format: %u'), <Replication>/<ReplicationOperation>/<ReplicationResult>/<ReplicationPlayer>/<ReplicationTime> reporting XML, denylist + quarantine for bad formats/encodings, REPLICATION_IN_PROGRESS/COMPLETE states, distinct account/netsettings/favourites/savedqueue/areas streams |
 | `sntp_server` | **partial** | Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling |
+| `spotify_esdk` | **partial** | embedded Spotify eSDK + Sonos bridge (spotify.cxx, spotify_playback_session.cxx, spotify_queue.cxx, spotify_smapi.cxx, spotify_thread.cxx): RSpotifyPlayback* controller ops, Spotify Connect mDNS discovery + zeroconf transfer, own track queue, SMAPI control channel, ad/interruption URI types, serialized request pipeline |
 | `telemetry_submission` | **partial** | telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-MessageType: product-data-telemetry header, zonereportmgr.cxx zone reports, submitDiagnostics/submitQueuedDiagnostic pipeline with manifest submission, positioning telemetry level route, per-feature telemetry flags |
-| `trueplay_tuning` | **partial** | SOAP enable/status documented; measurement, etag asset sync, presence discovery and the tuning FSM not |
+| `trueplay_tuning` | **partial** | Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant |
 | `update_machinery` | **partial** | manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled |
-
-## `business_msp`
-
-**coverage** `absent`
-
-Sonos Business managed-service-provider hooks (AddRemove/Sync Sonos Business MSP)
-
-- binary anchors: `AddRemoveSonosBusinessMSP`, `Sync Sonos Business MSP`
-
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10e749a4 — AddRemoveSonosBusinessMSP
-- @ 0x10e74e7c — Sync Sonos Business MSP
-
-</details>
+| `wac_mode` | **partial** | WAC (WiFi Accessory Config) setup mode driven by wacd with /var/run/wac_mode state file: 'WAC mode enabled/disabled/timeout' transitions, 'Unknown WAC mode %d', dedicated LED modes R_LED_WAC / R_LED_WAC_TIMEOUT, wacd.log sink |
 
 ## `ibt_plans`
 
 **coverage** `absent`
 
-IBT command plan-execution engine ('executing ibt plan for command') + enablePitchfork feature flag
+An 'IBT' command-plan executor ('executing ibt plan for command') gated by the enablePitchfork feature flag — likely in-band tuning/test command plans. Almost nothing decoded.
+
+**Technical description:**
+
+IBT command-plan executor behind the enablePitchfork feature flag: '\[dispatch\] unsupported IBT command (%s)', 'already generated ibt plan, no action taken', 'executing ibt plan for command (%s)', 'failed to generate ibt plan for command' — commands are compiled into plans then executed; dispatch table rejects unknown IBT command names; the command set and plan format are not decoded
 
 - binary anchors: `executing ibt plan for command`, `unsupported IBT command`, `enablePitchfork`
 
-<details><summary>Evidence (3)</summary>
+<details><summary>Evidence (4)</summary>
 
 - @ 0x10fac64c — executing ibt plan for command
 - @ 0x10ec7903 — unsupported IBT command
 - @ 0x10f9c2b4 — enablePitchfork
-
-</details>
-
-## `semisleep_power`
-
-**coverage** `absent`
-
-suspend/resume engine: enableSemiSleep, powerWakeupFromSemiSleep, AmplifierPowerStateChanged, DirectControlIsSuspended, VLI suspend sessions
-
-- binary anchors: `enableSemiSleep`, `featureConfigSemiSleep`, `powerWakeupFromSemiSleep`, `DirectControlIsSuspended`
-
-<details><summary>Evidence (4)</summary>
-
-- @ 0x10e86d24 — enableSemiSleep
-- @ 0x10f97b58 — featureConfigSemiSleep
-- @ 0x10e86c60 — powerWakeupFromSemiSleep
-- @ 0x10eb2c7b — DirectControlIsSuspended
+- @ 0x10fac64c — 'executing ibt plan for command (%s)' + dispatch rejection
 
 </details>
 
 ## `ab_experiments`
 
 **coverage** `vocab`
+
+Sonos can enrol a zone in A/B experiments pushed from the cloud. Each experiment is an id+name with a value and a shipped defaultValue, so a player without an assignment just runs the default. The /experiments HTTP endpoint exposes the active set. Client authors only need to know these exist — they change behaviour silently between households and explain builds that differ despite identical firmware.
+
+**Technical description:**
 
 ZoneExperiment framework in production firmware: /experiments endpoint, ZoneExperiment id/name/value/defaultValue elements
 
@@ -105,55 +82,13 @@ ZoneExperiment framework in production firmware: /experiments endpoint, ZoneExpe
 
 </details>
 
-## `chirp_stack`
-
-**coverage** `vocab`
-
-chirp-core/chirp-private acoustic codec (encoder/decoder/voter, CDMA+FSK profiles) driving RoomDetection chirps and trueplay discovery
-
-- binary anchors: `chirp_private_cdma.c`, `protocol-acoustic.c`
-
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10fd2948 — chirp_private_cdma.c
-- @ 0x10fd0c49 — protocol-acoustic.c
-
-</details>
-
-## `cloud_queue`
-
-**coverage** `vocab`
-
-/cloudqueue(+poll), trackQueueAdditions, CloudQueueHistory, rating gating; lifecycle undocumented
-
-- binary anchors: `/cloudqueue`, `trackQueueAdditions`, `CloudQueueHistory`
-
-<details><summary>Evidence (3)</summary>
-
-- @ 0x10e75cc4 — /cloudqueue
-- @ 0x10e93ddf — trackQueueAdditions
-- @ 0x10eb98d0 — CloudQueueHistory
-
-</details>
-
-## `embedded_sqlite`
-
-**coverage** `vocab`
-
-libsqlite3 linked; local timers persist via sqlite3 statements; tables undocumented
-
-- binary anchors: `sqlite3_exec`, `LocalTimer from sqlite3`
-
-<details><summary>Evidence (2)</summary>
-
-- @ 0x1006282c — sqlite3_exec
-- @ 0x10edd644 — LocalTimer from sqlite3
-
-</details>
-
 ## `entitlements`
 
 **coverage** `vocab`
+
+Sonos-side licensing: each account/household can carry <Entitlement> records (type, isTrial, sku, date range, codes). The runtime policy consults them — e.g. a Sonos Business (SBiz) entitlement blocks Sonos Radio preinstall. Changes fire entitlements_changed events. Fetched cloud-side, cached locally, and diffed on refresh.
+
+**Technical description:**
 
 entitlementsmanager + entitlementsVersionChanged + /entitlements/api; what an entitlement gates unknown
 
@@ -167,159 +102,26 @@ entitlementsmanager + entitlementsVersionChanged + /entitlements/api; what an en
 
 </details>
 
-## `factory_reset`
+## `semisleep_power`
 
 **coverage** `vocab`
 
-factoryReset.txt sentinel, sonosFactoryResetFull, LED_MODE_FACTORY_RESET, remote management/factoryReset muse route
+A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/AmplifierPowerStateChanged/DirectControlIsSuspended strings indicate players can enter a low-power 'semi sleep' and resume — relevant to idle latency and why a sleeping player can lag on first command. Not yet decoded.
 
-- binary anchors: `factoryReset.txt`, `sonosFactoryResetFull`, `management/factoryReset`
+**Technical description:**
 
-<details><summary>Evidence (3)</summary>
+suspend/resume engine gated by featureConfigSemiSleep with a semiSleepConfig JSON key in cloud config: powerWakeupFromSemiSleep wake path, AmplifierPowerStateChanged events, DirectControlIsSuspended state, VLI suspend sessions. Strings confirmed; the flag suggests it may be dormant/gated on this model
 
-- @ 0x10ef824c — factoryReset.txt
-- @ 0x10062b81 — sonosFactoryResetFull
-- @ 0x10e7f07e — management/factoryReset
+- binary anchors: `enableSemiSleep`, `featureConfigSemiSleep`, `powerWakeupFromSemiSleep`, `DirectControlIsSuspended`, `semiSleepConfig`, `powerWakeupFromSemiSleep`
 
-</details>
+<details><summary>Evidence (6)</summary>
 
-## `log_domain_map`
-
-**coverage** `vocab`
-
-21 anacapa.*.log domains = subsystem boundary map (avt.play, chsrc.state, dc, gm.events, ht, muse*, snf, sps, trueplay, vl...)
-
-- binary anchors: `anacapa.snf.log`, `anacapa.lechmere.event.log`, `anacapa.dc.log`
-
-<details><summary>Evidence (3)</summary>
-
-- @ 0x10e755e1 — anacapa.snf.log
-- @ 0x10e75539 — anacapa.lechmere.event.log
-- @ 0x10e754a1 — anacapa.dc.log
-
-</details>
-
-## `media_player_abstraction`
-
-**coverage** `vocab`
-
-media_player_mgr/autoplay/vli_ctrl + extaudiosrc/ai_impl_base plug-in layer under AVT sources; vtable map undocumented
-
-- binary anchors: `media_player_mgr.cxx`, `extaudiosrc.cxx`, `ai_impl_base.cxx`
-
-<details><summary>Evidence (3)</summary>
-
-- @ 0x10ecb98a — media_player_mgr.cxx
-- @ 0x10ec01ea — extaudiosrc.cxx
-- @ 0x10eacdc2 — ai_impl_base.cxx
-
-</details>
-
-## `model_sku_vocabulary`
-
-**coverage** `vocab`
-
-ZPS9-ZPS61 / S0-S9 model ids + product names embedded for capability conditionals; model->capability map untabulated
-
-- binary anchors: `ZPS9`, `HwFeatures`
-
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10f249a4 — ZPS9
-- @ 0x10e741dd — HwFeatures
-
-</details>
-
-## `muse_semantics`
-
-**coverage** `vocab`
-
-282 cloud routes catalogued; per-route request/response schemas and auth undocumented
-
-- binary anchors: `v1/households/{householdId}`, `muse_async_command_handler_impl.cxx`
-
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10e7bf40 — v1/households/{householdId}
-- @ 0x10ef9166 — muse_async_command_handler_impl.cxx
-
-</details>
-
-## `playlist_parsers`
-
-**coverage** `vocab`
-
-ASX (mswmext), M3U (x-mpegurl), vnd.apple.mpegurl, DASH metadata parsers below the URI layer
-
-- binary anchors: `mswmext=.asx`, `application/x-mpegurl`, `application/dash+xml`
-
-<details><summary>Evidence (3)</summary>
-
-- @ 0x10ed693c — mswmext=.asx
-- @ 0x10eb8946 — application/x-mpegurl
-- @ 0x10eb89e8 — application/dash+xml
-
-</details>
-
-## `qplay_protocol`
-
-**coverage** `vocab`
-
-only QPlayAuth SOAP action documented; the wider Tencent protocol (key derivation, control channel) is not
-
-- binary anchors: `urn:schemas-tencent-com:service:QPlay`, `QPlayAuth`
-
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10f11d58 — QPlayAuth
-
-</details>
-
-## `runtime_flag_files`
-
-**coverage** `vocab`
-
-/tmp + /var/run flag-file semantics: device_unlocked_flag, brokendevice, wifidisabled, crashed_play_state, event_preserve, memorylog ring, wac_mode, netmanager_extender_flags
-
-- binary anchors: `/tmp/device_unlocked_flag`, `/tmp/brokendevice`, `/tmp/memorylog`
-
-<details><summary>Evidence (3)</summary>
-
-- @ 0x10efff88 — /tmp/device_unlocked_flag
-- @ 0x10ef4e9c — /tmp/brokendevice
-- @ 0x10e75afc — /tmp/memorylog
-
-</details>
-
-## `spotify_esdk`
-
-**coverage** `vocab`
-
-embedded libspotify (mercury/hermes AP stack) + Sonos bridge modules + mDNS Connect discovery; names catalogued, protocol internals not
-
-- binary anchors: `spotify_esdk.c`, `hermes.c`, `mdns_spotify_service.cxx`, `/spotifyzc`
-
-<details><summary>Evidence (4)</summary>
-
-- @ 0x10fd4cb8 — spotify_esdk.c
-- @ 0x10fe4128 — hermes.c
-- @ 0x10ee4eb2 — mdns_spotify_service.cxx
-- @ 0x10e765a4 — /spotifyzc
-
-</details>
-
-## `wac_mode`
-
-**coverage** `vocab`
-
-WiFi Accessory Config setup mode (wacd, /var/run/wac_mode, WAC mode enabled/timeout)
-
-- binary anchors: `wacd.log`, `WAC mode enabled`
-
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10e7573d — wacd.log
-- @ 0x10f02dc8 — WAC mode enabled
+- @ 0x10e86d24 — enableSemiSleep
+- @ 0x10f97b58 — featureConfigSemiSleep
+- @ 0x10e86c60 — powerWakeupFromSemiSleep
+- @ 0x10eb2c7b — DirectControlIsSuspended
+- @ 0x10e86d24 — enableSemiSleep + powerWakeupFromSemiSleep
+- @ 0x10f9c084 — semiSleepConfig JSON key
 
 </details>
 
@@ -327,21 +129,32 @@ WiFi Accessory Config setup mode (wacd, /var/run/wac_mode, WAC mode enabled/time
 
 **coverage** `partial`
 
-certmanager/devicecertmanager/regdevicecert/cloudregistration endpoints catalogued; enrolment/renewal flows and cert formats not
+Every player holds a device certificate used to authenticate to Sonos cloud and to music services that demand deviceCerts. The enrolment, renewal and storage flow lives here; when a client hits certificate errors (R_CLIENT_KEYCERT_* family) this is the machinery involved.
 
-- binary anchors: `devicecertmanager.cxx`, `regdevicecert.cxx`, `R_CLIENT_KEYCERT_ID_SONOS_DEVICE`
+**Technical description:**
 
-<details><summary>Evidence (3)</summary>
+three cert managers: certmanager.cxx (general), devicecertmanager.cxx (device certs), regdevicecert.cxx (registered-device certs); curl selects between R_CLIENT_KEYCERT_ID_{SONOS, SONOS_DEVICE, SONOS_DEVICE_ACCEPT_LEGACY, SONOS_REGISTERED_DEVICE}; device cert sent as X-Sonos-DeviceCert HTTP header to services requiring deviceCerts; fetchRegDeviceCert/refreshRegDeviceCert renewal flow; states DeviceCertRequired/Invalid/Expired/Revoked; 'sonos-key-and-cert' blob + <DeviceCertInfo> doc; sonosCertvalSetSSLToSonosDevice SSL switch
+
+- binary anchors: `devicecertmanager.cxx`, `regdevicecert.cxx`, `R_CLIENT_KEYCERT_ID_SONOS_DEVICE`, `X-Sonos-DeviceCert`, `R_CLIENT_KEYCERT_ID_SONOS_DEVICE`, `DeviceCertRevoked`
+
+<details><summary>Evidence (6)</summary>
 
 - @ 0x10ef220e — devicecertmanager.cxx
 - @ 0x10efc8e6 — regdevicecert.cxx
 - @ 0x10eef0d1 — R_CLIENT_KEYCERT_ID_SONOS_DEVICE
+- @ 0x10eef100 — curl R_CLIENT_KEYCERT_ID_SONOS_DEVICE selection
+- @ 0x10ec1f20 — X-Sonos-DeviceCert: header
+- @ 0x10f0ea6c — DeviceCertRequired/Invalid/Expired/Revoked states
 
 </details>
 
 ## `audio_taps`
 
 **coverage** `partial`
+
+Internal PCM capture points let the firmware record the audio passing through it — used for diagnostics and, importantly, for TV lip-sync: the SPDIF tap captures the TV input so playback can be synchronized against the output tap. The /snapshotspdiftap + /downloadspdiftap endpoints retrieve captures. Not a client-facing feature, but it explains audio-quality and latency behaviour on home-theatre setups.
+
+**Technical description:**
 
 PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap
 
@@ -361,9 +174,35 @@ PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_t
 
 </details>
 
+## `business_msp`
+
+**coverage** `partial`
+
+Hooks for Sonos Business managed deployments — the strings reference adding/removing and syncing a 'Sonos Business MSP' relationship. Households under business management can have different service availability (e.g. Sonos Radio suppressed by the SBiz entitlement). Only vocabulary has been recovered.
+
+**Technical description:**
+
+Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION)
+
+- binary anchors: `AddRemoveSonosBusinessMSP`, `Sync Sonos Business MSP`, `/msprox`, `AddRemoveSonosBusinessMSP`, `SFB_PREMIUM_MSP`
+
+<details><summary>Evidence (5)</summary>
+
+- @ 0x10e749a4 — AddRemoveSonosBusinessMSP
+- @ 0x10e74e7c — Sync Sonos Business MSP
+- @ 0x10e763b8 — /msprox endpoint
+- @ 0x10f99990 — SFB_*_MSP tier enum
+- @ 0x10e74e94 — AddRemoveSfbMSP op
+
+</details>
+
 ## `buttons_ir`
 
 **coverage** `partial`
+
+Physical input pipeline. Buttons (play/pause, volume, join, mic-mute, pairing, plus swipe gestures on touch models) are broadcast on an internal multicast group and forwarded to the group coordinator when a player is slaved. Button lock is controllable via SOAP, and the cloud can inject virtual button presses (virtualRemoteControl/buttonCommand) — that's how the app 'remote control' works. IR: the player learns your TV remote via LearnIRCode against Sonos's ir.ws.sonos.com code database.
+
+**Technical description:**
 
 button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database
 
@@ -386,9 +225,66 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 
 </details>
 
+## `chirp_stack`
+
+**coverage** `partial`
+
+The embedded Chirp acoustic library — the speaker can literally emit and decode data-over-sound chirps (CDMA/FSK profiles). Used for room detection during setup and possibly trueplay discovery. Only the codec vocabulary is catalogued; the wire format hasn't been decoded.
+
+**Technical description:**
+
+embedded Chirp stack — chirp-core 4.2.1_7265 + chirp-sdk + chirp-private layers with a custom 'sonos-cdma' profile: full encoder (wavetable/multitone/decorator/CDMA) + decoder (peaks/scorer/voter/weighting/RMS/CDMA, reed-solomon FEC, FFT, biquad filters, reverb) + protocol JSON config; driven via roomDetection muse routes (startSignalling/stopSignalling by playId) with SETUP_CHIRP/ROOM_DETECTION_CHIRP/EXT_CHIRP modes and ChirpExtAudioSrc audio-source integration
+
+- binary anchors: `chirp_private_cdma.c`, `protocol-acoustic.c`, `sonos-cdma`, `chirp-core: 4.2.1_7265`, `roomDetection/chirp`, `SETUP_CHIRP`
+
+- **library:** chirp-core 4.2.1_7265; 'Chirp SDK with "%s" profile v%u \[max %u bytes in %.2fs\], supporting %u channel(s), using %s modulation' — profile system; sonos-cdma + FSK modulation files (chirp_private_cdma.c, chirp_private_fsk.c); reed-solomon FEC; chirp_levenshtein fuzzy match; JSON-configured protocol (alphabet bits, min/max msg length, polyphony); CHIRP_MEMORY_MANAGER_LEVEL_LOW build
+- **api:** chirp_sdk_send, chirp_sdk_process_shorts_input/output, chirp_encode/decode, chirp_get_symbols, chirp_sdk_random_payload
+- **usage:** muse: v1/players/{playerId}/roomDetection/chirp (startSignalling) + /{playId} (stopSignalling) + household variants; chirpRequest op; playId-keyed chirp management ('A chirp signal is already playing with playId %d', 'Stop chirp playId %d differ than m_chirpPlayId'); 'Start chirping with unique device value:%d' — encodes a device id; volume calibrated ('Chirp volume not yet calibrated', 'current chirp output volume: %d'); DSP routing as-dspin-ext-chirp/as-dspout-ext-chirp; 'Ignoring busy transition due to chirp only'
+- **errors:** ERROR_ROOM_DETECTION_SIGNALLING_{FAILED,BUSY}
+- **unresolved:** the sonos-cdma profile parameters (freq table, symbol alphabet), what payload the room-detection chirps carry
+<details><summary>Evidence (6)</summary>
+
+- @ 0x10fd2948 — chirp_private_cdma.c
+- @ 0x10fd0c49 — protocol-acoustic.c
+- @ 0x10fd3454 — chirp-core: 4.2.1_7265 version string
+- @ 0x10fd04d0 — 'sonos-cdma' custom protocol profile
+- @ 0x10e81ee8 — roomDetection/chirp muse routes
+- @ 0x10fcecfc — SDK profile/modulation log format
+
+</details>
+
+## `cloud_queue`
+
+**coverage** `partial`
+
+Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (e.g. voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The lifecycle and reconciliation with the local queue are not yet decoded.
+
+**Technical description:**
+
+Cloud-queue playback: sessions load cloud-resident queues via v1/playbackSessions/{sessionId}/playbackSession/loadCloudQueue (+WithWindow variant for windowed fetch, refreshCloudQueue); local /cloudqueue + /cloudqueuepoll endpoints; a CloudQueueWindow object wraps the API window; dedicated CLOUD_QUEUE_* error family
+
+- binary anchors: `/cloudqueue`, `trackQueueAdditions`, `CloudQueueHistory`, `loadCloudQueueWithWindow`, `/cloudqueuepoll`, `CloudQueueWindow init`
+
+- **routes:** loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue under /v1/playbackSessions/{sessionId}/ playbackSession (+household-scoped variants); 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow' — large queues fetched in windows
+- **internals:** internalStartCloudQueue, internalRefreshCloudQueue, loadCloudQueueFromReq; CloudQueueWindow init logging; CloudQueueVersion state; trackQueueAdditions pushes additions back to cloud; CloudQueueHistory in history pipeline
+- **errors:** ERROR_CLOUD_QUEUE_{SERVICE_ERROR,ACCESS_DENIED,STREAM_LIMIT,SERVICE_UNRESPONSIVE,CANT_REACH_SERVER,SERVER}
+<details><summary>Evidence (5)</summary>
+
+- @ 0x10e75cc4 — /cloudqueue
+- @ 0x10e93ddf — trackQueueAdditions
+- @ 0x10eb98d0 — CloudQueueHistory
+- @ 0x10e80b00 — loadCloudQueue muse route
+- @ 0x10eb17ac — itemWindow requirement string
+
+</details>
+
 ## `dsp_ht_engine`
 
 **coverage** `partial`
+
+The full home-theatre audio configuration surface: surround/subwoofer state, downmix mode, dialog enhancement, AI speech enhancement, height-channel level, autoplay/autostop silence thresholds and a Tweaks bitmask — plus a 37-field per-zone audio record covering everything from balance and sub crossover to trueplay status. Channel masks up to 9.1.4 are compiled in. Many of these knobs are reachable through hidden RenderingControl EQ-type tokens (SubGain, SubCrossover, SpeakerSize, FV*...).
+
+**Technical description:**
 
 home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks
 
@@ -412,9 +308,56 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 
 </details>
 
+## `embedded_sqlite`
+
+**coverage** `partial`
+
+A libsqlite3 is linked in; at least the local timer/alarm store persists through SQL statements. Which tables exist and where the database file lives is still unmapped.
+
+**Technical description:**
+
+libsqlite3.so.0 dynamically linked (open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout/...): used by the LocalTimer persistence ('LocalTimer from sqlite3 stmt \[%s\] FAILED') — local timers live in a sqlite DB; 'SQLite3 libversion %s' logged at init
+
+- binary anchors: `sqlite3_exec`, `LocalTimer from sqlite3`, `LocalTimer from sqlite3 stmt`, `libsqlite3.so.0`
+
+- **users:** LocalTimer store (timer persistence across reboot); the full table inventory is unmapped — imports suggest prepared-statement CRUD, no bulk exec-heavy workload
+<details><summary>Evidence (3)</summary>
+
+- @ 0x1006282c — sqlite3_exec
+- @ 0x10edd644 — LocalTimer from sqlite3
+- @ 0x10edd644 — LocalTimer sqlite3 statement failure log
+
+</details>
+
+## `factory_reset`
+
+**coverage** `partial`
+
+The wipe path: a factoryReset.txt sentinel file, sonosFactoryResetFull entry, LED_MODE_FACTORY_RESET feedback, and a remote management/factoryReset muse route. Steps and what survives (registration? certs?) are not yet decoded.
+
+**Technical description:**
+
+factory-reset machinery: muse route v1/players/{playerId}/management/factoryReset (+household variant), factoryReset.txt sentinel consumed at boot, sonosFactoryResetFull entry point, LED_MODE_FACTORY_RESET visual feedback
+
+- binary anchors: `factoryReset.txt`, `sonosFactoryResetFull`, `management/factoryReset`, `v1/players/{playerId}/management/factoryReset`, `factoryReset.txt`
+
+<details><summary>Evidence (5)</summary>
+
+- @ 0x10ef824c — factoryReset.txt
+- @ 0x10062b81 — sonosFactoryResetFull
+- @ 0x10e7f07e — management/factoryReset
+- @ 0x10e7f068 — management/factoryReset muse route
+- @ 0x10ef824c — factoryReset.txt sentinel
+
+</details>
+
 ## `favourites_model`
 
 **coverage** `partial`
+
+Sonos Favourites (the pinned items in the app). They live in a replicated XML store (<Favorites SchemaVersion NextFavorite>) with a sibling <Radio> section for stations; ContentDirectory projects them as the FV:2 container whose changes bump FavoritesUpdateID. You create/delete/edit them through the normal CDS CreateObject/DestroyObject/UpdateObject actions against the favourites directory object, and the cloud mirrors them via the households/groups favorites routes. Radio favourites sit under the R: prefix instead.
+
+**Technical description:**
 
 Sonos favourites store + ContentDirectory projection: FV:2 root container paired with FavoritesUpdateID; XML store schema recovered; mutation via CDS CreateObject/UpdateObject/DestroyObject on the dirObjFavorites vtable + muse getFavorites/loadFavorite routes
 
@@ -444,6 +387,10 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 
 **coverage** `partial`
 
+Feature flags arrive as JSON keys in the cloud-delivered settings document — not compile-time switches. Ten featureConfig* keys enumerate what's gated (SemiSleep, SmartPlay, SpotABR, Plink, Quickbonding, MetricsService...). Explains behaviour that differs between households on the same firmware.
+
+**Technical description:**
+
 feature flags are JSON keys in the settings/cloud config document (featureConfig sits in the same key table as entitlementsList/eqSettings/ethernetPorts/favoritesList/geoLocation/getUsersResponse) — cloud-delivered, not compile-time; 10 featureConfig* subkeys enumerate the gated feature set
 
 - binary anchors: `featureConfigPlink`, `featureConfigSmartPlay`, `featureConfigQuickbonding`, `featureConfigZoneExperiment`, `<ZoneExperiment id=`, `/experiments`
@@ -465,15 +412,29 @@ feature flags are JSON keys in the settings/cloud config document (featureConfig
 
 **coverage** `partial`
 
-group.cxx/group_playeronly/group_locationandplayer + play_state_mgr + zones_mgr/zones_storage internals behind ZGT
+How zones actually group: the coordinator/satellite topology, zone storage, play-state manager and the ZoneGroupTopology event model sit here. This is the machinery behind ZoneGroupState and the zgt events clients already consume.
 
-- binary anchors: `play_state_mgr.cxx`, `zones_storage.cxx`, `/jffs/settings/zones.json`
+**Technical description:**
 
-<details><summary>Evidence (3)</summary>
+zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push
+
+- binary anchors: `play_state_mgr.cxx`, `zones_storage.cxx`, `/jffs/settings/zones.json`, `BecomeGroupCoordinatorAndSource`, `recoverBondedZone`, `dsp_system_satellite.bin`, `HT_BONDED_SATELLITE`
+
+- **bonded_roles:** HT_BONDED_MASTER, HT_BONDED_SATELLITE, UNBONDED_DEVICE, BONDED_STEREOPAIR, BONDED_TO_SUB, BONDED_STEREOPAIR_AND_SUB; ZP_MODE_HT_SATELLITE; netmodes NETMODE_SATELLITE_V1/V1_WIRED/V2, STATION_SATELLITE*
+- **coordinator_ops:** BecomeGroupCoordinator, BecomeGroupCoordinatorAndSource (bCloningGCState/bSourceGCClearedContent — can clone GC playback state), BecomeCoordinatorOfStandaloneGroup, ChangeCoordinator ('using local VLI txs'/'VLI State Snapshot' source hand-off, installClock, Chsnk restart to avoid seamless delegation); secondary-ZP calls rejected
+- **topology:** 'start topology monitor', monitorCoordinator, 'Coordinator %s linkage broken', 'topology hasn't settled yet' retry loops, 'Bonded zone maps not consistent' + MissingBondedZoneMemberDetectedEvent
+- **satellite_lifecycle:** AddHTSatellite/RemoveHTSatellite/AddBondedZones/RemoveBondedZones; recoverBondedZone FSM: retry→reduce→separate→hard-fail, 'bonded secondary orphaned', restick/unstick; sonar config cleared on add/remove; Enter/ExitConfigMode propagated to satellites; 'Satellite config override' + 'Push satellite state to UUID %s failed'
+- **satellite_dsp:** per-satellite assets: dsp_preset_satellite.xml, dsp_system_satellite.bin, satellite_processor.bin; HTChProcConfig protobuf ('Could not convert loaded satellite protobuf'); satelliteChannelMap/requestedSatelliteMap/SatelliteSwitcher; bonded gain tables with volume breakpoints; ApplySatelliteTuning spectral+spatial channel tuning; 'satellite sub also receives non sub channels'
+- **xml:** <ZoneGroup Coordinator=..>, <ZoneGroupState><ZoneGroups></ZoneGroups></ZoneGroupState>, <Satellites>, /xml/satellite_device.xml satellite device description
+<details><summary>Evidence (7)</summary>
 
 - @ 0x10ed15f2 — play_state_mgr.cxx
 - @ 0x10e96cc6 — zones_storage.cxx
 - @ 0x10e752e0 — /jffs/settings/zones.json
+- @ 0x10eb247c — BecomeGroupCoordinatorAndSource GC-state clone flags
+- @ 0x10ebce88 — recoverBondedZone FSM strings
+- @ 0x10e73ab4 — dsp_system_satellite.bin + satellite_processor.bin
+- @ 0x10e878b4 — HT_BONDED_MASTER/SATELLITE role enum
 
 </details>
 
@@ -481,19 +442,33 @@ group.cxx/group_playeronly/group_locationandplayer + play_state_mgr + zones_mgr/
 
 **coverage** `partial`
 
-RFC6455+TLV framing confirmed; full WSS command vocabulary, reconnect/auth, per-namespace payloads not
+The persistent secure-websocket channel between player and cloud ('lechmere'): RFC6455 framing carrying an inner TLV command vocabulary — this is how the cloud pushes control and the player reports state in real time. Framing is confirmed; the per-namespace command payloads aren't decoded yet.
+
+**Technical description:**
+
+lechmere.cxx cloud channel: RFC6455 websocket to lechmere.<env>.ws.sonos.com with negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), auth via authzPolicyKeyLechmere whose policy key carries a role; reconnect steering via SONOS_SERVER_LECHMERE_RECONNECT_LATER; separate local WSS server (websocketserver.cxx) on /api/v1/websocket + /websocket/api
 
 - binary anchors: `websocket_lechmere`, `lechmere.event`
 
-<details><summary>Evidence (1)</summary>
+- **endpoint:** lechmere.%s.ws.sonos.com — %s is the region/env token; Sec-WebSocket-Protocol: lechmere.%u
+- **auth:** authzPolicyKeyLechmere; 'Could not parse role from lechmere policy key' — role encoded in key
+- **local_ws:** websocketserver.cxx serves /api/v1/websocket and /websocket/api with RFC6455 headers; opcode logs websocket(data/ping/pong/close/cont); disableWebSocketPerMessageDeflate config key
+<details><summary>Evidence (4)</summary>
 
 - @ 0x10e75541 — lechmere.event
+- @ 0x10ee71a0 — lechmere.%s.ws.sonos.com endpoint template
+- @ 0x10ef64e0 — Sec-WebSocket-Protocol: lechmere.%u
+- @ 0x10ef9d2c — lechmere policy key role parse
 
 </details>
 
 ## `led_engine`
 
 **coverage** `partial`
+
+The status LED is a scripted animation system: patterns are programs of RGB steps with hold/fade times, checksummed and selected by internal state codes (R_LED_* — setup, muted, playing, broken-device, join-household...). Hardware capability flags adapt it to models with mic LEDs, mute LEDs, or only a status LED. SetLEDState's on/off is just the visible tip.
+
+**Technical description:**
 
 Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only
 
@@ -516,9 +491,84 @@ Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time 
 
 </details>
 
+## `log_domain_map`
+
+**coverage** `partial`
+
+Every anacapa.*.log domain names a subsystem boundary — the 21 domains are effectively a module map of the binary. Useful when reading log output or /status pages.
+
+**Technical description:**
+
+21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring
+
+- binary anchors: `anacapa.snf.log`, `anacapa.lechmere.event.log`, `anacapa.dc.log`, `/opt/log/anacapa.musecmdandrsp.log`, `/opt/log/anacapa.avt.play.log`
+
+- **domains:** anacapa.log (main), alarm.job, avt.play (AVTransport playback), chsrc.state (CHSRC source bus), dc (direct control?), ext.audio.action, gm.events (GroupManagement), hdmi, ht (home-theatre), hw.events, lechmere.event (WSS channel), musecmdandrsp (muse request/response trace!), musedebug, museevt (muse events), rc.upnp, snf, spotify.debug, spotify, sps, trueplay, tv, vl (line-in)
+- **siblings:** btmanager, btservice, chronyd, dropbear, ledmgr.debug, mdnsd, netstartd, sddpd, sonosledmgrd, udhcpc, wacd, wpa_supplicant
+<details><summary>Evidence (4)</summary>
+
+- @ 0x10e755e1 — anacapa.snf.log
+- @ 0x10e75539 — anacapa.lechmere.event.log
+- @ 0x10e754a1 — anacapa.dc.log
+- @ 0x10e75434 — full /opt/log/anacapa.*.log table
+
+</details>
+
+## `media_player_abstraction`
+
+**coverage** `partial`
+
+Beneath AVTransport sits a plug-in layer of source implementations (media_player_mgr, autoplay, vli_ctrl, extaudiosrc, ai_impl_base) — each stream type (line-in, TV, Spotify, airplay...) plugs in through the same vtable. The action handlers you're using dispatch into this.
+
+**Technical description:**
+
+source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source
+
+- binary anchors: `media_player_mgr.cxx`, `extaudiosrc.cxx`, `ai_impl_base.cxx`, `media_player_autoplay.cxx`, `StartAutoplay`, `ChirpExtAudioSrc`
+
+- **plugins:** media_player_mgr.cxx (manager), ai_impl_base.cxx/ai_impl (audio-input impl base), extaudiosrc.cxx + extaudiosrc_playid (external sources), media_player_vli_ctrl.cxx (virtual line-in control), htaudio_autoplay.cxx (TV), ChirpExtAudioSrc (acoustic)
+- **autoplay:** StartAutoplay; GetAutoplayRoomUUID/SetAutoplayRoomUUID target room; AutoplayVolume + UseAutoplayVolume + Get/SetUseAutoplayVolume; SetAutoplayLinkedZones + 'Found %zu linked rooms during StartAutoplay'; <AutoPlay><Mode><SilentSeconds> XML + HTASilenceThresholdAutoPlaySec + 'Triggering autoplay. Ignore Silence Threshold'; AutoPlaySettingsEvent; 'lonely local line-in autoplay'; alarm path 'Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)'; DEFAULT_AUTOPLAY_LINEIN + vhautoplaytv/autoplay_tv; 'preventing autoplay because operation is overridden'
+- **vli_autoplay:** 'using VLI to autoplay Spotify SMAPI URI: %s', 'setTransportToVLIStreamURI; URI: %s; autoplay: %d; become gc: %d' — VLI streams carry external sources including Spotify SMAPI URIs, optionally promoting this player to group coordinator
+<details><summary>Evidence (6)</summary>
+
+- @ 0x10ecb98a — media_player_mgr.cxx
+- @ 0x10ec01ea — extaudiosrc.cxx
+- @ 0x10eacdc2 — ai_impl_base.cxx
+- @ 0x10eb1b4c — 'using VLI to autoplay Spotify SMAPI URI'
+- @ 0x10eb2930 — linked-rooms expansion in StartAutoplay
+- @ 0x10f26b80 — <AutoPlay><Mode><SilentSeconds> XML
+
+</details>
+
+## `model_sku_vocabulary`
+
+**coverage** `partial`
+
+Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability conditionals — which features a given hardware reports. The model→capability table hasn't been written out yet.
+
+**Technical description:**
+
+51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID
+
+- binary anchors: `ZPS9`, `HwFeatures`
+
+- **model_ids:** ZPS1, ZPS3, ZPS5, ZPS6, ZPS9, ZPS11, ZPS12, ZPS13, ZPS14, ZPS15, ZPS16, ZPS17, ZPS18, ZPS19, ZPS20, ZPS21, ZPS22, ZPS23, ZPS24, ZPS26, ZPS27, ZPS28, ZPS29, ZPS30, ZPS31, ZPS32, ZPS33, ZPS34, ZPS35, ZPS36, ZPS37, ZPS38, ZPS39, ZPS40, ZPS41, ZPS42, ZPS43, ZPS44, ZPS45, ZPS46, ZPS48, ZPS49, ZPS51, ZPS52, ZPS53, ZPS54, ZPS55, ZPS56, ZPS57, ZPS58, ZPS59, ZPS61 (this build targets ZPS9 = Playbar/S1-era table includes newer ids)
+- **unresolved:** ZPS->product-name mapping, which capabilities gate on which ids, the S0-S9 submodel series
+<details><summary>Evidence (3)</summary>
+
+- @ 0x10f249a4 — ZPS9
+- @ 0x10e741dd — HwFeatures
+- @ 0x10f2490c — ZPSnn identifier table (two rodata runs)
+
+</details>
+
 ## `multi_daemon_boundary`
 
 **coverage** `partial`
+
+anacapad is one daemon of ~13 on the player. It pushes WiFi/network settings and PSKs to netstartd over /tmp/netstartd.ipc and receives connection-type updates back; LED, Bluetooth and power daemons get /X-external HTTP routes; each daemon has .dmp crash-report machinery. Most device behaviours (WiFi join, LED, BT pairing) are actually owned by the siblings.
+
+**Technical description:**
 
 anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks
 
@@ -541,9 +591,38 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 
 </details>
 
+## `muse_semantics`
+
+**coverage** `partial`
+
+The 'muse' API is Sonos's real product API — the REST-ish surface the S2 app talks to over the cloud/websocket channel. 282 routes are catalogued (households, groups, players, favourites, history, entitlements, update checks, virtual remote control...); per-route request/response schemas are the next layer to decode.
+
+**Technical description:**
+
+the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume
+
+- binary anchors: `v1/households/{householdId}`, `muse_async_command_handler_impl.cxx`, `v1/players/{playerId}/upnpZoneGroupTopology/subscription`, `v1/households/{householdId}/settings`, `pinewood`
+
+- **topology:** v1/households/{householdId}/... is the household-scoped parent; most resources also exist unscoped (v1/players/{playerId}/...); groups/{groupId} for playback coordination; playbackSessions/{sessionId} for cloud-queue sessions
+- **upnp_proxy:** upnpAVTransport, upnpAlarmClock, upnpAudioIn, upnpConnectionManager, upnpContentDirectory, upnpDeviceProperties, upnpGroupManagement, upnpGroupRenderingControl, upnpHTControl, upnpMusicServices, upnpQueue, upnpRenderingControl, upnpSystemProperties, upnpVirtualLineIn, upnpZoneGroupTopology — each exposes call + subscribe/renew/unsubscribe (logicalSID) triplets, i.e. full SOAP-over-muse proxying incl. eventing
+- **native_namespaces:** players, groups, playback, playbackSessions, settings, hardwareStatus, positioning, homeTheater, pinewood, zones, devices, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, households, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume
+- **unresolved:** per-route request/response schemas; what pinewood and trueroom are (internal codenames — pinewood plausibly voice/control, trueroom plausibly next-gen room tuning)
+<details><summary>Evidence (4)</summary>
+
+- @ 0x10e7bf40 — v1/households/{householdId}
+- @ 0x10ef9166 — muse_async_command_handler_impl.cxx
+- @ 0x10e85990 — upnp* proxy namespace routes (call/subscribe/renew/unsubscribe)
+- @ 0x10e838ac — v1 players/households/groups route family
+
+</details>
+
 ## `play_history`
 
 **coverage** `partial`
+
+Recently-played tracking: plays are recorded by the track monitor/recorder, buffered, and POSTed to the household history API with strict completeness rules; the app fetches an ETag-cached list; clearHistory/removeHistoryItem ops exist. Ratings (like/dislike) exist but only for the cloud queue.
+
+**Technical description:**
 
 historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue'
 
@@ -567,9 +646,61 @@ historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture
 
 </details>
 
+## `playlist_parsers`
+
+**coverage** `partial`
+
+Below the URI layer sit real playlist parsers: ASX/WMP (mswmext), M3U (x-mpegurl), Apple HLS playlists (vnd.apple.mpegurl), DASH manifests. They turn playlist URLs into the track lists the queue consumes.
+
+**Technical description:**
+
+playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3U/WLP/PLS + iTunes 'ITP' XML parser), a streaming HLS playlist parser with variant switching (#EXTM3U/#EXT-X-PLAYLIST-TYPE validation, codec-variant source switching, Atmos stream rejection), and the muse playlists API + SaveAsSonosPlaylist SOAP path
+
+- binary anchors: `mswmext=.asx`, `application/x-mpegurl`, `application/dash+xml`, `iterateASXPlayList`, `ITP Parser`, `#EXT-X-PLAYLIST-TYPE`, `m3u8`
+
+- **share_formats:** ASX, M3U, WPL, PLS file parsers + iTunes XML ('ITP Parser: mismatched end tag atPlaylistID/PlaylistExclude/PlaylistTrackID/PlaylistName'); index counters list 6 types: iTunes/ASX/M3U/PLS/RSQ/WPL Playlists
+- **hls:** hlsplaylist parser: #EXTM3U header check, #EXT-X-PLAYLIST-TYPE handling, per-line validation ('Invalid media playlist: %s: line=%s'), 'forcing a source switch due to multiple codec variants in playlist', 'storeStream: rejecting unsupported Atmos stream from playlist', 'unable to select another DS' variant fallback on empty playlists, 'stream duration from HLSPlaylist'
+- **muse:** v1/households/{householdId}/playlists (getPlaylists/postPlaylist), {playlistId} (getPlaylist), v1/groups/{groupId}/playlists (loadPlaylist); playlistsVersionChange event; playlistsList/playlistTrack keys
+- **didl:** object.container.playlistContainer{,.sameArtist,.tracklist}, object.item.playlistItem; explore categories explore:playlist::pp./mp., RDCPA:GLBPLAYLIST/LIBPLAYLISTS (Rhapsody-era), mymusic:playlists, FEATPLAYLISTS
+- **mimes:** audio/x-mpegurl, audio/mpegurl, application/x-mpegurl, application/vnd.apple.mpegurl, application/dash+xml, sonos.com-http:*:application/dash+xml:*; enableAmazonMusicDASH flag
+<details><summary>Evidence (6)</summary>
+
+- @ 0x10ed693c — mswmext=.asx
+- @ 0x10eb8946 — application/x-mpegurl
+- @ 0x10eb89e8 — application/dash+xml
+- @ 0x10ed1888 — iterateASX/M3U/WLP/PLSPlayList parser family
+- @ 0x10ec93fc — ITP iTunes-library parser errors
+- @ 0x10ec5edc — #EXT-X-PLAYLIST-TYPE HLS handling
+
+</details>
+
+## `qplay_protocol`
+
+**coverage** `partial`
+
+Tencent's QPlay protocol (QQ音乐 casting). Only the QPlayAuth SOAP action is documented; the wider protocol — key derivation, the control channel, why it has a Control route but no Event route — is still undocumented.
+
+**Technical description:**
+
+Tencent QPlay: device advertises <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</..> (protocol v2); /QPlay/Control route with QPlayAuth action; shared TQPlay mode (updateSharedTQPlayMode); #QPLAY_SUPPORT# conditional block marker; no /QPlay/Event route — eventless control service
+
+- binary anchors: `urn:schemas-tencent-com:service:QPlay`, `QPlayAuth`, `QPlay:2`, `updateSharedTQPlayMode`, `#QPLAY_SUPPORT#`
+
+- **unresolved:** the wider Tencent protocol — key derivation, the UDP control channel, session lifecycle — lives mostly outside this binary's strings or under different names
+<details><summary>Evidence (2)</summary>
+
+- @ 0x10f11d58 — QPlayAuth
+- @ 0x10ef8cc0 — qq:X_QPlay_SoftwareCapability = QPlay:2 in device description
+
+</details>
+
 ## `queue_persistence`
 
 **coverage** `partial`
+
+How the queue survives reboots: saved queues are an XML document (.rsq) of SavedQueue+Track elements written atomically via a .tmp rename with a .d.rsq backup; the live queue persists as trackqueue.rsq; both are validated at boot and on replication. The SQ: object prefix exposes them to ContentDirectory and the SavedQueuesUpdateID variable tracks changes.
+
+**Technical description:**
 
 .rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt
 
@@ -591,9 +722,54 @@ historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture
 
 </details>
 
+## `runtime_flag_files`
+
+**coverage** `partial`
+
+A set of sentinel files in /tmp and /var/run flip device behaviour at runtime: device_unlocked_flag, brokendevice, wifidisabled, crashed_play_state, event_preserve, wac_mode, netmanager_extender_flags, systemtimeoffset... They are the mechanism behind diagnostics, devmode and setup states.
+
+**Technical description:**
+
+runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, brokendevice, wifidisabled, htdocs_locked, crashed_play_state, anacapa-has-run, fresh_hh.txt, anacapa_prevent_crashdump_upload, sonosConcurrencyUnrecoverableError), /var/run mode files (wac_mode, netstart_mode, netmanager_extender_flags, systemtimeoffset), /tmp/memorylog 4-file ring + .old copy, /tmp/smb/ mount workspace, /tmp/backtrace + diagstdout/diagstdin diag scratch, /tmp/event_preserve + event_reporter_v3 buffers
+
+- binary anchors: `/tmp/device_unlocked_flag`, `/tmp/brokendevice`, `/tmp/memorylog`, `/proc/ath_rincon/fullstatus`, `/tmp/memorylog`, `/var/run/wac_mode`, `/jffs/settings/householdsettings.json`
+
+- **flag_semantics:**
+  - **/tmp/device_unlocked_flag:** set by the /unlock + /devunlock + /mfgunlock flow; gates dev features
+  - **/tmp/brokendevice:** device marked faulty; drives R_LED_BROKEN_DEVICE + /status
+  - **/tmp/wifidisabled:** radio killed (likely until reboot); pairs with /var/run/netmanager_extender_flags
+  - **/tmp/htdocs_locked + /opt/htdocs_locked:** locks the local HTTP tree
+  - **/tmp/crashed_play_state:** playback state left behind on crash for postmortem
+  - **/tmp/anacapa-has-run:** first-boot marker for anacapad
+  - **/tmp/fresh_hh.txt:** fresh/new-household flag
+  - **/tmp/anacapa_prevent_crashdump_upload:** opt-out of crash upload
+  - **/tmp/sonosConcurrencyUnrecoverableError:** fatal threading fault record
+  - **/tmp/memorylog/log.0-3 + memorylog.old/:** in-RAM log ring snapshots preserved across crash
+  - **/tmp/event_preserve + event_reporter_v3 (+ jffs copy):** queued diagnostic events
+  - **/var/run/wac_mode:** WAC setup mode state (wacd)
+  - **/var/run/netstart_mode:** netstartd operating mode
+  - **/var/run/netmanager_extender_flags:** SonosNet extender config
+  - **/var/run/systemtimeoffset:** persisted clock offset (SNTP)
+- **persistent:** jffs flash: settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}, localsettings.txt, irconfig.txt, persist/ssh/dropbear_ecdsa_host_key, sys/log/setup*/ boot logs, shadow/stats, recovery+upgrade+watchdog logs; /opt/conf + /jffs/conf anacapa.conf (jffs overrides opt)
+- **hardware_if:** /proc/ath_rincon/* (SonosNet radio: device, fullstatus, mibcc, nf, phyerr, roam, station, status, dfs + ath1 variant); /proc/driver/{accel,audioctl,fpga/{circ,data,reg/all},gravity-vector,ledctl/status,tas5708 (amp),tdm/{regs,rxring,stats,txring},temp-sensor}; /dev/{audioctl,dsp,chk,mtd/0}; /proc/fs/cifs/DebugData
+<details><summary>Evidence (6)</summary>
+
+- @ 0x10efff88 — /tmp/device_unlocked_flag
+- @ 0x10ef4e9c — /tmp/brokendevice
+- @ 0x10e75afc — /tmp/memorylog
+- @ 0x10e75764 — /proc/ath_rincon/* + /proc/driver/* interface table
+- @ 0x10e7525c — /jffs/settings/* persistent store paths
+- @ 0x10e75bcc — /tmp flag-file cluster
+
+</details>
+
 ## `scrobbler`
 
 **coverage** `partial`
+
+Last.fm scrobbling is built in: the player handshakes with post.audioscrobbler.com (Audioscrobbler protocol 1.2), then POSTs each played track as form fields (artist/title/timestamp/album/MBID...). On a BADTIME handshake it recovers by reading the HTTP Date: header. A newer ws.audioscrobbler.com/2.0 API is also linked. Which account it scrobbles for and the exact trigger policy are still unresolved.
+
+**Technical description:**
 
 Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API
 
@@ -622,6 +798,10 @@ Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sock
 
 **coverage** `partial`
 
+Household state is kept in sync by a replication protocol: each named store (accounts, netsettings, favourites, saved queues, areas) has a version+format handshake and per-item transfers between players; incompatible or malformed data gets the offending setting denylisted and the peer quarantined. This is why a setting changed on one player appears everywhere — and why joined players converge.
+
+**Technical description:**
+
 replicated_settings.cxx household sync protocol: per-setting replicateOne transfers with version+format handshake ('deciding whether to accept replicated list from: %s; ver: %u format: %u'), <Replication>/<ReplicationOperation>/<ReplicationResult>/<ReplicationPlayer>/<ReplicationTime> reporting XML, denylist + quarantine for bad formats/encodings, REPLICATION_IN_PROGRESS/COMPLETE states, distinct account/netsettings/favourites/savedqueue/areas streams
 
 - binary anchors: `replicated_settings.cxx`, `<ReplicationOperation`, `NextFavorite`, `<ReplicatedNetSettings`, `replicateOne from %s to %s`, `X-Sonos-Denylisted`, `REPLICATION_IN_PROGRESS`
@@ -646,6 +826,10 @@ replicated_settings.cxx household sync protocol: per-setting replicateOne transf
 
 **coverage** `partial`
 
+Sonos runs its own time system: players sync from Sonos's *.sonostime.pool.ntp.org pool, but a single household player also hosts an SNTP server and the others sync from it — the server role can migrate. Grouped playback start times are scheduled on this clock, which is how multi-room audio stays in sample-accurate sync.
+
+**Technical description:**
+
 Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling
 
 - binary anchors: `sntpsrv.cxx`, `handleSntpRequest`, `Created SNTP Server`, `Created SNTP Server, port: %hu clock: %s`, `Starting SNTP server switch.`, `sonostime.pool.ntp.org`, `SNTP waiting for valid`, `vli sntp port %u`
@@ -668,9 +852,42 @@ Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller
 
 </details>
 
+## `spotify_esdk`
+
+**coverage** `partial`
+
+A full embedded libspotify (the old Spotify eSDK — mercury/hermes protocol stack) lives in the binary, plus Sonos's bridge modules and mDNS Spotify-Connect discovery. This is the actual Spotify client implementation inside the speaker.
+
+**Technical description:**
+
+embedded Spotify eSDK + Sonos bridge (spotify.cxx, spotify_playback_session.cxx, spotify_queue.cxx, spotify_smapi.cxx, spotify_thread.cxx): RSpotifyPlayback* controller ops, Spotify Connect mDNS discovery + zeroconf transfer, own track queue, SMAPI control channel, ad/interruption URI types, serialized request pipeline
+
+- binary anchors: `spotify_esdk.c`, `hermes.c`, `mdns_spotify_service.cxx`, `/spotifyzc`, `x-spotify://`, `Spotify Connect mDNS service`, `spotify:interruption:`
+
+- **uris:** x-sonos-spotify:, x-sonosprog-spotify:, x-spotify://, x-spotify-file://, spotify:track:, spotify:episode:, spotify:ad:, spotify:interruption:
+- **connect:** 'Registering Spotify Connect mDNS service \[%s\]' + update/unregister paths, spotifyTransferZeroConf, spotifyConnectTransferLoggedIn, SpotifyMDNSRequest, SpotifyDelegationNotification; /spotifyzc debug endpoint
+- **playback:** RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive} controller + spotifyPlaybackSession + 'Starting Spotify playback with object'
+- **queue:** spotifyTrackQueue + 'Reset Spotify Track Queue' + 'Using cached position. SpotifyQueue position unset' — separate queue object from the zone queue
+- **smapi:** spotifySmapiControl + RSpotifySMAPIControl::setPositionInfo(trackId, position, duration, bLastReport) — reports progress back to Spotify SMAPI; 'Already have a spotify request in progress, can only have one!!'
+<details><summary>Evidence (7)</summary>
+
+- @ 0x10fd4cb8 — spotify_esdk.c
+- @ 0x10fe4128 — hermes.c
+- @ 0x10ee4eb2 — mdns_spotify_service.cxx
+- @ 0x10e765a4 — /spotifyzc
+- @ 0x10ea256c — Spotify Connect mDNS registration
+- @ 0x10ea23a0 — RSpotifyPlayback* controller method names
+- @ 0x10ea46c0 — RSpotifySMAPIControl::setPositionInfo
+
+</details>
+
 ## `telemetry_submission`
 
 **coverage** `partial`
+
+The diagnostics pipeline: Telemetry 1.0 events tagged with field names, uploaded with the product-data-telemetry message-type header, plus the user-facing SubmitDiagnostics flow and a per-player positioning telemetry level setting. Several telemetry channels are individually feature-flagged.
+
+**Technical description:**
 
 telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-MessageType: product-data-telemetry header, zonereportmgr.cxx zone reports, submitDiagnostics/submitQueuedDiagnostic pipeline with manifest submission, positioning telemetry level route, per-feature telemetry flags
 
@@ -696,21 +913,38 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
 
 **coverage** `partial`
 
-SOAP enable/status documented; measurement, etag asset sync, presence discovery and the tuning FSM not
+Trueplay room tuning: the SOAP on/off surface is documented; the interesting parts — measurement capture, the tuning state machine, per-zone EQ application and the asset sync — are not yet decoded.
 
-- binary anchors: `trueplay-node`, `/trueplayinfo`, `SelfTrueplayEQ`
+**Technical description:**
 
-<details><summary>Evidence (3)</summary>
+Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant
+
+- binary anchors: `trueplay-node`, `/trueplayinfo`, `SelfTrueplayEQ`, `x-rincon-sonarcal:testtone.ogg`, `trueplay_spectral_tuning.bin`, `RoomCalDelayMidLeft`, `v1/players/{playerId}/trueplay/status`
+
+- **muse_routes:** v1/players/{playerId}/trueplay/{discovery,presenceDiscovery,presenceRate,config/{id},status} + household variants; ops detectSpeakers, detectSpeakerPresence, setSpeakerPresenceRate, get/setConfiguration, getTrueplayStatus, setSelfTruePlay, resetDetectedSpeaker
+- **calibration:** x-rincon-sonarcal:leader.ogg\|testtone.ogg\|complete_ht.ogg test tones; <RoomCalibration*> XML family (Info, ActiveState, UserIntent, AvailCalID, Orientation, BondedZoneInfo, State, Enabled, Available); SELF_TRUEPLAY self-tuning + <SelfTrueplayEQ>/<SelfTrueplayInfo>; calibration ID embeds version ('Trueplay Version %d.%d.%d.%d' parsed from ID)
+- **sdk:** TrueplayAPIFactory + trueplay_api.cpp; #TRUEPLAY_SDK_VERSIONS# compat list; 'Trueplay SDK version %s not supported, creating previous version'; assets trueplay_spectral_tuning.bin + trueplay_spatial_tuning.bin etag-synced ('Could not load Trueplay etags, %sresetting'); sonos.coreaudio.trueplay.v1.TrueplayService registration
+- **propagation:** coordinator pushes calibration to bonded satellites: 'Failed to SetRoomCalibrationStatus on SUB/SURROUND'; RoomCalibrationBondedZoneInfo; per-driver delays RoomCalDelay{MidLeft,MidRight,MidCenter,TwtrLeft,TwtrRight,TwtrCenter,Bass} + _RoomCalGains/_RoomCalPanGain
+- **unresolved:** measurement mic flow (the actual chirp capture), tuning FSM states, RoomCal* units
+<details><summary>Evidence (7)</summary>
 
 - @ 0x10ebda88 — trueplay-node
 - @ 0x10e75f08 — /trueplayinfo
 - @ 0x10fee999 — SelfTrueplayEQ
+- @ 0x10e83240 — trueplay/discovery + presenceDiscovery + config/{id} routes
+- @ 0x10e93e2c — x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg
+- @ 0x10fbd990 — TrueplayAPIFactory / trueplay_api.cpp SDK
+- @ 0x10fea0b4 — RoomCalDelay* per-driver delay params
 
 </details>
 
 ## `update_machinery`
 
 **coverage** `partial`
+
+Firmware updates are manifest-driven: a cloud manifest lists per-model target rows and a minimum auto-update version; household updates run check→download→launch across members with the coordinator orchestrating. Below the manifest's auto-update floor a device needs manual update. Clients see this through DeviceProperties/BeginSoftwareUpdate and the update/check muse route.
+
+**Technical description:**
 
 manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled
 
@@ -730,5 +964,26 @@ manifest-driven update pipeline: update_manifest carries a base update URL + per
 - @ 0x10eeea5c — manifest: Setting base update url=%s
 - @ 0x10f076a4 — per-device manifest row fields
 - @ 0x10e838ac — v1/players/{playerId}/update/check muse route
+
+</details>
+
+## `wac_mode`
+
+**coverage** `partial`
+
+WiFi Accessory Configuration — the Apple's-WAC-style setup mode where the player broadcasts a setup network (wacd daemon, /var/run/wac_mode flag, timeout). This is the first-boot/add-player path.
+
+**Technical description:**
+
+WAC (WiFi Accessory Config) setup mode driven by wacd with /var/run/wac_mode state file: 'WAC mode enabled/disabled/timeout' transitions, 'Unknown WAC mode %d', dedicated LED modes R_LED_WAC / R_LED_WAC_TIMEOUT, wacd.log sink
+
+- binary anchors: `wacd.log`, `WAC mode enabled`
+
+<details><summary>Evidence (4)</summary>
+
+- @ 0x10e7573d — wacd.log
+- @ 0x10f02dc8 — WAC mode enabled
+- @ 0x10f027b4 — /var/run/wac_mode state file
+- @ 0x10fbb0fc — R_LED_WAC / R_LED_WAC_TIMEOUT LED modes
 
 </details>

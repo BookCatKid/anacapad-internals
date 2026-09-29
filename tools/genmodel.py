@@ -785,6 +785,16 @@ def _apply_client_text(model, overlay):
                 continue
             if txt:
                 a.summary = txt
+    for k, txt in (overlay.get("subsystems") or {}).items():
+        if k in model.subsystems:
+            model.subsystems[k]["client_summary"] = txt
+        else:
+            unmatched.append("subsystem %s" % k)
+    for k, txt in (overlay.get("primitives") or {}).items():
+        if k in model.shared_primitives:
+            model.shared_primitives[k]["client_summary"] = txt
+        else:
+            unmatched.append("primitive %s" % k)
     return unmatched
 
 

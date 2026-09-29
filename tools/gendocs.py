@@ -164,7 +164,7 @@ def _generic(out, obj, depth=0):
         return
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if v is None:
+            if v is None or k == "client_summary":
                 continue
             if isinstance(v, dict):
                 out.append("- **%s:**" % _e(k))
@@ -943,6 +943,11 @@ def render_http_api(m):
         v = sp[k]
         out.append("## `%s`" % k)
         out.append("")
+        if v.get("client_summary"):
+            out.append(_para(v["client_summary"]))
+            out.append("")
+            out.append("**Technical description:**")
+            out.append("")
         _generic(out, v)
         out.append("")
     return "\n".join(out)
@@ -1003,7 +1008,12 @@ def render_subsystems(m):
         out += ["## `%s`" % n, ""]
         out.append("**coverage** `%s`" % _e(s.get("status") or "?"))
         out.append("")
+        if s.get("client_summary"):
+            out.append(_para(s["client_summary"]))
+            out.append("")
         if s.get("summary"):
+            out.append("**Technical description:**")
+            out.append("")
             out.append(_para(s["summary"]))
             out.append("")
         if s.get("anchors"):

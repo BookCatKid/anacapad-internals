@@ -362,6 +362,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `http_extra_endpoints`
 
+The player's HTTP server exposes a large back-office surface beyond SOAP: environment switching (/testenv), SSH key install, firmware download, group create/unjoin, OAuth validation, DSP controls, diagnostics and support submission, plus internal routes that proxy sibling daemons. Most are diagnostic/internal and several are gated.
+
+**Technical description:**
+
 - **status:** strong
 - **name:** HTTP paths outside the /status route-table cluster
 - **description:** Second-sweep string audit of the anacapad HTTP server surface: paths present in rodata that were not in the decoded /status route table. Covers SSH-key install, firmware download, group ops, local OAuth/authz, content bridges, DSP control, Spotify debug, retail-demo hooks, support-bundle submission, the /testenv environment switcher, sibling-daemon IPC proxies (/X-external) and htdocs pages. Presence of a path string does not prove a registered route; addresses are the literal locations.
@@ -452,6 +456,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `csrf_protection`
 
+The browser-facing config endpoints (/advconfig, /setstring, /ssh/authorized_keys, /support/*) embed a per-form csrfToken hidden field — POSTs without the token are rejected.
+
+**Technical description:**
+
 - **status:** confirmed
 - **name:** CSRF tokens on browser-facing POST endpoints
 - **description:** Every browser-form POST endpoint embeds a hidden csrfToken field: /advconfig, /customsd, /devmode, /fcs, /logger, /mdnsannounce, /nslookup, /ping, /removestring, /setstring, /spotresetnts, /ssh/authorized_keys, /support/directsubmit, /testenv, /traceroute. Token generation/validation mechanics not decoded.
@@ -461,6 +469,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efee26, notes: action="/ssh/authorized_keys"
 
 ## `device_description_variants`
+
+The player ships more than one device description: besides the main device_description.xml there's a group description (SpeakerGroup device) and a device_description_no_ai.xml variant without AudioIn — the UPnP tree you see depends on which is served.
+
+**Technical description:**
 
 - **status:** confirmed
 - **name:** Alternate device-description documents
@@ -473,6 +485,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `gena_internals`
 
+GENA eventing internals: subscription IDs are preinstalled, events carry SubscribedEvents/LogicalSID/NotifyErrors fields, and each service's LastChange schema differs. QPlay is the anomaly — a Control route with no Event route.
+
+**Technical description:**
+
 - **status:** strong
 - **name:** GENA subscription/notify internals
 - **description:** Subscription machinery vocabulary: SID preinstall ('Attempting to preinstall SID=%u', '?sid=0' URL form), status fields SubscribedEvents/LogicalSID/UPnPSID/NotifyErrors, sender/source pair upnpeventing_sender+upnpeventing_source, AVTStateLastChangedEvent event name, and the <LastChange>%s</LastChange> wrapper emitted per service. Per-service LastChange payload schemas not enumerated.
@@ -483,6 +499,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e89d80, notes: <LastChange>
 
 ## `didl_classes_ext`
+
+The extended DIDL-Lite class vocabulary beyond the usual audioItem/container set: sonos-favorite, audiobook, podcast, chapter and Sonos-specific item types used in browse responses.
+
+**Technical description:**
 
 - **status:** strong
 - **name:** Extended DIDL object classes
@@ -495,6 +515,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `protocol_info_full`
 
+The complete GetProtocolInfo source/sink CSV from the binary — the full MIME+protocol matrix the player claims, including DASH, HLS variants, x-file-cifs and the sonos.com-* private prefixes.
+
+**Technical description:**
+
 - **status:** confirmed
 - **name:** Complete GetProtocolInfo Source CSV
 - **description:** Verbatim protocol-info CSV returned by ConnectionManager.GetProtocolInfo — captures the sonos.com-{http,mms,spotify,rtrecent} transport prefixes, x-file-cifs local-share scheme, DASH and every MIME type the renderer claims.
@@ -504,6 +528,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `icy_metadata`
 
+ICY/Shoutcast stream metadata parsing (icy-metaint interval handling) — how station names and now-playing text are extracted mid-stream.
+
+**Technical description:**
+
 - **status:** strong
 - **name:** ICY/Shoutcast inline metadata
 - **description:** mp3radio streams carry ICY metadata — '@icy-metaint:' interval header parsed for in-band track metadata.
@@ -511,6 +539,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed461b, notes: @icy-metaint
 
 ## `alert_engine`
+
+The notification/alert system behind playNotificationSound-like behaviour: alertContent, ALEXA_ALERT and a priority/interrupt policy that ducks ongoing playback.
+
+**Technical description:**
 
 - **status:** strong
 - **name:** alert/chime interrupt engine
@@ -522,6 +554,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `household_psk_vocabulary`
 
+The household crypto key hierarchy: HhPsk, ControlPsk, LanSwapPsk, RoomEncPsk plus backup mirrors — the keys securing household traffic.
+
+**Technical description:**
+
 - **status:** strong
 - **name:** household encryption key elements
 - **description:** Replicated-state PSK identifiers: HhPsk (household), ControlPsk (control channel), LanSwapPsk, RoomEncPsk (room encryption), each with a Backup* mirror — the key hierarchy for household crypto. Distribution/rotation mechanics undocumented.
@@ -531,6 +567,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efae70, notes: <RoomEncPsk
 
 ## `replication_elements`
+
+The XML elements of the replication protocol: ReplicationOperation/Player/Result/Time and the QuarantinedDevices/Denylisted structures.
+
+**Technical description:**
 
 - **status:** strong
 - **name:** replication-engine wire elements
@@ -542,6 +582,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `token_refresh_state_machine`
 
+The OAuth lifecycle: validate, refresh-sync transitions, token cache — the machinery that keeps service account sessions alive without re-login.
+
+**Technical description:**
+
 - **status:** strong
 - **name:** music-account OAuth token refresh lifecycle
 - **description:** Per-account token refresh FSM ('token refresh state for acct. sn. %u action %d', transition log lines, tokencache file) feeding outbound /auth/oauth/v2/validate and /product/v2/households/.../players?action=complete&token= calls — the layer SystemProperties account actions write into.
@@ -551,6 +595,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ec2567, notes: transition token refresh action
 
 ## `xml_schema_clusters`
+
+Recurring XML document families embedded in the firmware: job scheduler, LED patterns, radio-station log, room-calibration/trueplay, ducking, ABR state, HLS info, audio delay fields.
+
+**Technical description:**
 
 - **status:** strong
 - **name:** uncatalogued XML schema clusters
@@ -563,6 +611,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `internal_error_families`
 
+The R_* enum grouped by family (ACCOUNT, AUDIO, CLOUD, LASTFM, LED, MASK, PAND, STREAM...) — useful to locate which subsystem produced a fault.
+
+**Technical description:**
+
 - **status:** strong
 - **name:** non-UPnP fault-code families
 - **description:** ERROR_* fault vocabularies outside the UPnP code table: ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,NO_CONTENT,BAD_ACCOUNT}, ERROR_PAND_* (Pandora), ERROR_DOCK_INTERRUPT, ERROR_WMP_* — reported via R_* codes and service-layer logs, not SOAP faults.
@@ -571,6 +623,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee550, notes: ERROR_DOCK_INTERRUPT
 
 ## `system_property_keys`
+
+The real key space of the SystemProperties GetString/SetString/Remove store — 29 R_* settings including auto-update policy, crossfade duration, content filtering, volume normalization and service bitrate. These are the settings those actions actually operate on.
+
+**Technical description:**
 
 - **status:** strong
 - **name:** SystemProperties R_* settings key space
@@ -586,6 +642,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efebec, notes: R_ThirdPartyCredentials
 
 ## `internal_result_namespace`
+
+Every failure in the firmware maps to one of ~403 R_* status codes — the unified internal result enum that gets translated into the SOAP fault codes you see on the wire. The list itself is a map of what can go wrong: auth, streaming, cloud queue, last.fm, LED states, speaker layouts.
+
+**Technical description:**
 
 - **status:** strong
 - **name:** R_* internal result/status code namespace
@@ -629,6 +689,10 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee508, notes: R_LASTFM_STREAM_LIMIT
 
 ## `smapi_capability_vocabulary`
+
+The full SMAPI capability flag list from the /customsd descriptor editor — the same vocabulary ListAvailableServices returns and music services declare: search, favorites (track/album/artist), playlists, logging, extended metadata, auth types (UserId/Anonymous/DeviceLink/AppLink), deviceCerts and more.
+
+**Technical description:**
 
 - **status:** confirmed
 - **name:** SMAPI capability/auth/container vocabulary
