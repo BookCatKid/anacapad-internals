@@ -346,6 +346,8 @@ production A/B experiment framework: a /experiments local endpoint plus a replic
 
 **coverage** `partial`
 
+The adaptive-bitrate engine that keeps HTTP streams (HLS, Icecast-style playlists) alive. It picks a data source, refetches playlists on a timer, and fails over to alternates when a playlist comes back empty or times out. Clients see this only as `TransportStatus` errors when every source dies — the retry and source-selection logic is entirely internal and not configurable.
+
 **Technical description:**
 
 DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch new playlist","fetching new playlist now"}; playlist failures {"Timed out looking for playlist","no time to recover (%ld buffer)","Too many empty playlists and no audio left/(still %ldms ahead)","Switching source due to empty playlists"}; notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey; fetch "open: %s (0x%x) %d len %llu offset %llu"/"redirect: %s -> %s"/"Segment's content type"/"Using file ext."; "URIs for %g seconds, wake up in %d"; "prebuffering %u bytes within %ld msec"; "start new stream for URI \[%s\], resumeLoc %zu time offset"; "Reset ABR state: start bitrate %u"/"Last estimated bitrate %u"; rate model "rate: SR=%.03lf (%zu) S=%d Sth=%d BL=%.0lf" + "rate(%7d): %.2lf/%.2lf SA=%.2lf b=%u/%u B=%u/%u/%u h=%d/%d r=%.2lf a=%.2lf" + happy metrics {"happy (a > %.2lf)","happy (saturated)","rate update: a=1","was happy","unhappy",Underruns}; InitFramerForTrackList-fail source switch; codec mp4a.40.*; URI version regex /v\[0-9\]+\.\[0-9\]+(\.\[0-9\]+)?(-\[a-zA-Z\]+)?(\+\[a-zA-Z.\]+)?(\[?#/\]|$)
@@ -429,6 +431,8 @@ RTM_NEWLINK/RTM_GETLINK via netlink; {"read error %d %s","incorrect type","unexp
 
 **coverage** `partial`
 
+Internal operations used when a group coordinator hands an active stream to a new member — stop, restore, and VLI (virtual line-in) session suspend/end. It also logs which analog/optical source type is feeding the group (line-in vs dock, compressed vs uncompressed). This is bookkeeping for source transitions; there's no client surface beyond the source selection already exposed through AVTransport URIs.
+
 **Technical description:**
 
 ops {AHA_STOP,AHA_RESTORE,AHA_END_VLI_SESSION,AHA_SUSPEND_VLI_SESSION,AHA_PAUSE_VLI_SESSION}; "failed to gen group byebye headers" + groupAdvertise_; RChannelLogger; "%d seconds on account %d/%u"; "Recorded sync error on account %u/%u"; sources {"Source set to %d - %s",Compressed Line-In,Uncompressed Line-In,Compressed Dock,Uncompressed Dock,Coordinator Local Library}
@@ -459,6 +463,8 @@ arpchecker "ARP failure: %d consecutive attempts for %s failed: groupcast proble
 
 **coverage** `partial`
 
+The doorbell/alert clip player. Clips arrive over the muse `audioClip` namespace with a priority, a clip type, LED behavior, and optional buzzer routing; custom types require a `streamUrl` (and HTTPS if `httpAuthorization` is supplied). Playback is delegated to AVTransport or a dedicated engine depending on delivery mode. This is what smart-home integrations and doorbell partners use to play a sound over the system without disturbing the queue.
+
 **Technical description:**
 
 muse routes players/%s/audioClip + groups/%s/playback/%s + "forward to %s"; clip object type audioClip; fields {priority,clipType,clipLEDBehavior,clipBehavior,buzzers}; buzzer clips file://%s/buzzers/%d.mp3 + %u:%c; custom requires streamUrl "Missing streamUrl (required for custom clip type)"; httpAuthorization → "Secure streamUrl required when providing httpAuthorization"; delivery {Using AVT,Using External Audio Source}; priority "Cannot interrupt current clip due to priority policies"; pause content first "Failed to pause content because group info could not be retrieved for UUID=%s, ZoneGroupID=%s"; errors {Invalid clip type,Invalid clip id,Clip id not found,Error starting audio clip,failed getting audio clip response,"unexpected object type %s, expecting audioClip"}; resume content after
@@ -473,6 +479,8 @@ muse routes players/%s/audioClip + groups/%s/playback/%s + "forward to %s"; clip
 ## `audio_decoder`
 
 **coverage** `partial`
+
+The generic decoder wrapper — used by the ffmpeg-based WMA path among others — that owns codec lifecycle (create, init, header parse, seek, scan, position reporting) and publishes a status XML blob with sample rate, bit depth, channels, and frame size. Seeks are capped to the stream length and counted in absolute positions. Clients never touch it directly; its status fields are what the diagnostics pages echo back per decoder.
 
 **Technical description:**
 
@@ -490,6 +498,8 @@ status <SampleRate><SampleBitDepth><NumChannels><ChannelMap><FrameSize>; lifecyc
 
 **coverage** `partial`
 
+The bundled decoder layer for open codecs: Vorbis synthesis (with explicit guards for null PCM, missing config data, and insufficient bytes) and AAC/AAC+ (with a disable flag and upsampling factor). Each decoder emits the same SampleRate/FrameSize/ChannelMap status block, which is how the player describes what it thinks a stream actually contains. Matters when a stream plays at the wrong pitch or channel count — this layer is where the negotiated format is recorded.
+
 **Technical description:**
 
 vorbis errors {vorbis_synthesis_pcmout produced null PCM data,failed to initialize vorbis given config data,neither config nor music data,no samples produced,insufficient bytes,decoding failed,vorbis_synthesis_read failed}; status XML <SampleRate><FrameSize><NumChannels><ChanMap>%s (%s)</ChanMap>; AAC: "DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d", errors {can't initialize decoder library,Unable to decode init frame,unknown AAC format,Invalid sample rate idx,Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d,Explicitly expressed samplerate not supported,Failed to get the extension sampling freq idx}; XML {DEC_AACDecoder,DEC_InputChanCount,DEC_OutputChanCount,DEC_BitRate,DEC_FrameSize,DEC_AudioObjectType}; AOT enum {AAC-LC,HE-AAC,ER-AAC-LC,ER-AAC-SCAL - Decoding base layer only,ER-BSAC,ER-AAC-LD,HE-AAC v2,ER_AAC_ELD,xHE-AAC}
@@ -506,6 +516,8 @@ vorbis errors {vorbis_synthesis_pcmout produced null PCM data,failed to initiali
 
 **coverage** `partial`
 
+A record-based circular audio buffer used inside the Spotify eSDK path: writes land in pos/range records, discontiguous offsets are rejected, and reads advance through contiguous records only. When the producer skips (a seek or a dropped packet), it logs a discontinuity and resets after too many. This explains occasional clicks or re-buffering on Connect tracks — the fifo enforces strict ordering instead of splicing.
+
 **Technical description:**
 
 records with {pos,range}; writes {"Advance write to next record","Rejecting write, as provided offset %zu != %zu (pending)","not enough fifo records","truncated write","Audio fifo records reset"}; discontinuity {"Discontinuity @ offset %zu in record %zu (expecting: %zu)","*** Too many discontinuities"}; reads {"Consumed contiguous samples (%zu - %zu)","Advance read to next contiguous record","Read %zu bytes from record","No bytes to read from fifo... EOF","audio fifo read at boundary eof","consumed exactly to the eof marker","reached logical boundary","already has pending offset"}; prebuffer {"prebuffering... (used/prebuffer)","Waited %ums for audio from the eSDK","Finished prebuffering in %u ms (st,flush)","prebuffering elapsed %u ms (used/free)","exit waiting for audio, not rendering"} — Spotify eSDK feed
@@ -520,6 +532,8 @@ records with {pos,range}; writes {"Advance write to next record","Rejecting writ
 ## `audio_rate_ctrl`
 
 **coverage** `partial`
+
+The sample-rate converter plus the time-sync integrator that keeps a group of players sample-locked. The ARC adjusts coefficients continuously; when correction saturates it rails at 'Rate Maxed'. The timesync side tracks lock time, integrated error, and per-iteration stats. This is the subsystem that makes multiroom playback stay in sync for hours — drift correction is continuous, not a one-time alignment.
 
 **Technical description:**
 
@@ -536,6 +550,8 @@ ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Un
 
 **coverage** `partial`
 
+The per-stream mixer: each stream can buffer, schedule a presentation time, resync, drain, or skip ahead, with a small fade engine for gain ramps (crossfades and ducking ride on this). Statistics per stream (errors, drops, buffered, presentation) feed diagnostics. Skip-ahead is how the player jumps past stale audio after a network stall instead of playing it back late.
+
 **Technical description:**
 
 stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} + stats "E:%d, D:%d, B:%d, PR:%d"; fade engine "fade added: %i.%i sample_len(%u) current_gain target_gain rate" + max/min/fade complete + "no fade slots available"; skipAhead "delta:%u > buffered:%u"; "discontinuity detected after scheduled resync"; mixer: bManageOutputLatency,startup buffers,buffers; fd poll sound.fd.poll.%04X; stall detect "loop(wall): %uus loop(cpu): %uus, sel: %uus"; states MTS_PLAYING transition; DSP drain FSM {"start dsp flushing %i buffers","dsp flushing ended %i frames early","driver draining","dsp flushing complete with od %u"}; stream names as-{dspin,dspout}{-tv,-ext-voice,-ext-chirp}/as-src{in,out}-ext-voice/%s-chsnk%zu; system/audio_out_disable + "Running with audio output disabled"; forcePerfectInitialSync; "KERNEL_PRINTK_ENABLE ... mixer scheduling can't be guaranteed"; "Testpoint delay of %ums"
@@ -550,6 +566,8 @@ stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} +
 ## `audio_tap`
 
 **coverage** `partial`
+
+Debug tap points that let a developer siphon a WAV stream out of nearly any point in the audio pipeline — line-in, decoder output, mixer input/output, DSP output, LLA output, even the chirp and voice channels. Gated by permissions (and a mic gate for privacy-sensitive taps). The `/audiocap` and SPDIF-tap endpoints use this. Not a production API; it exists for engineering audio forensics.
 
 **Technical description:**
 
@@ -593,6 +611,8 @@ PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_t
 
 **coverage** `partial`
 
+AudioIn (line-in distribution) group bookkeeping: groups are keyed by the coordinator's RINCON id, sources pick compressed or uncompressed transport, and members join/leave a shared `x-rincon-stream:` URI. This is what makes line-in sharable across rooms — one player owns the ADC, the others subscribe to its stream. The `Unpaired`/`Autoplay` state variables in the AudioIn service are this layer's control surface.
+
 **Technical description:**
 
 groups keyed by coordinator {'Removing group with coord %s','Adding group with coord %s demoMode %d','addGroup: coordinator %s already added','addGroup: no room available for coordinator %s','added %s number of groups %zu remote %zu','removed %s remaining number of groups %zu remote %zu',"StopTransmissionToGroup: couldn't find coordinator %s"}; URI x-rincon-stream:; formats {UNCOMPRESSED,COMPRESSED,v-spdif} + 'Running demo mode forcing uncompressed'
@@ -607,6 +627,8 @@ groups keyed by coordinator {'Removing group with coord %s','Adding group with c
 ## `audiotap_manager`
 
 **coverage** `partial`
+
+The async request plumbing behind the audio-tap feature: each tap request gets a mutex-protected consumer, a poll loop, and write accounting. Pure infrastructure — it exists so a tap can stream continuously without blocking the audio thread.
 
 **Technical description:**
 
@@ -653,6 +675,8 @@ states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SE
 
 **coverage** `partial`
 
+The eSDK's throughput estimator: it times chunk downloads, computes bytes/sec and kbit/s over a sliding window with high/low watermarks, and counts how often throughput dips below a threshold. Spotify uses this internally for stream-quality decisions; it's invisible to clients except through the quality of what Connect ends up delivering.
+
 **Technical description:**
 
 {"BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s","Bandwidth not calculated, latency zero","WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d","LOW BW (kbit/s): %u < %u, count = %u","Bandwidth window not updated, latency zero"}; asserts {first_chunk_request_time not set,latest_chunk_finished_time not set,finished_time >= stats->first_chunk_request_time}
@@ -697,6 +721,8 @@ states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SE
 ## `bt_sbc`
 
 **coverage** `partial`
+
+The SBC decoder for Bluetooth-received audio: parses packet headers, validates frame sizes, tracks bitpool/subband/mode parameters, and drops truncated packets rather than playing garbage. Present on models with Bluetooth RX. Buffering errors surface as frame-status codes; there's no client surface — pairing and routing live elsewhere.
 
 **Technical description:**
 
@@ -838,6 +864,8 @@ chanmapset var; 'Initializer List is too large: %d > %d, truncating to %d'; 'Dup
 ## `chirp`
 
 **coverage** `partial`
+
+The acoustic data-over-sound stack (Chirp SDK 4.2.3, Chirp core 4.2.1) used for setup and secure pairing. The `sonos-cdma` profile spreads symbols across CDMA notes; decoding runs an FFT peak-picker, note estimator, scorer, and voter. Built-in profiles include audible, ultrasonic, and the secure-setup variant. This is how the app passes Wi-Fi credentials to an unprovisioned player by playing a sound from the phone.
 
 **Technical description:**
 
@@ -1008,6 +1036,8 @@ reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %
 ## `crossfade`
 
 **coverage** `partial`
+
+The crossfade engine that blends the tail of one track into the head of the next. It works in samples with explicit usec accounting, handles both int16 and typed streams, and bails cleanly on underflowed or empty streams rather than producing a glitch. `CrossfadeMode` in AVTransport controls it; the engine itself is what makes the fade sample-exact.
 
 **Technical description:**
 
@@ -3407,6 +3437,8 @@ policy {"Cloud queue policy pause expiry time hit","Queue content expired","clea
 
 **coverage** `partial`
 
+The TDM/SPDIF interface to the DSP (`/dev/dsp`): an mmap'd ring with `TDM_SETMODE` ioctl setup. SPDIF block handling tracks frame counts and restarts on oversize blocks. This is the hardware boundary for the amplified products' output path — everything above it (LLA, mixer, DSP config) eventually lands here.
+
 **Technical description:**
 
 {"Restart SPDIF block @ %d frames.","OVERSIZE SPDIF block @ %d frames!"}; device /dev/dsp; {"open failed (err=%d)","ioctl TDM_SETMODE failed (err=%d)","mmap failed (err=%d)","munmap1/munmap2 failed (err=%d)"}
@@ -4019,6 +4051,8 @@ ops {markAccountsForPushLocked,setAndUpdatePreferredSerialNum,addAccountWithUser
 
 **coverage** `strong`
 
+The amplifier power manager that decides when the output stages physically turn on, mute, or drop to a low-power rail. It listens for volume and play-state changes per zone, can pre-emptively warm the amp so the first samples aren't clipped, and schedules delayed power-off when idle. Explains the small delay before audio emerges after a long silence, and the relay click some models make when the amp rail switches.
+
 **Technical description:**
 
 AmplifierPowerStateChangedEvent; transitions {"zone %d volume %f -> %f","zone %d is playing %d -> %d"}; notify ops {manageAmpStateLocked_notifyVolume,notifyPlayState,notifyPlayingUnmuteableSource_p/np,notifyOutputFixed,resetPreemptiveTurnOn,notifyPreemptiveTurnOn}; preemptive "zone %zu preemptive turn on %d -> 0/%d"; power {"entered ampPowerOnLocked() - %dms","ignored unsupported amp command: power/mute/hipower (%d)","failed to power on/unmute/mute/power off amps (%d)","failed to transition to high/low power rail (%d)","left ampPowerOnLocked()","requested amp power off"}; off-decision "roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d"; "scheduling off in %d sec"; {ampMgr,RAmpManager,ampPowerOnLocked,ampPowerOffLocked,"failed to unmute amps to clear fault","ampState %d -> %d",notifyAmpState,"init failed (%d)"}
@@ -4033,6 +4067,8 @@ AmplifierPowerStateChangedEvent; transitions {"zone %d volume %f -> %f","zone %d
 ## `ap_layer`
 
 **coverage** `strong`
+
+The Spotify Connect access-point layer: resolves `apresolve.spotify.com`, opens a TLS socket to an access point, exchanges a Hello/ApWelcome handshake, and carries everything afterward as typed TLV packets (guarded at 16 KiB). This is the wire protocol behind every `spotify:` URI playback and the hermes event channels. Client-facing only through Spotify Connect semantics — a client can't speak AP TLV directly; it drives this layer indirectly via the `spotify:` media URIs.
 
 **Technical description:**
 
@@ -4063,6 +4099,8 @@ areas.json persistence + atomic-write cycle {accepted file load,rename accepted�
 ## `async_stream`
 
 **coverage** `strong`
+
+The shared buffered-stream primitive used under almost every audio path: a segmented, seekable buffer that pauses/resumes at stream positions, reaps played blocks, and supports a rate-limited multi-threaded reader. When you see tracks that resume mid-buffer or seek without re-downloading, this is the machinery. Not a client surface itself, but its segment accounting explains underrun and buffer-ahead log messages.
 
 **Technical description:**
 
@@ -4161,6 +4199,8 @@ GET /content/api/catalog/id/%s?destinationServiceId=%s; translateId(objectId,ser
 
 **coverage** `strong`
 
+The eSDK's CDN downloader: three cooperative fibers (socket IO, HTTP IO, chunk copy) pull track data from Spotify's CDN with explicit offset/size requests, follow redirects, retry on timeouts, and fail over to the next CDN host when one stalls. Chunk progress is logged in kB. This is why Connect playback survives a mid-track CDN hiccup — retry and failover are built into the fetcher.
+
 **Technical description:**
 
 fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; requests {"downloading '%s' from offset:%i size:%i","requesting stream '%s' offset:%ukb (size:%ukb)","GET %s"}; errors {"httpio get failed (result = %i, status code = %i, total code length = %i)","Redirect #%d to %s","httpio unexpected eof/read failed","reading/got chunk (%ukB -> %ukB) / %ukB (%ukB)","unexpectedly not enough space in destination","This is probably not recoverable","Failed to write to destination buffer","retry on timeout/read error, attempts=%d","failed to download chunk from cdn","switched to a new cdn: cdn_index=%d"}; "Download complete, read %u B in %u ms"; req engine {"%s Request for %s %s (channel_id:%d, fail_count:%d)","%s request failed: %d, fail_count:%d (retry_count:%d)","%s retries exhausted, count:%d, limit:%d","Will retry %s in:%llums at:%llu",dbg_ctx,request_function}; params {cdn_info->num_urls,dest}
@@ -4186,6 +4226,8 @@ fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; requests {"downloading '%s' 
 
 **coverage** `strong`
 
+The public Chirp SDK wrapper: profile construction, payload encoding/decoding, symbol extraction, and the process_shorts input/output audio pump. Sonos ships it with libVorbis 1.3.7. Errors map to a small taxonomy (invalid profile, invalid payload, decode failures). Only relevant if you're implementing the acoustic setup side-channel — normal control never touches it.
+
 **Technical description:**
 
 version chirp-sdk 4.2.3; libvorbis {Xiph.Org libVorbis I 20200704 (Reducing Environment),1.3.7}; API {new_chirp_sdk,del_chirp_sdk,chirp_sdk_free,chirp_sdk_random_payload,chirp_sdk_get_info,chirp_sdk_process_shorts_input/output,chirp_sdk_send,new_chirp,del_chirp,chirp_encode,chirp_decode,chirp_get_symbols,new/del_chirp_payload,chirp_payload_randomise,new_chirp_builtin_profile,new/del_chirp_profile,new/del_chirp_protocol,new_chirp_protocol_from_json_value,chirp_protocol_corrupt_random_symbols,new/del_chirp_acoustic,new/del_chirp_encoding,new_chirp_config,new_chirp_default_config,del_chirp_config,new_chirp_decoder_config_from_json_value,new_chirp_default_voter_configs,new/del_chirp_voter_config,new/del_gf,del_gf_poly,gf_calc_syndromes,gf_poly_concatenate,chirp_levenshtein,chirp_logger_init_with_callback/deinit}; types {chirp_sdk_t,chirp_t,chirp_symbol_t,chirp_payload_t,chirp_profile_t,chirp_protocol_t,chirp_acoustic_t,chirp_encoding_t,chirp_config_t,chirp_voter_config_t,chirp_decode_metrics_t,chirp_logger_t,sample_t,uint8_t,uint32_t,float}; info "Chirp SDK with \"%s\" profile v%u \[max %u bytes in %.2fs\], supporting %u channel(s), using %s modulation."; logger fmt "\[%s:%d\] \[%s\] %s" levels {Print,Debug}
@@ -4205,11 +4247,15 @@ version chirp-sdk 4.2.3; libvorbis {Xiph.Org libVorbis I 20200704 (Reducing Envi
 
 **coverage** `?`
 
+The group-audio channel sink: the receiving end of a framed, SNTP-synchronized audio stream from the group's source. It validates packet formats, tracks the source's clock offset, and drives the local DAC timing so all members play the same sample at the same wall-clock instant. Seamless handoff lets a new source take over mid-stream by matching frame IDs and packet classes.
+
 - **crossfade:** sample-level xfade: "attempting to crossfade with underflowed stream"/"recovered crossfade stream underflow"; int16 crossfade; "xfade corked stream: replace buffered data via non-xfade overlap"; "xfade timestamp too far in past, nst %d.%06d"; "xfadeable timestamp"; "set xfade lfnf"; volume-norm ramp insert "%d @time %d.%06d"; "xfade for %zu samples, %f seconds"; gap tracking "xfade gap, samples %zd"
 - **metrics:** gauges {chsnkFillLevel="Amount of audio in stream buffer",largeSyncErrors="Playback (see sync) and downstream errors","Maximum sync mismatch with group coordinator","Amount of output committed to driver"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {"header magic mismatch","md block loc","md header len mismatch","si pos mismatch","si read failed",fsAvail}
 ## `chsnk_detail`
 
 **coverage** `strong`
+
+The detailed chsnk behavior: remote seamless transitions parse incoming source packets and either quick-handoff or wait out a timed handoff window, with packet-compatibility checks (protocol version, full-frame/id/class/offset matching). Local sources and the LSE (large sync error) resync path handle drift beyond normal correction. Denylisting kicks in after repeated per-service failures. This is the machinery that makes source handover inaudible when it works.
 
 **Technical description:**
 
@@ -4225,6 +4271,8 @@ seamless handoff {remote: 'starting seamless transition to remote source','txs c
 ## `chsrc_chsnk`
 
 **coverage** `substantially decoded`
+
+The paired group-audio channel protocol: chsrc is the source side (the player that owns the audio, producing framed packets with play-hint states), chsnk is the sink side (every other member). Together they're SonosNet's real-time audio distribution layer — distinct from the HTTP/fetch paths, with their own packet grammar, resend logic for late joiners, and segment-fetch retry.
 
 **Technical description:**
 
@@ -4360,6 +4408,8 @@ POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name
 
 **coverage** `strong`
 
+The Dolby decoder front-end plus the DAP (Dolby Audio Processing) configuration model. Config lives in `/opt/dsp/dolby_config.json` with a JFFS override for debug; the decoder reports SampleRate, LFE presence, and channel count. `/staticparams` and `/dynamicparams` expose virtualizer modes, speaker angles, bass extraction, and DRC cutoffs (100–200 Hz). Night mode and movie mode are preset DAP profiles.
+
 **Technical description:**
 
 config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"override dolby config with jffs",/opt/dsp/dolby_config.json,"loaded player dolby json config","unable to load player dolby json config, loading defaults","Config %s not found, loading default"}; decoder {dlbdec,"dolby decoder unable to decode","<DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount>"}; parse errors {mode state,bass extraction mode,dap profile mode}; staticparams {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; dynamicparams {oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal}; modes {/default,movie,disable,night,sonosdolbyconfig,"drc config is invalid"}; DRC cutoffs 100HZ-200HZ in 10Hz steps; LRR EQ {lrrse,lrrs1,lrrs2}; PCM decoder {decoder_pcm,"Invalid frame size detected %zu","Unsupported input rate detected %zu","Invalid number of input samples detected %zu","<DEC_SampleRate>%zu</DEC_SampleRate>"}
@@ -4471,6 +4521,8 @@ build "HEAD-v3.205.205-gd0f06121-dirty" for Sonos_PPC_e500v2s; notify enum {kSpC
 ## `evo_decoder`
 
 **coverage** `strong`
+
+The Dolby Evolution decoder — the DDPI UDC path used for newer Dolby bitstreams (MAT/Atmos-era). It allocates static+dynamic decoder memory, processes input in timeslices, and pulls per-frame metadata. Malformed-signal detection is built in. Only present on home-theater products; explains decoder errors logged as UDC timeslice failures.
 
 **Technical description:**
 
@@ -4704,6 +4756,8 @@ HW features "setHwFeatures bHasMicrophone=%s, bHasMuteLED=%s, bHasStatusLED=%s, 
 ## `lla`
 
 **coverage** `strong`
+
+The low-level audio interface between anacapad and the kernel DSP driver. It opens output/input devices, negotiates buffer limits (min/max/default buffers, channels, frame size, jitter), sets tx latency, and does sample-clock math to compute when a write will actually sound. Status codes (WOULD_BLOCK, UNDERFLOW_OVERFLOW, NO_CSB, SUSPENDED) are the vocabulary the rest of the audio stack uses for hardware faults.
 
 **Technical description:**
 
