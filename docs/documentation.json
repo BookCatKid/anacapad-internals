@@ -119610,149 +119610,18 @@
    "unresolved": "server-election rule, clock-domain semantics, port number, jitter/drift thresholds"
   },
   "spotify_esdk": {
+   "name": "Spotify eSDK internals (apresolve/AP/login4/track_pipeline)",
    "status": "partial",
-   "summary": "embedded Spotify eSDK (libspotify-derivative) plus a Connect layer: local /spotifyzc endpoint answers Spotify zeroconf getInfo (only the group coordinator answers \u2014 'Non-GC returning 404 from getInfo'), account transfer arrives as an encrypted zeroconf blob ('Decrypting ZeroConf blob failed'), and the player registers on Spotify's hwptp hermes channel (hm://hwptp/v1/devices, hm://hwptp/v2/resolve/%s/%d/%s) to receive Connect commands ('Got unknown command from HWPTP: %s')",
-   "anchors": [
-    "spotify_esdk.c",
-    "hermes.c",
-    "mdns_spotify_service.cxx",
-    "/spotifyzc",
-    "x-spotify://",
-    "Spotify Connect mDNS service",
-    "spotify:interruption:"
-   ],
+   "summary": "endpoints {apresolve.spotify.com,ap.spotify.com} + local apresolve + fallback; connect \"Connecting (%s) %s:%d timeout: %d sec\"; handshake {\"Sending Hello message to AP\",\"Writing apresolve request\",\"logging in, type %d sz %d user %s\",\"Failed to decode ApWelcome\",\"ApWelcome failed\"}; health {\"SpPumpEvents() is called too slowly: %d ms for 100 calls\",\"Too long without response from server\",\"ap os error code: %d\"}; login4 {\"login failed (error code %d)\",SHA1+2xSIG+MODPOW buffers,\"no memory to check signature\",\"Platform identifier: %s\",\"logging in with client ID %s\"}; ap_send \"Sent %s(%d) to ap Size %d\" + ap_list + .spotify.com + HTTP/1.; protobuf sp_* markers throughout",
+   "track_pipeline": "states {NOT_STARTED,UPCOMING,PLAYING}; \"id: %u : -> UPCOMING\"/\"id: %u : UPCOMING -> PLAYING\"/\"id: %u : %s ->\"; \"Clearing/Shifting track data pipeline\"; record \"%s : id: %u, DELIVERY:%s, DOWNLOAD:%s, length_ms: %u file.size: %d file.has_key: %d playback_id: %s uri: %s drm_format: %d media_format: %d error: %d\"; \"start_track_delivery() called\"; \"No PLAYING track when delivery started\"",
    "evidence": [
     {
      "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
      "status": "confirmed",
-     "address": "0x10fd4cb8",
-     "notes": "spotify_esdk.c"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10fe4128",
-     "notes": "hermes.c"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ee4eb2",
-     "notes": "mdns_spotify_service.cxx"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10e765a4",
-     "notes": "/spotifyzc"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ea256c",
-     "notes": "Spotify Connect mDNS registration"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ea23a0",
-     "notes": "RSpotifyPlayback* controller method names"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ea46c0",
-     "notes": "RSpotifySMAPIControl::setPositionInfo"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10e765a4",
-     "notes": "/spotifyzc endpoint"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ea1938",
-     "notes": "GC-only getInfo"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10fd6d44",
-     "notes": "ZEROCONF_* event enum"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10fdb4b8",
-     "notes": "HWPTP registration retry"
+     "address": "0x10fd7d54",
+     "notes": "esdk blocks"
     }
-   ],
-   "uris": "x-sonos-spotify:, x-sonosprog-spotify:, x-spotify://, x-spotify-file://, spotify:track:, spotify:episode:, spotify:ad:, spotify:interruption:",
-   "connect": "'Registering Spotify Connect mDNS service [%s]' + update/unregister paths, spotifyTransferZeroConf, spotifyConnectTransferLoggedIn, SpotifyMDNSRequest, SpotifyDelegationNotification; /spotifyzc debug endpoint",
-   "playback": "RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive} controller + spotifyPlaybackSession + 'Starting Spotify playback with object'",
-   "queue": "spotifyTrackQueue + 'Reset Spotify Track Queue' + 'Using cached position. SpotifyQueue position unset' \u2014 separate queue object from the zone queue",
-   "smapi": "spotifySmapiControl + RSpotifySMAPIControl::setPositionInfo(trackId, position, duration, bLastReport) \u2014 reports progress back to Spotify SMAPI; 'Already have a spotify request in progress, can only have one!!'",
-   "zeroconf": "SpZeroConfGetVars/SpZeroConfAnnouncePause|Resume/SpConnectionLoginZeroConf calls; ZEROCONF_{START,DEVICE_ADDED,TRANSFER_CRED,TRANSFER_STATUS,AUTH_TOKEN,AUTH_CODE} events; ZeroConfVarsChanged notification; spotifyTransferZeroConf; 'Invalid ZeroConf request %s'",
-   "hwptp": "hermes channel registration: 'Will try again to register in HWPTP in %lu ms', 'Got %s from hwptp'; endpoints hm://hwptp/v1/devices (device registry), hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s (track resolve); hm://hwp-events/v1/log_event telemetry",
-   "errors": "ERROR_SPOTIFY_CONNECT fault code",
-   "mercury_hermes": {
-    "protocol": "Hermes request/response+push channel over the AP connection: messages {id u32, method enum, uri hm://..., payload bytes} (\"id %u method %d uri %s %d bytes\"); HermesHeader codec (\"Failed to decode HermesHeader\"); server pushes logged \"Got hermes push from %s\"; fragmented packets reassembled via defragmentation buffer (max-size guarded)",
-    "methods": [
-     "GET",
-     "SEND",
-     "SUB",
-     "UNSUB",
-     "GETX (proven literals SEND/UNSUB/GETX; GET/SUB by enum convention - inferred)"
-    ],
-    "content_types": [
-     "vnd.spotify/mercury-mget-request"
-    ],
-    "rate_limit": "client-side mercury rate limiter: \"Message not sent: rate limited for %llums\", \"Rate limiting active ... %llu ms\"/\"deactivated\"; server hint header Spotify-Unavailable-For; 429 logged as \"Too many requests\", 503 \"Service unavailable (%d)\"",
-    "uris": [
-     "hm://hwptp/v1/devices",
-     "hm://hwptp/v1/tsv",
-     "hm://hwptp/v1/",
-     "hm://hwptp/v2/resolve/%s/%d/%s",
-     "hm://hwp-events/v1/log_event"
-    ],
-    "uri_note": "hm://hwptp/* = hardware push-to-play channels (Spotify Connect cloud pairing/eventing); hwptp v2 resolve takes 3 args (%s/%d/%s)",
-    "login": "login4.c: client-ID login \"logging in with client ID %s\", SHA1+SIG+modpow signature verification asserts (MODPOW_WORK_RAM_SIZE, SHA1_DIGEST_SIZE+SIG_SIZE+SIG_SIZE bufsz)",
-    "perf_counters": [
-     "EsdkPlaybackStats",
-     "EsdkPlaybackErrors",
-     "EsdkHttpErrors",
-     "EsdkDownload",
-     "EsdkEvent",
-     "EsdkCapabilities"
-    ],
-    "bandwidth": "streamio adaptive-bitrate estimator: BANDWIDTH %uB/%ums -> B/s kbit/s; sliding WINDOW BANDWIDTH high/low marks; LOW BW threshold counter; stats: first_chunk_request_time/latest_chunk_finished_time",
-    "src": "esdk/src/hermes.c + code/{stream_stats,streamio}.c literal regions 0x10fe3400-0x10fe4600, 0x10fd6200-0x10fdc600",
-    "confidence": "PROVEN literals+framing; full method enum inferred partly"
-   }
+   ]
   },
   "telemetry_submission": {
    "status": "partial",

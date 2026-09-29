@@ -6132,7 +6132,7 @@
 <tr>
 <td><code>spotify_esdk</code></td>
 <td><strong>partial</strong></td>
-<td>embedded Spotify eSDK (libspotify-derivative) plus a Connect layer: local /spotifyzc endpoint answers Spotify zeroconf getInfo (only the group coordinator answers — 'Non-GC returning 404 from getInfo'), account transfer arrives as an encrypted zeroconf blob ('Decrypting ZeroConf blob failed'), and the player registers on Spotify's hwptp hermes channel (hm://hwptp/v1/devices, hm://hwptp/v2/resolve/%s/%d/%s) to receive Connect commands ('Got unknown command from HWPTP: %s')</td>
+<td>endpoints {apresolve.spotify.com,ap.spotify.com} + local apresolve + fallback; connect "Connecting (%s) %s:%d timeout: %d sec"; handshake {"Sending Hello message to AP","Writing apresolve request","logging in, type %d sz %d user %s","Failed to decode ApWelcome","ApWelcome failed"}; health {"SpPumpEvents() is called too slowly: %d ms for 100 calls","Too long without response from server","ap os error code: %d"}; login4 {"login failed (error code %d)",SHA1+2xSIG+MODPOW buffers,"no memory to check signature","Platform identifier: %s","logging in with client ID %s"}; ap_send "Sent %s(%d) to ap Size %d" + ap_list + .spotify.com + HTTP/1.; protobuf sp_* markers throughout</td>
 </tr>
 <tr>
 <td><code>spotify_vli_session</code></td>
@@ -8716,47 +8716,14 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>A full embedded libspotify (the old Spotify eSDK — mercury/hermes protocol stack) lives in the binary, plus Sonos's bridge modules and mDNS Spotify-Connect discovery. This is the actual Spotify client implementation inside the speaker.</p>
 <p><strong>Technical description:</strong></p>
-<p>embedded Spotify eSDK (libspotify-derivative) plus a Connect layer: local /spotifyzc endpoint answers Spotify zeroconf getInfo (only the group coordinator answers — 'Non-GC returning 404 from getInfo'), account transfer arrives as an encrypted zeroconf blob ('Decrypting ZeroConf blob failed'), and the player registers on Spotify's hwptp hermes channel (hm://hwptp/v1/devices, hm://hwptp/v2/resolve/%s/%d/%s) to receive Connect commands ('Got unknown command from HWPTP: %s')</p>
+<p>endpoints {apresolve.spotify.com,ap.spotify.com} + local apresolve + fallback; connect "Connecting (%s) %s:%d timeout: %d sec"; handshake {"Sending Hello message to AP","Writing apresolve request","logging in, type %d sz %d user %s","Failed to decode ApWelcome","ApWelcome failed"}; health {"SpPumpEvents() is called too slowly: %d ms for 100 calls","Too long without response from server","ap os error code: %d"}; login4 {"login failed (error code %d)",SHA1+2xSIG+MODPOW buffers,"no memory to check signature","Platform identifier: %s","logging in with client ID %s"}; ap_send "Sent %s(%d) to ap Size %d" + ap_list + .spotify.com + HTTP/1.; protobuf sp_* markers throughout</p>
 <ul>
-<li>
-<p>binary anchors: <code>spotify_esdk.c</code>, <code>hermes.c</code>, <code>mdns_spotify_service.cxx</code>, <code>/spotifyzc</code>, <code>x-spotify://</code>, <code>Spotify Connect mDNS service</code>, <code>spotify:interruption:</code></p>
-</li>
-<li>
-<p><strong>uris:</strong> x-sonos-spotify:, x-sonosprog-spotify:, x-spotify://, x-spotify-file://, spotify:track:, spotify:episode:, spotify:ad:, spotify:interruption:</p>
-</li>
-<li><strong>connect:</strong> 'Registering Spotify Connect mDNS service [%s]' + update/unregister paths, spotifyTransferZeroConf, spotifyConnectTransferLoggedIn, SpotifyMDNSRequest, SpotifyDelegationNotification; /spotifyzc debug endpoint</li>
-<li><strong>playback:</strong> RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive} controller + spotifyPlaybackSession + 'Starting Spotify playback with object'</li>
-<li><strong>queue:</strong> spotifyTrackQueue + 'Reset Spotify Track Queue' + 'Using cached position. SpotifyQueue position unset' — separate queue object from the zone queue</li>
-<li><strong>smapi:</strong> spotifySmapiControl + RSpotifySMAPIControl::setPositionInfo(trackId, position, duration, bLastReport) — reports progress back to Spotify SMAPI; 'Already have a spotify request in progress, can only have one!!'</li>
-<li><strong>zeroconf:</strong> SpZeroConfGetVars/SpZeroConfAnnouncePause|Resume/SpConnectionLoginZeroConf calls; ZEROCONF_{START,DEVICE_ADDED,TRANSFER_CRED,TRANSFER_STATUS,AUTH_TOKEN,AUTH_CODE} events; ZeroConfVarsChanged notification; spotifyTransferZeroConf; 'Invalid ZeroConf request %s'</li>
-<li><strong>hwptp:</strong> hermes channel registration: 'Will try again to register in HWPTP in %lu ms', 'Got %s from hwptp'; endpoints hm://hwptp/v1/devices (device registry), hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s (track resolve); hm://hwp-events/v1/log_event telemetry</li>
-<li><strong>errors:</strong> ERROR_SPOTIFY_CONNECT fault code</li>
-<li><strong>mercury_hermes:</strong></li>
-<li><strong>protocol:</strong> Hermes request/response+push channel over the AP connection: messages {id u32, method enum, uri hm://..., payload bytes} ("id %u method %d uri %s %d bytes"); HermesHeader codec ("Failed to decode HermesHeader"); server pushes logged "Got hermes push from %s"; fragmented packets reassembled via defragmentation buffer (max-size guarded)</li>
-<li><strong>methods:</strong> <code>GET</code>, <code>SEND</code>, <code>SUB</code>, <code>UNSUB</code>, <code>GETX (proven literals SEND/UNSUB/GETX; GET/SUB by enum convention - inferred)</code></li>
-<li><strong>content_types:</strong> <code>vnd.spotify/mercury-mget-request</code></li>
-<li><strong>rate_limit:</strong> client-side mercury rate limiter: "Message not sent: rate limited for %llums", "Rate limiting active ... %llu ms"/"deactivated"; server hint header Spotify-Unavailable-For; 429 logged as "Too many requests", 503 "Service unavailable (%d)"</li>
-<li><strong>uris:</strong> <code>hm://hwptp/v1/devices</code>, <code>hm://hwptp/v1/tsv</code>, <code>hm://hwptp/v1/</code>, <code>hm://hwptp/v2/resolve/%s/%d/%s</code>, <code>hm://hwp-events/v1/log_event</code></li>
-<li><strong>uri_note:</strong> hm://hwptp/* = hardware push-to-play channels (Spotify Connect cloud pairing/eventing); hwptp v2 resolve takes 3 args (%s/%d/%s)</li>
-<li><strong>login:</strong> login4.c: client-ID login "logging in with client ID %s", SHA1+SIG+modpow signature verification asserts (MODPOW_WORK_RAM_SIZE, SHA1_DIGEST_SIZE+SIG_SIZE+SIG_SIZE bufsz)</li>
-<li><strong>perf_counters:</strong> <code>EsdkPlaybackStats</code>, <code>EsdkPlaybackErrors</code>, <code>EsdkHttpErrors</code>, <code>EsdkDownload</code>, <code>EsdkEvent</code>, <code>EsdkCapabilities</code></li>
-<li><strong>bandwidth:</strong> streamio adaptive-bitrate estimator: BANDWIDTH %uB/%ums -&gt; B/s kbit/s; sliding WINDOW BANDWIDTH high/low marks; LOW BW threshold counter; stats: first_chunk_request_time/latest_chunk_finished_time</li>
-<li><strong>src:</strong> esdk/src/hermes.c + code/{stream_stats,streamio}.c literal regions 0x10fe3400-0x10fe4600, 0x10fd6200-0x10fdc600</li>
-<li><strong>confidence:</strong> PROVEN literals+framing; full method enum inferred partly</li>
+<li><strong>name:</strong> Spotify eSDK internals (apresolve/AP/login4/track_pipeline)</li>
+<li><strong>track_pipeline:</strong> states {NOT_STARTED,UPCOMING,PLAYING}; "id: %u : -&gt; UPCOMING"/"id: %u : UPCOMING -&gt; PLAYING"/"id: %u : %s -&gt;"; "Clearing/Shifting track data pipeline"; record "%s : id: %u, DELIVERY:%s, DOWNLOAD:%s, length_ms: %u file.size: %d file.has_key: %d playback_id: %s uri: %s drm_format: %d media_format: %d error: %d"; "start_track_delivery() called"; "No PLAYING track when delivery started"</li>
 </ul>
-<details><summary>Evidence (11)</summary>
+<details><summary>Evidence (1)</summary>
 
-- @ 0x10fd4cb8 — spotify_esdk.c
-- @ 0x10fe4128 — hermes.c
-- @ 0x10ee4eb2 — mdns_spotify_service.cxx
-- @ 0x10e765a4 — /spotifyzc
-- @ 0x10ea256c — Spotify Connect mDNS registration
-- @ 0x10ea23a0 — RSpotifyPlayback* controller method names
-- @ 0x10ea46c0 — RSpotifySMAPIControl::setPositionInfo
-- @ 0x10e765a4 — /spotifyzc endpoint
-- @ 0x10ea1938 — GC-only getInfo
-- @ 0x10fd6d44 — ZEROCONF_* event enum
-- @ 0x10fdb4b8 — HWPTP registration retry
+- @ 0x10fd7d54 — esdk blocks
 
 </details>
 
