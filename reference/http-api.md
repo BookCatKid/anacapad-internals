@@ -385,21 +385,25 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/status:**
       - **handler:** f_105ebb20
       - **flags:** 
+      - **detail:** Status-page umbrella handler f_105ebb20 (actual page content via status-page registry at 0x11090144).
     - **/dsp:**
       - **handler:** f_100ba73c
       - **flags:** 
     - **/raw:**
       - **handler:** f_105ea98c
       - **flags:** `268435456`
+      - **detail:** Raw trigger dump (f_105ea98c, flag 0x10000000). Covers /dropout_triggered + /button_triggered; honors CONTENT-TYPE header.
     - **/api:**
       - **handler:** f_100d2cf8
       - **flags:** 
     - **/musedebug:**
       - **handler:** f_100ba010
       - **flags:** 
+      - **detail:** HTML-pre muse debug dump (f_100ba010).
     - **/device_account:**
       - **handler:** f_1065bd70
       - **flags:** `256`
+      - **detail:** Device-account endpoint (f_1065bd70, flag 0x100).
     - **/AlarmClock/Control:**
       - **handler:** f_105e8274
       - **flags:** 
@@ -526,6 +530,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/unlock:**
       - **handler:** f_10675244
       - **flags:** `256`
+      - **detail:** Unlock page (f_10675244, flag 0x100; also /unlock.htm): on success "<h2>Success</h2>" HTML.
     - **/unlock.htm:**
       - **handler:** f_10675244
       - **flags:** `256`
@@ -556,21 +561,25 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/ping:**
       - **handler:** f_100d3f88
       - **flags:** 
+      - **detail:** Shell passthrough: execs /bin/ping -c 3 (f_100d3f88).
     - **/traceroute:**
       - **handler:** f_100d3ff4
       - **flags:** 
+      - **detail:** Shell passthrough: execs /usr/bin/traceroute (f_100d3ff4).
     - **/mdnsannounce:**
       - **handler:** f_100c1230
       - **flags:** 
     - **/pcap:**
       - **handler:** f_100d416c
       - **flags:** 
+      - **detail:** Packet-capture download (f_100d416c). Internally execs "/bin/pcap - not (host %s and port %d)"; streams attachment trace.pcap application/octet-stream.
     - **/save_eq_presets:**
       - **handler:** f_100ba144
       - **flags:** 
     - **/getDSP:**
       - **handler:** f_100bd9fc
       - **flags:** 
+      - **detail:** DSP state XML dump (f_100bd9fc) text/xml <root>..</root>.
     - **/putDSP:**
       - **handler:** f_100bb63c
       - **flags:** 
@@ -580,21 +589,25 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/removeDSPDebugFiles:**
       - **handler:** f_100bc518
       - **flags:** 
+      - **detail:** Deletes files under app/debug/dsp/ (f_100bc518).
     - **/dolby_config:**
       - **handler:** f_100be454
       - **flags:** 
     - **/audio_tap:**
       - **handler:** f_100becc4
       - **flags:** 
+      - **detail:** Mic/line audio-tap debug stream (f_100becc4). Returns audio/wav. Errors: "AudioTap: permission denied\|syntax error\|invalid request\|no tap specified"; logs "allowed %d mic %d".
     - **/advconfig:**
       - **handler:** f_105e8444
       - **flags:** 
+      - **detail:** Advanced-config form (f_105e8444; also /advconfig.htm). form-urlencoded; fields include FirstZP \[%d\] and PriorityBridge \[%d\].
     - **/advconfig.htm:**
       - **handler:** f_105e8444
       - **flags:** 
     - **/testpoint:**
       - **handler:** f_100b85ec
       - **flags:** `1024`
+      - **detail:** Binary testpoint (f_100b85ec, flag 0x400); emits raw PIC-format data.
     - **/diaglevel:**
       - **handler:** f_105e93d8
       - **flags:** 
@@ -607,6 +620,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/jobs:**
       - **handler:** f_105523e8
       - **flags:** 
+      - **detail:** HTTP job-runner console (f_105523e8). GET lists Job->Shortname table; GET ?job=<shortname> triggers run ("Requesting %s job run" -> "Job %s scheduled"). Doc string shows ?job=UploadEvents.
     - **/reboot:**
       - **handler:** f_105e92e0
       - **flags:** 
@@ -622,12 +636,14 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/rdmhhsetup:**
       - **handler:** f_105ebeb4
       - **flags:** `256`
+      - **detail:** Retail Display Mode HHID setup (f_105ebeb4, flag 0x100). form-urlencoded POST; requires factory-reset state else ": not factory reset" failure HTML; on success "Retail Display HHID %s configured, rebooting..."; x-rincon-roomicon:generic.
     - **/rdmbuttonfwd:**
       - **handler:** f_100b9e58
       - **flags:** `256`
     - **/mtmhhsetup:**
       - **handler:** f_105ec758
       - **flags:** `256`
+      - **detail:** MTM household setup (f_105ec758, flag 0x100). form-urlencoded POST, params prefixed MTM_ + NFWSSID; replies application/json {hhid,key,rebootDelay} or {error,message}. Sends x-rincon-roomicon:generic.
     - **/ssh/fingerprints:**
       - **handler:** f_105e9578
       - **flags:** `257`
@@ -649,6 +665,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/spotifyzc:**
       - **handler:** f_1020f8c4
       - **flags:** 
+      - **detail:** Spotify Connect ZeroConf endpoint (f_1020f8c4). POST application/x-www-form-urlencoded; addUser action takes userName + player uuid, replies application/json. Error vocabulary ERROR-INVALID-ARGUMENTS/ERROR-UNKNOWN/ERROR-SPOTIFY-ERROR/ERROR-LOGIN-FAILED; pulls token/key from DC account ("%s@%s" user@device fmt, SONOS_DC_UNKNOWN).
     - **/spotdbg:**
       - **handler:** f_100b8140
       - **flags:** 
@@ -673,6 +690,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/support/directsubmit:**
       - **handler:** f_105e9b30
       - **flags:** 
+      - **detail:** Diagnostic submit form POST (f_105e9b30): success page returns numeric confirmation ("The diagnostic information was sent... confirmation number: %u"); failure page "There was a problem submitting the diagnostic information."
     - **/support/review:**
       - **handler:** f_105e9e60
       - **flags:** 
