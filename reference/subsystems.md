@@ -5,6 +5,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | Subsystem | Coverage | Summary |
 |---|---|---|
 | `ab_experiments` | **partial** | production A/B experiment framework: a /experiments local endpoint plus a replicated <ZoneExperiments> store of <ZoneExperiment id name value defaultValue> rows; presence gated by featureConfigZoneExperiment; values influence runtime policy |
+| `abr_engine` | **partial** | DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch new playlist","fetching new playlist now"}; playlist failures {"Timed out looking for playlist","no time to recover (%ld buffer)","Too many empty playlists and no audio left/(still %ldms ahead)","Switching source due to empty playlists"}; notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey; fetch "open: %s (0x%x) %d len %llu offset %llu"/"redirect: %s -> %s"/"Segment's content type"/"Using file ext."; "URIs for %g seconds, wake up in %d"; "prebuffering %u bytes within %ld msec"; "start new stream for URI \[%s\], resumeLoc %zu time offset"; "Reset ABR state: start bitrate %u"/"Last estimated bitrate %u"; rate model "rate: SR=%.03lf (%zu) S=%d Sth=%d BL=%.0lf" + "rate(%7d): %.2lf/%.2lf SA=%.2lf b=%u/%u B=%u/%u/%u h=%d/%d r=%.2lf a=%.2lf" + happy metrics {"happy (a > %.2lf)","happy (saturated)","rate update: a=1","was happy","unhappy",Underruns}; InitFramerForTrackList-fail source switch; codec mp4a.40.*; URI version regex /v\[0-9\]+\.\[0-9\]+(\.\[0-9\]+)?(-\[a-zA-Z\]+)?(\+\[a-zA-Z.\]+)?(\[?#/\]\|$) |
 | `account_cert_lifecycle` | **partial** | three cert managers (certmanager/devicecertmanager/regdevicecert) over four keycert identities; the registration cert carries the device's SonosID and is required for token generation ('sr: reg cert not available; cannot generate token'); a /regcert status endpoint exposes DeviceCertInfo XML; root-of-trust bundles are fetched from /certbundles/v4/trusted_roots.rcb with ETag caching and retry backoff |
 | `account_migration` | **partial** | OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthResult}: "migrated account to OAuth, type:%u, sn: %u" + retry {res,retry count,"delay migration until cloud connection","expected ouath account; reset to retry migration"}; "failed to replace email with username for last.fm"; sonos-radio gate {"no SBiz entitlement; preinstalling Sonos Radio","found SBiz entitlement; blocking preinstall"} + "stale entitlements; scheduling job to refresh"; preinstall SID=%u attempts; SA_RINCON65031_ service-account prefix; settings {R_HideTuneIn,R_MigratedTuneIn}; maintenance {"failed to download manifest file for account sid/sn","received empty hash","failed to update userInfo and clean up user hash","Failed to getUserInfo during SvcMaintenance","failed to migrate built-in accounts","failed to migrate pre cloud replication accounts"} |
 | `amp_manager` | **partial** | ops {power,mute,hipower} with "ignored unsupported amp command" guard; power rails {"transition to high power rail","to low power rail"}; off-decision fields "roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d"; "scheduling off in %d sec"; "failed to unmute amps to clear fault"; "ampState %d -> %d" + notifyAmpState; threads ampMgr |
@@ -71,6 +72,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `semisleep_power` | **partial** | low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') \| Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers. \| Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018 — parked timers survive suspend; resume recomputes. |
 | `settings_replication` | **partial** | the household replication bus: per-setting transfers ('replicateOne from %s to %s setting %u version %u') with a version+format negotiation ('deciding whether to accept replicated list from: %s; ver: %u format: %u'); per-setting denylisting on badFormat/badEncoding; a separate player-level quarantine subsystem enforcing admission policy (HTTPS required, known user, secure reg required) with scheduled rechecks; suppressed while unregistered |
 | `sharelist` | **partial** | replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter: us \[%s\|%u\] vs them \[%s\|%u\]"; ops {localAddShare,localRemoveShare,localRequestReindex,localRequestResort,localRemoveUnsupportedShares}; protocol gate {verified supported protocol→keep,else remove + count} + VerifiedValidProtocol flag; errors {share ID not found,path already exists,subsumed by existing share,Path is malformed,Access denied,Cannot exceed maximum shares,Mounting failed,Local index storage error,Remote file share error,Indexing canceled,connection failure,replication failed,replication skipped fmt mismatch}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)" + "Turning resort request into full reindex" + "processing index complete (c:%d i:%d f:%d lc:%s)" + commit {m_bCommitted,m_bWait,m_bTerminate} + index recovery "recovered ix=%d with ver=%d"; R_BrowseByFolderSort + Tracknum sort |
+| `shoutcast` | **partial** | headers {icy-name,location,CONTENT-TYPE,server,StreamTitle}; status accept {ICY 200,HTTP/1.0 200,HTTP/1.1 200,HTTP/1.0 30x,HTTP/1.1 30x} + redirect follow; Cougar server id; "Redirect audio/x-mpegurl to %s"; "request buffer is too small"; "add header \[%s : %s\]"; metadata text="…" |
 | `signal_source` | **partial** | errors "invalid playId"/"failed to stop signal"/"incorrect playId"/"nothing is currently playing"/"couldn't create an audio stream"/"only one signal can run at any given time"/"invalid channel"/"disallowed by policy"; channelNumber param |
 | `sntp_server` | **partial** | Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling |
 | `sound_device` | **partial** | syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample width inconsistency}; system/src_disable + StdQ ASRC Coeffs + "Running with SRC bypassed"; orientation sensing; "reset vcxo"; health flags {AMP_CURRENT_WARN,AMP_FAULT_WARN,AUDIO_WARN_TEMP,CPU_WARN_TEMP,CPU2_WARN_TEMP,SOC_WARN_TEMP,AMP_CURRENT_FAULT,AMP_FAULT,AUDIO_FAULT_TEMP,CPU_FAULT_TEMP,CPU2_FAULT_TEMP,SOC_FAULT_TEMP,PS36_FAULT,UV36_FAULT,UV14_FAULT,POWER_WARN_TEMP,POWER_FAULT_TEMP,MOTION_FAULT_TEMP,MOTION_WARN_TEMP}_STATUS |
@@ -117,6 +119,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `rendering_control` | **?** |  |
 | `reporting` | **?** |  |
 | `saved_queues` | **strong** | file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration "Migrating ObjID=%s SN=%u from SID: %u to %u"; SQ:%s objid prefix; <res protocolInfo="file:*:audio/mpegurl:*">; album-art: "No num tracks found, so emitting the first four artworks found"; mobile- playlist prefix; "Add Track Move range: %u-%u to %u"; replication push on save |
+| `smartplay` | **?** |  |
 | `smb` | **?** |  |
 | `sntp` | **?** |  |
 | `spotify_connect` | **?** |  |
@@ -149,6 +152,24 @@ production A/B experiment framework: a /experiments local endpoint plus a replic
 - @ 0x10e75d30 — /experiments
 - @ 0x10f9c96c — experimentId
 - @ 0x10ef3d34 — <ZoneExperiment id name value defaultValue> element schema
+
+</details>
+
+## `abr_engine`
+
+**coverage** `partial`
+
+**Technical description:**
+
+DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch new playlist","fetching new playlist now"}; playlist failures {"Timed out looking for playlist","no time to recover (%ld buffer)","Too many empty playlists and no audio left/(still %ldms ahead)","Switching source due to empty playlists"}; notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey; fetch "open: %s (0x%x) %d len %llu offset %llu"/"redirect: %s -> %s"/"Segment's content type"/"Using file ext."; "URIs for %g seconds, wake up in %d"; "prebuffering %u bytes within %ld msec"; "start new stream for URI \[%s\], resumeLoc %zu time offset"; "Reset ABR state: start bitrate %u"/"Last estimated bitrate %u"; rate model "rate: SR=%.03lf (%zu) S=%d Sth=%d BL=%.0lf" + "rate(%7d): %.2lf/%.2lf SA=%.2lf b=%u/%u B=%u/%u/%u h=%d/%d r=%.2lf a=%.2lf" + happy metrics {"happy (a > %.2lf)","happy (saturated)","rate update: a=1","was happy","unhappy",Underruns}; InitFramerForTrackList-fail source switch; codec mp4a.40.*; URI version regex /v\[0-9\]+\.\[0-9\]+(\.\[0-9\]+)?(-\[a-zA-Z\]+)?(\+\[a-zA-Z.\]+)?(\[?#/\]|$)
+
+- **name:** ABR — adaptive bitrate + stream fetcher
+- **status_schemas:**
+  - **abr:** <ABRState Name="ABR State"><NodeTXBuffer>%.3lf sec %s</NodeTXBuffer><ProcessRate>%.0lf bps</ProcessRate><Happy>%u / %u</Happy></ABRState>
+  - **events:** <ABREvents numEvents><EventEntry ts br sa a r flags="%u\|%u\|%u\|%u" happy/>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ed3964 — abr/fetcher block
 
 </details>
 
@@ -1681,6 +1702,21 @@ replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter:
 
 </details>
 
+## `shoutcast`
+
+**coverage** `partial`
+
+**Technical description:**
+
+headers {icy-name,location,CONTENT-TYPE,server,StreamTitle}; status accept {ICY 200,HTTP/1.0 200,HTTP/1.1 200,HTTP/1.0 30x,HTTP/1.1 30x} + redirect follow; Cougar server id; "Redirect audio/x-mpegurl to %s"; "request buffer is too small"; "add header \[%s : %s\]"; metadata text="…"
+
+- **name:** shoutcastradio — ICY stream client
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ed462c — shoutcast block
+
+</details>
+
 ## `signal_source`
 
 **coverage** `partial`
@@ -2300,6 +2336,7 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **volume_engine:** per-zone FSM: {override\|normal} volume + deferred volume/mute + ducking; math "DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)" + "Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl
+- **rc_impl_stp:** SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate "This command is allowed only on primary" + "Muse command forwarding failed"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber
 ## `reporting`
 
 **coverage** `?`
@@ -2321,6 +2358,11 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
 
 </details>
 
+## `smartplay`
+
+**coverage** `?`
+
+- **detail:** PlayerSmartPlay required fields (missing field %s err); {BUTTON,EMPTY_AVT} triggers; explicitContentFiltering via rsmapicontextzp; "loadContent took %ld ms: GroupId %s GC %s"; /bridge/content/api "service base path: %s" + getContent took/parse/failed + fetchContentAndStartPlay; "AVT URI is empty"/"AVT URI is a queue and is empty"; "Failed to get queue info via UPnP"; selfTruePlay; "Command not supported"; "allowMicrophone setting requires a microphone"; night/dialog/grouping-latency change fails; Backgrounds MSP add/remove (ret %u); shadrepl %s?id=%u
 ## `smb`
 
 **coverage** `?`

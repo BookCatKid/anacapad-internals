@@ -104798,6 +104798,12 @@
    "service": "/DeviceProperties/Control",
    "description": "more state vars",
    "fields": "{AudioInputIcon,AudioInputLevel,AudioInputLatency,MuseHouseholdID,LocationID,ShadowStorageLimit,ActiveZoneID,ChannelMapSetTime,UnpairedLED,UnpairedButtonLock,UnpairedZoneName,UnpairedIcon,UnpairedConfiguration,AutoplayIncludeLinked,AutoplayVolume,UseAutoplayVolume,AmpOffTimerSec,AutoplayRoomUUID,HTSatelliteDefn,HTAUsecDelay,HTASilenceThresholdAutoPlaySec}"
+  },
+  "savedqueues_rsq_schema": {
+   "status": "strong",
+   "service": "/MediaRenderer/Queue/Control",
+   "description": "savedqueues.rsq persistence",
+   "fields": "file:///jffs/settings/savedqueues.rsq (+.tmp atomic +savedqueues.d.rsq delta, application/gzip): <SavedQueues LastUpdateDevice Version Next><SavedQueue Id Curated NumTracks playlistSummary><Track URI MD/>; res protocolInfo file:*:audio/mpegurl:*; \"Saved Queue track list corrupted, expected %u, saw %u\"; ID validation {Saved queue ID not valid,Next available queue ID not valid,ID/next mismatch,NumTracks not valid,Version not valid,Num tracks not valid}; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\" + SQ:%s + \"Cannot parse service ID from URI\"; \"No num tracks found, so emitting the first four artworks found\"; mobile- prefix; errors {Replicated file not valid,file at boot not valid,Could not access playlists,Could not find given playlistId,Could not import saved queues file,TQ append error,UPNP error adding URI to saved queue}"
   }
  },
  "uri_formats": {
@@ -121015,7 +121021,8 @@
    ]
   },
   "rendering_control": {
-   "volume_engine": "per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math \"DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)\" + \"Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)\"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl"
+   "volume_engine": "per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math \"DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)\" + \"Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)\"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl",
+   "rc_impl_stp": "SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate \"This command is allowed only on primary\" + \"Muse command forwarding failed\"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber"
   },
   "audio_rate_ctrl": {
    "name": "Audio Rate Controller (ASRC) + timesync drift",
@@ -121425,6 +121432,39 @@
      "notes": "mpmgr block"
     }
    ]
+  },
+  "abr_engine": {
+   "name": "ABR \u2014 adaptive bitrate + stream fetcher",
+   "status": "partial",
+   "summary": "DS (data-source) selection FSM {\"Unable to select another DS\",\"waiting to fetch new playlist\",\"fetching new playlist now\"}; playlist failures {\"Timed out looking for playlist\",\"no time to recover (%ld buffer)\",\"Too many empty playlists and no audio left/(still %ldms ahead)\",\"Switching source due to empty playlists\"}; notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey; fetch \"open: %s (0x%x) %d len %llu offset %llu\"/\"redirect: %s -> %s\"/\"Segment's content type\"/\"Using file ext.\"; \"URIs for %g seconds, wake up in %d\"; \"prebuffering %u bytes within %ld msec\"; \"start new stream for URI [%s], resumeLoc %zu time offset\"; \"Reset ABR state: start bitrate %u\"/\"Last estimated bitrate %u\"; rate model \"rate: SR=%.03lf (%zu) S=%d Sth=%d BL=%.0lf\" + \"rate(%7d): %.2lf/%.2lf SA=%.2lf b=%u/%u B=%u/%u/%u h=%d/%d r=%.2lf a=%.2lf\" + happy metrics {\"happy (a > %.2lf)\",\"happy (saturated)\",\"rate update: a=1\",\"was happy\",\"unhappy\",Underruns}; InitFramerForTrackList-fail source switch; codec mp4a.40.*; URI version regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$)",
+   "status_schemas": {
+    "abr": "<ABRState Name=\"ABR State\"><NodeTXBuffer>%.3lf sec %s</NodeTXBuffer><ProcessRate>%.0lf bps</ProcessRate><Happy>%u / %u</Happy></ABRState>",
+    "events": "<ABREvents numEvents><EventEntry ts br sa a r flags=\"%u|%u|%u|%u\" happy/>"
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed3964",
+     "notes": "abr/fetcher block"
+    }
+   ]
+  },
+  "shoutcast": {
+   "name": "shoutcastradio \u2014 ICY stream client",
+   "status": "partial",
+   "summary": "headers {icy-name,location,CONTENT-TYPE,server,StreamTitle}; status accept {ICY 200,HTTP/1.0 200,HTTP/1.1 200,HTTP/1.0 30x,HTTP/1.1 30x} + redirect follow; Cougar server id; \"Redirect audio/x-mpegurl to %s\"; \"request buffer is too small\"; \"add header [%s : %s]\"; metadata text=\"\u2026\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed462c",
+     "notes": "shoutcast block"
+    }
+   ]
+  },
+  "smartplay": {
+   "detail": "PlayerSmartPlay required fields (missing field %s err); {BUTTON,EMPTY_AVT} triggers; explicitContentFiltering via rsmapicontextzp; \"loadContent took %ld ms: GroupId %s GC %s\"; /bridge/content/api \"service base path: %s\" + getContent took/parse/failed + fetchContentAndStartPlay; \"AVT URI is empty\"/\"AVT URI is a queue and is empty\"; \"Failed to get queue info via UPnP\"; selfTruePlay; \"Command not supported\"; \"allowMicrophone setting requires a microphone\"; night/dialog/grouping-latency change fails; Backgrounds MSP add/remove (ret %u); shadrepl %s?id=%u"
   }
  },
  "muse": {

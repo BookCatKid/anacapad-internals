@@ -480,6 +480,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
 | `replicated_netsettings_schema` | settings replication |  | ? | `strong` |
+| `savedqueues_rsq_schema` | /MediaRenderer/Queue/Control |  | ? | `strong` |
 | `shares_schema` | ContentDirectory |  | ? | `strong` |
 | `sounddevice_status_schema` | /status |  | ? | `strong` |
 | `update_info_schema` | /status |  | ? | `strong` |
@@ -3422,6 +3423,11 @@ update counters
 ### `replicated_netsettings_schema`
 
 netsettings replicated XML
+
+
+### `savedqueues_rsq_schema`
+
+savedqueues.rsq persistence
 
 
 ### `shares_schema`
