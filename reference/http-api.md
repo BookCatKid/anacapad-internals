@@ -545,6 +545,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/mfgunlock:**
       - **handler:** f_10675234
       - **flags:** `256`
+      - **detail:** mfg unlock sibling
+      - **status:** strong
     - **/devmode:**
       - **handler:** f_105e8d90
       - **flags:** 
@@ -637,6 +639,8 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/reset:**
       - **handler:** f_105e935c
       - **flags:** 
+      - **detail:** Factory Reset / Reboot page: generic form "<h2>%s</h2> POST /%s csrfToken Submit" + "Remote factory reset." + "<h2>%s</h2>Rebooting..."
+      - **status:** strong
     - **/sonarctl:**
       - **handler:** f_100bc354
       - **flags:** 

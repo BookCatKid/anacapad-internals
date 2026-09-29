@@ -104822,6 +104822,12 @@
    "service": "mod_zp /status",
    "description": "ZPInfo + DeviceInfo + Playmode",
    "fields": "<ZPInfo><ZoneIcon><Configuration><LocalUID><SerialNumber><SoftwareVersion><BuildType>(release)<SWGen><SoftwareDate><SoftwareScm><HHSwgenState><MinCompatibleVersion><LegacyCompatibleVersion><HardwareVersion><DspVersion>%d.%d.%d<SeriesID><MfgLocation><DateCode><HwFlags>0x%x<HwFeatures>0x%x<Variant><GeneralFlags>0x%x<IPAddress><MACAddress><Copyright><ExtraInfo><HTAudioInCode><IdxTrk><MDP2Ver></ZPInfo>; <DeviceInfo><ZoneName><NetworkHash><DHCPServerMac><NetworkIPAddress><NetworkMask><DiagLevel><DevMode></DeviceInfo>; <Playmode><Shuffle><Repeat><Crossfade></Playmode>; <TemperatureHistograms><CPUTemperature>; <CpuMonitor>; <HardwareStatusInfo>"
+  },
+  "netsettings_schema": {
+   "status": "strong",
+   "service": "ReplicatedNetSettings",
+   "description": "netsettings.json replicated network+PSK store",
+   "fields": "<ReplicatedNetSettings><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID=\"%s\" Flags=\"%d\"/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; json paths {/sonosnet,sonosnetDisable,/networks,backupPsk,backupControlPsk,backupRoomEncPsk,backupLanSwapPsk,genTime}; sn keys {sn_en,sn_dis,sn_dis_test}"
   }
  },
  "uri_formats": {
@@ -109918,7 +109924,9 @@
       "handler": "f_10675234",
       "flags": [
        256
-      ]
+      ],
+      "detail": "mfg unlock sibling",
+      "status": "strong"
      },
      "/devmode": {
       "handler": "f_105e8d90",
@@ -110039,7 +110047,9 @@
      },
      "/reset": {
       "handler": "f_105e935c",
-      "flags": []
+      "flags": [],
+      "detail": "Factory Reset / Reboot page: generic form \"<h2>%s</h2> POST /%s csrfToken Submit\" + \"Remote factory reset.\" + \"<h2>%s</h2>Rebooting...\"",
+      "status": "strong"
      },
      "/sonarctl": {
       "handler": "f_100bc354",
@@ -120723,7 +120733,8 @@
    ]
   },
   "upnp_eventing": {
-   "renew_fsm": "events {\"Unsubscribe in renew ... (oos:%d seq:%d)\",\"Successfully renewed\",\"Failed to renew ... HTTP Result: %d; SR: %08x\",\"Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)\",\"Successfully subscribed ... UDN %s\",\"Received SID %s for deleted client\",\"Received OOS %u / %u for SID %s\" (out-of-seq tracking),\"Not unsubscribing because bSendUnsubscribeRequest=false\"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static"
+   "renew_fsm": "events {\"Unsubscribe in renew ... (oos:%d seq:%d)\",\"Successfully renewed\",\"Failed to renew ... HTTP Result: %d; SR: %08x\",\"Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d)\",\"Successfully subscribed ... UDN %s\",\"Received SID %s for deleted client\",\"Received OOS %u / %u for SID %s\" (out-of-seq tracking),\"Not unsubscribing because bSendUnsubscribeRequest=false\"}; /status/subrenew schema <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}; secure-eventing flag on subscribe; thread subrenew_static",
+   "gates": "\"Invalid transport: WSS is required\"; \"Invalid namespace: UPnP {subscribe,renew,unsubscribe} not supported\"; \"unexpected target id %d %s; overriding to: %s\"; \"Unable to retrieve the relative time.\"; \"Rejecting unsupported replication request for %s\"; \"UPnP Eventing denied. 403 Forbidden returned.\"; Second-/%u SID form; sourceHasEventsToSend(%s) initial"
   },
   "usage_metrics": {
    "name": "usagemetrics \u2014 periodic health report",
@@ -121820,6 +121831,71 @@
   },
   "mod_zp": {
    "detail": "mod_zp + mod_zp_aa album-art queue \"queueing album art request %s %u %u %u\"; timeout states {timeoutplaying,timeoutpaused}; headers {x-rincon-last-update-device,x-rincon-content-version,x-rincon-range}; \"%s.tmp\" staging + \"Unable To File %s\"/\"Unable To Rename Temp EQ File\"; \"Forced GTK rekey\"; button-forward errors {no handler,invalid method,No button handler unable to forward buttons,Feature not supported.}; build props {build.date,build.scm.version,/build.properties,legacyanacapad,hhSwgenState}"
+  },
+  "psk_hierarchy": {
+   "name": "4-PSK household crypto hierarchy + rotation",
+   "status": "partial",
+   "summary": "PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each +Backup mirror id; rotation {\"Unable to generate new HH/control/room name encrypt/lan swap PSK\",\"Unable to update settings with new PSKs\",\"PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)\",\"Bumping netsettings version\",\"not rotated\"}; encoding {\"Encoding SonosNet key failed\",\"Encoding DTLS HH PSK failed\"}; \"Pending netsettings.json update discarded after replicating\"; \"Settings Replication changed SN Disable from %d to %d (source: %s)\"; SSID protection {\"SSID missing from known networks list\",\"Registering for next topology update to protect SSID\",\"Current SSID protected/already protected/not protected, could not get current SSID/missing from networks list\",\"Not connected to a WiFi network, skipping SSID protection\"}; \"Received netsettings update from netstartd\"/\"netsettings changed\"; app/run/nettestresult.txt",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10efadb8",
+     "notes": "netsettings block"
+    }
+   ]
+  },
+  "unlock": {
+   "name": "/devunlock + /mfgunlock + deviceUnlock",
+   "status": "partial",
+   "summary": "flags {/tmp/device_unlocked_flag,/tmp/htdocs_locked,/opt/htdocs_locked}; flow {Fuse Value:,Challenge:} + form \"Serial: %s / %s %s / POST {confirm textarea 11x80}\"; responses {\"DevUnlock Rebooting...\",Success,Too Many Unlocks,Not Applicable}; muse op deviceUnlock; rate-limit \"Too Many Unlocks\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10efff88",
+     "notes": "unlock block"
+    }
+   ]
+  },
+  "netstart_events": {
+   "name": "netstartd IPC event vocabulary + connection types",
+   "status": "partial",
+   "summary": "events {netstartd hello,Setup start,Setup stop,Netstart is idle,Netstart alive,Netstart open,In setup mode,Netstart SSID set/clear,Netstart triggered upgrade (0x%x),Got connection type update [%s]}; WAC {/var/run/wac_mode,Unknown WAC mode %d,WAC mode disabled/enabled/timeout}; ForceShutdownOnNewSSID %d; shutdown {\"Deferring shutdown, reason [%d]\",\"deferring newHHID event\",\"ignoring network bounce mid-shutdown\",zpShutdown,/tmp/netstartd.pid}; IP-change {re-binding old->new,clearing link-local subscriptions on 169.254.* change,shutting down for new IP,newAddr event with same addr}; conn types {SonosNet (Ethernet),Home Theater 2.0,Home Theater (Ethernet),Home Theater,Ethernet (WiFi Disabled),Ethernet,SonosNet (wireless)}; events {newHHID,newSSID}; \"%s: %s event resetting connection to mDNS\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f02798",
+     "notes": "netstart block"
+    }
+   ]
+  },
+  "token_refresh": {
+   "name": "OAuth token-refresh FSM",
+   "status": "partial",
+   "summary": "threads {cqatrs_tx,cloudqueue_tr}; log \"[%s HTTP %d from %s%s] %s\"; states {\"using token from file\",\"requesting new token refresh sync\",\"requesting token refresh sync %u %d -> %d\",\"need to wait for token refresh\",\"waiting for token refresh completion\",\"waiting for refresh tx complete; current state %d\",\"Attempting to refresh token (hrs=%d te=%d)\",\"transition token refresh action %u %d -> %d\",\"Token refresh succeeded. Beginning retry.\"}; errors {\"last refresh token for load timed out\",\"no last refresh token time\",\"expected entry not found to complete tx\",\"expected entry not found waiting for tx\",\"Refresh token failed with upnp result: %d\",\"Refresh token failed. Could not find SD, sid=%u\",\"unexpected token action %d\"}; keyed by acct. sn. %u",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec236c",
+     "notes": "tokenrefresh block"
+    }
+   ]
+  },
+  "crash_report": {
+   "name": "crash-event reporting",
+   "status": "partial",
+   "summary": "{procName,numCrashes,uploadResp,playerCrash,lifetime}; \"%s %s crash event, crashCount: %i\"; Reported/Failed to report",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10f028b8",
+     "notes": "crashreport block"
+    }
+   ]
   }
  },
  "muse": {

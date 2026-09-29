@@ -477,6 +477,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `alarm_status_schema` | /AlarmClock/Control |  | ? | `strong` |
 | `device_props_extra_vars` | /DeviceProperties/Control |  | ? | `strong` |
 | `device_props_update_ids` | /DeviceProperties/Control |  | ? | `strong` |
+| `netsettings_schema` | ReplicatedNetSettings |  | ? | `strong` |
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
 | `replicated_netsettings_schema` | settings replication |  | ? | `strong` |
@@ -3411,6 +3412,11 @@ more state vars
 ### `device_props_update_ids`
 
 update counters
+
+
+### `netsettings_schema`
+
+netsettings.json replicated network+PSK store
 
 
 ### `playstatemanager_schema`
