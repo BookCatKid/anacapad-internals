@@ -884,10 +884,32 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ext_audio_src" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>ext_audio_src</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#factory_reset" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>factory_reset</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#favorites" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>favorites</code>
       </span>
     </span>
   </a>
@@ -932,6 +954,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>feature_flag_registry</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fileio" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>fileio</code>
       </span>
     </span>
   </a>
@@ -3103,10 +3136,32 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ext_audio_src" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>ext_audio_src</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#factory_reset" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>factory_reset</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#favorites" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>favorites</code>
       </span>
     </span>
   </a>
@@ -3151,6 +3206,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>feature_flag_registry</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fileio" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>fileio</code>
       </span>
     </span>
   </a>
@@ -4495,7 +4561,7 @@
 <tr>
 <td><code>cloud_queue</code></td>
 <td><strong>partial</strong></td>
-<td>the Cloud Queue subsystem: a music service hands the player a queueBaseUrl ending in a SemVer API version (validated: 'path must end with a cloud queue version', 'Cloud Queue API v%u is unknown; use v%u with this player'), then the player pages itemWindows over it: loadCloudQueue, loadCloudQueueWithWindow ('Full itemWindow from the Cloud Queue API must be passed'), refreshCloudQueue, skipToItemWithWindow — all as muse routes on playbackSessions/{sessionId}</td>
+<td>resources {itemWindow?,context?,version?,version?updateToken=true&amp;}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}</td>
 </tr>
 <tr>
 <td><code>cloud_synchronizer</code></td>
@@ -4548,9 +4614,19 @@
 <td>entitlements manager with cloud fetch + local cache, muse-subscribed change events, and a runtime policy hook (RRuntimeZPPolicy takes entitlementsMgr); typed SKU records decide e.g. whether Sonos Radio is preinstalled</td>
 </tr>
 <tr>
+<td><code>ext_audio_src</code></td>
+<td><strong>partial</strong></td>
+<td>job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too many/no jobs),processJob,WaitForComplete,playDeferredStream(deferred j/d counts),playStream(exclusivity skip)} + "too many deferred jobs"/"playing job %u is missing"/"current job %u gone"; clip types {COMMON,AUDIOCLIP,AVT_HACK,ALEXA_TTS,ALEXA_WELCOME,ALEXA_FAILURE,ALEXA_ALERT,GOOGLE_MEDIA,GOOGLE_ALARM,GOOGLE_TTS,SVE_TTS,VOCAL_GUIDANCE,ALERT,SETUP_CHIRP,DISCOVERY} with intr flag "processing type %s %d (intr=%d)"; volume override "[%i, %i - %i over %ums]" ramp + "[%i, % i]"; "eventing play status for job %u: %s [%s] @%d.%06d"; decoder {failed to get decoder,illegal sample frequency,zero len frame,decoder flagged playback stop,unsupported channel count &gt; 2}; extaudiosrc_playid</td>
+</tr>
+<tr>
 <td><code>factory_reset</code></td>
 <td><strong>partial</strong></td>
 <td>factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted confirm form, /jffs/factoryReset.txt marker file ('unable to create factory reset file.', 'factory reset had errors', ': not factory reset'), LED_MODE_FACTORY_RESET pattern, sonosFactoryResetFull entry point, household-wide consequence ('device: %s %s removed from vanished list after factory reset'), and 'Invalid system settings (%s), resetting to factory defaults' as a self-heal path; muse route management/factoryReset can trigger it remotely</td>
+</tr>
+<tr>
+<td><code>favorites</code></td>
+<td><strong>partial</strong></td>
+<td>replication "replicating favorites from %s"/"deciding whether to accept replicated list" + informReplicationAndNotify{,ForDestroy} + offerRemoteSetting; DIDL ns {xmlns:dc purl.org/dc/elements/1.1,xmlns:upnp,xmlns:r rinconnetworks,xmlns DIDL-Lite}; migration {old rhapsody→new,old non-OAuth} + "Failed to parse account service ID / serial number from Sonos URI"; errors {Invalid favorite id,Could not access favorites,initContentResource {parse URI,extract item ID,Invalid item ID,No valid mapping for item type}}; shortcuts/shortcut type; fields {AlbumArtURI,NextFavorite,FirmwareVersion,Description,ResMD}; cdudn + nameSpace + restricted + parentID</td>
 </tr>
 <tr>
 <td><code>favourites_model</code></td>
@@ -4571,6 +4647,11 @@
 <td><code>feature_flag_registry</code></td>
 <td><strong>partial</strong></td>
 <td>complete compile-time feature/config flag vocabulary (48 keys): featureConfig<em> family keys in the cloud-config JSON doc plus enable</em>/disable* booleans read at init — the build's feature map showing which subsystems are switchable</td>
+</tr>
+<tr>
+<td><code>fileio</code></td>
+<td><strong>partial</strong></td>
+<td>async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here"</td>
 </tr>
 <tr>
 <td><code>fmp4_parser</code></td>
@@ -5519,46 +5600,13 @@
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (e.g. voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The lifecycle and reconciliation with the local queue are not yet decoded.</p>
 <p><strong>Technical description:</strong></p>
-<p>the Cloud Queue subsystem: a music service hands the player a queueBaseUrl ending in a SemVer API version (validated: 'path must end with a cloud queue version', 'Cloud Queue API v%u is unknown; use v%u with this player'), then the player pages itemWindows over it: loadCloudQueue, loadCloudQueueWithWindow ('Full itemWindow from the Cloud Queue API must be passed'), refreshCloudQueue, skipToItemWithWindow — all as muse routes on playbackSessions/{sessionId}</p>
+<p>resources {itemWindow?,context?,version?,version?updateToken=true&amp;}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}</p>
 <ul>
-<li>
-<p>binary anchors: <code>/cloudqueue</code>, <code>trackQueueAdditions</code>, <code>CloudQueueHistory</code>, <code>loadCloudQueueWithWindow</code>, <code>/cloudqueuepoll</code>, <code>CloudQueueWindow init</code></p>
-</li>
-<li>
-<p><strong>routes:</strong> loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue under /v1/playbackSessions/{sessionId}/ playbackSession (+household-scoped variants); 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow' — large queues fetched in windows</p>
-</li>
-<li><strong>internals:</strong> internalStartCloudQueue, internalRefreshCloudQueue, loadCloudQueueFromReq; CloudQueueWindow init logging; CloudQueueVersion state; trackQueueAdditions pushes additions back to cloud; CloudQueueHistory in history pipeline</li>
-<li><strong>errors:</strong> ERROR_CLOUD_QUEUE_{SERVICE_ERROR,ACCESS_DENIED,STREAM_LIMIT,SERVICE_UNRESPONSIVE,CANT_REACH_SERVER,SERVER}; 'Cloud Queue Error'/'<Cloud queue error>' fault strings</li>
-<li><strong>muse_routes:</strong> loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue — each on v1/playbackSessions/{sessionId}/playbackSession/ AND v1/households/{householdId}/playbackSessions/{sessionId}/playbackSession/</li>
-<li><strong>versioning:</strong> queueBaseUrl must end with a semver version ('Specify cloud queue version ... according to Semantic Versioning 2.0.0'); player rejects unknown versions with 'use v%u with this player'; CloudQueueVersion tracked</li>
-<li><strong>lifecycle:</strong> internalStartCloudQueue/internalRefreshCloudQueue/loadCloudQueueFromReq entry points; 'activate cloud queue %s', 'loadCloudQueue stop'; 'suspending cloud queue during snooze/alarm'; 'recover from cloud queue error'; REFRESH_CLOUD_QUEUE op; 'Cloud queue policy pause expiry time hit'</li>
-<li><strong>rating:</strong> 'rating is only implemented for cloud queue' — thumbs up/down on tracks exists ONLY in the cloud-queue path</li>
-<li><strong>local_eps:</strong> /cloudqueue + /cloudqueuepoll status endpoints</li>
-<li><strong>cqfsm:</strong></li>
-<li><strong>requests:</strong> <code>requestVersion(getVersion)</code>, <code>requestContext(getContext)</code>, <code>requestWindow(getWindow)</code>, <code>refreshWindow</code>, <code>refreshContext</code>, <code>skipToFirstWindow</code>, <code>rateItem</code>, <code>skipNext</code>, <code>skipPrevious</code>, <code>getItemWindow</code></li>
-<li><strong>request_grammar:</strong> requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'</li>
-<li><strong>headers:</strong> <code>X-Sonos-Playback-Id</code>, <code>X-Sonos-Device-Id</code></li>
-<li><strong>response_fields:</strong> <code>units</code>, <code>ResponseCode</code>, <code>RetryWait</code>, <code>Caller</code>, <code>ListEntry</code>, <code>queueType</code>, <code>errorId</code>, <code>heard</code>, <code>skipsRemaining</code>, <code>skipLimitReached</code>, <code>jumpToItemId</code>, <code>Requested Item Id</code></li>
-<li><strong>states:</strong> <code>PENDING</code>, <code>ERROR_RETRY</code>, <code>SUCCESS</code>, <code>MEDIA_ERROR</code>, <code>RESET</code>, <code>GET_VERSION</code>, <code>GET_CONTEXT</code>, <code>SCHEDULE_WINDOW</code>, <code>SCHEDULE_CONTEXT</code>, <code>GET_WINDOW</code>, <code>POST_RATE</code></li>
-<li><strong>retry:</strong> "Retry-After (%ds) not allowed for explicit item request in state %s"; "Will retry(%d) %s request in %d seconds after receiving http error code %d"; exhaustion "Retry not allowed in state %s... (count = %d)"; "request retry loop timed out, failing chsrc interaction"; "Resetting due to unexpected state %s on retry"</li>
-<li><strong>poll:</strong> "change poll interval to %lld sec"; refreshWindow "server does not support notification" fallback to poll; "fetching first window"</li>
-<li><strong>version:</strong> queueBaseUrl semver check: "Cloud Queue API 'v%u' is unknown; use v%u with this player"; "Cloud queue version is %s, at begin %d, at end %d"</li>
-<li><strong>events:</strong> <code>contextVersionChanged/contextVersion</code>, <code>authTokenChanged/authTokenRefreshed</code></li>
-<li><strong>window_flags:</strong> <code>skipNext</code>, <code>skipPrev</code>, <code>queueCompleted</code>, <code>refresh</code>, <code>PlayTTLExpired</code></li>
-<li><strong>errors:</strong> <code>MEDIA_ERROR:NO_ACCT</code>, <code>window-edge-condition</code>, <code>WINDOW_MISSING_ITEM_ID</code>, <code>Abort window request because desired itemId is unknown; waiting for skipToItem</code>, <code>Unknown Account</code>, <code>CloudQueueHistory</code></li>
-<li><strong>smapimap:</strong> sonoscp; "cannot map content type %s to SMAPI protocol [accountId:%s,sid:%s,obj:%s]"; "cannot generate SMAPI URL"; audio/x-spotify; CQ track-URI cache ("Fetching CQ itemId %s using cached trackURI"/"Adding track URI for itemId %s to cache"/"Invalidating CQ track URI cache"); "CloudQueueWindow init: %s"; playbackPolicies; reports</li>
-<li><strong>notify:</strong> notifyStateChange [%s]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld; music quality: %s</li>
+<li><strong>name:</strong> cloud-queue item-window API</li>
 </ul>
-<details><summary>Evidence (8)</summary>
+<details><summary>Evidence (1)</summary>
 
-- @ 0x10e75cc4 — /cloudqueue
-- @ 0x10e93ddf — trackQueueAdditions
-- @ 0x10eb98d0 — CloudQueueHistory
-- @ 0x10e80b00 — loadCloudQueue muse route
-- @ 0x10eb17ac — itemWindow requirement string
-- @ 0x10eb9a2b — queueBaseUrl semver validation + API version negotiation
-- @ 0x10eb11d8 — itemWindow contract on skipToItemWithWindow/loadCloudQueueWithWindow
-- @ 0x10eee62c — ERROR_CLOUD_QUEUE_* fault family
+- @ 0x10ec1f8c — cq window block
 
 </details>
 
@@ -5758,6 +5806,19 @@
 
 </details>
 
+<h2 id="ext_audio_src"><code>ext_audio_src</code><a class="headerlink" href="#ext_audio_src" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too many/no jobs),processJob,WaitForComplete,playDeferredStream(deferred j/d counts),playStream(exclusivity skip)} + "too many deferred jobs"/"playing job %u is missing"/"current job %u gone"; clip types {COMMON,AUDIOCLIP,AVT_HACK,ALEXA_TTS,ALEXA_WELCOME,ALEXA_FAILURE,ALEXA_ALERT,GOOGLE_MEDIA,GOOGLE_ALARM,GOOGLE_TTS,SVE_TTS,VOCAL_GUIDANCE,ALERT,SETUP_CHIRP,DISCOVERY} with intr flag "processing type %s %d (intr=%d)"; volume override "[%i, %i - %i over %ums]" ramp + "[%i, % i]"; "eventing play status for job %u: %s [%s] @%d.%06d"; decoder {failed to get decoder,illegal sample frequency,zero len frame,decoder flagged playback stop,unsupported channel count &gt; 2}; extaudiosrc_playid</p>
+<ul>
+<li><strong>name:</strong> extaudiosrc — clip/TTS injection engine</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec01fc — extaudiosrc block
+
+</details>
+
 <h2 id="factory_reset"><code>factory_reset</code><a class="headerlink" href="#factory_reset" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>The wipe path: a factoryReset.txt sentinel file, sonosFactoryResetFull entry, LED_MODE_FACTORY_RESET feedback, and a remote management/factoryReset muse route. Steps and what survives (registration? certs?) are not yet decoded.</p>
@@ -5781,6 +5842,19 @@
 - @ 0x10ef824c — factoryReset.txt marker
 - @ 0x10f13f90 — peers remove reset device from vanished list
 - @ 0x10efecdc — invalid system settings → auto factory defaults
+
+</details>
+
+<h2 id="favorites"><code>favorites</code><a class="headerlink" href="#favorites" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>replication "replicating favorites from %s"/"deciding whether to accept replicated list" + informReplicationAndNotify{,ForDestroy} + offerRemoteSetting; DIDL ns {xmlns:dc purl.org/dc/elements/1.1,xmlns:upnp,xmlns:r rinconnetworks,xmlns DIDL-Lite}; migration {old rhapsody→new,old non-OAuth} + "Failed to parse account service ID / serial number from Sonos URI"; errors {Invalid favorite id,Could not access favorites,initContentResource {parse URI,extract item ID,Invalid item ID,No valid mapping for item type}}; shortcuts/shortcut type; fields {AlbumArtURI,NextFavorite,FirmwareVersion,Description,ResMD}; cdudn + nameSpace + restricted + parentID</p>
+<ul>
+<li><strong>name:</strong> favorites — userradio + recents</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec0e24 — favorites block
 
 </details>
 
@@ -5870,6 +5944,19 @@
 - @ 0x10f97ab4 — featureConfig + 10 subkeys in JSON key table
 - @ 0x10ef3d34 — <ZoneExperiment id name value defaultValue> schema
 - @ 0x10f97ab4 — featureConfig key table 0x10f97ab4-0x10f97bc4; enable* table 0x10f9bedc-0x10f9ccc8
+
+</details>
+
+<h2 id="fileio"><code>fileio</code><a class="headerlink" href="#fileio" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here"</p>
+<ul>
+<li><strong>name:</strong> fileDataMgr — async stream I/O</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec182c — fileio block
 
 </details>
 
@@ -7345,6 +7432,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 <p><strong>coverage</strong> <code>?</code></p>
 <ul>
 <li><strong>get_api:</strong> callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags</li>
+<li><strong>headers:</strong> outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; "HTTP Header did not fit in char array"</li>
 </ul>
 <h2 id="cloud_registration"><code>cloud_registration</code><a class="headerlink" href="#cloud_registration" title="Permanent link">&para;</a></h2>
 <p><strong>coverage</strong> <code>?</code></p>

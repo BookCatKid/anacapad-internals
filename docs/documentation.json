@@ -104810,6 +104810,12 @@
    "service": "/MusicServices/Control",
    "description": "replicated services list XML",
    "fields": "<Services LastUpdateDevice Version SchemaVersion ETag><Presentation/><ServiceIds/><Total/>\u2026</Services>; summary <AvailableSvcsSummary><ServiceIds></ServiceIds><Total></Total></AvailableSvcsSummary>; per-svc {SecureUri,secureUri,ContainerType,BuiltInService,PresentationMap,Strings,PollInterval,Manifest}"
+  },
+  "userradio_schema": {
+   "status": "strong",
+   "service": "favorites",
+   "description": "userradio.xml (+.d.xml delta) replicated favorites",
+   "fields": "<Favorites SchemaVersion><Radio LastUpdateDevice NextFavorite><Station Id Title URI/><Show Id/><Genre Id Name/>; favorite URIs FV:2/%s + FV:%s/%s; class object.itemobject.item.sonos-favorite; rincon md {favoriteId,ordinal,resMD,room,playmode,type,description}; res {x-rincon-mp3radio:*:*:*,x-sonosapi-show:*:*:*,x-sonosapi-stream:*:*:*,x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*}; categories {:tracks,:stations,:shortcuts,:albums,:playlists,:misc,:shows,:audiobooks}; names {TuneIn Station,Custom Station,Radio Show}; SA_RINCON%d_ svc URI; HR:0/1 + R:%s/%s/%s recents; itemsMoved/radioFavoritesMoved events; instantPlay; dirObjFavorites"
   }
  },
  "uri_formats": {
@@ -117365,160 +117371,17 @@
    "ops": "ROOM_DETECTION_CHIRP/EXT_CHIRP/SETUP_CHIRP internal ops; RoomDetectionStartChirping/RoomDetectionStopChirping; ChirpIfPlayingSwappableAudio; playId management ('A chirp signal is already playing with playId %d', 'Stop chirp playId %d differ than m_chirpPlayId %d'); 'Ignoring busy transition due to chirp only'; stream stats stream_chirp_{init_sync,lack_data_no_drain,read_err_full,read_err_part_data}"
   },
   "cloud_queue": {
+   "name": "cloud-queue item-window API",
    "status": "partial",
-   "summary": "the Cloud Queue subsystem: a music service hands the player a queueBaseUrl ending in a SemVer API version (validated: 'path must end with a cloud queue version', 'Cloud Queue API v%u is unknown; use v%u with this player'), then the player pages itemWindows over it: loadCloudQueue, loadCloudQueueWithWindow ('Full itemWindow from the Cloud Queue API must be passed'), refreshCloudQueue, skipToItemWithWindow \u2014 all as muse routes on playbackSessions/{sessionId}",
-   "anchors": [
-    "/cloudqueue",
-    "trackQueueAdditions",
-    "CloudQueueHistory",
-    "loadCloudQueueWithWindow",
-    "/cloudqueuepoll",
-    "CloudQueueWindow init"
-   ],
+   "summary": "resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}",
    "evidence": [
     {
      "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
      "status": "confirmed",
-     "address": "0x10e75cc4",
-     "notes": "/cloudqueue"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10e93ddf",
-     "notes": "trackQueueAdditions"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eb98d0",
-     "notes": "CloudQueueHistory"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10e80b00",
-     "notes": "loadCloudQueue muse route"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eb17ac",
-     "notes": "itemWindow requirement string"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eb9a2b",
-     "notes": "queueBaseUrl semver validation + API version negotiation"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eb11d8",
-     "notes": "itemWindow contract on skipToItemWithWindow/loadCloudQueueWithWindow"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eee62c",
-     "notes": "ERROR_CLOUD_QUEUE_* fault family"
+     "address": "0x10ec1f8c",
+     "notes": "cq window block"
     }
-   ],
-   "routes": "loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue under /v1/playbackSessions/{sessionId}/ playbackSession (+household-scoped variants); 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow' \u2014 large queues fetched in windows",
-   "internals": "internalStartCloudQueue, internalRefreshCloudQueue, loadCloudQueueFromReq; CloudQueueWindow init logging; CloudQueueVersion state; trackQueueAdditions pushes additions back to cloud; CloudQueueHistory in history pipeline",
-   "errors": "ERROR_CLOUD_QUEUE_{SERVICE_ERROR,ACCESS_DENIED,STREAM_LIMIT,SERVICE_UNRESPONSIVE,CANT_REACH_SERVER,SERVER}; 'Cloud Queue Error'/'<Cloud queue error>' fault strings",
-   "muse_routes": "loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue \u2014 each on v1/playbackSessions/{sessionId}/playbackSession/ AND v1/households/{householdId}/playbackSessions/{sessionId}/playbackSession/",
-   "versioning": "queueBaseUrl must end with a semver version ('Specify cloud queue version ... according to Semantic Versioning 2.0.0'); player rejects unknown versions with 'use v%u with this player'; CloudQueueVersion tracked",
-   "lifecycle": "internalStartCloudQueue/internalRefreshCloudQueue/loadCloudQueueFromReq entry points; 'activate cloud queue %s', 'loadCloudQueue stop'; 'suspending cloud queue during snooze/alarm'; 'recover from cloud queue error'; REFRESH_CLOUD_QUEUE op; 'Cloud queue policy pause expiry time hit'",
-   "rating": "'rating is only implemented for cloud queue' \u2014 thumbs up/down on tracks exists ONLY in the cloud-queue path",
-   "local_eps": "/cloudqueue + /cloudqueuepoll status endpoints",
-   "cqfsm": {
-    "requests": [
-     "requestVersion(getVersion)",
-     "requestContext(getContext)",
-     "requestWindow(getWindow)",
-     "refreshWindow",
-     "refreshContext",
-     "skipToFirstWindow",
-     "rateItem",
-     "skipNext",
-     "skipPrevious",
-     "getItemWindow"
-    ],
-    "request_grammar": "requestWindow w/ %s itemId='%s', positionMillis=%d, queueVersion='%s'",
-    "headers": [
-     "X-Sonos-Playback-Id",
-     "X-Sonos-Device-Id"
-    ],
-    "response_fields": [
-     "units",
-     "ResponseCode",
-     "RetryWait",
-     "Caller",
-     "ListEntry",
-     "queueType",
-     "errorId",
-     "heard",
-     "skipsRemaining",
-     "skipLimitReached",
-     "jumpToItemId",
-     "Requested Item Id"
-    ],
-    "states": [
-     "PENDING",
-     "ERROR_RETRY",
-     "SUCCESS",
-     "MEDIA_ERROR",
-     "RESET",
-     "GET_VERSION",
-     "GET_CONTEXT",
-     "SCHEDULE_WINDOW",
-     "SCHEDULE_CONTEXT",
-     "GET_WINDOW",
-     "POST_RATE"
-    ],
-    "retry": "\"Retry-After (%ds) not allowed for explicit item request in state %s\"; \"Will retry(%d) %s request in %d seconds after receiving http error code %d\"; exhaustion \"Retry not allowed in state %s... (count = %d)\"; \"request retry loop timed out, failing chsrc interaction\"; \"Resetting due to unexpected state %s on retry\"",
-    "poll": "\"change poll interval to %lld sec\"; refreshWindow \"server does not support notification\" fallback to poll; \"fetching first window\"",
-    "version": "queueBaseUrl semver check: \"Cloud Queue API 'v%u' is unknown; use v%u with this player\"; \"Cloud queue version is %s, at begin %d, at end %d\"",
-    "events": [
-     "contextVersionChanged/contextVersion",
-     "authTokenChanged/authTokenRefreshed"
-    ],
-    "window_flags": [
-     "skipNext",
-     "skipPrev",
-     "queueCompleted",
-     "refresh",
-     "PlayTTLExpired"
-    ],
-    "errors": [
-     "MEDIA_ERROR:NO_ACCT",
-     "window-edge-condition",
-     "WINDOW_MISSING_ITEM_ID",
-     "Abort window request because desired itemId is unknown; waiting for skipToItem",
-     "Unknown Account",
-     "CloudQueueHistory"
-    ],
-    "smapimap": "sonoscp; \"cannot map content type %s to SMAPI protocol [accountId:%s,sid:%s,obj:%s]\"; \"cannot generate SMAPI URL\"; audio/x-spotify; CQ track-URI cache (\"Fetching CQ itemId %s using cached trackURI\"/\"Adding track URI for itemId %s to cache\"/\"Invalidating CQ track URI cache\"); \"CloudQueueWindow init: %s\"; playbackPolicies; reports",
-    "notify": "notifyStateChange [%s]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld; music quality: %s"
-   }
+   ]
   },
   "dsp_ht_engine": {
    "status": "partial",
@@ -121638,7 +121501,8 @@
    ]
   },
   "cloud": {
-   "get_api": "callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags"
+   "get_api": "callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response[%s],unexpected timeout rSz/cL,JSON parse failure [sz,off]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags",
+   "headers": "outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; \"HTTP Header did not fit in char array\""
   },
   "music_services": {
    "name": "musicservices \u2014 available-services replication",
@@ -121751,6 +121615,45 @@
      "status": "confirmed",
      "address": "0x10e99764",
      "notes": "capability guards"
+    }
+   ]
+  },
+  "ext_audio_src": {
+   "name": "extaudiosrc \u2014 clip/TTS injection engine",
+   "status": "partial",
+   "summary": "job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too many/no jobs),processJob,WaitForComplete,playDeferredStream(deferred j/d counts),playStream(exclusivity skip)} + \"too many deferred jobs\"/\"playing job %u is missing\"/\"current job %u gone\"; clip types {COMMON,AUDIOCLIP,AVT_HACK,ALEXA_TTS,ALEXA_WELCOME,ALEXA_FAILURE,ALEXA_ALERT,GOOGLE_MEDIA,GOOGLE_ALARM,GOOGLE_TTS,SVE_TTS,VOCAL_GUIDANCE,ALERT,SETUP_CHIRP,DISCOVERY} with intr flag \"processing type %s %d (intr=%d)\"; volume override \"[%i, %i - %i over %ums]\" ramp + \"[%i, % i]\"; \"eventing play status for job %u: %s [%s] @%d.%06d\"; decoder {failed to get decoder,illegal sample frequency,zero len frame,decoder flagged playback stop,unsupported channel count > 2}; extaudiosrc_playid",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec01fc",
+     "notes": "extaudiosrc block"
+    }
+   ]
+  },
+  "favorites": {
+   "name": "favorites \u2014 userradio + recents",
+   "status": "partial",
+   "summary": "replication \"replicating favorites from %s\"/\"deciding whether to accept replicated list\" + informReplicationAndNotify{,ForDestroy} + offerRemoteSetting; DIDL ns {xmlns:dc purl.org/dc/elements/1.1,xmlns:upnp,xmlns:r rinconnetworks,xmlns DIDL-Lite}; migration {old rhapsody\u2192new,old non-OAuth} + \"Failed to parse account service ID / serial number from Sonos URI\"; errors {Invalid favorite id,Could not access favorites,initContentResource {parse URI,extract item ID,Invalid item ID,No valid mapping for item type}}; shortcuts/shortcut type; fields {AlbumArtURI,NextFavorite,FirmwareVersion,Description,ResMD}; cdudn + nameSpace + restricted + parentID",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec0e24",
+     "notes": "favorites block"
+    }
+   ]
+  },
+  "fileio": {
+   "name": "fileDataMgr \u2014 async stream I/O",
+   "status": "partial",
+   "summary": "async register/unregister + enabled; SMB readdir + \"failed to open SMB dir\"; \"File is in memory\" skip-open; \"Success opening URI %s; stream type %d\"; \"Sonos API URI %s not dereferenced before opening stream\"; prebuffering + \"reopening http for streaming at %zu\" + ?after= resume; \"application/xml; listing\" dir listing; \"no framer found in factory, returning null, we should not reach here\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ec182c",
+     "notes": "fileio block"
     }
    ]
   }

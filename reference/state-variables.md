@@ -485,6 +485,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `shares_schema` | ContentDirectory |  | ? | `strong` |
 | `sounddevice_status_schema` | /status |  | ? | `strong` |
 | `update_info_schema` | /status |  | ? | `strong` |
+| `userradio_schema` | favorites |  | ? | `strong` |
 | `vli_state_snapshot` | VirtualLineIn |  | ? | `strong` |
 | `zone_group_state_schema` | /ZoneGroupTopology/Control |  | ? | `strong` |
 | `zoneplayers_status_schema` | /status |  | ? | `strong` |
@@ -3449,6 +3450,11 @@ SoundDevice page (per-zone volume/ducking)
 ### `update_info_schema`
 
 UpdateInfo page
+
+
+### `userradio_schema`
+
+userradio.xml (+.d.xml delta) replicated favorites
 
 
 ### `vli_state_snapshot`
