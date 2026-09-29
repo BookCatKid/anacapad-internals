@@ -120774,7 +120774,9 @@
     "SecureRegistrationStateUpdateEvent",
     "PlaybackStateChangedEvent",
     "RemoteHTSwapStateChangedEvent(source,swap active,are we satellite)"
-   ]
+   ],
+   "events": "{TopologyEventsReportEvent,TopologyGroupMemberRemovedEvent,InfoUpdatedEvent,ActiveZonesChangedEvent,RemoteConnectionTypeChangedEvent,GroupChangedEvent,VliTransportActionEvent,NewZPEvent,ReplicatedSettingsNeedsUpdateEvent,MissingBondedZoneMemberDetectedEvent,AVTStateLastChangedEvent,RemoteHTSwapStateChangedEvent,DeviceGoneEvt,GroupAdvertiseRequestEvent,DesignatedDeviceChangedEvent,Account changed event,MusicAccountChangedEvent,NewMuseHHIDEvent,NewLocationIdEvent,AreasVersionChangedEvent}",
+   "internals": "sonar ops {setLocalSonarCalibrationID,setLocalSonarState,internalPopulateSonarZoneDescription,sonarZoneAgreesOnCalibration,informLocalNewSourceAreaIds,getGroupMembersWithDifferentVirtualLineInGroupID,getLocalOrientation,getLocalChannelName,hasSurrounds}; bonded ops {isBondedZoneConsistent,ifBondedZoneGetNextUUID,ifBondedZoneGetNextUUIDInTopology,ifBondedZoneGetPartnerUUIDInTopology}; informs {informLocalVoiceStateChange,informLocalMicStateChange,informLocalTVConfigStateChange,informLocalAirPlay,informLocalOrientation,setLocalTransportStateChanged,informLocalPlayerZPChange}; desc fmt {\"Single Zone Description: {%s, %s, %d}\",\"Zone Description: {%s, %s, %s, %d}\"}; consistency {\"HT & Sat have inconsistent maps\",\"Bonded zone maps not consistent\",\"topology state error, type: %s, pid: %s, pid count: %d, gid: %s, gid count: %d\",\"Topology state not consistent[retrying]\",\"%s %s linkage broken: Local gID: %s; Other gID: %s\"}; satellite {\"addSatellite() %s sat %s with map: %s\",\"removeHTSatellite() Disable HT sat %s\",\"separateBondedZoneKeepPlaying: failed to remove bonded zone through primary %d, removing locally\",\"Enable HT\",\"tried to add incompatible\",\"couldn't determine AVT control URI of coordinator %s\"}; monitor {monitorTimeout,monitorUUIDMismatch,\"TopologyMonitorProbe - Invalid args\",\"Probed wrong device (IP mismatch?)\",\"Topology monitor: purge unresponsive ZP %s (%d)\",\"STRIKE %u for %s (res:%d val:%d)\"}; defunct {\"handleDefunctMediaServer %s\",\"handleDefunctZP %s reason '%s' IGNORED from MDNS - discovered by SSDP\",\"IGNORED from SSDP - discovered by MDNS but not SSDP\",\"%s uuid %s not local or was not found\",PRESENT,MISSING}; notify {\"handled notify of SID %s for %s on %s (changedMap: 0x%x)\",\"checking notify of SID %s for %s (last handled: %u)\",\"could not find zp to handle notify; ingress uuid %s\",\"Setting orientation (%s) for %s (%s)\"}; \"Authorization Check for WMP failed: control URI: %s UUID: %s res: %hu\"; \"Unexpected local UUID provided to RDeviceTopology::%s\"; \"Became idle: %ld(B)\"/\"Became active\"; {ThirdPartyMediaServersX,AlarmRunSequence,R_ShowRhapUPnP,R_ShowNSSServers,VerifyThenRemoveSystemwide,hh-upgrade,uploadDesignatedDeviceReport,RDeviceTopology}"
   },
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\""
@@ -121111,15 +121113,15 @@
    ]
   },
   "svc_manifest": {
-   "name": "svcmanifestfile \u2014 SMAPI manifest store",
-   "status": "partial",
-   "summary": "svcmanifests.json {\"manifests\":[\u2026]} + RCache + lastUpdateDevice; schema check \"Unsupported schema version: actual: %u.%u, supported: %u.%u\" + \"Could not extract API header\"; ops {deleteManifest(%u) b=%d,a=%d,removeManifest vb/va}; \"%s downloading music service manifest from %s\"; \"replicating manifest file from %s\"; \"unsupported CQ REST version: %s\"; \"Added trailing slash\"; svcmanifests thread",
+   "name": "SMAPI service manifest file",
+   "status": "strong",
+   "summary": "svcmanifests.json text/json; versioning {\"Invalid schema version format\",\"Unsupported schema version: actual: %u.%u, supported: %u.%u\",\"Could not extract API header\"}; ops {deleteManifest(%u) b=%d,a=%d,removeManifest(%d):%s vb=%d,va=%d}; replication {\"replicating manifest file from %s\",\"%s downloading music service manifest from %s; ret=%u, lRet=0x%x\",lastUpdateDevice}; json {\", \\\"manifests\\\": [\",\"JSON parse error %d: %s\",\"Failed to load manifests JSON file\",\"Added trailing slash to: %s\",\"Invalid Id: %s\",\"Failure parsing URI %s\",\"unsupported CQ REST version: %s\"}; RCache; \"%d hasLastestVersion %d? %d\"",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
      "address": "0x10e8a740",
-     "notes": "svcmanifestfile block"
+     "notes": "svcManifestFile"
     }
    ]
   },
@@ -121528,16 +121530,15 @@
    ]
   },
   "share_indexer": {
-   "name": "shadowdir \u2014 share indexer + BBF index",
-   "status": "partial",
-   "summary": "walk {open share path,read folder,entry %s,stat file} skips {.sparsebundle}; cancels {interrupted,recursion limit on share/at //%s,file error,share error}; files {Unplayable,Inaccessible}; shadow/shadow2 dirs + Remote/Local I/O error during %s; index %s/trackinfo + trackinfo.tmp + sorts sort-* + shareindex + \"took %ldms to initialize indexes\"; BBF fields {bbfTitle,bbfFile,bbfTracknum}; URIs {x-file-cifs://,x-rincon-playlist:}; res {x-rincon-playlist:*:*:*}; /getaa?u=%s&v=%u; r:displayTitle; sort orders {ITUNES,DEFAULT,PINYIN} + albumArtist/genre; itunes plist dedup \"Skipping itplist with duplicate size and mtime\"/\"More than %d itplists\"; .version fmt %s,%u; events {CdNotifyUpdateId,CdNotifyShareIx}; indexingTrack job",
-   "status_schema": "<TrackSummary><Tables><Table name=\"Title\" max count/></Tables><StoreSize><StoreUsed><EntriesSize><EntriesUsed><Conflicts></TrackSummary>",
+   "name": "music share indexer",
+   "status": "strong",
+   "summary": "ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,\"Turning resort request into full reindex\"}; reindex \"request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)\"; schema <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange><Share Path UserName Password VerifiedValidProtocol Id>; errors {\"Unable to find share with given ID\",\"Failed to remove/add share\",\"The share path provided already exists\",\"need to recover ix=%d ver=%d\",\"indexing reported err=%d for %s\",\"Mounting failed.\",\"Local index storage error.\",\"Remote file share error.\",\"Indexing canceled.\",\"connection failure\",\"Cannot exceed the maximum number of allowed shares\",\"The path provided is subsumed by an existing share\",\"Path is malformed\",\"Access to share is denied\",\"Unsupported share protocol.\"}; lifecycle {\"replication failed\",\"replication skipped: local fmt %u, remote fmt %u\",\"initial scan for new files failed\",\"Would have performed scheduled reindex but shares unchanged\",\"reindexing failed\",\"reverting desired state: %d\",\"processing index complete (c:%d i:%d f:%d lc:%s) - %u\",\"skipping commit attempt: m_bCommitted/m_bWait/m_bTerminate\",\"initialized index, scheduling advertise\",\"commit %u\",\"processing index: source (%s:%u)\",\"recovered ix=%d with ver=%d\"}; R_BrowseByFolderSort,Tracknum",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
-     "address": "0x10e892a0",
-     "notes": "shadowdir/indexer block"
+     "address": "0x10e8a004",
+     "notes": "share indexer"
     }
    ]
   },
@@ -123325,6 +123326,19 @@
      "status": "confirmed",
      "address": "0x10e87630",
      "notes": "rc_impl block"
+    }
+   ]
+  },
+  "zgs_mediaservers": {
+   "name": "ZoneGroupState MediaServers fragment",
+   "status": "strong",
+   "summary": "<MediaServers><Ex CURL=\"/msprox?uuid=\u2026\" EURL T EXT/><MediaServer Name UDN Location/><Service UDN NumAccounts Md%u Username%u Token%u Key%u/></MediaServers> \u2014 third-party media server proxies + SMAPI account creds embedded in ZGS",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e8c2a0",
+     "notes": "ZGS MediaServers"
     }
    ]
   }
