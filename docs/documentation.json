@@ -116111,6 +116111,25 @@
     "zp log tag",
     "wifiConnected/wifiDisconnected muse event posts"
    ]
+  },
+  "inprocess_events": {
+   "name": "inprocess-events bus",
+   "observer_model": "Observer \"%s\" subscribed/unsubscribed to event \"%s\"; deferred subs via deferred_event_sub (\"subscription deferred\"); evt_dispatch; per-source validation \"source (%s) attempting to create invalid context/event with invalid type\"; eventing-subsystem-only events restricted",
+   "event_types": [
+    "transitioning",
+    "generic_update",
+    "ht_config_update",
+    "sonar_cal_mode_changed",
+    "avt_device_feedback",
+    "entitlements_changed",
+    "deferred_settings_change"
+   ]
+  },
+  "location_settings_sync": {
+   "name": "LocationSettingsUpdateManager (location_settings_update module)",
+   "fsm": "reasons: NEW_LOCATION / CONNECTED_TO_CLOUD / INVALIDATE_ALL / INVALIDATE_ONE / INVALIDATE_MULTIPLE (+ -R \"requested\" variants); UNK__locationUpdateReason; UNK__updTkCompSts",
+   "transitions": "transitionToNewLocationLocked() prev[%s] new[%s]; handleConnectedToCloud/handleDisconnectedFromCloud (isCtC:%d tId:%s isIF:%d); addTask_updateSettingsGroupLocked(%s|%s): transitioning->drop, already-getting-all->drop, upgrade-to-getting-all [%u], already-pending [%u], rejecting-emptiness",
+   "boot": "bootTimeSetTargetLocationId(%s); LocalSettings XML <LocalSettings>..</LocalSettings>; locSetUpd/LocSetUpd/locSetInteg/locSetUpdMgr task names"
   }
  },
  "subsystems": {
@@ -117413,6 +117432,14 @@
      "status": "confirmed",
      "address": "0x10ef63f4",
      "notes": "lechmereConnection status field set"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "status": "confirmed",
+     "address": "0x10ef63e0",
+     "notes": "lechmere.cxx literal block: frame header fields, headers, conn event keys, error vocabulary"
     }
    ],
    "endpoint": "lechmere.%s.ws.sonos.com \u2014 %s is the region/env token; Sec-WebSocket-Protocol: lechmere.%u",
@@ -117428,7 +117455,40 @@
    "status_fields": "connection-status record fields: status, protocolVer, reason, code, retry, uptimeMs, transport, closed/failed/opened \u2014 the lechmereConnection status doc",
    "clock": "'could note use Date header for trusted clock seed: %s' \u2014 the HTTP 101 Date: response seeds the trusted clock",
    "auth_fields": "policy-key record fields: userId, policyKey, museVersion",
-   "reader_dispatch": "the reader returns a 0..10 code dispatched through a PIC jump table at 0x10ef12c8 in the ws-client read loop f_1059c088. Cases: 0-1 EVENT-class frames ('Unexpected TYPE EVENT' logged; loop continues); 2 HTTP-tunnel frame ('support for HTTP message dropped' \u2014 the HTTP-over-lechmere tunnel is deprecated/dropped in this build on the OUTBOUND client path; the tunneled-UPnP pseudo-headers seen elsewhere belong to the server side /api/v1/websocket); 3 the real inbound command frame (payload queued at ctx+0x1f8, timestamped +0x310); 4 -> f_1070d01c (registration/ack-class frame); 5 SET_CONFIG-class (registration write; errors 'SET_CONFIG failed to read'/'failed to send registration'); 6 CHECK_CONFIG-class ('CHECK_CONFIG failed to return registration'); 7 'Unrecognized message type' (reader reject); 8 'read timeout'; 9 'read error'; 10 clean end-of-frame continue."
+   "reader_dispatch": "the reader returns a 0..10 code dispatched through a PIC jump table at 0x10ef12c8 in the ws-client read loop f_1059c088. Cases: 0-1 EVENT-class frames ('Unexpected TYPE EVENT' logged; loop continues); 2 HTTP-tunnel frame ('support for HTTP message dropped' \u2014 the HTTP-over-lechmere tunnel is deprecated/dropped in this build on the OUTBOUND client path; the tunneled-UPnP pseudo-headers seen elsewhere belong to the server side /api/v1/websocket); 3 the real inbound command frame (payload queued at ctx+0x1f8, timestamped +0x310); 4 -> f_1070d01c (registration/ack-class frame); 5 SET_CONFIG-class (registration write; errors 'SET_CONFIG failed to read'/'failed to send registration'); 6 CHECK_CONFIG-class ('CHECK_CONFIG failed to return registration'); 7 'Unrecognized message type' (reader reject); 8 'read timeout'; 9 'read error'; 10 clean end-of-frame continue.",
+   "wire_framing": {
+    "header": "binary frame: protocol version (2 chars) + message type (2 chars) + extended-header length + optional extended header (\"Bad protocol version: %c%c\",\"Bad message type: %c%c; %d\",\"Bad extended header length: %c%c\",\"could not recv extended header; expected %u read %u\")",
+    "request_headers": [
+     "x-sonos-method: ",
+     "x-sonos-uri: ",
+     "SOAPACTION: ",
+     "X-Sonos-Udn",
+     "Sec-WebSocket-Protocol:",
+     "Date:"
+    ],
+    "negotiation": "WS subprotocol negotiation; \"protocol version negotiation failed due to unknown version (%s)\"; server Date: header seeds the trusted clock (\"could not use Date header for trusted clock seed\")",
+    "config_keys": [
+     "userId",
+     "policyKey",
+     "museVersion"
+    ],
+    "conn_event": "muse event \"lechmereConnection\" {status,protocolVer,reason,retry,uptimeMs} with states transport/closed/failed/opened; close logged \"Close code (%d) %s\"; thread/log \"lechmere.%hhu%n\"",
+    "errors": [
+     "HTTP: Too many redirects",
+     "HTTP: Service unavailable",
+     "HTTP: Bad result",
+     "HTTP: Bad redirect",
+     "HTTP: Not authorized",
+     "Websocket protocol error",
+     "Transport: Write failed",
+     "Redirect interrupted",
+     "Error generating nonce",
+     "Error encoding nonce",
+     "Failed to create request string",
+     "http header parsing failed"
+    ],
+    "confidence": "PROVEN framing fields + negotiation + event schema; msg-type enum values beyond type-3 envelope unresolved"
+   }
   },
   "led_engine": {
    "status": "partial",
@@ -117655,7 +117715,7 @@
   },
   "multi_daemon_boundary": {
    "status": "partial",
-   "summary": "anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks",
+   "summary": "anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks | netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral \"Deferring IPC reconnect\"; timeout \"attempting reconnect (retries=%u)\"; \"Bad IPC message received (%d %d %d)\"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs \"Disabling/Enabling networking\",\"Signaling start/end of network connectivity test\"",
    "anchors": [
     "/btmanager-external",
     "/netstartd-external",

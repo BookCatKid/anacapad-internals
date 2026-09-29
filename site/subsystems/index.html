@@ -1784,7 +1784,7 @@
 <tr>
 <td><code>multi_daemon_boundary</code></td>
 <td><strong>partial</strong></td>
-<td>anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks</td>
+<td>anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks | netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test"</td>
 </tr>
 <tr>
 <td><code>muse_semantics</code></td>
@@ -2347,8 +2347,16 @@
 <li><strong>clock:</strong> 'could note use Date header for trusted clock seed: %s' — the HTTP 101 Date: response seeds the trusted clock</li>
 <li><strong>auth_fields:</strong> policy-key record fields: userId, policyKey, museVersion</li>
 <li><strong>reader_dispatch:</strong> the reader returns a 0..10 code dispatched through a PIC jump table at 0x10ef12c8 in the ws-client read loop f_1059c088. Cases: 0-1 EVENT-class frames ('Unexpected TYPE EVENT' logged; loop continues); 2 HTTP-tunnel frame ('support for HTTP message dropped' — the HTTP-over-lechmere tunnel is deprecated/dropped in this build on the OUTBOUND client path; the tunneled-UPnP pseudo-headers seen elsewhere belong to the server side /api/v1/websocket); 3 the real inbound command frame (payload queued at ctx+0x1f8, timestamped +0x310); 4 -&gt; f_1070d01c (registration/ack-class frame); 5 SET_CONFIG-class (registration write; errors 'SET_CONFIG failed to read'/'failed to send registration'); 6 CHECK_CONFIG-class ('CHECK_CONFIG failed to return registration'); 7 'Unrecognized message type' (reader reject); 8 'read timeout'; 9 'read error'; 10 clean end-of-frame continue.</li>
+<li><strong>wire_framing:</strong></li>
+<li><strong>header:</strong> binary frame: protocol version (2 chars) + message type (2 chars) + extended-header length + optional extended header ("Bad protocol version: %c%c","Bad message type: %c%c; %d","Bad extended header length: %c%c","could not recv extended header; expected %u read %u")</li>
+<li><strong>request_headers:</strong> <code>x-sonos-method:</code>, <code>x-sonos-uri:</code>, <code>SOAPACTION:</code>, <code>X-Sonos-Udn</code>, <code>Sec-WebSocket-Protocol:</code>, <code>Date:</code></li>
+<li><strong>negotiation:</strong> WS subprotocol negotiation; "protocol version negotiation failed due to unknown version (%s)"; server Date: header seeds the trusted clock ("could not use Date header for trusted clock seed")</li>
+<li><strong>config_keys:</strong> <code>userId</code>, <code>policyKey</code>, <code>museVersion</code></li>
+<li><strong>conn_event:</strong> muse event "lechmereConnection" {status,protocolVer,reason,retry,uptimeMs} with states transport/closed/failed/opened; close logged "Close code (%d) %s"; thread/log "lechmere.%hhu%n"</li>
+<li><strong>errors:</strong> <code>HTTP: Too many redirects</code>, <code>HTTP: Service unavailable</code>, <code>HTTP: Bad result</code>, <code>HTTP: Bad redirect</code>, <code>HTTP: Not authorized</code>, <code>Websocket protocol error</code>, <code>Transport: Write failed</code>, <code>Redirect interrupted</code>, <code>Error generating nonce</code>, <code>Error encoding nonce</code>, <code>Failed to create request string</code>, <code>http header parsing failed</code></li>
+<li><strong>confidence:</strong> PROVEN framing fields + negotiation + event schema; msg-type enum values beyond type-3 envelope unresolved</li>
 </ul>
-<details><summary>Evidence (13)</summary>
+<details><summary>Evidence (14)</summary>
 
 - @ 0x10e75541 — lechmere.event
 - @ 0x10ee71a0 — lechmere.%s.ws.sonos.com endpoint template
@@ -2363,6 +2371,7 @@
 - @ 0x10ef6568 — x-sonos-method/x-sonos-uri/SOAPACTION pseudo-headers — SOAP-over-WS tunnel
 - @ 0x10ef66d8 — 'trusted clock seed' from Date header
 - @ 0x10ef63f4 — lechmereConnection status field set
+- @ 0x10ef63e0 — lechmere.cxx literal block: frame header fields, headers, conn event keys, error vocabulary
 
 </details>
 
@@ -2470,7 +2479,7 @@
 <p><strong>coverage</strong> <code>partial</code></p>
 <p>anacapad is one daemon of ~13 on the player. It pushes WiFi/network settings and PSKs to netstartd over /tmp/netstartd.ipc and receives connection-type updates back; LED, Bluetooth and power daemons get /X-external HTTP routes; each daemon has .dmp crash-report machinery. Most device behaviours (WiFi join, LED, BT pairing) are actually owned by the siblings.</p>
 <p><strong>Technical description:</strong></p>
-<p>anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks</p>
+<p>anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks | netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test"</p>
 <ul>
 <li>
 <p>binary anchors: <code>/btmanager-external</code>, <code>/netstartd-external</code>, <code>wacd.log</code>, <code>sddpd.log</code>, <code>/tmp/netstartd.ipc</code>, <code>netstartd hello</code>, <code>sonospowercoordinator.dmp</code></p>
