@@ -1014,9 +1014,8 @@ the deep semantic layer:
     RESIDUAL: (a) mtctr/bctrl vfunc edges invisible to the bl callgraph
     - propagated domains are a floor not a ceiling; (b) per-rung
     triggers decoded only for userradio - other stores' rung semantics
-    undecoded; (c) legacy error sets (AlarmClock) contain
-    misclassified ASCII-pair constants (9587/25455/...) from the old
-    over-broad scan - doc-quality cleanup pending; (d) RESOLVED - f_100c960f carries no error literals, its {801-804} is call-derived; (e) remaining .tmp writers verified log-only (shares/areas/netsettings/featureconfig/trackinfo/metricsconfig emit no fault ladders); (f) f_100c960f
+    undecoded; (c) RESOLVED - legacy error sets' literal_bound lists purged of
+    ASCII-pair constants (16 lists; heuristic: both bytes printable); (d) RESOLVED - f_100c960f carries no error literals, its {801-804} is call-derived; (e) remaining .tmp writers verified log-only (shares/areas/netsettings/featureconfig/trackinfo/metricsconfig emit no fault ladders); (f) f_100c960f
     {801-804} worker identity unknown.
 11d. **Indexed enum-table sweep + getter error floor** — DONE:
     rodata scan for every contiguous char*-name array and
