@@ -112102,26 +112102,34 @@
   "linked_libraries": {
    "status": "confirmed",
    "sonos_libs": [
-    "libsonosutils.so.1",
-    "libsonosminiutils.so.1",
-    "libsonoscrypto.so.3",
-    "libsonos-mdp.so.1",
     "libflash.so.1",
-    "libwifi.so.1 (WifiFuncs)",
-    "libsonos-time-c.so.1",
-    "libsonos-certval.so.2",
-    "libsonos-root-cert-bundle.so.2",
     "libhwmessagelib.so.1 (SCI/button messages)",
-    "libsyslib_hal.so.1 (hal_* API)"
+    "libsonos-certval.so.2",
+    "libsonos-mdp.so.1",
+    "libsonos-root-cert-bundle.so.2",
+    "libsonos-time-c.so.1",
+    "libsonoscrypto.so.3",
+    "libsonoseventreporter.so.1 (init_event_ctx/report_event)",
+    "libsonosminiutils.so.1",
+    "libsonossbcpacket.so.1 (SBCPacket framing)",
+    "libsonosutils.so.1",
+    "libsyslib_hal.so.1 (hal_* API)",
+    "libwifi.so.1 (WifiFuncs)"
    ],
    "third_party": [
-    "libmbedtls.so.21 / libmbedx509.so.7 / libmbedcrypto.so.16",
-    "libz.so.1",
-    "libtomlc99.so.1",
-    "libprotobuf-nanopb.so.0 (nanopb wire format)",
+    "libanl.so.1",
+    "libatomic.so.1",
+    "libavcodec.so.59 / libavutil.so.57 / libavformat.so.59 (ffmpeg 5.x: WMA decode)",
+    "libdcadec.so.0 (DTS decoder)",
     "libdns_sd.so.1 (mDNSResponder)",
+    "libmbedtls.so.21 / libmbedx509.so.7 / libmbedcrypto.so.16",
+    "libmpg123.so.0",
+    "libprotobuf-nanopb.so.0 (nanopb wire format)",
+    "libsbc.so.1",
     "libsmb2.so.1",
-    "libatomic.so.1"
+    "libsqlite3.so.0",
+    "libtomlc99.so.1",
+    "libz.so.1"
    ],
    "hal_api": [
     "hal_amps_{open,close,init,mute,power,hipower}",
@@ -112136,7 +112144,14 @@
     "hal_orient_{open,close,get_orientation}",
     "hal_thermal_{close,get_status,get_temps}"
    ],
-   "mdp": "libsonos-mdp = manufacturer-data-partition access via hal_flash_get_mdp{,2} (serial/HWID)"
+   "mdp": "libsonos-mdp = manufacturer-data-partition access via hal_flash_get_mdp{,2} (serial/HWID)",
+   "ipc_imports": "libsonos IPC API {InitializeIPCContext,CloseIPCContext,ReadIPCHeader,RserializeData,RdeserializeData,RdeviceIsUnlocked,RabortIfUnlocked,NetSettingsUpdatePrimaryUUID} \u2014 ReadIPCHeader owns the 12-byte {A,B,len} header decode; first 8 bytes stay unresolved inside libsonos",
+   "obfuscated_imports": "~50 imported symbols named ZZ0018..ZZ0224 \u2014 obfuscated exports from a Sonos shared lib (likely netstartd IPC surface); names carry no semantics, resolved by ordinal",
+   "sonosutils_imports": "libsonosutils surface: sonos_uuid_{generate,parse,unparse,copy,clear,is_null,is_equal_to}, sonos_get_zone_uuid/sonos_get_num_supported_zones, sonosFactoryResetFull, sonosForceReboot, sonosGetColorVariantString/sonosGetFinalColorVariant, sonosRcbVerifySig/sonosRcbStatusToString, sonosCertvalSetSSLToSonosDevice, sonos_auth_{add_ambient,become_capable}, sonos_epoll_{add,add_data,modify_data,remove}, sonos_fnv1a_32_strHash{,_knownLen}, sonosFile*/sonosDirectoryExists/sonosCopyFile/sonosScanFile/sonosStreamFile/sonosMkDirRecursive/sonosRmDirRecursive{,Ex}, sonosBase64{Encode,Decode,Url*,Convert*,EncUpdate,DecUpdate,...}, sonosDecodePercentEncoded{,Str}, sonos{TimeT,Timeval,String}ToTimeval/String conversions, sonosTrimWhitespace, sonosRange8BitLSB/sonosReverse8Bit, sonosRefCnt{Init,Inc,Dec}",
+   "miniutils": "libsonosminiutils: String{Alloc,Concat,Data,Free,Reset,Write}, paranoid_{atoi,atoui,atoui_ex,atod,strtoll,strtoull}, timeval{Add,AddMs,Addus,Diff,Diffus,Geq,Gt,IsInf,IsZero,Minimize,Subtract,ToMillis}, {FileTimeToSystemTime,SystemTimeToFileTime,SystemTimeToTzSpecificLocalTime,TzSpecificLocalTimeToSystemTime}, {constructJFFSRootPath,setJFFSRoot,freeJFFSRoot}, syslog_r/openlog_r/closelog_r/setmaxlogsize_r, {snprintf_append,r_readdir_r,rtnl_{open,close},mapErrnoToSonosError_knownError,nterror_to_str,gai_error,zError,get_process_name,add_pair_str,enumStr_hwmessage_multicastGroupAddFailure}",
+   "wifi_funcs": "libwifi WifiFuncs API: {GetState,GetWifiEnabled,HasWirelessConnection,GetStationIsEnabled,GetStationIsConnected,GetStationAssocSsid,ForceGtkRekey,GetChannelFreq,GeneralFreqMHz2ChannelNum,MapChanneNumToFreq,IsFreqSupported,GetClientAssocStats,GetLearnedUWCHops,GetLinkStats,GetLmChangeStats,GetRoamingEvents,GetRxHangInfo,GetSatSwitchTimeStats,GetWdInfo,SetBootSeqnum} + RZPWifiFuncsIf::setIdleScan",
+   "hwmsg": "libhwmessagelib: hwmessagelib_connection_{init,destroy,getReadFD,readNextMsg} + multicast groups {AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,SWITCH,TEMP} + enumStr_hwmessage_multicastGroupAddFailure",
+   "cert_bundle": "sonos::RootCACertBundle API incl hasDynamicCertBundle() + getBundle(CertType,logfn,ctx) \u2014 root CAs can be refreshed dynamically; sonos::certval::validate(sonos_device_x509_fields,...) signature preserved"
   },
   "pinewood_remote": {
    "status": "confirmed",
