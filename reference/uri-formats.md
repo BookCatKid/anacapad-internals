@@ -71,6 +71,10 @@ music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 ## `hls-aac` `partial`
 
+`hls-aac://` — the AAC-coded HLS variant; same engine as hls-radio with ADTS framing expectations.
+
+**Technical description:**
+
 HLS AAC variant
 
 - **scheme:** hls-aac://
@@ -82,6 +86,10 @@ HLS AAC variant
 </details>
 
 ## `hls-radio` `partial`
+
+`hls-radio://` — marks a URI as an HLS radio stream, routing it to the hls-live player rather than a one-shot fetch.
+
+**Technical description:**
 
 HLS radio stream
 
@@ -128,6 +136,10 @@ HLS radio variant scheme token in the protocol vocabulary.
 </details>
 
 ## `hm` `partial`
+
+`hm://` — the Spotify hermes/mercury channel scheme; URIs under it address hermes resources (hwptp devices, tsv, resolve) rather than audio. Never a playable transport URI.
+
+**Technical description:**
 
 Spotify hermes/mercury channel URI
 
@@ -180,6 +192,10 @@ Used by: cloud alarm sync; UPnP-bridge subscription relay
 
 ## `last_fm-radio-http` `partial`
 
+The `last.fm-radio-http` scheme — legacy Last.fm radio over HTTP; still accepted by the scheme table even though the service integration is historical.
+
+**Technical description:**
+
 Last.fm radio HTTP scheme
 
 - **scheme:** last.fm-radio-http
@@ -228,6 +244,10 @@ IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabular
 
 ## `pandora_com-pndrradioad` `partial`
 
+The `pandora.com-pndrradioad` service prefix — identifies Pandora ad-insertion streams distinctly from normal station audio.
+
+**Technical description:**
+
 pandora ad service prefix
 
 - **scheme:** pandora.com-pndrradioad
@@ -239,6 +259,10 @@ pandora ad service prefix
 </details>
 
 ## `pndrradio-http` `partial`
+
+`pndrradio-http://` — a Pandora radio variant served over plain HTTP. Appears in queue/transport URIs when a Pandora station uses the non-SMAPI path.
+
+**Technical description:**
 
 Pandora radio HTTP variant
 
@@ -380,6 +404,10 @@ Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%
 
 ## `sonos_com-hls-radio` `partial`
 
+The `sonos.com-hls-radio` service prefix — marks HLS-radio streams coming through the Sonos-hosted radio aggregation service.
+
+**Technical description:**
+
 hls-radio service prefix
 
 - **scheme:** sonos.com-hls-radio
@@ -442,6 +470,10 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 
 ## `stub` `partial`
 
+`stub://stub:%u` — a placeholder URI used by stub/dummy players in group handling. If it shows up in a queue, the source is a synthetic entry, not real media.
+
+**Technical description:**
+
 stub player URI
 
 - **scheme:** stub://stub:%u
@@ -471,6 +503,10 @@ Stub scheme token; likely a placeholder/no-op transport marker.
 
 ## `tqueue_probe_chain` `strong`
 
+The queue's URI-sniffing fallback chain: when a scheme isn't directly recognized, the queue probes in this order — explaining why some oddly-schemed URIs still resolve.
+
+**Technical description:**
+
 queue URI sniffing/fallback chain
 
 ```
@@ -486,6 +522,10 @@ Used by: t; q; u; e; u; e; ; o; p; e; n
 </details>
 
 ## `tqueue_scheme_registry` `strong`
+
+The queue's complete scheme-dispatch table: every URI scheme the track queue will accept, harvested as a contiguous literal run — the authoritative list of what can be enqueued.
+
+**Technical description:**
 
 complete playable-URI scheme zoo harvested as a contiguous literal run from tqueue.cxx — the queue's scheme dispatch table
 
@@ -697,6 +737,10 @@ Catch-all record; split into per-scheme records as uses get traced.
 </details>
 
 ## `x-sonos-unknown` `partial`
+
+`x-sonos-unknown:` — the placeholder for a source whose type couldn't be determined. Shows up in transport state when metadata is missing or the source predates classification.
+
+**Technical description:**
 
 unknown-source placeholder URI
 

@@ -1006,6 +1006,10 @@ UPnP search-criteria grammar accepted by CD search: upnp:class = "object.contain
 
 ## `vli_mimes` _unassessed_
 
+The MIME whitelist for VLI/queue items: AIFF, FLAC, MP4/M4A, MP3 (multiple spellings), OGG variants including x-spotify-ogg, WAV/L16, WMA, and the mpegurl playlist types. A URI whose Content-Type isn't in this set is rejected before the transport tries it — this is the accepted-codec contract.
+
+**Technical description:**
+
 VLI/queue accepted MIME whitelist
 
 Fields: `audio/x-aiff`, `audio/flac`, `audio/mp4`, `audio/x-m4a`, `audio/mpeg`, `audio/mp3`, `audio/mpeg3`, `application/ogg`, `audio/ogg`, `audio/x-spotify-ogg`, `audio/x-wav`, `audio/vnd.wave`, `audio/wma`, `audio/x-ms-wma`, `audio/x-mpegurl`, `audio/mpegurl`, `application/x-mpegurl`, `application/vnd.apple.mpegurl`, `audio/L16`, `application/dash+xml`
