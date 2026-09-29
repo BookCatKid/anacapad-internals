@@ -121494,9 +121494,9 @@
    ]
   },
   "shoutcast": {
-   "name": "shoutcastradio \u2014 ICY stream client",
+   "name": "shoutcast/ICY stream client",
    "status": "partial",
-   "summary": "headers {icy-name,location,CONTENT-TYPE,server,StreamTitle}; status accept {ICY 200,HTTP/1.0 200,HTTP/1.1 200,HTTP/1.0 30x,HTTP/1.1 30x} + redirect follow; Cougar server id; \"Redirect audio/x-mpegurl to %s\"; \"request buffer is too small\"; \"add header [%s : %s]\"; metadata text=\"\u2026\"",
+   "summary": "request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; responses {ICY 200,HTTP/1.1 200,HTTP/1.0 200,HTTP/1.1 30x,HTTP/1.0 30x} + redirect to %s; \"request buffer is too small\"; \"add header [%s : %s]\"; \"opening connection with [%s]\"; \"Redirect audio/x-mpegurl to %s\" (M3U); inline metadata {StreamTitle,text=\"\"} + \"end of file or I/O error\"; shoutcastradio type; explicitContentFiltering + rsmapicontextzp",
    "evidence": [
     {
      "type": "firmware",
@@ -121507,7 +121507,17 @@
    ]
   },
   "smartplay": {
-   "detail": "PlayerSmartPlay required fields (missing field %s err); {BUTTON,EMPTY_AVT} triggers; explicitContentFiltering via rsmapicontextzp; \"loadContent took %ld ms: GroupId %s GC %s\"; /bridge/content/api \"service base path: %s\" + getContent took/parse/failed + fetchContentAndStartPlay; \"AVT URI is empty\"/\"AVT URI is a queue and is empty\"; \"Failed to get queue info via UPnP\"; selfTruePlay; \"Command not supported\"; \"allowMicrophone setting requires a microphone\"; night/dialog/grouping-latency change fails; Backgrounds MSP add/remove (ret %u); shadrepl %s?id=%u"
+   "name": "smartplay \u2014 bridge content loader",
+   "status": "partial",
+   "summary": "reasons {BUTTON,EMPTY_AVT}; \"PlayerSmartPlay missing required field %s\"; /bridge/content/api + \"service base path: %s\"; timings {\"loadContent took %ld ms: GroupId %s GC %s %s\",\"getContent took %ld ms: %s\",\"fetchContentAndStartPlay took %ld ms, success: %s\"}; errors {loadContent failed,getContent parse failed,getContent failed}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed4968",
+     "notes": "smartplay block"
+    }
+   ]
   },
   "audio_decoder": {
    "name": "generic audio decoder + ffmpeg WMA path",
@@ -122324,6 +122334,37 @@
      "status": "confirmed",
      "address": "0x10f975c0",
      "notes": "type-name block"
+    }
+   ]
+  },
+  "timed_jobs": {
+   "name": "timed-job registry + setup",
+   "status": "partial",
+   "summary": "jobs {netsettingsBumpVersion,checkSonosNetDisableTestTimedJob,netsettingsRotateKeys,CheckForMissedPlayers,JITCloudFetch,RefreshSonosRadio,AddRemoveSonosBusinessMSP,fetchCertBundle,resetBTRecoverState,pollWirelessNetworkStatus,backupLogFiles,refreshSSLClientCache,reportSSLClientCacheStats,saveSSLClientCache,userInitiatedHHUpdate}; workers {asyncWorkerModZp,asyncMuseModZp}; setup {\"Setting up ZonePlayer\",\"ZonePlayer setup complete\",\"Setting up MediaPlayer for port %u\",\"Setup for MediaPlayer on port %u complete\",\"no %s found in %s\"}; jobs {High Res Usage Metrics/HRUsageMetrics,Account Maintenance/SvcAccountMaint}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10e74914",
+     "notes": "job registry"
+    }
+   ]
+  },
+  "album_art": {
+   "worker": "\"album URI dereferenced to: %s\"; \"Fetching album art for %s: %s\"; \"invoking vliStreamImage on %s %u %u %u %s\"; \"vliStreamImage failed\""
+  },
+  "stream_playback": {
+   "name": "stream playback FSM + frame timing",
+   "status": "partial",
+   "summary": "policy {\"Cloud queue policy pause expiry time hit\",\"Queue content expired\",\"clearing queue per policy\",\"Queue policy stop on error\",\"Ignoring playback policy change for context version %s\"}; routines {running/End of pauseRoutine,running stopRoutine}; states {DEFER_PLAYING timeout,TRAN_PAUSED,PLAYING_START,suspended}; \"Resetting required group caps [0x%08x] -> [0x%08x]\"; \"logical track boundary at %u\"; frame timing {\"notifyFrameInternal: behind %dms\",\"ahead %lldms. Sleeping %lu ms, playtime=%d.%06d, sent at=%d.%06d, now=%d.%06d\",\"tracking E_WOULDBLOCK count\",\"setting origin time to %d.%06d\"}; start hints {waiting,fast startup,future,met,no hint,crossfading}; buffer {\"buffering underflow after %lld ms, requesting resync [BH:%lld, FH:%u%%, FA:%lld, FR:%d]\",\"recovered buffering underflow\"}; metrics {timeStart,timeEnd,behindMS,chsrc_behind}; skip reasons {duplicate,restricted,explicit,denylisted,Upcoming Spotify not playable,Spotify filtered for explicit}; \"PlayTTL expired, pausing playback\"; mime/URI consistency check + getTrackURIAndFramer [f,u,m,cld]; oob metadata {cache reset,enabled,disabled}; \"Ignoring provided mediaUrl\"; session ops {stationMetadata,rejoinSession,leaveSession,trackMetadata,streamUrl}; seek {\"Overriding seek with value from SMAPI service: %lds\",\"tvSeek framerResumePos\"}; URIs {x-rincon-sonarcal,x-rincon-configmode,file://%s/sonar-tone/%s,file:///opt/buzzers/%s}; \"Apple Music: use the derefenced URI to determine the framer, see CP-7253\"; \"Hit the end of the programmed radio queue\"; \"reporting enqueued stream URI instead of track URI\"",
+   "error_report": "%s Transport error %s for account type %u, URI: %s, friendly name: %s, share/server: %s, path: %s, ip: %s, host: %s, extra info: %s, http: %d, framer: %s, ahead: %d, rate: %d",
+   "crossfade": "\"Setting up for %d.%06d sec crossfade\"/\"Not fading\" + prev/next track length logs",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ea992c",
+     "notes": "playback block"
     }
    ]
   }
