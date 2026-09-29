@@ -113498,43 +113498,12 @@
     }
    ]
   },
-  "device_description_variants": {
-   "status": "confirmed",
-   "name": "Alternate device-description documents",
-   "description": "Three device descriptions exist: device_description.xml (served, 16 services), device_description_no_ai.xml (alternate without AudioIn \u2014 proves the omission is a switchable variant, not conditional assembly), and group_description.xml (SpeakerGroup:1 satellite doc). satellite_device.xml also exists for bonded sub/surrounds.",
-   "files": [
-    "/xml/device_description.xml",
-    "/xml/device_description_no_ai.xml",
-    "/xml/group_description.xml",
-    "/xml/satellite_device.xml"
-   ],
-   "evidence": [
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ef2590",
-     "notes": "/xml/device_description_no_ai.xml"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ef25b4",
-     "notes": "/xml/satellite_device.xml"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ef2574",
-     "notes": "/xml/group_description.xml"
-    }
-   ]
-  },
+  "device_description_variants": [
+   "/xml/device_description.xml",
+   "/xml/group_description.xml",
+   "/xml/satellite_device.xml",
+   "/xml/device_description_no_ai.xml"
+  ],
   "gena_internals": {
    "status": "strong",
    "name": "GENA internals + per-service LastChange schemas",
@@ -120554,6 +120523,41 @@
      "notes": "audio_stream region"
     }
    ]
+  },
+  "cloud_registration": {
+   "fsm": "cloudregistration.cxx: required fields {sonosId,householdLocationId,dhcpMac,ipAddr,museHHName} \u2014 \"Missing required information: DHCP Server MAC (%s), Location ID (%s)\" defers registration; triggers \"Updating cloud registration due to '%s'\"/MuseSessionId change/explicit request; \"Caching muse cloud registration event %s\"; \"Network Hash [%s], Muse Household Id [%s]\"; cloudRegPollWifiStation monitor job; R_HouseholdLocationID key"
+  },
+  "lechmere": {
+   "cloudrequest": "cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg (\"per msg deflate change %d -> %d\") w/ local-run-state override; \"Player IP changed. Bouncing connection\"; backoff \"Following backoff schedule, retry in %lld\"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT (\"Unexpected TYPE EVENT\"), \"support for HTTP message dropped\", \"Unrecognized message type\"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/\"player request failed: %s\"; SwitchingRadiosEvent; museCloudEvtHandler"
+  },
+  "dev_disc": {
+   "name": "RDevDiscThread/ddt SSDP device discovery",
+   "status": "partial",
+   "summary": "devdiscthr/ddthrd.cxx: rx logging \"%s - rx MSEARCH %s from %s:%d (%zd %d %d)\", \"%s - rx %s ALIVE %s %s %d %u %s (%zd)\", \"%s - rx %s BYEBYE %s\", \"%s - rx CDALIVE %s %s %d\", \"%s - rx CDBYEBYE %s\", \"rx  QUARANTINE_RECHECK %s\"; \"%s - %u SSDP messages lost\"; zp byebye; \"ddt hint:%d\"; \"Finished working on type %d\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef1d08",
+     "notes": "ddthrd.cxx"
+    }
+   ]
+  },
+  "cloud_synchronizer": {
+   "name": "RCloudSynchronizer",
+   "status": "partial",
+   "summary": "cloud_synchronizer thread: registerServices (max-count abort, called-once guard), \"received JIT event\", \"discarding %s type %d\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ef1ba0",
+     "notes": "cloudrequest region"
+    }
+   ]
+  },
+  "cert": {
+   "metadata_errors": "devcertmgrprovider cert validation codes: BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present; headers X-Sonos-UserId,X-Sonos-Muse-Household-Id,X-Sonos-Denylisted; response {requestTimeMS,downloadStatusCode,httpResultCode,previousETag,download,reasonCode,certError}; states downloaded/unchanged/generating; \"Unknown cert metadata state: %s. Scheduling cert refresh job\"; \"Retrieved manufacturing data: %s\"; refresh \"%s: refresh check in %ld seconds\"/\"certificate expired\"/\"utc time not set\""
   }
  },
  "muse": {
