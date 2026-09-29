@@ -678,7 +678,31 @@ the deep semantic layer:
    `/regcert` + `/root_cert_bundles` handler internals unresolved
 8. **SemiSleep/WAC/factory-reset state machines** — trigger strings
    catalogued; full FSM transitions not walked
-9. **IBT plan format** — executor decoded (plan→target-list→
-   dispatch); plan schema and command vocabulary unknown
+9. **IBT plan format** — substantially decoded (post-`4ef58a2`):
+   IBT = cloud-issued command fan-out to intended targets
+   (players/areas); `[dispatch]`/`[group]` vocabulary recovered
+   (per-target results, bearer + `X-Sonos-Type` auth, group
+   add/create/forward ops); 13 `zones`-namespace verbs bound via the
+   registry tail @ `0x11094380`. Remaining: plan serialization
+   format and the exact IBT-eligible command whitelist
+9b. **Migration-data container** — RESOLVED (post-`26bc86f`):
+   kaomoji-magic checksummed fragments
+   (`{"magic":"`|_(:/)_|`","length":N,"checksum":"0x%08X","counter":N}`
+   + `{"magic":"(=^+^=)","version":11}` file stamp), writer
+   `f_10bf8000`, keyId/hetType validation on read
+9c. **CloudQueueWindow item schema** — RESOLVED (post-`7d678be`):
+   window URL params `{isExplicit,previousWindowSize,upcomingWindowSize,
+   heardItemId}`, per-item fields `{itemId,actions,mediaUrl,
+   mediaFormat,sampleRate,bitDepth,bitRate,numChannels,dolbyAtmos,
+   reportId,privateData,positionMillisAtSegmentStart,policies}`,
+   play-report + rating posts, full header set, error taxonomy
+9d. **Trueroom estimator payloads** — RESOLVED (post-`99876cb`):
+   all 5 ops ARE spec-bound; request/response field:type schemas
+   decoded (adaptation posts `trueroomEstimatorConfig`,
+   calibrationStatus answers `trueroomAdaptationStatus`...);
+   residual: `trueroomEstimatedParams` inner field names
+9e. **`/status` flag semantics** — analysed (post-`c258d4b`): not
+   page-type bits; per-page bitmask, `0x80` = prefix-mount; support-
+   bundle section-mask hypothesis; exact bit semantics unproven
 10. **XML schema clusters** — element lists recovered; attribute
     types/ranges/defaults mostly unvalidated against parsers
