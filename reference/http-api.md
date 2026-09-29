@@ -2962,6 +2962,83 @@ The complete operation list of the muse (app/cloud) API: every resource and what
       - **105:** ERROR_INCOMPATIBLE_CLIENT_VERSION
       - **106:** ERROR_NOT_DESIGNATED_DEVICE
     - **note:** the muse/lechmere result-code enum (systemResult/result fields, cmd responses). 0-51 domain errors, 52-56 success (OK/CREATED/ACCEPTED/NO_CONTENT/NOT_MODIFIED mirroring HTTP 200/201/202/204/304), 57-106 protocol/request errors. Out-of-range renders UNKNOWN
+  - **media_service_errors:**
+    - **provenance:** ordered char* name table @0x110925dc, 71 entries; duplicate-name codes share pointers (ACCESS_DENIED x3, NO_RESOURCE x3) confirming index semantics. Consumer not yet located — value binding inferred from table order, lower confidence than muse_result_codes
+    - **kind:** enum
+    - **count:** 71
+    - **names:**
+      - **0:** ERROR_OCCURRED
+      - **1:** ERROR_CANT_REACH_SERVER
+      - **2:** ERROR_ACCESS_DENIED
+      - **3:** ERROR_ACCESS_DENIED
+      - **4:** ERROR_NO_RESOURCE
+      - **5:** ERROR_NO_RESOURCE
+      - **6:** ERROR_LOST_CONNECTION
+      - **7:** ERROR_UNSUPPORTED_FORMAT
+      - **8:** ERROR_UNSUPPORTED_FREQ
+      - **9:** ERROR_UNSUPPORTED_DRM
+      - **10:** ERROR_CORRUPT_FILE
+      - **11:** ERROR_ACCESS_DENIED
+      - **12:** ERROR_TOO_MANY_MOUNTED
+      - **13:** ERROR_NO_RESOURCE
+      - **14:** ERROR_TOO_MANY_USERS
+      - **15:** ERROR_BAD_INET_RADIO
+      - **16:** ERROR_BUFFERING
+      - **17:** ERROR_CANT_RESOLVE_NAME
+      - **18:** ERROR_RHAP_STREAM_LIMIT
+      - **19:** ERROR_RHAP_UNAVAILABLE
+      - **20:** ERROR_RHAP_BAD_ACCOUNT
+      - **21:** ERROR_RHAP_TRIAL_EXPIRED
+      - **22:** ERROR_RHAP_NO_ACCOUNT
+      - **23:** ERROR_RHAP_UNSUPP_ACCOUNT
+      - **24:** ERROR_AUDIBLE_BAD_CODEC
+      - **25:** ERROR_AUDIBLE_DRM
+      - **26:** ERROR_AUDIBLE_ZP_MISSING
+      - **27:** ERROR_WMP_ACCESS_DENIED
+      - **28:** ERROR_WMP_NO_LICENSE
+      - **29:** ERROR_SIRIUS_STREAM_LIMIT
+      - **30:** ERROR_SIRIUS_STREAM_LIMIT_EXT
+      - **31:** ERROR_SIRIUS_BAD_ACCOUNT
+      - **32:** ERROR_SIRIUS_TRIAL_EXPIRED
+      - **33:** ERROR_SIRIUS_INACTIVE
+      - **34:** ERROR_SIRIUS_NO_ACCOUNT
+      - **35:** ERROR_SIRIUS_BAD_SUBLEVEL
+      - **36:** ERROR_SIRIUS_AUTH_GEN_FAIL
+      - **37:** ERROR_SIRIUS_AUTH_INACTIVE
+      - **38:** ERROR_PAND_BAD_ACCOUNT
+      - **39:** ERROR_PAND_TRIAL_EXPIRED
+      - **40:** ERROR_PAND_NO_ACCOUNT
+      - **41:** ERROR_PAND_BAD_SUBLEVEL
+      - **42:** ERROR_PAND_READ_ONLY
+      - **43:** ERROR_PAND_STATION_GONE
+      - **44:** ERROR_PAND_SUSPENDED
+      - **45:** ERROR_SONOS_BAD_ACCOUNT
+      - **46:** ERROR_SONOS_NO_ACCOUNT
+      - **47:** ERROR_SONOS_TRIAL_EXPIRED
+      - **48:** ERROR_LASTFM_BAD_SUBLEVEL
+      - **49:** ERROR_LASTFM_STREAM_LIMIT
+      - **50:** ERROR_LASTFM_NO_ACCOUNT
+      - **51:** ERROR_LASTFM_NO_CONTENT
+      - **52:** ERROR_DOCK_INTERRUPT
+      - **53:** ERROR_SONOS_STREAM_LIMIT
+      - **54:** ERROR_SONOS_UNSUPP_ACCOUNT
+      - **55:** ERROR_LASTFM_BAD_ACCOUNT
+      - **56:** ERROR_MOBILE_CANT_REACH_SERVER
+      - **57:** ERROR_SONOS_TOKEN_EXPIRED
+      - **58:** ERROR_SONOS_BAD_LOCATION
+      - **59:** ERROR_SONOS_INACTIVE
+      - **60:** ERROR_CLOUD_QUEUE_SERVICE_ERROR
+      - **61:** ERROR_CLOUD_QUEUE_ACCESS_DENIED
+      - **62:** ERROR_CLOUD_QUEUE_STREAM_LIMIT
+      - **63:** ERROR_CLOUD_QUEUE_SERVICE_UNRESPONSIVE
+      - **64:** ERROR_CLOUD_QUEUE_CANT_REACH_SERVER
+      - **65:** ERROR_CERT_DENYLISTED
+      - **66:** ERROR_CERT_NEEDED
+      - **67:** ERROR_ACCESS_DENIED_EXPLICIT
+      - **68:** ERROR_NO_CONTENT
+      - **69:** ERROR_RESOURCE_NO_LONGER_AVAILABLE
+      - **70:** ERROR_NO_PLAYABLE_CONTENT
+    - **note:** legacy media/service playback error enum: generic transport errors 0-17, then per-service ranges (RHAP 18-23, AUDIBLE 24-26, WMP 27-28, SIRIUS 29-37, PAND 38-44, SONOS 45-47, LASTFM 48-51,55, DOCK 52, SONOS extras 53-54,56-59, CLOUD_QUEUE 60-64, CERT 65-66, tail 67-70)
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
 - **r_star_status:** PROVEN: R_LED_* (64-bit mask, applyLEDMode log-arg constants), R_PLAY_OP_* + R_STREAM_OP_* (PIC jump-table bucketing), muse result codes 0-106 (direct-indexed name table — the enum the R_-adjacent ERROR_* strings actually belong to). CORRECTION: most names previously catalogued as R_* namespaces (R_ACCOUNT_*, R_PAND_*, R_WMP_*, R_LASTFM_*, R_CLOUD_QUEUE_*, R_PLAYBACK_*, R_INIT/READ/WRITE_STATUS_*, R_MASK_*, R_TYPE_*, R_DOCK_INTERRUPT, R_MICROPHONE_*, R_PEER_*, R_INSUFFICIENT_*) were SUBSTRING ARTIFACTS inside ERROR_*, FLAC__STREAM_DECODER_*, SPEAKER_MASK_* and FRAME_NUMBER_TYPE_* strings — not a Sonos R_ namespace. Genuine remaining R_*: R_CLIENT_KEYCERT_ID_* (curl cert-selection ids, log only) and the ~29 R_* settings keys (separate vocabulary)
