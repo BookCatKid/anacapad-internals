@@ -104771,6 +104771,12 @@
    "service": "/status",
    "description": "SoundDevice page (per-zone volume/ducking)",
    "fields": "<SoundDevice><Zones><Zone><Zone>%d</Zone><UnscaledVolume><Volume><DeferredVolume><Ducked><DuckingVolume><DuckingPercent><OverrideVolume><Muted><DeferredMute><ExtSrcVolume><SurroundLevel><ZoneChannelCount></Zone></Zones></SoundDevice>"
+  },
+  "replicated_netsettings_schema": {
+   "status": "strong",
+   "service": "settings replication",
+   "description": "netsettings replicated XML",
+   "fields": "<ReplicatedNetSettings LastUpdateDevice Version FileSchemaVersion><SonosNet Disable=\"%d\"/><SonosNet Frequency=\"%d\"/><Network SSID Flags/><HhPsk id/><BackupHhPsk id/><ControlPsk id/><BackupControlPsk id/><RoomEncPsk id/><BackupRoomEncPsk id/><LanSwapPsk id/><BackupLanSwapPsk id/></ReplicatedNetSettings>; keys {sn_en,sn_dis,sn_dis_test} + genTime + {sonosnet,networks} json groups"
   }
  },
  "uri_formats": {
@@ -120999,6 +121005,19 @@
   },
   "dsp_params": {
    "pcm_decoder": "decoder_pcm guards {Invalid frame size,Unsupported input rate,Invalid number of input samples}; <DEC_SampleRate>; event-mgr {Add fd for object,Spurious Input Event 0x%x,Object %s was not formally released}"
+  },
+  "network": {
+   "netsettings_mgr": "file netsettings.json + HHSettings + schema upgrade; 4 PSK classes {HhPsk,ControlPsk,RoomEncPsk(room name encrypt),LanSwapPsk} each + Backup variant, rotation \"PSK rotation successful (HH/Control/RoomEnc/LanSwap)\" + version bump; encoding {SonosNet key,DTLS HH PSK}; netstartd push {netsettings,PSK,channel change \"Pushed SonosNet channel change to %u for %u ms\"}; SonosNet-disable test-mode auto-revert FSM {sn_en,sn_dis,sn_dis_test}: \"schedule automatic revert in %d seconds\"/\"SonosNet was re-enabled\"/\"Disable succeeded (probably)\"/\"automatic revert failed!\"; SSID protection \"Registering for next topology update to protect SSID\"; \"Pending netsettings.json update discarded after replicating\"",
+   "network_test": "networkTestMgr: nettestresult.txt; cycle {\"waiting %d sec before disabling wifi\",\"disabling wifi for %d sec\",\"enabling wifi\",connect-open,complete:%s} + abort paths"
+  },
+  "nodetx": {
+   "ops_counters": "ops {schedResyncX,immedResync,schedResync,endTX}; ITBTT types {ITBTT_UNKNOWN,ITBTT_CHSRC,ITBTT_LINEIN,ITBTT_VLI}; crossfade state for packetId {lPacketNum-1/lPacketNum-2 fallback,no frames,crossfade on/off}; \"checkAndMarkFrameDiscontinuity: %lldus\"; \"getLocationAtTime earlier than oldest valid packet\"; NACK {\"nack from %s count=%u, min=%u, max=%u\",\"not transmitting %u stale packets\",\"ignore NACK packet with incompatible protocol version\"}; perf-counters {rsend=DataBlock sends,nackr=resync NACK,nackd=data NACK,nacku=unsendable NACK} + \"Histogram of transmitted packet info\"; params {transmit port,dstaddr unicast/multicast,lastpktid}"
+  },
+  "muse": {
+   "auth_errors": "auth helper errors {\"Player is not securely registered\",\"Access token's user does not match registered user\",\"Access token does not have adequate permissions\",\"Command scopes could not be determined\",\"Invalid user\",\"Scope is insufficient\",\"Error reading scopes\",\"Error matching scopes\"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {\"Response code: %d, Access token is invalid\"/\"Scope is insufficient\"}"
+  },
+  "registration": {
+   "secreg_fsm": "endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {\"Invalid registration signing key in IPC payload\",\"Registration signing key set/cleared\"}; \"Household customer ID [%s] in conflict with local device [%s]\"; \"regState changed %d -> %d\"; \"Transfer mode old (e:%d) new (e:%d)\" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; \"removed invalid cert\"; \"Unexpected 401 response\"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}"
   }
  },
  "muse": {
