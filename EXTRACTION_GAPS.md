@@ -1182,3 +1182,23 @@ the deep semantic layer:
     the 0x40001204 flag word unresolved (may be per-msg
     callback/default blocks); (c) .eh_frame_hdr present (4620 FDEs)
     and already exploited by build_funcmap - no additional gap there.
+
+16. Section-census closeout round (9b0f3a5-9547d7e):
+    protobuf desc census final: 102 msgdescs = 76 .rodata + 5
+    .data.rel.ro (aux ptr forces relocation) + 21 one-field
+    wrappers whose {aux_ptr, field_info_word} pairs live packed in
+    .sdata - the 0x40001204/0x40001404/0x10001004 .sdata words are
+    field_info streams, fully resolving residual 15(b).
+    PLT census: 900 unique imports; Sonos-specific surface verified
+    covered (hal_* amps/detect/ir/orient/thermal, hwmessagelib 9
+    multicast groups, WifiFuncs*, DNSService/TXT, smb2, dcadec,
+    mbedtls+psa, mpg123, sqlite3, toml, sonos_* syslib helpers,
+    sonos_auth_add_ambient/become_capable, init_event_ctx/
+    report_event). Only unnamed-outlier: paranoid_* safe-atoi set.
+    PEM-ish strings at 0x10f81964/0x10f87674 are vendored parse
+    markers (curl sha256 pinning, mbedtls x509 dump), NOT embedded
+    key material. .got = 5 std slots (null, bctr resolver,
+    .dynamic ptr, 2 zero). .tbss 4 slots have no TLS dynsyms
+    (internal IE-model vars, statically unresolvable).
+    Action-layer saturation verified: 205/205 actions carry bound
+    handler addresses.
