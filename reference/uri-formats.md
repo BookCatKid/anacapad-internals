@@ -334,6 +334,24 @@ radio-service URI family
 
 </details>
 
+## `rhapsody_imageserver` `confirmed`
+
+A leftover hardcoded Rhapsody integration: album art for Rhapsody content is fetched from http://direct-ns.rhapsody.com/imageserver/images/<id>/300x300 - the only baked-in third-party image CDN in the binary. Everything else goes through service-specific metadata; this one survived as a literal.
+
+**Technical description:**
+
+Used by: album-art URL construction for Rhapsody-sourced content
+
+hardcoded Rhapsody/Napster album-art CDN template; %s = image id, fixed 300x300 size. One of few absolute non-Sonos host literals; distinct from the real.com-rhapsody-direct protocolInfo scheme and the old-Rhapsody cpcontainer migration paths
+
+- **grammar:** http://direct-ns.rhapsody.com/imageserver/images/%s/300x300
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e77c7c — format literal
+
+</details>
+
 ## `rinconnetworks_urn` `strong`
 
 The Sonos 'rinconnetworks' XML namespace — appears inside DIDL/LastChange metadata for Sonos extension fields.
