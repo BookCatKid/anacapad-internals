@@ -1241,6 +1241,67 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     AccountsInfo, Active, ActiveDeviceList, Alarm, Alarms, AudioCore, Backtrace, Bundles, Cert, ClientVersion, Cloud, ConnectionDetails, CpuMonitor, DNSCache, DSPStateManager, Decoder, DeviceInfo, DiagLevel, EnetPorts, Entry, General, HTConfig, HardwareStatusInfo, History, IRCode, IdxTrk, Incoming, LedPatternInfo, LocalSettings, LocalTime, MediaServers, Mode, Mount, Muse, MusicDecoder, NetSettings, NextLocal, NextUTC, Outgoing, Path, Pending, PendingAlarm, PerformanceCounterTables, Presentation, QuarantinedDevices, Registration, RenderingControl, Replication, RestHistory, RoomCalibrationActiveState, RoomCalibrationAvailCalID, RoomCalibrationBondedZoneInfo, RoomCalibrationInfo, RoomCalibrationOrientation, RoomCalibrationUserIntent, SPDIFTap, SSLClientCache, Satellites, Scheduler, SelfTrueplayEQ, SelfTrueplayInfo, ServiceIds, Services, SsidList, SubscribedEvents, Subscription, Subscriptions, Tables, ThirdPartyLibraryInfo, TimeUTC, Titles, Total, TrackQueueSummary, TrackSummary, UTCTime, UpdateInfo, UsageMetrics, UserAgent, VanishedDevices, Version, WebSocketHistory, Wireless, ZPInfo, ZPSupportInfo, ZoneGroupState, ZoneGroups, ZoneName, ZonePlayers, Zones
     ```
   - **note:** <Name> tags = the emitted root element AND the registered module identity; 90 tags in rodata vs 57 routed pages — unrouted tags (e.g. RoomCalibration*, VanishedDevices, UsageMetrics) are sub-documents emitted inside other pages
+- **status_page_registry:**
+  - **provenance:** stride-12 {name*, flag, source*/handler*} table at ~0x11090144-0x11090b6c (immediately precedes the master 102-record route table at 0x11090c00). Two page families: exec/file pages (source = shell cmd string like /sbin/lsmod, /bin/chronyc, or file path under /jffs /opt/log /proc/ath_rincon) and module pages (source = .text handler). flag values 1,2,6,0xa,0xb,0xe,0x43,0x46,0x82 — semantics undecoded, likely content-type/auth bitmask (0x82 set on /api,/cloudqueue,/leds).
+  - **exec_pages:** `/ifconfig->/sbin/...`, `/lsmod->/sbin/lsmod`, `/mount->/bin/mount`, `/netstat->/bin/netstat -an`, `/ntpsources->/bin/chronyc -n sources -v`, `/ps->/bin/ps`, `/route->/sbin/route -n`, `/scanresults->/wifi/athconfig scangetresults ath0 (flag 6)`, `/showmacs->brctl showmacs br0`, `/showports->brctl showports br0`, `/showstats->brctl showstats br0`, `/showstp->brctl showstp br0`, `/uptime->/usr/bin/uptime`, `/df`, `/du-jffs`, `/free`, `/date`, `/debugfiles`, `/dmesg`
+  - **file_pages:** ~45 file-cat pages: /VERSION, /etc/resolv.conf, /jffs/{settings/*.json\|xml, *.log, irconfig.txt, localsettings.txt, shadow/stats, sys/log/setup*}, /opt/log/anacapa.*.log (18+ named logs incl. musecmdandrsp/museevt/lechmere.event/chsrc.state/trueplay), /proc/ath_rincon*/{device,dfs,fullstatus,mibcc,nf,phyerr,roam,station,status,primary}
+  - **module_pages:**
+    - **/accounts:** f_100ba480
+    - **/activeZones:** f_100b9298
+    - **/ai_speech_enhance:** f_100ba8b0
+    - **/alarm:** f_100b9278
+    - **/analoglinein:** f_100bced0
+    - **/api:** f_105eb124 (flag 0x82 — muse)
+    - **/audiocore:** f_100bb008
+    - **/backtrace:** f_100b9260
+    - **/button_triggered.xml:** f_100b91d8
+    - **/cloud:** f_105eb2c8
+    - **/cloudqueue:** f_100babc0 (flag 0x82)
+    - **/cpumon:** f_100b9200
+    - **/decoder:** f_100bc068
+    - **/device:** f_100bf634
+    - **/dmesg:** f_105eaba4
+    - **/dnscache:** f_100b91f4
+    - **/dropout_triggered.xml:** f_100b91bc
+    - **/enetports:** f_105bc7cc
+    - **/ethportstatistics:** f_105bc918
+    - **/experiments:** f_100b9170
+    - **/hardwareevents:** f_100b9aac
+    - **/hls:** f_100bacfc
+    - **/htconfig:** f_100bb144
+    - **/leds:** f_100b9158 (flag 0x82)
+    - **/libraries:** f_100b9140
+    - **/location_settings_update:** f_105eaf20
+    - **/musicservices:** f_100b9120
+    - **/netsettings.json:** f_105eac48
+    - **/netsettings.txt:** f_105eac18
+    - **/perfcounters:** f_100b9004
+    - **/playmode:** f_100bbe98
+    - **/policy:** f_100bc97c
+    - **/radiolog:** f_100b8ff8
+    - **/regcert:** f_105eb984 -> locator+2260 -> f_105a699c in f_105a6984 (DeviceCertInfo page)
+    - **/registration:** f_105eb17c (<Registration><RegState><CustomerID>)
+    - **/renderingcontrol:** f_100b8f2c
+    - **/root_cert_bundles:** f_105eb9a0 -> f_1055e63c (CA bundle hex dump)
+    - **/rss:** f_105eadb8
+    - **/settings/effective:** f_100b8ef8
+    - **/settings/location:** f_100b8f14
+    - **/settings/player:** f_100b8edc
+    - **/shares:** f_100b8ebc
+    - **/spdiftap:** f_100bd810
+    - **/ssidlist.txt:** f_105eac30
+    - **/ssl_client_cache:** f_105eb9ac
+    - **/syssettings:** f_105eada0
+    - **/temperature:** f_100b8dcc
+    - **/topology:** f_105eaafc
+    - **/track_queue_summary:** f_100baa84
+    - **/tracks_summary:** f_10108138
+    - **/trueplayinfo:** f_100b8ea4
+    - **/tvprocessor:** f_100bb318
+    - **/update:** f_100b8e84
+    - **/upnp:** f_105eb0b4
+    - **/wireless:** f_105eab50
+    - **/zp:** f_100bfbac (flag 1)
 
 ## `device_account_endpoint`
 

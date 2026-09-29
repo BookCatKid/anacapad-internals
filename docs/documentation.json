@@ -113705,6 +113705,89 @@
      "Zones"
     ],
     "note": "<Name> tags = the emitted root element AND the registered module identity; 90 tags in rodata vs 57 routed pages \u2014 unrouted tags (e.g. RoomCalibration*, VanishedDevices, UsageMetrics) are sub-documents emitted inside other pages"
+   },
+   "status_page_registry": {
+    "provenance": "stride-12 {name*, flag, source*/handler*} table at ~0x11090144-0x11090b6c (immediately precedes the master 102-record route table at 0x11090c00). Two page families: exec/file pages (source = shell cmd string like /sbin/lsmod, /bin/chronyc, or file path under /jffs /opt/log /proc/ath_rincon) and module pages (source = .text handler). flag values 1,2,6,0xa,0xb,0xe,0x43,0x46,0x82 \u2014 semantics undecoded, likely content-type/auth bitmask (0x82 set on /api,/cloudqueue,/leds).",
+    "exec_pages": [
+     "/ifconfig->/sbin/...",
+     "/lsmod->/sbin/lsmod",
+     "/mount->/bin/mount",
+     "/netstat->/bin/netstat -an",
+     "/ntpsources->/bin/chronyc -n sources -v",
+     "/ps->/bin/ps",
+     "/route->/sbin/route -n",
+     "/scanresults->/wifi/athconfig scangetresults ath0 (flag 6)",
+     "/showmacs->brctl showmacs br0",
+     "/showports->brctl showports br0",
+     "/showstats->brctl showstats br0",
+     "/showstp->brctl showstp br0",
+     "/uptime->/usr/bin/uptime",
+     "/df",
+     "/du-jffs",
+     "/free",
+     "/date",
+     "/debugfiles",
+     "/dmesg"
+    ],
+    "file_pages": "~45 file-cat pages: /VERSION, /etc/resolv.conf, /jffs/{settings/*.json|xml, *.log, irconfig.txt, localsettings.txt, shadow/stats, sys/log/setup*}, /opt/log/anacapa.*.log (18+ named logs incl. musecmdandrsp/museevt/lechmere.event/chsrc.state/trueplay), /proc/ath_rincon*/{device,dfs,fullstatus,mibcc,nf,phyerr,roam,station,status,primary}",
+    "module_pages": {
+     "/accounts": "f_100ba480",
+     "/activeZones": "f_100b9298",
+     "/ai_speech_enhance": "f_100ba8b0",
+     "/alarm": "f_100b9278",
+     "/analoglinein": "f_100bced0",
+     "/api": "f_105eb124 (flag 0x82 \u2014 muse)",
+     "/audiocore": "f_100bb008",
+     "/backtrace": "f_100b9260",
+     "/button_triggered.xml": "f_100b91d8",
+     "/cloud": "f_105eb2c8",
+     "/cloudqueue": "f_100babc0 (flag 0x82)",
+     "/cpumon": "f_100b9200",
+     "/decoder": "f_100bc068",
+     "/device": "f_100bf634",
+     "/dmesg": "f_105eaba4",
+     "/dnscache": "f_100b91f4",
+     "/dropout_triggered.xml": "f_100b91bc",
+     "/enetports": "f_105bc7cc",
+     "/ethportstatistics": "f_105bc918",
+     "/experiments": "f_100b9170",
+     "/hardwareevents": "f_100b9aac",
+     "/hls": "f_100bacfc",
+     "/htconfig": "f_100bb144",
+     "/leds": "f_100b9158 (flag 0x82)",
+     "/libraries": "f_100b9140",
+     "/location_settings_update": "f_105eaf20",
+     "/musicservices": "f_100b9120",
+     "/netsettings.json": "f_105eac48",
+     "/netsettings.txt": "f_105eac18",
+     "/perfcounters": "f_100b9004",
+     "/playmode": "f_100bbe98",
+     "/policy": "f_100bc97c",
+     "/radiolog": "f_100b8ff8",
+     "/regcert": "f_105eb984 -> locator+2260 -> f_105a699c in f_105a6984 (DeviceCertInfo page)",
+     "/registration": "f_105eb17c (<Registration><RegState><CustomerID>)",
+     "/renderingcontrol": "f_100b8f2c",
+     "/root_cert_bundles": "f_105eb9a0 -> f_1055e63c (CA bundle hex dump)",
+     "/rss": "f_105eadb8",
+     "/settings/effective": "f_100b8ef8",
+     "/settings/location": "f_100b8f14",
+     "/settings/player": "f_100b8edc",
+     "/shares": "f_100b8ebc",
+     "/spdiftap": "f_100bd810",
+     "/ssidlist.txt": "f_105eac30",
+     "/ssl_client_cache": "f_105eb9ac",
+     "/syssettings": "f_105eada0",
+     "/temperature": "f_100b8dcc",
+     "/topology": "f_105eaafc",
+     "/track_queue_summary": "f_100baa84",
+     "/tracks_summary": "f_10108138",
+     "/trueplayinfo": "f_100b8ea4",
+     "/tvprocessor": "f_100bb318",
+     "/update": "f_100b8e84",
+     "/upnp": "f_105eb0b4",
+     "/wireless": "f_105eab50",
+     "/zp": "f_100bfbac (flag 1)"
+    }
    }
   },
   "device_account_endpoint": {
@@ -196880,5 +196963,24 @@
     }
    }
   }
+ },
+ "cert_layer": {
+  "keycert_ids": {
+   "0": "R_CLIENT_KEYCERT_ID_SONOS",
+   "1": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY",
+   "2": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE",
+   "3": "R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE"
+  },
+  "selector": "f_1057ac60 \u2014 flag bits at cert-ctx+0x0c (bit0,bit2) + predicate -> id 0-3; logs id name",
+  "id_to_object": "f_1057ade8 -> f_1056c738 indexes bss tables 0x110a5670/0x110a56d8 (runtime cert objects)",
+  "devicecertinfo_page": {
+   "route": "/regcert -> f_105eb984 -> service-locator 0x11097680 module@+2260 -> f_105a699c (in f_105a6984); renderer f_105a711c emits the XML",
+   "schema": "<DeviceCertInfo>{CertName,Denylisted,HaveCert,CertSerial,ExpiresUtc,ExpiresIn,JobAllowed,JobForceAllowed,JobScheduled,JobLastRun,ETag,HouseholdID,SonosID,IDType(urn:sonos:idtype),<Cert>PEM %.64s lines</Cert>}</DeviceCertInfo>",
+   "refresh_scheduler": "f_105a6984 logs tag \"dcm\": \"refresh check in %ld seconds\",\"utc time not set\",\"certificate expired\"; muse Registration event fields: haveCert,refreshTJ,eventType,refreshed,certType,deviceCert,secureReg"
+  },
+  "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
+  "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
+  "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\" \u2014 ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
+  "unresolved": "enrolment/renewal REQUEST wire formats (CSR structure, request body); the bss cert-object record layout (populated at runtime)"
  }
 }
