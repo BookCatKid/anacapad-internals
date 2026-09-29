@@ -290,6 +290,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `registration_machine` | **?** |  |
 | `rendering_control` | **?** |  |
 | `reporting` | **?** |  |
+| `rootfs_boot_chain` | **confirmed** | inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {run_sshd.sh,runledmgrd,runnetstartd,runmdns,rundiagprocessd,runanacapa,runchrony,runsddp} + secure_console_login.sh ttyS0; ctrlaltdel=reboot; shutdown=init.d/rcK. All daemon logs go to /dev/kmsg. |
 | `saved_queues` | **strong** | file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration "Migrating ObjID=%s SN=%u from SID: %u to %u"; SQ:%s objid prefix; <res protocolInfo="file:*:audio/mpegurl:*">; album-art: "No num tracks found, so emitting the first four artworks found"; mobile- playlist prefix; "Add Track Move range: %u-%u to %u"; replication push on save |
 | `sentry_upload` | **strong** | routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; dumps {anacapad.core,anacapad.dmp,sonospowercoordinator.dmp,btmanager.dmp,netstartd.dmp,/jffs/app/debug/sonosledmgrd.dmp}; sidecars {.properties per daemon,sonospowercoordinatorCrashCount,netstartd.count}; attachments {watchdog.log,watchdog.dmesg,/opt/log/anacapa.hdmi.log,/opt/log/anacapa.tv.log,/tmp/AirPlay.log,/opt/log/btmanager.log,/opt/log/btservice.log,/tmp/backtrace}; opt-out flag prevent_crashdump_upload + /tmp/anacapa_prevent_crashdump_upload; sentry schema {sentry\[release\]=build.version,sentry\[tags\]\[%s\],sentry\[user\]\[id\],%s\[sonosID\],%s\[hhid\],%s\[serial\],%s\[upload_sw_version\],%s\[hardware_version\],%s\[model\],%s\[upload_spotifyesdk_version\],%s\[play_state\],%s\[watchdog_crash\]}; form-data + text/plain; charset=UTF-8/us-ascii + application/octet-stream; gzip stream "writeStream failed - Bytes compressed: %d/%d"; play-state file /tmp/crashed_play_state + htsnk; results {"Minidump \[%s\] uploaded to sentry.io. UUID: %s","Coredump \[%s\] successfully uploaded","didn't finish upload; http resp: \[%d\]; last error: \[%s\]","did not return a UUID","No URL found"}; dump file %s-anacapa_dump.gz + originator + Version: |
 | `settings` | **?** |  |
@@ -5686,6 +5687,23 @@ The reporting/telemetry umbrella: usage metrics, dropout events, TV sessions, sp
 
 - **crashdump:** sentry uploader: dump-proc-anacapa w/ build.version, sentry\[release\], sentry\[tags\]\[%s\], %s\[sonosID\]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; "Failed to write attachment %s to sentry upload"; htsnk dump
 - **play_report:** RPlayReportSubmitter: submitPlayReport/playReport/nowplaying endpoints; fields {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId,codec,originDelay,outputDelay,endReason,skippedTrack}; "final report" notify; "periodic report interval set to %lld seconds"; spotify-connect serviceType
+## `rootfs_boot_chain`
+
+**coverage** `confirmed`
+
+**Technical description:**
+
+inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {run_sshd.sh,runledmgrd,runnetstartd,runmdns,rundiagprocessd,runanacapa,runchrony,runsddp} + secure_console_login.sh ttyS0; ctrlaltdel=reboot; shutdown=init.d/rcK. All daemon logs go to /dev/kmsg.
+
+- **name:** /etc/Configure sysinit + ramdisk layout — the boot chain
+- **configure_steps:** `mount proc+sysfs, ifconfig lo up, mount ramfs /ramdisk (var/,var/run,var/log,tmp/,tmp/pub,optlog,smb live on RAM)`, `mtd links: /dev/mtd/0->mtd0, /dev/nandjffs->mtdblock4, /dev/jffsmtd->mtd4; sonos_mount_jffs mounts /dev/nandjffs at /jffs (noatime)`, `insmod sonos_device.ko, chk.ko, hwevent_queue.ko, audiodev.ko, ir_rcvr.ko (conditional)`, `touch /var/run/sonosledmgrd.flash_booting_led; /sbin/frcheck -> factory-reset check: rc!=1 -> sonosledmgrd --fr (FR LED flash); rc==0 -> netstartd --hard-reset; rc==2 -> netstartd --soft-reset`, `create jffs trees: app/{run,log,debug,debug/dsp,settings}, sys/{run,log,debug,settings}, net/{run,log,debug,settings}, persist`, `optional /etc/dsmf_setup; /bin/mdputil -B (mfg data init); hostname=Sonos-<SERIAL\[:12\]> via mdputil\|keyval ^SERIAL\|cut`, `if /jffs/Configure exists -> exec it INSTEAD of remaining steps (whole-boot override hook)`, `rmem_max=262143, icmp_echo_ignore_broadcasts=0`, `wifiType=N; insmod /wifi/N/{adf,asf,ath_hal,dfs?,ath_driver}.ko + /wifi/bridge.ko — Atheros N stack`, `setmac; ifconfig eth0 0.0.0.0; touch /var/run/waitforip`, `UNLOCK PATH: /etc/unlocked_build_flag OR /jffs/system/Configure.dev -> ln -s /opt/htdocs_locked /tmp/htdocs_locked + touch /tmp/device_unlocked_flag; Configure.dev then executed every boot (dev hook)`, `seed /jffs/hosts from /etc/hosts.orig; Krandom`
+- **notes:** dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init).
+<details><summary>Evidence (1)</summary>
+
+- @ /etc/Configure + inittab + scripts/ — shipped shell files
+
+</details>
+
 ## `saved_queues`
 
 **coverage** `strong`
