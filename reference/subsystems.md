@@ -47,8 +47,11 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `fileio` | **partial** | async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here" |
 | `fmp4_parser` | **partial** | boxes {mfhd(seq check),tfhd(version),tfdt,trun space bounds} + "tfhd not found before trun"; trun table "seqnum %u truntblnum %zu fsize %zu foffset %zu fsamples %zu bdo %llu trundo %i truneo %zu trunes %zu trunep %zu"; senc "Sub-entry encryption isn't supported" + "Cannot parse all the IVs in senc at %dth entry"; "stream quality: encoder %s, bit depth %u, sample rate %u, bitrate %u, channels %u"; trims {encoder delay,padding} + "skipping frame; seek time offset"/"< usable offset"; atoms {iTunNORM,iTunSMPB,TLOU/ALOU ITU loudness,mehd,trex,traf,esds max/avg bitrate,alac sub,mp4a ch/bitdepth/samplerate}; errors {bad moof,no moov,no dat,unknown fmp4 encoder type,unsupported file ch/bitdepth,unsupported frequency %u-bit %uhz %u channels,frag w/o traf,STZ2 ignored}; formats %ub%u |
 | `group_object_model` | **partial** | zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push |
+| `group_rc` | **partial** | group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zones"} + DesiredVolume/DesiredMute; algo "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + gvd {t,c,f,m,cv,sv}; tracking {addZone already tracked,removeZone not tracked,transitionValid c/m/f}; faults {total failure,partial failure,all members use fixed volume,operation in progress,unexpected upnp fault}; events {GroupVolumeSetActionEvent(vol,mute,vligrouping),VliVolumeProcessingCompleteEvent vliType}; members {localRC vol/mute/fixed,remoteRC %s vol/mute/fixed}; ops {SetGroupMute local/remote rc,SetGroupVolume local netops zones + per-member rc}; group caps {"Group capability updated: 0x%08x -> 0x%08x","Spatial audio disabled in Area Zone","Spatial audio disabled: mask"} + enableSpatialAudio + "GroupCapabilities zp: %s: %i,%i,%i"; cap strings {widevine,atmos,portable,tv_in,hlsv7} |
 | `healthcheck` | **partial** | schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large} |
-| `history_mgr` | **partial** | muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + max-age + 304 handling + "corrupt cache could not be served after a 304"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; "Post History Buffer Cleared"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY |
+| `healthcheck_contact` | **partial** | schedule "Next healthcheck scheduled to run in %u h %u m %u s" + "Not scheduling: %d %d %d %d %d %d" + "Healthcheck timer pop" + "Rescheduling next healthcheck"; server /ws/diag/diag_instructions.xml?hhid= + SubmitPermission + ServerDiagInstructions + "Contacting server for instructions"; errors {I/O Error + HTTP Result,Indeterminate length,Incomplete file,Failed to parse,too large} |
+| `history_mgr` | **partial** | historyService + rphistory + historyEntryInvalid event + ucsType; cache {preCache,postCache,preEtag,postEtag,cacheControl,historyRequest} + "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + "Cached etag" + "corrupt cache could not be served after a 304"; POST postHistory + recentlyPlayed + max-age + "max-age=%s, etag=%s, http-result=%d" + "Post History Buffer Cleared"; queue faults {bufferFull,invalidContentType,resourceIncomplete(name,type,objectId),groupIncomplete(name,id,coordinatorId)}; fields {imageUrl,explicit}; getHistory {serving the cache,#getHistory response} gated by {Securely Registered,History Enabled}; deleteHistory history?id=; "Failed to generate defaults for history entry"; "Failed to initialize history from cache" |
+| `hls_audio` | **partial** | "requires group capabilities %u"; seek {to time %.3f (%lu:%02lu:%02lu),to time from start of current segment,pass segment,to segment start time range}; "forcing a source switch due to multiple codec variants in playlist"; ADTS metadata {metadata,no metadata bumping seconds advanced,cached seconds advanced mismatch}; EXT-X-KEY {METHOD= AES-128,/SAMPLE-AES,,KEYFORMAT=,URI=data,URI=""} + "encrypted but no key URI"/"encrypted but no data from key URI"/"No IV, using seq. num"/"SAMPLE-AES detected. Setting up audio framer decryption"/"Key extracted. method=%d"/"undefined encryption method"; track playback {bitrate %u stream %u segment %llu offset %zu,InitFramerForTrackList failed,m_dTimeOffset,Trim offset required,resetMetadata,track play time,seconds advanced,time offset of segment byte offset}; bitrate report "hls-%s said: %u (%g) %d %d"; types {hls-live,hls-static,hls-???}; master {fetching master,updated master URI}; playlist errors {EXT-X-TARGETDURATION not present,media seq went backwards,media len changed,Invalid media playlist,Seeking pass the end,empty track list,Error %x occurred}; stale {d d llu llu}; Segment Map entries |
 | `hls_player` | **partial** | variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forcing a source switch due to multiple codec variants in playlist"; ADTS md + "seconds advanced" tracking + "doesn't line up with seek"; encryption {encrypted-but-no-key-URI,no-data,"No IV, using seq. num.","SAMPLE-AES detected. Setting up audio framer decryption",key-uri http status,read size mismatch}; byte-range map "couldn't get file size from http headers for map"/"found offset %zu"; InitFramerForTrackList; seg index "starting at bitrate %u stream %u segment %llu offset %zu"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,"Failed to calculate absolute media URI"}; ABR {"downgrade bitrate","already at the minimum","upgrade bitrate","advancing stream index"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,"rejecting binaural/downmix rendition",BANDWIDTH unsupported/0}; "unexpected, we have %zu dolby streams in the playlist"; BR P\|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist} |
 | `household_settings` | **partial** | file householdsettings.json {fileVersion,fileSchemaVersion,householdSettings}; JSON \[{version,lastUpdateDevice},\[{name:"restricted-admin",readPermission:null,writePermission:"hh-config-admin",settings:\[{explicitContentFiltering,recentlyPlayed}\]}\]\]; categories {restricted-admin,protected-admin,protected}; frozen:1 marker; "File upgraded to v%d schema"/"File overwritten due to invalid setting"; UMTracking→userMetricsTracking migration; "version incremented after invalid settings offered"; hhSwgenState swgen must be >= player; /householdsettings.json status-page ALERT |
 | `ibt_plans` | **partial** | a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list — 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init |
@@ -129,6 +132,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `diagnostics` | **?** |  |
 | `download_status` | **confirmed** | {ERROR_NOT_CALLED,WRITE_ERROR,TRUNCATION_ERROR,SIZE_ERROR,FILE_ERROR,CONNECTION_ERROR,DOWNLOAD_SUCCEEDED,FILE_UNCHANGED,DOWNLOAD_IN_PROGRESS} |
 | `dsp_params` | **?** |  |
+| `group_mgmt` | **?** |  |
 | `htaudio` | **?** |  |
 | `http_engine` | **?** |  |
 | `lechmere` | **?** |  |
@@ -1037,6 +1041,21 @@ zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_
 
 </details>
 
+## `group_rc`
+
+**coverage** `partial`
+
+**Technical description:**
+
+group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zones"} + DesiredVolume/DesiredMute; algo "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + gvd {t,c,f,m,cv,sv}; tracking {addZone already tracked,removeZone not tracked,transitionValid c/m/f}; faults {total failure,partial failure,all members use fixed volume,operation in progress,unexpected upnp fault}; events {GroupVolumeSetActionEvent(vol,mute,vligrouping),VliVolumeProcessingCompleteEvent vliType}; members {localRC vol/mute/fixed,remoteRC %s vol/mute/fixed}; ops {SetGroupMute local/remote rc,SetGroupVolume local netops zones + per-member rc}; group caps {"Group capability updated: 0x%08x -> 0x%08x","Spatial audio disabled in Area Zone","Spatial audio disabled: mask"} + enableSpatialAudio + "GroupCapabilities zp: %s: %i,%i,%i"; cap strings {widevine,atmos,portable,tv_in,hlsv7}
+
+- **name:** grc_zpimpl — group rendering control
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec3a58 — grc_zpimpl block
+
+</details>
+
 ## `healthcheck`
 
 **coverage** `partial`
@@ -1052,18 +1071,49 @@ schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u seco
 
 </details>
 
+## `healthcheck_contact`
+
+**coverage** `partial`
+
+**Technical description:**
+
+schedule "Next healthcheck scheduled to run in %u h %u m %u s" + "Not scheduling: %d %d %d %d %d %d" + "Healthcheck timer pop" + "Rescheduling next healthcheck"; server /ws/diag/diag_instructions.xml?hhid= + SubmitPermission + ServerDiagInstructions + "Contacting server for instructions"; errors {I/O Error + HTTP Result,Indeterminate length,Incomplete file,Failed to parse,too large}
+
+- **name:** healthcheck — server instructions
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4574 — healthcheck block
+
+</details>
+
 ## `history_mgr`
 
 **coverage** `partial`
 
 **Technical description:**
 
-muse routes history#getHistory + history?id=%s deleteHistory; entry requires {name,type,objectId} resource + {name,id,coordinatorId} group else {resourceIncomplete,groupIncomplete,invalidContentType,bufferFull} queued-err + historyEntryInvalid report; cache {preCache,postCache,preEtag,postEtag,cacheControl} "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + max-age + 304 handling + "corrupt cache could not be served after a 304"; POST gated {History is disabled,Not securely registered}; fields {recentlyPlayed,imageUrl,explicit,ucsType}; "Post History Buffer Cleared"; service API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY
+historyService + rphistory + historyEntryInvalid event + ucsType; cache {preCache,postCache,preEtag,postEtag,cacheControl,historyRequest} + "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + "Cached etag" + "corrupt cache could not be served after a 304"; POST postHistory + recentlyPlayed + max-age + "max-age=%s, etag=%s, http-result=%d" + "Post History Buffer Cleared"; queue faults {bufferFull,invalidContentType,resourceIncomplete(name,type,objectId),groupIncomplete(name,id,coordinatorId)}; fields {imageUrl,explicit}; getHistory {serving the cache,#getHistory response} gated by {Securely Registered,History Enabled}; deleteHistory history?id=; "Failed to generate defaults for history entry"; "Failed to initialize history from cache"
 
-- **name:** historyMgr — recentlyPlayed cloud sync
+- **name:** historyMgr — cloud history
+- **salt_literal:** Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY
 <details><summary>Evidence (1)</summary>
 
-- @ 0x10ec4878 — historymgr block
+- @ 0x10ec4878 — history_mgr block
+
+</details>
+
+## `hls_audio`
+
+**coverage** `partial`
+
+**Technical description:**
+
+"requires group capabilities %u"; seek {to time %.3f (%lu:%02lu:%02lu),to time from start of current segment,pass segment,to segment start time range}; "forcing a source switch due to multiple codec variants in playlist"; ADTS metadata {metadata,no metadata bumping seconds advanced,cached seconds advanced mismatch}; EXT-X-KEY {METHOD= AES-128,/SAMPLE-AES,,KEYFORMAT=,URI=data,URI=""} + "encrypted but no key URI"/"encrypted but no data from key URI"/"No IV, using seq. num"/"SAMPLE-AES detected. Setting up audio framer decryption"/"Key extracted. method=%d"/"undefined encryption method"; track playback {bitrate %u stream %u segment %llu offset %zu,InitFramerForTrackList failed,m_dTimeOffset,Trim offset required,resetMetadata,track play time,seconds advanced,time offset of segment byte offset}; bitrate report "hls-%s said: %u (%g) %d %d"; types {hls-live,hls-static,hls-???}; master {fetching master,updated master URI}; playlist errors {EXT-X-TARGETDURATION not present,media seq went backwards,media len changed,Invalid media playlist,Seeking pass the end,empty track list,Error %x occurred}; stale {d d llu llu}; Segment Map entries
+
+- **name:** hlsaudio + segaudio — HLS player
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ec4f88 — hls blocks
 
 </details>
 
@@ -2585,6 +2635,11 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 **coverage** `?`
 
 - **pcm_decoder:** decoder_pcm guards {Invalid frame size,Unsupported input rate,Invalid number of input samples}; <DEC_SampleRate>; event-mgr {Add fd for object,Spurious Input Event 0x%x,Object %s was not formally released}
+## `group_mgmt`
+
+**coverage** `?`
+
+- **ops:** {SetSourceAreaIds,pause,play,copyMusic(%s to %s),becomeStandalone(retry),joinGroup(%s to %s,retry),groupsCommand} + upnpError; topology guards {invalid topology state empty pid/gid,inconsistent topology state invalid gc or pid count}; music context {cannot be copied,cannot be swapped}; faults {Grouping action failed,Invalid grouping action,Invalid args,Action not authorized,Grouping action failed (default)} + groupId; cloning {clone music from %s to ungroupable %s,create new group and cloning from ungroupable player}; params {Effective set of players to group,Creating group with undefined future coordinator hint,playerIdsToRemove array,playerIdsToAdd array,Effective set of new group members}
 ## `htaudio`
 
 **coverage** `?`
