@@ -122494,7 +122494,8 @@
      "address": "0x10fd6244",
      "notes": "hermes"
     }
-   ]
+   ],
+   "rate_limiting": "{\"Spotify-Unavailable-For\" header,\"Request to %s failed with %d Too many requests\",\"%d Service unavailable (%d)\",\"Rate limiting active, and set to %llu ms\",\"Message not sent: rate limited for %llums more.\",\"Rate limiting deactivated\"}; {\"Failed to decode HermesHeader: %s\",\"Got hermes push from %s\",\"Got hermes uri %s status_code %d\"}; defrag {\"Defragmentation buffer size %d, cannot fit extra %d bytes (max size: %d)\",\"Could not fit packet to defragmentation buffer, clearing the buffer\"}; req \"id %u method %d uri %s %d bytes\"; mime vnd.spotify/mercury-mget-request; UNSUB; \"timeout >= 0 && timeout <= 255\""
   },
   "sync": {},
   "perfect_sync": {
@@ -123841,13 +123842,78 @@
   "esdk_callbacks": {
    "name": "eSDK callback signatures",
    "status": "strong",
-   "summary": "playback cb {on_notify,on_seek,on_apply_volume} \"Successfully registered playback callbacks: %s, %s, %s\"+removed; stream cb {on_data,on_start,on_end,on_flush,on_pos} \"Successfully registered delivery callbacks: %s, %s, %s, %s, %s, %s\"+removed; signatures {cb_stream_on_start(id=%u, size=%u),cb_stream_on_end(id=%u),cb_stream_get_position(id=%u) = %u,cb_stream_on_seek_position(id=%u, pos=%u),cb_stream_on_flush() = (id=%u, pos=%u)}",
+   "summary": "playback cb {on_notify,on_seek,on_apply_volume} \"Successfully registered playback callbacks: %s, %s, %s\"+removed; stream cb {on_data,on_start,on_end,on_flush,on_pos} \"Successfully registered delivery callbacks: %s, %s, %s, %s, %s, %s\"+removed; signatures {cb_stream_on_start(id=%u, size=%u),cb_stream_on_end(id=%u),cb_stream_get_position(id=%u) = %u,cb_stream_on_seek_position(id=%u, pos=%u),cb_stream_on_flush() = (id=%u, pos=%u)} + connection {on_message,on_new_credentials} registered\u00d73; aliases {on_selected_device_alias_changed,on_device_aliases_update_done}\u00d72; dns {dns_lookup_callback}; socket {set_opt,rd_from,wr_to,readable,writable,local_addresses,...}\u00d717; TLS/debug/error registered; base64 alphabet",
    "evidence": [
     {
      "type": "firmware",
      "status": "confirmed",
      "address": "0x10fe21f0",
      "notes": "callbacks"
+    }
+   ]
+  },
+  "esdk_crypto": {
+   "name": "eSDK login crypto",
+   "status": "strong",
+   "summary": "bignum asserts {mod[mod[0]] != 0,mod[mod[0]] & BIGNUM_TOP_BIT,mlen <= 2048 / BIGNUM_INT_BITS} = RSA-2048; login asserts {gen/genctx/s/send_buf/send_buf_size != NULL,send_buf_size >= sizeof(s->ctx.hello.data),work_buf_size >= MODPOW_WORK_RAM_SIZE,resp/respsz/buf/bufsz/failed != NULL,bufsz >= SHA1_DIGEST_SIZE + SIG_SIZE + SIG_SIZE + MODPOW_WORK_RAM_SIZE} = SHA1+dual-signature+modpow; \"login failed (error code %d)\"; \"no memory to check signature\"; \"Platform identifier: '%s'\"; \"logging in with client ID %s\"; \"!\"hal_get_random_bytes() failed\"\"; circular buffer {cb->used <= cb->size,n <= cb->used,cb->used + data_size <= cb->size,dest != source,circular_buffer_available_space}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe2824",
+     "notes": "login crypto"
+    }
+   ]
+  },
+  "esdk_events": {
+   "name": "eSDK event telemetry (evs)",
+   "status": "partial",
+   "summary": "{EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities}; endsong {ms_played:%zu,\"Overwriting EndSong track_id with new value!\",\"no track ID/file ID: played:%zu, ms:%zu\",intent (%s)}; evs {evs_default_cb %s. error %d,\"Error encoding %s\",\"Error encoding envelope\",\"Error sending %s\"}; channel hm://hwp-events/v1/log_event; \"No file with desired bitrate\"; error report \"device_id=%s, playback_id=%s, track_uri=%s, source=%s, hostname=%s, url=%s, error_code=%d, stack_error_message=%s, stack_error_code=%d, response_status_code=%d\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe2c2c",
+     "notes": "evs"
+    }
+   ]
+  },
+  "bandwidth_meter": {
+   "name": "eSDK bandwidth measurement",
+   "status": "partial",
+   "summary": "{\"BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s\",\"Bandwidth not calculated, latency zero\",\"WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d\",\"LOW BW (kbit/s): %u < %u, count = %u\",\"Bandwidth window not updated, latency zero\"}; asserts {first_chunk_request_time not set,latest_chunk_finished_time not set,finished_time >= stats->first_chunk_request_time}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe42ec",
+     "notes": "bandwidth"
+    }
+   ]
+  },
+  "esdk_httpio": {
+   "name": "eSDK httpio layer",
+   "status": "partial",
+   "summary": "tag eSDK/httpio + 3.205.205; {req_hostname,req_path,\"Failed to format http request\"}; response {\"transfer-Encoding\",\"unsupported transfer-encoding\",\"CDN content-encoding unsupported\",\"Redirect to %s\",\"failed to parse or invalid content-range '%s' (req_offset:%d)\",\"Content-Type: %s\",\"bytes \",\"can't find HTTP headers end marker\",\"invalid HTTP header, can't find protocol marker or status code\",\"failed to find HTTP header line end marker\"}; socketio {\"%s operation timeout\",\"failed to write/read data to/from socket '%i'\",\"reached socket EOF\"}; DNS {\"Result for \\\"%s\\\" : addr %s\",\"Invalid address family %d\",\"Failed for \\\"%s\\\", error %d\"}; {\"Unable to set the track info\",\"Unable to set hostname\",\"No domain in URL\",\"No http/https in URL\",\"Failed to decode LicenseResponse\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe4a38",
+     "notes": "httpio"
+    }
+   ]
+  },
+  "watchdog": {
+   "name": "watchdog driver interface",
+   "status": "partial",
+   "summary": "device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {\"Watchdog not started\",\"Watchdog already created\",\"Creating watchdog\",\"No watchdog to destroy\",\"Destroying watchdog\",\"Invalid watchdog health check frequency\",\"Watchdog constructed with %u seconds frequency\",\"trigger called with status %d\"}",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10fe4fe4",
+     "notes": "watchdog"
     }
    ]
   }
