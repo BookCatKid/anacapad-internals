@@ -403,7 +403,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/device_account:**
       - **handler:** f_1065bd70
       - **flags:** `256`
-      - **detail:** Device-account endpoint (f_1065bd70, flag 0x100).
+      - **detail:** Device-account endpoint (f_1065bd70, flag 0x100). Handler shape = muse-engine mount (identical to /api): registers the route literal via f_10509bf4 + f_1055667c -> requests dispatch into the muse op framework under a device-account namespace. Flag 0x100.
     - **/AlarmClock/Control:**
       - **handler:** f_105e8274
       - **flags:** 
@@ -530,7 +530,7 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/unlock:**
       - **handler:** f_10675244
       - **flags:** `256`
-      - **detail:** Unlock page (f_10675244, flag 0x100; also /unlock.htm): on success "<h2>Success</h2>" HTML.
+      - **detail:** Unlock page (f_10675244, flag 0x100; also /unlock.htm): on success "<h2>Success</h2>" HTML. Handler f_10675244 is a state toggle: branches to f_106750b4/f_1067471c (unlock/lock paths), calls f_10957b58/f_10957f84, emits Success HTML.
     - **/unlock.htm:**
       - **handler:** f_10675244
       - **flags:** `256`
