@@ -977,3 +977,22 @@ the deep semantic layer:
     `docs/crossbuild_matrix.json`. Remaining: no function-level
     diff (e.g. per-handler codegen), no sonos-muse-1.0 `.so`
     extraction of the moved muse-common code
+11b. **Rootfs sweep** — DONE (post-`926c372`..`ae4f058`): /etc/Configure
+    sysinit decoded end-to-end (ramdisk layout, mtd links, 5 kernel
+    modules, frcheck reset ladder, /jffs/Configure whole-boot override,
+    second unlock path via /etc/unlocked_build_flag|Configure.dev);
+    anacapa_logger.toml module->file taxonomy; zpMetricsConfigV2
+    (104 categories, 3 ON, positional S1-compat); diagprocessd FIFO
+    menu = the support-bundle exec backend; shipped .rcb byte layout
+    (magic+ver 78.1-47150+digest+index+DER, Amazon CA set); fstab
+    dm-crypt 'crroot'; shipped MD5crypt root hash; S9_array.xml
+    6ch woofer beamforming; irconfig.txt NEC codes; TuneIn-254
+    musicservices seed; htdocs_locked DSP console -> /getDSP+putDSP
+    grammar; anacapactl gdb-launch + -u/-C privilege drop; netstartd
+    reset modes + SonosNet FSM; netconfig.sh 10-mode FSM (open=
+    10.69.69.1, credcheck, satellite backhaul, RINCON UUID grammar);
+    SCPD cross-validation = 206/208 action parity (only removed
+    SysProps ops differ) + hidden unadvertised SVs; cross-model m8/m9
+    rootfs diff (fenway recovery loop, satellite_device.xml, mtd
+    layout, frcheck severity split). Remaining rootfs surface is
+    empty dirs + standard busybox/glibc — nothing unharvested.
