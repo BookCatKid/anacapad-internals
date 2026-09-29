@@ -1129,3 +1129,25 @@ the deep semantic layer:
     linked_libraries, not per-function anchors; (c) dirObj vtable->name
     pairing for the queue/share family inferred from referrer strings
     rather than ctor stores (registered via computed bases).
+
+14. Region-map + wire-literal round (685ef3f-da932f6):
+    text_region_map added to binary_section_map: the 0x10aa0000-
+    0x10e6ffff middleware span attributed per-0x20000 block by string
+    sampling + bl-fingerprinting (protobuf-RPC namespace dispatcher
+    'Namespace has no actor' incl muse cloud paths + IBT planner;
+    household-settings engine [Rq]/[Gp]/[Mg]/[lo]; json-schema
+    validator; expat; LED/captouch driver; libvorbis 1.3.7; Spotify
+    eSDK 0x10ce-0x10d4; evo decoder 0x10d6; dsplib 0x10d8-0x10dc;
+    htaudio chproc 0x10de; float-DSP 0x10e0-0x10e4; SPDIF+nanopb
+    0x10e5-0x10e6). Exact SSDP wire literals captured: ssdp:alive
+    (0x10eef678), ssdp:byebye (0x10eef5fc - no CACHE-CONTROL/LOCATION),
+    M-SEARCH 200-OK response (0x10eef97c w/ EXT: header); outbound
+    signed M-SEARCH already in ssdp_signed_msearch. 'HTTP/1.0 206'
+    range status line + nghttp2 HEADERS-state errors added.
+    rhapsody_imageserver URI recorded (only hardcoded 3rd-party CDN).
+    RESIDUAL: nanopb pb_field_t descriptors not recovered - pb_encode/
+    pb_decode callers load descs via SDA/GOT indirection, naive r4
+    back-scan picks unrelated constant loads (misidentified float
+    coeff tables). Recovering message schemas needs per-fn reg
+    tracking through GOT - deferred. Per-block attribution inferred
+    from sampled literals; boundaries are 0x20000-granular.
