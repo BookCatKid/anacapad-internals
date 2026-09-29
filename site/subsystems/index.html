@@ -576,6 +576,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chirp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>chirp</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#chirp_stack" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1442,6 +1453,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chirp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>chirp</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#chirp_stack" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1702,6 +1724,11 @@
 <td>button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered[.xml] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database</td>
 </tr>
 <tr>
+<td><code>chirp</code></td>
+<td><strong>partial</strong></td>
+<td>/code/chirp-core/source/{core,dsp,maths}/src/** paths in rodata 0x10fd0188-0x10fd4c74</td>
+</tr>
+<tr>
 <td><code>chirp_stack</code></td>
 <td><strong>partial</strong></td>
 <td>embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos-cdma' profile: used for room detection during setup — muse routes roomDetection/chirp (start/stop signalling with {playId}), DSP-routed audio streams as-dspin-ext-chirp/as-dspout-ext-chirp, a per-device unique payload ('Start chirping with unique device value:%d') and calibrated output volume ('Chirp volume not yet calibrated')</td>
@@ -1800,6 +1827,11 @@
 <td><code>playlist_parsers</code></td>
 <td><strong>partial</strong></td>
 <td>playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3U/WLP/PLS + iTunes 'ITP' XML parser), a streaming HLS playlist parser with variant switching (#EXTM3U/#EXT-X-PLAYLIST-TYPE validation, codec-variant source switching, Atmos stream rejection), and the muse playlists API + SaveAsSonosPlaylist SOAP path</td>
+</tr>
+<tr>
+<td><code>qplay</code></td>
+<td><strong>partial</strong></td>
+<td>QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support</td>
 </tr>
 <tr>
 <td><code>qplay_protocol</code></td>
@@ -2011,6 +2043,26 @@
 - @ 0x10ea72ac — http://ir.ws.sonos.com/IRCode/ cloud IR database
 - @ 0x10ec74e0 — '%s button pressed (cid: %s)' forwarding log
 - @ 0x10ea701c — UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND learn-mode fault
+
+</details>
+
+<h2 id="chirp"><code>chirp</code><a class="headerlink" href="#chirp" title="Permanent link">&para;</a></h2>
+<p><strong>coverage</strong> <code>partial</code></p>
+<p><strong>Technical description:</strong></p>
+<p>/code/chirp-core/source/{core,dsp,maths}/src/** paths in rodata 0x10fd0188-0x10fd4c74</p>
+<ul>
+<li><strong>name:</strong> chirp-core SDK — acoustic pairing/setup protocol (third-party chirp.io-derived stack)</li>
+<li><strong>profiles:</strong> <code>audible</code>, <code>sonos-cdma</code>, <code>sonos_secure_setup</code>, <code>ultrasonic</code></li>
+<li><strong>acoustic_params:</strong> <code>base_frequency(&gt;=20)</code>, <code>channel_count</code>, <code>channel_interval</code>, <code>envelope_attack</code>, <code>envelope_release</code>, <code>preamble(&gt;=1byte, code within symbol range)</code>, <code>header_note_duration</code>, <code>header_silence_duration</code>, <code>frequency_interval</code>, <code>body_note_duration</code>, <code>body_silence_duration</code>, <code>portamento</code>, <code>template</code></li>
+<li><strong>encoding_params:</strong> <code>alphabet_bits</code>, <code>crc_length</code>, <code>message_length_max</code>, <code>message_length_min</code>, <code>polyphony</code>, <code>rs_length_max</code>, <code>rs_length_min</code>, <code>total frame &lt;= 256 bytes</code>, <code>symbols &lt;= 64-bit</code></li>
+<li><strong>decoder_config:</strong> <code>fft_size</code>, <code>hop_size</code>, <code>sample_rate_min</code>, <code>payload_metrics_enabled</code>, <code>buffer_metrics_enabled</code>, <code>voters\[\] {amplitude_threshold,frame_offset,preamble_threshold,reverb_cancellation_exponent,reverb_cancellation_magnitude,spectral_weighting(float)}</code></li>
+<li><strong>fec:</strong> GF(2^8) reed-solomon: gf_calc_syndromes, gf_correct_errata, gf_forney_syndromes, gf_poly_{mul,add,concatenate,zero_pad}, trim_gf_poly, new_gf/del_gf/del_gf_poly; decoder pipeline decoder.c-&gt;peaks.c-&gt;scorer.c-&gt;voter.c-&gt;weighting.c; cdma cdma_{encoder,decoder,codebook}; fsk chirp_private_fsk</li>
+<li><strong>api:</strong> <code>new/del_chirp_payload</code>, <code>chirp_payload_randomise</code>, <code>new/del_chirp_profile</code>, <code>new/del_chirp_protocol</code>, <code>new_chirp_protocol_from_json_value</code>, <code>chirp_protocol_corrupt_random_symbols</code>, <code>new/del_chirp_acoustic</code>, <code>new/del_chirp_encoding</code>, <code>new/del_chirp_config</code>, <code>new_chirp_default_config</code>, <code>new_chirp_decoder_config_from_json_value</code>, <code>new_chirp_default_voter_configs</code>, <code>new/del_chirp_voter_config</code></li>
+<li><strong>json_config:</strong> protocol + decoder configs are JSON-described (schema_version, decoder_config keys) — profiles load via new_chirp_protocol_from_json_value</li>
+</ul>
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fd0188 — chirp-core rodata block
 
 </details>
 
@@ -2658,6 +2710,21 @@ playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3
 - @ 0x10ed1888 — iterateASX/M3U/WLP/PLSPlayList parser family
 - @ 0x10ec93fc — ITP iTunes-library parser errors
 - @ 0x10ec5edc — #EXT-X-PLAYLIST-TYPE HLS handling
+
+</details>
+
+## `qplay`
+
+**coverage** `partial`
+
+**Technical description:**
+
+QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support
+
+- **name:** QPlay (Tencent) — minimal presence in this build
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ef8cc6 — QPlay:2 capability + #QPLAY_SUPPORT# + QPlayAuth
 
 </details>
 

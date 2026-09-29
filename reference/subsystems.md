@@ -9,6 +9,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `audio_taps` | **partial** | PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap |
 | `business_msp` | **partial** | Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION) |
 | `buttons_ir` | **partial** | button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database |
+| `chirp` | **partial** | /code/chirp-core/source/{core,dsp,maths}/src/** paths in rodata 0x10fd0188-0x10fd4c74 |
 | `chirp_stack` | **partial** | embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos-cdma' profile: used for room detection during setup — muse routes roomDetection/chirp (start/stop signalling with {playId}), DSP-routed audio streams as-dspin-ext-chirp/as-dspout-ext-chirp, a per-device unique payload ('Start chirping with unique device value:%d') and calibrated output volume ('Chirp volume not yet calibrated') |
 | `cloud_queue` | **partial** | the Cloud Queue subsystem: a music service hands the player a queueBaseUrl ending in a SemVer API version (validated: 'path must end with a cloud queue version', 'Cloud Queue API v%u is unknown; use v%u with this player'), then the player pages itemWindows over it: loadCloudQueue, loadCloudQueueWithWindow ('Full itemWindow from the Cloud Queue API must be passed'), refreshCloudQueue, skipToItemWithWindow — all as muse routes on playbackSessions/{sessionId} |
 | `device_unlock` | **partial** | developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state |
@@ -29,6 +30,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `muse_semantics` | **partial** | the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume |
 | `play_history` | **partial** | historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings — explicitly 'only implemented for cloud queue' |
 | `playlist_parsers` | **partial** | playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3U/WLP/PLS + iTunes 'ITP' XML parser), a streaming HLS playlist parser with variant switching (#EXTM3U/#EXT-X-PLAYLIST-TYPE validation, codec-variant source switching, Atmos stream rejection), and the muse playlists API + SaveAsSonosPlaylist SOAP path |
+| `qplay` | **partial** | QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support |
 | `qplay_protocol` | **partial** | Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route — the only service missing its event pair), a QPlayAuth action taking Seed/Code/MID/DID arguments (seed→code auth handshake: controller sends Seed, device answers with a Code computed from MID machine-id and DID device-id), a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> |
 | `queue_persistence` | **partial** | .rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt |
 | `runtime_flag_files` | **partial** | runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, brokendevice, wifidisabled, htdocs_locked, crashed_play_state, anacapa-has-run, fresh_hh.txt, anacapa_prevent_crashdump_upload, sonosConcurrencyUnrecoverableError), /var/run mode files (wac_mode, netstart_mode, netmanager_extender_flags, systemtimeoffset), /tmp/memorylog 4-file ring + .old copy, /tmp/smb/ mount workspace, /tmp/backtrace + diagstdout/diagstdin diag scratch, /tmp/event_preserve + event_reporter_v3 buffers |
@@ -178,6 +180,28 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 - @ 0x10ea72ac — http://ir.ws.sonos.com/IRCode/ cloud IR database
 - @ 0x10ec74e0 — '%s button pressed (cid: %s)' forwarding log
 - @ 0x10ea701c — UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND learn-mode fault
+
+</details>
+
+## `chirp`
+
+**coverage** `partial`
+
+**Technical description:**
+
+/code/chirp-core/source/{core,dsp,maths}/src/** paths in rodata 0x10fd0188-0x10fd4c74
+
+- **name:** chirp-core SDK — acoustic pairing/setup protocol (third-party chirp.io-derived stack)
+- **profiles:** `audible`, `sonos-cdma`, `sonos_secure_setup`, `ultrasonic`
+- **acoustic_params:** `base_frequency(>=20)`, `channel_count`, `channel_interval`, `envelope_attack`, `envelope_release`, `preamble(>=1byte, code within symbol range)`, `header_note_duration`, `header_silence_duration`, `frequency_interval`, `body_note_duration`, `body_silence_duration`, `portamento`, `template`
+- **encoding_params:** `alphabet_bits`, `crc_length`, `message_length_max`, `message_length_min`, `polyphony`, `rs_length_max`, `rs_length_min`, `total frame <= 256 bytes`, `symbols <= 64-bit`
+- **decoder_config:** `fft_size`, `hop_size`, `sample_rate_min`, `payload_metrics_enabled`, `buffer_metrics_enabled`, `voters\[\] {amplitude_threshold,frame_offset,preamble_threshold,reverb_cancellation_exponent,reverb_cancellation_magnitude,spectral_weighting(float)}`
+- **fec:** GF(2^8) reed-solomon: gf_calc_syndromes, gf_correct_errata, gf_forney_syndromes, gf_poly_{mul,add,concatenate,zero_pad}, trim_gf_poly, new_gf/del_gf/del_gf_poly; decoder pipeline decoder.c->peaks.c->scorer.c->voter.c->weighting.c; cdma cdma_{encoder,decoder,codebook}; fsk chirp_private_fsk
+- **api:** `new/del_chirp_payload`, `chirp_payload_randomise`, `new/del_chirp_profile`, `new/del_chirp_protocol`, `new_chirp_protocol_from_json_value`, `chirp_protocol_corrupt_random_symbols`, `new/del_chirp_acoustic`, `new/del_chirp_encoding`, `new/del_chirp_config`, `new_chirp_default_config`, `new_chirp_decoder_config_from_json_value`, `new_chirp_default_voter_configs`, `new/del_chirp_voter_config`
+- **json_config:** protocol + decoder configs are JSON-described (schema_version, decoder_config keys) — profiles load via new_chirp_protocol_from_json_value
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10fd0188 — chirp-core rodata block
 
 </details>
 
@@ -830,6 +854,21 @@ playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3
 - @ 0x10ed1888 — iterateASX/M3U/WLP/PLSPlayList parser family
 - @ 0x10ec93fc — ITP iTunes-library parser errors
 - @ 0x10ec5edc — #EXT-X-PLAYLIST-TYPE HLS handling
+
+</details>
+
+## `qplay`
+
+**coverage** `partial`
+
+**Technical description:**
+
+QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found — stub-grade support
+
+- **name:** QPlay (Tencent) — minimal presence in this build
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10ef8cc6 — QPlay:2 capability + #QPLAY_SUPPORT# + QPlayAuth
 
 </details>
 
