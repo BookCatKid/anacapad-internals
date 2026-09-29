@@ -104729,6 +104729,12 @@
    "service": "/MediaRenderer/RenderingControl/Control",
    "description": "/status/renderingcontrol emitted XML",
    "fields": "{MasterVolume,MasterMute,FocusModeMute,VolumeScale,PlaybackDucked,DuckingFlags,SodVolume,ExtVolume,AmpState,AudioCoreReady,DeviceTime %d.%06d}"
+  },
+  "playstatemanager_schema": {
+   "status": "strong",
+   "service": "internal",
+   "description": "/status page",
+   "fields": "<PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>; transitions \"got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u\""
   }
  },
  "uri_formats": {
@@ -118881,72 +118887,17 @@
    "pipeline": "trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory"
   },
   "playlist_parsers": {
+   "name": "playlist sniffers",
    "status": "partial",
-   "summary": "playlist machinery on three levels: library-share parsers (iterateASXPlayList/M3U/WLP/PLS + iTunes 'ITP' XML parser), a streaming HLS playlist parser with variant switching (#EXTM3U/#EXT-X-PLAYLIST-TYPE validation, codec-variant source switching, Atmos stream rejection), and the muse playlists API + SaveAsSonosPlaylist SOAP path",
-   "anchors": [
-    "mswmext=.asx",
-    "application/x-mpegurl",
-    "application/dash+xml",
-    "iterateASXPlayList",
-    "ITP Parser",
-    "#EXT-X-PLAYLIST-TYPE",
-    "m3u8"
-   ],
+   "summary": "iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction (\"found linkUrl\"); Post-stream readData dump {bytesLeft,len,buf}",
    "evidence": [
     {
      "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
      "status": "confirmed",
-     "address": "0x10ed693c",
-     "notes": "mswmext=.asx"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eb8946",
-     "notes": "application/x-mpegurl"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10eb89e8",
-     "notes": "application/dash+xml"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ed1888",
-     "notes": "iterateASX/M3U/WLP/PLSPlayList parser family"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ec93fc",
-     "notes": "ITP iTunes-library parser errors"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "status": "confirmed",
-     "address": "0x10ec5edc",
-     "notes": "#EXT-X-PLAYLIST-TYPE HLS handling"
+     "address": "0x10ed1854",
+     "notes": "play_state_mgr region"
     }
-   ],
-   "share_formats": "ASX, M3U, WPL, PLS file parsers + iTunes XML ('ITP Parser: mismatched end tag atPlaylistID/PlaylistExclude/PlaylistTrackID/PlaylistName'); index counters list 6 types: iTunes/ASX/M3U/PLS/RSQ/WPL Playlists",
-   "hls": "hlsplaylist parser: #EXTM3U header check, #EXT-X-PLAYLIST-TYPE handling, per-line validation ('Invalid media playlist: %s: line=%s'), 'forcing a source switch due to multiple codec variants in playlist', 'storeStream: rejecting unsupported Atmos stream from playlist', 'unable to select another DS' variant fallback on empty playlists, 'stream duration from HLSPlaylist'",
-   "muse": "v1/households/{householdId}/playlists (getPlaylists/postPlaylist), {playlistId} (getPlaylist), v1/groups/{groupId}/playlists (loadPlaylist); playlistsVersionChange event; playlistsList/playlistTrack keys",
-   "didl": "object.container.playlistContainer{,.sameArtist,.tracklist}, object.item.playlistItem; explore categories explore:playlist::pp./mp., RDCPA:GLBPLAYLIST/LIBPLAYLISTS (Rhapsody-era), mymusic:playlists, FEATPLAYLISTS",
-   "mimes": "audio/x-mpegurl, audio/mpegurl, application/x-mpegurl, application/vnd.apple.mpegurl, application/dash+xml, sonos.com-http:*:application/dash+xml:*; enableAmazonMusicDASH flag"
+   ]
   },
   "qplay_protocol": {
    "status": "partial",
@@ -119114,7 +119065,8 @@
     "REPEAT_ALL",
     "SHUFFLE_REPEAT_ONE"
    ],
-   "events": "playmodelEvent {eventType,curationState}; \"setting link URL: %s\" on isAd tag; trackQueueSummary name"
+   "events": "playmodelEvent {eventType,curationState}; \"setting link URL: %s\" on isAd tag; trackQueueSummary name",
+   "queue_xml": "queue doc: <QueueID val=\"%.20s\"/><QueueOwnerID val=\"%s\"/><UpdateID val=\"%u\"/><Curated val=\"...\"/>; fields {QueueID,QueueOwnerID,QueueOwnerContext,QueuePolicy,EnqueuedURIsAndMetaData,CurrentTrackIndex,NewCurrentTrackIndices}; verbs {AddMultipleURIs,AddURI,AttachQueue,Backup,CreateQueue,RemoveAllTracks,RemoveTrackRange,ReorderTracks,ReplaceAllTracks,SaveAsSonosPlaylist}; policy flags {fullTrackOnly,allowShuffle,allowRepeat,cacheOnPause,stopOnError,clearOnEnd,pauseAtEnd,repeatLastTrack}"
   },
   "runtime_flag_files": {
    "status": "partial",
@@ -120390,7 +120342,8 @@
     "reporting": "\"Pending report for account %u\"; \"Failure to mark accounts for reporting\"; \"Failed to report svc %u\"; numAccounts",
     "manifest": "\"Failed to download manifest file (%s) for service %u, error %hu\"",
     "directcontrol": "\"End direct control context UUID: %s\"; spotifyTransferStartDirectControlEx; authToken/smapi keys"
-   }
+   },
+   "stereo_pair_rc": "rc_impl_stp: RcSetEqActionEvt {DesiredLoudness,DesiredBass,DesiredTreble,RampType}; VolumeSetActionEvent {vol,mute,ignoreProxy}; \"This command is allowed only on primary: %s\" forwarding gate; \"Muse command forwarding failed\"; volumeScalingFactor; SetRoomCalibrationStatus propagated to SUB, second SUB, SURROUND via UPnP clients"
   },
   "htaudio": {
    "tv_session_fields": [
@@ -120559,6 +120512,48 @@
   },
   "autoplay": {
    "engine": "MpAutoPlay_: airplay {include zones,vol,useVol,includeZones}; AirplayIncludeGroupedEvt; AutoStop on unhandled URI; linein URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth}; \"lonely local line-in autoplay %s\"; failure modes \"no autoplay target\"/\"couldn't determine coordinator\"/\"couldn't determine AVT control URI of coordinator\"/\"couldn't determine control URI of zone\"; skip \"invisible/node proto incompatible ZP\"; \"for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d\"; vliType-driven"
+  },
+  "saved_queues": {
+   "name": "SavedQueues .rsq format",
+   "status": "strong",
+   "summary": "file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration \"Migrating ObjID=%s SN=%u from SID: %u to %u\"; SQ:%s objid prefix; <res protocolInfo=\"file:*:audio/mpegurl:*\">; album-art: \"No num tracks found, so emitting the first four artworks found\"; mobile- playlist prefix; \"Add Track Move range: %u-%u to %u\"; replication push on save",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed329c",
+     "notes": ".rsq schema literals"
+    }
+   ]
+  },
+  "smb": {
+   "iterator": "resilient dir walk: mount \"Successfully mounted %s as %s\"; reconnect \"failed to connect to %s (error=%d); reattempt=%d\"; resume \"Reopened directory %s at start\"/\"iterating to %s\"/\"Found last known item %s\"; fast-forward/stat errors reattempt-tagged; /tmp/smb/tmp_idx staging"
+  },
+  "signal_source": {
+   "name": "signal/tone source",
+   "status": "partial",
+   "summary": "errors \"invalid playId\"/\"failed to stop signal\"/\"incorrect playId\"/\"nothing is currently playing\"/\"couldn't create an audio stream\"/\"only one signal can run at any given time\"/\"invalid channel\"/\"disallowed by policy\"; channelNumber param",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed2dc8",
+     "notes": "signal source region"
+    }
+   ]
+  },
+  "stream_fetcher": {
+   "name": "stream playlist fetcher (HLS/radio)",
+   "status": "partial",
+   "summary": "notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey (encrypted HLS); \"New bitrate: %d, Old bitrate: %d\" adaptive switch; playlist FSM {\"Timed out looking for playlist\",\"Playlist failure with no time to recover (%ld buffer)\",\"fetch empty\",\"Too many empty playlists and no audio left\"/\"(still %ldms ahead)\",\"Switching source due to empty playlists\",\"end of static list\",\"Unable to select another DS\"/\"waiting to fetch new playlist\"}; \"Startup ahead: %ld\"; \"URIs for %g seconds, wake up in %d\"; \"prebuffering %u bytes within %ld msec\"; open fmt \"open: %s (0x%x) %d len %llu offset %llu\"; \"stopping decoding while sleeping\"",
+   "evidence": [
+    {
+     "type": "firmware",
+     "status": "confirmed",
+     "address": "0x10ed38c8",
+     "notes": "audio_stream region"
+    }
+   ]
   }
  },
  "muse": {
