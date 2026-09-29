@@ -2415,6 +2415,7 @@ The long-press button behavior — group-coordinator clone cycling: a GC list (h
 GC list {head,tail,current} of cloneable group coordinators; "cycling to %s:%s"/"end of list reached"; tracked GC actions {Adding new GC,Moving GC to head,Removing GC,"Updating last PAUSED/STOPPED GC","Last GC in HH to change playback state is no longer cloneable",Untracked GC action}; "not joinable"
 
 - **name:** longpress — GC-clone cycling
+- **setup_ready_combo:** VOL_UP+VOL_DN combo: each press starts a timer ('VOL_UP starts timer, when pops, switch to setup-ready mode' / 'VOL_DN starts timer...'); holding both pops the timer and the device switches to setup-ready mode ('VOL_UP + VOL_DN timer popped, switching to setup-ready mode' and inverse order) — the physical-button path into setup/join flow. Button presses can also tear down grouping: 'Becoming standalone due to button press'.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10ec9b7c — longpress block
