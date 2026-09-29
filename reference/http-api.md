@@ -1336,6 +1336,36 @@ The player's built-in diagnostics website. Opening http://<player>:1400/status/ 
     - **/button_triggered.xml / /dropout_triggered.xml:** shared generic page f_10195c74: emits <%s>...</%s> and <%s/> elements over a truncatable log ("Error truncating %s: %s")
     - **/musicservices:** diag-submit page (no XML emit; logs "Could not submit Available Services DIAG. Service count is: %zu")
   - **unresolved_pages:** /accounts /ai_speech_enhance /analoglinein /api /audiocore /cloud /cloudqueue /decoder /dnscache /dmesg /ethportstatistics /hls /htconfig /policy /renderingcontrol /settings/* /spdiftap /topology /track_queue_summary /tvprocessor /wireless /syssettings — handlers are locator-delegating stubs; their render fns use computed member-dumps rather than literal emit strings (need per-module vfunc chase per handler)
+- **admin_post_endpoints:**
+  - **provenance:** master route table {name*,handler*} records @0x11091290-0x11091684 (stride ~28, same table family as 0x11090c00); handlers disassembled
+  - **endpoints:**
+    - **/setstring:**
+      - **handler:** f_100b7cb4
+      - **method:** POST
+      - **content_type:** application/x-www-form-urlencoded
+      - **params:** `key`, `value`, `csrfToken`
+      - **response:** <h2>System Settings</h2>Setting changed \| HTTP Error %d
+      - **headers:** `Cache-Control: no-cache, no-store, must-revalidate`
+      - **note:** raw SystemProperties write — arbitrary settings key/value with CSRF gate
+    - **/removestring:**
+      - **handler:** f_100b79e0
+      - **method:** POST
+      - **params:** `key`, `csrfToken`
+      - **response:** <h2>Remove System Setting</h2>Setting removed
+      - **note:** raw SystemProperties delete
+    - **/mdnsannounce:**
+      - **handler:** f_100c1230
+      - **method:** POST
+      - **params:** `csrfToken`
+      - **response:** Success \| Failed to trigger ResendResponses: %i
+      - **note:** triggers mDNS ResendResponses on mod_zp (re-announce/Goodbye)
+    - **/sonarctl:**
+      - **handler:** f_100bc354
+      - **method:** POST
+      - **params:** `flush`
+      - **response:** Flushed
+      - **note:** flushes pending sonar tones via sonar-tone (mod_zp)
+  - **ranges_literal:** /ranges; boundary=##123456789###BOUNDARY @0x10e72241 — multipart range-request response boundary template (HTTP 206 partial content)
 
 ## `device_account_endpoint`
 
