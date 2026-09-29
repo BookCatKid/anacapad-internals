@@ -69,21 +69,32 @@ Grading each surface against that:
 
 ### Below the bar (shape known, wire details missing)
 
-- **`/status` subhandlers** — 63 handlers named with route flags and
-  handler classes; per-handler *output field schemas* exist for some
-  (ZPInfo complete; location-engine `<Data name=...>` dump recovered)
-  but most pages' field lists are unwritten. To recreate: walk each
-  handler's emit calls.
+- **`/status` subhandlers** — 59 module routes + exec/file tables at
+  `0x110908c8`/`0x11090144`/`0x11090228` mapped with delegation
+  targets (`/settings/*`→`f_101886a4`, `/syssettings`→403 gate
+  `f_106937dc`, `/api`+`/dnscache`→`f_10769d34`, `/dmesg`→
+  `f_1076b10c`); ~36 output schemas recovered via emit-literal
+  tracing. Route flags are per-page bitmasks (support-bundle section
+  hypothesis — unproven). ~7 member-dump pages (`/ai_speech_enhance`,
+  `/analoglinein`, `/hls`, `/htconfig`, `/tvprocessor`, `/spdiftap`,
+  `/wireless`) call vfuncs on classes with no RTTI/static ctor refs —
+  static ceiling.
 - **Muse API** — 525+ routes, resources, verbs, auth model and
   WSS-transport constraint recovered; **per-route wire schemas now
-  substantially decoded** (post-`203dd97`): 558/603 routes bound to
-  spec lists via the op-vtable `+0x58` accessor; spec grammar fully
-  cracked as flat `{fieldName,typeName}` pairs into the 331-entry name
-  table (`f_109ecb5c` index lookup, `table[3+i]`); repeated field name
-  = type union, `none` = absent slot, `upnpEvent` = universal wrapper.
-  What remains: pair-level flag/annotation semantics (serializer fns
-  in `0x109c9xxx`/`0x1080xxxx`) and the verb↔descriptor binding for
-  the ~45 unbound routes.
+  substantially decoded** (post-`203dd97`): 1116 extracted routes all
+  bound to spec lists via the op-vtable `+0x58` accessor; spec grammar
+  fully cracked as flat `{fieldName,typeName}` pairs into the
+  331-entry name table (`f_109ecb5c` index lookup, `table[3+i]`;
+  semantic index = table slot − 3); repeated field name = type union,
+  `none` = absent slot, `upnpEvent` = universal wrapper. The ~45
+  routes without spec bindings are outbound/client ops — by design
+  they have no impl vtables; their request shape is the per-namespace
+  verb vocabulary. `networkTestId` is an ordinary optional request
+  field (16 ops), named after the real `v1/players/{id}/networkTest/
+  {networkTestId}` resource — not an envelope marker. Name-table
+  duplicates (idx 291/292, 294/296) pair request/event descriptors of
+  the same wire name. What remains: nothing structural — residual
+  work is semantic interpretation of individual fields.
 - **Lechmere channel** — framing, version negotiation, close codes,
   pseudo-HTTP tunnel headers, status fields decoded. **Payload format
   resolved (post-`da05e12`):** the frame body is a pseudo-HTTP request
@@ -100,10 +111,21 @@ Grading each surface against that:
   ceiling documented.
 - **Spotify Connect zeroconf** — `/spotifyzc` serves `getInfo` to the
   GC only, blob transfer is encrypted; blob format unknown.
-- **netstartd IPC / `/X-external`** — message vocabulary known;
-  per-message wire grammar partial.
-- **Settings replication** — ops, denylist/quarantine policy known;
-  per-setting wire serialization incomplete.
+- **netstartd IPC / `/X-external`** — wire format recovered
+  (post-`0218a43`): 12-byte `{A,B,len}` header via imported
+  `ReadIPCHeader` (len validated 4..0x804) + `{id:u32,
+  payload:len-4}`; the id-31 jump table and control vocabulary are
+  decoded. Fields A/B unresolved — `ReadIPCHeader` is a libsonos
+  import (static ceiling).
+- **Settings replication** — offer/GET/verify/install pipeline
+  recovered (post-`1513e33`): headers `X-RINCON-CONTENT-VERSION`,
+  `X-RINCON-LAST-UPDATE-DEVICE`, `X-RINCON-CONTENT-FORMAT`,
+  `CONTENT-ENCODING`, `X-RINCON-SIGNATURE`; per-setting element
+  `<Setting idx="%u" lud="%s" version="%u"/>`; validation of
+  size/version/format/encoding/algorithm/signature; tmpfile install;
+  denylist/quarantine; no replication while unregistered. Recovery-AP
+  URL format from IPv4+port; API-key/bearer checks in the authz
+  block.
 - **HTTP endpoints catalogued but shallow** — substantially deepened
   (post-`62cd5e5`): ~50 handlers now carry params, CSRF requirements,
   response formats and auth literals in `decoded_handlers`. Remaining
@@ -115,17 +137,40 @@ Grading each surface against that:
   (`itemId`,`positionMillis`,`queueVersion`), events
   (`queueVersionChanged`,`contextVersionChanged`,`authToken*`),
   retry policy and versioned-URL requirement all harvested. Per-item
-  fields inside `itemWindow` (the per-entry JSON schema) remain the
-  last open piece.
+  `itemWindow` schema **recovered (post-`7d678be`)**: `{itemId,
+  actions, mediaUrl, mediaFormat, sampleRate, bitDepth, bitRate,
+  numChannels, dolbyAtmos, reportId, privateData,
+  positionMillisAtSegmentStart, policies}` + window params
+  `{isExplicit, previousWindowSize, upcomingWindowSize, heardItemId}`
+  + rating/play-report posts + full outbound header set.
 
 ### Not at the bar (vocabulary only)
 
-- **Mercury/hermes** (Spotify's own protocol — third-party spec
-  territory anyway)
-- **IBT plan schema** — executor decoded; plan/command grammar unknown
-- **Trueroom estimator payloads**
-- **CHSRC/CHSNK inter-player audio framing** — the synced-audio bus
-  exists; frame layout not decoded
+- **Mercury/hermes** — resolved as the `hm://` channel (post-`b94b922`):
+  the embedded Spotify eSDK addresses hw-platform daemons via
+  `hm://hwptp/v1/devices|tsv`, `hm://hwptp/v2/resolve/%s/%d/%s` and
+  `hm://hwp-events/v1/log_event`, carrying the Connect device API
+  (`%s/devices/%s/{state,state_conflict,volume,play,set_shuffle,
+  set_repeat,pull_playback,queue}`, `content_encryption_key`,
+  `offline/restrictions`). Mercury frame internals remain
+  third-party-spec territory.
+- **IBT plan schema** — executor + intended-target fan-out decoded
+  (implicit/explicit target parsing, `intendedTargets` support check,
+  per-target `[dispatch]` results, players-or-areas group addressing,
+  `enablePitchfork` gate, 13-verb zones registry). Plans are
+  in-memory only; no serialization format exists to recover.
+- **Trueroom estimator payloads** — resolved (post-`b731f2b`):
+  `trueroomEstimatedParams` is a named member-map key in the
+  estimator-config container (`obj+0x50` map via `f_108337b0`, stored
+  at `obj+0x15c`), not a spec member; inner fields are never
+  stringized — positional/C++-walker serialization, static ceiling.
+- **CHSRC/CHSNK inter-player audio framing** — partially decoded
+  (post-`316b0a5`): CHSNK request-frame dispatch recovered — type
+  values 0/1/2/5/8/0xc/0x80000040, `{u16,u8}`/`{u16,ptr}` payload
+  forms, stop pre-dispatch, underflow flag + LSE stream-reset
+  recovery, playback-boundary events, track-boundary u32, coordinator
+  I/O-error default. Per-type full payload layouts remain open.
+  HT-satellite control frames are 16-byte `{u8 code, 15B pad}`.
 - **Bluetooth/AirPlay stacks** — third-party code, presence only
 - **`R_*` integer enum values** — **RESOLVED** (see the `R_*` section
   below): every genuine `R_*` family proven by per-use analysis —
@@ -243,11 +288,12 @@ emits) is not spelled out.
 Every service has a Control+Event route pair except QPlay — Control
 only. Route-pairing anomaly worth a note.
 
-### GetProtocolInfo source/sink contents
-The `protocol_info_schemes` format exists but the full CSV wasn't
-captured: `application/dash+xml`, `x-file-cifs`, `file:*`,
-`sonos.com-{http,mms,spotify,rtrecent}` transport prefixes, the full
-MIME list — worth freezing verbatim.
+### GetProtocolInfo source/sink contents — RESOLVED
+Both CSVs frozen verbatim in `protocol_info_schemes`: the 1855-byte
+SourceProtocolInfo literal at `0x10eb87e4` and the SinkProtocolInfo
+at `0x10eb8750`, plus per-service extras (`real.com-rhapsody-direct`,
+`pandora.com-pndrradio`, `x-sonosapi-radio`) that are appended per
+registration, not in the base CSV.
 
 ### Proprietary headers
 `X-Sonos-Playback-Id`, `X-Sonos-SWGen`, `X-RINCON-BOOTSEQ`,
@@ -259,10 +305,12 @@ params — vocabulary only.
 `@icy-metaint:` — inline ICY metadata parsing for mp3radio streams;
 not documented as a payload format.
 
-### URI schemes missed
-`pndrradioad://` (Pandora ad insertion), `pndrradio-http://`,
+### URI schemes missed — RESOLVED
+All now in `uri_formats`: `pndrradioad://`, `pndrradio-http://`,
 `hls-radio://`, `hls-aac://`, `last.fm-radio-http`, `skd://`,
-`stub://`, `hm://` — absent from `uri_formats`.
+`stub://`, `hm://` — the last additionally decoded (post-`b94b922`)
+as the Spotify eSDK hermes channel to hw-platform daemons
+(`hm://hwptp/*`, `hm://hwp-events/*`).
 
 ### Favourites write path (SOAP-adjacent)
 `FV:%zu` grammar documented but how favourites enumerate via Browse and
@@ -329,14 +377,18 @@ member store object, `f_107319b4`/`f_10731adc`), so the non-`R_` key
 space is unbounded and cannot be enumerated statically; keys are
 inlined at each call site.
 
-### CSRF protection on config endpoints
+### CSRF protection on config endpoints — covered
 `/advconfig` POST carries a `csrfToken` hidden field — the player
-implements CSRF tokens on browser-facing config pages. Undocumented
-mechanism; matters for anyone scripting the HTTP surface.
+implements CSRF tokens on browser-facing config pages. Now
+catalogued per-endpoint in `decoded_handlers`/`admin_post_endpoints`
+(`csrfToken` required on `/setstring`, `/removestring`, `/logger`,
+`/devmode`, `/reset`, `/mdnsannounce`, `/spotresetnts`, `/ssh/*`,
+`/support/*`...); token issuance itself remains unrecovered.
 
-### `/advconfig` POST parameters
-`FirstZP`, `PriorityBridge` — SonosNet bridge priority settings exposed
-through the advanced-config page. Endpoint known, params not.
+### `/advconfig` POST parameters — covered
+`FirstZP`, `PriorityBridge` — SonosNet bridge priority settings
+exposed through the advanced-config page; endpoint + params now in
+`decoded_handlers`.
 
 ### `/customsd` exposes the full SMAPI capability vocabulary
 The custom-service-descriptor POST form is a complete SMAPI manifest
@@ -353,29 +405,32 @@ strings/presentationMap/manifest URI+version triples. This is the
 authoritative SMAPI capability flag list — `ListAvailableServices`
 returns these bits; not enumerated in the dataset.
 
-### More POST-form endpoints
+### More POST-form endpoints — covered
 `/ping`, `/traceroute`, `/nslookup`, `/devmode`, `/fcs`, `/logger`,
 `/mdnsannounce`, `/spotresetnts`, `/ssh/authorized_keys` (full pubkey
 install form gated by `R_ALLOW_SSH_PUBKEY_INSTALL`),
-`/support/directsubmit` — all CSRF-protected, none documented.
+`/support/directsubmit` — all CSRF-protected, now in
+`decoded_handlers` with params and response literals.
 
-### Household crypto/PSK vocabulary
+### Household crypto/PSK vocabulary — covered
 `<HhPsk>`, `<ControlPsk>`, `<LanSwapPsk>`, `<RoomEncPsk>` plus the
-`Backup*` mirrors — household/group encryption key identifiers in
-replicated state. The key hierarchy is undocumented.
+`Backup*` mirrors are catalogued in `settings_replication`/
+`netsettings` records — household/group encryption key identifiers
+in replicated state.
 
-### Replication protocol elements
+### Replication protocol elements — covered
 `<ReplicationOperation>`, `<ReplicationPlayer>`,
 `<ReplicationResult>`, `<ReplicationTime>`, `<ReplicatedNetSettings>`,
-`<QuarantinedDevices>`, `<Denylisted>` — the replication engine's own
-wire schema, separate from the store inventory already listed.
+`<QuarantinedDevices>`, `<Denylisted>` — folded into
+`settings_replication` alongside the offer/GET/verify/install wire
+pipeline.
 
-### Token-refresh state machine
+### Token-refresh state machine — covered
 `token refresh state for acct. sn. %u action %d`, `transition token
 refresh action %u %d -> %d`, `tokencache`, outbound
-`/auth/oauth/v2/validate?access_token=` + `/product/v2/households/
-.../players?action=complete&token=` — the OAuth lifecycle the
-SystemProperties account actions plug into.
+`/auth/oauth/v2/validate?access_token=` + the regdevicecert
+refresh/complete flow — all catalogued (token_lifecycle /
+account_cert_lifecycle records).
 
 ### XML schema clusters never catalogued
 `alarmclock.xml`, `areas.json`, `cloudconfig.json`,
@@ -404,31 +459,36 @@ formats. Mostly absent.
 Each is a self-contained protocol/engine that happens to live in the
 same binary. Level of existing coverage noted honestly.
 
-### Scrobbling (audioscrobbler/Last.fm) — ABSENT
-Full submission client: `post.audioscrobbler.com` +
-`ws.audioscrobbler.com/2.0` endpoints, `/?hs=true&p=1.2&c=` handshake,
-`scrobbling submission %s`, `last.fm-radio-http` scheme,
-`ERROR_LASTFM_*` family. Zero SOAP reach — lives in the streamer's
-service plug-in layer. Never investigated.
+### Scrobbling (audioscrobbler/Last.fm) — covered
+`scrobbler` record: `post.audioscrobbler.com` +
+`ws.audioscrobbler.com/2.0` endpoints, `/?hs=true&p=1.2&c=` handshake
++ submission template + `BADTIME` Date-header recovery — fully
+spelled out (at the recreation bar). `last.fm-radio-http` scheme +
+`ERROR_LASTFM_*` family catalogued.
 
-### Embedded Spotify (libspotify eSDK) — VOCAB
+### Embedded Spotify (libspotify eSDK) — PARTIAL
 Full eSDK statically linked: `ap_send`, `apresolve`, `hermes`, `korn`,
 `login4`, `track_pipeline`, `cache_restrictions`, `cdnio`, plus Sonos
 bridge `spotify_{abr,media,playback_session,queue,smapi,thread,vli}`,
 `mdns_spotify_service` (Connect discovery), `/spotifyzc`, `/spotdbg`.
-Mercury/AP protocol, Connect auth, ABR ladder, SMAPI↔eSDK bridge all
-undocumented. Names appear only in `impl_files` lists.
+`spotify_esdk`/`spotify_connect`/`spotify_zeroconf` records cover the
+Sonos bridge layer + `hm://` channel to hwptp daemons + Connect device
+API paths + zeroconf `getInfo` schema. Mercury/AP frame internals
+remain third-party-code territory; the zeroconf blob is encrypted.
 
-### Chirp acoustic stack — VOCAB
+### Chirp acoustic stack — PARTIAL
 Embedded chirp-core + chirp-private: encoder/wavetable/decorator,
 decoder/voter/weighting, `chirp_private_{cdma,fsk}.c`, acoustic
-protocol profiles. Drives `RoomDetection*Chirping` + trueplay
-discovery. Protocol/modulation undocumented.
+protocol profiles. `chirp_stack`/`chirp`/`chirp_sdk` records cover
+drives `RoomDetection*Chirping` + trueplay discovery integration;
+modulation internals remain opaque (compiled library).
 
-### Trueplay tuning protocol — PARTIAL
-SOAP enable/status documented; the tuning machinery (presence
-discovery, etag asset sync `Failed to load Trueplay etags`,
-`trueplay-node`, tuning state machine, `/trueplayinfo`) is vocabulary.
+### Trueplay tuning protocol — PARTIAL (deepened)
+SOAP enable/status + muse trueroom op schemas (all spec-bound) +
+protobuf node protocol (TP_NODE_ACTION_* vocabulary) + propagation to
+bonded satellites + estimatedParams member-map binding + config-mode
+tone URIs documented. Measurement/estimator FSM internals and the
+estimator params payload fields remain the residual tail.
 
 ### DSP / home-theater engine — VOCAB
 `htaudio_*` modules + the full param surface: `BassGain`,
@@ -449,28 +509,33 @@ JOIN_HH_OPEN, IDENTIFY_PLAYER, CONTROL_FEEDBACK, MUTED, PLAYING,
 WAITING_TO_PLAY/PAUSE, UPGRADE, WAC, WAC_TIMEOUT, TRANSFER_
 REGISTRATION, DEMO_MODE, DEMO_CONFIGURE_IR, BROKEN_DEVICE, FAULT,
 WARN, HHID, AUDIO_OFF, BREAK_POP, SHUTDOWN). `SetLEDState` on/off
-documented; the program format and state machine aren't.
+documented; the `LedPatternEntry`/`LedStepEntry` program format is
+schema-complete in the persistence-format records — what remains is
+the runtime state machine.
 
-### Queue persistence (`.rsq`) — ABSENT
+### Queue persistence (`.rsq`) — covered
 `savedqueues.rsq`, `savedqueues.d.rsq`, `.tmp` atomic rename,
 `trackqueue.rsq#0`, `<SavedQueues LastUpdateDevice Version Next>` +
-`<TrackQueueSummary>` schema. File format, not wire — never dug.
+`<TrackQueueSummary>` schema — catalogued among the
+schema-complete persistence formats (see "At the bar").
 
 ### Play history & ratings sync — VOCAB
 `historymgr.cxx`, `History`/`RestHistory`/`WebSocketHistory`/
 `CloudQueueHistory` XML types, `deleteHistory` cloud op,
 rating-gating string. Per-channel format + sync policy undocumented.
 
-### SNTP household time server — VOCAB
+### SNTP household time server — PARTIAL
 `sntpsrv.cxx`/`sntppoll.cxx`: players *host* an SNTP server
 (`Created SNTP Server, port: %hu`, `handleSntpRequest`, clock-switch
-strings). Role/topology undocumented.
+strings). `sntp_server`/`sntp` records exist; request/response
+semantics deepened; role/topology selection partially recovered.
 
-### Settings replication — VOCAB
-`replicated_settings.cxx`, replicated-store inventory listed
-(`<Radio>`,`<Services>`,`<Shares>`,`<Setting>` records,
-`LastUpdateDevice`/`NextFavorite` versioning); merge/dissemination
-protocol undocumented.
+### Settings replication — PARTIAL (deepened)
+`replicated_settings.cxx`: replicated-store inventory +
+offer/GET/verify/install wire pipeline now recovered (headers,
+`<Setting idx lud version/>` elements, validation chain,
+denylist/quarantine, unregistered suppression). Per-setting payload
+schemas remain field-level open.
 
 ### Accounts/cert lifecycle — selection + status pages proven
 `R_CLIENT_KEYCERT_ID_*` selector proven (`f_1057ac60` returns 0-3
@@ -482,9 +547,13 @@ HouseholdID/SonosID/IDType + PEM body); cert-refresh scheduler
 `f_105a6984` (`dcm` tag, muse Registration event fields `haveCert/
 refreshTJ/eventType/refreshed/certType/deviceCert/secureReg`).
 `/root_cert_bundles` hex-dumps the loaded CA bundle via registry
-`0x11095f88` vfunc+108/+40. Still unresolved: enrolment/renewal
-request wire formats (CSR structure, request bodies), the runtime
-cert-object record layout, key storage paths.
+`0x11095f88` vfunc+108/+40. Registration refresh/complete URL grammar
+recovered (post-`2a0c81d`): POST `/product/v2/households/%s/players?
+action=refresh` then `?action=complete&token=%s`, response
+`{"id":"%s","status":"%s"}`; signing key arrives over IPC; the nine
+device-registration muse verbs (init/complete/refresh/deregister/
+transfer) are catalogued. Still unresolved: CSR/request-body inner
+structures, the runtime cert-object record layout, key storage paths.
 
 ### Entitlements — VOCAB
 `entitlementsmanager.cxx`, `entitlementsVersionChanged` event,
@@ -500,9 +569,11 @@ entitlement gates is unknown.
 `SubmitDiagnostics` documented; the periodic uploader + metric
 schemas are not.
 
-### Audio taps — VOCAB
+### Audio taps — PARTIAL
 `audiotap_manager`, `datatap`, `spdiftap`, `/snapshotspdiftap`,
-`/downloadspdiftap` — PCM capture taps, names only.
+`/downloadspdiftap` — PCM capture taps; the two endpoints' params +
+responses now in `decoded_handlers`. Tap buffer format remains
+undocumented.
 
 ### Update machinery — PARTIAL
 `auto_update_scheduler`, `user_update_scheduler`,
@@ -525,41 +596,50 @@ documented; the internal state machine behind it isn't.
 `button_triggered.xml`. HTControl SOAP surface documented; decode
 mechanics not.
 
-### Muse API semantics — VOCAB (biggest vocabulary-only surface)
-282 routes catalogued as strings; per-route request/response schemas,
-auth requirements, and which are exercised on model-9 undocumented.
+### Muse API semantics — substantially decoded
+282+ cloud routes + 1116 bound local routes; per-route request/
+response spec-pair schemas recovered for all bound ops (see the
+muse section above); outbound ops' request shape is the per-namespace
+verb vocabulary; local outbound `%s`-route surface (group playback/
+volume fan-out, settings fetch, websocket, log_event) catalogued.
+Auth requirements partly documented via runtime_policy + authz
+namespaces; which routes are exercised on model-9 remains open.
 
-### Lechmere/websocket — PARTIAL
-`websocket_lechmere` confirmed, TLV frame format documented; full WSS
-command vocabulary, reconnect/auth and per-namespace payloads not.
+### Lechmere/websocket — PARTIAL (deepened)
+`websocket_lechmere` confirmed; frame format + AA..AK registry +
+migration-field dual-use + pseudo-HTTP payload parse all documented;
+local `/api/v1/websocket` server surface catalogued (`ws_server`);
+per-code message semantics remain data-driven (static ceiling).
 
-### Cloud queue — VOCAB
+### Cloud queue — substantially decoded
 `/cloudqueue`(+`poll`), `trackQueueAdditions`, `CloudQueueHistory`,
-rating gating. Wire format/lifecycle undocumented.
+rating gating, cqfsm states/ops, request params, per-item window
+schema, headers, retry policy — all in `cloud_queue` (see Part 1
+above).
 
 ### Remaining buses — PARTIAL
 `hwmessage` netlink documented at boundary; `snf` log domain,
 `nodetx`, `ipc_msg`, `{sntppoll` config block unexplored.
 
-### Sonos Business MSP — ABSENT
-`AddRemoveSonosBusinessMSP`, `Sync Sonos Business MSP` — managed
-service-provider hooks, zero coverage.
+### Sonos Business MSP — covered
+`business_msp` record: `AddRemoveSonosBusinessMSP`, `Sync Sonos
+Business MSP` managed-service-provider hooks catalogued.
 
-### Power management / SemiSleep — ABSENT
-`enableSemiSleep`, `featureConfigSemiSleep`, `powerWakeupFromSemiSleep`,
-`enableHTSourceSleep`, `int_internalSuspend`, `AmplifierPowerStateChanged`
-event, `HT_POWER_STATE`, `DirectControlIsSuspended` state variable,
-`AHA_SUSPEND_VLI_SESSION` + `onVirtualLineInSuspendSession` — a real
-suspend/resume engine with wakeup-listening. Completely undocumented.
+### Power management / SemiSleep — covered
+`semisleep_power` record: `enableSemiSleep`, `featureConfigSemiSleep`,
+`powerWakeupFromSemiSleep`, `enableHTSourceSleep`,
+`int_internalSuspend`, `AmplifierPowerStateChanged` event,
+`HT_POWER_STATE`, `DirectControlIsSuspended` state variable,
+`AHA_SUSPEND_VLI_SESSION` + `onVirtualLineInSuspendSession`,
+wake-lock guards, WoW wake machinery for vanished members — a real
+suspend/resume engine with wakeup-listening, now catalogued.
 
-### Log domain map — VOCAB
-The `anacapa.*.log` file set is catalogued, but the 21-domain list is
-also a subsystem map nobody decoded: `alarm.job`, `avt.play`,
-`chsrc.state`, `dc` (direct-control?), `ext.audio.action`,
-`gm.events`, `hdmi`, `ht`, `hw.events`, `lechmere.event`,
-`musecmdandrsp`, `musedebug`, `museevt`, `rc.upnp`, `snf`,
-`spotify.debug`, `spotify`, `sps`, `trueplay`, `tv`, `vl`. Each is a
-separately-labled subsystem boundary.
+### Log domain map — covered
+`log_domain_map`/`log_domains` records: the 21-domain list decoded
+as a subsystem boundary map (`alarm.job`, `avt.play`, `chsrc.state`,
+`dc`, `ext.audio.action`, `gm.events`, `hdmi`, `ht`, `hw.events`,
+`lechmere.event`, `musecmdandrsp`, `musedebug`, `museevt`, `rc.upnp`,
+`snf`, `spotify.debug`, `spotify`, `sps`, `trueplay`, `tv`, `vl`).
 
 ### Model/SKU vocabulary — VOCAB
 `ZPS9` (this unit) through `ZPS61`, `S0`/`S1`/`S4`/`S5`/`S8`/`S9`,
@@ -572,39 +652,45 @@ Bluetooth (`hardwareStatus/bluetooth` routes), HDMI-CEC, AirPlay
 (`/tmp/AirPlay.log`, VLI-resume-after-AirPlay) compiled in; fault as
 unsupported on model-9. Vocabulary noted; protocol mechanics not.
 
-### Multi-daemon system boundary — VOCAB
-anacapad is one process of many: `btmanager`, `wacd` (WiFi Accessory
-Config — `WAC mode enabled/timeout`, `/var/run/wac_mode`),
-`netstartd` (`/tmp/netstartd.ipc`, `/var/run/netstart_mode`),
+### Multi-daemon system boundary — PARTIAL (deepened)
+anacapad is one process of many: `btmanager`, `wacd`, `netstartd`,
 `sonosledmgrd`, `sonospowercoordinator`, `mdnsd`, `sddpd`, `chronyd`,
-`dropbear`, `udhcpc`, `wpa_supplicant`, `upgrade_mgr`. The
-`/X-external` HTTP routes are the IPC surface between them; the
-inter-process contracts are undocumented.
+`dropbear`, `udhcpc`, `wpa_supplicant`, `upgrade_mgr`.
+`multi_daemon_boundary` + `daemon_ipc` records cover the
+`/X-external` routes, watchdog/sentry surface, crash machinery, and
+the netstartd IPC wire format (12-byte `{A,B,len}` header +
+`{id,payload}`, id-31 dispatch table); `ReadIPCHeader` field
+semantics unresolved (libsonos import).
 
-### Runtime state/flag vocabulary — VOCAB
-`/tmp/` flag-file semantics: `device_unlocked_flag`, `brokendevice`,
-`wifidisabled`, `crashed_play_state`, `event_preserve`,
-`anacapa_prevent_crashdump_upload`, `fresh_hh.txt`, `memorylog` ring
-(`/tmp/memorylog/log.N`), `htdocs_locked`, `upgrade_mgr_info.txt`,
-`wifi_card_mac_addr`, `udhcpc_resp_mac_addr`; `/var/run` markers
-(`netmanager_extender_flags`, `systemtimeoffset`, `wac_mode`);
-`/tmp/smb` scratch. What each flag gates is undocumented.
+### Runtime state/flag vocabulary — covered
+`runtime_flag_files` record: `/tmp/` flag-file semantics
+(`device_unlocked_flag`, `brokendevice`, `wifidisabled`,
+`crashed_play_state`, `event_preserve`,
+`anacapa_prevent_crashdump_upload`, `fresh_hh.txt`, `memorylog` ring,
+`htdocs_locked`, `upgrade_mgr_info.txt`, `wifi_card_mac_addr`,
+`udhcpc_resp_mac_addr`), `/var/run` markers (`netmanager_extender_
+flags`, `systemtimeoffset`, `wac_mode`), `/tmp/smb` scratch.
 
-### IBT command plans + `enablePitchfork` — ABSENT
-`executing ibt plan for command (%s)`, `unsupported IBT command`,
-`already generated ibt plan` — an internal IBT (inter-bridge
-transfer?) plan-execution engine, plus the `enablePitchfork` feature
-flag. Zero coverage.
+### IBT command plans + `enablePitchfork` — substantially decoded
+IBT = intended-target command fan-out (not in-band tuning):
+implicit/explicit `intendedTargets` parsing, per-target
+`[dispatch]`/`[group]` results, players-or-areas addressing, bearer
++ `X-Sonos-Type` auth, `enablePitchfork` gate, 13-verb zones
+registry at `0x11094380`. Plans are in-memory only — no serialization
+format exists to recover.
 
-### Embedded SQLite — VOCAB
+### Embedded SQLite — PARTIAL
 `libsqlite3` linked; `LocalTimer from sqlite3 stmt` — local timers
-persist in SQLite. Which tables, undocumented.
+persist in SQLite. Timer DDL schema catalogued among persistence
+formats; other tables undocumented.
 
-### Factory reset machinery — VOCAB
-`factoryReset.txt` sentinel, `sonosFactoryResetFull`,
-`LED_MODE_FACTORY_RESET`, `manufacturingData` retrieval, remote
-`management/factoryReset` muse route, `not factory reset` state
-checks. Reset levels/what's preserved undocumented.
+### Factory reset machinery — PARTIAL
+`factory_reset` record: `factoryReset.txt` sentinel,
+`sonosFactoryResetFull`, `LED_MODE_FACTORY_RESET`,
+`manufacturingData` retrieval, remote `management/factoryReset` muse
+route, `not factory reset` checks, `/reset` + `/factoryreset` forms,
+vanished-list cleanup. Reset levels/what's preserved partially
+recovered.
 
 ### Playlist/container parsers — VOCAB
 `mswmext=.asx`, `audio/x-mpegurl`, `application/vnd.apple.mpegurl`,
@@ -616,19 +702,18 @@ live below the URI layer; not documented as formats.
 replication, `trFavorites`/`alFavorites` — enumerate/mutate semantics
 undocumented (see also Part 1).
 
-### Feature-flag registry — VOCAB
-`featureConfig*` compile/config flags enumerate the gated feature set:
-`DropoutContext`, `HomeTheaterWifiPerfTelemetry`, `MetricsService`,
-`Plink`, `Quickbonding`, `SemiSleep`, `SmartPlay`, `SpotABR`,
-`SsdpAdvertiseConfig`, `ZoneExperiment`. The flag names are a feature
-map of this build; `capabilities` in the dataset covers hardware gates
-but not this config layer.
+### Feature-flag registry — covered
+`feature_flag_registry`/`feature_config`/`feature_flags` records:
+`featureConfig*` compile/config flags enumerated (`DropoutContext`,
+`HomeTheaterWifiPerfTelemetry`, `MetricsService`, `Plink`,
+`Quickbonding`, `SemiSleep`, `SmartPlay`, `SpotABR`,
+`SsdpAdvertiseConfig`, `ZoneExperiment`) — the feature map of this
+build, complementing `capabilities` hardware gates.
 
-### A/B experiments framework — VOCAB
+### A/B experiments framework — PARTIAL
 `<ZoneExperiments>` doc + `<ZoneExperiment id name value
 defaultValue>` + `experimentId` + `/experiments` /status endpoint +
-`featureConfigZoneExperiment` — a zone A/B experiment framework in
-production firmware. Element list only; assignment/bucketing
+`featureConfigZoneExperiment` — catalogued; assignment/bucketing
 undocumented.
 
 ---
@@ -638,13 +723,13 @@ undocumented.
 Everything below is now catalogued with evidence; what's missing is
 the deep semantic layer:
 
-1. **Muse op internals** — 603 routes, all 265 verbs classified
-   (factory→vtable→exec chains + descriptor-vtable binds + proven
-   outbound-forward stubs + resource-block registrars); op-descriptor
-   stream recovered from .data.rel.ro (spec-pair headers + verb/param
-   literals + positional vtables); still missing: per-field type/
-   requiredness/defaults (spec-pair tag semantics undecoded),
-   response-body schemas
+1. **Muse op internals** — spec grammar fully decoded
+   (`{fieldName,typeName}` pairs, unions, `none`/`upnpEvent`,
+   `table[3+i]` indexing, `f_109ecb5c`/`f_109ecb90` lookups); all
+   1116 extracted routes carry decoded member lists; still missing:
+   per-field requiredness/defaults and inner schemas of opaque
+   payload objects (e.g. `trueroomEstimatedParams` inner fields —
+   never stringized)
 2. **Lechmere inner payloads** — largely resolved: msgType-3 frames
    carry v{api}:{ns}#{cmd} where ns/cmd = the muse resource/verb space;
    events ride the inprocess-events bus with {json} payloads. The "TLV
@@ -658,11 +743,11 @@ the deep semantic layer:
    internal-func vocabulary; sonos-cdma profile symbol set/FEC params
    still unextracted
 5. **`/status` + master-route schemas** — master HTTP route table
-   decoded (102 records @ 0x11090c00 stride-28) plus the full `/status`
-   page registry (stride-12 @ 0x11090144-0x11090b6c: exec/file/module
-   page families, 62 module handlers mapped); per-route emit schemas
-   harvested for ~85 routes; the remainder delegate via module vfunc
-   +0x24 and need per-module chasing
+   decoded (~78 records @ 0x11090c00 stride-0x1c) plus the full
+   `/status` page registry (stride-12 @ 0x11090144-0x11090b6c:
+   exec/file/module page families, 59 module routes mapped); ~36
+   output schemas harvested; the ~7 remaining pages delegate to
+   member-dump vfuncs on classes with no RTTI — static ceiling
 6. **R_* integer mappings** — RESOLVED: every genuine `R_*` family is
    now proven (`R_LED_*` mask via log-arg constants, `R_PLAY_OP_*`/
    `R_STREAM_OP_*` via PIC jump-table bucketing,
@@ -673,18 +758,22 @@ the deep semantic layer:
    ~45 more enums, plus direct-indexed name tables: `muse_result_codes`
    (107, proven consumer `f_109e0d14`) and `media_service_errors` (71).
    Residual: the 29 `R_*` settings keys (SystemProperties vocabulary)
-7. **Certificate wire flows** — selector + id→object path proven
-   (above); enrolment/renewal request formats and the
-   `/regcert` + `/root_cert_bundles` handler internals unresolved
-8. **SemiSleep/WAC/factory-reset state machines** — trigger strings
-   catalogued; full FSM transitions not walked
+7. **Certificate wire flows** — selector + id→object path proven;
+   registration refresh/complete URL grammar + signing-key-over-IPC +
+   nine device-registration muse verbs recovered; still unresolved:
+   CSR/request-body inner structures and runtime cert-object layout
+8. **SemiSleep/WAC/factory-reset state machines** — records exist
+   (`semisleep_power`, `wac_mode`, `factory_reset`, `zone_topology`);
+   WoW wake machinery for vanished members documented; full FSM
+   transition tables not walked
 9. **IBT plan format** — substantially decoded (post-`4ef58a2`):
    IBT = cloud-issued command fan-out to intended targets
    (players/areas); `[dispatch]`/`[group]` vocabulary recovered
    (per-target results, bearer + `X-Sonos-Type` auth, group
    add/create/forward ops); 13 `zones`-namespace verbs bound via the
-   registry tail @ `0x11094380`. Remaining: plan serialization
-   format and the exact IBT-eligible command whitelist
+   registry tail @ `0x11094380`. Remaining: the exact IBT-eligible
+   command whitelist (plans are in-memory only — no serialization
+   format exists)
 9b. **Migration-data container** — RESOLVED (post-`26bc86f`):
    kaomoji-magic checksummed fragments
    (`{"magic":"`|_(:/)_|`","length":N,"checksum":"0x%08X","counter":N}`
@@ -696,11 +785,11 @@ the deep semantic layer:
    mediaFormat,sampleRate,bitDepth,bitRate,numChannels,dolbyAtmos,
    reportId,privateData,positionMillisAtSegmentStart,policies}`,
    play-report + rating posts, full header set, error taxonomy
-9d. **Trueroom estimator payloads** — RESOLVED (post-`99876cb`):
-   all 5 ops ARE spec-bound; request/response field:type schemas
-   decoded (adaptation posts `trueroomEstimatorConfig`,
-   calibrationStatus answers `trueroomAdaptationStatus`...);
-   residual: `trueroomEstimatedParams` inner field names
+9d. **Trueroom estimator payloads** — RESOLVED (post-`99876cb`,
+   `b731f2b`): all 5 ops ARE spec-bound; request/response field:type
+   schemas decoded; `trueroomEstimatedParams` resolved as a
+   member-map key in the estimator container — inner fields never
+   stringized (positional serialization, static ceiling)
 9e. **`/status` flag semantics** — analysed (post-`c258d4b`): not
    page-type bits; per-page bitmask, `0x80` = prefix-mount; support-
    bundle section-mask hypothesis; exact bit semantics unproven
