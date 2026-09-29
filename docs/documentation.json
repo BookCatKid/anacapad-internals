@@ -104753,6 +104753,12 @@
    "service": "/status",
    "description": "/status ZonePlayers page",
    "fields": "<ZonePlayers><ZonePlayer group prevgroup virtuallineingroupid htsat wirelessmode connectiontype channelfreq behindwifiext wifienabled ethlink ssdp mdns location inbondedzone inhtconfig model modeldisplayname serialnumber hwversion version audiotxver htaudiotxver tpsdkver swgen quarantinereason mincompatibleversion legacycompatibleversion compatible apiversions idle uuid>; <VanishedZonePlayer uuid curgroup reasonforvanish vanishbatterypercentage vanishbatterytemperature timesincevanish>; coordinator='%s' designateddevice='%u'"
+  },
+  "device_props_update_ids": {
+   "status": "strong",
+   "service": "/DeviceProperties/Control",
+   "description": "update counters",
+   "fields": "{DeviceName,AuthorizationGrantedUpdateID,AuthorizationDeniedUpdateID,HdmiCecAvailable,MicEnabled,HeadphoneSwapActive,SvcActive}"
   }
  },
  "uri_formats": {
@@ -109502,7 +109508,18 @@
        ]
       }
      }
-    ]
+    ],
+    "/logger": {
+     "status": "strong",
+     "description": "Sonos Logger admin form (POST, csrfToken): fields {dest:file|\"udp\"|\"stderr\",cat:category e.g. avt_impl,level:0-11 DIAGC(0)\u2192SONOS_LOG(3)} + UDP {udp,udp_addr,udp_port,udp_default} + stderr {stderr,stderr_default} + Diag Msg {msg} + Log Backup {backup_dir,submitAction=logBackup\u2192/jffs/app/log}; errors {Invalid log level/UDP port/UDP default/STDERR default,Log destination not found,UDP already enabled,Diag Msg not allowed}; \"Private IP address is required for UDP logging\"; dest charset `_ -./\\`; status shows Active Destinations(default level)"
+    },
+    "/devmode": {
+     "status": "strong",
+     "description": "dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit|delete} \u2192 \"Statement installed.\"/\"Statement removed.\" \u2014 signed statement mechanism"
+    },
+    "/support": {
+     "detail": "ZPSupportInfo XML: <ZPSupportInfo><ZPNetworkInfo type=\"%s\" %s=\"%s\"><ZPSupportItem title=\"%s\">\u2026 exec pages wrap <Command cmdline=\"\u2026\"> + /tmp/diagstdout+/tmp/diagstdin + <!-- SDT: %ld ms -->; path allowlist {/jffs/app/log,/jffs/app/settings,/jffs,/opt/log,/opt,/tmp,/var} + ambient caps dropped + child read timeout; application/octet downloads; CDATA escapes"
+    }
    },
    "description": " Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 write-capable (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).",
    "route_semantics": {
@@ -120792,7 +120809,11 @@
     "wow": "satellite wake: \"[%s] %s WoW magic packet for MAC %02X..\"; \"Attempted to wake %zu missing secondary ZP of primary %s (sent WoW to %zu)\" \u2014 bonded secondary WoW",
     "vanish_fsm": "states {active\u2192vanished} with {byebye reason,reasonforvanish,vanishbatterypercentage,vanishbatterytemperature,timesincevanish}; \"Broadcasted unresponsive device %s\"; \"Received 'Remove' message pointing to local device\"; \"VerifyThenRemoveSystemwide: Not removing, %s is present\"; removeknown/hwver actions; \"device %s removed from vanished list after factory reset\"",
     "discovery": "handleNewOrUpdatedZP \"%s found %s at %s; age: %d; addr: %s; host: %s; proxy: %s; ports={%u-%u}\"; IP-change detect \"ZP (%s) changed IP address from %s to %s\"; link-local 169.254 guards; \"Updated network hash: [%s] => [%s]\"; \"new bootseq\"; \"%s ZP %s (bootseq %u)\"; X-Sonos-LatestSWGen + Content-Location headers; \"Faking device %s (%s) props to be %s gc\"; designated {PlayerDesignatedDevice missing required field %s}; \"All devices idle for %ld s\"; topmon thread"
-   }
+   },
+   "discovered_zp_cache": "RDiscoveredZP/RDiscoveredZPs/RVanishedZPs replicated objects: \"Updating RDiscoveredZP - current group %s - previous group %s\"; \"applying cached changes 0x%x on top of 0x%x\"; \"RDiscoveredZP is not yet valid, caching SID %s change map: 0x%x\" (subscription change-map cache); \"Got GM info for %s (%s, %s) in group %s (%s)\"; device-desc dd_{mhh,sn,md,bld,in_hh,in_ver} + isHtap:%d; version-gated eventing \"DiscoveredZP version=%u.%u.%u, using %s eventing\" (secure|insecure); \"got discovery packet from another subnet -- mask: %x\"; \"detected/un-detected 3rd party extender: %s != %s\"; vanish reasons {LOW BATTERY,EXPIRED} + \" (wakeable)\""
+  },
+  "upgrade": {
+   "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\""
   }
  },
  "muse": {
