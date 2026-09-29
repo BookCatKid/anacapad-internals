@@ -477,6 +477,8 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 | `alarm_status_schema` | /AlarmClock/Control |  | ? | `strong` |
 | `playstatemanager_schema` | internal |  | ? | `strong` |
 | `renderingcontrol_status_schema` | /MediaRenderer/RenderingControl/Control |  | ? | `strong` |
+| `zone_group_state_schema` | /ZoneGroupTopology/Control |  | ? | `strong` |
+| `zoneplayers_status_schema` | /status |  | ? | `strong` |
 
 ### `AC.AlarmListVersion`
 
@@ -3398,4 +3400,14 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 ### `renderingcontrol_status_schema`
 
 /status/renderingcontrol emitted XML
+
+
+### `zone_group_state_schema`
+
+evented ZoneGroupState XML emitted by topology_base
+
+
+### `zoneplayers_status_schema`
+
+/status ZonePlayers page
 

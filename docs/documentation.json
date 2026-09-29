@@ -104741,6 +104741,18 @@
    "service": "/AlarmClock/Control",
    "description": "/status/alarm emitted XML",
    "fields": "<Alarm><Mode/><Scheduler/><UTCTime/><LocalTime/><Pending><PendingAlarm><ID>%u</ID><Type>%s</Type><Time>%s</Time><TimeUTC/><Recurrence/><NextUTC/><NextLocal/></PendingAlarm></Pending></Alarm>; types {Expired,AVS Alarm,AVS Timer,AVS Reminder,Muse Timer}"
+  },
+  "zone_group_state_schema": {
+   "status": "strong",
+   "service": "/ZoneGroupTopology/Control",
+   "description": "evented ZoneGroupState XML emitted by topology_base",
+   "fields": "<ZoneGroupState><ZoneGroups><ZoneGroup Coordinator=\"...\" ID=\"...\"> devices + </ZoneGroup>; device attrs {QuarantineReason,UUID,ZoneName,Icon,Configuration,Invisible=\"1\",IsZoneBridge=\"1\",SoftwareVersion,SWGen,MinCompatibleVersion,LegacyCompatibleVersion,ChannelMapSet,HTSatChanMapSet,ActiveZoneID,BootSeq,TVConfigurationError,HdmiCecAvailable,WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,Orientation,RoomCalibrationState,SecureRegState,VoiceConfigState,MicEnabled,HeadphoneSwapActive,AirPlayEnabled,VirtualLineInSource,IdleState,MoreInfo,SSLPort,HHSSLPort}; <VanishedDevices>/<QuarantinedDevices> hold <Device UUID Reason ModelInfo Mac LastKnownIP LastSeenUTC>; \":orphan\" group suffix; NetsettingsUpdateID"
+  },
+  "zoneplayers_status_schema": {
+   "status": "strong",
+   "service": "/status",
+   "description": "/status ZonePlayers page",
+   "fields": "<ZonePlayers><ZonePlayer group prevgroup virtuallineingroupid htsat wirelessmode connectiontype channelfreq behindwifiext wifienabled ethlink ssdp mdns location inbondedzone inhtconfig model modeldisplayname serialnumber hwversion version audiotxver htaudiotxver tpsdkver swgen quarantinereason mincompatibleversion legacycompatibleversion compatible apiversions idle uuid>; <VanishedZonePlayer uuid curgroup reasonforvanish vanishbatterypercentage vanishbatterytemperature timesincevanish>; coordinator='%s' designateddevice='%u'"
   }
  },
  "uri_formats": {
@@ -120773,6 +120785,14 @@
      "notes": "cprovider block"
     }
    ]
+  },
+  "zone_topology": {
+   "topology_base": {
+    "quarantine": "discovery quarantine {quarantinedCount,latestPlayerWithQuarantineEvent,stabilizationTime,latestDownloadErrorCode,latestDownloadErrorReason,quarantining}; \"Report player missed by %s\"/missedBy/missedPlayer; quarantineRecheck job; \"Player %s removed from quarantine\"",
+    "wow": "satellite wake: \"[%s] %s WoW magic packet for MAC %02X..\"; \"Attempted to wake %zu missing secondary ZP of primary %s (sent WoW to %zu)\" \u2014 bonded secondary WoW",
+    "vanish_fsm": "states {active\u2192vanished} with {byebye reason,reasonforvanish,vanishbatterypercentage,vanishbatterytemperature,timesincevanish}; \"Broadcasted unresponsive device %s\"; \"Received 'Remove' message pointing to local device\"; \"VerifyThenRemoveSystemwide: Not removing, %s is present\"; removeknown/hwver actions; \"device %s removed from vanished list after factory reset\"",
+    "discovery": "handleNewOrUpdatedZP \"%s found %s at %s; age: %d; addr: %s; host: %s; proxy: %s; ports={%u-%u}\"; IP-change detect \"ZP (%s) changed IP address from %s to %s\"; link-local 169.254 guards; \"Updated network hash: [%s] => [%s]\"; \"new bootseq\"; \"%s ZP %s (bootseq %u)\"; X-Sonos-LatestSWGen + Content-Location headers; \"Faking device %s (%s) props to be %s gc\"; designated {PlayerDesignatedDevice missing required field %s}; \"All devices idle for %ld s\"; topmon thread"
+   }
   }
  },
  "muse": {
