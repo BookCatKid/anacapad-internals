@@ -28,6 +28,90 @@ forced investigation.
 
 ---
 
+## Recreation-readiness audit
+
+The acceptance bar: **a third party should be able to write a
+compatible client (or fake endpoint/server) for each wire-visible
+surface without touching the binary** — full request grammar, response
+schema, error behavior, headers, auth requirements and side effects.
+Grading each surface against that:
+
+### At the bar (recreatable from docs alone)
+
+- **SOAP control surface** — all 205 actions carry handler, dispatch,
+  inputs/outputs, validation, side effects, events triggered, fault
+  sites and crossbuild notes. `QPlayAuth` is the only action without a
+  resolved handler (its impl is the dispatcher sibling).
+- **`/getaa` album-art proxy** — fully decoded via disassembly
+  (handler `f_100b8c2c`, processor `f_100c34fc`, worker
+  `f_10299e5c`): params `m`/`s`/`vli` flags + `u` upstream URL; `u` is
+  a parse terminator (params after it are ignored — `m`/`s`/`vli` must
+  precede `u`); `v` is never read (client cache-buster only); requests
+  enqueue onto a 32-slot ring served by a worker thread that aborts on
+  TCP_CLOSE/CLOSE_WAIT/CLOSING peers; response streams via
+  `vliStreamImage` with `Cache-Control: private, max-age=15780000`;
+  upstream failure = 404-class. albumArtURI emission is capped at 1024
+  bytes.
+- **GENA LastChange** — all three namespaces (`RCS/`, `AVT/`, Sonos
+  proprietary `Queue/`) with complete element inventories.
+- **Persistence formats** — `.rsq` saved-queues, `trackqueue.rsq`,
+  favourites `<Favorites>`/`<Radio>` stores, `alarmclock.xml`, HT
+  config + 37-field zone-audio records, LED `LedPatternEntry`/
+  `LedStepEntry` programs, SQLite timer DDL — all schema-complete.
+- **Scrobbler** — Audioscrobbler 1.2 handshake + submission template +
+  `BADTIME` Date-header recovery, fully spelled out.
+- **Device description / SSDP surface** — both description variants,
+  service/SCPD inventory, advertisement vocabulary.
+- **`/testenv` environment switcher** — full form fields, env table,
+  propagation semantics.
+- **Secure-pairing TLV** — 7-byte header, payload bounds, trailing
+  MAC, rotate-XOR mixer — implementable.
+
+### Below the bar (shape known, wire details missing)
+
+- **`/status` subhandlers** — 63 handlers named with route flags and
+  handler classes; per-handler *output field schemas* exist for some
+  (ZPInfo complete; location-engine `<Data name=...>` dump recovered)
+  but most pages' field lists are unwritten. To recreate: walk each
+  handler's emit calls.
+- **Muse API** — 525 routes, 73 resources, 249 verbs, auth model and
+  WSS-transport constraint all recovered; per-route JSON request/
+  response bodies are not. A muse client cannot yet be written from
+  the docs alone. Highest-leverage open item.
+- **Lechmere channel** — framing, version negotiation, close codes,
+  pseudo-HTTP tunnel headers, status fields decoded; the inner TLV
+  message-type semantics (type ≤ 6) and per-type payload schemas are
+  open. Can recreate the transport, not the conversation.
+- **QPlay** — `QPlayAuth(Seed, Code, MID, DID)` arguments recovered;
+  the seed→code exchange format, response payload and post-auth
+  control channel are not decoded.
+- **Spotify Connect zeroconf** — `/spotifyzc` serves `getInfo` to the
+  GC only, blob transfer is encrypted; blob format unknown.
+- **netstartd IPC / `/X-external`** — message vocabulary known;
+  per-message wire grammar partial.
+- **Settings replication** — ops, denylist/quarantine policy known;
+  per-setting wire serialization incomplete.
+- **HTTP endpoints catalogued but shallow** — 77 `http_extra_endpoints`
+  entries are path+address only; most need the /getaa treatment
+  (params, response, errors).
+- **Cloud queue windowing** — route set + versioned-URL requirement
+  known; `CloudQueueWindow` payload fields unresolved.
+
+### Not at the bar (vocabulary only)
+
+- **Mercury/hermes** (Spotify's own protocol — third-party spec
+  territory anyway)
+- **IBT plan schema** — executor decoded; plan/command grammar unknown
+- **Trueroom estimator payloads**
+- **CHSRC/CHSNK inter-player audio framing** — the synced-audio bus
+  exists; frame layout not decoded
+- **Bluetooth/AirPlay stacks** — third-party code, presence only
+- **`R_*` integer enum values** — the namespace is clean (61 real
+  tokens + 172 `ERROR_*` literals); vtable-order inference could yield
+  values but is unproven
+
+---
+
 ## Part 1 — SOAP / UPnP surface gaps (belong in this dataset)
 
 ### HTTP endpoint inventory is incomplete — ~35 missed paths
