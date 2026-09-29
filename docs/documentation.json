@@ -84810,7 +84810,7 @@
    },
    "actions": {
     "QPlayAuth": {
-     "description": "QPlay authentication: parses required Seed, computes a device-bound auth Code plus MID/DID device identifiers, and returns them. Fully decoded: dispatcher f_1073a4f0 strcmp-matches the action name -> svc->v[+0x0c]=f_1073a5d0 parses Seed (cap 0x80, f_1056157c) -> req->v[+0x08] gate (402 on fail) -> impl->v[+0x08]=f_104666b4 formats Code/MID/DID via __snprintf_chk + ops-table {f_10466698,f_104666a4,f_104666b4} at 0x10ed1d2c; helpers f_104675a4/f_10469124 + entropy fn f_10809f0c (mftb). f_10906304 is strncpy not crypto -> emits Code/MID/DID via req->v[+0x24] -> commits via req->v[+0x0c]. Impl unconditionally returns 0. Code crypto unresolved \u2014 Seed\u2192Code transform not a visible call (likely inlined hash or via f_104675a4 object).",
+     "description": "QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -> exec f_1073a5d0. Exec calls req->v[+0x1c] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req->v[+0x08] (parse-ok check) -> emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl->v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req->member[+0x04]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req->v[+0x24] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v[+0x10] emitter; response committed via req->v[+0x0c]. The Seed->Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).",
      "status": "confirmed",
      "visibility": "advertised",
      "reachability": "callable",
@@ -84873,115 +84873,19 @@
      },
      "outputs": {
       "Code": {
-       "description": "auth code computed by impl f_104666b4 via f_10906304 over Seed + device material",
+       "description": "device auth code computed from Seed + device identity; string <=127 chars",
        "status": "confirmed",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "response field",
-       "format": "computed auth token text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via req->v[+0x24] tagged emitter",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x104666b4",
-         "notes": "impl produces Code"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x1073a5d0",
-         "notes": "emit site"
-        }
-       ],
-       "notes": null
+       "direction": "out"
       },
       "MID": {
-       "description": "device value formatted via snprintf_chk (%u)",
+       "description": "machine-id, 20-char string + NUL",
        "status": "confirmed",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": "%u"
-       },
-       "semantic_type": "response field",
-       "format": "%u decimal text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via req->v[+0x24] tagged emitter",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x104666b4",
-         "notes": "impl produces MID"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x1073a5d0",
-         "notes": "emit site"
-        }
-       ],
-       "notes": null
+       "direction": "out"
       },
       "DID": {
-       "description": "device value formatted via snprintf_chk (%u)",
+       "description": "device-id, 20-char string + NUL",
        "status": "confirmed",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": "%u"
-       },
-       "semantic_type": "response field",
-       "format": "%u decimal text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via req->v[+0x24] tagged emitter",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x104666b4",
-         "notes": "impl produces DID"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "status": "confirmed",
-         "address": "0x1073a5d0",
-         "notes": "emit site"
-        }
-       ],
-       "notes": null
+       "direction": "out"
       }
      },
      "validation": {
@@ -85202,7 +85106,19 @@
       }
      ],
      "notes": null,
-     "implementation_notes": "Dispatcher f_1073a4f0 strcmp-matches \"QPlayAuth\", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v[+0x0c] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v[+0x08] gate (else 402), then impl->v[+0x08] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v[+0x24] then commits via req->v[+0x0c]."
+     "implementation_notes": "Dispatcher f_1073a4f0 strcmp-matches \"QPlayAuth\", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v[+0x0c] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v[+0x08] gate (else 402), then impl->v[+0x08] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v[+0x24] then commits via req->v[+0x0c].",
+     "exchange": {
+      "flow": "controller sends Seed -> impl member fn computes Code/MID/DID -> emitted as out args",
+      "seed_cap": "0x80",
+      "code_cap": "0x80",
+      "mid_did_cap": "0x15 (20 chars)",
+      "errors": {
+       "0x191": "invalid action",
+       "0x192": "missing/invalid Seed"
+      },
+      "impl_slot": "v[+0x08]",
+      "emit": "req->v[+0x24] per out-arg, commit req->v[+0x0c]"
+     }
     }
    },
    "state_variables": {
@@ -118294,7 +118210,7 @@
   },
   "lechmere_wss": {
    "status": "partial",
-   "summary": "lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions",
+   "summary": "lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions INNER FRAME FORMAT RECOVERED: 6-byte ASCII header {protocolVersion:2 chars, messageType:2 chars, extendedHeaderLength:2 chars} followed by extended header + payload (min frame len 6, checked cmpli 6 at f_105d539c). Parse errors 'Bad protocol version: %c%c', 'Bad message type: %c%c; %d', 'Bad extended header length: %c%c', 'could not recv extended header; expected %u read %u'. Message type validated via table lookup (f_11098e98 plt veneer); 2-char code registry AA..AK (.data 0x110941a4, 11 ptrs) dispatched via handler table built at f_10ac47fc region. Tunneled UPnP headers inside: 'x-sonos-method:', 'x-sonos-uri:', 'SOAPACTION:', 'X-Sonos-Udn'. Version str 'lechmere.%hhu%n'.",
    "anchors": [
     "websocket_lechmere",
     "lechmere.event",
@@ -118420,7 +118336,17 @@
    "framing": "RFC6455 with per-message-deflate negotiation: 'wspmd' log domain, deflate/inflate stream ops, 'expected empty deflate block', 'deflate out buffer requirement not met'; config keys SONOS_FCS_DISABLE/ENABLE_PER_MSG_DEFLATE toggle it at runtime \u2014 'FCS' is the internal name of this channel",
    "close_reasons": "standard codes GOING_AWAY/PROTOCOL_ERROR/BAD_DATA/NOT_CONSISTENT/VIOLATED_POLICY/MESSAGE_TOO_BIG/SERVICE_RESTART/TRY_AGAIN_LATER/TLS_HANDSHAKE plus SONOS_* extensions: client-side (REGISTRATION_CERT_REMOVED/CHANGED, DATA_COLLECTION_OPTED_OUT \u2014 telemetry opt-out tears down the channel, ACCESS_TOKEN_EXPIRED, TOO_MANY_UNACKED_PINGS, READ/WRITE_ERROR, CUSTOMER_ID_CHANGED, AUTH_METHOD_CHANGED); player-side (SHUTDOWN, IP_ADDRESS_CHANGED, BLUETOOTH, POWERED_OFF, UPGRADE, NEW_SSID, LOW_BATTERY, SLEEPING, RECONNECT); server-side (LECHMERE_RECONNECT_LATER \u2014 server steering, PLAYER_UNSUPPORTED)",
    "keepalive": "application-level ping/pong: client disconnects on SONOS_CLIENT_TOO_MANY_UNACKED_PINGS",
-   "frame_format": "decoded from reader f_105d52e0: each frame starts with an 8-byte ASCII-hex header \u2014 [protocolVersion:%02x][messageType:%02x][extHeaderLen:%04x] \u2014 followed by extHeaderLen bytes of extended header, then payload. version and type are bounded small enums (rejects >6: 'Bad protocol version: %c%c', 'Bad message type: %c%c; %d', 'Bad extended header length: %c%c'); short reads -> 'failed to read lechmere header: %d' / 'could not recv extended header; expected %u read %u'.",
+   "frame_format": {
+    "header": "6B ASCII: pv(2) type(2) extlen(2)",
+    "msg_types": "2-char codes, registry AA..AK @.data 0x110941a4",
+    "tunneled_headers": [
+     "x-sonos-method:",
+     "x-sonos-uri:",
+     "SOAPACTION:",
+     "X-Sonos-Udn"
+    ],
+    "parser": "f_105d539c"
+   },
    "handshake": "Sec-WebSocket-Protocol: lechmere.%u offered; server response's Sec-WebSocket-Protocol header is parsed back with 'lechmere.%hhu%n' sscanf (f_105d45f8) to confirm the negotiated version; the HTTP 101 Date: header is also consumed \u2014 wall-clock sync from the upgrade response",
    "lifecycle": "'IP changed. Bouncing connection' \u2014 local IP change tears the channel down (SONOS_PLAYER_IP_ADDRESS_CHANGED close reason); authzPolicyKeyLechmere carries a role field ('Could not parse role from lechmere policy key')",
    "tunnel_headers": "extended-header vocabulary: 'x-sonos-method:', 'x-sonos-uri:', 'SOAPACTION:' \u2014 lechmere frames carry virtual HTTP request lines, i.e. UPnP/SOAP actions are tunnelled through the websocket as pseudo-HTTP; upgrade request adds X-Sonos-Udn; 'protocol version negotiation failed due to unknown version (%s)' on mismatch",

@@ -29,7 +29,7 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode.
 
-**Technical description:** QPlay authentication: parses required Seed, computes a device-bound auth Code plus MID/DID device identifiers, and returns them. Fully decoded: dispatcher f_1073a4f0 strcmp-matches the action name -> svc->v\[+0x0c\]=f_1073a5d0 parses Seed (cap 0x80, f_1056157c) -> req->v\[+0x08\] gate (402 on fail) -> impl->v\[+0x08\]=f_104666b4 formats Code/MID/DID via __snprintf_chk + ops-table {f_10466698,f_104666a4,f_104666b4} at 0x10ed1d2c; helpers f_104675a4/f_10469124 + entropy fn f_10809f0c (mftb). f_10906304 is strncpy not crypto -> emits Code/MID/DID via req->v\[+0x24\] -> commits via req->v\[+0x0c\]. Impl unconditionally returns 0. Code crypto unresolved — Seed→Code transform not a visible call (likely inlined hash or via f_104675a4 object).
+**Technical description:** QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -> exec f_1073a5d0. Exec calls req->v\[+0x1c\] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req->v\[+0x08\] (parse-ok check) -> emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl->v\[+0x08\](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req->member\[+0x04\]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req->v\[+0x24\] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v\[+0x10\] emitter; response committed via req->v\[+0x0c\]. The Seed->Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).
 
 #### Inputs
 
@@ -45,16 +45,9 @@ Auth exchange: client sends a Seed string; the player returns Code, MID and DID 
 
 | Name | Type | Values / range |
 |---|---|---|
-| `Code` | response field | impl-produced / per the response writer |
-| `MID` | response field | impl-produced / per the response writer |
-| `DID` | response field | impl-produced / per the response writer |
-
-- **`Code`** — auth code computed by impl f_104666b4 via f_10906304 over Seed + device material
-  - validation: emitted via req->v\[+0x24\] tagged emitter
-- **`MID`** — device value formatted via snprintf_chk (%u)
-  - validation: emitted via req->v\[+0x24\] tagged emitter
-- **`DID`** — device value formatted via snprintf_chk (%u)
-  - validation: emitted via req->v\[+0x24\] tagged emitter
+| `Code` |  | — |
+| `MID` |  | — |
+| `DID` |  | — |
 
 #### Validation `confirmed`
 
