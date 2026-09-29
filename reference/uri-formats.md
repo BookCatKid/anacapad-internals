@@ -251,15 +251,6 @@ RinconNetworks URN namespace prefix observed in service/URN vocabulary.
 
 </details>
 
-## `schemes` _unassessed_
-
-- **x-rincon-queue:** x-rincon-queue:<hhid>#<idx\|hex> — zone-queue URIs; #0 = shared queue root
-- **x-rincon-buzzer:** x-rincon-buzzer:%u:o — alarm/buzzer chime source
-- **x-rincon-stream:** x-rincon-stream:%s:%s — remote line-in stream URI
-- **x-rincon:** group URI (rejected when "source or target is an ungroupable player")
-- **x-sonos-vli:** x-sonos-vli:%s:%u,%s (see vli_grouping)
-- **stub:** stub://stub:%u — mdns stub target
-
 ## `skd` `strong`
 
 skd: — a streamer vocabulary token; semantics unresolved (plausibly a secure-key-delivery or SDK marker).
@@ -379,6 +370,38 @@ Stub scheme token; likely a placeholder/no-op transport marker.
 <details><summary>Evidence (1)</summary>
 
 - @ 0x10f06b88 — rodata scheme literal
+
+</details>
+
+## `tqueue_probe_chain` `strong`
+
+queue URI sniffing/fallback chain
+
+```
+queue probe chain: <ASX playlist detect; mime table /x-ms-,/x-mpegurl,audio/aacp,audio/aac,audio/x-aac,audio/x-scpls; "Trying MMS,RTSP next" scheme fallback; "max redirects(%d)"; HTTP/1.0+ICY 200 OK sniffing for SHOUTcast; "Possible URI truncation" warn; isAd tag -> linkUrl set
+```
+
+Used by: t; q; u; e; u; e; ; o; p; e; n
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e93d14 — ASX/mime/ICY literals
+
+</details>
+
+## `tqueue_scheme_registry` `strong`
+
+complete playable-URI scheme zoo harvested as a contiguous literal run from tqueue.cxx — the queue's scheme dispatch table
+
+```
+{"x-rincon-queue": "x-rincon-queue:<hhid>#<idx|hex> — zone-queue URIs; #0 = shared queue root", "x-rincon-buzzer": "x-rincon-buzzer:%u:o — alarm/buzzer chime source", "x-rincon-stream": "x-rincon-stream:%s:%s — remote line-in stream URI", "x-rincon": "group URI (rejected when \"source or target is an ungroupable player\")", "x-sonos-vli": "x-sonos-vli:%s:%u,%s (see vli_grouping)", "stub": "stub://stub:%u — mdns stub target", "x-rincon-mp3radio": "x-rincon-mp3radio:// — mp3 radio streams", "x-sonosprog-http": "x-sonosprog-http: — programmatic http", "x-sonos-mms": "x-sonos-mms: / x-sonosprog-mms: — MMS radio", "x-sonosapi-rtrecent": "recently-tracked rt content", "x-sonosapi-hls": "x-sonosapi-hls: / x-sonosapi-hls-static: / hls-static: / hls-aac:// / hls-radio:// — HLS family", "mms/rtsp/https/file": "mms://, rtsp://, https://, file:// direct", "sirradio": "sirradio: — Sirius", "x-sonos-spotify": "x-sonos-spotify: / x-sonosprog-spotify:", "x-sonosprog": "x-sonosprog base scheme", "x-rincon-configmode": "x-rincon-configmode:{sonar-calibrate-tone,sonar-calibrate-complete,speaker-detect,speaker-detect.mp3,trueroom-tone} — config-mode tone injection", "x-rincon-sonarcal": "x-rincon-sonarcal:{leader.ogg,testtone.ogg,complete_ht.ogg} — trueroom test-tone queue items", "x-rincon-trueroom": "x-rincon-trueroom: scheme"}
+```
+
+Used by: t; q; u; e; u; e; ; e; n; q; u; e; u; e; /; p; r; o; b; e
+
+<details><summary>Evidence (1)</summary>
+
+- @ 0x10e938e0 — contiguous literal run 0x10e93904-0x10e93a7c
 
 </details>
 
