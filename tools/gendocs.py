@@ -58,6 +58,20 @@ def _para(text):
     return _esc(str(text)).strip()
 
 
+def _pt(m, page, key):
+    """Hand-authored client-facing prose for a page/section, from
+    client_text.json 'pages'. Returns a paragraph string or None."""
+    pages = getattr(m, "pages_client", {}) or {}
+    v = (pages.get(page) or {}).get(key)
+    return _para(v) if v else None
+
+
+def _pt_add(m, out, page, key):
+    t = _pt(m, page, key)
+    if t:
+        out += [t, ""]
+
+
 def _status(s):
     return STATUS_BADGE.get(s, "`%s`" % s if s else "_unassessed_")
 
@@ -219,17 +233,18 @@ def _generic(out, obj, depth=0):
 # --------------------------------------------------------------------------
 
 def render_index(m):
-    out = ["# anacapad SOAP/UPnP reference",
-           "",
-           "Binary `%s`, build `%s` — model-9 (Playbar/limelight). "
-           "Generated from the frozen canonical static-analysis dataset "
-           "(`docs/documentation.json`); no runtime verification was "
-           "performed. The binary implementation is the ground truth "
-           "throughout." % (os.path.basename(str(m.meta.get("binary"))),
-                            m.meta.get("build")),
-           "",
-           "## Authoritative counts",
-           ""]
+    out = ["# anacapad SOAP/UPnP reference", ""]
+    _pt_add(m, out, "index", "intro")
+    out += ["Binary `%s`, build `%s` — model-9 (Playbar/limelight). "
+            "Generated from the frozen canonical static-analysis dataset "
+            "(`docs/documentation.json`); no runtime verification was "
+            "performed. The binary implementation is the ground truth "
+            "throughout." % (os.path.basename(str(m.meta.get("binary"))),
+                             m.meta.get("build")),
+            "",
+            "## Authoritative counts",
+            ""]
+    _pt_add(m, out, "index", "counts")
     c = m.counts
     decl = m.meta.get("counts") or {}
     rows = []
@@ -267,6 +282,7 @@ def render_index(m):
                  "some names recur across services"])
     _table(out, ["Count", "Value", "Definition"], rows)
     out += ["## Confidence vocabulary", ""]
+    _pt_add(m, out, "index", "confidence")
     term = m.meta.get("terminology") or {}
     if term:
         for k, v in term.items():
@@ -329,9 +345,11 @@ _SOAP_PRIM_KEYS = [
 
 def render_architecture(m):
     out = ["# Architecture", ""]
+    _pt_add(m, out, "architecture", "intro")
     rt = m.routing or {}
     routers = rt.get("routers") or {}
     out += ["## Routing", ""]
+    _pt_add(m, out, "architecture", "routing")
     rows = []
     for addr, r in routers.items():
         rows.append(["`%s`" % addr, _e(r.get("kind")),
@@ -361,8 +379,9 @@ def render_architecture(m):
         out.append("")
 
     if m.request_vtable:
-        out += ["## Request object vtable", "",
-                "Every action wrapper interacts with the request through "
+        out += ["## Request object vtable", ""]
+        _pt_add(m, out, "architecture", "request_vtable")
+        out += ["Every action wrapper interacts with the request through "
                 "these vfunc slots (confidence: `%s`)." % _e(
                     m.request_vtable.get("confidence")),
                 ""]
@@ -371,8 +390,9 @@ def render_architecture(m):
         _table(out, ["Slot", "Purpose"], rows)
 
     if m.capabilities:
-        out += ["## Capability fields", "",
-                "Object fields the firmware reads to gate behavior. "
+        out += ["## Capability fields", ""]
+        _pt_add(m, out, "architecture", "capability_fields")
+        out += ["Object fields the firmware reads to gate behavior. "
                 "Read/write sites are static evidence; the *predicate* each "
                 "gates is noted honestly where unresolved.", ""]
         rows = []
@@ -395,6 +415,7 @@ def render_architecture(m):
 
     if m.internal_functions:
         out += ["## Internal functions", ""]
+        _pt_add(m, out, "architecture", "internal_functions")
         rows = []
         for addr, f in m.internal_functions.items():
             rows.append(["`%s`" % addr, _e(f.get("role")),
@@ -402,8 +423,9 @@ def render_architecture(m):
         _table(out, ["Address", "Role", "Description"], rows)
 
     if m.dispatch_candidates:
-        out += ["## Dispatch candidates", "",
-                "Functions that looked like dispatchers, with the verdict "
+        out += ["## Dispatch candidates", ""]
+        _pt_add(m, out, "architecture", "dispatch_candidates")
+        out += ["Functions that looked like dispatchers, with the verdict "
                 "each received.", ""]
         for addr, c in m.dispatch_candidates.items():
             out.append("### `%s`" % addr)
@@ -417,8 +439,9 @@ def render_architecture(m):
                     for x in c["compares"] if x.get("str")))
                 out.append("")
 
-    out += ["## Shared subsystems", "",
-            "Reusable primitives recovered from the binary — prefer these "
+    out += ["## Shared subsystems", ""]
+    _pt_add(m, out, "architecture", "shared_subsystems")
+    out += ["Reusable primitives recovered from the binary — prefer these "
             "over re-reading per-action detail.", ""]
     sp = m.shared_primitives
     for k in _SOAP_PRIM_KEYS:
@@ -772,10 +795,11 @@ def render_service(s):
 # --------------------------------------------------------------------------
 
 def render_state_variables(m):
-    out = ["# State variables", "",
-           "Evented variables carry `<NAME val=\"...\"/>` elements inside "
-           "`LastChange` documents; `A_ARG_TYPE_*` variables are SCPD "
-           "argument-type declarations, not device state.", ""]
+    out = ["# State variables", ""]
+    _pt_add(m, out, "state_variables", "intro")
+    out += ["Evented variables carry `<NAME val=\"...\"/>` elements inside "
+            "`LastChange` documents; `A_ARG_TYPE_*` variables are SCPD "
+            "argument-type declarations, not device state.", ""]
     allsv = m.all_state_variables()
     rows = []
     for k in sorted(allsv):
@@ -818,14 +842,35 @@ def render_state_variables(m):
 
 
 def render_events(m):
-    out = ["# Eventing", "",
-           "UPnP GENA eventing plus the Sonos WSS subscription surface.", ""]
+    out = ["# Eventing", ""]
+    _pt_add(m, out, "events", "intro")
+    out += ["UPnP GENA eventing plus the Sonos WSS subscription surface.", ""]
+    svc_blurbs = ((getattr(m, "pages_client", {}) or {}).get("events")
+                  or {}).get("services") or {}
+    _ALIAS = {"mediaserver": "server", "mediarenderer": "renderer"}
+    counts = {}
+    for s in m.services:
+        if s.events:
+            counts[s.name] = counts.get(s.name, 0) + 1
+    out += ["## Per-service eventing", ""]
+    _pt_add(m, out, "events", "per_service")
     for s in m.services:
         ev = s.events
         if not ev:
             continue
-        out.append("## `%s`" % s.name)
+        key = s.name
+        heading = s.name
+        if counts.get(s.name, 0) > 1:
+            parent = s.control_path.strip("/").split("/")[0].lower()
+            key = "%s_%s" % (s.name, _ALIAS.get(parent, parent))
+            heading = "%s (%s)" % (s.name, parent)
+        out.append("## `%s`" % heading)
         out.append("")
+        blurb = svc_blurbs.get(key) or svc_blurbs.get(s.name) \
+            or svc_blurbs.get(s.slug)
+        if blurb:
+            out.append(_para(blurb))
+            out.append("")
         if ev.mechanism:
             out.append(_para(ev.mechanism))
             out.append("")
@@ -847,6 +892,7 @@ def render_events(m):
     sp = m.shared_primitives.get("wss_event_vocabulary")
     if sp:
         out += ["## WSS subscription registry", ""]
+        _pt_add(m, out, "events", "wss_registry")
         _generic(out, {k: v for k, v in sp.items() if k != "names"})
         if sp.get("names"):
             out.append("")
@@ -856,6 +902,7 @@ def render_events(m):
     ge = m.shared_primitives.get("gena_eventing")
     if ge:
         out += ["## GENA internals", ""]
+        _pt_add(m, out, "events", "gena_internals")
         _generic(out, ge)
         out.append("")
     return "\n".join(out)
@@ -863,9 +910,11 @@ def render_events(m):
 
 def render_errors(m):
     out = ["# Errors", ""]
+    _pt_add(m, out, "errors", "intro")
     fw = m.shared_primitives.get("soap_fault_wire_format")
     if fw:
         out += ["## SOAP fault wire format", ""]
+        _pt_add(m, out, "errors", "wire_format")
         if isinstance(fw, dict):
             if fw.get("format"):
                 out.append("```xml\n%s\n```" % fw["format"])
@@ -876,9 +925,11 @@ def render_errors(m):
     vocab = m.shared_primitives.get("soap_fault_code_vocabulary")
     if vocab:
         out += ["## Fault code vocabulary", ""]
+        _pt_add(m, out, "errors", "vocabulary")
         _generic(out, vocab)
         out.append("")
     out += ["## Per-action error surface", ""]
+    _pt_add(m, out, "errors", "per_action")
     for s in m.services:
         rows = []
         for a in s.actions.values():
@@ -898,7 +949,9 @@ def render_errors(m):
 
 
 def render_formats(m, kind, title, blurb):
-    out = ["# %s" % title, "", blurb, ""]
+    out = ["# %s" % title, ""]
+    _pt_add(m, out, "%s_formats" % kind, "intro")
+    out += [blurb, ""]
     src = m.uri_formats if kind == "uri" else m.payload_formats
     for k, f in sorted(src.items()):
         out.append("## `%s` %s" % (k, _status(f.status)))
@@ -955,10 +1008,11 @@ _HTTP_KEYS = [
 
 
 def render_http_api(m):
-    out = ["# HTTP / non-SOAP surface", "",
-           "Endpoints and HTTP-layer behaviors recovered from the binary "
-           "outside the SOAP control path. All are static-analysis "
-           "records.", ""]
+    out = ["# HTTP / non-SOAP surface", ""]
+    _pt_add(m, out, "http_api", "intro")
+    out += ["Endpoints and HTTP-layer behaviors recovered from the binary "
+            "outside the SOAP control path. All are static-analysis "
+            "records.", ""]
     sp = m.shared_primitives
     for k in _HTTP_KEYS:
         if k not in sp:
@@ -978,6 +1032,7 @@ def render_http_api(m):
 
 def render_firmware(m):
     out = ["# Firmware / model differences", ""]
+    _pt_add(m, out, "firmware", "intro")
     meta = m.firmware_diff_meta
     if meta.get("note"):
         out += [_para(meta["note"]), ""]
@@ -988,11 +1043,14 @@ def render_firmware(m):
                                          else json.dumps(meta[k])[:400]))
     if meta.get("product_surface"):
         out += ["", "## Product surface", ""]
+        _pt_add(m, out, "firmware", "product_surface")
         _generic(out, meta["product_surface"])
     if meta.get("service_urn_matrix"):
         out += ["", "## Service-URN matrix", ""]
+        _pt_add(m, out, "firmware", "service_matrix")
         _generic(out, meta["service_urn_matrix"])
     out += ["", "## Entries", ""]
+    _pt_add(m, out, "firmware", "entries")
     for e in m.firmware_differences:
         out.append("### %s" % _e(e.item))
         out.append("")
@@ -1013,18 +1071,27 @@ _STATUS_ORDER = {"absent": 0, "vocab": 1, "partial": 2,
 
 
 def render_subsystems(m):
-    out = ["# Non-SOAP subsystems", "",
-           "Self-contained protocols/engines living in the same binary "
-           "beside or below the UPnP layer. `absent` = no coverage, "
-           "`vocab` = names/strings catalogued but semantics "
-           "undecoded, `partial` = some real documentation exists. "
-           "Evidence addresses are the rodata anchor strings.",
-           ""]
+    out = ["# Non-SOAP subsystems", ""]
+    _pt_add(m, out, "subsystems", "intro")
+    out += ["Self-contained protocols/engines living in the same binary "
+            "beside or below the UPnP layer. `absent` = no coverage, "
+            "`vocab` = names/strings catalogued but semantics "
+            "undecoded, `partial` = some real documentation exists. "
+            "Evidence addresses are the rodata anchor strings.",
+            ""]
     subs = sorted(m.subsystems.items(),
                   key=lambda kv: (_STATUS_ORDER.get(
                       kv[1].get("status"), 9), kv[0]))
+
+    def _gloss(s):
+        t = s.get("client_summary") or s.get("summary") or ""
+        cut = t.find(". ")
+        if cut > 0:
+            t = t[:cut + 1]
+        return t
+
     rows = [["`%s`" % n, "**%s**" % _e(s.get("status") or "?"),
-             _e(s.get("summary") or "")]
+             _e(_gloss(s))]
             for n, s in subs]
     _table(out, ["Subsystem", "Coverage", "Summary"], rows)
     for n, s in subs:
@@ -1054,24 +1121,34 @@ def render_subsystems(m):
 
 def render_muse(m):
     mu = m.muse or {}
-    out = ["# muse API (v1)", "",
-           "The household/player REST API the official app and cloud "
-           "channel drive — recovered from the binary's route "
-           "registration tables, not from public docs.", ""]
+    out = ["# muse API (v1)", ""]
+    _pt_add(m, out, "muse", "intro")
+    out += ["The household/player REST API the official app and cloud "
+            "channel drive — recovered from the binary's route "
+            "registration tables, not from public docs.", ""]
+    _pt_add(m, out, "muse", "description")
     if mu.get("description"):
+        out.append("**Technical description:**")
+        out.append("")
         out.append(_para(mu["description"]))
         out.append("")
-    for k in ("flags_decode", "dispatch"):
-        if mu.get(k):
-            out.append("**%s:** %s" % (k.replace("_", " "),
-                                       _e(mu[k])))
-            out.append("")
+    _pt_add(m, out, "muse", "flags_decode")
+    if mu.get("flags_decode"):
+        out.append("**flags decode:** %s" % _e(mu["flags_decode"]))
+        out.append("")
+    _pt_add(m, out, "muse", "dispatch")
+    if mu.get("dispatch"):
+        out.append("**dispatch:** %s" % _e(mu["dispatch"]))
+        out.append("")
+    _pt_add(m, out, "muse", "tables")
     if mu.get("tables"):
         out.append("Registration arrays: "
                    + "; ".join("`%s` — %s" % (k, _e(v))
                                for k, v in mu["tables"].items()))
         out.append("")
-    out += ["## Op-object vtable spine", "",
+    out += ["## Op-object vtable spine", ""]
+    _pt_add(m, out, "muse", "op_spine")
+    out += ["**Technical description:**", "",
             "Every op is a C++ object sharing one vtable skeleton: "
             "`+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate "
             "(`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op "
@@ -1089,8 +1166,9 @@ def render_muse(m):
             "`v1/players/{id}/playerVolume/mute` and "
             "`v1/groups/{id}/groupVolume`). Each verb registers two op "
             "classes — a player-channel variant and a fatter "
-            "household-channel variant.", "",
-            "**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
+            "household-channel variant.", ""]
+    _pt_add(m, out, "muse", "validation_lib")
+    out += ["**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
             "validators keyed by field name — `f_109ca3b4` emits "
             "'Missing required field: ', `f_109c9cc0` 'Unexpected type "
             "given for key: ', `f_109c8c60` 'Found unexpected array for '/"
@@ -1106,15 +1184,18 @@ def render_muse(m):
     pipe = mu.get("pipeline") or {}
     if pipe:
         out += ["## Request pipeline", ""]
+        _pt_add(m, out, "muse", "pipeline")
         for k in ("request_envelope", "content_type", "auth",
                   "path_params", "body", "errors", "op_dispatch"):
             if pipe.get(k):
+                _pt_add(m, out, "muse", k)
                 out.append("**%s.** %s" % (k.replace("_", " "),
                                            _e(pipe[k])))
                 out.append("")
     ob = mu.get("outbound") or {}
     if ob:
         out += ["## Outbound (player as muse client)", ""]
+        _pt_add(m, out, "muse", "outbound")
         if ob.get("note"):
             out.append(_para(ob["note"]))
             out.append("")
@@ -1133,6 +1214,7 @@ def render_muse(m):
         out.append("")
         fv = ob.get("field_vocab") or {}
         if fv:
+            _pt_add(m, out, "muse", "field_vocab")
             if ob.get("field_vocab_note"):
                 out.append(_para(ob["field_vocab_note"]))
                 out.append("")
@@ -1144,6 +1226,7 @@ def render_muse(m):
     ec = mu.get("event_channels") or {}
     if ec:
         out += ["## Event channels", ""]
+        _pt_add(m, out, "muse", "event_channels")
         if ec.get("note"):
             out.append(_para(ec["note"]))
             out.append("")
@@ -1153,6 +1236,7 @@ def render_muse(m):
             out.append("")
     res = mu.get("resources") or {}
     out += ["## Resources", ""]
+    _pt_add(m, out, "muse", "resources")
     rows = [["`%s`" % n, str(r.get("op_count") or 0),
              ", ".join(r.get("methods") or []),
              _e(", ".join(r.get("scopes") or []))]
@@ -1274,7 +1358,9 @@ def render_muse(m):
                        % ", ".join("`%s`" % _e(x) for x in fv))
             out.append("")
     if mu.get("unresolved"):
-        out += ["## Unresolved", "", _para(mu["unresolved"])]
+        out += ["## Unresolved", ""]
+        _pt_add(m, out, "muse", "unresolved")
+        out.append(_para(mu["unresolved"]))
     if mu.get("evidence"):
         out.append("")
         _ev_details([genmodel.Evidence.from_raw(e)
@@ -1283,13 +1369,14 @@ def render_muse(m):
 
 
 def render_availability(m):
-    out = ["# Availability matrix", "",
-           "Every canonical action record. `advertised` services are in the "
-           "served device-description `serviceList` (all except AudioIn); "
-           "every canonical action is declared in its service's shipped "
-           "SCPD. `stub` = dispatched to a reject-all fault (removed "
-           "surface).",
-           ""]
+    out = ["# Availability matrix", ""]
+    _pt_add(m, out, "availability", "intro")
+    out += ["Every canonical action record. `advertised` services are in the "
+            "served device-description `serviceList` (all except AudioIn); "
+            "every canonical action is declared in its service's shipped "
+            "SCPD. `stub` = dispatched to a reject-all fault (removed "
+            "surface).",
+            ""]
     decl = (m.meta.get("counts") or {})
     undisp = (decl.get("removed_stale") or {}).get("undispatched_actions")
     if undisp:

@@ -54,7 +54,7 @@ Per-player audio rendering: volume (linear 0-100 and dB), mute, bass/treble/loud
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Returns bass level - BUT it is neutered on this build: the implementation is a confirmed no-op stub, so the returned CurrentBass is meaningless. GetEQ(EQType='Bass') is the working path.
+Returns the bass level - BUT it is neutered on this build: the implementation is a confirmed no-op placeholder, so the returned CurrentBass is meaningless. GetEQ(EQType='Bass') is the working path.
 
 **Technical description:** NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -> emit path).
 

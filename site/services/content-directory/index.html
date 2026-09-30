@@ -5193,7 +5193,7 @@
 <td>callable</td>
 <td><code>strong</code></td>
 <td>direct</td>
-<td>402</td>
+<td>402, 800</td>
 </tr>
 <tr>
 <td><code>GetAlbumArtistDisplayOption</code></td>
@@ -5209,7 +5209,7 @@
 <td>callable</td>
 <td><code>strong</code></td>
 <td>direct</td>
-<td>402</td>
+<td>402, 800</td>
 </tr>
 <tr>
 <td><code>GetBrowseable</code></td>
@@ -5497,6 +5497,7 @@
 - handler `0x10306b3c`
 - dispatch entry `0x10eb4264`
 - req vcall `0x10306b64` slot `60` (other)
+- table entry is a trampoline; real chain: req v\[+0x3c\] then f_10304390 -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)
 
 - fn 0x10306b3c @ 0x10306b3c — action wrapper handler
 - @ 0x10eb4264 — action dispatch table entry
@@ -5632,6 +5633,12 @@
 <li>req or impl gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+<p><strong><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></strong> <code>inferred</code></p>
+<p>favorites/userradio store-commit layer (dirObjFavorites vfunc -&gt; f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field <em>(ctx+0x20)&gt;=70 (favorites cap); 806 = ftell()&gt;0x20000 (serialized XML &gt;128KiB); 807 = phase </em>(ctx+0x1c)&gt;=6 with flag +0x30; 803 = phase <em>(ctx+0x1c)&lt;2; 702 = flag </em>(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).</p>
+<ul>
+<li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
+</ul>
+<p>indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306b84`
@@ -5736,6 +5743,12 @@
 <li>req or impl gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+<p><strong><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></strong> <code>inferred</code></p>
+<p>favorites/userradio store-commit layer (dirObjFavorites vfunc -&gt; f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field <em>(ctx+0x20)&gt;=70 (favorites cap); 806 = ftell()&gt;0x20000 (serialized XML &gt;128KiB); 807 = phase </em>(ctx+0x1c)&gt;=6 with flag +0x30; 803 = phase <em>(ctx+0x1c)&lt;2; 702 = flag </em>(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).</p>
+<ul>
+<li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
+</ul>
+<p>indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306e70`
@@ -5879,6 +5892,8 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain | resolver f_1034a224 -&gt; f_10349d00 path-walk (ptr/NULL)</p>
+<p><strong><code>800</code></strong> <code>strong</code></p>
+<p>Resolved-object capability check: vtbl[+0x14] must equal the prefix-search entry point f_10113d94; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307140`
@@ -6117,6 +6132,8 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain | resolver f_1034a224 -&gt; f_10349d00 path-walk (ptr/NULL)</p>
+<p><strong><code>800</code></strong> <code>strong</code></p>
+<p>Resolved-object capability check: vtbl[+0x18] must equal the prefix-search entry point f_10113da4; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x103072ac`
@@ -6814,6 +6831,12 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain</p>
+<p><strong><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></strong> <code>inferred</code></p>
+<p>worker/delegate rc domain adds [710] beyond the documented accumulator bound</p>
+<ul>
+<li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
+</ul>
+<p>propagated reachability; site-level trigger undecoded</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306f60`
@@ -6916,6 +6939,12 @@
 <li>impl/store gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+<p><strong><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></strong> <code>inferred</code></p>
+<p>worker/delegate rc domain adds [701, 711] beyond the documented accumulator bound</p>
+<ul>
+<li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
+</ul>
+<p>propagated reachability; site-level trigger undecoded</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307050`
@@ -7147,6 +7176,12 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain | resolver f_1034a224 -&gt; f_10349d00 path-walk (ptr/NULL)</p>
+<p><strong><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></strong> <code>inferred</code></p>
+<p>favorites/userradio store-commit layer (dirObjFavorites vfunc -&gt; f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field <em>(ctx+0x20)&gt;=70 (favorites cap); 806 = ftell()&gt;0x20000 (serialized XML &gt;128KiB); 807 = phase </em>(ctx+0x1c)&gt;=6 with flag +0x30; 803 = phase <em>(ctx+0x1c)&lt;2; 702 = flag </em>(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).</p>
+<ul>
+<li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
+</ul>
+<p>indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability</p>
 <details><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306d28`

@@ -1,8 +1,16 @@
 # Eventing
 
+Two update channels live side by side. GENA is the classic UPnP mechanism: a controller subscribes over HTTP and the player posts XML notifications when state changes. Alongside it is Sonos's own websocket channel (WSS), which the current app uses for newer features. This page lists which events each service can emit on each channel.
+
 UPnP GENA eventing plus the Sonos WSS subscription surface.
 
+## Per-service eventing
+
+For each service: whether it emits classic UPnP notifications, whether it carries the big 'LastChange' state document, and which websocket event names it offers.
+
 ## `AVTransport`
+
+The busiest event source - this is how an app learns the player started, paused, skipped, or changed tracks without polling. It emits the big LastChange document covering transport state, current track, and queue position.
 
 UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 
@@ -11,6 +19,8 @@ UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 - **notify_path:** f_102e41a0 AVT event emitter: mutexed (f_10557cac) LastChange doc build using template 0x10eb29e8; e:property write at 0x102e519c; arg+0x3dc string source; f_102b733c doc-write
 
 ## `AlarmClock`
+
+Announces alarm-related state: the running-alarm list and its version counter bump when alarms are added, edited, or fire.
 
 GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -25,6 +35,8 @@ GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS
 
 ## `AudioIn`
 
+Line-in streaming events - reports when a line-in transmission to the group starts or stops and the attributes of the audio input.
+
 GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
@@ -36,7 +48,9 @@ GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:up
   - idx: 9, name: audioInput, id: 40, tag: 65
   - idx: 19, name: lineInStatus, id: 62, tag: 15
 
-## `ConnectionManager`
+## `ConnectionManager (mediarenderer)`
+
+Renderer-side connection bookkeeping - the list of active connection IDs and the protocols the player can serve, mostly static but notified on change.
 
 GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -47,7 +61,9 @@ GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290
 - **wss_registry:**
   - idx: 22, name: connectionManager, id: 77, tag: 67
 
-## `ConnectionManager`
+## `ConnectionManager (mediaserver)`
+
+Server-side equivalent - reports the media-server connections list and the serving protocols.
 
 GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -59,6 +75,8 @@ GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (
   - idx: 22, name: connectionManager, id: 77, tag: 67
 
 ## `ContentDirectory`
+
+Fires when the music-library index changes - SystemUpdateID bumps on rescan, share index progress, and favorites/radio-location list versions.
 
 GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -73,6 +91,8 @@ GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (N
   - idx: 50, name: playlistsVersionChange, id: 195, tag: 34
 
 ## `DeviceProperties`
+
+Device-level state changes: LED on/off, button lock, household ID, linked-zone membership, autoplay settings.
 
 GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -90,6 +110,8 @@ GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event
 
 ## `GroupManagement`
 
+Group membership changes - when players join or leave this player's group.
+
 GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
@@ -102,6 +124,8 @@ GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event 
 
 ## `GroupRenderingControl`
 
+Group volume/mute state - fires when the coordinator-side group volume, mute, or a volume snapshot changes.
+
 GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
@@ -113,6 +137,8 @@ GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e
 
 ## `HTControl`
 
+Home-theater control events - IR repeater state, LED feedback, remote identification results.
+
 GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
@@ -123,6 +149,8 @@ GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:
   - idx: 41, name: htControl, id: 149, tag: 72
 
 ## `MusicServices`
+
+Music-service account changes - the available-services list and session IDs refresh when accounts are added or reauthorized.
 
 GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -137,6 +165,8 @@ GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + 
 
 ## `QPlay`
 
+QPlay session events - state of the QPlay (Tencent) playback source.
+
 GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
@@ -144,6 +174,8 @@ GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp
 - **notify_path:** 'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered
 
 ## `Queue`
+
+Queue edits - last-index changes, queue length, and save/backup results so apps can refresh their queue view.
 
 UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 
@@ -153,6 +185,8 @@ UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 
 ## `RenderingControl`
 
+Per-player audio settings - volume, mute, EQ, loudness, fixed-output and room-calibration status changes.
+
 UPnP GENA NOTIFY with e:propertyset -> LastChange -> Event(InstanceID=0) -> val= attributes
 
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/RCS/
@@ -161,6 +195,8 @@ UPnP GENA NOTIFY with e:propertyset -> LastChange -> Event(InstanceID=0) -> val=
 - **payload_model:** e:property doc via f_10676a44 writer family
 
 ## `SystemProperties`
+
+Household/account bookkeeping - account lists, web-code provisioning results, and RDM (remote management) state changes.
 
 GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
@@ -180,6 +216,8 @@ GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event
 
 ## `VirtualLineIn`
 
+Virtual line-in stream events - when a player acts as a line-in source for the group and transport state of that virtual source.
+
 GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
@@ -190,6 +228,8 @@ GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT
   - idx: 70, name: virtualLineIn, id: 309, tag: 77
 
 ## `ZoneGroupTopology`
+
+The household roster - fires when zones join, leave, regroup, or change attributes, plus software-update progress events.
 
 GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission decoded: f_1074d9b4 -> f_10743328 serializer -> f_10676a44 delivery
 
@@ -205,6 +245,8 @@ GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:even
   - idx: 4, name: zoneError, id: 14, tag: 82
 
 ## WSS subscription registry
+
+The named events the player offers on its websocket channel - the modern subscription vocabulary the app actually uses (groupVolume, playbackSession, and friends). Each entry is one name a client can subscribe to.
 
 - **name:** WSS eventing subscription-type registry
 - **role:** websocket (secure) event-subscription surface; TLV frame {u16 tag@+0, u8 type@+2} mapped to {id,name} via 73-entry runtime table
@@ -323,6 +365,8 @@ GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:even
 Event names: `accessorySwapStatus`, `tvAudioSignalStatus`, `activeZonesChange`, `zoneDefinitionsChange`, `alarmClock`, `alarmVersionChange`, `areasVersionChange`, `zoneError`, `audioClipStatus`, `audioInput`, `availableSoftwareUpdate`, `avTransport`, `batteryStatus`, `wirelessNetworkStatus`, `microphoneSwitchStatus`, `waterStatus`, `bluetoothPairingStatus`, `bluetoothConnectionStatus`, `poeStatus`, `cloudRegistration`, `connectionManager`, `contentDirectory`, `lineInStatus`, `wiredSubConnectionStatus`, `deviceProperties`, `diagnosticSubmissionResults`, `diagnosticMetadata`, `effectiveSettingsDataChanged`, `entitlementsVersionChanged`, `extendedDeviceStatus`, `extendedPlaybackStatus`, `favoritesVersionChange`, `groupCoordinatorChanged`, `groupManagement`, `groupRendering`, `hdmiStatus`, `historyVersionChanged`, `householdUpdateStatus`, `upgradeManager`, `htControl`, `indexerStatus`, `musicServices`, `musicServicesChanged`, `playbackMetadataStatus`, `playbackStatus`, `playlistsVersionChange`, `positioningSessionStatus`, `positioningSessionError`, `positioningDeviceStatus`, `renderingControl`, `sessionError`, `sessionInfo`, `settingsVersionChanged`, `settingsDataChanged`, `settingsPlayerSettingsChanged`, `systemProperties`, `sleepTimerStatus`, `trueplayStatus`, `speakerPresenceStatus`, `speakerPresenceRateChange`, `trueroomAdaptationStatusEvent`, `trueroomCalibrationStatus`, `trueroomStatusEvent`, `virtualLineIn`, `voiceAccountsVersionChange`, `zoneGroupTopology`
 
 ## GENA internals
+
+How classic UPnP eventing is implemented here: how a subscription is validated, how the notification XML is assembled, and what happens when a subscriber stops answering.
 
 - **status:** confirmed
 - **files:** `/oc/zone/common/upnpeventing_source.cxx`, `/oc/zone/common/eventing.cxx`, `eventing.cxx`

@@ -1,8 +1,12 @@
 # anacapad SOAP/UPnP reference
 
+This site documents what a Sonos player's main control program actually does on the network - every remote-control command an app (or anything on the same Wi-Fi) can send, every live-update channel it offers, and every internal protocol we could recover from the firmware. Everything here was extracted by reading the program itself from a Playbar running software 86.10; no device was ever contacted during the analysis.
+
 Binary `anacapad`, build `86.10-80260` — model-9 (Playbar/limelight). Generated from the frozen canonical static-analysis dataset (`docs/documentation.json`); no runtime verification was performed. The binary implementation is the ground truth throughout.
 
 ## Authoritative counts
+
+The counts distinguish three things that are easy to conflate. Sonos ships public specification documents that list the commands a player claims to support - that's the 'advertised' surface. What the program will actually execute is decided by dispatch tables inside the binary - the smaller 'implemented' surface. In between sit commands that are still advertised in the spec documents but dead on the wire (they answer 'not implemented') and commands that vanished from both. The numbers tell you which category each command falls into.
 
 | Count | Value | Definition |
 |---|---|---|
@@ -16,6 +20,8 @@ Binary `anacapad`, build `86.10-80260` — model-9 (Playbar/limelight). Generate
 | unique action names | 195 | some names recur across services |
 
 ## Confidence vocabulary
+
+Every fact on this site carries a confidence tag so nothing is overstated. 'Confirmed' means we proved it directly from the program's code. 'Strong' means the evidence is clear but indirect. 'Inferred' means a reasonable deduction with a marked assumption. 'Unresolved' means we can see that something exists but can't yet prove what it does.
 
 - **visibility** — action/service surface classification: 'advertised' = declared in a shipped SCPD document AND (at service level) present in the served device_description.xml serviceList (16 of 17 services — everything except AudioIn); 'hidden' = service omitted from the serviceList even though its SCPD ships (AudioIn only); 'internal' = callable on the wire but not SCPD-declared — supported class, EMPTY on this build (verified: all 205 canonical actions appear in their service's SCPD actionList)
 - **reachability** — 'callable' = dispatched to a real implementation; 'hidden-callable' = reachable by action name on the control path but not SCPD-declared — EMPTY on this build

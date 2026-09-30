@@ -1,5 +1,7 @@
 # Availability matrix
 
+The complete command surface in one table: every action the firmware can dispatch, whether it really works, and where its handler sits in the program. 'Stub' marks commands still advertised in the public spec documents but removed in this software - they answer 'not implemented' on the wire. 'Hidden-callable' would be a command that works but is never advertised; this build has none.
+
 Every canonical action record. `advertised` services are in the served device-description `serviceList` (all except AudioIn); every canonical action is declared in its service's shipped SCPD. `stub` = dispatched to a reject-all fault (removed surface).
 
 In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/soft removed): `SystemProperties.ProvisionCredentialedTrialAccountX`, `SystemProperties.ResetThirdPartyCredentials`

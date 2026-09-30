@@ -339,6 +339,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#per-service-eventing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Per-service eventing
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#avtransport" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -372,10 +383,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connectionmanager" class="md-nav__link">
+  <a href="#connectionmanager-mediarenderer" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>ConnectionManager</code>
+        <code>ConnectionManager (mediarenderer)</code>
       </span>
     </span>
   </a>
@@ -383,10 +394,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connectionmanager_1" class="md-nav__link">
+  <a href="#connectionmanager-mediaserver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>ConnectionManager</code>
+        <code>ConnectionManager (mediaserver)</code>
       </span>
     </span>
   </a>
@@ -1361,6 +1372,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#per-service-eventing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Per-service eventing
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#avtransport" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1394,10 +1416,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connectionmanager" class="md-nav__link">
+  <a href="#connectionmanager-mediarenderer" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>ConnectionManager</code>
+        <code>ConnectionManager (mediarenderer)</code>
       </span>
     </span>
   </a>
@@ -1405,10 +1427,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connectionmanager_1" class="md-nav__link">
+  <a href="#connectionmanager-mediaserver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>ConnectionManager</code>
+        <code>ConnectionManager (mediaserver)</code>
       </span>
     </span>
   </a>
@@ -1585,8 +1607,12 @@
                   
 
 <h1 id="eventing">Eventing<a class="headerlink" href="#eventing" title="Permanent link">&para;</a></h1>
+<p>Two update channels live side by side. GENA is the classic UPnP mechanism: a controller subscribes over HTTP and the player posts XML notifications when state changes. Alongside it is Sonos's own websocket channel (WSS), which the current app uses for newer features. This page lists which events each service can emit on each channel.</p>
 <p>UPnP GENA eventing plus the Sonos WSS subscription surface.</p>
+<h2 id="per-service-eventing">Per-service eventing<a class="headerlink" href="#per-service-eventing" title="Permanent link">&para;</a></h2>
+<p>For each service: whether it emits classic UPnP notifications, whether it carries the big 'LastChange' state document, and which websocket event names it offers.</p>
 <h2 id="avtransport"><code>AVTransport</code><a class="headerlink" href="#avtransport" title="Permanent link">&para;</a></h2>
+<p>The busiest event source - this is how an app learns the player started, paused, skipped, or changed tracks without polling. It emits the big LastChange document covering transport state, current track, and queue position.</p>
 <p>UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions</p>
 <ul>
 <li><strong>Namespace:</strong> urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...</li>
@@ -1594,6 +1620,7 @@
 <li><strong>notify_path:</strong> f_102e41a0 AVT event emitter: mutexed (f_10557cac) LastChange doc build using template 0x10eb29e8; e:property write at 0x102e519c; arg+0x3dc string source; f_102b733c doc-write</li>
 </ul>
 <h2 id="alarmclock"><code>AlarmClock</code><a class="headerlink" href="#alarmclock" title="Permanent link">&para;</a></h2>
+<p>Announces alarm-related state: the running-alarm list and its version counter bump when alarms are added, edited, or fire.</p>
 <p>GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1606,6 +1633,7 @@
 <li>idx: 6, name: alarmVersionChange, id: 24, tag: 1</li>
 </ul>
 <h2 id="audioin"><code>AudioIn</code><a class="headerlink" href="#audioin" title="Permanent link">&para;</a></h2>
+<p>Line-in streaming events - reports when a line-in transmission to the group starts or stops and the attributes of the audio input.</p>
 <p>GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1617,7 +1645,8 @@
 <li>idx: 9, name: audioInput, id: 40, tag: 65</li>
 <li>idx: 19, name: lineInStatus, id: 62, tag: 15</li>
 </ul>
-<h2 id="connectionmanager"><code>ConnectionManager</code><a class="headerlink" href="#connectionmanager" title="Permanent link">&para;</a></h2>
+<h2 id="connectionmanager-mediarenderer"><code>ConnectionManager (mediarenderer)</code><a class="headerlink" href="#connectionmanager-mediarenderer" title="Permanent link">&para;</a></h2>
+<p>Renderer-side connection bookkeeping - the list of active connection IDs and the protocols the player can serve, mostly static but notified on change.</p>
 <p>GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1627,7 +1656,8 @@
 <li><strong>wss_registry:</strong></li>
 <li>idx: 22, name: connectionManager, id: 77, tag: 67</li>
 </ul>
-<h2 id="connectionmanager_1"><code>ConnectionManager</code><a class="headerlink" href="#connectionmanager_1" title="Permanent link">&para;</a></h2>
+<h2 id="connectionmanager-mediaserver"><code>ConnectionManager (mediaserver)</code><a class="headerlink" href="#connectionmanager-mediaserver" title="Permanent link">&para;</a></h2>
+<p>Server-side equivalent - reports the media-server connections list and the serving protocols.</p>
 <p>GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1638,6 +1668,7 @@
 <li>idx: 22, name: connectionManager, id: 77, tag: 67</li>
 </ul>
 <h2 id="contentdirectory"><code>ContentDirectory</code><a class="headerlink" href="#contentdirectory" title="Permanent link">&para;</a></h2>
+<p>Fires when the music-library index changes - SystemUpdateID bumps on rescan, share index progress, and favorites/radio-location list versions.</p>
 <p>GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1651,6 +1682,7 @@
 <li>idx: 50, name: playlistsVersionChange, id: 195, tag: 34</li>
 </ul>
 <h2 id="deviceproperties"><code>DeviceProperties</code><a class="headerlink" href="#deviceproperties" title="Permanent link">&para;</a></h2>
+<p>Device-level state changes: LED on/off, button lock, household ID, linked-zone membership, autoplay settings.</p>
 <p>GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1666,6 +1698,7 @@
 <li>idx: 65, name: speakerPresenceStatus, id: 289, tag: 61</li>
 </ul>
 <h2 id="groupmanagement"><code>GroupManagement</code><a class="headerlink" href="#groupmanagement" title="Permanent link">&para;</a></h2>
+<p>Group membership changes - when players join or leave this player's group.</p>
 <p>GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1677,6 +1710,7 @@
 <li>idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12</li>
 </ul>
 <h2 id="grouprenderingcontrol"><code>GroupRenderingControl</code><a class="headerlink" href="#grouprenderingcontrol" title="Permanent link">&para;</a></h2>
+<p>Group volume/mute state - fires when the coordinator-side group volume, mute, or a volume snapshot changes.</p>
 <p>GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1687,6 +1721,7 @@
 <li>idx: 35, name: groupRendering, id: 137, tag: 71</li>
 </ul>
 <h2 id="htcontrol"><code>HTControl</code><a class="headerlink" href="#htcontrol" title="Permanent link">&para;</a></h2>
+<p>Home-theater control events - IR repeater state, LED feedback, remote identification results.</p>
 <p>GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1697,6 +1732,7 @@
 <li>idx: 41, name: htControl, id: 149, tag: 72</li>
 </ul>
 <h2 id="musicservices"><code>MusicServices</code><a class="headerlink" href="#musicservices" title="Permanent link">&para;</a></h2>
+<p>Music-service account changes - the available-services list and session IDs refresh when accounts are added or reauthorized.</p>
 <p>GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1709,6 +1745,7 @@
 <li>idx: 45, name: musicServicesChanged, id: 167, tag: 25</li>
 </ul>
 <h2 id="qplay"><code>QPlay</code><a class="headerlink" href="#qplay" title="Permanent link">&para;</a></h2>
+<p>QPlay session events - state of the QPlay (Tencent) playback source.</p>
 <p>GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1716,6 +1753,7 @@
 <li><strong>notify_path:</strong> 'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered</li>
 </ul>
 <h2 id="queue"><code>Queue</code><a class="headerlink" href="#queue" title="Permanent link">&para;</a></h2>
+<p>Queue edits - last-index changes, queue length, and save/backup results so apps can refresh their queue view.</p>
 <p>UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)</p>
 <ul>
 <li><strong>Namespace:</strong> urn:schemas-sonos-com:metadata-1-0/Queue/</li>
@@ -1723,6 +1761,7 @@
 <li><strong>notify_path:</strong> f_10465b54 Queue event emitter using template 0x10ed1c6c (Queue svc region, near svc ctor f_104656d0)</li>
 </ul>
 <h2 id="renderingcontrol"><code>RenderingControl</code><a class="headerlink" href="#renderingcontrol" title="Permanent link">&para;</a></h2>
+<p>Per-player audio settings - volume, mute, EQ, loudness, fixed-output and room-calibration status changes.</p>
 <p>UPnP GENA NOTIFY with e:propertyset -&gt; LastChange -&gt; Event(InstanceID=0) -&gt; val= attributes</p>
 <ul>
 <li><strong>Namespace:</strong> urn:schemas-upnp-org:metadata-1-0/RCS/</li>
@@ -1731,6 +1770,7 @@
 <li><strong>payload_model:</strong> e:property doc via f_10676a44 writer family</li>
 </ul>
 <h2 id="systemproperties"><code>SystemProperties</code><a class="headerlink" href="#systemproperties" title="Permanent link">&para;</a></h2>
+<p>Household/account bookkeeping - account lists, web-code provisioning results, and RDM (remote management) state changes.</p>
 <p>GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1748,6 +1788,7 @@
 <li>idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81</li>
 </ul>
 <h2 id="virtuallinein"><code>VirtualLineIn</code><a class="headerlink" href="#virtuallinein" title="Permanent link">&para;</a></h2>
+<p>Virtual line-in stream events - when a player acts as a line-in source for the group and transport state of that virtual source.</p>
 <p>GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1758,6 +1799,7 @@
 <li>idx: 70, name: virtualLineIn, id: 309, tag: 77</li>
 </ul>
 <h2 id="zonegrouptopology"><code>ZoneGroupTopology</code><a class="headerlink" href="#zonegrouptopology" title="Permanent link">&para;</a></h2>
+<p>The household roster - fires when zones join, leave, regroup, or change attributes, plus software-update progress events.</p>
 <p>GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission decoded: f_1074d9b4 -&gt; f_10743328 serializer -&gt; f_10676a44 delivery</p>
 <ul>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
@@ -1772,6 +1814,7 @@
 <li>idx: 4, name: zoneError, id: 14, tag: 82</li>
 </ul>
 <h2 id="wss-subscription-registry">WSS subscription registry<a class="headerlink" href="#wss-subscription-registry" title="Permanent link">&para;</a></h2>
+<p>The named events the player offers on its websocket channel - the modern subscription vocabulary the app actually uses (groupVolume, playbackSession, and friends). Each entry is one name a client can subscribe to.</p>
 <ul>
 <li><strong>name:</strong> WSS eventing subscription-type registry</li>
 <li><strong>role:</strong> websocket (secure) event-subscription surface; TLV frame {u16 tag@+0, u8 type@+2} mapped to {id,name} via 73-entry runtime table</li>
@@ -1886,6 +1929,7 @@
 - </em><em>entry_semantics:</em>* {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind} — idx==registry slot, id==internal event enum, tag==on-wire TLV tag</p>
 <p>Event names: <code>accessorySwapStatus</code>, <code>tvAudioSignalStatus</code>, <code>activeZonesChange</code>, <code>zoneDefinitionsChange</code>, <code>alarmClock</code>, <code>alarmVersionChange</code>, <code>areasVersionChange</code>, <code>zoneError</code>, <code>audioClipStatus</code>, <code>audioInput</code>, <code>availableSoftwareUpdate</code>, <code>avTransport</code>, <code>batteryStatus</code>, <code>wirelessNetworkStatus</code>, <code>microphoneSwitchStatus</code>, <code>waterStatus</code>, <code>bluetoothPairingStatus</code>, <code>bluetoothConnectionStatus</code>, <code>poeStatus</code>, <code>cloudRegistration</code>, <code>connectionManager</code>, <code>contentDirectory</code>, <code>lineInStatus</code>, <code>wiredSubConnectionStatus</code>, <code>deviceProperties</code>, <code>diagnosticSubmissionResults</code>, <code>diagnosticMetadata</code>, <code>effectiveSettingsDataChanged</code>, <code>entitlementsVersionChanged</code>, <code>extendedDeviceStatus</code>, <code>extendedPlaybackStatus</code>, <code>favoritesVersionChange</code>, <code>groupCoordinatorChanged</code>, <code>groupManagement</code>, <code>groupRendering</code>, <code>hdmiStatus</code>, <code>historyVersionChanged</code>, <code>householdUpdateStatus</code>, <code>upgradeManager</code>, <code>htControl</code>, <code>indexerStatus</code>, <code>musicServices</code>, <code>musicServicesChanged</code>, <code>playbackMetadataStatus</code>, <code>playbackStatus</code>, <code>playlistsVersionChange</code>, <code>positioningSessionStatus</code>, <code>positioningSessionError</code>, <code>positioningDeviceStatus</code>, <code>renderingControl</code>, <code>sessionError</code>, <code>sessionInfo</code>, <code>settingsVersionChanged</code>, <code>settingsDataChanged</code>, <code>settingsPlayerSettingsChanged</code>, <code>systemProperties</code>, <code>sleepTimerStatus</code>, <code>trueplayStatus</code>, <code>speakerPresenceStatus</code>, <code>speakerPresenceRateChange</code>, <code>trueroomAdaptationStatusEvent</code>, <code>trueroomCalibrationStatus</code>, <code>trueroomStatusEvent</code>, <code>virtualLineIn</code>, <code>voiceAccountsVersionChange</code>, <code>zoneGroupTopology</code></p>
 <h2 id="gena-internals">GENA internals<a class="headerlink" href="#gena-internals" title="Permanent link">&para;</a></h2>
+<p>How classic UPnP eventing is implemented here: how a subscription is validated, how the notification XML is assembled, and what happens when a subscriber stops answering.</p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>files:</strong> <code>/oc/zone/common/upnpeventing_source.cxx</code>, <code>/oc/zone/common/eventing.cxx</code>, <code>eventing.cxx</code></li>

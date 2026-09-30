@@ -2,7 +2,7 @@
 
 **visibility** `hidden` · **status** `confirmed`
 
-The legacy hardware line-in service. Its SCPD (AudioIn1.xml) still ships and its route is still registered, but the service is not listed in the device description and every action dispatches to a stub that unconditionally faults 401. The feature was removed on this model; treat all six actions as dead surface - documented here so clients can recognise the fault. The actions below describe what the API used to do.
+The legacy hardware line-in service. Its specification document still ships and its address is still registered, but the service is not listed in the device description and every action routes to a dead handler that always answers 'not implemented' (error 401). The feature was removed on this model - treat all six actions as dead surface, documented so clients can recognize the fault. The action entries below describe what the API used to do.
 
 **Technical description:** AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.
 

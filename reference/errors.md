@@ -1,6 +1,10 @@
 # Errors
 
+What a failed command actually returns. UPnP defines a standard 'fault' reply carrying a numeric error code, and every Sonos action can raise a fixed set of them. This page shows the reply's wire shape, the complete vocabulary of codes the firmware can emit, and which codes each individual action can return.
+
 ## SOAP fault wire format
+
+The exact XML skeleton of a failed reply. One important detail: only the number travels in the fault - no human-readable message is included on this channel. Any descriptive text comes back through the command's output arguments instead.
 
 ```xml
 <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>%d</errorCode></UPnPError></s:Fault>
@@ -9,6 +13,8 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
 
 
 ## Fault code vocabulary
+
+Every numeric error code proven to be emittable by this firmware. The standard UPnP ranges cover common failures like 'action not found' and 'invalid args'; codes in the high bands are Sonos-internal additions.
 
 - **status:** strong
 - **extraction:** original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.
@@ -25,6 +31,8 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
   - **census_union:** Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.
 
 ## Per-action error surface
+
+For each action, the union of codes it can actually produce - everything its handler, its argument validation, and its dispatch layer can raise.
 
 ### `AVTransport`
 

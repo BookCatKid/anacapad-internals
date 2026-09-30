@@ -1,5 +1,7 @@
 # HTTP / non-SOAP surface
 
+Beyond the documented UPnP control surface, the player answers plain HTTP requests: a built-in diagnostics website with around sixty pages of live internals, file and command passthroughs, debug endpoints, and the machinery that lets the cloud tunnel commands to the device. All reachable on the local network unless noted.
+
 Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP control path. All are static-analysis records.
 
 ## `http_status_endpoints`

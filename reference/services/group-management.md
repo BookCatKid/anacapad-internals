@@ -324,7 +324,7 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Member-to-coordinator feedback of a buffering ResultCode for a track fetch. NOTE: the implementation unconditionally returns 402 in this build - effectively a non-functional stub.
+Member-to-coordinator feedback of a buffering result code for a track fetch. NOTE: the implementation always returns error 402 in this build - the action exists on the wire but does nothing.
 
 **Technical description:** Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v\[+0x10\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x10\] -> empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.
 

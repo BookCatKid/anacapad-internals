@@ -1253,8 +1253,10 @@
                   
 
 <h1 id="anacapad-soapupnp-reference">anacapad SOAP/UPnP reference<a class="headerlink" href="#anacapad-soapupnp-reference" title="Permanent link">&para;</a></h1>
+<p>This site documents what a Sonos player's main control program actually does on the network - every remote-control command an app (or anything on the same Wi-Fi) can send, every live-update channel it offers, and every internal protocol we could recover from the firmware. Everything here was extracted by reading the program itself from a Playbar running software 86.10; no device was ever contacted during the analysis.</p>
 <p>Binary <code>anacapad</code>, build <code>86.10-80260</code> — model-9 (Playbar/limelight). Generated from the frozen canonical static-analysis dataset (<code>docs/documentation.json</code>); no runtime verification was performed. The binary implementation is the ground truth throughout.</p>
 <h2 id="authoritative-counts">Authoritative counts<a class="headerlink" href="#authoritative-counts" title="Permanent link">&para;</a></h2>
+<p>The counts distinguish three things that are easy to conflate. Sonos ships public specification documents that list the commands a player claims to support - that's the 'advertised' surface. What the program will actually execute is decided by dispatch tables inside the binary - the smaller 'implemented' surface. In between sit commands that are still advertised in the spec documents but dead on the wire (they answer 'not implemented') and commands that vanished from both. The numbers tell you which category each command falls into.</p>
 <table>
 <thead>
 <tr>
@@ -1307,6 +1309,7 @@
 </tbody>
 </table>
 <h2 id="confidence-vocabulary">Confidence vocabulary<a class="headerlink" href="#confidence-vocabulary" title="Permanent link">&para;</a></h2>
+<p>Every fact on this site carries a confidence tag so nothing is overstated. 'Confirmed' means we proved it directly from the program's code. 'Strong' means the evidence is clear but indirect. 'Inferred' means a reasonable deduction with a marked assumption. 'Unresolved' means we can see that something exists but can't yet prove what it does.</p>
 <ul>
 <li><strong>visibility</strong> — action/service surface classification: 'advertised' = declared in a shipped SCPD document AND (at service level) present in the served device_description.xml serviceList (16 of 17 services — everything except AudioIn); 'hidden' = service omitted from the serviceList even though its SCPD ships (AudioIn only); 'internal' = callable on the wire but not SCPD-declared — supported class, EMPTY on this build (verified: all 205 canonical actions appear in their service's SCPD actionList)</li>
 <li><strong>reachability</strong> — 'callable' = dispatched to a real implementation; 'hidden-callable' = reachable by action name on the control path but not SCPD-declared — EMPTY on this build</li>
@@ -1366,13 +1369,6 @@
 <td>advertised</td>
 <td>16</td>
 <td><code>strong</code></td>
-</tr>
-<tr>
-<td><a href="services/control/">Control</a></td>
-<td><code>/GroupRenderingControl/Control</code></td>
-<td></td>
-<td>0</td>
-<td><em>unassessed</em></td>
 </tr>
 <tr>
 <td><a href="services/device-properties/">DeviceProperties</a></td>

@@ -1,5 +1,7 @@
 # URI formats
 
+The URI grammar the player understands. Commands like 'play this stream' take a URI argument, and the leading scheme decides where it goes: the queue, a radio station, a music-library share, a line-in source. Each entry decodes one scheme's shape and what its parts mean.
+
 URI scheme grammars recovered from literal tables and parser call sites.
 
 ## `cloud_api_routes` `confirmed`
@@ -209,7 +211,7 @@ Last.fm radio HTTP scheme
 
 ## `misc_schemes` `strong`
 
-The long tail of URI schemes — file://, rtsp://, mms://, last.fm-radio-http, hls-*, pndrradio-*, hm://, skd:, stub: — mostly alternate transports for specific services.
+The long tail of URI schemes - file://, rtsp://, mms://, last.fm-radio-http, hls-*, pndrradio-*, hm://, skd:, stub: - mostly alternate transports for specific services.
 
 **Technical description:**
 
@@ -336,7 +338,7 @@ radio-service URI family
 
 ## `rhapsody_imageserver` `confirmed`
 
-A leftover hardcoded Rhapsody integration: album art for Rhapsody content is fetched from http://direct-ns.rhapsody.com/imageserver/images/<id>/300x300 - the only baked-in third-party image CDN in the binary. Everything else goes through service-specific metadata; this one survived as a literal.
+A leftover hardcoded Rhapsody integration: album art for Rhapsody content is fetched from a fixed imageserver URL baked into the program - the only hardcoded third-party image CDN in the binary. Everything else goes through per-service metadata.
 
 **Technical description:**
 
@@ -492,7 +494,7 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 
 ## `stub` `strong`
 
-`stub://stub:%u` — a placeholder URI used by stub/dummy players in group handling. If it shows up in a queue, the source is a synthetic entry, not real media.
+A placeholder URI used by dummy/synthetic players in group handling. If it shows up in a queue, the source is a synthetic entry, not real media.
 
 **Technical description:**
 
@@ -508,7 +510,7 @@ stub player URI
 
 ## `stub_scheme` `strong`
 
-stub: — a placeholder/no-op transport marker scheme.
+stub: - a placeholder scheme used as a no-op transport marker.
 
 **Technical description:**
 

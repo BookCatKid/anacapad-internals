@@ -2183,7 +2183,9 @@
                   
 
 <h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
+<p>How a network command reaches real code. When a control message arrives at the player it passes through a chain of checks: a router decides which service owns the address, a gate decides whether that service is enabled on this particular device, then a dispatcher picks the right command handler. This page maps that plumbing.</p>
 <h2 id="routing">Routing<a class="headerlink" href="#routing" title="Permanent link">&para;</a></h2>
+<p>The tables below are the player's URL map for control traffic. Each row is one service address (like /AlarmClock/Control) and shows which internal flag decides whether the service answers at all. Services gated 'by field' only respond when this player is in the right role - for instance several only work on the group coordinator.</p>
 <table>
 <thead>
 <tr>
@@ -2353,6 +2355,7 @@
 <li><code>0x101953c8</code> → <code>0x1068bc0c</code> (at <code>0x101956e4</code>)</li>
 </ul>
 <h2 id="request-object-vtable">Request object vtable<a class="headerlink" href="#request-object-vtable" title="Permanent link">&para;</a></h2>
+<p>Every command receives its arguments through the same generic 'request' object. Its method table has fixed slots - read a parameter, identify the caller, build the response - so one piece of plumbing serves all 205 commands uniformly. The table lists what each slot is for.</p>
 <p>Every action wrapper interacts with the request through these vfunc slots (confidence: <code>inferred</code>).</p>
 <table>
 <thead>
@@ -2394,9 +2397,14 @@
 <td><code>0x3c</code></td>
 <td>in-arg fetch (alternate)</td>
 </tr>
+<tr>
+<td><code>0x34</code></td>
+<td>request -&gt; zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0</td>
+</tr>
 </tbody>
 </table>
 <h2 id="capability-fields">Capability fields<a class="headerlink" href="#capability-fields" title="Permanent link">&para;</a></h2>
+<p>The player keeps internal switches that decide which features exist on this hardware or in this mode. They are why a Playbar exposes a different command set than a Play:1, and why whole services can silently enable or disable at runtime. Each row is one switch and the behavior it gates.</p>
 <p>Object fields the firmware reads to gate behavior. Read/write sites are static evidence; the <em>predicate</em> each gates is noted honestly where unresolved.</p>
 <table>
 <thead>
@@ -2457,6 +2465,7 @@
 <h3 id="0x571c"><code>0x571c</code><a class="headerlink" href="#0x571c" title="Permanent link">&para;</a></h3>
 <p>Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/AVTransport/Control), ConnectionManager (/MediaRenderer/ConnectionManager/Control), GroupRenderingControl (/MediaRenderer/GroupRenderingControl/Control), Queue (/MediaRenderer/Queue/Control), VirtualLineIn (/MediaRenderer/VirtualLineIn/Control), ConnectionManager (/MediaServer/ConnectionManager/Control), ContentDirectory (/MediaServer/ContentDirectory/Control), MusicServices (/MusicServices/Control), QPlay (/QPlay/Control)</p>
 <h2 id="internal-functions">Internal functions<a class="headerlink" href="#internal-functions" title="Permanent link">&para;</a></h2>
+<p>Named helper routines the command handlers share - parameter parsers, validators, and error translators. They're listed because the real argument-checking logic lives here rather than inside each command.</p>
 <table>
 <thead>
 <tr>
@@ -3351,9 +3360,35 @@
 <td>named_worker_resolver</td>
 <td>Search-criteria/filter parser worker: strcmp(name,'0') -&gt; returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 par</td>
 </tr>
+<tr>
+<td><code>0x107396d0</code></td>
+<td>action_reject_stub</td>
+<td>Shared HTControl base-class action stub. Calls the request object's v[+0x08] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req v\</td>
+</tr>
+<tr>
+<td><code>0x10242118</code></td>
+<td>impl_ctor</td>
+<td>Derived HTControl impl-class constructor. Calls the base-class ctor f_10739e2c (which installs vptr 0x10f11b64), then overwrites the vptr with the derived vtabl</td>
+</tr>
+<tr>
+<td><code>0x1018d27c</code></td>
+<td>service_factory</td>
+<td>HTControl impl factory - allocates and constructs the derived impl object via f_10242118.</td>
+</tr>
+<tr>
+<td><code>0x104661fc</code></td>
+<td>action_wrapper</td>
+<td>Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse tab</td>
+</tr>
+<tr>
+<td><code>0x10464200</code></td>
+<td>action_table_trampoline</td>
+<td>Queue.Browse dispatch-table entry - calls req v[+0x3c] (alternate in-arg context fetch) then tail-dispatches impl v[+0x28] -&gt; f_104661fc.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="dispatch-candidates">Dispatch candidates<a class="headerlink" href="#dispatch-candidates" title="Permanent link">&para;</a></h2>
+<p>Functions we investigated because they looked like command dispatchers; each entry records the verdict.</p>
 <p>Functions that looked like dispatchers, with the verdict each received.</p>
 <h3 id="0x105cd004"><code>0x105cd004</code><a class="headerlink" href="#0x105cd004" title="Permanent link">&para;</a></h3>
 <p>RESOLVED: HTTP-client auth-retry method. Detects 'HTTP/1.1 401'/'HTTP/1.0 401' status lines (0x105cd030/0x105cd04c); vtable slots at 0x10edee00/0x10edeeb0/0x10ef4ae4 = same method installed on 3 HTTP-client subclass vtables - shared auth-retry base behavior. NOT a SOAP dispatcher.</p>
@@ -3372,6 +3407,7 @@
 <h3 id="0x1073d8f8"><code>0x1073d8f8</code><a class="headerlink" href="#0x1073d8f8" title="Permanent link">&para;</a></h3>
 <p>RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f11f70 at svc+0, installed by ctor f_1073d930 into *(r3-in+0xaa6c)). Reject-all: emits 401 for every action — the service is a registered stub in this build. Evidence is definitive: unconditional 401 emit (li r4,0x191) + vtable 0x10f11f70 at svc+0 installed by ctor f_1073d930.</p>
 <h2 id="shared-subsystems">Shared subsystems<a class="headerlink" href="#shared-subsystems" title="Permanent link">&para;</a></h2>
+<p>Building blocks reused across many commands - URI grammars, metadata parsers, error helpers. Documented once here rather than repeated under every command that uses them.</p>
 <p>Reusable primitives recovered from the binary — prefer these over re-reading per-action detail.</p>
 <h3 id="soap_fault_wire_format"><code>soap_fault_wire_format</code><a class="headerlink" href="#soap_fault_wire_format" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3386,13 +3422,16 @@
 <h3 id="soap_fault_code_vocabulary"><code>soap_fault_code_vocabulary</code><a class="headerlink" href="#soap_fault_code_vocabulary" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>status:</strong> strong</li>
-<li><strong>extraction:</strong> li/ori immediates in error-band scanned across all 1848 worker/impl functions referenced in the DB (tools/_errdomain2.py); per-function literal sets persisted in docs/worker_err_literals.json</li>
-<li><strong>upnp_band</strong> (79):</li>
+<li><strong>extraction:</strong> original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.</li>
+<li><strong>upnp_band</strong> (92):</li>
 </ul>
-<p><code>101, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 400, 401, 402, 403, 404, 405, 408, 411, 501, 606, 608, 624, 640, 651, 652, 664, 680, 699, 701, 702, 705, 706, 710, 711, 712, 717, 718, 720, 728, 800, 801, 802, 803, 804, 806, 807, 808, 810, 1000, 1003, 1021, 1023, 1024, 1025, 1026, 1028, 1040, 1043, 1046, 1056, 1057, 1100, 1104, 1143, 1152, 1161, 1178, 1200, 1221, 1224, 1266, 1272, 1287</code>
+<p><code>101, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 400, 401, 402, 403, 404, 405, 408, 411, 501, 606, 608, 624, 640, 651, 652, 664, 680, 699, 701, 702, 705, 706, 710, 711, 712, 717, 718, 720, 728, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 820, 821, 822, 824, 850, 899, 1000, 1003, 1020, 1021, 1023, 1024, 1025, 1026, 1028, 1040, 1043, 1046, 1056, 1057, 1100, 1104, 1143, 1152, 1161, 1178, 1200, 1221, 1224, 1266, 1272, 1287</code>
 - <strong>semantics:</strong> every 'vret'/passthrough error domain is bounded by the union of its impl worker's exit literals + this aggregate vocabulary; concrete per-action subset requires exit-block dataflow (runtime boundary for the impl-&gt;engine delegation chains)
 - <strong>evidence:</strong>
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}</p>
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: whole-.text census: 2713 fns w/ error-band literals; refined accumulator-filtered propagation over 6729-fn call graph; additions verified against store-commit ladders
+- <strong>notes:</strong>
+  - <strong>census_union:</strong> Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.</p>
 <h3 id="soap_client"><code>soap_client</code><a class="headerlink" href="#soap_client" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>status:</strong> confirmed</li>
@@ -3600,7 +3639,8 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 - <strong>name:</strong> device_description.xml token template
 - <strong>tokens</strong> (40):</p>
 <p><code>UUID, HOST, DISPLAY_VERSION, SW_VERSION, SW_GENERATION, NODE_PROTO_VERSIONS, HTA_FRAME_VERSIONS, MUSE_API_VERSIONS, TRUEPLAY_SDK_VERSIONS, HW_VERSION, EXTRA_VERSION, SERIAL_NUM, MAC_ADDRESS, SW_MINCOMPATVER, SW_LEGACYCOMPATVER, API_VERSION, MIN_API_VERSION, MODEL, ZONETYPE, NAME, DISPLAY_NAME, VENDOR_NAME, FEATURE1, FEATURE2, FEATURE3, FEATURE4, SERIESID, VARIANT, INT_SPEAKER_SIZE, QPLAY_SUPPORT, AMP_ONTIME, MEMORY, FLASH, FLASH_REPARTITIONED, RETAIL_MODE, SSL_PORT, HHSSL_PORT, MEDIASERVER_NAMESPACE, CD_NAMESPACE, NS_VERSION</code>
-- <strong>qplay:</strong> <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</qq:X_QPlay_SoftwareCapability> — QPlay v2 advertised in description</p>
+- <strong>qplay:</strong> <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</qq:X_QPlay_SoftwareCapability> — QPlay v2 advertised in description
+- <strong>note:</strong> Confirmed absence: no 'scpd','stateVariable','serviceStateTable','sendEvents','allowedValue','dataType' literal exists anywhere in the image - this build never emits SCPD/service-description XML; the state-variable registry lives only inside the eventing engine.</p>
 <h3 id="svcmanifest"><code>svcmanifest</code><a class="headerlink" href="#svcmanifest" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>status:</strong> confirmed</li>
@@ -3676,6 +3716,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 <li><strong>files:</strong> /jffs/netstartd_prev.log, /opt/log/netstartd.log, netstartd.dmp, netstartd.properties, netstartd.count, /netstartd-external, /var/run/netstart_mode, /tmp/netstartd.pid</li>
 <li><strong>messages:</strong> settings push ('...settings update to netstartd'), PSK update ('...ushed PSK update to netstartd'), pull ('...ettings update from netstartd'), type update '[%s]', 'SSID, cannot notify netstartd', refusal handling 'netstart refused'/'meshDisable (netstart refused)'</li>
 <li><strong>status:</strong> confirmed</li>
+<li><strong>note:</strong> CORRECTION: netstart2 DOES exist — the literal lives in wifi/netstartd (separate daemon binary); see native_protocols/netstart2 for the full decode</li>
 <li><strong>mrpc:</strong></li>
 <li><strong>name:</strong> MRPC</li>
 <li><strong>status:</strong> ZERO literals in anacapad-86.10 - no 'mrpc' string anywhere. Either absent from this binary or unlabeled; honest negative result</li>
@@ -3759,8 +3800,15 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 <li><strong>status:</strong> strong</li>
 <li><strong>model:</strong> no local BT stack in anacapad — cloud-managed only: v1/players/{playerId}/hardwareStatus/{bluetooth,bluetoothPairing,pairedBluetoothDevices/{bluetoothAddress}} routes + scope cmds getBluetoothStatus/setBluetoothPairing/activatePairedBluetoothDevice/removePairedBluetoothDevice; 'Supported only on devices with bluetooth' gate; vli_bt stream source; hal_detect_get_cable_states</li>
 <li><strong>netstart2:</strong></li>
-<li><strong>status:</strong> confirmed-absent</li>
-<li><strong>finding:</strong> no 'netstart2' literal in any of 4 builds (34.16/57.10/86.8/86.10); netstartd IPC is the only netstart surface</li>
+<li><strong>status:</strong> confirmed</li>
+<li><strong>location:</strong> wifi/netstartd (separate binary — the netstart2 literal lives in netstartd, not anacapad; earlier absence claim was anacapad-only scope)</li>
+<li><strong>transport:</strong> DTLS over UDP (mbedtls_net_<em> + ssl_</em>): full DTLS state names {DISCONNECTED,CONNECTING,HELLO_VERIFY,CONNECTED,WRITING,CLOSING,CLOSE_NOTIFY_SENT,CLOSE_NOTIFY_DISCONNECT,CLOSE_IMMEDIATELY,CLIENT_RECONNECT}; app-level ACKs (message received without ACK for last payload / received unexpected ACK / replay detected retransmitting); ECJPAKE password handshake (ssl_set_hs_ecjpake_password) — PAKE for PIN-less provisioning; DTLS PIN alternative; client ID set; PSK auth (Authenticating with PSK)</li>
+<li><strong>messages:</strong> NS2_MSG_* {SETUP_BEGIN(mode arg), SETUP_CANCEL(flags), SETUP_CLIENT_HELLO, SETUP_CONTINUE, SETUP_REAUTHORIZE(flags), SETUP_SERVER_HELLO, SETUP_SERVER_HELLO_LEGACY, SETUP_STATUS(0x%x), GET_PSK(type), PSK, REGISTRATION_KEY} + BEGIN_SETUP control</li>
+<li><strong>setup_modes:</strong> NS2_SETUP_MODE_* {NONE, CHIRP, CHIRP_WITH_BUTTON, CLIENT_PIN, MANUAL_PIN, NFC, QR_CODE, QR_CODE_WITH_BUTTON, QR_CODE_WITH_REMOTE} — 9 provisioning mechanisms incl. audio chirp, QR+remote, NFC, client/manual PIN</li>
+<li><strong>state_fsm:</strong> NS2_STATE_SETUP_* {START, DISCOVERY, DISCOVERY_INTERACTION, PIN_EXCHANGED, ACTIVE, WAITING, UPDATE, STANDBY, COMPLETE} — 9-state setup FSM</li>
+<li><strong>psk_lifecycle:</strong> device PSK: loaded with boot count (Netstart2 device PSK loaded, boot count %u), discarded on expiry OR max boot count; sends DTLS PSK to client; registration key set/clear (Netstart2 clearing registration signing key); unable to lock registration; no household configured</li>
+<li><strong>files:</strong> /jffs/net/settings/netstart2.txt (+ .tmp atomic write) — persisted NS2 state; setup logs /jffs/setup.{log,dmesg} + /jffs/sys/log/setup/; chirp payload generation (Netstart2 failed to generate chirp payload); contactless setup attempt-limit + reauthorize (Contactless setup attempt limit reached)</li>
+<li><strong>netmanager:</strong> states {ST_CCRD,ST_CCRDA,ST_CON,ST_CON_CR,ST_R} via handlers {NetManagerSonosNet{Base,NoWifi,WithPath},NetManagerStation{Base,CheckCarrier}}Handler; events NM_EVT_SONOSNET_ENABLED + SonosNet Hint; anacapa IPC notifies state update 0x%x + mode %d %d + recovery AP state; LED modes {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH,JOIN_HH_OPEN,BEGIN_SETUP_MODE,IN_SETUP_MODE}; wacd spawned on wacstart/wactimeout via /tmp/netstartd_wac.ipc</li>
 <li><strong>chsrc_chsnk:</strong></li>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>model:</strong> CHSRC (channel source, chsrc.cxx) multicasts group audio to CHSNK (channel sink) receivers via nodetx_chsrc; chsnk refreshes multicast join on NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent</li>
@@ -3878,6 +3926,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 <li><strong>role:</strong> cloud transport — REST/ws API sessions over HTTP/2</li>
 <li><strong>surface:</strong> nghttp2_session_{send,upgrade2}; nghttp2_submit_{request,ping,goaway,settings,window_update}; nghttp2_{set_,session_set_}local_window_size</li>
 <li><strong>behavior:</strong> h1-&gt;h2 upgrade ('(via h1 upgrade)','(upgraded to SSL)','session_upgrade2'); ping/goaway keepalive; per-stream window mgmt; 'send request NOT allowed (via nghttp2)' gating; 'PRIORITY: stream_id == 0' frame error; 'pack_settings_payload' path</li>
+<li><strong>headers_frame_validation:</strong> nghttp2 HEADERS-state literals: 'HEADERS: stream closed' / 'HEADERS: no HEADERS allowed from client in reserved state' / 'HEADERS: could not unpack' / 'HEADERS: insufficient padding space' / 'HEADERS: invalid padding' (@0x10f89708-0x10f89dbc) - frame-parser validation layer beyond the documented PRIORITY/RST_STREAM surface</li>
 <li><strong>status:</strong> strong</li>
 </ul>
 <h3 id="hwmessagelib"><code>hwmessagelib</code><a class="headerlink" href="#hwmessagelib" title="Permanent link">&para;</a></h3>
@@ -3918,6 +3967,12 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 <li><strong>handler:</strong> RMSearchNotifyHandler thread + disHandleMSearchAsync dispatch; 'Failed to setup MSearchNotifyHandler'</li>
 <li><strong>dedup:</strong> dual-discovery: 'handleDefunctZP %s reason %s IGNORED from MDNS - discovered by SSDP'/'from SSDP - discovered by MDNS but not SSDP'</li>
 <li><strong>containers:</strong> x-rincon-cpcontainer:{RDCPA,RDCPI,<em>}:</em> grammar; 'Unknown old Rhapsody x-rincon-cpcontainer'</li>
+<li><strong>outbound_templates:</strong></li>
+<li><strong>alive:</strong> 0x10eef678: NOTIFY * HTTP/1.1 | HOST: 239.255.255.250:1900 | CACHE-CONTROL: max-age = %u | LOCATION: %s | NT: %s | NTS: ssdp:alive | SERVER: %s | USN: %s | %s(trailer)</li>
+<li><strong>byebye:</strong> 0x10eef5fc: NOTIFY * HTTP/1.1 | HOST: 239.255.255.250:1900 | NT: %s | NTS: ssdp:byebye | SERVER: %s | USN: %s | %s(trailer) - note: byebye omits CACHE-CONTROL/LOCATION</li>
+<li><strong>msearch_response:</strong> 0x10eef97c: HTTP/1.1 200 OK | CACHE-CONTROL: max-age = %u | EXT: | LOCATION: %s | SERVER: %s | ST: %s | USN: %s | %s(trailer) - the unicast reply to inbound M-SEARCH</li>
+<li><strong>outbound_msearch:</strong> 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)</li>
+<li><strong>notes:</strong> alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses</li>
 </ul>
 <h3 id="ssdp_signed_msearch"><code>ssdp_signed_msearch</code><a class="headerlink" href="#ssdp_signed_msearch" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3933,6 +3988,54 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 <li><strong>hls_vocabulary:</strong> <code>#EXT-X-VERSION</code>, <code>#EXT-X-TARGETDURATION</code>, <code>#EXT-X-MEDIA-SEQUENCE</code>, <code>#EXT-X-PLAYLIST-TYPE</code>, <code>#EXT-X-INDEPENDENT-SEGMENTS</code>, <code>#EXT-X-KEY:</code>, <code>#EXT-X-SESSION-KEY:</code>, <code>#EXT-X-MAP:</code>, <code>#EXT-X-DISCONTINUITY</code>, <code>#EXT-X-BYTERANGE</code>, <code>#EXT-X-ENDLIST</code>, <code>#EXT-X-MEDIA</code>, <code>#EXT-X-STREAM-INF</code>, <code>#EXT-X-PROGRAM-DATE-TIME</code></li>
 <li><strong>hls_validation:</strong> 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA' (rendition-group enforcement)</li>
 <li><strong>mime_vocabulary:</strong> <code>application/x-mpegurl</code>, <code>audio/x-mpegurl</code>, <code>audio/x-scpls</code>, <code>audio/x-sonos-recent</code>, <code>audio/x-spotify</code>, <code>audio/x-spotify-ogg</code>, <code>audio/x-aac</code>, <code>audio/x-aiff</code>, <code>audio/x-m4a</code>, <code>audio/x-ms-wma</code>, <code>audio/x-wav</code></li>
+<li><strong>full_header_census:</strong></li>
+<li><strong>method:</strong> whole-.rodata scan for X-Sonos-<em>/X-RINCON-</em> literals; addresses are literal sites</li>
+<li><strong>headers:</strong><ul>
+<li><strong>X-RINCON-BOOTSEQ:</strong> 0x10eea2f8 (SSDP/discovery signature)</li>
+<li><strong>X-RINCON-CONTENT-FORMAT:</strong> 0x10efd058 (repset content-format index)</li>
+<li><strong>X-RINCON-CONTENT-VERSION:</strong> 0x10ed4510 (content sync)</li>
+<li><strong>X-RINCON-HOUSEHOLD:</strong> 0x10eea2e4</li>
+<li><strong>X-RINCON-LAST-UPDATE-DEVICE:</strong> 0x10ed4510</li>
+<li><strong>X-RINCON-PROXY:</strong> 0x10eea30c</li>
+<li><strong>X-RINCON-RANGE:</strong> 0x10ed4510</li>
+<li><strong>X-RINCON-REASON:</strong> 0x10eea378</li>
+<li><strong>X-RINCON-SIGNATURE:</strong> 0x10efd0a8 (repset sig)</li>
+<li><strong>X-RINCON-VARIANT:</strong> 0x10eea344</li>
+<li><strong>X-Sonos-Accept-Language:</strong> 0x10ec1f20 region (SMaPI)</li>
+<li><strong>X-Sonos-Api-Key:</strong> 0x10eb09b0</li>
+<li><strong>X-Sonos-Context-TimeZone:</strong> 0x10ec1f44</li>
+<li><strong>X-Sonos-Corr-Id:</strong> 0x10e74534</li>
+<li><strong>X-Sonos-Denylisted:</strong> 0x10ef241c</li>
+<li><strong>X-Sonos-Device-Id:</strong> 0x10eb9474</li>
+<li><strong>X-Sonos-DeviceCert:</strong> 0x10ec1f20 (SMaPI deviceCerts)</li>
+<li><strong>X-Sonos-Diagnostics-Api-Key:</strong> 0x10f08334</li>
+<li><strong>X-Sonos-ErrorType:</strong> 0x10ee6d7c (NEW: error-classification header)</li>
+<li><strong>X-Sonos-Firmware:</strong> 0x10ee8250</li>
+<li><strong>X-Sonos-GroupAttribute:</strong> 0x10ec221c (cloudqueue)</li>
+<li><strong>X-Sonos-GroupCapability:</strong> 0x10ec2238 (cloudqueue)</li>
+<li><strong>X-Sonos-Household-Id:</strong> 0x10f0ba54</li>
+<li><strong>X-Sonos-Id-Hash:</strong> 0x10ee8290 (NEW: sibling of X-Sonos-Firmware telemetry)</li>
+<li><strong>X-Sonos-Latency:</strong> 0x10f2c874</li>
+<li><strong>X-Sonos-LatestSWGen:</strong> 0x10f13708</li>
+<li><strong>X-Sonos-Mac:</strong> 0x10ef4b6c</li>
+<li><strong>X-Sonos-MAID:</strong> 0x10ec1f60</li>
+<li><strong>X-Sonos-MessageType:</strong> 0x10f03b4c (octet-stream POST)</li>
+<li><strong>X-Sonos-MS-Sig:</strong> 0x10ec1ee0 (music-service signature)</li>
+<li><strong>X-Sonos-Muse-Api:</strong> 0x10ee8250 (NEW: muse API version header)</li>
+<li><strong>X-Sonos-MuseHouseholdId:</strong> 0x10edef34 (NEW)</li>
+<li><strong>X-Sonos-Playback-Id:</strong> 0x10eb9460</li>
+<li><strong>X-Sonos-Serial:</strong> 0x10ef4bb8</li>
+<li><strong>X-Sonos-SWGen:</strong> 0x10ec280c</li>
+<li><strong>X-Sonos-Type:</strong> 0x10ec78b0</li>
+<li><strong>X-Sonos-Udn:</strong> 0x10ef64d4 (also Lechmere tunnel pseudo-header)</li>
+<li><strong>X-Sonos-User-Id:</strong> 0x10ebf930</li>
+<li><strong>X-Sonos-User-Role:</strong> 0x10ed96a4</li>
+<li><strong>X-Sonos-UserId:</strong> 0x10ef21e0</li>
+<li><strong>X-Sonos-VClockCloud:</strong> 0x10edef34 (NEW: vector-clock cloud sync)</li>
+</ul>
+</li>
+<li><strong>status:</strong> confirmed</li>
+<li><strong>notes:</strong> Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.</li>
 </ul>
 <h3 id="chirp_sdk"><code>chirp_sdk</code><a class="headerlink" href="#chirp_sdk" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3947,7 +4050,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 <h3 id="other-recovered-subsystems">Other recovered subsystems<a class="headerlink" href="#other-recovered-subsystems" title="Permanent link">&para;</a></h3>
 <p>Additional primitives recorded in the database (see <code>documentation.json</code> <code>shared_primitives</code>):</p>
-<p><code>accepted_mimes</code>, <code>aha_ops</code>, <code>alarm_persist_writer</code>, <code>alarm_store_object</code>, <code>albumart_proxy</code>, <code>alert_engine</code>, <code>arping</code>, <code>assoctracker</code>, <code>audio_clip</code>, <code>audio_pipeline</code>, <code>audio_subsystem_files</code>, <code>audioin_impl</code>, <code>audiotap</code>, <code>auth_capability</code>, <code>auto_update_policy</code>, <code>autoplay</code>, <code>avt_session</code>, <code>avt_session_lock</code>, <code>bonded_zones</code>, <code>boot_reasons</code>, <code>browse_categories</code>, <code>cd_object_resolver</code>, <code>cert_identity</code>, <code>channel_source_types</code>, <code>chsnk_processor</code>, <code>circuitbreaker</code>, <code>cloud_registration</code>, <code>cloud_request</code>, <code>cloudqueue</code>, <code>component_map</code>, <code>config_parsers</code>, <code>content_managers</code>, <code>csrf_protection</code>, <code>ddthrd</code>, <code>dev_unlock</code>, <code>device_account_endpoint</code>, <code>device_auth</code>, <code>device_description_variants</code>, <code>device_registration</code>, <code>device_state_store</code>, <code>deviceproperties_impl_vtable</code>, <code>devmode</code>, <code>diag_instructions</code>, <code>diagnostic_manifest</code>, <code>diagnostics</code>, <code>diagnostics_submit</code>, <code>didl_classes_ext</code>, <code>didl_escaping</code>, <code>discovery_layer</code>, <code>dns_sd</code>, <code>dropout_logging</code>, <code>dsp_drc</code>, <code>ducking_engine</code>, <code>entitlements</code>, <code>enum_tables</code>, <code>ext_audio_source</code>, <code>extaudiosrc</code>, <code>gena_internals</code>, <code>group_capabilities</code>, <code>group_coordination</code>, <code>group_modes</code>, <code>hdmi</code>, <code>healthcheck</code>, <code>healthcheck_job</code>, <code>hls_radio</code>, <code>household_psk_vocabulary</code>, <code>ht_bonded_zones</code>, <code>ht_chsnk_processing</code>, <code>http_chunked_strictness</code>, <code>http_extra_endpoints</code>, <code>http_range</code>, <code>http_request_security</code>, <code>http_status_endpoints</code>, <code>httpcache_manager</code>, <code>hw_input_events</code>, <code>ibt_engine</code>, <code>icy_metadata</code>, <code>idle_events</code>, <code>idle_shutdown_reasons</code>, <code>inprocess_events</code>, <code>internal_error_families</code>, <code>internal_result_namespace</code>, <code>ir_remote</code>, <code>lechmere_cmds</code>, <code>linked_libraries</code>, <code>location</code>, <code>location_engine</code>, <code>location_settings_sync</code>, <code>mdns</code>, <code>mdns_stack</code>, <code>mdp_flash</code>, <code>media_player_mgr</code>, <code>migrationmanager</code>, <code>misc_components</code>, <code>misc_health</code>, <code>misc_mgrs</code>, <code>mod_zp</code>, <code>muse_authhelper</code>, <code>muse_common</code>, <code>muse_grouping_ops</code>, <code>muse_network_test</code>, <code>muse_route_verbs</code>, <code>muse_upnp_bridge_actions</code>, <code>netif_events</code>, <code>netsettings_mgr</code>, <code>netstart_ipc</code>, <code>nodetx_transport</code>, <code>noncehandler</code>, <code>ota_update</code>, <code>ota_upgrade</code>, <code>persistent_stores</code>, <code>pinewood_remote</code>, <code>platform_details</code>, <code>play_state_mgr</code>, <code>protocol_info_full</code>, <code>queue_engine</code>, <code>queue_engine_object</code>, <code>replication_elements</code>, <code>reporting_policy</code>, <code>rincon_didl_fields</code>, <code>rincon_uuid</code>, <code>rmd_op_worker_class</code>, <code>runtime_policy</code>, <code>service_accounts</code>, <code>settings_xml</code>, <code>smapi_auth_policies</code>, <code>smapi_capability_vocabulary</code>, <code>smapi_jwt</code>, <code>smapi_layer</code>, <code>smartplay</code>, <code>smb_shares</code>, <code>sonarcal</code>, <code>sonos_concurrency</code>, <code>sonos_libs</code>, <code>sounddev</code>, <code>sp_store_object</code>, <code>speaker_group_advertise</code>, <code>spotify_esdk</code>, <code>sqlite_timers</code>, <code>ssh_authorized_keys</code>, <code>startup</code>, <code>stream_error_counters</code>, <code>system_overrides</code>, <code>system_property_keys</code>, <code>target_udn_routing</code>, <code>telemetry_endpoints</code>, <code>telemetry_pipeline</code>, <code>testenv_logger</code>, <code>thread_inventory</code>, <code>timedjobs</code>, <code>timers</code>, <code>timezone_table</code>, <code>tls_stack</code>, <code>token_refresh_state_machine</code>, <code>toml_config</code>, <code>topology</code>, <code>topology_engine</code>, <code>trackplaymonitor</code>, <code>tsclient</code>, <code>txst_enum</code>, <code>upnp_cloud_tunnel</code>, <code>uri_service_map</code>, <code>usage_data_sharing</code>, <code>vli_grouping</code>, <code>vli_playback_tracker</code>, <code>vli_transport_detail</code>, <code>wake_on_lan</code>, <code>wakelock_guard</code>, <code>watchdog</code>, <code>watchdog_crash</code>, <code>websocket_impl</code>, <code>websocket_server</code>, <code>wifi_hal</code>, <code>wifi_idle_roles</code>, <code>xml_schema_clusters</code>, <code>zone_experiments</code></p>
+<p><code>accepted_mimes</code>, <code>action_dispatch_records</code>, <code>aha_ops</code>, <code>alarm_persist_writer</code>, <code>alarm_store_object</code>, <code>albumart_proxy</code>, <code>alert_engine</code>, <code>arping</code>, <code>assoctracker</code>, <code>audio_clip</code>, <code>audio_pipeline</code>, <code>audio_subsystem_files</code>, <code>audioin_impl</code>, <code>audiotap</code>, <code>auth_capability</code>, <code>auto_update_policy</code>, <code>autoplay</code>, <code>avt_session</code>, <code>avt_session_lock</code>, <code>binary_section_map</code>, <code>bonded_zones</code>, <code>boot_reasons</code>, <code>browse_categories</code>, <code>cd_object_resolver</code>, <code>cert_identity</code>, <code>channel_source_types</code>, <code>chsnk_processor</code>, <code>circuitbreaker</code>, <code>cloud_registration</code>, <code>cloud_request</code>, <code>cloudqueue</code>, <code>component_map</code>, <code>config_parsers</code>, <code>content_managers</code>, <code>csrf_protection</code>, <code>ddthrd</code>, <code>dev_unlock</code>, <code>device_account_endpoint</code>, <code>device_auth</code>, <code>device_description_variants</code>, <code>device_registration</code>, <code>device_state_store</code>, <code>deviceproperties_impl_vtable</code>, <code>devmode</code>, <code>diag_instructions</code>, <code>diagnostic_manifest</code>, <code>diagnostics</code>, <code>diagnostics_submit</code>, <code>didl_classes_ext</code>, <code>didl_escaping</code>, <code>dirobj_class_map</code>, <code>discovery_layer</code>, <code>dns_sd</code>, <code>dropout_logging</code>, <code>dsp_drc</code>, <code>ducking_engine</code>, <code>entitlements</code>, <code>enum_tables</code>, <code>ext_audio_source</code>, <code>extaudiosrc</code>, <code>gena_internals</code>, <code>group_capabilities</code>, <code>group_coordination</code>, <code>group_modes</code>, <code>hdmi</code>, <code>healthcheck</code>, <code>healthcheck_job</code>, <code>hls_radio</code>, <code>household_psk_vocabulary</code>, <code>ht_bonded_zones</code>, <code>ht_chsnk_processing</code>, <code>http_chunked_strictness</code>, <code>http_extra_endpoints</code>, <code>http_range</code>, <code>http_request_security</code>, <code>http_status_endpoints</code>, <code>httpcache_manager</code>, <code>hw_input_events</code>, <code>ibt_engine</code>, <code>icy_metadata</code>, <code>idle_events</code>, <code>idle_shutdown_reasons</code>, <code>inprocess_events</code>, <code>internal_error_families</code>, <code>internal_result_namespace</code>, <code>ir_remote</code>, <code>lechmere_cmds</code>, <code>linked_libraries</code>, <code>location</code>, <code>location_engine</code>, <code>location_settings_sync</code>, <code>mdns</code>, <code>mdns_stack</code>, <code>mdp_flash</code>, <code>media_player_mgr</code>, <code>migrationmanager</code>, <code>misc_components</code>, <code>misc_health</code>, <code>misc_mgrs</code>, <code>mod_zp</code>, <code>muse_authhelper</code>, <code>muse_common</code>, <code>muse_grouping_ops</code>, <code>muse_network_test</code>, <code>muse_route_verbs</code>, <code>muse_upnp_bridge_actions</code>, <code>netif_events</code>, <code>netsettings_mgr</code>, <code>netstart_ipc</code>, <code>nodetx_transport</code>, <code>noncehandler</code>, <code>ota_update</code>, <code>ota_upgrade</code>, <code>persistent_stores</code>, <code>pinewood_remote</code>, <code>platform_details</code>, <code>play_state_mgr</code>, <code>protobuf_descriptors</code>, <code>protocol_info_full</code>, <code>queue_engine</code>, <code>queue_engine_object</code>, <code>rate_limiter</code>, <code>replication_elements</code>, <code>reporting_policy</code>, <code>rincon_didl_fields</code>, <code>rincon_uuid</code>, <code>rmd_op_worker_class</code>, <code>runtime_policy</code>, <code>service_accounts</code>, <code>service_impl_vtables</code>, <code>settings_xml</code>, <code>smapi_auth_policies</code>, <code>smapi_capability_vocabulary</code>, <code>smapi_jwt</code>, <code>smapi_layer</code>, <code>smartplay</code>, <code>smb_shares</code>, <code>sonarcal</code>, <code>sonos_concurrency</code>, <code>sonos_libs</code>, <code>sounddev</code>, <code>sp_store_object</code>, <code>speaker_group_advertise</code>, <code>spotify_esdk</code>, <code>sqlite_timers</code>, <code>ssh_authorized_keys</code>, <code>startup</code>, <code>stream_error_counters</code>, <code>system_overrides</code>, <code>system_property_keys</code>, <code>target_udn_routing</code>, <code>telemetry_endpoints</code>, <code>telemetry_pipeline</code>, <code>testenv_logger</code>, <code>thread_inventory</code>, <code>timedjobs</code>, <code>timers</code>, <code>timezone_table</code>, <code>tls_stack</code>, <code>token_refresh_state_machine</code>, <code>toml_config</code>, <code>topology</code>, <code>topology_engine</code>, <code>trackplaymonitor</code>, <code>tsclient</code>, <code>txst_enum</code>, <code>upnp_cloud_tunnel</code>, <code>uri_service_map</code>, <code>usage_data_sharing</code>, <code>vli_grouping</code>, <code>vli_playback_tracker</code>, <code>vli_transport_detail</code>, <code>wake_on_lan</code>, <code>wakelock_guard</code>, <code>watchdog</code>, <code>watchdog_crash</code>, <code>websocket_impl</code>, <code>websocket_server</code>, <code>wifi_hal</code>, <code>wifi_idle_roles</code>, <code>xml_schema_clusters</code>, <code>zone_experiments</code></p>
 
 
 

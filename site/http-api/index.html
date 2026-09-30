@@ -2179,6 +2179,7 @@
                   
 
 <h1 id="http-non-soap-surface">HTTP / non-SOAP surface<a class="headerlink" href="#http-non-soap-surface" title="Permanent link">&para;</a></h1>
+<p>Beyond the documented UPnP control surface, the player answers plain HTTP requests: a built-in diagnostics website with around sixty pages of live internals, file and command passthroughs, debug endpoints, and the machinery that lets the cloud tunnel commands to the device. All reachable on the local network unless noted.</p>
 <p>Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP control path. All are static-analysis records.</p>
 <h2 id="http_status_endpoints"><code>http_status_endpoints</code><a class="headerlink" href="#http_status_endpoints" title="Permanent link">&para;</a></h2>
 <p>The player's built-in diagnostics website. Opening http://<player>:1400/status/ in a browser exposes ~63 pages of live internals — network stats, wireless scan results, CPU/thread info, settings stores, update state — plus passthroughs to shell commands (ifconfig, netstat, ps) and /proc files. It's the same tool Sonos support uses; some pages accept writes (setstring/removestring) so treat it as a control surface.</p>
@@ -3131,7 +3132,9 @@
   - </strong>/sonar-tone:<strong> not in master table; .rodata-referenced near app/run/inverters + ZP_MODE_STANDALONE + variantDebuginfo — sonar variant-tone config path
   - </strong>/debugfiles:<strong> exec page flag=0xa: /bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug
   - </strong>/customsd:<strong> f_103429f4 — CSRF form "Add/update custom service descriptor": fields {sid(240-253|255), name(blank erases), secureUri, pollInterval, authType in {UserId,Anonymous,DeviceLink,AppLink}, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, containerType in {MService,SoundLab}, caps[] in {search,trFavorites,alFavorites,ucPlaylists,logging,playbackLogging,accountLogging,extendedMD,radioExtendedMD,playlistExtendedMD,disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}} — full SMAPI SD capability set
-- </strong>flags_decode_attempt:** Static flag field ({name,flags,target} records, values 1,2,6,a,b,e,43,46,82) is NOT a page-type discriminator - all three page families (handler/exec/file) share the same values. Empirical groupings: 0x2 = bulk default; 0x82 = prefix-mount ({/api,/cloudqueue,/leds} + /opt/log/anacapa.dc.log; 0x80 = mount bit); 0xa = net/sys dumps (/date,/netstat,/uptime,/dmesg,/topology,/upnp + chronyd/udhcpc/ledmgrd/sonosledmgrd logs + arp + sysclock); 0xe = counters/verbose logs (/cpumon,/perfcounters,/showmacs,/showports + anacapa.log/netstartd/wpa_supplicant/fullstatus/netstat); 0xb = realtime link state (/enetports,/wireless,/showstp); 0x6 = wifi mib/dfs class (ath_rincon mibcc/nf/phyerr/primary,mdnsd.log,/playmode,/scanresults); 0x1 = identity (/VERSION,/zp,/ifconfig); 0x43/0x46 = ath_rincon status/dfs. HYPOTHESIS (unconfirmed): bitfield of support-bundle sections - the ZPSupportInfo generator (ap_status_handle_support_request, f_1076b5dc emits <ZPSupportInfo>...</ZPSupportInfo></ZPNetworkInfo>) pulls pages by flag bit. Dispatch path proven: f_105ebb20 -&gt; f_105be5c8 match ctx -&gt; lbz 0x110 matched-flag, accept-header text/plain shortcut, 200 + CONTENT-TYPE from a request-side helper, then per-page render. No static flag-bit comparison found in the walkers scanned; exact bit semantics remain undecoded.</p>
+- </strong>flags_decode_attempt:<strong> Static flag field ({name,flags,target} records, values 1,2,6,a,b,e,43,46,82) is NOT a page-type discriminator - all three page families (handler/exec/file) share the same values. Empirical groupings: 0x2 = bulk default; 0x82 = prefix-mount ({/api,/cloudqueue,/leds} + /opt/log/anacapa.dc.log; 0x80 = mount bit); 0xa = net/sys dumps (/date,/netstat,/uptime,/dmesg,/topology,/upnp + chronyd/udhcpc/ledmgrd/sonosledmgrd logs + arp + sysclock); 0xe = counters/verbose logs (/cpumon,/perfcounters,/showmacs,/showports + anacapa.log/netstartd/wpa_supplicant/fullstatus/netstat); 0xb = realtime link state (/enetports,/wireless,/showstp); 0x6 = wifi mib/dfs class (ath_rincon mibcc/nf/phyerr/primary,mdnsd.log,/playmode,/scanresults); 0x1 = identity (/VERSION,/zp,/ifconfig); 0x43/0x46 = ath_rincon status/dfs. HYPOTHESIS (unconfirmed): bitfield of support-bundle sections - the ZPSupportInfo generator (ap_status_handle_support_request, f_1076b5dc emits <ZPSupportInfo>...</ZPSupportInfo></ZPNetworkInfo>) pulls pages by flag bit. Dispatch path proven: f_105ebb20 -&gt; f_105be5c8 match ctx -&gt; lbz 0x110 matched-flag, accept-header text/plain shortcut, 200 + CONTENT-TYPE from a request-side helper, then per-page render. No static flag-bit comparison found in the walkers scanned; exact bit semantics remain undecoded.
+- </strong>bundle_file_manifest:<strong> support-bundle table at 0x1109013c+ interleaves {name_ptr, flags_u32, cmd_or_path_ptr} records: shell-command sections {/date:/bin/date, /debugfiles:'ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug', /df:/bin/df, /du-jffs, /free, /ifconfig, /lsmod, /mount, /netstat, /ntpsources, /ps, /route, /scanresults, /showmacs, /showports, /showstats, /showstp, /uptime} (flags 0x1/0x2/0x6/0xa/0xb/0xe gate conditional inclusion); file sections: /etc/resolv.conf, /VERSION, /jffs/{irconfig.txt,netstartd_prev.log,recovery.log,settings/{alarmclock.xml,areas.json,householdsettings.json,zones.json},shadow/stats,sys/log/{setup,setup_ok}/setup.{dmesg,log},upgrade_prev.log,upgrade_tmp_prev.log,watchdog.log,app/log/upgrade_mgr.log}, /opt/log/{anacapa.{alarm.job,chsrc.state,dc,ext.audio.action,gm.events,ht,hw.events,lechmere.event,log,musedebug,museevt,rc.upnp,snf,spotify.debug,spotify,sps,trueplay,vl},chronyd,dropbear,mdnsd,netstartd,sddpd,sonosledmgrd,udhcpc,wacd,wpa_supplicant}.log, /proc/ath_rincon{,_ath1}/{device,dfs,fullstatus,mibcc,nf,phyerr,primary,station,status}, /proc/driver/{accel,fpga/{circ,data},gravity-vector,ledctl/status,tdm/{regs,rxring,txring},temp-sensor}, /proc/{interrupts,net/{arp,snmp,sockstat,udp},slabinfo}, /tmp/memorylog{,.old}/log.*, /tmp/udhcpc_resp_mac_addr, /tmp/upgrade.log, /var/lib/chrony/sysclock_state
+- </strong>handler_table:** 56-entry {handler_fn, name, flags_u32} dispatch at 0x110908c4: /accounts, /activeZones, /ai_speech_enhance, /alarm, /analoglinein, /api(0x82), /audiocore, /backtrace, /button_triggered.xml, /cloud, /cloudqueue(0x82), /cpumon(0xe), /decoder, /device, /dmesg(0xa), /dnscache, /dropout_triggered.xml, /enetports(0xb), /ethportstatistics(0xa), /experiments, /hardwareevents, /hls, /htconfig, /leds(0x82), /libraries, /location_settings_update, /musicservices, /netsettings.json, /netsettings.txt, /opt/log/mdnsd.log, /perfcounters(0xe), /playmode, /policy, /radiolog, /regcert, /registration, /renderingcontrol, /root_cert_bundles, /rss, /settings/{effective,location,player}, /shares, /spdiftap, /ssidlist.txt, /ssl_client_cache, /syssettings, /temperature, /topology(0xa), /track_queue_summary, /tracks_summary, /trueplayinfo, /tvprocessor, /update, /upnp(0xa), /wireless(0xb), /zp(0x1); flag byte gates conditional visibility</p>
 </li>
 </ul>
 <h2 id="device_account_endpoint"><code>device_account_endpoint</code><a class="headerlink" href="#device_account_endpoint" title="Permanent link">&para;</a></h2>
@@ -3151,6 +3154,8 @@
 <li><strong>rules:</strong> <code>Reject response when 'chunked' is not the last Transfer-Encoding</code>, <code>Ignore duplicate 'chunked' decoder</code>, <code>Suppress chunked TE on HTTP version &gt;= 2</code>, <code>'Chunky upload is not supported by HTTP 1.0'</code>, <code>Missing chunk/close/size -&gt; assume close signals end</code>, <code>chunk hex-length max bound + hex-digit validation</code>, <code>'Chunk callback failed' / 'cf_body_send last CHUNK'</code>, <code>trailers accepted: 'added last chunk with trailers from client'</code></li>
 </ul>
 <h2 id="httpcache_manager"><code>httpcache_manager</code><a class="headerlink" href="#httpcache_manager" title="Permanent link">&para;</a></h2>
+<p>A small HTTP response cache for music-service (SMAPI) content, keyed by content hashes with local and remote variants. It remembers things like browse artwork and service lists so the controller doesn't re-fetch them constantly.</p>
+<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>file:</strong> httpcachemgr/httpcaches.json — httpcache_manager.cxx</li>
@@ -3162,6 +3167,7 @@
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>grammar:</strong> Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu} — 64-bit</li>
+<li><strong>status_line:</strong> 0x10ee6bcc 'HTTP/1.0 206' - range responses are emitted on the HTTP/1.0 status line (HTTP/1.1 variant not separately templated)</li>
 </ul>
 <h2 id="muse_authhelper"><code>muse_authhelper</code><a class="headerlink" href="#muse_authhelper" title="Permanent link">&para;</a></h2>
 <p>The auth helper shared by muse/websocket endpoints — checks tokens and household membership before a route handler runs.</p>
@@ -3221,6 +3227,7 @@
 <li><strong>proc_files:</strong> <code>/proc/ath_rincon/{device,phyerr,roam,station,status}</code>, <code>/proc/ath_rincon_ath1/{mibcc,nf,phyerr,primary}</code>, <code>/proc/driver/fpga/{data,reg/all}</code>, <code>/proc/driver/gravity-vector</code>, <code>/proc/driver/ledctl/status</code>, <code>/proc/driver/tdm/{stats,txring}</code>, <code>/proc/driver/temp-sensor</code>, <code>/proc/fs/cifs/DebugData</code>, <code>/proc/net/{snmp,sockstat,tcp,udp}</code></li>
 <li><strong>tmp_files:</strong> <code>/tmp/memorylog*/log.*</code>, <code>/tmp/sonosConcurrencyUnrecoverableError</code>, <code>/tmp/udhcpc_resp_mac_addr</code>, <code>/tmp/upgrade.log</code>, <code>/tmp/wifi_card_mac_addr</code></li>
 <li><strong>jobs_endpoint:</strong> /jobs?job=<JobName> triggers any manifest task handler directly over HTTP (port 1400)</li>
+<li><strong>exec_backend:</strong> etc/diagprocessd (generated from configs/arch/limelight.toml): FIFO menu — mkfifo /tmp/diagstdin + /tmp/diagstdout, read loop dispatching numeric commands: 0=date, 1=ls -l debug dirs, 2=df, 3=du jffs top100, 4=free, 5=ifconfig, 6=lsmod, 7=mount, 8=netstat -an, 9=ps, 10=route -n, 11-14=brctl showmacs/showports/showstats/showstp br0, 15=uptime, 16=dmesg -s 32768, 17=/wifi/athconfig scangetresults ath0, 18=chronyc -n sources -v, *=NA. The support-bundle shell_cmds (/df,/free,/ps,/lsmod,/netstat,/ntpsources,/showmacs,...) resolve THROUGH this daemon — anacapad sends the command index over the FIFO rather than exec'ing directly (privilege separation: diagprocessd runs as root).</li>
 </ul>
 <h2 id="diagnostics"><code>diagnostics</code><a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p>The diagnostics bundle machinery — what /diag* and submitDiagnostics gather and where they send it.</p>
@@ -3238,6 +3245,54 @@
 <li><strong>hls_vocabulary:</strong> <code>#EXT-X-VERSION</code>, <code>#EXT-X-TARGETDURATION</code>, <code>#EXT-X-MEDIA-SEQUENCE</code>, <code>#EXT-X-PLAYLIST-TYPE</code>, <code>#EXT-X-INDEPENDENT-SEGMENTS</code>, <code>#EXT-X-KEY:</code>, <code>#EXT-X-SESSION-KEY:</code>, <code>#EXT-X-MAP:</code>, <code>#EXT-X-DISCONTINUITY</code>, <code>#EXT-X-BYTERANGE</code>, <code>#EXT-X-ENDLIST</code>, <code>#EXT-X-MEDIA</code>, <code>#EXT-X-STREAM-INF</code>, <code>#EXT-X-PROGRAM-DATE-TIME</code></li>
 <li><strong>hls_validation:</strong> 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA' (rendition-group enforcement)</li>
 <li><strong>mime_vocabulary:</strong> <code>application/x-mpegurl</code>, <code>audio/x-mpegurl</code>, <code>audio/x-scpls</code>, <code>audio/x-sonos-recent</code>, <code>audio/x-spotify</code>, <code>audio/x-spotify-ogg</code>, <code>audio/x-aac</code>, <code>audio/x-aiff</code>, <code>audio/x-m4a</code>, <code>audio/x-ms-wma</code>, <code>audio/x-wav</code></li>
+<li><strong>full_header_census:</strong></li>
+<li><strong>method:</strong> whole-.rodata scan for X-Sonos-<em>/X-RINCON-</em> literals; addresses are literal sites</li>
+<li><strong>headers:</strong><ul>
+<li><strong>X-RINCON-BOOTSEQ:</strong> 0x10eea2f8 (SSDP/discovery signature)</li>
+<li><strong>X-RINCON-CONTENT-FORMAT:</strong> 0x10efd058 (repset content-format index)</li>
+<li><strong>X-RINCON-CONTENT-VERSION:</strong> 0x10ed4510 (content sync)</li>
+<li><strong>X-RINCON-HOUSEHOLD:</strong> 0x10eea2e4</li>
+<li><strong>X-RINCON-LAST-UPDATE-DEVICE:</strong> 0x10ed4510</li>
+<li><strong>X-RINCON-PROXY:</strong> 0x10eea30c</li>
+<li><strong>X-RINCON-RANGE:</strong> 0x10ed4510</li>
+<li><strong>X-RINCON-REASON:</strong> 0x10eea378</li>
+<li><strong>X-RINCON-SIGNATURE:</strong> 0x10efd0a8 (repset sig)</li>
+<li><strong>X-RINCON-VARIANT:</strong> 0x10eea344</li>
+<li><strong>X-Sonos-Accept-Language:</strong> 0x10ec1f20 region (SMaPI)</li>
+<li><strong>X-Sonos-Api-Key:</strong> 0x10eb09b0</li>
+<li><strong>X-Sonos-Context-TimeZone:</strong> 0x10ec1f44</li>
+<li><strong>X-Sonos-Corr-Id:</strong> 0x10e74534</li>
+<li><strong>X-Sonos-Denylisted:</strong> 0x10ef241c</li>
+<li><strong>X-Sonos-Device-Id:</strong> 0x10eb9474</li>
+<li><strong>X-Sonos-DeviceCert:</strong> 0x10ec1f20 (SMaPI deviceCerts)</li>
+<li><strong>X-Sonos-Diagnostics-Api-Key:</strong> 0x10f08334</li>
+<li><strong>X-Sonos-ErrorType:</strong> 0x10ee6d7c (NEW: error-classification header)</li>
+<li><strong>X-Sonos-Firmware:</strong> 0x10ee8250</li>
+<li><strong>X-Sonos-GroupAttribute:</strong> 0x10ec221c (cloudqueue)</li>
+<li><strong>X-Sonos-GroupCapability:</strong> 0x10ec2238 (cloudqueue)</li>
+<li><strong>X-Sonos-Household-Id:</strong> 0x10f0ba54</li>
+<li><strong>X-Sonos-Id-Hash:</strong> 0x10ee8290 (NEW: sibling of X-Sonos-Firmware telemetry)</li>
+<li><strong>X-Sonos-Latency:</strong> 0x10f2c874</li>
+<li><strong>X-Sonos-LatestSWGen:</strong> 0x10f13708</li>
+<li><strong>X-Sonos-Mac:</strong> 0x10ef4b6c</li>
+<li><strong>X-Sonos-MAID:</strong> 0x10ec1f60</li>
+<li><strong>X-Sonos-MessageType:</strong> 0x10f03b4c (octet-stream POST)</li>
+<li><strong>X-Sonos-MS-Sig:</strong> 0x10ec1ee0 (music-service signature)</li>
+<li><strong>X-Sonos-Muse-Api:</strong> 0x10ee8250 (NEW: muse API version header)</li>
+<li><strong>X-Sonos-MuseHouseholdId:</strong> 0x10edef34 (NEW)</li>
+<li><strong>X-Sonos-Playback-Id:</strong> 0x10eb9460</li>
+<li><strong>X-Sonos-Serial:</strong> 0x10ef4bb8</li>
+<li><strong>X-Sonos-SWGen:</strong> 0x10ec280c</li>
+<li><strong>X-Sonos-Type:</strong> 0x10ec78b0</li>
+<li><strong>X-Sonos-Udn:</strong> 0x10ef64d4 (also Lechmere tunnel pseudo-header)</li>
+<li><strong>X-Sonos-User-Id:</strong> 0x10ebf930</li>
+<li><strong>X-Sonos-User-Role:</strong> 0x10ed96a4</li>
+<li><strong>X-Sonos-UserId:</strong> 0x10ef21e0</li>
+<li><strong>X-Sonos-VClockCloud:</strong> 0x10edef34 (NEW: vector-clock cloud sync)</li>
+</ul>
+</li>
+<li><strong>status:</strong> confirmed</li>
+<li><strong>notes:</strong> Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.</li>
 </ul>
 <h2 id="discovery_layer"><code>discovery_layer</code><a class="headerlink" href="#discovery_layer" title="Permanent link">&para;</a></h2>
 <p>The combined discovery surface — SSDP + mDNS + Sonos's own peer-finding that builds the household picture.</p>
@@ -3260,6 +3315,12 @@
 <li><strong>handler:</strong> RMSearchNotifyHandler thread + disHandleMSearchAsync dispatch; 'Failed to setup MSearchNotifyHandler'</li>
 <li><strong>dedup:</strong> dual-discovery: 'handleDefunctZP %s reason %s IGNORED from MDNS - discovered by SSDP'/'from SSDP - discovered by MDNS but not SSDP'</li>
 <li><strong>containers:</strong> x-rincon-cpcontainer:{RDCPA,RDCPI,<em>}:</em> grammar; 'Unknown old Rhapsody x-rincon-cpcontainer'</li>
+<li><strong>outbound_templates:</strong></li>
+<li><strong>alive:</strong> 0x10eef678: NOTIFY * HTTP/1.1 | HOST: 239.255.255.250:1900 | CACHE-CONTROL: max-age = %u | LOCATION: %s | NT: %s | NTS: ssdp:alive | SERVER: %s | USN: %s | %s(trailer)</li>
+<li><strong>byebye:</strong> 0x10eef5fc: NOTIFY * HTTP/1.1 | HOST: 239.255.255.250:1900 | NT: %s | NTS: ssdp:byebye | SERVER: %s | USN: %s | %s(trailer) - note: byebye omits CACHE-CONTROL/LOCATION</li>
+<li><strong>msearch_response:</strong> 0x10eef97c: HTTP/1.1 200 OK | CACHE-CONTROL: max-age = %u | EXT: | LOCATION: %s | SERVER: %s | ST: %s | USN: %s | %s(trailer) - the unicast reply to inbound M-SEARCH</li>
+<li><strong>outbound_msearch:</strong> 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)</li>
+<li><strong>notes:</strong> alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses</li>
 </ul>
 <h2 id="ssdp_signed_msearch"><code>ssdp_signed_msearch</code><a class="headerlink" href="#ssdp_signed_msearch" title="Permanent link">&para;</a></h2>
 <p>Support for signed/authenticated M-SEARCH — discovery requests carrying credentials get different answers than anonymous ones.</p>
@@ -3775,7 +3836,9 @@
   - <strong>R_PLAY_OP_* (play ops, 7):</strong> <code>R_PLAY_OP_BOUNDARY</code>, <code>R_PLAY_OP_CHANGE_SRC</code>, <code>R_PLAY_OP_CODEC_SELECTED</code>, <code>R_PLAY_OP_ERROR</code>, <code>R_PLAY_OP_ORIGIN_TIME_SELECTED</code>, <code>R_PLAY_OP_RESYNC</code>, <code>R_PLAY_OP_SAMPLE</code>
   - <strong>R_CLIENT_KEYCERT_ID_* (cert ids, 4):</strong> <code>R_CLIENT_KEYCERT_ID_SONOS</code>, <code>R_CLIENT_KEYCERT_ID_SONOS_DEVICE</code>, <code>R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY</code>, <code>R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE</code>
   - <strong>R_SPOT_EVT_* (spotify events):</strong> <code>R_SPOT_EVT_AUDIO_TIMEOUT</code>, <code>R_SPOT_EVT_METADATA_CHANGE</code>
-- <strong>noise_note:</strong> single-letter R_A..R_V tokens are column-name/initial noise; R_ALLOW_SSH_PUBKEY_INSTALL is a settings key, not a result code; names extracted from inside longer strings ('R_SPOT_EVT_AUDIO_TIMEOUT event handler.') are real identifiers but the bare-literal table is the ERROR_* set</p>
+- <strong>noise_note:</strong> single-letter R_A..R_V tokens are column-name/initial noise; R_ALLOW_SSH_PUBKEY_INSTALL is a settings key, not a result code; names extracted from inside longer strings ('R_SPOT_EVT_AUDIO_TIMEOUT event handler.') are real identifiers but the bare-literal table is the ERROR_<em> set
+- </em><em>notes:</em><em>
+  - </em><em>outbound_client_codes:</em>* The 1001/1002-class constants appearing in nearly every propagated reach set are the OUTBOUND SOAP-client result namespace, not per-action wire faults: emitted by f_10181eb8 (outbound SOAP POST emitter, "POST %s HTTP/1.1 ... SOAPACTION"), f_10716614 (sonoscp proxy — "SOAP fault '%s', returning %d" + DeviceCertInvalid/DeviceCertExpired), and f_1038e82c (cloudqueue client — "Client error"/"Connection failed"). Reachable-from-action ≠ emittable-by-action; these codes ride the client-side result path only.</p>
 </li>
 </ul>
 <h2 id="smapi_capability_vocabulary"><code>smapi_capability_vocabulary</code><a class="headerlink" href="#smapi_capability_vocabulary" title="Permanent link">&para;</a></h2>
@@ -3905,6 +3968,8 @@
 <li><strong>status:</strong> confirmed</li>
 </ul>
 <h2 id="enum_tables"><code>enum_tables</code><a class="headerlink" href="#enum_tables" title="Permanent link">&para;</a></h2>
+<p>Throughout the binary there are fixed lookup tables mapping enum names to numbers — service states, error codes, LED modes. These tables are how names seen in XML and JSON (like STOPPED or PLAYING) translate into the values the code actually switches on.</p>
+<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>name:</strong> Static enum name-&gt;integer registration tables</li>
@@ -5144,6 +5209,993 @@
 <li><strong>2:</strong> R_CLIENT_KEYCERT_ID_SONOS_DEVICE</li>
 <li><strong>3:</strong> R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE (registered-device cert; host arg %s)</li>
 <li><strong>note:</strong> selection driven by flag bits at cert-ctx+0x0c (bit0/bit2) plus a predicate call; consumer f_1057ade8 (cert path builder) feeds id into f_1056c738 which indexes bss tables 0x110a5670/0x110a56d8 (runtime-populated cert objects). Cert manager source units: devicecertmanager.cxx, regdevicecert.cxx, certmanager.cxx; mbedTLS does CA/client-cert file+blob loading; bundle download w/ ETag change detection; /regcert + /root_cert_bundles HTTP endpoints</li>
+</ul>
+</li>
+<li><strong>10ef4eec:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 140</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> BUTTON_PLAYPAUSE</li>
+<li><strong>1:</strong> BUTTON_VOL_UP</li>
+<li><strong>2:</strong> BUTTON_VOL_DN</li>
+<li><strong>3:</strong> BUTTON_JOIN</li>
+<li><strong>4:</strong> BUTTON_MODE</li>
+<li><strong>5:</strong> BUTTON_POWER</li>
+<li><strong>6:</strong> BUTTON_MICMUTE</li>
+<li><strong>7:</strong> BUTTON_PAIRING</li>
+<li><strong>8:</strong> CAPZONEA</li>
+<li><strong>9:</strong> CAPZONEB</li>
+<li><strong>10:</strong> CAPZONEC</li>
+<li><strong>11:</strong> CAPZONEM</li>
+<li><strong>12:</strong> CAPZONECAT</li>
+<li><strong>13:</strong> LINEIN</li>
+<li><strong>14:</strong> DAC</li>
+<li><strong>15:</strong> ADC</li>
+<li><strong>16:</strong> CPU</li>
+<li><strong>17:</strong> SOC</li>
+<li><strong>18:</strong> SONGLE</li>
+<li><strong>19:</strong> POWER</li>
+<li><strong>20:</strong> AVTRIGGER</li>
+<li><strong>21:</strong> LIGHT_SENSOR</li>
+<li><strong>22:</strong> LINEOUT</li>
+<li><strong>23:</strong> SPDIF_OUT</li>
+<li><strong>24:</strong> HDMI</li>
+<li><strong>25:</strong> BANANA_PLUG</li>
+<li><strong>26:</strong> NFC</li>
+<li><strong>27:</strong> MOTION_DETECTOR</li>
+<li><strong>28:</strong> BLE</li>
+<li><strong>29:</strong> WIFI</li>
+<li><strong>30:</strong> LAN</li>
+<li><strong>31:</strong> BATTERY</li>
+<li><strong>32:</strong> CHARGER</li>
+<li><strong>33:</strong> RTC</li>
+<li><strong>34:</strong> FUEL_GAUGE</li>
+<li><strong>35:</strong> MICMUTE_SWITCH</li>
+<li><strong>36:</strong> LEAN_UI_JOIN</li>
+<li><strong>37:</strong> LEAN_UI_OPENAP_DIAG</li>
+<li><strong>38:</strong> LEAN_UI_PREV</li>
+<li><strong>39:</strong> LEAN_UI_NEXT</li>
+<li><strong>40:</strong> LEAN_UI_SLIDER</li>
+<li><strong>41:</strong> SCI_BOARD</li>
+<li><strong>42:</strong> PSOC</li>
+<li><strong>43:</strong> CEC</li>
+<li><strong>44:</strong> UART</li>
+<li><strong>45:</strong> PMU</li>
+<li><strong>46:</strong> MCU1_AMP_L</li>
+<li><strong>47:</strong> MCU1_AMP_R</li>
+<li><strong>48:</strong> MCU2_AMP_L</li>
+<li><strong>49:</strong> MCU2_AMP_R</li>
+<li><strong>50:</strong> MCU3_AMP_L</li>
+<li><strong>51:</strong> MCU3_AMP_R</li>
+<li><strong>52:</strong> MCU4_AMP_L</li>
+<li><strong>53:</strong> MCU4_AMP_R</li>
+<li><strong>54:</strong> *</li>
+<li><strong>55:</strong> NO_EVENT</li>
+<li><strong>56:</strong> PRESSED</li>
+<li><strong>57:</strong> RELEASED</li>
+<li><strong>58:</strong> REPEATED</li>
+<li><strong>59:</strong> CONNECTED</li>
+<li><strong>60:</strong> DISCONNECTED</li>
+<li><strong>61:</strong> SWIPED</li>
+<li><strong>62:</strong> HORIZONTAL</li>
+<li><strong>63:</strong> TABLE</li>
+<li><strong>64:</strong> VERTICAL</li>
+<li><strong>65:</strong> VERTICAL_LEFT</li>
+<li><strong>66:</strong> VERTICAL_RIGHT</li>
+<li><strong>67:</strong> WALL_ABOVE</li>
+<li><strong>68:</strong> WALL_BELOW</li>
+<li><strong>69:</strong> HORIZONTAL_WALL</li>
+<li><strong>70:</strong> HORIZONTAL_LEFT</li>
+<li><strong>71:</strong> HORIZONTAL_RIGHT</li>
+<li><strong>72:</strong> VERTICAL_WALL</li>
+<li><strong>73:</strong> VERTICAL_LEFT_WALL</li>
+<li><strong>74:</strong> VERTICAL_RIGHT_WALL</li>
+<li><strong>75:</strong> FACEDOWN</li>
+<li><strong>76:</strong> INVERTED</li>
+<li><strong>77:</strong> INVALID</li>
+<li><strong>78:</strong> QUEUE_OVERRUN</li>
+<li><strong>79:</strong> TIMEOUT</li>
+<li><strong>80:</strong> CLIP</li>
+<li><strong>81:</strong> HW_ERROR</li>
+<li><strong>82:</strong> HW_OK</li>
+<li><strong>83:</strong> TEMP_WARNING</li>
+<li><strong>84:</strong> TEMP_FAULT</li>
+<li><strong>85:</strong> TEMP_OK</li>
+<li><strong>86:</strong> AMP_HI_RAIL</li>
+<li><strong>87:</strong> AMP_LO_RAIL</li>
+<li><strong>88:</strong> AMP_OFF</li>
+<li><strong>89:</strong> UPDATE</li>
+<li><strong>90:</strong> MOTION_DETECTED</li>
+<li><strong>91:</strong> MOTION_SETTLED</li>
+<li><strong>92:</strong> HW_FAULT</li>
+<li><strong>93:</strong> WAKEUP</li>
+<li><strong>94:</strong> ON_BATTERY</li>
+<li><strong>95:</strong> ON_CHARGER</li>
+<li><strong>96:</strong> LOW_BATTERY</li>
+<li><strong>97:</strong> CRIT_BATTERY</li>
+<li><strong>98:</strong> ALARM</li>
+<li><strong>99:</strong> INVALID_CHARGER</li>
+<li><strong>100:</strong> SWITCH_ON</li>
+<li><strong>101:</strong> SWITCH_OFF</li>
+<li><strong>102:</strong> MOVE_LEFT</li>
+<li><strong>103:</strong> MOVE_RIGHT</li>
+<li><strong>104:</strong> *</li>
+<li><strong>105:</strong> VOLUME_UP</li>
+<li><strong>106:</strong> VOLUME_UP_REPEAT</li>
+<li><strong>107:</strong> VOLUME_DOWN</li>
+<li><strong>108:</strong> VOLUME_DOWN_REPEAT</li>
+<li><strong>109:</strong> VOLUME_DOWN_FAST_RAMP</li>
+<li><strong>110:</strong> VOLUME_SLIDE_UP</li>
+<li><strong>111:</strong> VOLUME_SLIDE_DOWN</li>
+<li><strong>112:</strong> PLAYPAUSE</li>
+<li><strong>113:</strong> JOIN_HH</li>
+<li><strong>114:</strong> JOIN_HH_CHIME</li>
+<li><strong>115:</strong> JOIN_HH_CANCEL</li>
+<li><strong>116:</strong> OPEN_AP</li>
+<li><strong>117:</strong> NEXT_TRACK</li>
+<li><strong>118:</strong> PREV_TRACK</li>
+<li><strong>119:</strong> PLAY_RECENT</li>
+<li><strong>120:</strong> BECOME_STANDALONE</li>
+<li><strong>121:</strong> LED_DIAG_MODE_START</li>
+<li><strong>122:</strong> LED_DIAG_MODE_STOP</li>
+<li><strong>123:</strong> ORIENTATION_HORIZONTAL</li>
+<li><strong>124:</strong> ORIENTATION_VERTICAL</li>
+<li><strong>125:</strong> ORIENTATION_WALL_ABOVE</li>
+<li><strong>126:</strong> ORIENTATION_WALL_BELOW</li>
+<li><strong>127:</strong> FAST_VOLUME_ZERO_ON</li>
+<li><strong>128:</strong> FAST_VOLUME_ZERO_OFF</li>
+<li><strong>129:</strong> PREPARE_SWAP</li>
+<li><strong>130:</strong> PERFORM_SWAP</li>
+<li><strong>131:</strong> ENTER_SETUP_READY</li>
+<li><strong>132:</strong> INITIAL</li>
+<li><strong>133:</strong> BUTTON_PLAYPAUSE_PRESSED</li>
+<li><strong>134:</strong> BUTTON_PLAYPAUSE_HELD</li>
+<li><strong>135:</strong> BUTTON_VOL_UP_PRESSED</li>
+<li><strong>136:</strong> BUTTON_VOL_DN_PRESSED</li>
+<li><strong>137:</strong> BUTTON_JOIN_PRESSED</li>
+<li><strong>138:</strong> STATE_BUTTON_MICMUTE_PRESSED</li>
+<li><strong>139:</strong> DIAG_MODE</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ef4eec, 140 entries</li>
+<li><strong>note:</strong> hardware/UI event-name registry: button ids (BUTTON_<em>), capacitive zones (CAPZONE</em>), sensor/source names (LINEIN..SCI_BOARD), event verbs (PRESSED/RELEASED/REPEATED/SWIPED..), orientation names, volume/action names, trailing state names (INITIAL..DIAG_MODE). "*" entries are literal wildcard names in the table</li>
+</ul>
+</li>
+<li><strong>10fd64fc:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 151</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> KORN_INITIALIZED</li>
+<li><strong>1:</strong> KORN_SHUTDOWN</li>
+<li><strong>2:</strong> WEBSERVER_START</li>
+<li><strong>3:</strong> WEBSERVER_STARTED</li>
+<li><strong>4:</strong> WEBSERVER_UPDATED</li>
+<li><strong>5:</strong> ZEROCONF_START</li>
+<li><strong>6:</strong> ZEROCONF_DEVICE_ADDED</li>
+<li><strong>7:</strong> ZEROCONF_TRANSFER_CRED</li>
+<li><strong>8:</strong> ZEROCONF_TRANSFER_STATUS</li>
+<li><strong>9:</strong> ZEROCONF_AUTH_TOKEN</li>
+<li><strong>10:</strong> ZEROCONF_AUTH_CODE</li>
+<li><strong>11:</strong> MDNS_START</li>
+<li><strong>12:</strong> MDNS_PAUSE</li>
+<li><strong>13:</strong> MDNS_RESUME</li>
+<li><strong>14:</strong> MDNS_DEVICES</li>
+<li><strong>15:</strong> MDNS_DEVICE_DISCOVERED</li>
+<li><strong>16:</strong> MDNS_DEVICE_EVICTED</li>
+<li><strong>17:</strong> MDNS_RETRIGGER_DISCOVERED_DEVICES</li>
+<li><strong>18:</strong> HOSTNAME</li>
+<li><strong>19:</strong> PAUSE</li>
+<li><strong>20:</strong> PLAYBACK_RESUME</li>
+<li><strong>21:</strong> PLAYBACK_RESUMED</li>
+<li><strong>22:</strong> TRACK_RESUME</li>
+<li><strong>23:</strong> OBSERVE_PLAY</li>
+<li><strong>24:</strong> SKIP_NEXT</li>
+<li><strong>25:</strong> SKIP_PREV</li>
+<li><strong>26:</strong> PLAYBACK_SEEK</li>
+<li><strong>27:</strong> PLAY_URI</li>
+<li><strong>28:</strong> QUEUE_URI</li>
+<li><strong>29:</strong> QUEUE_FINISHED</li>
+<li><strong>30:</strong> TRACK_STARTED</li>
+<li><strong>31:</strong> SET_SHUFFLE</li>
+<li><strong>32:</strong> SET_REPEAT</li>
+<li><strong>33:</strong> INTERNAL_SHUFFLE</li>
+<li><strong>34:</strong> INTERNAL_REPEAT</li>
+<li><strong>35:</strong> CONNECT_SET_VOLUME</li>
+<li><strong>36:</strong> SET_VOLUME</li>
+<li><strong>37:</strong> AUDIO_DELIVERY_DONE</li>
+<li><strong>38:</strong> CONTEXT_FAILED</li>
+<li><strong>39:</strong> TW_UPDATED</li>
+<li><strong>40:</strong> PLAY_FALLBACK_FILE</li>
+<li><strong>41:</strong> QUEUE_FILE</li>
+<li><strong>42:</strong> TRACK_FINISHED</li>
+<li><strong>43:</strong> TRACK_FAILED</li>
+<li><strong>44:</strong> NOTIFY_TRACK_FAILED</li>
+<li><strong>45:</strong> INTERNAL_TRACK_STARTED</li>
+<li><strong>46:</strong> MEDIA_SEEK</li>
+<li><strong>47:</strong> PLAYBACK_INITIATED</li>
+<li><strong>48:</strong> PREVIOUS_POSITION</li>
+<li><strong>49:</strong> PLAYBACK_PROGRESS_STARTED</li>
+<li><strong>50:</strong> SET_DOWNLOAD_POSITION</li>
+<li><strong>51:</strong> NOTIFY_INTEGRATION_PLAYBACK_STARTED</li>
+<li><strong>52:</strong> NOTIFY_INTEGRATION_FINISHED_TRACK</li>
+<li><strong>53:</strong> NOTIFY_INTEGRATION_HAS_TRACK_LENGTH</li>
+<li><strong>54:</strong> NOTIFY_TRACK_ERROR</li>
+<li><strong>55:</strong> SEEK_COMPLETE</li>
+<li><strong>56:</strong> EXTERNAL_UNDERRUN_COUNT_POINTER</li>
+<li><strong>57:</strong> NOTIFY_STREAM_DELIVERED</li>
+<li><strong>58:</strong> STREAM_START</li>
+<li><strong>59:</strong> STREAM_START2</li>
+<li><strong>60:</strong> STREAM_STOP</li>
+<li><strong>61:</strong> STREAM_STARTED</li>
+<li><strong>62:</strong> STREAM_FINISHED</li>
+<li><strong>63:</strong> STREAM_FAILED</li>
+<li><strong>64:</strong> STREAM_CAPPED</li>
+<li><strong>65:</strong> FILE_SIZE</li>
+<li><strong>66:</strong> DATA_DOWNLOAD_LATENCY</li>
+<li><strong>67:</strong> CONNECTIVITY</li>
+<li><strong>68:</strong> DBG_DECODER_STARTED</li>
+<li><strong>69:</strong> DBG_DISCONNECT</li>
+<li><strong>70:</strong> DBG_UNDERRUN_TIMEOUT</li>
+<li><strong>71:</strong> DBG_DOWNLOAD_UNDERRUN</li>
+<li><strong>72:</strong> DBG_MDNS_ANNOUNCE</li>
+<li><strong>73:</strong> DBG_RESOLVE</li>
+<li><strong>74:</strong> DBG_PERIODIC_STATE_UPDATE</li>
+<li><strong>75:</strong> DBG_SET_KEY_RATE_LIMIT_ERROR</li>
+<li><strong>76:</strong> DBG_FORCE_STATE_UPDATE</li>
+<li><strong>77:</strong> DBG_INTERNAL_CDN_FINISHED</li>
+<li><strong>78:</strong> HWP_VERSION</li>
+<li><strong>79:</strong> ITEM_LIST_CHANGED</li>
+<li><strong>80:</strong> LOGOUT_REQUESTED</li>
+<li><strong>81:</strong> AP_CREATED</li>
+<li><strong>82:</strong> AP_CONNECT_ERROR</li>
+<li><strong>83:</strong> AP_DISCONNECTED</li>
+<li><strong>84:</strong> CONNECTION_STATE_CHANGED</li>
+<li><strong>85:</strong> METADATA</li>
+<li><strong>86:</strong> AP_LOGIN</li>
+<li><strong>87:</strong> AP_SET_SESSION</li>
+<li><strong>88:</strong> NEW_PRODUCT_STATE</li>
+<li><strong>89:</strong> AP_LOGIN_OFFLINE</li>
+<li><strong>90:</strong> LOGIN_OFFLINE_ERROR</li>
+<li><strong>91:</strong> TPAPI_STATE_CHANGE</li>
+<li><strong>92:</strong> TPAPI_SHARED_STATE_POINTER</li>
+<li><strong>93:</strong> CACHE_ID</li>
+<li><strong>94:</strong> CACHE_KEY</li>
+<li><strong>95:</strong> OFFLINE_RESTRICTIONS</li>
+<li><strong>96:</strong> CACHE_RESTRICTIONS</li>
+<li><strong>97:</strong> OFFLINE_WAS_REQUESTED</li>
+<li><strong>98:</strong> API_RATE_LIMIT</li>
+<li><strong>99:</strong> AD_STREAM_TIME_POINTER</li>
+<li><strong>100:</strong> INIT_DONE</li>
+<li><strong>101:</strong> UPDATE_PLAYBACK_POS</li>
+<li><strong>102:</strong> SEEK_COMPLETED</li>
+<li><strong>103:</strong> MEDIA_SEEK_COMPLETED</li>
+<li><strong>104:</strong> ENDSONG</li>
+<li><strong>105:</strong> ENDSONG_FAILED</li>
+<li><strong>106:</strong> ACCESS_POINT_HOST</li>
+<li><strong>107:</strong> CONNECT_NAME</li>
+<li><strong>108:</strong> VOLUME_STEPS</li>
+<li><strong>109:</strong> GROUP_STATE</li>
+<li><strong>110:</strong> DISABLE_CONNECT</li>
+<li><strong>111:</strong> UPDATE_AD_USERAGENT</li>
+<li><strong>112:</strong> UPDATE_ALIASES</li>
+<li><strong>113:</strong> SELECTED_DEVICE_ALIAS_INDEX</li>
+<li><strong>114:</strong> ACTIVE</li>
+<li><strong>115:</strong> INACTIVE</li>
+<li><strong>116:</strong> CAN_PLAY</li>
+<li><strong>117:</strong> LOCAL_APRESOLVE</li>
+<li><strong>118:</strong> LOCAL_AP_PING_TIMEOUT</li>
+<li><strong>119:</strong> CONTEXT_STATE_POINTER</li>
+<li><strong>120:</strong> CONTEXT_OFFSET_OFFLINE</li>
+<li><strong>121:</strong> IMAGE_BASE_URL</li>
+<li><strong>122:</strong> STORAGE_MANAGER</li>
+<li><strong>123:</strong> SM_CACHE_CLEARED</li>
+<li><strong>124:</strong> PULL_PLAYBACK</li>
+<li><strong>125:</strong> PULL_PLAYBACK_NO_PLAYBACK_INTERRUPTION</li>
+<li><strong>126:</strong> UPDATE_CAPABILITIES</li>
+<li><strong>127:</strong> LOGGING_OUT</li>
+<li><strong>128:</strong> LOGGED_IN</li>
+<li><strong>129:</strong> LOGGED_OUT</li>
+<li><strong>130:</strong> RELOGIN</li>
+<li><strong>131:</strong> STOP</li>
+<li><strong>132:</strong> DOWNLOAD_BITRATE_LOW</li>
+<li><strong>133:</strong> DOWNLOAD_BITRATE_HIGH</li>
+<li><strong>134:</strong> REQUEST_BITRATE</li>
+<li><strong>135:</strong> LOCK_BITRATE</li>
+<li><strong>136:</strong> NETLOG_START</li>
+<li><strong>137:</strong> NETLOG_CALLBACK</li>
+<li><strong>138:</strong> BANDWIDTH_LIMIT</li>
+<li><strong>139:</strong> STREAMER_TRACK_PERCENTAGE</li>
+<li><strong>140:</strong> OFFLINE_GET_ITEMS_IN_CONTAINER</li>
+<li><strong>141:</strong> REDELIVER_AUDIO_AT_RESUME</li>
+<li><strong>142:</strong> ACTIVATE_OFFLINE_PLAYER</li>
+<li><strong>143:</strong> ACTIVATE_ONLINE_PLAYER</li>
+<li><strong>144:</strong> NOTIFY_OFFLINE</li>
+<li><strong>145:</strong> CONNECTIVITY_CHANGE_REQUEST</li>
+<li><strong>146:</strong> RESOLVE</li>
+<li><strong>147:</strong> RESOLVE_OFFLINE</li>
+<li><strong>148:</strong> OFFLINE_RESOLVE_FINISHED</li>
+<li><strong>149:</strong> CURRENT_OFFLINE_ITEM_POINTER</li>
+<li><strong>150:</strong> SHUFFLE_SEED</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10fd64fc, ~340 entries through SHUFFLE_SEED</li>
+<li><strong>note:</strong> SMaPI/service-player event-name registry: KORN lifecycle, ZEROCONF/MDNS, playback (PLAY_<em>/QUEUE_</em>/TRACK_<em>), stream (STREAM_</em>/FILE_SIZE/DATA_DOWNLOAD_LATENCY), DBG_<em> debug, AP_</em> access-point, TPAPI/CACHE/OFFLINE state, AD_<em>, bitrate control (DOWNLOAD_BITRATE_</em>/LOCK_BITRATE), resolve (RESOLVE/OFFLINE_RESOLVE_FINISHED). Index is the event ordinal</li>
+</ul>
+</li>
+<li><strong>10eae294:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 13</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> ST_UNDEFINED</li>
+<li><strong>1:</strong> ST_INIT</li>
+<li><strong>2:</strong> ST_REFRESH</li>
+<li><strong>3:</strong> ST_SCHEDULED</li>
+<li><strong>4:</strong> ST_SCHEDULED_POST_WOW</li>
+<li><strong>5:</strong> ST_SESSION_MONITOR</li>
+<li><strong>6:</strong> ST_SESSION_REPORT</li>
+<li><strong>7:</strong> ST_SESSION_ACTIVE</li>
+<li><strong>8:</strong> PendingStart</li>
+<li><strong>9:</strong> Session</li>
+<li><strong>10:</strong> SessionStart</li>
+<li><strong>11:</strong> SessionStartLocal</li>
+<li><strong>12:</strong> SessionAttempts</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10eae294, 13 entries</li>
+<li><strong>note:</strong> service-session state enum: ST_UNDEFINED..ST_SESSION_ACTIVE then UI-facing names (PendingStart/Session/SessionStart/SessionStartLocal/SessionAttempts)</li>
+</ul>
+</li>
+<li><strong>10eb843c:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 26</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> CHANGE_TRANSPORT_URI</li>
+<li><strong>1:</strong> BEGIN_ADD_URI_TO_QUEUE</li>
+<li><strong>2:</strong> COMMIT_ADD_URI_TO_QUEUE</li>
+<li><strong>3:</strong> REMOVE_TRACK_FROM_QUEUE</li>
+<li><strong>4:</strong> REMOVE_ALL_TRACKS_FROM_QUEUE</li>
+<li><strong>5:</strong> INVALIDATE_RADIO_TRACK_QUEUE</li>
+<li><strong>6:</strong> NEXT</li>
+<li><strong>7:</strong> PREV</li>
+<li><strong>8:</strong> SEEK_TO_TRACK</li>
+<li><strong>9:</strong> SEEK_TO_TIME</li>
+<li><strong>10:</strong> SEEK_TO_TIME_WITH_ITEM_ID</li>
+<li><strong>11:</strong> SET_PLAY_MODE</li>
+<li><strong>12:</strong> SET_CROSSFADE_MODE</li>
+<li><strong>13:</strong> REORDER_TRACKS_IN_QUEUE</li>
+<li><strong>14:</strong> REMOVE_TRACK_RANGE_FROM_QUEUE</li>
+<li><strong>15:</strong> RESET_PRIVATE_QUEUE</li>
+<li><strong>16:</strong> COMMIT_REPLACE_QUEUE</li>
+<li><strong>17:</strong> SKIP_TO_ITEM</li>
+<li><strong>18:</strong> REFRESH_CLOUD_QUEUE</li>
+<li><strong>19:</strong> CANCEL_ADD_URI</li>
+<li><strong>20:</strong> SUSPEND</li>
+<li><strong>21:</strong> PREPARE_FOR_DELEGATION</li>
+<li><strong>22:</strong> RATE_ITEM</li>
+<li><strong>23:</strong> GET_RESUME_STATE</li>
+<li><strong>24:</strong> SET_FIRST_TRACK_MIME_TYPE</li>
+<li><strong>25:</strong> NONE</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10eb843c, 26 entries through NONE</li>
+<li><strong>note:</strong> AVTransport queue-edit/transport action enum: CHANGE_TRANSPORT_URI, BEGIN/COMMIT_ADD_URI_TO_QUEUE, REMOVE_TRACK<em>/INVALIDATE_RADIO_TRACK_QUEUE, NEXT, PREV, SEEK_</em>, SET_PLAY_MODE, SET_CROSSFADE_MODE, REORDER_TRACKS_IN_QUEUE, RESET_PRIVATE_QUEUE, COMMIT_REPLACE_QUEUE, SKIP_TO_ITEM, REFRESH_CLOUD_QUEUE, CANCEL_ADD_URI, SUSPEND, PREPARE_FOR_DELEGATION, RATE_ITEM, GET_RESUME_STATE, SET_FIRST_TRACK_MIME_TYPE, NONE</li>
+</ul>
+</li>
+<li><strong>10ebe20c:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 80</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> bt_audio</li>
+<li><strong>1:</strong> chsnk_lse</li>
+<li><strong>2:</strong> chsnk_ch_data_full</li>
+<li><strong>3:</strong> chsnk_w_err</li>
+<li><strong>4:</strong> chsrc_framer_uflw</li>
+<li><strong>5:</strong> htsnk_invld_sntp</li>
+<li><strong>6:</strong> htsnk_late_frames</li>
+<li><strong>7:</strong> htsnk_missed_frames</li>
+<li><strong>8:</strong> htsnk_time_backw</li>
+<li><strong>9:</strong> htsnk_stream_err</li>
+<li><strong>10:</strong> htsnk_stream_uflw</li>
+<li><strong>11:</strong> htsnk_stream_reset_duration</li>
+<li><strong>12:</strong> htsnk_wrong_frame</li>
+<li><strong>13:</strong> lla_bad_parm</li>
+<li><strong>14:</strong> lla_fault_err</li>
+<li><strong>15:</strong> lla_io_err</li>
+<li><strong>16:</strong> lla_mem_err</li>
+<li><strong>17:</strong> lla_prep_fail</li>
+<li><strong>18:</strong> lla_uflw</li>
+<li><strong>19:</strong> lla_unkwn</li>
+<li><strong>20:</strong> mix_in_write_err</li>
+<li><strong>21:</strong> mix_sod_late</li>
+<li><strong>22:</strong> mix_sod_lack_data_start</li>
+<li><strong>23:</strong> mix_sod_too_far_orig</li>
+<li><strong>24:</strong> mix_thrd_data_idle</li>
+<li><strong>25:</strong> mix_thrd_gap</li>
+<li><strong>26:</strong> net_io_noderx_io</li>
+<li><strong>27:</strong> net_io_noderx_nodata</li>
+<li><strong>28:</strong> net_io_noderx_noframe</li>
+<li><strong>29:</strong> net_io_noderx_noframe_full</li>
+<li><strong>30:</strong> net_io_err_other</li>
+<li><strong>31:</strong> net_io_unplayable</li>
+<li><strong>32:</strong> sound_wemb_uflw_at_start</li>
+<li><strong>33:</strong> uninit</li>
+<li><strong>34:</strong> uninit</li>
+<li><strong>35:</strong> uninit</li>
+<li><strong>36:</strong> uninit</li>
+<li><strong>37:</strong> stream_music_init_sync</li>
+<li><strong>38:</strong> stream_music_lack_data_no_drain</li>
+<li><strong>39:</strong> stream_music_read_err_full</li>
+<li><strong>40:</strong> stream_music_read_err_part_data</li>
+<li><strong>41:</strong> stream_tts_init_sync</li>
+<li><strong>42:</strong> stream_tts_lack_data_no_drain</li>
+<li><strong>43:</strong> stream_tts_read_err_full</li>
+<li><strong>44:</strong> stream_tts_read_err_part_data</li>
+<li><strong>45:</strong> stream_chirp_init_sync</li>
+<li><strong>46:</strong> stream_chirp_lack_data_no_drain</li>
+<li><strong>47:</strong> stream_chirp_read_err_full</li>
+<li><strong>48:</strong> stream_chirp_read_err_part_data</li>
+<li><strong>49:</strong> stream_tv_init_sync</li>
+<li><strong>50:</strong> stream_tv_lack_data_no_drain</li>
+<li><strong>51:</strong> stream_tv_read_err_full</li>
+<li><strong>52:</strong> stream_tv_read_err_part_data</li>
+<li><strong>53:</strong> stream_ht_silence_played</li>
+<li><strong>54:</strong> stream_ht_plc_played</li>
+<li><strong>55:</strong> tv_decoder_error_dd</li>
+<li><strong>56:</strong> tv_decoder_error_ddp</li>
+<li><strong>57:</strong> tv_decoder_error_mat</li>
+<li><strong>58:</strong> tv_decoder_error_pcm</li>
+<li><strong>59:</strong> tv_decoder_error_dts1</li>
+<li><strong>60:</strong> tv_decoder_error_dts2</li>
+<li><strong>61:</strong> tv_decoder_error_dts3</li>
+<li><strong>62:</strong> tv_decoder_dsp_error_dap</li>
+<li><strong>63:</strong> tv_asrc_error</li>
+<li><strong>64:</strong> tv_dialog_extractor_error</li>
+<li><strong>65:</strong> tv_input_error</li>
+<li><strong>66:</strong> tv_input_overflow</li>
+<li><strong>67:</strong> tvp_stream_uflw</li>
+<li><strong>68:</strong> tvp_stream_err</li>
+<li><strong>69:</strong> tvp_stream_sats_uflw</li>
+<li><strong>70:</strong> tvp_stream_sats_err</li>
+<li><strong>71:</strong> tvp_stream_dmix_uflw</li>
+<li><strong>72:</strong> tvp_stream_dmix_err</li>
+<li><strong>73:</strong> xfade_err</li>
+<li><strong>74:</strong> testpoint</li>
+<li><strong>75:</strong> uninit</li>
+<li><strong>76:</strong> aud</li>
+<li><strong>77:</strong> paud</li>
+<li><strong>78:</strong> inaud</li>
+<li><strong>79:</strong> uninit</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ebe20c, ~80 entries with embedded "uninit" sentinels</li>
+<li><strong>note:</strong> audio-pipeline error taxonomy: bt_audio, chsnk_<em> (lse/ch_data_full/w_err), chsrc_framer_uflw, htsnk_</em> (invld_sntp/late/missed/time_backw/stream_err/uflw/reset_duration), stream_{music,tts,chirp,tv}<em>{init_sync,lack_data_no_drain,read_err_full,read_err_part_data}, stream_ht</em>{silence,plc}<em>played, tv_decoder_error</em>{dd,ddp,mat,pcm,dts1-3}, tv_{asrc,dialog_extractor,input,input_overflow}<em>error, tvp_stream</em>{uflw,err,sats_uflw,sats_err,dmix_uflw,dmix_err}, xfade_err, testpoint; tail "aud/paud/inaud" are stream-type names</li>
+</ul>
+</li>
+<li><strong>10f8ab34:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 14</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> NO_ERROR</li>
+<li><strong>1:</strong> PROTOCOL_ERROR</li>
+<li><strong>2:</strong> INTERNAL_ERROR</li>
+<li><strong>3:</strong> FLOW_CONTROL_ERROR</li>
+<li><strong>4:</strong> SETTINGS_TIMEOUT</li>
+<li><strong>5:</strong> STREAM_CLOSED</li>
+<li><strong>6:</strong> FRAME_SIZE_ERROR</li>
+<li><strong>7:</strong> REFUSED_STREAM</li>
+<li><strong>8:</strong> CANCEL</li>
+<li><strong>9:</strong> COMPRESSION_ERROR</li>
+<li><strong>10:</strong> CONNECT_ERROR</li>
+<li><strong>11:</strong> ENHANCE_YOUR_CALM</li>
+<li><strong>12:</strong> INADEQUATE_SECURITY</li>
+<li><strong>13:</strong> HTTP_1_1_REQUIRED</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10f8ab34, 14 entries</li>
+<li><strong>note:</strong> complete HTTP/2 RST_STREAM error-code name table (bundled nghttp2): NO_ERROR..HTTP_1_1_REQUIRED — matches RFC 7540 section 7 exactly</li>
+</ul>
+</li>
+<li><strong>10ee9a50:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 10</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> DOWNLOAD_ERROR</li>
+<li><strong>1:</strong> ERROR_NOT_CALLED</li>
+<li><strong>2:</strong> WRITE_ERROR</li>
+<li><strong>3:</strong> TRUNCATION_ERROR</li>
+<li><strong>4:</strong> SIZE_ERROR</li>
+<li><strong>5:</strong> FILE_ERROR</li>
+<li><strong>6:</strong> CONNECTION_ERROR</li>
+<li><strong>7:</strong> DOWNLOAD_SUCCEEDED</li>
+<li><strong>8:</strong> FILE_UNCHANGED</li>
+<li><strong>9:</strong> DOWNLOAD_IN_PROGRESS</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ee9a50, 10 entries</li>
+<li><strong>note:</strong> download-status enum: DOWNLOAD_ERROR, ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, SIZE_ERROR, FILE_ERROR, CONNECTION_ERROR, DOWNLOAD_SUCCEEDED, FILE_UNCHANGED, DOWNLOAD_IN_PROGRESS</li>
+</ul>
+</li>
+<li><strong>10ec0010:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 14</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> AVT_HACK</li>
+<li><strong>1:</strong> ALEXA_TTS</li>
+<li><strong>2:</strong> ALEXA_WELCOME</li>
+<li><strong>3:</strong> ALEXA_FAILURE</li>
+<li><strong>4:</strong> ALEXA_ALERT</li>
+<li><strong>5:</strong> GOOGLE_MEDIA</li>
+<li><strong>6:</strong> GOOGLE_ALARM</li>
+<li><strong>7:</strong> GOOGLE_TTS</li>
+<li><strong>8:</strong> SPS</li>
+<li><strong>9:</strong> SVE_TTS</li>
+<li><strong>10:</strong> VOCAL_GUIDANCE</li>
+<li><strong>11:</strong> ALERT</li>
+<li><strong>12:</strong> SETUP_CHIRP</li>
+<li><strong>13:</strong> DISCOVERY</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ec0010, 14 entries</li>
+<li><strong>note:</strong> audio-clip type enum: AVT_HACK, ALEXA_{TTS,WELCOME,FAILURE,ALERT}, GOOGLE_{MEDIA,ALARM,TTS}, SPS, SVE_TTS, VOCAL_GUIDANCE, ALERT, SETUP_CHIRP, DISCOVERY</li>
+</ul>
+</li>
+<li><strong>10ec6b5c:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 13</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> NOT_IN_HOUSEHOLD</li>
+<li><strong>1:</strong> PROCESSING_PLAYBACK</li>
+<li><strong>2:</strong> IN_DEMO_MODE</li>
+<li><strong>3:</strong> IN_RDM_MODE</li>
+<li><strong>4:</strong> IN_BUTTON_OBSERVATION_MODE</li>
+<li><strong>5:</strong> IN_TRANSFER_MODE</li>
+<li><strong>6:</strong> PROCESSING_JOIN</li>
+<li><strong>7:</strong> JOIN_CHIME_UNAVAILABLE</li>
+<li><strong>8:</strong> REGISTRATION_CHIME_UNAVAILABLE</li>
+<li><strong>9:</strong> BUTTONS_LOCKED</li>
+<li><strong>10:</strong> UNKNOWN</li>
+<li><strong>11:</strong> DAT_IN_BUTTONLESS_SETUP_MODE</li>
+<li><strong>12:</strong> DAT_IN_SETUP_DISCOVERY</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ec6b5c, 13 entries</li>
+<li><strong>note:</strong> chime-availability/block-reason enum: NOT_IN_HOUSEHOLD, PROCESSING_PLAYBACK, IN_DEMO_MODE, IN_RDM_MODE, IN_BUTTON_OBSERVATION_MODE, IN_TRANSFER_MODE, PROCESSING_JOIN, JOIN_CHIME_UNAVAILABLE, REGISTRATION_CHIME_UNAVAILABLE, BUTTONS_LOCKED, UNKNOWN, DAT_IN_BUTTONLESS_SETUP_MODE, DAT_IN_SETUP_DISCOVERY; followed by an adjacent telemetry field-name table (event_id/event_name/household_id/...)</li>
+</ul>
+</li>
+<li><strong>10ef1ee0:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 8</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> BAD_FILE</li>
+<li><strong>1:</strong> BAD_KEY</li>
+<li><strong>2:</strong> BAD_CERT</li>
+<li><strong>3:</strong> BAD_ISSUE_DATE</li>
+<li><strong>4:</strong> MISMATCH_ENV</li>
+<li><strong>5:</strong> MISMATCH_ISSUER</li>
+<li><strong>6:</strong> MISMATCH_HHID</li>
+<li><strong>7:</strong> MISMATCH_USER</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ef1ee0, 8 entries</li>
+<li><strong>note:</strong> certificate-validation failure-name enum: BAD_FILE, BAD_KEY, BAD_CERT, BAD_ISSUE_DATE, MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER</li>
+</ul>
+</li>
+<li><strong>10f2990c:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 19</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> NO_REASON</li>
+<li><strong>1:</strong> SIGNAL_LOST</li>
+<li><strong>2:</strong> INPUT_ERROR</li>
+<li><strong>3:</strong> CHANNEL_NUM_CHANGE</li>
+<li><strong>4:</strong> INPUT_RATE_CHANGE</li>
+<li><strong>5:</strong> BITSTREAM_DISCONTINUITY</li>
+<li><strong>6:</strong> DECODER_ERROR</li>
+<li><strong>7:</strong> DECODER_DSP_ERROR</li>
+<li><strong>8:</strong> HT_SWAP_ERROR</li>
+<li><strong>9:</strong> HT_SWAP_START</li>
+<li><strong>10:</strong> HT_SWAP_END</li>
+<li><strong>11:</strong> ASRC_ERROR</li>
+<li><strong>12:</strong> DIALOG_EXTRACTOR_ERROR</li>
+<li><strong>13:</strong> STREAM_ERROR</li>
+<li><strong>14:</strong> CONFIG_CHANGE</li>
+<li><strong>15:</strong> MODE_CHANGE</li>
+<li><strong>16:</strong> AV_SYNC_EXCURSION</li>
+<li><strong>17:</strong> GROUP_LATENCY_CHANGE</li>
+<li><strong>18:</strong> MONITOR_START</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10f2990c, 19 entries</li>
+<li><strong>note:</strong> HT-source session terminate/diagnose reason enum: NO_REASON, SIGNAL_LOST, INPUT_ERROR, CHANNEL_NUM_CHANGE, INPUT_RATE_CHANGE, BITSTREAM_DISCONTINUITY, DECODER_ERROR, DECODER_DSP_ERROR, HT_SWAP_ERROR, HT_SWAP_START/END, ASRC_ERROR, DIALOG_EXTRACTOR_ERROR, STREAM_ERROR, NO_AUDIO_TRACK, UNRECOGNIZED, AV_SYNC_EXCURSION, GROUP_LATENCY_CHANGE, MONITOR_START</li>
+</ul>
+</li>
+<li><strong>10f288e0:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 6</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> LOCAL_PLAYING</li>
+<li><strong>1:</strong> LOCAL_FADE_OUT</li>
+<li><strong>2:</strong> SWAP_FADE_IN</li>
+<li><strong>3:</strong> SWAP_PLAYING</li>
+<li><strong>4:</strong> SWAP_FADE_OUT</li>
+<li><strong>5:</strong> LOCAL_FADE_IN</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10f288e0, 6 entries</li>
+<li><strong>note:</strong> HT audio-swap FSM state enum: LOCAL_PLAYING, LOCAL_FADE_OUT, SWAP_FADE_IN, SWAP_PLAYING, SWAP_FADE_OUT, LOCAL_FADE_IN</li>
+</ul>
+</li>
+<li><strong>10f96738:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 8</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> get_status_fresh</li>
+<li><strong>1:</strong> get_status_stale</li>
+<li><strong>2:</strong> get_status_stale_revalidate</li>
+<li><strong>3:</strong> get_status_stale_use_if_server_error</li>
+<li><strong>4:</strong> get_status_not_found</li>
+<li><strong>5:</strong> set_status_populated</li>
+<li><strong>6:</strong> set_status_refreshed</li>
+<li><strong>7:</strong> set_status_rejected</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10f96738, 8 entries</li>
+<li><strong>note:</strong> HTTP-cache transition names: get_status_{fresh,stale,stale_revalidate,stale_use_if_server_error,not_found}, set_status_{populated,refreshed,rejected}</li>
+</ul>
+</li>
+<li><strong>10f98ab4:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 9</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> AUTH_IS_AUTHORIZED</li>
+<li><strong>1:</strong> AUTH_PARSE_DEVICE_TOKEN</li>
+<li><strong>2:</strong> AUTH_POLICY_TABLE_CACHE_FETCH</li>
+<li><strong>3:</strong> COMMAND_DISPATCH</li>
+<li><strong>4:</strong> COMMAND_EXECUTE</li>
+<li><strong>5:</strong> COMMAND_LOGGER</li>
+<li><strong>6:</strong> COMMAND_PARSE</li>
+<li><strong>7:</strong> COMMAND_REPORT</li>
+<li><strong>8:</strong> PLAYER_VOLUME_SET_VOLUME</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10f98ab4, 9 entries</li>
+<li><strong>note:</strong> Lechmere command-pipeline stage names: AUTH_IS_AUTHORIZED, AUTH_PARSE_DEVICE_TOKEN, AUTH_POLICY_TABLE_CACHE_FETCH, COMMAND_DISPATCH, COMMAND_EXECUTE, COMMAND_LOGGER, COMMAND_PARSE, COMMAND_REPORT, PLAYER_VOLUME_SET_VOLUME</li>
+</ul>
+</li>
+<li><strong>10f044bc:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 7</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> START_SESSION</li>
+<li><strong>1:</strong> END_SESSION</li>
+<li><strong>2:</strong> SUSPEND_SESSION</li>
+<li><strong>3:</strong> JOIN_GROUP_BASED_ON_VLI_STATE</li>
+<li><strong>4:</strong> START_AUDIO_STREAMING</li>
+<li><strong>5:</strong> PAUSE_AUDIO_STREAMING</li>
+<li><strong>6:</strong> BECOME_STANDALONE_BASED_ON_VLI_STATE</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10f044bc, 7 entries</li>
+<li><strong>note:</strong> voice-linein session op enum: START_SESSION, END_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE</li>
+</ul>
+</li>
+<li><strong>10ef58ec:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 7</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> deferred_event_sub</li>
+<li><strong>1:</strong> generic_update</li>
+<li><strong>2:</strong> ht_config_update</li>
+<li><strong>3:</strong> sonar_cal_mode_changed</li>
+<li><strong>4:</strong> avt_device_feedback</li>
+<li><strong>5:</strong> entitlements_changed</li>
+<li><strong>6:</strong> max</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ef58ec, 7 entries ending "max"</li>
+<li><strong>note:</strong> wss/websocket event-kind enum: deferred_event_sub, generic_update, ht_config_update, sonar_cal_mode_changed, avt_device_feedback, entitlements_changed (+ max sentinel)</li>
+</ul>
+</li>
+<li><strong>10ef68f4:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 10</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> TRANS_NEW_LOCATION</li>
+<li><strong>1:</strong> UPDATE_ALL_SETTINGS</li>
+<li><strong>2:</strong> UPDATE_SETTINGS_GRP</li>
+<li><strong>3:</strong> F_UPDATE_LOCATION</li>
+<li><strong>4:</strong> F_PARSE_FROM_CLOUD</li>
+<li><strong>5:</strong> F_CALL_CLOUD_API</li>
+<li><strong>6:</strong> P_PENDING_STATUS</li>
+<li><strong>7:</strong> S_SUCCESS</li>
+<li><strong>8:</strong> S_NO_CHANGE</li>
+<li><strong>9:</strong> C_CANCELLED</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10ef68f4, 10 entries</li>
+<li><strong>note:</strong> zone-transfer FSM event names: TRANS_NEW_LOCATION, UPDATE_ALL_SETTINGS, UPDATE_SETTINGS_GRP, F_UPDATE_LOCATION, F_PARSE_FROM_CLOUD, F_CALL_CLOUD_API, P_PENDING_STATUS, S_SUCCESS, S_NO_CHANGE, C_CANCELLED</li>
+</ul>
+</li>
+<li><strong>10fbb860:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 10</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> FLAC__STREAM_DECODER_SEARCH_FOR_METADATA</li>
+<li><strong>1:</strong> FLAC__STREAM_DECODER_READ_METADATA</li>
+<li><strong>2:</strong> FLAC__STREAM_DECODER_SEARCH_FOR_FRAME_SYNC</li>
+<li><strong>3:</strong> FLAC__STREAM_DECODER_READ_FRAME</li>
+<li><strong>4:</strong> FLAC__STREAM_DECODER_END_OF_STREAM</li>
+<li><strong>5:</strong> FLAC__STREAM_DECODER_OGG_ERROR</li>
+<li><strong>6:</strong> FLAC__STREAM_DECODER_SEEK_ERROR</li>
+<li><strong>7:</strong> FLAC__STREAM_DECODER_ABORTED</li>
+<li><strong>8:</strong> FLAC__STREAM_DECODER_MEMORY_ALLOCATION_ERROR</li>
+<li><strong>9:</strong> FLAC__STREAM_DECODER_UNINITIALIZED</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10fbb860, 10 entries</li>
+<li><strong>note:</strong> bundled libFLAC decoder-state names (FLAC__STREAM_DECODER_*) — upstream libFLAC enum</li>
+</ul>
+</li>
+<li><strong>10fbb89c:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 22</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC</li>
+<li><strong>1:</strong> FLAC__STREAM_DECODER_ERROR_STATUS_BAD_HEADER</li>
+<li><strong>2:</strong> FLAC__STREAM_DECODER_ERROR_STATUS_FRAME_CRC_MISMATCH</li>
+<li><strong>3:</strong> FLAC__STREAM_DECODER_ERROR_STATUS_UNPARSEABLE_STREAM</li>
+<li><strong>4:</strong> FLAC__STREAM_DECODER_LENGTH_STATUS_OK</li>
+<li><strong>5:</strong> FLAC__STREAM_DECODER_LENGTH_STATUS_ERROR</li>
+<li><strong>6:</strong> FLAC__STREAM_DECODER_LENGTH_STATUS_UNSUPPORTED</li>
+<li><strong>7:</strong> FLAC__STREAM_DECODER_TELL_STATUS_OK</li>
+<li><strong>8:</strong> FLAC__STREAM_DECODER_TELL_STATUS_ERROR</li>
+<li><strong>9:</strong> FLAC__STREAM_DECODER_TELL_STATUS_UNSUPPORTED</li>
+<li><strong>10:</strong> FLAC__STREAM_DECODER_SEEK_STATUS_OK</li>
+<li><strong>11:</strong> FLAC__STREAM_DECODER_SEEK_STATUS_ERROR</li>
+<li><strong>12:</strong> FLAC__STREAM_DECODER_SEEK_STATUS_UNSUPPORTED</li>
+<li><strong>13:</strong> FLAC__STREAM_DECODER_READ_STATUS_CONTINUE</li>
+<li><strong>14:</strong> FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM</li>
+<li><strong>15:</strong> FLAC__STREAM_DECODER_READ_STATUS_ABORT</li>
+<li><strong>16:</strong> FLAC__STREAM_DECODER_INIT_STATUS_OK</li>
+<li><strong>17:</strong> FLAC__STREAM_DECODER_INIT_STATUS_UNSUPPORTED_CONTAINER</li>
+<li><strong>18:</strong> FLAC__STREAM_DECODER_INIT_STATUS_INVALID_CALLBACKS</li>
+<li><strong>19:</strong> FLAC__STREAM_DECODER_INIT_STATUS_MEMORY_ALLOCATION_ERROR</li>
+<li><strong>20:</strong> FLAC__STREAM_DECODER_INIT_STATUS_ERROR_OPENING_FILE</li>
+<li><strong>21:</strong> FLAC__STREAM_DECODER_INIT_STATUS_ALREADY_INITIALIZED</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10fbb89c, 22 entries</li>
+<li><strong>note:</strong> bundled libFLAC status/error names (FLAC__STREAM_DECODER_{ERROR,LENGTH,TELL,SEEK,INIT}<em>STATUS</em>*) — upstream libFLAC enums concatenated</li>
+</ul>
+</li>
+<li><strong>10fbef08:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 21</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> CHANNEL_TYPE_UNSPECIFIED</li>
+<li><strong>1:</strong> CHANNEL_TYPE_L</li>
+<li><strong>2:</strong> CHANNEL_TYPE_R</li>
+<li><strong>3:</strong> CHANNEL_TYPE_C</li>
+<li><strong>4:</strong> CHANNEL_TYPE_SUB</li>
+<li><strong>5:</strong> CHANNEL_TYPE_LS</li>
+<li><strong>6:</strong> CHANNEL_TYPE_RS</li>
+<li><strong>7:</strong> CHANNEL_TYPE_LRS</li>
+<li><strong>8:</strong> CHANNEL_TYPE_RRS</li>
+<li><strong>9:</strong> CHANNEL_TYPE_LTM</li>
+<li><strong>10:</strong> CHANNEL_TYPE_RTM</li>
+<li><strong>11:</strong> CHANNEL_TYPE_LW</li>
+<li><strong>12:</strong> CHANNEL_TYPE_RW</li>
+<li><strong>13:</strong> CHANNEL_TYPE_MONO</li>
+<li><strong>14:</strong> CHANNEL_TYPE_LTR</li>
+<li><strong>15:</strong> CHANNEL_TYPE_RTR</li>
+<li><strong>16:</strong> CHANNEL_DIRECTION_UNSPECIFIED</li>
+<li><strong>17:</strong> CHANNEL_DIRECTION_DIRECT</li>
+<li><strong>18:</strong> CHANNEL_DIRECTION_INDIRECT_ARRAY</li>
+<li><strong>19:</strong> CHANNEL_DIRECTION_INDIRECT_SINGLE_DRIVER</li>
+<li><strong>20:</strong> @</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10fbef08, ~21 entries</li>
+<li><strong>note:</strong> audio-config proto enum names: CHANNEL_TYPE_<em> (L/R/C/SUB/LS/RS/LRS/RRS/LTM/RTM/LW/...) then CHANNEL_DIRECTION_</em> (DIRECT/INDIRECT_ARRAY/INDIRECT_SINGLE_DRIVER) — proto field vocabularies concatenated in one string table</li>
+</ul>
+</li>
+<li><strong>10fbf1d4:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 14</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> TONE_HANDLER_TYPE_UNSPECIFIED</li>
+<li><strong>1:</strong> TONE_HANDLER_TYPE_STANDARD</li>
+<li><strong>2:</strong> TONE_HANDLER_TYPE_SUB</li>
+<li><strong>3:</strong> ARRAY_SUB_SYSTEM_TYPE_UNSPECIFIED</li>
+<li><strong>4:</strong> ARRAY_SUB_SYSTEM_TYPE_BRAVO</li>
+<li><strong>5:</strong> ARRAY_SUB_SYSTEM_TYPE_FURY</li>
+<li><strong>6:</strong> ARRAY_SUB_SYSTEM_TYPE_OPTIMO2</li>
+<li><strong>7:</strong> ARRAY_SUB_SYSTEM_TYPE_OPTIMO2_SURROUND</li>
+<li><strong>8:</strong> ARRAY_SUB_SYSTEM_TYPE_LASSO</li>
+<li><strong>9:</strong> ARRAY_SUB_SYSTEM_TYPE_APOLLO</li>
+<li><strong>10:</strong> VOLTAGE_GAIN_CALCULATOR_TYPE_UNSPECIFIED</li>
+<li><strong>11:</strong> VOLTAGE_GAIN_CALCULATOR_TYPE_BULK_CAPACITORS</li>
+<li><strong>12:</strong> VOLTAGE_GAIN_CALCULATOR_TYPE_BOOSTED_BATTERY</li>
+<li><strong>13:</strong> VOLTAGE_GAIN_CALCULATOR_TYPE_BUCKED_CAPACITOR</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10fbf1d4, 14 entries</li>
+<li><strong>note:</strong> DSP/tuning proto enum names: TONE_HANDLER_TYPE_<em> (STANDARD/SUB), ARRAY_SUB_SYSTEM_TYPE_</em> (BRAVO/FURY/OPTIMO2/OPTIMO2_SURROUND/LASSO/APOLLO — internal hardware codenames), VOLTAGE_GAIN_CALCULATOR_TYPE_* (BULK_CAPACITORS/BOOSTED_BATTERY/BUCKED_CAPACITOR)</li>
+</ul>
+</li>
+<li><strong>10fbff4c:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 19</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> DEVICE_ORIENTATION_UNSPECIFIED</li>
+<li><strong>1:</strong> DEVICE_ORIENTATION_HORIZONTAL</li>
+<li><strong>2:</strong> DEVICE_ORIENTATION_VERTICAL</li>
+<li><strong>3:</strong> DEVICE_ORIENTATION_WALL_ABOVE</li>
+<li><strong>4:</strong> DEVICE_ORIENTATION_WALL_BELOW</li>
+<li><strong>5:</strong> DEVICE_ORIENTATION_INVERTED</li>
+<li><strong>6:</strong> DEVICE_ORIENTATION_FACEDOWN</li>
+<li><strong>7:</strong> DEVICE_ORIENTATION_HORIZONTAL_LEFT</li>
+<li><strong>8:</strong> DEVICE_ORIENTATION_HORIZONTAL_RIGHT</li>
+<li><strong>9:</strong> MEASUREMENT_MODE_UNSPECIFIED</li>
+<li><strong>10:</strong> MEASUREMENT_MODE_SPATIAL</li>
+<li><strong>11:</strong> MEASUREMENT_MODE_SPECTRAL</li>
+<li><strong>12:</strong> SUB_POLARITY_UNSPECIFIED</li>
+<li><strong>13:</strong> SUB_POLARITY_POSITIVE</li>
+<li><strong>14:</strong> SUB_POLARITY_NEGATIVE</li>
+<li><strong>15:</strong> TUNING_MODE_UNSPECIFIED</li>
+<li><strong>16:</strong> TUNING_MODE_INDIVIDUAL_CHANNELS</li>
+<li><strong>17:</strong> TUNING_MODE_ALL_CHANNELS_AS_MONO</li>
+<li><strong>18:</strong> @</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10fbff4c, ~19 entries</li>
+<li><strong>note:</strong> measurement/tuning proto enum names: DEVICE_ORIENTATION_<em> (HORIZONTAL/VERTICAL/WALL_ABOVE/WALL_BELOW/INVERTED/FACEDOWN/HORIZONTAL_LEFT/HORIZONTAL_RIGHT), MEASUREMENT_MODE_</em> (SPATIAL/SPECTRAL), TUNING_MODE_* (INDIVIDUAL_CHANNELS/ALL_CHANNELS_AS_MONO)</li>
+</ul>
+</li>
+<li><strong>10feef58:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 6</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> orientation_horizontal</li>
+<li><strong>1:</strong> orientation_wall_above</li>
+<li><strong>2:</strong> orientation_wall_below</li>
+<li><strong>3:</strong> orientation_vertical_tag_left</li>
+<li><strong>4:</strong> orientation_vertical_tag_right</li>
+<li><strong>5:</strong> orientation_wall_mounted</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10feef58, 6 entries</li>
+<li><strong>note:</strong> orientation JSON-string enum (snake_case wire names): orientation_horizontal, orientation_wall_above/below, orientation_vertical_tag_left/right, orientation_wall_mounted</li>
+</ul>
+</li>
+<li><strong>10feef74:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 7</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> sub_bonded</li>
+<li><strong>1:</strong> sub_unbonded</li>
+<li><strong>2:</strong> stereo_paired</li>
+<li><strong>3:</strong> stereo_unpaired</li>
+<li><strong>4:</strong> hardware_type_1</li>
+<li><strong>5:</strong> hardware_type_2</li>
+<li><strong>6:</strong> during_trueplay_calibration</li>
+<li><strong>provenance:</strong> contiguous char* name table @0x10feef74, 7 entries</li>
+<li><strong>note:</strong> bonding/hardware-type state strings: sub_bonded, sub_unbonded, stereo_paired, stereo_unpaired, hardware_type_1, hardware_type_2, during_trueplay_calibration</li>
+</ul>
+</li>
+<li><strong>10ef4f74:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 8</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> FUEL_GAUGE</li>
+<li><strong>1:</strong> MICMUTE_SWITCH</li>
+<li><strong>2:</strong> LEAN_UI_JOIN</li>
+<li><strong>3:</strong> LEAN_UI_OPENAP_DIAG</li>
+<li><strong>4:</strong> LEAN_UI_PREV</li>
+<li><strong>5:</strong> LEAN_UI_NEXT</li>
+<li><strong>6:</strong> LEAN_UI_SLIDER</li>
+<li><strong>7:</strong> SCI_BOARD</li>
+<li><strong>provenance:</strong> subrange of the @0x10ef4eec registry, 8 entries</li>
+<li><strong>note:</strong> lean-UI/board sub-enum within the HW event registry: FUEL_GAUGE, MICMUTE_SWITCH, LEAN_UI_{JOIN,OPENAP_DIAG,PREV,NEXT,SLIDER}, SCI_BOARD</li>
+</ul>
+</li>
+<li><strong>10ef5030:</strong><ul>
+<li><strong>kind:</strong> enum</li>
+<li><strong>count:</strong> 8</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> HW_ERROR</li>
+<li><strong>1:</strong> HW_OK</li>
+<li><strong>2:</strong> TEMP_WARNING</li>
+<li><strong>3:</strong> TEMP_FAULT</li>
+<li><strong>4:</strong> TEMP_OK</li>
+<li><strong>5:</strong> AMP_HI_RAIL</li>
+<li><strong>6:</strong> AMP_LO_RAIL</li>
+<li><strong>7:</strong> AMP_OFF</li>
+<li><strong>provenance:</strong> subrange of the @0x10ef4eec registry, 8 entries</li>
+<li><strong>note:</strong> hardware-fault state sub-enum: HW_ERROR, HW_OK, TEMP_WARNING, TEMP_FAULT, TEMP_OK, AMP_HI_RAIL, AMP_LO_RAIL, AMP_OFF</li>
+</ul>
+</li>
+<li><strong>10ea1688:</strong><ul>
+<li><strong>kind:</strong> map</li>
+<li><strong>count:</strong> 5</li>
+<li><strong>names:</strong></li>
+<li><strong>1:</strong> SONOS_DC_OK</li>
+<li><strong>2:</strong> SONOS_DC_NO_ACCOUNT</li>
+<li><strong>3:</strong> SONOS_DC_STALE_ACCOUNT</li>
+<li><strong>4:</strong> SONOS_DC_LOGIN_FAILED</li>
+<li><strong>5:</strong> SONOS_DC_UNSUPPORTED_SERVICE</li>
+<li><strong>provenance:</strong> {char* name, u32 code} pair table @0x10ea1688, 5 entries</li>
+<li><strong>note:</strong> device-cert account result enum consumed by service-account auth (spotify.cxx region): SONOS_DC_OK=1, NO_ACCOUNT=2, STALE_ACCOUNT=3, LOGIN_FAILED=4, UNSUPPORTED_SERVICE=5</li>
+</ul>
+</li>
+<li><strong>10ea1cd4:</strong><ul>
+<li><strong>kind:</strong> map</li>
+<li><strong>count:</strong> 16</li>
+<li><strong>names:</strong></li>
+<li><strong>1:</strong> Play</li>
+<li><strong>2:</strong> Pause</li>
+<li><strong>3:</strong> TrackChanged</li>
+<li><strong>4:</strong> Next</li>
+<li><strong>5:</strong> Prev</li>
+<li><strong>6:</strong> ShuffleOn</li>
+<li><strong>7:</strong> ShuffleOff</li>
+<li><strong>8:</strong> RepeatOn</li>
+<li><strong>9:</strong> RepeatOff</li>
+<li><strong>10:</strong> BecameActive</li>
+<li><strong>13:</strong> BecameInactive</li>
+<li><strong>14:</strong> AudioDeliveryDone</li>
+<li><strong>16:</strong> ContextChanged</li>
+<li><strong>17:</strong> MetadataChanged</li>
+<li><strong>18:</strong> NetworkRequired</li>
+<li><strong>19:</strong> TrackDownloadStalled</li>
+<li><strong>provenance:</strong> {char* name, u32 code} pair table @0x10ea1cd4, 16 entries</li>
+<li><strong>note:</strong> service playback-event enum: Play=1, Pause=2, TrackChanged=3, Next=4, Prev=5, ShuffleOn=6, ShuffleOff=7, RepeatOn=8, RepeatOff=9, BecameActive=10, BecameInactive=13, AudioDeliveryDone=14, ContextChanged=16, MetadataChanged=17, NetworkRequired=18, TrackDownloadStalled=19 (indices 11,12,15 absent)</li>
+</ul>
+</li>
+<li><strong>10ecc538:</strong><ul>
+<li><strong>kind:</strong> map</li>
+<li><strong>count:</strong> 36</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> audio/mpeg3</li>
+<li><strong>1:</strong> audio/vnd.wave</li>
+<li><strong>2:</strong> audio/x-ms-wma</li>
+<li><strong>4:</strong> audio/aac</li>
+<li><strong>3:</strong> audio/x-m4a</li>
+<li><strong>5:</strong> audio/x-aiff</li>
+<li><strong>6:</strong> audio/flac</li>
+<li><strong>7:</strong> audio/ogg</li>
+<li><strong>11:</strong> mpd</li>
+<li><strong>12:</strong> audio/x-spotify</li>
+<li><strong>10:</strong> audio/x-spotify-ogg</li>
+<li><strong>8:</strong> audio/x-mpegurl</li>
+<li><strong>9:</strong> application/vnd.apple.mpegurl</li>
+<li><strong>provenance:</strong> {char* ext-or-mime, u32 codec-id} pair table @0x10ecc538, 37 entries</li>
+<li><strong>note:</strong> definitive codec registry: ext+mime -&gt; codec id {mp3/audio-mpeg/audio-mp3/audio-mpeg3=0, wav/x-wav/vnd.wave=1, wma/x-ms-wma=2, m4a/m4b/m4p/mp4/m4s/audio-mp4/x-m4a=3, audio/aac/adts=4, aiff/aif/audio-aiff/x-aiff=5, flac/x-flac/audio-flac=6, ogg/ogg-vorbis/audio-ogg/x-ogg/application-ogg=7, x-mpegurl=8, mpegurl/audio-mpegurl/application-x-mpegurl=9, audio/x-spotify-ogg=10, mpd/audio-mpd=11, audio/x-spotify=12}</li>
+</ul>
+</li>
+<li><strong>10ed9524:</strong><ul>
+<li><strong>kind:</strong> map</li>
+<li><strong>count:</strong> 11</li>
+<li><strong>names:</strong></li>
+<li><strong>1:</strong> album</li>
+<li><strong>2:</strong> artist</li>
+<li><strong>3:</strong> audiobook</li>
+<li><strong>4:</strong> chapter</li>
+<li><strong>5:</strong> container</li>
+<li><strong>6:</strong> episode</li>
+<li><strong>7:</strong> playlist</li>
+<li><strong>8:</strong> podcast</li>
+<li><strong>9:</strong> program</li>
+<li><strong>10:</strong> stream</li>
+<li><strong>11:</strong> track</li>
+<li><strong>provenance:</strong> {char* name, u32 id} pair table @0x10ed9524, 11 entries</li>
+<li><strong>note:</strong> SMaPI media-type enum: album=1, artist=2, audiobook=3, chapter=4, container=5, episode=6, playlist=7, podcast=8, program=9, stream=10, track=11</li>
+</ul>
+</li>
+<li><strong>10fe6d08:</strong><ul>
+<li><strong>kind:</strong> map</li>
+<li><strong>count:</strong> 21</li>
+<li><strong>names:</strong></li>
+<li><strong>0:</strong> enable</li>
+<li><strong>1:</strong> disable</li>
+<li><strong>2:</strong> auto</li>
+<li><strong>3:</strong> 60HZ</li>
+<li><strong>4:</strong> 70HZ</li>
+<li><strong>5:</strong> 80HZ</li>
+<li><strong>6:</strong> 90HZ</li>
+<li><strong>7:</strong> 100HZ</li>
+<li><strong>8:</strong> 110HZ</li>
+<li><strong>9:</strong> 120HZ</li>
+<li><strong>10:</strong> 130HZ</li>
+<li><strong>11:</strong> 140HZ</li>
+<li><strong>12:</strong> 150HZ</li>
+<li><strong>13:</strong> 160HZ</li>
+<li><strong>14:</strong> 170HZ</li>
+<li><strong>15:</strong> 180HZ</li>
+<li><strong>16:</strong> 190HZ</li>
+<li><strong>17:</strong> 200HZ</li>
+<li><strong>provenance:</strong> {char* name, u32 id} pair table @0x10fe6d08, 23 entries (two concatenated sub-tables)</li>
+<li><strong>note:</strong> DSP bass-extraction parameter vocab: crossover freq 45HZ..200HZ -&gt; 0..14, then mode names disable/enable/auto -&gt; 0/1/2 with repeated entries (enable=0/disable=1 pair for inverted field). Consumed near "error parsing bass extraction mode" / "oarBassExtraction"</li>
+</ul>
+</li>
+<li><strong>10fe6bb8:</strong><ul>
+<li><strong>kind:</strong> map</li>
+<li><strong>count:</strong> 18</li>
+<li><strong>names:</strong></li>
+<li><strong>2:</strong> lfe</li>
+<li><strong>3:</strong> lrs</li>
+<li><strong>4:</strong> lrrs</li>
+<li><strong>5:</strong> lrw</li>
+<li><strong>6:</strong> lrtm</li>
+<li><strong>7:</strong> lrtf</li>
+<li><strong>8:</strong> lrtr</li>
+<li><strong>9:</strong> lre</li>
+<li><strong>10:</strong> lrrh</li>
+<li><strong>11:</strong> lrfh</li>
+<li><strong>12:</strong> lrse</li>
+<li><strong>13:</strong> lrrse</li>
+<li><strong>14:</strong> lrs1</li>
+<li><strong>15:</strong> lrrs1</li>
+<li><strong>16:</strong> lrs2</li>
+<li><strong>17:</strong> lrrs2</li>
+<li><strong>18:</strong> lrcs</li>
+<li><strong>19:</strong> cs</li>
+<li><strong>provenance:</strong> {char* name, u32 id} pair table @0x10fe6bb8, 18 entries</li>
+<li><strong>note:</strong> channel/speaker-position name map: lfe=2, lrs=3, lrrs=4, lrw=5, lrtm=6, lrtf=7, lrtr=8, lre=9, lrrh=10, lrfh=11, lrse=12, lrrse=13, lrs1=14, lrrs1=15, lrs2=16, lrrs2=17, lrcs=18, cs=19</li>
 </ul>
 </li>
 <li><strong>evidence:</strong></li>

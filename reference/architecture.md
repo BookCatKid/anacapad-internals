@@ -1,6 +1,10 @@
 # Architecture
 
+How a network command reaches real code. When a control message arrives at the player it passes through a chain of checks: a router decides which service owns the address, a gate decides whether that service is enabled on this particular device, then a dispatcher picks the right command handler. This page maps that plumbing.
+
 ## Routing
+
+The tables below are the player's URL map for control traffic. Each row is one service address (like /AlarmClock/Control) and shows which internal flag decides whether the service answers at all. Services gated 'by field' only respond when this player is in the right role - for instance several only work on the group coordinator.
 
 | Router | Kind | Records |
 |---|---|---|
@@ -43,6 +47,8 @@
 
 ## Request object vtable
 
+Every command receives its arguments through the same generic 'request' object. Its method table has fixed slots - read a parameter, identify the caller, build the response - so one piece of plumbing serves all 205 commands uniformly. The table lists what each slot is for.
+
 Every action wrapper interacts with the request through these vfunc slots (confidence: `inferred`).
 
 | Slot | Purpose |
@@ -58,6 +64,8 @@ Every action wrapper interacts with the request through these vfunc slots (confi
 | `0x34` | request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0 |
 
 ## Capability fields
+
+The player keeps internal switches that decide which features exist on this hardware or in this mode. They are why a Playbar exposes a different command set than a Play:1, and why whole services can silently enable or disable at runtime. Each row is one switch and the behavior it gates.
 
 Object fields the firmware reads to gate behavior. Read/write sites are static evidence; the *predicate* each gates is noted honestly where unresolved.
 
@@ -80,6 +88,8 @@ Affected services: AudioIn (/AudioIn/Control)
 Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/AVTransport/Control), ConnectionManager (/MediaRenderer/ConnectionManager/Control), GroupRenderingControl (/MediaRenderer/GroupRenderingControl/Control), Queue (/MediaRenderer/Queue/Control), VirtualLineIn (/MediaRenderer/VirtualLineIn/Control), ConnectionManager (/MediaServer/ConnectionManager/Control), ContentDirectory (/MediaServer/ContentDirectory/Control), MusicServices (/MusicServices/Control), QPlay (/QPlay/Control)
 
 ## Internal functions
+
+Named helper routines the command handlers share - parameter parsers, validators, and error translators. They're listed because the real argument-checking logic lives here rather than inside each command.
 
 | Address | Role | Description |
 |---|---|---|
@@ -268,6 +278,8 @@ Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/A
 
 ## Dispatch candidates
 
+Functions we investigated because they looked like command dispatchers; each entry records the verdict.
+
 Functions that looked like dispatchers, with the verdict each received.
 
 ### `0x105cd004`
@@ -303,6 +315,8 @@ Compares: `explicitContentFiltering`, `explicitContentFiltering`
 RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f11f70 at svc+0, installed by ctor f_1073d930 into *(r3-in+0xaa6c)). Reject-all: emits 401 for every action — the service is a registered stub in this build. Evidence is definitive: unconditional 401 emit (li r4,0x191) + vtable 0x10f11f70 at svc+0 installed by ctor f_1073d930.
 
 ## Shared subsystems
+
+Building blocks reused across many commands - URI grammars, metadata parsers, error helpers. Documented once here rather than repeated under every command that uses them.
 
 Reusable primitives recovered from the binary — prefer these over re-reading per-action detail.
 

@@ -1,5 +1,7 @@
 # State variables
 
+State variables are the player's named properties - things like Volume, Mute, or the current track URI. 'Evented' means the player can push a live update to subscribers the moment the value changes; 'argument-type' variables exist only to declare the shape of command inputs and outputs and are not device state.
+
 Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documents; `A_ARG_TYPE_*` variables are SCPD argument-type declarations, not device state.
 
 | Variable | Service | Type | Evented | Status |

@@ -1,5 +1,7 @@
 # Payload formats
 
+Some command arguments look like plain text but are really packed data - bit flags, delimited tuples, escaped XML documents. These entries decode what's actually inside each opaque field.
+
 Opaque payload/field grammars recovered from sscanf/printf templates and parser functions.
 
 ## `SonosAvtStateFile` `strong`
@@ -449,7 +451,7 @@ Why a stream won't let you skip: a bitmask of restriction reasons — the track 
 
 ## `smapi_capability_bits` `strong`
 
-The menu of features a music service can advertise: each name maps to one bit in the service's Capabilities number — search, three kinds of favorites (track/album/artist), extended metadata, alarms, playlists, logging, headers, and so on. When a service says it supports track favorites, that's bit 0x2 set in this table.
+The menu of features a music service can advertise: each name maps to one bit in the service's Capabilities number - search, three kinds of favorites (track/album/artist), extended metadata, alarms, playlists, logging, headers, and so on. When a service says it supports track favorites, that's the second bit set in this table.
 
 **Technical description:**
 

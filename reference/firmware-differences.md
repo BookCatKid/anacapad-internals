@@ -1,5 +1,7 @@
 # Firmware / model differences
 
+How this build compares to other Sonos firmware versions - checked by matching strings and structures inside each binary, not by running devices. A feature string being present proves the code exists; it doesn't prove the feature is switched on.
+
 String-set diff across anacapad 34.16 (fenway), 57.10 (fenway), 86.8-78270 (playbar model9), 86.10-80260 (documented build). Presence = literal exists in binary; literal storage/validation method may differ even when service is present.
 
 - **matrix_method:** 4 binaries {34.16,57.10(fenway-public),86.8(playbar-model9),86.10(1-9)}; per advertised action-name check every literal instance for ptr-table/strcmp ref
@@ -7,9 +9,13 @@ String-set diff across anacapad 34.16 (fenway), 57.10 (fenway), 86.8-78270 (play
 
 ## Product surface
 
+Across the builds compared, every player advertises the same sixteen service documents with the same commands. Hardware differences (Play:1 versus Playbar) are decided by feature gates inside the binary, not by the published API surface.
+
 PRODUCT comparison play1-model8 vs playbar-model9 vs 86.10-model9: all 3 ship the IDENTICAL 16-SCPD advertised surface (same action+statevar counts); sole content diff is the 86.10 A_ARG_TYPE_ClearSource addition. Sonos advertised API is hardware-uniform — product differentiation is binary/feature-gating level, not SCPD. play1-model8 additionally ships satellite_device.xml (device desc, not SCPD).
 
 ## Service-URN matrix
+
+A literal check of which service identifiers exist in each build - shows what the firmware added or dropped between versions.
 
 - **method:** regex scan of 'urn:...service:...' literals per build blob (confirmed counts)
 - **matrix:**
@@ -25,6 +31,8 @@ PRODUCT comparison play1-model8 vs playbar-model9 vs 86.10-model9: all 3 ship th
 - **qplay_evolution:** 34.16/57.10: urn:schemas-tencent-com:service:QPlay:1 as a serviceType URN. 86.8/86.10: URN removed; QPlay:2 advertised via qq:X_QPlay_SoftwareCapability in the device description; /QPlay/Control + QPlayAuth dispatch retained
 
 ## Entries
+
+Individual differences found between builds, each with the literal evidence and which firmwares carry it.
 
 ### QPlay service URN literal
 

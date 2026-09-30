@@ -1619,21 +1619,28 @@
                   
 
 <h1 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h1>
+<p>What a failed command actually returns. UPnP defines a standard 'fault' reply carrying a numeric error code, and every Sonos action can raise a fixed set of them. This page shows the reply's wire shape, the complete vocabulary of codes the firmware can emit, and which codes each individual action can return.</p>
 <h2 id="soap-fault-wire-format">SOAP fault wire format<a class="headerlink" href="#soap-fault-wire-format" title="Permanent link">&para;</a></h2>
+<p>The exact XML skeleton of a failed reply. One important detail: only the number travels in the fault - no human-readable message is included on this channel. Any descriptive text comes back through the command's output arguments instead.</p>
 <pre><code class="language-xml">&lt;s:Fault&gt;&lt;faultcode&gt;s:Client&lt;/faultcode&gt;&lt;faultstring&gt;UPnPError&lt;/faultstring&gt;&lt;detail&gt;&lt;UPnPError xmlns=&quot;urn:schemas-upnp-org:control-1-0&quot;&gt;&lt;errorCode&gt;%d&lt;/errorCode&gt;&lt;/UPnPError&gt;&lt;/s:Fault&gt;
 </code></pre>
 <p>fault detail carries ONLY the numeric errorCode - no errorDescription element on the wire; literal detail strings (e.g. Update URL is malformed) travel via out-arg records, not this template</p>
 <h2 id="fault-code-vocabulary">Fault code vocabulary<a class="headerlink" href="#fault-code-vocabulary" title="Permanent link">&para;</a></h2>
+<p>Every numeric error code proven to be emittable by this firmware. The standard UPnP ranges cover common failures like 'action not found' and 'invalid args'; codes in the high bands are Sonos-internal additions.</p>
 <ul>
 <li><strong>status:</strong> strong</li>
-<li><strong>extraction:</strong> li/ori immediates in error-band scanned across all 1848 worker/impl functions referenced in the DB (tools/_errdomain2.py); per-function literal sets persisted in docs/worker_err_literals.json</li>
-<li><strong>upnp_band</strong> (79):</li>
+<li><strong>extraction:</strong> original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.</li>
+<li><strong>upnp_band</strong> (92):</li>
 </ul>
-<p><code>101, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 400, 401, 402, 403, 404, 405, 408, 411, 501, 606, 608, 624, 640, 651, 652, 664, 680, 699, 701, 702, 705, 706, 710, 711, 712, 717, 718, 720, 728, 800, 801, 802, 803, 804, 806, 807, 808, 810, 1000, 1003, 1021, 1023, 1024, 1025, 1026, 1028, 1040, 1043, 1046, 1056, 1057, 1100, 1104, 1143, 1152, 1161, 1178, 1200, 1221, 1224, 1266, 1272, 1287</code>
+<p><code>101, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 400, 401, 402, 403, 404, 405, 408, 411, 501, 606, 608, 624, 640, 651, 652, 664, 680, 699, 701, 702, 705, 706, 710, 711, 712, 717, 718, 720, 728, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 820, 821, 822, 824, 850, 899, 1000, 1003, 1020, 1021, 1023, 1024, 1025, 1026, 1028, 1040, 1043, 1046, 1056, 1057, 1100, 1104, 1143, 1152, 1161, 1178, 1200, 1221, 1224, 1266, 1272, 1287</code>
 - <strong>semantics:</strong> every 'vret'/passthrough error domain is bounded by the union of its impl worker's exit literals + this aggregate vocabulary; concrete per-action subset requires exit-block dataflow (runtime boundary for the impl-&gt;engine delegation chains)
 - <strong>evidence:</strong>
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}</p>
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: whole-.text census: 2713 fns w/ error-band literals; refined accumulator-filtered propagation over 6729-fn call graph; additions verified against store-commit ladders
+- <strong>notes:</strong>
+  - <strong>census_union:</strong> Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.</p>
 <h2 id="per-action-error-surface">Per-action error surface<a class="headerlink" href="#per-action-error-surface" title="Permanent link">&para;</a></h2>
+<p>For each action, the union of codes it can actually produce - everything its handler, its argument validation, and its dispatch layer can raise.</p>
 <h3 id="avtransport"><code>AVTransport</code><a class="headerlink" href="#avtransport" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1700,6 +1707,12 @@
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
 </tr>
 <tr>
+<td><code>AddURIToSavedQueue</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
+</tr>
+<tr>
 <td><code>BackupQueue</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -1724,6 +1737,12 @@
 <td>worker-call rejection path</td>
 </tr>
 <tr>
+<td><code>BackupQueue</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
+</tr>
+<tr>
 <td><code>BecomeCoordinatorOfStandaloneGroup</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -1740,6 +1759,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
+</tr>
+<tr>
+<td><code>BecomeCoordinatorOfStandaloneGroup</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
 </tr>
 <tr>
 <td><code>BecomeGroupCoordinator</code></td>
@@ -1790,6 +1815,12 @@
 <td>worker-call rejection path</td>
 </tr>
 <tr>
+<td><code>ChangeCoordinator</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><code>ChangeTransportSettings</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -1812,6 +1843,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
+</tr>
+<tr>
+<td><code>ChangeTransportSettings</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
 </tr>
 <tr>
 <td><code>ConfigureSleepTimer</code></td>
@@ -1856,6 +1893,12 @@
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
 </tr>
 <tr>
+<td><code>CreateSavedQueue</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
+</tr>
+<tr>
 <td><code>DelegateGroupCoordinationTo</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -1892,6 +1935,12 @@
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
 </tr>
 <tr>
+<td><code>EndDirectControlSession</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><code>GetCrossfadeMode</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
@@ -1910,10 +1959,88 @@
 <td>nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head)</td>
 </tr>
 <tr>
+<td><code>GetDeviceCapabilities</code></td>
+<td><code>402</code></td>
+<td><code>strong</code></td>
+<td>request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot</td>
+</tr>
+<tr>
+<td><code>GetDeviceCapabilities</code></td>
+<td><code>718</code></td>
+<td><code>strong</code></td>
+<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+</tr>
+<tr>
+<td><code>GetMediaInfo</code></td>
+<td><code>402</code></td>
+<td><code>strong</code></td>
+<td>request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot</td>
+</tr>
+<tr>
+<td><code>GetMediaInfo</code></td>
+<td><code>718</code></td>
+<td><code>strong</code></td>
+<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+</tr>
+<tr>
+<td><code>GetPositionInfo</code></td>
+<td><code>402</code></td>
+<td><code>strong</code></td>
+<td>request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot</td>
+</tr>
+<tr>
+<td><code>GetPositionInfo</code></td>
+<td><code>718</code></td>
+<td><code>strong</code></td>
+<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+</tr>
+<tr>
+<td><code>GetRemainingSleepTimerDuration</code></td>
+<td><code>402</code></td>
+<td><code>strong</code></td>
+<td>request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot</td>
+</tr>
+<tr>
+<td><code>GetRemainingSleepTimerDuration</code></td>
+<td><code>718</code></td>
+<td><code>strong</code></td>
+<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+</tr>
+<tr>
+<td><code>GetRemainingSleepTimerDuration</code></td>
+<td><code>800</code></td>
+<td><code>strong</code></td>
+<td>800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified</td>
+</tr>
+<tr>
+<td><code>GetRunningAlarmProperties</code></td>
+<td><code>402</code></td>
+<td><code>strong</code></td>
+<td>request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot</td>
+</tr>
+<tr>
+<td><code>GetRunningAlarmProperties</code></td>
+<td><code>800</code></td>
+<td><code>strong</code></td>
+<td>800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified</td>
+</tr>
+<tr>
 <td><code>GetTransportInfo</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
 <td>nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head)</td>
+</tr>
+<tr>
+<td><code>GetTransportSettings</code></td>
+<td><code>402</code></td>
+<td><code>strong</code></td>
+<td>request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot</td>
+</tr>
+<tr>
+<td><code>GetTransportSettings</code></td>
+<td><code>718</code></td>
+<td><code>strong</code></td>
+<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
 </tr>
 <tr>
 <td><code>Next</code></td>
@@ -1946,6 +2073,12 @@
 <td>Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.</td>
 </tr>
 <tr>
+<td><code>Next</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><code>NotifyDeletedURI</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -1962,6 +2095,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
+</tr>
+<tr>
+<td><code>NotifyDeletedURI</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
 </tr>
 <tr>
 <td><code>Pause</code></td>
@@ -2006,6 +2145,12 @@
 <td>Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.</td>
 </tr>
 <tr>
+<td><code>Play</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><code>Previous</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
@@ -2028,6 +2173,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.</td>
+</tr>
+<tr>
+<td><code>Previous</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
 </tr>
 <tr>
 <td><code>RemoveAllTracksFromQueue</code></td>
@@ -2144,6 +2295,12 @@
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
 </tr>
 <tr>
+<td><code>ReorderTracksInSavedQueue</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
+</tr>
+<tr>
 <td><code>RunAlarm</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -2186,6 +2343,12 @@
 <td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd — producers at 0x102aa910/0x102aa968/0x102aa984</td>
 </tr>
 <tr>
+<td><code>SaveQueue</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
+</tr>
+<tr>
 <td><code>Seek</code></td>
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
@@ -2222,6 +2385,12 @@
 <td>Illegal seek target: malformed time, negative REL_TIME, out-of-range track, or failed track submission.</td>
 </tr>
 <tr>
+<td><code>Seek</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><code>SetAVTransportURI</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -2238,6 +2407,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
+</tr>
+<tr>
+<td><code>SetAVTransportURI</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
 </tr>
 <tr>
 <td><code>SetCrossfadeMode</code></td>
@@ -2280,6 +2455,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Request parse layer rejected an argument before the impl was invoked.</td>
+</tr>
+<tr>
+<td><code>SetNextAVTransportURI</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
 </tr>
 <tr>
 <td><code>SetPlayMode</code></td>
@@ -2330,6 +2511,12 @@
 <td>rec+4 u16 is returned; codes 718/402/800/701 enumerated.</td>
 </tr>
 <tr>
+<td><code>SnoozeAlarm</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><code>StartAutoplay</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
@@ -2378,6 +2565,12 @@
 <td>Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.</td>
 </tr>
 <tr>
+<td><code>Stop</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a</td>
+</tr>
+<tr>
 <td><em>(dispatcher)</em></td>
 <td><code>401</code></td>
 <td><code>strong</code></td>
@@ -2409,6 +2602,12 @@
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>CreateAlarm</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
+</tr>
+<tr>
 <td><code>DestroyAlarm</code></td>
 <td><code>vret(*(r3-in+0x4),+0x3c)</code></td>
 <td><code>strong</code></td>
@@ -2419,6 +2618,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>DestroyAlarm</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
 </tr>
 <tr>
 <td><code>GetDailyIndexRefreshTime</code></td>
@@ -2541,6 +2746,12 @@
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>SetDailyIndexRefreshTime</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
+</tr>
+<tr>
 <td><code>SetFormat</code></td>
 <td><code>vret(*(r3-in+0x4),+0x8)</code></td>
 <td><code>strong</code></td>
@@ -2559,6 +2770,12 @@
 <td>format-string validation gate</td>
 </tr>
 <tr>
+<td><code>SetFormat</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
+</tr>
+<tr>
 <td><code>SetTimeNow</code></td>
 <td><code>401</code></td>
 <td><code>strong</code></td>
@@ -2569,6 +2786,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>SetTimeNow</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
 </tr>
 <tr>
 <td><code>SetTimeServer</code></td>
@@ -2583,6 +2806,12 @@
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>SetTimeServer</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
+</tr>
+<tr>
 <td><code>SetTimeZone</code></td>
 <td><code>vret(*(r3-in+0x4),+0x10)</code></td>
 <td><code>strong</code></td>
@@ -2595,6 +2824,12 @@
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>SetTimeZone</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
+</tr>
+<tr>
 <td><code>UpdateAlarm</code></td>
 <td><code>vret(*(r3-in+0x4),+0x38)</code></td>
 <td><code>strong</code></td>
@@ -2605,6 +2840,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>UpdateAlarm</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
@@ -2791,16 +3032,34 @@
 <td>impl accumulator r29: {710 literal (0x10302800), arg r7-seeded, call/lwz-derived}; rc forwarded verbatim via req v[+0x14] | Wrapper parse</td>
 </tr>
 <tr>
+<td><code>CreateObject</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>favorites/userradio store-commit layer (dirObjFavorites vfunc -&gt; f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803</td>
+</tr>
+<tr>
 <td><code>DestroyObject</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>impl accumulator r30: {701 on object-resolve failure (0x10302858), call/lwz-derived}; rc forwarded verbatim via req v[+0x14] | Wrapper pa</td>
 </tr>
 <tr>
+<td><code>DestroyObject</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>favorites/userradio store-commit layer (dirObjFavorites vfunc -&gt; f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803</td>
+</tr>
+<tr>
 <td><code>FindPrefix</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc type check fail - vtbl[+0x14] != f_10113d94 (0x10302dc4),</td>
+</tr>
+<tr>
+<td><code>FindPrefix</code></td>
+<td><code>800</code></td>
+<td><code>strong</code></td>
+<td>Resolved-object capability check: vtbl[+0x14] must equal the prefix-search entry point f_10113d94; resolved objects whose class fills that</td>
 </tr>
 <tr>
 <td><code>GetAlbumArtistDisplayOption</code></td>
@@ -2813,6 +3072,12 @@
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail - vtbl[+0x18] != f_10113da4 (0x10302d08), call-derived};</td>
+</tr>
+<tr>
+<td><code>GetAllPrefixLocations</code></td>
+<td><code>800</code></td>
+<td><code>strong</code></td>
+<td>Resolved-object capability check: vtbl[+0x18] must equal the prefix-search entry point f_10113da4; resolved objects whose class fills that</td>
 </tr>
 <tr>
 <td><code>GetBrowseable</code></td>
@@ -2857,10 +3122,22 @@
 <td>impl impl literal exit returns 0; two out-branches tail into sched thunks -&gt; f_1010eafc domain {0,720}; rc forwarded verbatim via req v[+0x</td>
 </tr>
 <tr>
+<td><code>RefreshShareIndex</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>worker/delegate rc domain adds [710] beyond the documented accumulator bound</td>
+</tr>
+<tr>
 <td><code>RequestResort</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>impl impl literal exit returns 0; one out-branch tail into sched thunk -&gt; f_1010eafc domain {0,720}; rc forwarded verbatim via req v[+0x14\</td>
+</tr>
+<tr>
+<td><code>RequestResort</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>worker/delegate rc domain adds [701, 711] beyond the documented accumulator bound</td>
 </tr>
 <tr>
 <td><code>SetBrowseable</code></td>
@@ -2879,6 +3156,12 @@
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>impl accumulator r30: {711 literal (0x10302e88), 701 resolver fail (0x10302ef0), arg r5-seeded, call/lwz-derived}; rc forwarded verbatim via</td>
+</tr>
+<tr>
+<td><code>UpdateObject</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>favorites/userradio store-commit layer (dirObjFavorites vfunc -&gt; f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
@@ -2906,16 +3189,34 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>AddBondedZones</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
+</tr>
+<tr>
 <td><code>AddHTSatellite</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>AddHTSatellite</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
+</tr>
+<tr>
 <td><code>CreateStereoPair</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>CreateStereoPair</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
 </tr>
 <tr>
 <td><code>EnterConfigMode</code></td>
@@ -2996,10 +3297,22 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | impl is a bctr through obj vfunc +0x18 -&gt; real worker vfunc via *(r3)+0x18 | Wrapp</td>
 </tr>
 <tr>
+<td><code>RemoveBondedZones</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
+</tr>
+<tr>
 <td><code>RemoveHTSatellite</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | impl is a real fn -&gt; real worker worker | Wrapper parse layer rejected an argument</td>
+</tr>
+<tr>
+<td><code>RemoveHTSatellite</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
 </tr>
 <tr>
 <td><code>RoomDetectionStartChirping</code></td>
@@ -3018,6 +3331,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call. | request-validate failure (req-&gt;v[+0x08] returned 0)</td>
+</tr>
+<tr>
+<td><code>SeparateStereoPair</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
 </tr>
 <tr>
 <td><code>SetAutoplayLinkedZones</code></td>
@@ -3060,6 +3379,12 @@
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>worker f_101931a8 (1096 insns): apply chain f_10186870/f_1040e4cc/f_10740ce8/f_10749a28/f_10749b34/f_10690d44 + f_109b6fe4/f_109b72ac log pa</td>
+</tr>
+<tr>
+<td><code>SetZoneAttributes</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
@@ -3117,6 +3442,12 @@
 <td>gm_impl AddMember impl-level failure</td>
 </tr>
 <tr>
+<td><code>AddMember</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>strong</code></td>
+<td>impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,808}: documented set missed 802/806/807. Strings: 'Adding mem</td>
+</tr>
+<tr>
 <td><code>RemoveMember</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
@@ -3127,6 +3458,12 @@
 <td><code>800</code></td>
 <td><code>confirmed</code></td>
 <td>MemberID not in member list ('failed (not a member before?)')</td>
+</tr>
+<tr>
+<td><code>RemoveMember</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>group-membership rc domain reachable {800} plus internal codes via gm_impl chain</td>
 </tr>
 <tr>
 <td><code>ReportTrackBufferingResult</code></td>
@@ -3402,6 +3739,12 @@
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>UpdateAvailableServices</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>music-services list refresh rc domain adds {801} via service-catalog worker</td>
+</tr>
+<tr>
 <td><em>(dispatcher)</em></td>
 <td><code>401</code></td>
 <td><code>strong</code></td>
@@ -3431,6 +3774,12 @@
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
 <td>unknown action name on QPlay dispatcher</td>
+</tr>
+<tr>
+<td><code>QPlayAuth</code></td>
+<td><code>401</code></td>
+<td><code>confirmed</code></td>
+<td>action-name strcmp miss in wrapper f_1073a4f0 -&gt; req v[+0x14] emit 0x191</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
@@ -3474,6 +3823,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>AddURI</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
 </tr>
 <tr>
 <td><code>AttachQueue</code></td>
@@ -3582,6 +3937,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>SaveAsSonosPlaylist</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>savedqueues store-commit layer (dirObj saved-queues vfunc -&gt; f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
@@ -3988,10 +4349,22 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>AddAccountX</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
+</tr>
+<tr>
 <td><code>AddOAuthAccountX</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0)</td>
+</tr>
+<tr>
+<td><code>AddOAuthAccountX</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
 </tr>
 <tr>
 <td><code>DoPostUpdateTasks</code></td>
@@ -4006,10 +4379,22 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>EditAccountMd</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
+</tr>
+<tr>
 <td><code>EditAccountPasswordX</code></td>
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call. | request-validate failure (req-&gt;v[+0x08] returned 0)</td>
+</tr>
+<tr>
+<td><code>EditAccountPasswordX</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
 </tr>
 <tr>
 <td><code>EnableRDM</code></td>
@@ -4042,10 +4427,22 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>RefreshAccountCredentialsX</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
+</tr>
+<tr>
 <td><code>Remove</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>Remove</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
 </tr>
 <tr>
 <td><code>RemoveAccount</code></td>
@@ -4054,10 +4451,22 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>RemoveAccount</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
+</tr>
+<tr>
 <td><code>ReplaceAccountX</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>ReplaceAccountX</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
 </tr>
 <tr>
 <td><code>SetAccountNicknameX</code></td>
@@ -4066,10 +4475,22 @@
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
 </tr>
 <tr>
+<td><code>SetAccountNicknameX</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
+</tr>
+<tr>
 <td><code>SetString</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
 <td>request-validate failure (req-&gt;v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>SetString</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
@@ -4186,6 +4607,12 @@
 <td><code>402</code></td>
 <td><code>confirmed</code></td>
 <td>Wrapper parse layer rejected an argument before the impl call.</td>
+</tr>
+<tr>
+<td><code>GetZoneGroupAttributes</code></td>
+<td><code>store-commit rc (directory-object vfunc -&gt; store save fn; surfaced verbatim via req v[+0x14])</code></td>
+<td><code>inferred</code></td>
+<td>topology rc domain adds {800} via zgt worker</td>
 </tr>
 <tr>
 <td><code>GetZoneGroupState</code></td>

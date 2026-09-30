@@ -764,8 +764,36 @@ def normalize(doc, client_text=None):
         for k, v in (doc.get("capabilities") or {}).items()}
 
     m.counts = _compute_counts(m)
+    m.pages_client = {}
     m.client_text_unmatched = _apply_client_text(m, client_text)
     return m
+
+
+# Required page/section keys in client_text.json "pages". Renderers look
+# these up to prepend hand-authored friendly prose above the technical
+# content; qa() errors on both stale keys and missing required ones so
+# no rendered prose block can silently lack a client layer.
+PAGE_TEXT_SPEC = {
+    "index": {"intro", "counts", "confidence"},
+    "architecture": {"intro", "routing", "request_vtable",
+                     "capability_fields", "internal_functions",
+                     "dispatch_candidates", "shared_subsystems"},
+    "availability": {"intro"},
+    "state_variables": {"intro"},
+    "events": {"intro", "per_service", "services",
+               "wss_registry", "gena_internals"},
+    "errors": {"intro", "wire_format", "vocabulary", "per_action"},
+    "uri_formats": {"intro"},
+    "payload_formats": {"intro"},
+    "http_api": {"intro"},
+    "firmware": {"intro", "product_surface", "service_matrix", "entries"},
+    "subsystems": {"intro"},
+    "muse": {"intro", "description", "flags_decode", "dispatch",
+             "tables", "op_spine", "validation_lib", "pipeline",
+             "request_envelope", "content_type", "auth", "path_params",
+             "body", "errors", "op_dispatch", "outbound", "field_vocab",
+             "event_channels", "resources", "unresolved"},
+}
 
 
 def _apply_client_text(model, overlay):
@@ -821,6 +849,7 @@ def _apply_client_text(model, overlay):
             res["client_summary"] = txt
         else:
             unmatched.append("muse_resource %s" % k)
+    model.pages_client = overlay.get("pages") or {}
     return unmatched
 
 
@@ -1117,6 +1146,38 @@ def _check_fault_coverage(qa, model):
                     % (a.service, a.name, site))
 
 
+def _check_page_text(qa, model):
+    pages = getattr(model, "pages_client", {}) or {}
+    _CM_ALIAS = {"mediaserver": "server", "mediarenderer": "renderer"}
+    svc_keys = set()
+    for s in model.services:
+        svc_keys.add(s.name)
+        svc_keys.add(s.slug)
+        parent = s.control_path.strip("/").split("/")[0].lower()
+        svc_keys.add("%s_%s" % (s.name, _CM_ALIAS.get(parent, parent)))
+    for page, keys in pages.items():
+        if page not in PAGE_TEXT_SPEC:
+            qa.error("client_text page %r not in PAGE_TEXT_SPEC" % page)
+            continue
+        for key in keys:
+            if key not in PAGE_TEXT_SPEC[page]:
+                qa.error("client_text page key %r.%r not in "
+                         "PAGE_TEXT_SPEC" % (page, key))
+        services = keys.get("services")
+        if isinstance(services, dict):
+            for sk in services:
+                if sk not in svc_keys:
+                    qa.error("client_text events.services key %r matches "
+                             "no service" % sk)
+    for page, required in PAGE_TEXT_SPEC.items():
+        have = pages.get(page)
+        if not have:
+            qa.error("client_text page %r missing entirely" % page)
+            continue
+        for key in required - set(have):
+            qa.error("client_text page key %r.%r missing" % (page, key))
+
+
 def qa(model, api_total=None):
     r = QaResult()
     _check_counts(r, model, api_total)
@@ -1128,6 +1189,7 @@ def qa(model, api_total=None):
     _check_ownership(r, model)
     _check_crosslinks(r, model)
     _check_fault_coverage(r, model)
+    _check_page_text(r, model)
     for key in getattr(model, "client_text_unmatched", []):
         r.error("client_text key matches no record: %s" % key)
     return r
