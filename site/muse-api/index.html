@@ -469,10 +469,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#op-object-vtable-spine" class="md-nav__link">
+  <a href="#how-operations-are-built" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Op-object vtable spine
+        How operations are built
       </span>
     </span>
   </a>
@@ -1944,10 +1944,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#op-object-vtable-spine" class="md-nav__link">
+  <a href="#how-operations-are-built" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Op-object vtable spine
+        How operations are built
       </span>
     </span>
   </a>
@@ -2752,38 +2752,68 @@
 
 <h1 id="muse-api-v1">muse API (v1)<a class="headerlink" href="#muse-api-v1" title="Permanent link">&para;</a></h1>
 <p>The modern Sonos API - the REST-style interface the current app and the cloud channel drive, distinct from the older UPnP/SOAP surface. It was recovered from the binary's own route tables rather than from public documentation: 603 registered routes covering 67 resource groups and 332 distinct operations, all mounted under the /api/v1 prefix.</p>
-<p>The household/player REST API the official app and cloud channel drive — recovered from the binary's route registration tables, not from public docs.</p>
 <p>Every route is registered as a small record holding three things: the URL pattern (with placeholders like {playerId}), which HTTP methods it accepts, and a machine-name string naming the operation. Most operations exist in two spellings - one addressing a single player, one household-scoped - which is why the route count is nearly double the operation count.</p>
-<p><strong>Technical description:</strong></p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template<em>, flags, 0, handler</em>, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb[,subparam]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...). All muse routes are mounted under the /api prefix — the master HTTP table registers '/api' -&gt; f_100d2cf8 which installs the muse dispatcher (stubs f_100d36c0/f_100d36e4 -&gt; pipeline f_100d2e18), so on the wire paths are /api/v1/... .</p>
+</details>
 <p>Each route carries a bitmask saying which HTTP verbs it accepts - GET, POST, PUT, DELETE, and PATCH for settings edits - plus a marker dividing 'settings' operations from 'playback' operations.</p>
-<p><strong>flags decode:</strong> flags low byte = HTTP method bitmask: 0x01 GET, 0x02 POST, 0x04 PUT, 0x08 DELETE, 0x10 PATCH (settings-only). Bit 0x100 set = household/settings-class routes; clear (0x2000000x) = playback/volume-class (playback, groupVolume, playerVolume, playbackMetadata). 0x20000000 = muse marker bit on all records.</p>
 <p>Every route funnels into one shared dispatcher. Two thin entry points merely record which channel the request arrived on (local app versus cloud), then a common routine unpacks the request and hands it to the operation by name.</p>
-<p><strong>dispatch:</strong> two stubs only: f_100d36c0 (r8=0) serves 332 records, f_100d36e4 (r8=1) 271; both tail-call f_100d2e18 which normalizes the request into a 0x2a00-byte context (header/flag block at +0x416.., buf +0x2594) and dispatches on the parsed csv op name. r6==NULL fast-path returns 0.</p>
 <p>Routes are registered in two dialect tables - one phrased in terms of household IDs, one in player IDs - covering the same operations for the two address styles.</p>
+<details>
+<summary><b>Route record internals</b></summary>
+<p><strong>flags decode:</strong> flags low byte = HTTP method bitmask: 0x01 GET, 0x02 POST, 0x04 PUT, 0x08 DELETE, 0x10 PATCH (settings-only). Bit 0x100 set = household/settings-class routes; clear (0x2000000x) = playback/volume-class (playback, groupVolume, playerVolume, playbackMetadata). 0x20000000 = muse marker bit on all records.</p>
+<p><strong>dispatch:</strong> two stubs only: f_100d36c0 (r8=0) serves 332 records, f_100d36e4 (r8=1) 271; both tail-call f_100d2e18 which normalizes the request into a 0x2a00-byte context (header/flag block at +0x416.., buf +0x2594) and dispatches on the parsed csv op name. r6==NULL fast-path returns 0.</p>
 <p>Registration arrays: <code>primary</code> — 0x10e7a68c.. (householdId dialect incl. protectedAdmin); <code>secondary</code> — 0x10e783f8.. ({HHID} dialect incl. protected-admin)</p>
-<h2 id="op-object-vtable-spine">Op-object vtable spine<a class="headerlink" href="#op-object-vtable-spine" title="Permanent link">&para;</a></h2>
+</details>
+<h2 id="how-operations-are-built">How operations are built<a class="headerlink" href="#how-operations-are-built" title="Permanent link">&para;</a></h2>
 <p>Every operation is a small object built from the same template: a shared 'may I run?' check, its own execute step, and a ladder of optional hooks. The early hooks each read exactly one named field out of the request's JSON body - which is how every command's parameter list was recovered (setVolume reads 'muted' and 'volume'; seek reads 'playOnCompletion', 'positionMillis', 'itemId', and 'window'). The later hooks build the outgoing request - setVolume, for example, can emit a mute call to one player or a volume call to a whole group. Each verb exists twice: a single-player variant and a household-wide variant.</p>
-<p><strong>Technical description:</strong></p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Every op is a C++ object sharing one vtable skeleton: <code>+0x00</code>/<code>+0x04</code> destructors (per-op), <code>+0x08</code> shared run-gate (<code>0x109c9854</code>, same in all 682 vtables), <code>+0x0c</code> the per-op <strong>execute</strong> (unique per op class — shown as Exec in the tables below), <code>+0x10</code> shared default, and <code>+0x14</code>..<code>+0x60</code> a fixed hook ladder whose base defaults live at <code>0x101c0638..0x101c06ac</code>. Ops override subsets of the hooks: the low hooks read body params — each overridden hook is one <strong>declared parameter</strong>, reading exactly one named JSON member through <code>f_108337b0</code> (e.g. setVolume: <code>+0x1c</code>→<code>muted</code>, <code>+0x20</code>→<code>volume</code>; seek: <code>+0x1c</code>→<code>playOnCompletion</code>, <code>+0x20</code>→<code>positionMillis</code>, <code>+0x28</code>→<code>itemId</code>, <code>+0x2c</code>→<code>window</code>) — the Params column lists them — and higher hooks build forwarded requests (e.g. <code>setVolume</code> overrides <code>+0x60</code> to emit <code>v1/players/{id}/playerVolume/mute</code> and <code>v1/groups/{id}/groupVolume</code>). Each verb registers two op classes — a player-channel variant and a fatter household-channel variant.</p>
+</details>
 <p>Before any operation runs, a shared validation library checks the request body field by field - missing fields, wrong types, out-of-range numbers, malformed timestamps - each failure producing its own specific error message.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>Body validation library</strong> (<code>0x109c74b0..0x109ca92c</code>): typed validators keyed by field name — <code>f_109ca3b4</code> emits 'Missing required field: ', <code>f_109c9cc0</code> 'Unexpected type given for key: ', <code>f_109c8c60</code> 'Found unexpected array for '/'Unable to parse array for ', <code>f_109c90ec</code> 'Found object for ', <code>f_109ca92c</code> coerces strings ('Unable to coerce string to boolean for key: '/' to number for key: '), <code>f_109c7cb4</code>/<code>f_109c8004</code>/<code>f_109c8354</code>/<code>f_109c86dc</code> numeric bounds ('below minimum of '/'above maximum of '), <code>f_109c7954</code> 'Parameter '…' out of range: ', <code>f_109c74b0</code> timestamps (' failed timestamp validation'), <code>f_109c7740</code> ' not a valid Muse error code'.</p>
+</details>
 <h2 id="request-pipeline">Request pipeline<a class="headerlink" href="#request-pipeline" title="Permanent link">&para;</a></h2>
 <p>The gauntlet each request runs: the HTTP request is unpacked into a work context, the Content-Type header is checked (JSON required; merge-patch JSON for edits), an API key is verified (rejection: 'Invalid api key'), URL parameters are parsed as numbers, the JSON body is decoded, and finally the operation is dispatched. The items below are each stage's notes.</p>
 <p>Stage one: the incoming HTTP request is unpacked into a working context - headers, flags, and a scratch buffer the operation's hooks read from.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>request envelope.</strong> f_100d2e18 builds a 0x2a00-byte request context (headers/flags at +0x416.., scratch buf at +0x2594). Route lookup by path template -&gt; 24-byte record {path<em>, method_flags, 0, stub</em>, 0, csv*}. Stubs f_100d36c0 (channel r8=0) / f_100d36e4 (r8=1) tail-call the dispatcher.</p>
+</details>
 <p>Stage two: requests carrying a body must declare JSON content; edit operations (PATCH) demand the merge-patch media type instead. Anything else is rejected before the operation sees it.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>content type.</strong> Body-bearing requests must send Content-Type: application/json (verified by strcmp at 0x100d3230-0x100d3240); PATCH routes require application/merge-patch+json (0x10e7bd1c) instead. Violation -&gt; error 'missing or invalid Content-Type; must be %s' (0x10e7bd3c) with status class 0x19f (415) via f_100d23d8.</p>
+</details>
 <p>Stage three: an API-key check guards the whole surface. A missing or wrong key fails with 'Invalid api key' before any operation runs.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>auth.</strong> API-key check in f_106d9880 (called at 0x100d35b0 with arg 0x1058439c); failure -&gt; 'Invalid api key' (0x10e7bd68), status class 0x190 (400), error code 0x5d (93).</p>
+</details>
 <p>Stage four: numeric placeholders in the URL (playerId, groupId and friends) are parsed as integers.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>path params.</strong> Path params parsed with strtoul(base 10) at 0x100d3210 for numeric ids.</p>
+</details>
 <p>Stage five: the JSON body is decoded into a working store the operation's parameter hooks read from.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>body.</strong> JSON body parsed by f_106d966c/f_106d98e0 into a value store; response serialized by f_106db220 via the writer object at 0x11095f88+0xf10.</p>
+</details>
 <p>How pipeline failures are reported - each stage can abort with its own status and error string before the operation ever runs.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>errors.</strong> Errors are a 0x40-byte serialized envelope built at rsp+0x8c and emitted by f_100d23d8(ctx, buf, status_class, errcode, msg).</p>
+</details>
 <p>Stage six: with everything validated, the named operation's execute method runs.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong>op dispatch.</strong> The parsed csv verb is looked up in a per-resource op map (see find-by-name loops f_108337b0 users such as f_10b23e3c). Ops are C++ objects created by per-verb factory functions; each op class installs its own vtable (slot 0 = per-op execute; +8 = shared run trampoline f_109c9854).</p>
+</details>
 <h2 id="outbound-player-as-muse-client">Outbound (player as muse client)<a class="headerlink" href="#outbound-player-as-muse-client" title="Permanent link">&para;</a></h2>
 <p>The player is also a muse client - it builds these REST calls itself toward other players and the cloud. The table shows each outbound operation's URL shape and query parameters.</p>
 <p>The player is also a muse CLIENT (household channel): a descriptor stream at .got2 0x1108dea4-0x1108e2e4 lists outbound ops for cloud-facing resources in order: authorization, entitlements, groups, history, playback, playerVolume, systemReporting, zones (+catalog). Entries: /pathSuffix + opName + 'k=' query params + field names.</p>
@@ -10994,14 +11024,15 @@
 <li><strong>zone_availability</strong>: <code>UNDEFINED</code>=1, <code>ENABLED_AVAILABLE</code>=2, <code>ENABLED_UNAVAILABLE</code>=3, <code>DISABLED_AVAILABLE</code>=4, <code>DISABLED_UNAVAILABLE</code>=5, <code>SECONDARY_STATE_IGNORED_BY_CR</code>=6</li>
 </ul>
 <p>Op-level JSON keys recovered from op-object methods: <code>muse</code>, <code>zoneId</code>, <code>channelMapSet</code>, <code>name</code>, <code>zoneDefinition</code>, <code>settings</code>, <code>isHomeTheater</code>, <code>fronthaulChannel</code>, <code>backhaulChannel</code>, <code>flatChannelMapSet</code></p>
-<details><summary>Evidence (5)</summary>
-
-- @ 0x10e7a68c — route record array head (householdId dialect)
-- @ 0x10e783f8 — route record array head ({HHID} dialect)
-- @ 0x100d36c0 — handler stub r8=0 -> f_100d2e18
-- @ 0x100d36e4 — handler stub r8=1 -> f_100d2e18
-- @ 0x100d2e18 — request normalizer + dispatcher
-
+<details>
+<summary>Evidence (5)</summary>
+<ul>
+<li>@ 0x10e7a68c — route record array head (householdId dialect)</li>
+<li>@ 0x10e783f8 — route record array head ({HHID} dialect)</li>
+<li>@ 0x100d36c0 — handler stub r8=0 -&gt; f_100d2e18</li>
+<li>@ 0x100d36e4 — handler stub r8=1 -&gt; f_100d2e18</li>
+<li>@ 0x100d2e18 — request normalizer + dispatcher</li>
+</ul>
 </details>
 
 

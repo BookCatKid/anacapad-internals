@@ -76,7 +76,7 @@ Joins the calling member (MemberID + BootSeq) to this group. Returns the coordin
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10738654 — wrapper decode
 
@@ -86,7 +86,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×2, out-arg write×5, validate×1, commit×1); member delegates: r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738654 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}
 
@@ -96,7 +96,7 @@ impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738654 — member vfunc calls: \['r29 v\[+?\]'\]
 
@@ -110,7 +110,7 @@ service-internal state reached through member delegate(s): r29 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738654 — no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
 
@@ -120,7 +120,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738654 — bl call scan: notify-family sites = \[\]
 
@@ -130,7 +130,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738654 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}
 
@@ -182,7 +182,7 @@ impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,8
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738654`
 - dispatch entry `0x10f11a64`
@@ -224,7 +224,7 @@ Removes MemberID from the group.
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10738460 — wrapper decode
 
@@ -234,7 +234,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738460 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -244,7 +244,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738460 — member vfunc calls: \['r30 v\[+0xc\]'\]
 
@@ -258,7 +258,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738460 — no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
@@ -268,7 +268,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738460 — bl call scan: notify-family sites = \[\]
 
@@ -278,7 +278,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738460 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -307,7 +307,7 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738460`
 - dispatch entry `0x10f11a70`
@@ -345,7 +345,7 @@ Member-to-coordinator feedback of a buffering result code for a track fetch. NOT
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x107388a4 — wrapper decode
 
@@ -355,7 +355,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x10\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107388a4 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -365,7 +365,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107388a4 — member vfunc calls: \['r30 v\[+0x10\]'\]
 
@@ -379,7 +379,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x10\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107388a4 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
 
@@ -389,7 +389,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107388a4 — bl call scan: notify-family sites = \[\]
 
@@ -399,7 +399,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107388a4 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -416,7 +416,7 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 - impl f_105c53d0 always returns 0x192
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107388a4`
 - dispatch entry `0x10f11a7c`
@@ -450,7 +450,7 @@ Sets the group's desired source-area ids (used to steer which zone's content the
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10738550 — wrapper decode
 
@@ -460,7 +460,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r29 v\[+0x14\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738550 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -470,7 +470,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+0x14\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738550 — member vfunc calls: \['r29 v\[+0x14\]'\]
 
@@ -484,7 +484,7 @@ service-internal state reached through member delegate(s): r29 v\[+0x14\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x14\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738550 — no transition-literal/store pattern; member delegates: \['r29 v\[+0x14\]'\]
 
@@ -494,7 +494,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738550 — bl call scan: notify-family sites = \[\]
 
@@ -504,7 +504,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738550 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -520,7 +520,7 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 - req->v\[+0x08\] returned 0 -> addi r4,0x192 -> ->v\[+0x14\]
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738550`
 - dispatch entry `0x10f11a88`
@@ -584,7 +584,7 @@ Dispatcher 0x10738308 decodes fully: binary-search over action table 0x10f11a64;
 
 Implementation sources (recovered): `zoneplayer/gm_impl.cxx`
 
-<details><summary>Service evidence (3)</summary>
+<details markdown="1"><summary>Service evidence (3)</summary>
 
 - @ 0x1068bc0c — service router function
 - @ 0x10f11a58 — service vtable

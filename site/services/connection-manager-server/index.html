@@ -2090,56 +2090,56 @@
 </ul>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x107359e0 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x107359e0 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107359e0 — req-vfunc call map: {'0x14': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107359e0 — req-vfunc call map: {'0x14': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r4 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107359e0 — member vfunc calls: \['r4 v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107359e0 — member vfunc calls: ['r4 v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects">Side effects<a class="headerlink" href="#side-effects" title="Permanent link">&para;</a></h4>
 <ul>
 <li>No state mutation -- core vfuncs are read-only stubs/literal copies in this build.</li>
 </ul>
 <h4 id="state-transitions-strong">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107359e0 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107359e0 — no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong">Events <code>strong</code><a class="headerlink" href="#events-strong" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107359e0 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107359e0 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107359e0 — commit/fault slot usage: {'0x14': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107359e0 — commit/fault slot usage: {'0x14': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h4>
 <p><strong><code>402</code></strong> <code>strong</code></p>
 <p>The impl-&gt;v[+0x8] call returned 0 — no usable connection list. | n/a — success/failure fully determined by the impl vfunc return</p>
@@ -2150,20 +2150,23 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> n/a — success/failure fully determined by the impl vfunc return
 <strong>Bounded unknown — unresolved:</strong> none</p>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x107359e0`
-- dispatch entry `0x10f118d4` (voff `16`)
-- impl call `0x10735a0c` obj `r4-in` slot `8` arg4 `r4-in`
-- Request-gate req->v\[+0x08\] (nonzero else 402). Calls core->v\[+0x0c\] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req->v\[+0x0c\] commits. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.
-
-- fn 0x107359e0 @ 0x107359e0 — action wrapper handler
-- @ 0x10f118d4 — action dispatch table entry
-- fn f_107359e0 — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
-- fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x107359e0</code></li>
+<li>dispatch entry <code>0x10f118d4</code> (voff <code>16</code>)</li>
+<li>impl call <code>0x10735a0c</code> obj <code>r4-in</code> slot <code>8</code> arg4 <code>r4-in</code></li>
+<li>
+<p>Request-gate req-&gt;v[+0x08] (nonzero else 402). Calls core-&gt;v[+0x0c] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req-&gt;v[+0x0c] commits. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.</p>
+</li>
+<li>
+<p>fn 0x107359e0 @ 0x107359e0 — action wrapper handler</p>
+</li>
+<li>@ 0x10f118d4 — action dispatch table entry</li>
+<li>fn f_107359e0 — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8</li>
+<li>fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path</li>
+</ul>
 </details>
-
 <h3 id="getcurrentconnectioninfo"><code>GetCurrentConnectionInfo</code><a class="headerlink" href="#getcurrentconnectioninfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns per-connection detail for the media-server side. Unlike the renderer twin it takes no ConnectionID argument and reports the single active/default connection.</p>
@@ -2217,56 +2220,56 @@
 </table>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x107356bc — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x107356bc — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_1">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_1" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×1, out-arg write×7, validate×1, commit×1); member delegates: *(r30+4) v[+?]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107356bc — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107356bc — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_1">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_1" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): *(r30+4) v[+?]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107356bc — member vfunc calls: \['*(r30+4) v\[+?\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107356bc — member vfunc calls: ['*(r30+4) v[+?]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_1">Side effects<a class="headerlink" href="#side-effects_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Always faults before emitting -- no observable effect beyond the SOAP fault.</li>
 </ul>
 <h4 id="state-transitions-strong_1">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_1" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107356bc — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107356bc — no transition-literal/store pattern; member delegates: ['*(r30+4) v[+?]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_1">Events <code>strong</code><a class="headerlink" href="#events-strong_1" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107356bc — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107356bc — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_1">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_1" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107356bc — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107356bc — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_1">Errors<a class="headerlink" href="#errors_1" title="Permanent link">&para;</a></h4>
 <p><strong><code>706</code></strong> <code>strong</code></p>
 <p>impl-&gt;v[+0x1c] rc surfaced</p>
@@ -2280,28 +2283,31 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x107356bc`
-- dispatch entry `0x10f118e0` (voff `20`)
-- impl call `0x10735700` obj `r4-in` slot `28` arg4 `ConnectionID`
-- impl call `0x1073571c` obj `r4-in` slot `8` arg4 `?`
-- impl call `0x10735778` obj `*(r3-in+0x4)` slot `16` arg4 `*(sp-0x1050+0x2c)`
-- impl call `0x10735794` obj `r4-in` slot `20` arg4 `vret(*(r3-in+0x4),+0x10)`
-- impl call `0x10735844` obj `vret(*(sp-0x1050+0x104c),+0x24)` slot `16` arg4 `sp+0x3c`
-- impl call `0x10735874` obj `vret(*(sp-0x1050+0x104c),+0x24)` slot `16` arg4 `sp+0x43c`
-- impl call `0x107358c8` obj `vret(*(sp-0x1050+0x104c),+0x24)` slot `16` arg4 `*(sp-0x1050+0x1044)`
-- impl call `0x107358f8` obj `vret(*(sp-0x1050+0x104c),+0x24)` slot `16` arg4 `*(sp-0x1050+0x1048)`
-- req vcall `0x1073590c` slot `12` (commit)
-- Parses required ConnectionID via req->v\[+0x1c\]+f_10561514, then req->v\[+0x08\] gate (else 402). Calls core->v\[+0x10\] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v\[+0x14\]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists.
-
-- fn 0x107356bc @ 0x107356bc — action wrapper handler
-- @ 0x10f118e0 — action dispatch table entry
-- fn f_107356bc — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
-- fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x107356bc</code></li>
+<li>dispatch entry <code>0x10f118e0</code> (voff <code>20</code>)</li>
+<li>impl call <code>0x10735700</code> obj <code>r4-in</code> slot <code>28</code> arg4 <code>ConnectionID</code></li>
+<li>impl call <code>0x1073571c</code> obj <code>r4-in</code> slot <code>8</code> arg4 <code>?</code></li>
+<li>impl call <code>0x10735778</code> obj <code>*(r3-in+0x4)</code> slot <code>16</code> arg4 <code>*(sp-0x1050+0x2c)</code></li>
+<li>impl call <code>0x10735794</code> obj <code>r4-in</code> slot <code>20</code> arg4 <code>vret(*(r3-in+0x4),+0x10)</code></li>
+<li>impl call <code>0x10735844</code> obj <code>vret(*(sp-0x1050+0x104c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x3c</code></li>
+<li>impl call <code>0x10735874</code> obj <code>vret(*(sp-0x1050+0x104c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x43c</code></li>
+<li>impl call <code>0x107358c8</code> obj <code>vret(*(sp-0x1050+0x104c),+0x24)</code> slot <code>16</code> arg4 <code>*(sp-0x1050+0x1044)</code></li>
+<li>impl call <code>0x107358f8</code> obj <code>vret(*(sp-0x1050+0x104c),+0x24)</code> slot <code>16</code> arg4 <code>*(sp-0x1050+0x1048)</code></li>
+<li>req vcall <code>0x1073590c</code> slot <code>12</code> (commit)</li>
+<li>
+<p>Parses required ConnectionID via req-&gt;v[+0x1c]+f_10561514, then req-&gt;v[+0x08] gate (else 402). Calls core-&gt;v[+0x10] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req-&gt;v[+0x14]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists.</p>
+</li>
+<li>
+<p>fn 0x107356bc @ 0x107356bc — action wrapper handler</p>
+</li>
+<li>@ 0x10f118e0 — action dispatch table entry</li>
+<li>fn f_107356bc — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8</li>
+<li>fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path</li>
+</ul>
 </details>
-
 <h3 id="getprotocolinfo"><code>GetProtocolInfo</code><a class="headerlink" href="#getprotocolinfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the Source/Sink protocol-info CSVs the media server supports.</p>
@@ -2336,56 +2342,56 @@
 </ul>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10735b64 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10735b64 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_2">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_2" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10735b64 — req-vfunc call map: {'0x14': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10735b64 — req-vfunc call map: {'0x14': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_2">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_2" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r4 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10735b64 — member vfunc calls: \['r4 v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10735b64 — member vfunc calls: ['r4 v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_2">Side effects<a class="headerlink" href="#side-effects_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li>No state mutation -- core vfuncs are read-only stubs/literal copies in this build.</li>
 </ul>
 <h4 id="state-transitions-strong_2">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_2" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10735b64 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10735b64 — no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_2">Events <code>strong</code><a class="headerlink" href="#events-strong_2" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10735b64 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10735b64 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_2">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_2" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10735b64 — commit/fault slot usage: {'0x14': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10735b64 — commit/fault slot usage: {'0x14': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_2">Errors<a class="headerlink" href="#errors_2" title="Permanent link">&para;</a></h4>
 <p><strong><code>402</code></strong> <code>strong</code></p>
 <p>impl-&gt;v[+0x8] rc gates emit | Wrapper parse layer rejected an argument before the impl call.</p>
@@ -2395,20 +2401,23 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> impl-&gt;v[+0x8] rc gates emit
 <strong>Bounded unknown — unresolved:</strong> whether 0 faults with 402 like its sibling</p>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10735b64`
-- dispatch entry `0x10f118ec` (voff `12`)
-- impl call `0x10735b90` obj `r4-in` slot `8` arg4 `r4-in`
-- Request-gate req->v\[+0x08\] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v\[+0x08\] = f_1032e84c, a strlcpy of the literal CSV "file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*" into a 0x400 stack buffer; emits Sink via core->v\[+0x10\] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v\[+0x0c\] commits the response. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.
-
-- fn 0x10735b64 @ 0x10735b64 — action wrapper handler
-- @ 0x10f118ec — action dispatch table entry
-- fn f_10735b64 — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
-- fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10735b64</code></li>
+<li>dispatch entry <code>0x10f118ec</code> (voff <code>12</code>)</li>
+<li>impl call <code>0x10735b90</code> obj <code>r4-in</code> slot <code>8</code> arg4 <code>r4-in</code></li>
+<li>
+<p>Request-gate req-&gt;v[+0x08] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)-&gt;v[+0x08] = f_1032e84c, a strlcpy of the literal CSV "file:<em>:audio/mpegurl:</em>,x-file-cifs:<em>:</em>:<em>,x-rincon:</em>:<em>:</em>,x-rincon-mp3radio:<em>:</em>:<em>,x-rincon-playlist:</em>:<em>:</em>,x-rincon-queue:<em>:</em>:<em>,x-rincon-stream:</em>:<em>:</em>" into a 0x400 stack buffer; emits Sink via core-&gt;v[+0x10] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req-&gt;v[+0x0c] commits the response. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.</p>
+</li>
+<li>
+<p>fn 0x10735b64 @ 0x10735b64 — action wrapper handler</p>
+</li>
+<li>@ 0x10f118ec — action dispatch table entry</li>
+<li>fn f_10735b64 — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8</li>
+<li>fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path</li>
+</ul>
 </details>
-
 <h2 id="state-variables">State variables<a class="headerlink" href="#state-variables" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2499,12 +2508,13 @@
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
 <p>Implementation sources (recovered): <code>compiled lib — no path literal</code></p>
-<details><summary>Service evidence (3)</summary>
-
-- @ 0x101953c8 — service router function
-- @ 0x10f118bc — service vtable
-- @ 0x10735574 — service dispatcher
-
+<details>
+<summary>Service evidence (3)</summary>
+<ul>
+<li>@ 0x101953c8 — service router function</li>
+<li>@ 0x10f118bc — service vtable</li>
+<li>@ 0x10735574 — service dispatcher</li>
+</ul>
 </details>
 
 

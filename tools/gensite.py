@@ -87,6 +87,7 @@ def write_config(nav, services):
         "markdown_extensions:",
         "  - tables",
         "  - fenced_code",
+        "  - md_in_html",
         "  - toc:",
         "      permalink: true",
         "nav:",

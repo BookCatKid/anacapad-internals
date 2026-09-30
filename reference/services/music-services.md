@@ -59,7 +59,7 @@ Returns the session id used to authenticate SMAPI calls for the given ServiceId 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073a264 — wrapper decode
 
@@ -69,7 +69,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a264 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
@@ -79,7 +79,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a264 — member vfunc calls: \['*(r30+4) v\[+0xc\]'\]
 
@@ -93,7 +93,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a264 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0xc\]'\]
 
@@ -103,7 +103,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a264 — bl call scan: notify-family sites = \[\]
 
@@ -113,7 +113,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a264 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
@@ -136,7 +136,7 @@ capability/mode flag gate (sp byte flags tested before arg parse)
 - *(sp+0x18)!=0 then *(sp+0x14)==0 -> 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a264`
 - dispatch entry `0x10f11d1c` (voff `12`)
@@ -178,7 +178,7 @@ Returns the full music-service descriptor list (XML: service ids, names, capabil
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073a424 — wrapper decode
 
@@ -188,7 +188,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c\], *(r30+8) v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a424 — req-vfunc call map: {'0x8': 1}
 
@@ -198,7 +198,7 @@ impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+8) v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a424 — member vfunc calls: \['r4 v\[+0x3c\]', '*(r30+8) v\[+0x8\]'\]
 
@@ -212,7 +212,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\], *(r30+8) v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a424 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x3c\]', '*(r30+8) v\[+0x8\]'\]
 
@@ -222,7 +222,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a424 — bl call scan: notify-family sites = \[\]
 
@@ -232,7 +232,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a424 — commit/fault slot usage: {'0x8': 1}
 
@@ -253,7 +253,7 @@ impl->v\[+0x8\] rc surfaced | Wrapper parse layer rejected an argument before th
 **Bounded unknown — unresolved:** none identified
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a424`
 - dispatch entry `0x10f11d28` (voff `16`)
@@ -279,7 +279,7 @@ Forces a refresh of the cached service descriptor list from the cloud/catalog.
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073a3b4 — wrapper decode
 
@@ -289,7 +289,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a3b4 — req-vfunc call map: {'0x14': 1, '0xc': 1}
 
@@ -299,7 +299,7 @@ impl consumes in-args via req slots (raise-fault×1, commit×1); member delegate
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r3+4) v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a3b4 — member vfunc calls: \['*(r3+4) v\[+0x8\]'\]
 
@@ -313,7 +313,7 @@ service-internal state reached through member delegate(s): *(r3+4) v\[+0x8\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a3b4 — no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x8\]'\]
 
@@ -323,7 +323,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a3b4 — bl call scan: notify-family sites = \[\]
 
@@ -333,7 +333,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x1073a3b4 — commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
@@ -365,7 +365,7 @@ music-services list refresh rc domain adds {801} via service-catalog worker
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a3b4`
 - dispatch entry `0x10f11d34` (voff `20`)
@@ -414,7 +414,7 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 Implementation sources (recovered): `zoneplayer/zpserviceaccounts.cxx`, `zoneplayer/svcmanifestfile.cxx`, `zoneplayer/spotify/spotify_smapi.cxx`, `zoneplayer/accountsmgr.cxx`, `zoneplayer/entitlementsmanager.cxx`
 
-<details><summary>Service evidence (3)</summary>
+<details markdown="1"><summary>Service evidence (3)</summary>
 
 - @ 0x101953c8 — service router function
 - @ 0x10f11d04 — service vtable

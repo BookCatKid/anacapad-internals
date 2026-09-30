@@ -63,7 +63,7 @@ request parsing: req->v\[+0x1c\](req, name) returns the arg node; typed helpers 
 req->v\[+0x08\] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl->v\[+0x08\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v\[+0x14\](req, impl_rc)
 propagates the impl return code toward a SOAP fault.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_10738e9c @ 0x10738f1c — impl->v\[+0x08\](impl,InstanceID,&byte)
 
@@ -73,7 +73,7 @@ propagates the impl return code toward a SOAP fault.
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738e9c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
@@ -83,7 +83,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738e9c — member vfunc calls: \['r30 v\[+0x8\]'\]
 
@@ -97,7 +97,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x8\]
 #### State transitions `confirmed`
 
 None proven; read-only.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10738e9c — read-only path
 
@@ -107,7 +107,7 @@ None proven; read-only.
 #### Events `confirmed`
 
 None proven in the SOAP path.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10738e9c — no event calls in wrapper
 
@@ -117,7 +117,7 @@ None proven in the SOAP path.
 #### Return behavior `confirmed`
 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_10738e9c @ 0x10738f1c — impl->v\[+0x08\](impl,InstanceID,&byte)
 
@@ -145,7 +145,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738e9c`
 - dispatch entry `0x10f11aa8`
@@ -195,7 +195,7 @@ request parsing: req->v\[+0x1c\](req, name) returns the arg node; typed helpers 
 req->v\[+0x08\] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl->v\[+0x10\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v\[+0x14\](req, impl_rc)
 propagates the impl return code toward a SOAP fault.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_107390c4 @ 0x10739144 — impl->v\[+0x10\](impl,InstanceID,&u16)
 
@@ -205,7 +205,7 @@ propagates the impl return code toward a SOAP fault.
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x10\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107390c4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
@@ -215,7 +215,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107390c4 — member vfunc calls: \['r30 v\[+0x10\]'\]
 
@@ -229,7 +229,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 #### State transitions `confirmed`
 
 None proven; read-only.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x107390c4 — wrapper decode
 
@@ -239,7 +239,7 @@ None proven; read-only.
 #### Events `confirmed`
 
 None proven in the SOAP path.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x107390c4 — wrapper decode
 
@@ -249,7 +249,7 @@ None proven in the SOAP path.
 #### Return behavior `confirmed`
 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_107390c4 @ 0x10739144 — impl->v\[+0x10\](impl,InstanceID,&u16)
 
@@ -277,7 +277,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107390c4`
 - dispatch entry `0x10f11ab4`
@@ -320,7 +320,7 @@ request parsing: req->v\[+0x1c\](req, name) returns the arg node; typed helpers 
 req->v\[+0x08\] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl->v\[+0x0c\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v\[+0x14\](req, impl_rc)
 propagates the impl return code toward a SOAP fault.
-<details><summary>Evidence (4)</summary>
+<details markdown="1"><summary>Evidence (4)</summary>
 
 - fn f_10738fb0 @ 0x10739054 — impl->v\[+0x0c\](impl,InstanceID,byte)
 - fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
@@ -333,7 +333,7 @@ propagates the impl return code toward a SOAP fault.
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738fb0 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -343,7 +343,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738fb0 — member vfunc calls: \['r30 v\[+0xc\]'\]
 
@@ -357,7 +357,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### State transitions `strong`
 
 Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' names built in f_1039d11c are evented state variables.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x10ec39fc — 'GroupMute' state-var name
 - @ 0x10ec3a08 — 'GroupVolumeChangeable'
@@ -368,7 +368,7 @@ Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' n
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738fb0 — bl call scan: notify-family sites = \[\]
 
@@ -378,7 +378,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
-<details><summary>Evidence (4)</summary>
+<details markdown="1"><summary>Evidence (4)</summary>
 
 - fn f_10738fb0 @ 0x10739054 — impl->v\[+0x0c\](impl,InstanceID,byte)
 - fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
@@ -415,7 +415,7 @@ reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when alre
 - *(impl+0x258) flag already set (nested/duplicate invocation while a group-set is active)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738fb0`
 - dispatch entry `0x10f11ac0`
@@ -459,7 +459,7 @@ request parsing: req->v\[+0x1c\](req, name) returns the arg node; typed helpers 
 req->v\[+0x08\] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl->v\[+0x14\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v\[+0x14\](req, impl_rc)
 propagates the impl return code toward a SOAP fault.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_107391d8 @ 0x1073927c — impl->v\[+0x14\](impl,InstanceID,desired)
 - fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'
@@ -470,7 +470,7 @@ propagates the impl return code toward a SOAP fault.
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x14\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107391d8 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -480,7 +480,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x14\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107391d8 — member vfunc calls: \['r30 v\[+0x14\]'\]
 
@@ -494,7 +494,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x14\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x14\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107391d8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x14\]'\]
 
@@ -504,7 +504,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107391d8 — bl call scan: notify-family sites = \[\]
 
@@ -514,7 +514,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_107391d8 @ 0x1073927c — impl->v\[+0x14\](impl,InstanceID,desired)
 - fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'
@@ -551,7 +551,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107391d8`
 - dispatch entry `0x10f11acc`
@@ -605,7 +605,7 @@ request parsing: req->v\[+0x1c\](req, name) returns the arg node; typed helpers 
 req->v\[+0x08\] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl->v\[+0x18\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v\[+0x14\](req, impl_rc)
 propagates the impl return code toward a SOAP fault.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_107392ec @ 0x10739394 — impl->v\[+0x18\](impl,InstanceID,adj,&u16)
 
@@ -615,7 +615,7 @@ propagates the impl return code toward a SOAP fault.
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x18\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107392ec — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
@@ -625,7 +625,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x18\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107392ec — member vfunc calls: \['r30 v\[+0x18\]'\]
 
@@ -639,7 +639,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x18\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x18\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107392ec — no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
 
@@ -649,7 +649,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x107392ec — bl call scan: notify-family sites = \[\]
 
@@ -659,7 +659,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_107392ec @ 0x10739394 — impl->v\[+0x18\](impl,InstanceID,adj,&u16)
 
@@ -695,7 +695,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107392ec`
 - dispatch entry `0x10f11ad8`
@@ -735,7 +735,7 @@ request parsing: req->v\[+0x1c\](req, name) returns the arg node; typed helpers 
 req->v\[+0x08\] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl->v\[+0x1c\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req->v\[+0x14\](req, impl_rc)
 propagates the impl return code toward a SOAP fault.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_10738db0 @ 0x10738e2c — impl->v\[+0x1c\](impl,InstanceID)
 - fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker
@@ -746,7 +746,7 @@ propagates the impl return code toward a SOAP fault.
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x1c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738db0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -756,7 +756,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x1c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738db0 — member vfunc calls: \['r30 v\[+0x1c\]'\]
 
@@ -770,7 +770,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x1c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x10738db0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
 
@@ -780,7 +780,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `confirmed`
 
 None proven.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10738db0 — no event calls in wrapper
 
@@ -790,7 +790,7 @@ None proven.
 #### Return behavior `confirmed`
 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_10738db0 @ 0x10738e2c — impl->v\[+0x1c\](impl,InstanceID)
 - fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker
@@ -819,7 +819,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738db0`
 - dispatch entry `0x10f11ae4`
@@ -874,7 +874,7 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 Implementation sources (recovered): `zoneplayer/grc_zpimpl.cxx`
 
-<details><summary>Service evidence (3)</summary>
+<details markdown="1"><summary>Service evidence (3)</summary>
 
 - @ 0x101953c8 — service router function
 - @ 0x10f11a9c — service vtable

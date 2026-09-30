@@ -2,8 +2,6 @@
 
 Two update channels live side by side. GENA is the classic UPnP mechanism: a controller subscribes over HTTP and the player posts XML notifications when state changes. Alongside it is Sonos's own websocket channel (WSS), which the current app uses for newer features. This page lists which events each service can emit on each channel.
 
-UPnP GENA eventing plus the Sonos WSS subscription surface.
-
 ## Per-service eventing
 
 For each service: whether it emits classic UPnP notifications, whether it carries the big 'LastChange' state document, and which websocket event names it offers.
@@ -12,7 +10,11 @@ For each service: whether it emits classic UPnP notifications, whether it carrie
 
 The busiest event source - this is how an app learns the player started, paused, skipped, or changed tracks without polling. It emits the big LastChange document covering transport state, current track, and queue position.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
+
+</details>
 
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...
 - **LastChange variable:** LastChange
@@ -22,7 +24,11 @@ UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 
 Announces alarm-related state: the running-alarm list and its version counter bump when alarms are added, edited, or fire.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -37,7 +43,11 @@ GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS
 
 Line-in streaming events - reports when a line-in transmission to the group starts or stops and the attributes of the audio input.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -52,7 +62,11 @@ GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:up
 
 Renderer-side connection bookkeeping - the list of active connection IDs and the protocols the player can serve, mostly static but notified on change.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -65,7 +79,11 @@ GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290
 
 Server-side equivalent - reports the media-server connections list and the serving protocols.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -78,7 +96,11 @@ GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (
 
 Fires when the music-library index changes - SystemUpdateID bumps on rescan, share index progress, and favorites/radio-location list versions.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -94,7 +116,11 @@ GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (N
 
 Device-level state changes: LED on/off, button lock, household ID, linked-zone membership, autoplay settings.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -112,7 +138,11 @@ GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event
 
 Group membership changes - when players join or leave this player's group.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -126,7 +156,11 @@ GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event 
 
 Group volume/mute state - fires when the coordinator-side group volume, mute, or a volume snapshot changes.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -139,7 +173,11 @@ GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e
 
 Home-theater control events - IR repeater state, LED feedback, remote identification results.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -152,7 +190,11 @@ GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:
 
 Music-service account changes - the available-services list and session IDs refresh when accounts are added or reauthorized.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -167,7 +209,11 @@ GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + 
 
 QPlay session events - state of the QPlay (Tencent) playback source.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - No WSS registry name maps to this service in the 73-entry table; event surface likely absent or folded into another namespace
@@ -177,7 +223,11 @@ GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp
 
 Queue edits - last-index changes, queue length, and save/backup results so apps can refresh their queue view.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
+
+</details>
 
 - **Namespace:** urn:schemas-sonos-com:metadata-1-0/Queue/
 - **notes:** Queue uses its own event vocabulary rather than a LastChange blob: QueueOwnerID/QueueID/UpdateID/Curated elements
@@ -187,7 +237,11 @@ UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 
 Per-player audio settings - volume, mute, EQ, loudness, fixed-output and room-calibration status changes.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 UPnP GENA NOTIFY with e:propertyset -> LastChange -> Event(InstanceID=0) -> val= attributes
+
+</details>
 
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/RCS/
 - **LastChange variable:** LastChange
@@ -198,7 +252,11 @@ UPnP GENA NOTIFY with e:propertyset -> LastChange -> Event(InstanceID=0) -> val=
 
 Household/account bookkeeping - account lists, web-code provisioning results, and RDM (remote management) state changes.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -218,7 +276,11 @@ GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event
 
 Virtual line-in stream events - when a player acts as a line-in source for the group and transport state of that virtual source.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
@@ -231,7 +293,11 @@ GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT
 
 The household roster - fires when zones join, leave, regroup, or change attributes, plus software-update progress events.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission decoded: f_1074d9b4 -> f_10743328 serializer -> f_10676a44 delivery
+
+</details>
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure

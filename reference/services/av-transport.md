@@ -130,7 +130,7 @@ Bulk-enqueues tracks into the implicit playback queue. EnqueuedURIs and Enqueued
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fb7e8 — wrapper + impl decode
 
@@ -140,7 +140,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, out-arg write×4, validate×1, commit×1); member delegates: r28 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb7e8 — req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
@@ -150,7 +150,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r28 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb7e8 — member vfunc calls: \['r28 v\[+?\]'\]
 
@@ -164,7 +164,7 @@ service-internal state reached through member delegate(s): r28 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb7e8 — no transition-literal/store pattern; member delegates: \['r28 v\[+?\]'\]
 
@@ -174,7 +174,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb7e8 — bl call scan: notify-family sites = \[\]
 
@@ -184,7 +184,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb7e8 — commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
@@ -216,7 +216,7 @@ Request parse layer rejected an argument before the impl was invoked.; impl-side
 
 URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb7e8`
 - dispatch entry `0x10eb3018`
@@ -277,7 +277,7 @@ Adds one track URI (+DIDL-Lite metadata) to the playback queue. DesiredFirstTrac
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102facf8 — wrapper + impl decode
 
@@ -287,7 +287,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102facf8 — req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
@@ -297,7 +297,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102facf8 — member vfunc calls: \['r29 v\[+?\]'\]
 
@@ -311,7 +311,7 @@ service-internal state reached through member delegate(s): r29 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102facf8 — no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
 
@@ -321,7 +321,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102facf8 — bl call scan: notify-family sites = \[\]
 
@@ -331,7 +331,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102facf8 — commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
@@ -367,7 +367,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks. The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102facf8`
 - dispatch entry `0x10eb3024`
@@ -431,7 +431,7 @@ Adds a track to a saved queue identified by ObjectID at AddAtIndex. Returns coun
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fb2d8 — wrapper + impl decode
 
@@ -441,7 +441,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×3, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb2d8 — req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
@@ -451,7 +451,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb2d8 — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -465,7 +465,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb2d8 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -475,7 +475,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb2d8 — bl call scan: notify-family sites = \[\]
 
@@ -485,7 +485,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb2d8 — commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
@@ -527,7 +527,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb2d8`
 - dispatch entry `0x10eb3030`
@@ -561,7 +561,7 @@ Persists the current playback queue to flash so it survives reboot.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f8db0 — wrapper + impl decode
 
@@ -571,7 +571,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x80\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8db0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -581,7 +581,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x80\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8db0 — member vfunc calls: \['r30 v\[+0x80\]'\]
 
@@ -595,7 +595,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x80\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x80\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8db0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x80\]'\]
 
@@ -605,7 +605,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8db0 — bl call scan: notify-family sites = \[\]
 
@@ -615,7 +615,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8db0 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -659,7 +659,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the same .rsq container trackqueue.rsq uses for the live queue backup.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8db0`
 - dispatch entry `0x10eb303c`
@@ -705,7 +705,7 @@ Makes this player coordinate the standalone group it belongs to; returns the coo
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f8b04 — wrapper + impl decode
 
@@ -715,7 +715,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8b04 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
 
@@ -725,7 +725,7 @@ impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8b04 — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -739,7 +739,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8b04 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -749,7 +749,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8b04 — bl call scan: notify-family sites = \[\]
 
@@ -759,7 +759,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8b04 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
 
@@ -801,7 +801,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513244 - grouped gate: topology singleton + state predicate + f_1075c4d0 precondition on impl+0x44c; error path uses 0x3ff (1023). Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8b04`
 - dispatch entry `0x10eb3048`
@@ -883,7 +883,7 @@ Bulk state-transfer: this player takes over as group coordinator, receiving the 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fc8b0 — wrapper + impl decode
 
@@ -893,7 +893,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v\[+?\], r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc8b0 — req-vfunc call map: {'0x14': 1, '0xc': 1}
 
@@ -903,7 +903,7 @@ impl consumes in-args via req slots (raise-fault×1, commit×1); member delegate
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+?\], r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc8b0 — member vfunc calls: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
 
@@ -917,7 +917,7 @@ service-internal state reached through member delegate(s): r4 v\[+?\], r30 v\[+?
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+?\], r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc8b0 — no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
 
@@ -927,7 +927,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc8b0 — bl call scan: notify-family sites = \[\]
 
@@ -937,7 +937,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc8b0 — commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
@@ -963,7 +963,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105133e4 - delegates verbatim to class-A impl 0x102de740 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc8b0`
 - dispatch entry `0x10eb3054`
@@ -1048,7 +1048,7 @@ Like BecomeGroupCoordinator but also transfers the audio source state (CurrentAV
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fc3a0 — wrapper + impl decode
 
@@ -1058,7 +1058,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, 0x34×1, commit×1); member delegates: r4 v\[+?\], r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc3a0 — req-vfunc call map: {'0x34': 1, '0x14': 1, '0xc': 1}
 
@@ -1068,7 +1068,7 @@ impl consumes in-args via req slots (raise-fault×1, 0x34×1, commit×1); member
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+?\], r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc3a0 — member vfunc calls: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
 
@@ -1082,7 +1082,7 @@ service-internal state reached through member delegate(s): r4 v\[+?\], r29 v\[+?
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+?\], r29 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc3a0 — no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
 
@@ -1092,7 +1092,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc3a0 — bl call scan: notify-family sites = \[\]
 
@@ -1102,7 +1102,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc3a0 — commit/fault slot usage: {'0x34': 1, '0x14': 1, '0xc': 1}
 
@@ -1128,7 +1128,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105134a8 - delegates verbatim to class-A impl 0x102df410 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc3a0`
 - dispatch entry `0x10eb3060`
@@ -1180,7 +1180,7 @@ Asks this coordinator to hand coordination to NewCoordinator, carrying the curre
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fa3ec — wrapper + impl decode
 
@@ -1190,7 +1190,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa3ec — req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1200,7 +1200,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa3ec — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -1214,7 +1214,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa3ec — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -1224,7 +1224,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa3ec — bl call scan: notify-family sites = \[\]
 
@@ -1234,7 +1234,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa3ec — commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1278,7 +1278,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa3ec`
 - dispatch entry `0x10eb306c`
@@ -1318,7 +1318,7 @@ Applies a new TransportSettings blob (play state, mode, etc.) to the current URI
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f95b8 — wrapper + impl decode
 
@@ -1328,7 +1328,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x60\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f95b8 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1338,7 +1338,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x60\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f95b8 — member vfunc calls: \['r30 v\[+0x60\]'\]
 
@@ -1352,7 +1352,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x60\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x60\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f95b8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x60\]'\]
 
@@ -1362,7 +1362,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f95b8 — bl call scan: notify-family sites = \[\]
 
@@ -1372,7 +1372,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f95b8 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1416,7 +1416,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f95b8`
 - dispatch entry `0x10eb3078`
@@ -1453,7 +1453,7 @@ Sets a sleep timer that fades playback out after NewSleepTimerDuration ('HH:MM:S
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f9878 — wrapper + impl decode
 
@@ -1463,7 +1463,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x90\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9878 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1473,7 +1473,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x90\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9878 — member vfunc calls: \['r30 v\[+0x90\]'\]
 
@@ -1487,7 +1487,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x90\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x90\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9878 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x90\]'\]
 
@@ -1497,7 +1497,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9878 — bl call scan: notify-family sites = \[\]
 
@@ -1507,7 +1507,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9878 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1546,7 +1546,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 **Bounded unknown — unresolved:** concrete nonzero codes f_102b4c1c can produce for a valid mode/seconds pair
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9878`
 - dispatch entry `0x10eb3084`
@@ -1607,7 +1607,7 @@ Creates a new named saved queue containing one initial track (EnqueuedURI + meta
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fb0b0 — wrapper + impl decode
 
@@ -1617,7 +1617,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×4, out-arg write×4, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb0b0 — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
 
@@ -1627,7 +1627,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb0b0 — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -1641,7 +1641,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb0b0 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -1651,7 +1651,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb0b0 — bl call scan: notify-family sites = \[\]
 
@@ -1661,7 +1661,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fb0b0 — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
 
@@ -1703,7 +1703,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. Persistence: worker builds a job record (vtable 0x10ec7be0 via f_103d1aec), bumps the saved-queue update counter *(state+0xec) by +1, and serializes to "savedqueues.rsq" - the same .rsq format the queue playlist classifier loads.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb0b0`
 - dispatch entry `0x10eb3090`
@@ -1747,7 +1747,7 @@ Hands the coordinator role to NewCoordinator. RejoinGroup controls whether this 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fa26c — wrapper + impl decode
 
@@ -1757,7 +1757,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r30 v\[+0x58\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa26c — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1767,7 +1767,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x58\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa26c — member vfunc calls: \['r30 v\[+0x58\]'\]
 
@@ -1781,7 +1781,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x58\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x58\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa26c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x58\]'\]
 
@@ -1791,7 +1791,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa26c — bl call scan: notify-family sites = \[\]
 
@@ -1801,7 +1801,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa26c — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1834,7 +1834,7 @@ worker rc returned verbatim except 803->0
 **Bounded unknown — unresolved:** the full rc vocabulary of f_102ddae8 (delegation refusal reasons)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa26c`
 - dispatch entry `0x10eb309c`
@@ -1868,7 +1868,7 @@ Ends a cloud/direct-control playback session, returning the player to normal UPn
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f8e9c — wrapper + impl decode
 
@@ -1878,7 +1878,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x50\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8e9c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1888,7 +1888,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x50\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8e9c — member vfunc calls: \['r30 v\[+0x50\]'\]
 
@@ -1902,7 +1902,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x50\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x50\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8e9c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x50\]'\]
 
@@ -1912,7 +1912,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8e9c — bl call scan: notify-family sites = \[\]
 
@@ -1922,7 +1922,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8e9c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -1956,7 +1956,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8e9c`
 - dispatch entry `0x10eb30a8`
@@ -1999,7 +1999,7 @@ Returns whether crossfade between tracks is enabled.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad370 @ 0x102ad370 — getter decode
 
@@ -2009,7 +2009,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad370 @ 0x102ad424 — cmpwi r29,0 gate
 
@@ -2019,7 +2019,7 @@ InstanceID==0 only.
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x24\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc28c — member vfunc calls: \['r30 v\[+0x24\]'\]
 
@@ -2033,7 +2033,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x24\]
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad370 @ 0x102ad370 — read-only
 
@@ -2043,7 +2043,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad370 @ 0x102ad370 — no emit calls
 
@@ -2053,7 +2053,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad370 @ 0x102ad428 — r30=0x2ce
 
@@ -2075,7 +2075,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc28c`
 - dispatch entry `0x10eb30b4`
@@ -2119,7 +2119,7 @@ Returns the actions currently legal for this source as a CSV (e.g. 'Play,Pause,S
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - fn f_102b2a8c @ f_102b2a8c — impl decode
 - fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
@@ -2131,7 +2131,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - fn f_102b2a8c @ f_102b2a8c — impl decode
 - fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
@@ -2143,7 +2143,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 Action list computed from current source capabilities via f_102b29d0/f_102fcbf4; the per-capability action mapping is unresolved.
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - fn f_102b2a8c @ f_102b2a8c — impl decode
 - fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
@@ -2159,7 +2159,7 @@ Action list computed from current source capabilities via f_102b29d0/f_102fcbf4;
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - fn f_102b2a8c @ f_102b2a8c — impl decode
 - fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
@@ -2171,7 +2171,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - fn f_102b2a8c @ f_102b2a8c — impl decode
 - fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
@@ -2183,7 +2183,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - fn f_102b2a8c @ f_102b2a8c — impl decode
 - fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
@@ -2201,7 +2201,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - InstanceID argument was nonzero (the engine only accepts instance 0)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f884c`
 - dispatch entry `0x10eb30c0`
@@ -2255,7 +2255,7 @@ Returns what media this player can play/record and its recording quality modes.
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad4a4 @ f_102ad4a4 — impl decode
 
@@ -2265,7 +2265,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad4a4 @ f_102ad4a4 — impl decode
 
@@ -2275,7 +2275,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 Device capability strings read from static engine config; provenance unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad4a4 @ f_102ad4a4 — impl decode
 
@@ -2289,7 +2289,7 @@ Device capability strings read from static engine config; provenance unresolved.
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad4a4 @ f_102ad4a4 — impl decode
 
@@ -2299,7 +2299,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad4a4 @ f_102ad4a4 — impl decode
 
@@ -2309,7 +2309,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad4a4 @ f_102ad4a4 — impl decode
 
@@ -2331,7 +2331,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8970`
 - dispatch entry `0x10eb30cc`
@@ -2405,7 +2405,7 @@ Returns metadata about the current media source: track count and duration, curre
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102adcb4 @ f_102adcb4 — impl decode
 
@@ -2415,7 +2415,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102adcb4 @ f_102adcb4 — impl decode
 
@@ -2425,7 +2425,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 Media descriptor fields read from engine session state; per-field provenance unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102adcb4 @ f_102adcb4 — impl decode
 
@@ -2439,7 +2439,7 @@ Media descriptor fields read from engine session state; per-field provenance unr
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102adcb4 @ f_102adcb4 — impl decode
 
@@ -2449,7 +2449,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102adcb4 @ f_102adcb4 — impl decode
 
@@ -2459,7 +2459,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102adcb4 @ f_102adcb4 — impl decode
 
@@ -2481,7 +2481,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa9e4`
 - dispatch entry `0x10eb30d8`
@@ -2557,7 +2557,7 @@ Returns where playback sits inside the media: current track number/URI/metadata,
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1a88 @ f_102b1a88 — impl decode
 
@@ -2567,7 +2567,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1a88 @ f_102b1a88 — impl decode
 
@@ -2577,7 +2577,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 Mode impl+0x4654 selects the position source (indexed session vs streamer); per-field provenance unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1a88 @ f_102b1a88 — impl decode
 
@@ -2591,7 +2591,7 @@ Mode impl+0x4654 selects the position source (indexed session vs streamer); per-
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1a88 @ f_102b1a88 — impl decode
 
@@ -2601,7 +2601,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1a88 @ f_102b1a88 — impl decode
 
@@ -2611,7 +2611,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1a88 @ f_102b1a88 — impl decode
 
@@ -2633,7 +2633,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fbda4`
 - dispatch entry `0x10eb30e4`
@@ -2688,7 +2688,7 @@ Returns the time left on the sleep timer and the timer generation counter.
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ada98 @ f_102ada98 — impl decode
 
@@ -2698,7 +2698,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ada98 @ f_102ada98 — impl decode
 
@@ -2708,7 +2708,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 Sleep-timer remaining time + generation counter read from engine timer state; field offsets unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ada98 @ f_102ada98 — impl decode
 
@@ -2722,7 +2722,7 @@ Sleep-timer remaining time + generation counter read from engine timer state; fi
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ada98 @ f_102ada98 — impl decode
 
@@ -2732,7 +2732,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ada98 @ f_102ada98 — impl decode
 
@@ -2742,7 +2742,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ada98 @ f_102ada98 — impl decode
 
@@ -2770,7 +2770,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl worker returns an 800-class store/commit fault
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb518`
 - dispatch entry `0x10eb30f0`
@@ -2824,7 +2824,7 @@ If an alarm is currently ringing, returns its ID, group and the logged start tim
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
@@ -2834,7 +2834,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
@@ -2844,7 +2844,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 Alarm context fields read from engine alarm state; empty when idle; provenance unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
@@ -2858,7 +2858,7 @@ Alarm context fields read from engine alarm state; empty when idle; provenance u
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
@@ -2868,7 +2868,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
@@ -2878,7 +2878,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad8fc @ f_102ad8fc — impl decode
 
@@ -2900,7 +2900,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 - impl worker returns an 800-class store/commit fault
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb664`
 - dispatch entry `0x10eb30fc`
@@ -2955,7 +2955,7 @@ Returns transport state (PLAYING/PAUSED_PLAYBACK/STOPPED/TRANSITIONING), status 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b1738 @ 0x102b1738 — gate decode
 - fn f_102b1684 @ 0x102b1684 — worker decode
@@ -2966,7 +2966,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1738 @ 0x102b1818 — cmpwi r29,0 gate
 
@@ -2976,7 +2976,7 @@ InstanceID==0 only.
 #### State dependencies `confirmed`
 
 mode impl+0x4654 selects which state source fills the outputs (indexed vs streamer vs default f_10308aec path).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1684 @ 0x102b1928 — cmplwi mode,2/1 dispatch
 
@@ -2990,7 +2990,7 @@ mode impl+0x4654 selects which state source fills the outputs (indexed vs stream
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1738 @ 0x102b1738 — read-only
 
@@ -3000,7 +3000,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1738 @ 0x102b1738 — no emit calls
 
@@ -3010,7 +3010,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success after filling outs; 718 only for InstanceID!=0. No other faults observed in the impl.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b1738 @ 0x102b17fc — return paths
 
@@ -3026,7 +3026,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - InstanceID argument was nonzero (the engine only accepts instance 0)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fbb60`
 - dispatch entry `0x10eb3108`
@@ -3081,7 +3081,7 @@ Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quali
 #### Validation `confirmed`
 
 See inputs.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad634 @ f_102ad634 — impl decode
 
@@ -3091,7 +3091,7 @@ See inputs.
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad634 @ f_102ad634 — impl decode
 
@@ -3101,7 +3101,7 @@ InstanceID==0 only (where present).
 #### State dependencies `confirmed`
 
 PlayMode string derived from the stored play-mode enum; RecQualityMode from engine settings; field provenance unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad634 @ f_102ad634 — impl decode
 
@@ -3115,7 +3115,7 @@ PlayMode string derived from the stored play-mode enum; RecQualityMode from engi
 #### State transitions `confirmed`
 
 None.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad634 @ f_102ad634 — impl decode
 
@@ -3125,7 +3125,7 @@ None.
 #### Events `confirmed`
 
 None - pure read.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad634 @ f_102ad634 — impl decode
 
@@ -3135,7 +3135,7 @@ None - pure read.
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102ad634 @ f_102ad634 — impl decode
 
@@ -3157,7 +3157,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8340`
 - dispatch entry `0x10eb3114`
@@ -3196,7 +3196,7 @@ Skips to the next track in the queue. Faults (typically 711/701 family) if the c
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b9874 @ 0x102b9874 — gate decode
 - fn f_102b60b0 @ 0x102b60b0 — worker decode
@@ -3207,7 +3207,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b9874 @ 0x102b9874 — gate decode
 
@@ -3217,7 +3217,7 @@ InstanceID==0 only.
 #### State dependencies `confirmed`
 
 mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session path via impl+0x5a0.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b60b0 @ 0x102b60dc — cmplwi mode,2
 
@@ -3231,7 +3231,7 @@ mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session pa
 #### State transitions `confirmed`
 
 Current track advances by one (indexed) or streamer skip issued; submission vs completion distinction preserved: stream-mode success means the streamer vfunc returned nonzero.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b60b0 @ 0x102b61f8 — f_10256a84(op5) source-activate path
 
@@ -3241,7 +3241,7 @@ Current track advances by one (indexed) or streamer skip issued; submission vs c
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8674 — bl call scan: notify-family sites = \[\]
 
@@ -3251,7 +3251,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 Indexed submit rc {2->800,3->711,else->701}; stream path: streamer vfunc nonzero -> 0 else 701.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b60b0 @ 0x102b6184 — rc->800/711/701 isel map
 
@@ -3301,7 +3301,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8674`
 - dispatch entry `0x10eb3120`
@@ -3340,7 +3340,7 @@ Tells the player a URI it may have queued has been deleted from the server so it
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f912c — wrapper + impl decode
 
@@ -3350,7 +3350,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x48\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f912c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -3360,7 +3360,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x48\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f912c — member vfunc calls: \['r30 v\[+0x48\]'\]
 
@@ -3374,7 +3374,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x48\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x48\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f912c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x48\]'\]
 
@@ -3384,7 +3384,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f912c — bl call scan: notify-family sites = \[\]
 
@@ -3394,7 +3394,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f912c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -3432,7 +3432,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f912c`
 - dispatch entry `0x10eb312c`
@@ -3466,7 +3466,7 @@ Pauses playback. Only valid while playing; faults on sources that can't pause.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102d2b28 @ 0x102d2b28 — gate+body decode
 - fn f_102b00cc @ 0x102b00cc — worker decode
@@ -3477,7 +3477,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 None beyond InstanceID==0; no mode gate in the impl entry itself.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d2b28 @ 0x102d2b28 — gate decode
 
@@ -3487,7 +3487,7 @@ None beyond InstanceID==0; no mode gate in the impl entry itself.
 #### State dependencies `strong`
 
 Requires a live streamer/control target for the fast path; otherwise the f_102d0ac8 fallback handles (or fails) it.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b00cc @ 0x102b0134 — f_106a7880 on *(impl+0x5a0)
 
@@ -3501,7 +3501,7 @@ Requires a live streamer/control target for the fast path; otherwise the f_102d0
 #### State transitions `confirmed`
 
 Pause submitted to control target + streamer; submission vs actual pause completion is the accepted/submitted distinction - the SOAP call returns after the streamer vfunc returns, not after audio pauses.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b00cc @ 0x102b0134 — streamer vfunc path
 
@@ -3511,7 +3511,7 @@ Pause submitted to control target + streamer; submission vs actual pause complet
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8588 — bl call scan: notify-family sites = \[\]
 
@@ -3521,7 +3521,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 Success iff worker returned nonzero (submitted + streamer accepted) OR the f_102d0ac8 fallback succeeded; impl rc = fallback rc on the zero path, else 0.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d2bcc @ 0x102d2be0 — fallback call f_102d0ac8(impl,1,1,-1,-1)
 
@@ -3557,7 +3557,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8588`
 - dispatch entry `0x10eb3138`
@@ -3597,7 +3597,7 @@ Starts or resumes playback. Speed selects the rate - '1' is normal; fractional r
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d4078 @ 0x102d4078 — full impl decode
 
@@ -3607,7 +3607,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 Speed must be exactly '1'. Engine object must be live; *(impl+0x3dc)!=0 gates the logging preamble.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d4078 @ 0x102d4110 — strcmp(Speed,"1")
 
@@ -3617,7 +3617,7 @@ Speed must be exactly '1'. Engine object must be live; *(impl+0x3dc)!=0 gates th
 #### State dependencies `strong`
 
 Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse source triggers a rebuild/log path before play is submitted.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10eb145c — 'Received play for non-muse source'
 
@@ -3631,7 +3631,7 @@ Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse
 #### State transitions `confirmed`
 
 Play submission to the engine/session machinery; exact track-selection semantics of the -1,-1 sentinels unresolved.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d4078 @ 0x102d4204 — -1,-1 sentinel args
 
@@ -3641,7 +3641,7 @@ Play submission to the engine/session machinery; exact track-selection semantics
 #### Events `strong`
 
 f_100caad8 is invoked on the submit path - the shared transport-changed emit used by the getter-scope boilerplate.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d4078 @ 0x102d41e8 — f_100caad8 call
 
@@ -3651,7 +3651,7 @@ f_100caad8 is invoked on the submit path - the shared transport-changed emit use
 #### Return behavior `confirmed`
 
 rc of f_102cfa50 (or the non-muse path result) is returned as the impl status; cr0.eq=success convention -> SOAP emit vs req->v\[+0x14\] fault.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f9244 — wrapper decode
 
@@ -3691,7 +3691,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9244`
 - dispatch entry `0x10eb3144`
@@ -3726,7 +3726,7 @@ Skips back to the previous track.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b9938 @ 0x102b9938 — gate decode
 - fn f_102b6214 @ 0x102b6214 — worker decode
@@ -3737,7 +3737,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b9938 @ 0x102b9938 — gate decode
 
@@ -3747,7 +3747,7 @@ InstanceID==0 only.
 #### State dependencies `confirmed`
 
 Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x580,0,1); without it Previous is a silent success no-op.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b6214 @ 0x102b6288 — andis. caps,0x10 -> silent success
 
@@ -3761,7 +3761,7 @@ Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x58
 #### State transitions `confirmed`
 
 Moves to previous track when the source supports it; capability-gated no-op otherwise - request accepted vs operation submitted distinction is explicit in this impl.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b6214 @ 0x102b6288 — capability short-circuit
 
@@ -3771,7 +3771,7 @@ Moves to previous track when the source supports it; capability-gated no-op othe
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8760 — bl call scan: notify-family sites = \[\]
 
@@ -3781,7 +3781,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 rc==0 on success incl. the capability no-op; 711 on indexed submit failure; 701 on streamer failure.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b6214 @ 0x102b62dc — li r3,0x2c7
 - fn f_102b6214 @ 0x102b624c — r30=0x2bd
@@ -3826,7 +3826,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8760`
 - dispatch entry `0x10eb3150`
@@ -3862,7 +3862,7 @@ Clears the implicit playback queue entirely.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f8cc4 — wrapper + impl decode
 
@@ -3872,7 +3872,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x78\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8cc4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -3882,7 +3882,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x78\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8cc4 — member vfunc calls: \['r30 v\[+0x78\]'\]
 
@@ -3896,7 +3896,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x78\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x78\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8cc4 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x78\]'\]
 
@@ -3906,7 +3906,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8cc4 — bl call scan: notify-family sites = \[\]
 
@@ -3916,7 +3916,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8cc4 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -3948,7 +3948,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8cc4`
 - dispatch entry `0x10eb315c`
@@ -3988,7 +3988,7 @@ Removes the queued track identified by ObjectID (track object id), guarded by Up
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f9aa8 — wrapper + impl decode
 
@@ -3998,7 +3998,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x70\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9aa8 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -4008,7 +4008,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x70\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9aa8 — member vfunc calls: \['r30 v\[+0x70\]'\]
 
@@ -4022,7 +4022,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x70\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x70\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9aa8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x70\]'\]
 
@@ -4032,7 +4032,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9aa8 — bl call scan: notify-family sites = \[\]
 
@@ -4042,7 +4042,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9aa8 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -4086,7 +4086,7 @@ Request parse layer rejected an argument before the impl was invoked.
 - Missing or unparseable input argument at the wrapper parse stage
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9aa8`
 - dispatch entry `0x10eb3168`
@@ -4138,7 +4138,7 @@ Removes NumberOfTracks consecutive tracks starting at 1-based StartingIndex; ret
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102faf24 — wrapper + impl decode
 
@@ -4148,7 +4148,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x74\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102faf24 — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
@@ -4158,7 +4158,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x74\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102faf24 — member vfunc calls: \['r30 v\[+0x74\]'\]
 
@@ -4172,7 +4172,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x74\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x74\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102faf24 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x74\]'\]
 
@@ -4182,7 +4182,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102faf24 — bl call scan: notify-family sites = \[\]
 
@@ -4192,7 +4192,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102faf24 — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
@@ -4236,7 +4236,7 @@ Request parse layer rejected an argument before the impl was invoked.
 - Missing or unparseable input argument at the wrapper parse stage
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102faf24`
 - dispatch entry `0x10eb3174`
@@ -4282,7 +4282,7 @@ Moves a run of tracks (StartingIndex + NumberOfTracks) to InsertBefore within th
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f8f88 — wrapper + impl decode
 
@@ -4292,7 +4292,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, validate×1, commit×1); member delegates: r30 v\[+0x6c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8f88 — req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -4302,7 +4302,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x6c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8f88 — member vfunc calls: \['r30 v\[+0x6c\]'\]
 
@@ -4316,7 +4316,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x6c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x6c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8f88 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x6c\]'\]
 
@@ -4326,7 +4326,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8f88 — bl call scan: notify-family sites = \[\]
 
@@ -4336,7 +4336,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f8f88 — commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -4369,7 +4369,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 **Bounded unknown — unresolved:** UpdateID-mismatch and mode codes from the shared worker family (1028/800 there) — which apply here is not fully traced
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8f88`
 - dispatch entry `0x10eb3180`
@@ -4430,7 +4430,7 @@ Rewrites a saved queue's ordering from TrackList/NewPositionList; returns length
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fc078 — wrapper + impl decode
 
@@ -4440,7 +4440,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc078 — req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
@@ -4450,7 +4450,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc078 — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -4464,7 +4464,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc078 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -4474,7 +4474,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc078 — bl call scan: notify-family sites = \[\]
 
@@ -4484,7 +4484,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc078 — commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
@@ -4526,7 +4526,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc078`
 - dispatch entry `0x10eb318c`
@@ -4584,7 +4584,7 @@ Server-driven 'fire this alarm now' trigger carrying the full alarm definition -
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fc4ac — wrapper + impl decode
 
@@ -4594,7 +4594,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc4ac — req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -4604,7 +4604,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc4ac — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -4618,7 +4618,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc4ac — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -4628,7 +4628,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc4ac — bl call scan: notify-family sites = \[\]
 
@@ -4638,7 +4638,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc4ac — commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -4670,7 +4670,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm state through the duration/time helper family (0x1108b284/f_10c3eb60).
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc4ac`
 - dispatch entry `0x10eb3198`
@@ -4719,7 +4719,7 @@ Saves the current playback queue as a named saved queue (Title); ObjectID select
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f96fc — wrapper + impl decode
 
@@ -4729,7 +4729,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x7c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f96fc — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
@@ -4739,7 +4739,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x7c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f96fc — member vfunc calls: \['r30 v\[+0x7c\]'\]
 
@@ -4753,7 +4753,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x7c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x7c\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f96fc — no transition-literal/store pattern; member delegates: \['r30 v\[+0x7c\]'\]
 
@@ -4763,7 +4763,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f96fc — bl call scan: notify-family sites = \[\]
 
@@ -4773,7 +4773,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f96fc — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
@@ -4818,7 +4818,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f96fc`
 - dispatch entry `0x10eb31a4`
@@ -4964,7 +4964,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x10eaf320 and 0x10edfbec both resolve slot +0x34 to it). f_102b95a8(engine,inst,unit,target): inst!=0 -> 718; else f_102b9088(engine,unit,target). Internal callers of the same engine exist (f_102b9464 seeks REL_TIME '00:00:00' as a reset). Accepted Units are mode-dependent, not a single static enum.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f935c`
 - dispatch entry `0x10eb31b0`
@@ -5005,7 +5005,7 @@ Loads a new source: a track/stream URI plus its DIDL-Lite metadata. This is how 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fa71c — wrapper + impl decode
 
@@ -5015,7 +5015,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa71c — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5025,7 +5025,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa71c — member vfunc calls: \['r30 v\[+0x8\]'\]
 
@@ -5039,7 +5039,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x8\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x8\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa71c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x8\]'\]
 
@@ -5049,7 +5049,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa71c — bl call scan: notify-family sites = \[\]
 
@@ -5059,7 +5059,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa71c — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5101,7 +5101,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513230 - group worker f_10512bc0 with extra descriptor arg 0x10ea6a2c. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa71c`
 - dispatch entry `0x10eb31bc`
@@ -5138,7 +5138,7 @@ Turns crossfade on or off.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b99fc @ 0x102b99fc — gate decode
 - fn f_102b26dc @ 0x102b26dc — worker decode
@@ -5149,7 +5149,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 Only meaningful when a queued/indexed source is active (mode==2); streaming sources reject nonzero crossfade.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b26dc @ 0x102b2704 — cmpwi mode,2 -> 712 otherwise
 
@@ -5159,7 +5159,7 @@ Only meaningful when a queued/indexed source is active (mode==2); streaming sour
 #### State dependencies `confirmed`
 
 Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi-hls:' URI - HLS streams cannot crossfade.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b26dc @ 0x102b2768 — strncmp(uri,'x-sonosapi-hls:',15)
 - fn f_102b26dc @ 0x102b277c — f_101475dc cap check
@@ -5174,7 +5174,7 @@ Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi
 #### State transitions `confirmed`
 
 Crossfade mode applied through the indexed request machinery; arg==0 on an incapable source is a silent success no-op.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b26dc @ 0x102b27cc — arg==0 -> success even when blocked
 
@@ -5184,7 +5184,7 @@ Crossfade mode applied through the indexed request machinery; arg==0 on an incap
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa158 — bl call scan: notify-family sites = \[\]
 
@@ -5194,7 +5194,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 0 on success (incl. silent no-op); 712 for wrong mode, incapable source, or submit failure.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b26dc @ 0x102b270c — li r3,0x2c8
 
@@ -5228,7 +5228,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa158`
 - dispatch entry `0x10eb31c8`
@@ -5268,7 +5268,7 @@ Sets up gapless playback: the URI + metadata that should follow the current trac
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fa880 — wrapper + impl decode
 
@@ -5278,7 +5278,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa880 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5288,7 +5288,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa880 — member vfunc calls: \['r30 v\[+0xc\]'\]
 
@@ -5302,7 +5302,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa880 — no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
@@ -5312,7 +5312,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa880 — bl call scan: notify-family sites = \[\]
 
@@ -5322,7 +5322,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fa880 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5366,7 +5366,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa880`
 - dispatch entry `0x10eb31d4`
@@ -5403,7 +5403,7 @@ Sets play mode: NORMAL, REPEAT_ALL, REPEAT_ONE, SHUFFLE, SHUFFLE_NOREPEAT, SHUFF
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b9a9c @ 0x102b9a9c — gate decode
 - fn f_102b24dc @ 0x102b24dc — worker decode
@@ -5414,7 +5414,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc and pass f_10147928/f_10148308 checks plus the impl+0x1a03 flag.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102b24dc @ 0x102b25d4 — f_10147928 gate
 - fn f_102b24dc @ 0x102b25f0 — impl+0x1a03 byte gate
@@ -5425,7 +5425,7 @@ Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc an
 #### State dependencies `confirmed`
 
 mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mode==0 has its own NORMAL path.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b24dc @ 0x102b2530 — cmplwi mode,2/1 dispatch
 
@@ -5439,7 +5439,7 @@ mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mo
 #### State transitions `confirmed`
 
 Play mode changes to the mapped enum; unknown strings rejected before any state change.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b24dc @ 0x102b25fc — string->enum table
 
@@ -5449,7 +5449,7 @@ Play mode changes to the mapped enum; unknown strings rejected before any state 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f94a0 — bl call scan: notify-family sites = \[\]
 
@@ -5459,7 +5459,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 Worker rc returned as impl status: 0 on success, 712 for unknown string, missing source, capability failure, or streamer rejection.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102b24dc @ 0x102b2554 — li r3,0x2c8
 
@@ -5493,7 +5493,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f94a0`
 - dispatch entry `0x10eb31e0`
@@ -5532,7 +5532,7 @@ Snoozes the currently ringing alarm by Duration ('HH:MM:SS').
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102f9990 — wrapper + impl decode
 
@@ -5542,7 +5542,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0xa4\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9990 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5552,7 +5552,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xa4\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9990 — member vfunc calls: \['r30 v\[+0xa4\]'\]
 
@@ -5566,7 +5566,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xa4\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xa4\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9990 — no transition-literal/store pattern; member delegates: \['r30 v\[+0xa4\]'\]
 
@@ -5576,7 +5576,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9990 — bl call scan: notify-family sites = \[\]
 
@@ -5586,7 +5586,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f9990 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5633,7 +5633,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9990`
 - dispatch entry `0x10eb31ec`
@@ -5682,7 +5682,7 @@ Starts autoplay for a source: plays ProgramURI (+metadata) at the configured aut
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102fc6f4 — wrapper + impl decode
 
@@ -5692,7 +5692,7 @@ See inputs/impl notes
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc6f4 — req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5702,7 +5702,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, vali
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc6f4 — member vfunc calls: \['r30 v\[+?\]'\]
 
@@ -5716,7 +5716,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc6f4 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
@@ -5726,7 +5726,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc6f4 — bl call scan: notify-family sites = \[\]
 
@@ -5736,7 +5736,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102fc6f4 — commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
@@ -5775,7 +5775,7 @@ operation overridden: autoplay suppressed because an explicit transport operatio
 
 None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) with avt_impl log "preventing autoplay because operation is overridden". Mode(engine+0x4654)==0 runs a full session reset before installing the stored autoplay URI via f_102da774.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc6f4`
 - dispatch entry `0x10eb31f8`
@@ -5809,7 +5809,7 @@ Stops playback and clears transport position.
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102d2e54 @ 0x102d2e54 — gate decode
 - fn f_102d2bec @ 0x102d2bec — worker decode
@@ -5820,7 +5820,7 @@ See inputs/impl notes
 #### Requirements / preconditions `confirmed`
 
 None beyond InstanceID==0.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d2e54 @ 0x102d2e54 — gate decode
 
@@ -5830,7 +5830,7 @@ None beyond InstanceID==0.
 #### State dependencies `confirmed`
 
 Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/0x5a7f/0x7764 gate the chime-restore behavior.
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102d2bec @ 0x102d2c64 — mode dispatch
 - @ 0x10eb12cc — 'restoring after stop chime: ret=%d ar=%d wrca=%d pavt=%d'
@@ -5845,7 +5845,7 @@ Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/
 #### State transitions `confirmed`
 
 Stop submitted; queue/URI fields cleared on the chime path; transport-state update run.
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn f_102d2bec @ 0x102d2cd8 — fields cleared
 
@@ -5855,7 +5855,7 @@ Stop submitted; queue/URI fields cleared on the chime path; transport-state upda
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn 0x102f849c — bl call scan: notify-family sites = \[\]
 
@@ -5865,7 +5865,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 #### Return behavior `confirmed`
 
 701 when f_102931f0(impl+0x5dc) fails its precondition; else mode-path rc flows through f_102b05e4's status (0=success).
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - fn f_102d2bec @ 0x102d2c40 — li r3,0x2bd on f_102931f0 fail
 - fn f_102d2bec @ 0x102d2d74 — f_102b05e4 rc -> r28
@@ -5914,7 +5914,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f849c`
 - dispatch entry `0x10eb3204`
@@ -6053,7 +6053,7 @@ AVT impl universal shape (Ghidra-verified across 15 impls): param_2(InstanceID-p
 
 Implementation sources (recovered): `zoneplayer/avt_impl.cxx`, `zoneplayer/trackplay{monitor,recorder}.cxx`, `zoneplayer/play_state_mgr.cxx`
 
-<details><summary>Service evidence (3)</summary>
+<details markdown="1"><summary>Service evidence (3)</summary>
 
 - @ 0x101953c8 — service router function
 - @ 0x10eb300c — service vtable

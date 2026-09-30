@@ -62,7 +62,7 @@ Historically started streaming this player's analog line-in to the group identif
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -72,7 +72,7 @@ n/a — fault precedes any arg validation
 #### Requirements / preconditions `confirmed`
 
 none — the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -82,7 +82,7 @@ none — the dispatcher faults 401 before reading any in-arg; advertised args ar
 #### State dependencies `confirmed`
 
 none — the stub touches no service state; it only emits a fault
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -96,7 +96,7 @@ none — the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none — no state machine touched
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -106,7 +106,7 @@ none — no state machine touched
 #### Events `confirmed`
 
 none — the stub emits no events
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -116,7 +116,7 @@ none — the stub emits no events
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -132,7 +132,7 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -167,7 +167,7 @@ Historically stopped line-in transmission to the group. In this build it always 
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -177,7 +177,7 @@ n/a — fault precedes any arg validation
 #### Requirements / preconditions `confirmed`
 
 none — the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -187,7 +187,7 @@ none — the dispatcher faults 401 before reading any in-arg; advertised args ar
 #### State dependencies `confirmed`
 
 none — the stub touches no service state; it only emits a fault
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -201,7 +201,7 @@ none — the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none — no state machine touched
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -211,7 +211,7 @@ none — no state machine touched
 #### Events `confirmed`
 
 none — the stub emits no events
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -221,7 +221,7 @@ none — the stub emits no events
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -237,7 +237,7 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -276,7 +276,7 @@ Historically renamed the line-in source and set its icon. In this build it alway
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -286,7 +286,7 @@ n/a — fault precedes any arg validation
 #### Requirements / preconditions `confirmed`
 
 none — the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -296,7 +296,7 @@ none — the dispatcher faults 401 before reading any in-arg; advertised args ar
 #### State dependencies `confirmed`
 
 none — the stub touches no service state; it only emits a fault
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -310,7 +310,7 @@ none — the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none — no state machine touched
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -320,7 +320,7 @@ none — no state machine touched
 #### Events `confirmed`
 
 none — the stub emits no events
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -330,7 +330,7 @@ none — the stub emits no events
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -346,7 +346,7 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -385,7 +385,7 @@ Historically returned the line-in source name and icon. In this build it always 
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -395,7 +395,7 @@ n/a — fault precedes any arg validation
 #### Requirements / preconditions `confirmed`
 
 none — the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -405,7 +405,7 @@ none — the dispatcher faults 401 before reading any in-arg; advertised args ar
 #### State dependencies `confirmed`
 
 none — the stub touches no service state; it only emits a fault
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -419,7 +419,7 @@ none — the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none — no state machine touched
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -429,7 +429,7 @@ none — no state machine touched
 #### Events `confirmed`
 
 none — the stub emits no events
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -439,7 +439,7 @@ none — the stub emits no events
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -455,7 +455,7 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -494,7 +494,7 @@ Historically set left/right line-in gain levels. In this build it always faults 
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -504,7 +504,7 @@ n/a — fault precedes any arg validation
 #### Requirements / preconditions `confirmed`
 
 none — the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -514,7 +514,7 @@ none — the dispatcher faults 401 before reading any in-arg; advertised args ar
 #### State dependencies `confirmed`
 
 none — the stub touches no service state; it only emits a fault
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -528,7 +528,7 @@ none — the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none — no state machine touched
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -538,7 +538,7 @@ none — no state machine touched
 #### Events `confirmed`
 
 none — the stub emits no events
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -548,7 +548,7 @@ none — the stub emits no events
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -564,7 +564,7 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -603,7 +603,7 @@ Historically returned the left/right line-in gain levels. In this build it alway
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -613,7 +613,7 @@ n/a — fault precedes any arg validation
 #### Requirements / preconditions `confirmed`
 
 none — the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -623,7 +623,7 @@ none — the dispatcher faults 401 before reading any in-arg; advertised args ar
 #### State dependencies `confirmed`
 
 none — the stub touches no service state; it only emits a fault
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -637,7 +637,7 @@ none — the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none — no state machine touched
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -647,7 +647,7 @@ none — no state machine touched
 #### Events `confirmed`
 
 none — the stub emits no events
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -657,7 +657,7 @@ none — the stub emits no events
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073d8f8 — reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
@@ -673,7 +673,7 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -737,7 +737,7 @@ AudioIn actions dispatched to REAL handlers in 34.16 & 57.10 (name-literals refe
 
 Implementation sources (recovered): `zoneplayer/ai_impl_base.cxx`, `zoneplayer/spotify/ai_spotify.cxx`, `zoneplayer/extaudiosrc.cxx`
 
-<details><summary>Service evidence (3)</summary>
+<details markdown="1"><summary>Service evidence (3)</summary>
 
 - @ 0x101953c8 — service router function
 - @ 0x1019c22c — svc store into *(r3-in+0xaa6c)

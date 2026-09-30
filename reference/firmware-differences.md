@@ -2,7 +2,11 @@
 
 How this build compares to other Sonos firmware versions - checked by matching strings and structures inside each binary, not by running devices. A feature string being present proves the code exists; it doesn't prove the feature is switched on.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 String-set diff across anacapad 34.16 (fenway), 57.10 (fenway), 86.8-78270 (playbar model9), 86.10-80260 (documented build). Presence = literal exists in binary; literal storage/validation method may differ even when service is present.
+
+</details>
 
 - **matrix_method:** 4 binaries {34.16,57.10(fenway-public),86.8(playbar-model9),86.10(1-9)}; per advertised action-name check every literal instance for ptr-table/strcmp ref
 - **crossbuild_matrix_artifact:** docs/crossbuild_matrix.json

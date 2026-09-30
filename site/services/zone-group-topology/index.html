@@ -3413,56 +3413,56 @@
 </ul>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10733140 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10733140 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1)</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733140 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733140 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): none - impl works on req/inline members only</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733140 — member vfunc calls: \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733140 — member vfunc calls: []</li>
+</ul>
 </details>
-
 <h4 id="side-effects">Side effects<a class="headerlink" href="#side-effects" title="Permanent link">&para;</a></h4>
 <ul>
 <li>impl delegates op internally (no member vfunc call captured); arg-driven, stores=1</li>
 </ul>
 <h4 id="state-transitions-strong">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): none</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733140 — no transition-literal/store pattern; member delegates: \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733140 — no transition-literal/store pattern; member delegates: []</li>
+</ul>
 </details>
-
 <h4 id="events-strong">Events <code>strong</code><a class="headerlink" href="#events-strong" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733140 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733140 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733140 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733140 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h4>
 <p><strong><code>402</code></strong> <code>strong</code></p>
 <p>UpdateURL does not begin with "http" (strncasecmp 4) -&gt; 402 with detail "Update URL is malformed"; on http-URL the request delegates to launcher f_1073f1c8 (rc forwarded verbatim) | Wrapper parse layer rejected an argument before the impl call.</p>
@@ -3471,20 +3471,23 @@
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
 <p>launcher f_1073f1c8 performs external-update hook (write+exec); its rc is forwarded verbatim and not statically bounded - operation-submitted semantics, not guaranteed success</p>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10733140`
-- dispatch entry `0x10f113dc` (voff `16`)
-- impl call `0x107332b8` obj `*(r3-in+0x4)` slot `12` arg4 `sp+0xa8`
-- req vcall `0x10733208` slot `8` (parse)
-- req vcall `0x10733284` slot `64` (other)
-- req vcall `0x107332d4` slot `12` (commit)
-
-- fn 0x10733140 @ 0x10733140 — action wrapper handler
-- @ 0x10f113dc — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10733140</code></li>
+<li>dispatch entry <code>0x10f113dc</code> (voff <code>16</code>)</li>
+<li>impl call <code>0x107332b8</code> obj <code>*(r3-in+0x4)</code> slot <code>12</code> arg4 <code>sp+0xa8</code></li>
+<li>req vcall <code>0x10733208</code> slot <code>8</code> (parse)</li>
+<li>req vcall <code>0x10733284</code> slot <code>64</code> (other)</li>
+<li>
+<p>req vcall <code>0x107332d4</code> slot <code>12</code> (commit)</p>
+</li>
+<li>
+<p>fn 0x10733140 @ 0x10733140 — action wrapper handler</p>
+</li>
+<li>@ 0x10f113dc — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="checkforupdate"><code>CheckForUpdate</code><a class="headerlink" href="#checkforupdate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.</p>
@@ -3559,56 +3562,56 @@
 </ul>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x1073331c — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x1073331c — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_1">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_1" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073331c — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073331c — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_1">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_1" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): *(r30+4) v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073331c — member vfunc calls: \['*(r30+4) v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073331c — member vfunc calls: ['*(r30+4) v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_1">Side effects<a class="headerlink" href="#side-effects_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>state-mutation delegate: *(r30+4) v[+0x8] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_1">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_1" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073331c — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073331c — no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_1">Events <code>strong</code><a class="headerlink" href="#events-strong_1" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073331c — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073331c — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_1">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_1" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073331c — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073331c — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_1">Errors<a class="headerlink" href="#errors_1" title="Permanent link">&para;</a></h4>
 <p><strong><code>402</code></strong> <code>strong</code></p>
 <p>UpdateType arg != "Software" (strcmp in impl) | Wrapper parse layer rejected an argument before the impl call.</p>
@@ -3623,20 +3626,23 @@
 <ul>
 <li>type=="Software" and *(impl+0x5f4)==0</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x1073331c`
-- dispatch entry `0x10f113e8` (voff `12`)
-- impl call `0x1073343c` obj `*(*(sp-0xcf0+0xce8)+0x4)` slot `8` arg4 `sp+0x5c`
-- impl call `0x10733478` obj `vret(*(sp-0xcf0+0xcec),+0x24)` slot `16` arg4 `sp+0xdc`
-- impl call `0x1073348c` obj `*(sp-0xcf0+0xcec)` slot `12` arg4 `?`
-- req vcall `0x107333c8` slot `8` (parse)
-
-- fn 0x1073331c @ 0x1073331c — action wrapper handler
-- @ 0x10f113e8 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x1073331c</code></li>
+<li>dispatch entry <code>0x10f113e8</code> (voff <code>12</code>)</li>
+<li>impl call <code>0x1073343c</code> obj <code>*(*(sp-0xcf0+0xce8)+0x4)</code> slot <code>8</code> arg4 <code>sp+0x5c</code></li>
+<li>impl call <code>0x10733478</code> obj <code>vret(*(sp-0xcf0+0xcec),+0x24)</code> slot <code>16</code> arg4 <code>sp+0xdc</code></li>
+<li>impl call <code>0x1073348c</code> obj <code>*(sp-0xcf0+0xcec)</code> slot <code>12</code> arg4 <code>?</code></li>
+<li>
+<p>req vcall <code>0x107333c8</code> slot <code>8</code> (parse)</p>
+</li>
+<li>
+<p>fn 0x1073331c @ 0x1073331c — action wrapper handler</p>
+</li>
+<li>@ 0x10f113e8 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="getzonegroupattributes"><code>GetZoneGroupAttributes</code><a class="headerlink" href="#getzonegroupattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the household's group name/id, the member UUIDs, and the Muse household id.</p>
@@ -3689,56 +3695,56 @@
 </ul>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10733878 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10733878 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_2">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_2" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (out-arg store×4, raise-fault×1, out-arg write×4, validate×1, commit×1); member delegates: r4 v[+0x34], *(r29+4) v[+?]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733878 — req-vfunc call map: {'0x8': 1, '0x14': 1, '0x24': 4, '0x10': 4, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733878 — req-vfunc call map: {'0x8': 1, '0x14': 1, '0x24': 4, '0x10': 4, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_2">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_2" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r4 v[+0x34], *(r29+4) v[+?]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733878 — member vfunc calls: \['r4 v\[+0x34\]', '*(r29+4) v\[+?\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733878 — member vfunc calls: ['r4 v[+0x34]', '*(r29+4) v[+?]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_2">Side effects<a class="headerlink" href="#side-effects_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li>read-only query delegate: r4 v[+0x34], *(r29+4) v[+?] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_2">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_2" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x34], *(r29+4) v[+?]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733878 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x34\]', '*(r29+4) v\[+?\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733878 — no transition-literal/store pattern; member delegates: ['r4 v[+0x34]', '*(r29+4) v[+?]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_2">Events <code>strong</code><a class="headerlink" href="#events-strong_2" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733878 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733878 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_2">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_2" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733878 — commit/fault slot usage: {'0x8': 1, '0x14': 1, '0x24': 4, '0x10': 4, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733878 — commit/fault slot usage: {'0x8': 1, '0x14': 1, '0x24': 4, '0x10': 4, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_2">Errors<a class="headerlink" href="#errors_2" title="Permanent link">&para;</a></h4>
 <p><strong><code>501</code></strong> <code>strong</code></p>
 <p>attribute serialization not-ready flag - impl returns 0x1f5</p>
@@ -3755,25 +3761,28 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10733878`
-- dispatch entry `0x10f113f4` (voff `36`)
-- impl call `0x107338b8` obj `r4-in` slot `52` arg4 `r4-in`
-- impl call `0x107338ec` obj `r4-in` slot `8` arg4 `?`
-- impl call `0x1073390c` obj `r4-in` slot `20` arg4 `402`
-- impl call `0x10733990` obj `*(*(sp-0xb80+0xb74)+0x4)` slot `36` arg4 `sp+0x36c`
-- impl call `0x107339c8` obj `vret(*(sp-0xb80+0xb7c),+0x24)` slot `16` arg4 `sp+0x36c`
-- impl call `0x107339f8` obj `vret(*(sp-0xb80+0xb7c),+0x24)` slot `16` arg4 `sp+0x76c`
-- impl call `0x10733a28` obj `vret(*(sp-0xb80+0xb7c),+0x24)` slot `16` arg4 `sp+0x4c`
-- impl call `0x10733a58` obj `vret(*(sp-0xb80+0xb7c),+0x24)` slot `16` arg4 `sp+0x14`
-- req vcall `0x10733a6c` slot `12` (commit)
-
-- fn 0x10733878 @ 0x10733878 — action wrapper handler
-- @ 0x10f113f4 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10733878</code></li>
+<li>dispatch entry <code>0x10f113f4</code> (voff <code>36</code>)</li>
+<li>impl call <code>0x107338b8</code> obj <code>r4-in</code> slot <code>52</code> arg4 <code>r4-in</code></li>
+<li>impl call <code>0x107338ec</code> obj <code>r4-in</code> slot <code>8</code> arg4 <code>?</code></li>
+<li>impl call <code>0x1073390c</code> obj <code>r4-in</code> slot <code>20</code> arg4 <code>402</code></li>
+<li>impl call <code>0x10733990</code> obj <code>*(*(sp-0xb80+0xb74)+0x4)</code> slot <code>36</code> arg4 <code>sp+0x36c</code></li>
+<li>impl call <code>0x107339c8</code> obj <code>vret(*(sp-0xb80+0xb7c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x36c</code></li>
+<li>impl call <code>0x107339f8</code> obj <code>vret(*(sp-0xb80+0xb7c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x76c</code></li>
+<li>impl call <code>0x10733a28</code> obj <code>vret(*(sp-0xb80+0xb7c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x4c</code></li>
+<li>impl call <code>0x10733a58</code> obj <code>vret(*(sp-0xb80+0xb7c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x14</code></li>
+<li>
+<p>req vcall <code>0x10733a6c</code> slot <code>12</code> (commit)</p>
+</li>
+<li>
+<p>fn 0x10733878 @ 0x10733878 — action wrapper handler</p>
+</li>
+<li>@ 0x10f113f4 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="getzonegroupstate"><code>GetZoneGroupState</code><a class="headerlink" href="#getzonegroupstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.</p>
@@ -3801,57 +3810,57 @@
 </ul>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10732ed8 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10732ed8 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_3">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_3" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, validate×1, commit×1); member delegates: r4 v[+0x3c], *(r30+4) v[+0x28]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ed8 — req-vfunc call map: {'0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ed8 — req-vfunc call map: {'0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_3">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_3" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+4) v[+0x28]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ed8 — member vfunc calls: \['r4 v\[+0x3c\]', '*(r30+4) v\[+0x28\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ed8 — member vfunc calls: ['r4 v[+0x3c]', '*(r30+4) v[+0x28]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_3">Side effects<a class="headerlink" href="#side-effects_3" title="Permanent link">&para;</a></h4>
 <ul>
 <li>read-only query delegate: r4 v[+0x3c], *(r30+4) v[+0x28] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_3">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_3" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+4) v[+0x28]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ed8 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x3c\]', '*(r30+4) v\[+0x28\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ed8 — no transition-literal/store pattern; member delegates: ['r4 v[+0x3c]', '*(r30+4) v[+0x28]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_3">Events <code>strong</code><a class="headerlink" href="#events-strong_3" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ed8 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ed8 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed" title="Permanent link">&para;</a></h4>
 <p>serializes the live topology object into ZoneGroupState XML under impl+0x318 lock; faults 501 when the serializer flag is clear</p>
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10752ce4 — impl body
-- @ 0x10732f9c — emit+commit
-
+<details>
+<summary>Evidence (2)</summary>
+<ul>
+<li>@ 0x10752ce4 — impl body</li>
+<li>@ 0x10732f9c — emit+commit</li>
+</ul>
 </details>
-
 <h4 id="errors_3">Errors<a class="headerlink" href="#errors_3" title="Permanent link">&para;</a></h4>
 <p><strong><code>501</code></strong> <code>strong</code></p>
 <p>state serializer flag clear (builder empty/not-ready) - impl returns 0x1f5</p>
@@ -3863,21 +3872,24 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10732ed8`
-- dispatch entry `0x10f11400` (voff `40`)
-- impl call `0x10732f8c` obj `*(*(sp-0x69a0+0x6998)+0x4)` slot `40` arg4 `sp+0x14`
-- impl call `0x10732fc8` obj `vret(*(sp-0x69a0+0x699c),+0x24)` slot `16` arg4 `sp+0x14`
-- impl call `0x10732fdc` obj `*(sp-0x69a0+0x699c)` slot `12` arg4 `?`
-- req vcall `0x10732f10` slot `60` (other)
-- req vcall `0x10732f24` slot `8` (parse)
-
-- fn 0x10732ed8 @ 0x10732ed8 — action wrapper handler
-- @ 0x10f11400 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10732ed8</code></li>
+<li>dispatch entry <code>0x10f11400</code> (voff <code>40</code>)</li>
+<li>impl call <code>0x10732f8c</code> obj <code>*(*(sp-0x69a0+0x6998)+0x4)</code> slot <code>40</code> arg4 <code>sp+0x14</code></li>
+<li>impl call <code>0x10732fc8</code> obj <code>vret(*(sp-0x69a0+0x699c),+0x24)</code> slot <code>16</code> arg4 <code>sp+0x14</code></li>
+<li>impl call <code>0x10732fdc</code> obj <code>*(sp-0x69a0+0x699c)</code> slot <code>12</code> arg4 <code>?</code></li>
+<li>req vcall <code>0x10732f10</code> slot <code>60</code> (other)</li>
+<li>
+<p>req vcall <code>0x10732f24</code> slot <code>8</code> (parse)</p>
+</li>
+<li>
+<p>fn 0x10732ed8 @ 0x10732ed8 — action wrapper handler</p>
+</li>
+<li>@ 0x10f11400 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="registermobiledevice"><code>RegisterMobileDevice</code><a class="headerlink" href="#registermobiledevice" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.</p>
@@ -3927,56 +3939,56 @@
 </ul>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10732ebc — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10732ebc — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_4">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_4" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (none); member delegates: r4 v[+0xc]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ebc — req-vfunc call map: {}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ebc — req-vfunc call map: {}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_4">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_4" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r4 v[+0xc]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ebc — member vfunc calls: \['r4 v\[+0xc\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ebc — member vfunc calls: ['r4 v[+0xc]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_4">Side effects<a class="headerlink" href="#side-effects_4" title="Permanent link">&para;</a></h4>
 <ul>
 <li>state-mutation delegate: r4 v[+0xc] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_4">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_4" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0xc]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ebc — no transition-literal/store pattern; member delegates: \['r4 v\[+0xc\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ebc — no transition-literal/store pattern; member delegates: ['r4 v[+0xc]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_4">Events <code>strong</code><a class="headerlink" href="#events-strong_4" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10732ebc — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10732ebc — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed_1">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>unconditional empty commit - accepted-and-ignored</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10732ebc — handler body
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10732ebc — handler body</li>
+</ul>
 </details>
-
 <h4 id="errors_4">Errors<a class="headerlink" href="#errors_4" title="Permanent link">&para;</a></h4>
 <p><strong><code>none</code></strong> <code>confirmed</code></p>
 <p>no action-level fault path exists - handler commits unconditionally (request-envelope faults only)</p>
@@ -3987,75 +3999,78 @@
 <ul>
 <li><strong>arg_direction:</strong> required/optional flags and formal in/out direction unresolved: trampoline handler delegates parse+emit to generic req worker; names recovered from packed rodata record</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10732ebc`
-- dispatch entry `0x10f1140c` (voff `20`)
-- req vcall `0x10732ed4` slot `12` (commit)
-- Handler f_10732ebc forwards wholesale to req->v\[+0x0c\] -- the request objects own commit/worker vfunc; the argument model lives inside that request-scoped vfunc and is not statically resolvable from the handler. Arg model recovered from packed rodata record 0x10f093f0..0x10f0943c: action name followed by MobileDeviceName/MobileDeviceUDN/MobileIPAndPort. Direction recorded as inputs on name semantics (registration payload); the req-scoped worker owns parse/emit sites so per-arg required/optional and emit-vs-parse cannot be resolved from the handler alone.
-
-- @ 0x10732ebc — handler body
-- @ 0x10f1140c — action table entry
-- fn 0x10732ebc @ 0x10732ebc — action wrapper handler
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10732ebc</code></li>
+<li>dispatch entry <code>0x10f1140c</code> (voff <code>20</code>)</li>
+<li>req vcall <code>0x10732ed4</code> slot <code>12</code> (commit)</li>
+<li>
+<p>Handler f_10732ebc forwards wholesale to req-&gt;v[+0x0c] -- the request objects own commit/worker vfunc; the argument model lives inside that request-scoped vfunc and is not statically resolvable from the handler. Arg model recovered from packed rodata record 0x10f093f0..0x10f0943c: action name followed by MobileDeviceName/MobileDeviceUDN/MobileIPAndPort. Direction recorded as inputs on name semantics (registration payload); the req-scoped worker owns parse/emit sites so per-arg required/optional and emit-vs-parse cannot be resolved from the handler alone.</p>
+</li>
+<li>
+<p>@ 0x10732ebc — handler body</p>
+</li>
+<li>@ 0x10f1140c — action table entry</li>
+<li>fn 0x10732ebc @ 0x10732ebc — action wrapper handler</li>
+</ul>
 </details>
-
 <h3 id="reportalarmstartedrunning"><code>ReportAlarmStartedRunning</code><a class="headerlink" href="#reportalarmstartedrunning" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).</p>
 <p><strong>Technical description:</strong> Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl-&gt;v[+0x14].</p>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x107337cc — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x107337cc — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_5">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_5" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x14]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107337cc — req-vfunc call map: {'0x14': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107337cc — req-vfunc call map: {'0x14': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_5">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_5" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107337cc — member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x14\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107337cc — member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x14]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_5">Side effects<a class="headerlink" href="#side-effects_5" title="Permanent link">&para;</a></h4>
 <ul>
 <li>state-mutation delegate: r4 v[+0x8], *(r30+4) v[+0x14] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_5">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_5" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107337cc — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x14\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107337cc — no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x14]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_5">Events <code>strong</code><a class="headerlink" href="#events-strong_5" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107337cc — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107337cc — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_3">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_3" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107337cc — commit/fault slot usage: {'0x14': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107337cc — commit/fault slot usage: {'0x14': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_5">Errors<a class="headerlink" href="#errors_5" title="Permanent link">&para;</a></h4>
 <p><strong><code>501</code></strong> <code>strong</code></p>
 <p>bound impl lacks the alarm-capable vfunc: *(svc+4)-&gt;v[+0x24] != f_1012b9b4 -&gt; 501 (polymorphic impl-variant check)</p>
@@ -4070,21 +4085,24 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x107337cc`
-- dispatch entry `0x10f11418` (voff `28`)
-- impl call `0x10733840` obj `*(*(sp-0x20+0x18)+0x4)` slot `20` arg4 `402`
-- impl call `0x10733874` obj `*(sp-0x20+0x1c)` slot `12` arg4 `vret(*(*(sp-0x20+0x18)+0x4),+0x14)`
-- req vcall `0x107337f8` slot `8` (parse)
-- Handler 0x107337cc contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).
-
-- fn 0x107337cc @ 0x107337cc — action wrapper handler
-- @ 0x10f11418 — action dispatch table entry
-- @ 0x107337cc — handler body: gate + impl call + commit only; no parse/emit arg sites
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x107337cc</code></li>
+<li>dispatch entry <code>0x10f11418</code> (voff <code>28</code>)</li>
+<li>impl call <code>0x10733840</code> obj <code>*(*(sp-0x20+0x18)+0x4)</code> slot <code>20</code> arg4 <code>402</code></li>
+<li>impl call <code>0x10733874</code> obj <code>*(sp-0x20+0x1c)</code> slot <code>12</code> arg4 <code>vret(*(*(sp-0x20+0x18)+0x4),+0x14)</code></li>
+<li>req vcall <code>0x107337f8</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Handler 0x107337cc contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).</p>
+</li>
+<li>
+<p>fn 0x107337cc @ 0x107337cc — action wrapper handler</p>
+</li>
+<li>@ 0x10f11418 — action dispatch table entry</li>
+<li>@ 0x107337cc — handler body: gate + impl call + commit only; no parse/emit arg sites</li>
+</ul>
 </details>
-
 <h3 id="reportunresponsivedevice"><code>ReportUnresponsiveDevice</code><a class="headerlink" href="#reportunresponsivedevice" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.</p>
@@ -4127,56 +4145,56 @@
 </ul>
 <h4 id="validation-confirmed_6">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_6" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10733498 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10733498 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_6">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_6" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, 0x34×1, validate×1, commit×1); member delegates: <em>(r30+4) v[+0x10], </em>(r30+4) v[+0x10]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733498 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0xc': 1, '0x14': 1, '0x34': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733498 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0xc': 1, '0x14': 1, '0x34': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_6">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_6" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): <em>(r30+4) v[+0x10], </em>(r30+4) v[+0x10]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733498 — member vfunc calls: \['*(r30+4) v\[+0x10\]', '*(r30+4) v\[+0x10\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733498 — member vfunc calls: ['<em>(r30+4) v[+0x10]', '</em>(r30+4) v[+0x10]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_6">Side effects<a class="headerlink" href="#side-effects_6" title="Permanent link">&para;</a></h4>
 <ul>
 <li>state-mutation delegate: <em>(r30+4) v[+0x10], </em>(r30+4) v[+0x10] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_6">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_6" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): <em>(r30+4) v[+0x10], </em>(r30+4) v[+0x10]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733498 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x10\]', '*(r30+4) v\[+0x10\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733498 — no transition-literal/store pattern; member delegates: ['<em>(r30+4) v[+0x10]', '</em>(r30+4) v[+0x10]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_6">Events <code>strong</code><a class="headerlink" href="#events-strong_6" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733498 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733498 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_4">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_4" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10733498 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0xc': 1, '0x14': 1, '0x34': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10733498 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0xc': 1, '0x14': 1, '0x34': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_6">Errors<a class="headerlink" href="#errors_6" title="Permanent link">&para;</a></h4>
 <p><strong><code>402</code></strong> <code>strong</code></p>
 <p>DeviceID lacks RINCON_ prefix (strncmp,7) - f_10121310 returns 402 | Wrapper parse layer rejected an argument before the impl call.</p>
@@ -4186,21 +4204,24 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> topology impl rc surfaced
 <strong>Bounded unknown — unresolved:</strong> codes for validation/state failures</p>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10733498`
-- dispatch entry `0x10f11424` (voff `24`)
-- impl call `0x10733564` obj `*(r3-in+0x4)` slot `16` arg4 `sp-0x414`
-- impl call `0x107335ec` obj `*(sp-0x4b0+0x4ac)` slot `52` arg4 `?`
-- impl call `0x10733648` obj `*(*(sp-0x4b0+0x4a8)+0x4)` slot `16` arg4 `sp+0x9c`
-- req vcall `0x10733528` slot `8` (parse)
-- req vcall `0x10733580` slot `12` (commit)
-
-- fn 0x10733498 @ 0x10733498 — action wrapper handler
-- @ 0x10f11424 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10733498</code></li>
+<li>dispatch entry <code>0x10f11424</code> (voff <code>24</code>)</li>
+<li>impl call <code>0x10733564</code> obj <code>*(r3-in+0x4)</code> slot <code>16</code> arg4 <code>sp-0x414</code></li>
+<li>impl call <code>0x107335ec</code> obj <code>*(sp-0x4b0+0x4ac)</code> slot <code>52</code> arg4 <code>?</code></li>
+<li>impl call <code>0x10733648</code> obj <code>*(*(sp-0x4b0+0x4a8)+0x4)</code> slot <code>16</code> arg4 <code>sp+0x9c</code></li>
+<li>req vcall <code>0x10733528</code> slot <code>8</code> (parse)</li>
+<li>
+<p>req vcall <code>0x10733580</code> slot <code>12</code> (commit)</p>
+</li>
+<li>
+<p>fn 0x10733498 @ 0x10733498 — action wrapper handler</p>
+</li>
+<li>@ 0x10f11424 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="submitdiagnostics"><code>SubmitDiagnostics</code><a class="headerlink" href="#submitdiagnostics" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support.</p>
@@ -4264,56 +4285,56 @@
 </ul>
 <h4 id="validation-confirmed_7">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_7" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x1073365c — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x1073365c — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_7">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_7" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r28+4) v[+0x18]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073365c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073365c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_7">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_7" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): *(r28+4) v[+0x18]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073365c — member vfunc calls: \['*(r28+4) v\[+0x18\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073365c — member vfunc calls: ['*(r28+4) v[+0x18]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_7">Side effects<a class="headerlink" href="#side-effects_7" title="Permanent link">&para;</a></h4>
 <ul>
 <li>state-mutation delegate: *(r28+4) v[+0x18] (call-derived member-method semantics)</li>
 </ul>
 <h4 id="state-transitions-strong_7">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_7" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v[+0x18]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073365c — no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+0x18\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073365c — no transition-literal/store pattern; member delegates: ['*(r28+4) v[+0x18]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_7">Events <code>strong</code><a class="headerlink" href="#events-strong_7" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073365c — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073365c — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-strong_5">Return behavior <code>strong</code><a class="headerlink" href="#return-behavior-strong_5" title="Permanent link">&para;</a></h4>
 <p>0/ok -&gt; out-args via req-&gt;v[+0x24/+0x10] then req-&gt;v[+0x0c] commit (200); failure -&gt; req-&gt;v[+0x14] raise-fault with impl code (r4 lits: [])</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x1073365c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x1073365c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="errors_7">Errors<a class="headerlink" href="#errors_7" title="Permanent link">&para;</a></h4>
 <p><strong><code>1000</code></strong> <code>strong</code></p>
 <p>diagnostics delegate absent: global-&gt;v[+0xcc](*(impl+0x578))==0 -&gt; rc 0x3e8</p>
@@ -4325,19 +4346,22 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x1073365c`
-- dispatch entry `0x10f11430` (voff `32`)
-- impl call `0x1073377c` obj `*(*(sp-0x50+0x40)+0x4)` slot `24` arg4 `sp+0x14`
-- impl call `0x107337c0` obj `*(sp-0x50+0x4c)` slot `12` arg4 `?`
-- req vcall `0x10733708` slot `8` (parse)
-
-- fn 0x1073365c @ 0x1073365c — action wrapper handler
-- @ 0x10f11430 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x1073365c</code></li>
+<li>dispatch entry <code>0x10f11430</code> (voff <code>32</code>)</li>
+<li>impl call <code>0x1073377c</code> obj <code>*(*(sp-0x50+0x40)+0x4)</code> slot <code>24</code> arg4 <code>sp+0x14</code></li>
+<li>impl call <code>0x107337c0</code> obj <code>*(sp-0x50+0x4c)</code> slot <code>12</code> arg4 <code>?</code></li>
+<li>
+<p>req vcall <code>0x10733708</code> slot <code>8</code> (parse)</p>
+</li>
+<li>
+<p>fn 0x1073365c @ 0x1073365c — action wrapper handler</p>
+</li>
+<li>@ 0x10f11430 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h2 id="state-variables">State variables<a class="headerlink" href="#state-variables" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -4548,12 +4572,13 @@
 <li><strong>evidence:</strong> disasm dispatcher 0x10732ff8 vtable-index dispatch (id odd -&gt; *(vptr+id-9) vfunc); table dump 0x10f113b8</li>
 </ul>
 <p>Implementation sources (recovered): <code>zoneplayer/topology.cxx</code>, <code>zoneplayer/topology_events_report.cxx</code>, <code>zoneplayer/zones_{mgr,storage}.cxx</code>, <code>common/topology/topology_base.cxx</code></p>
-<details><summary>Service evidence (3)</summary>
-
-- @ 0x1068bc0c — service router function
-- @ 0x10f113b0 — service vtable
-- @ 0x10732ff8 — service dispatcher
-
+<details>
+<summary>Service evidence (3)</summary>
+<ul>
+<li>@ 0x1068bc0c — service router function</li>
+<li>@ 0x10f113b0 — service vtable</li>
+<li>@ 0x10732ff8 — service dispatcher</li>
+</ul>
 </details>
 
 

@@ -52,7 +52,7 @@ Auth exchange: client sends a Seed string; the player returns Code, MID and DID 
 #### Validation `confirmed`
 
 req->v\[+0x08\] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x1073a5d0 — validate gate + 0x192 literal
 - @ 0x1073a6b8 — 0x192 -> req->v\[+0x14\]
@@ -63,7 +63,7 @@ req->v\[+0x08\] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)
 #### Requirements / preconditions `confirmed`
 
 Seed is required: parse via f_1056157c precedes the impl call and the req->v\[+0x08\] gate rejects missing/malformed args with 402
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x1073a5d0 — required-arg parse order + gate
 
@@ -73,7 +73,7 @@ Seed is required: parse via f_1056157c precedes the impl call and the req->v\[+0
 #### State dependencies `confirmed`
 
 auth computation reads device-identity material via f_106453a8/f_1064548c lookups inside impl f_104666b4; impl object injected into svc+4 by ctor f_1073a768 (called at 0x1018f28c)
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x104666b4 — device-material lookups
 - @ 0x1018f28c — impl ctor injection site
@@ -88,7 +88,7 @@ auth computation reads device-identity material via f_106453a8/f_1064548c lookup
 #### State transitions `confirmed`
 
 none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond the action-name/TLS stores
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x104666b4 — read-only auth computation + return 0
 
@@ -98,7 +98,7 @@ none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond 
 #### Events `confirmed`
 
 none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify call; the only side effect is the action-name store into ctx+0x70 member +0xe0 and TLS+0x28
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x104666b4 — unconditional return 0, no event emitter calls
 
@@ -108,7 +108,7 @@ none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify cal
 #### Return behavior `confirmed`
 
 impl returns 0 unconditionally -> success response commits Code/MID/DID via req->v\[+0x24\] emitters then req->v\[+0x0c\]; nonzero would surface via the same fault/commit path
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x104666b4 — return 0
 - @ 0x1073a5d0 — emit + commit tail
@@ -137,7 +137,7 @@ action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 - dispatched action name != "QPlayAuth" (strcmp fallthrough)
 
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a4f0`
 - Dispatcher f_1073a4f0 strcmp-matches "QPlayAuth", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v\[+0x0c\] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v\[+0x08\] gate (else 402), then impl->v\[+0x08\] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v\[+0x24\] then commits via req->v\[+0x0c\].
@@ -175,7 +175,7 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 Implementation sources (recovered): `compiled lib (qplay) — no path literal`
 
-<details><summary>Service evidence (3)</summary>
+<details markdown="1"><summary>Service evidence (3)</summary>
 
 - @ 0x101953c8 — service router function
 - @ 0x10f11d48 — service vtable

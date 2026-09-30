@@ -49,7 +49,11 @@ The tables below are the player's URL map for control traffic. Each row is one s
 
 Every command receives its arguments through the same generic 'request' object. Its method table has fixed slots - read a parameter, identify the caller, build the response - so one piece of plumbing serves all 205 commands uniformly. The table lists what each slot is for.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Every action wrapper interacts with the request through these vfunc slots (confidence: `inferred`).
+
+</details>
 
 | Slot | Purpose |
 |---|---|
@@ -67,7 +71,11 @@ Every action wrapper interacts with the request through these vfunc slots (confi
 
 The player keeps internal switches that decide which features exist on this hardware or in this mode. They are why a Playbar exposes a different command set than a Play:1, and why whole services can silently enable or disable at runtime. Each row is one switch and the behavior it gates.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Object fields the firmware reads to gate behavior. Read/write sites are static evidence; the *predicate* each gates is noted honestly where unresolved.
+
+</details>
 
 | Field | Effect | Status | Load sites |
 |---|---|---|---|
@@ -280,7 +288,11 @@ Named helper routines the command handlers share - parameter parsers, validators
 
 Functions we investigated because they looked like command dispatchers; each entry records the verdict.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Functions that looked like dispatchers, with the verdict each received.
+
+</details>
 
 ### `0x105cd004`
 
@@ -317,8 +329,6 @@ RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f1
 ## Shared subsystems
 
 Building blocks reused across many commands - URI grammars, metadata parsers, error helpers. Documented once here rather than repeated under every command that uses them.
-
-Reusable primitives recovered from the binary — prefer these over re-reading per-action detail.
 
 ### `soap_fault_wire_format`
 

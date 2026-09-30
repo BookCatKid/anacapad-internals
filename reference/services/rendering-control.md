@@ -125,7 +125,7 @@ Request parse/validation failure at the wrapper.
 
 Sonos neutered GetBass while leaving GetTreble (+0x38 -> real impl f_100e3450) functional - asymmetric deprecation, consistent with migration to GetEQ/SetEQ parametric EQ.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073ba88`
 - dispatch entry `0x10f11d88`
@@ -219,7 +219,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 f_100e382c is the shared EQ-read worker - GetEQ, GetTreble's f_100e1fec sibling, and the GetVolume 'spatial' branch all funnel into EQ-context reads.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073bcb0`
 - dispatch entry `0x10f11d94`
@@ -310,7 +310,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Field semantics of +0x7ff/+0x801 remain the key unknown: they appear in SetMute's Master path, GetHeadphoneConnected and SetChannelMap - likely 'output-fixed' and 'headphone/slave' mode flags.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b0d8`
 - dispatch entry `0x10f11da0`
@@ -405,7 +405,7 @@ Request parse/validation failure at the wrapper.
 
 Loudness exists only on the derived/proxy impl class - plausible device-capability gating.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073ad64`
 - dispatch entry `0x10f11dac`
@@ -504,7 +504,7 @@ InstanceID was nonzero: impl checks the parsed value and returns 0x2be before to
 
 GetMute accepts only 3 channels although the mute field array has a 4th entry (+0x7f4 'FocusMode') reachable only via SetMute - read/write asymmetry confirmed in the binary.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073ac24`
 - dispatch entry `0x10f11db8`
@@ -593,7 +593,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Reading flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixed state; unverified which field backs it.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073afb8`
 - dispatch entry `0x10f11dc4`
@@ -684,7 +684,7 @@ Request argument parse/validation failure at the wrapper before the impl call.
 
 Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record is a shared config/status query structure.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b1ec`
 - dispatch entry `0x10f11dd0`
@@ -776,7 +776,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Verify at runtime: the 63/52 returns suggest this getter may fault or emit distinct statuses depending on the delegate result.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073aea4`
 - dispatch entry `0x10f11ddc`
@@ -872,7 +872,7 @@ concrete rc vocabulary: 0 (success); ctx-reader f_100e1fec rc propagated; ctx ma
 
 Largest unresolved piece: the CurrentTreble out path. Worth a focused pass on f_100e1fec later.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073bb9c`
 - dispatch entry `0x10f11de8`
@@ -987,7 +987,7 @@ concrete rc vocabulary: 0 (success, worker rc forwarded), 702 null out ptr (0x10
 
 Error code differs from AVTransport: nonzero InstanceID yields 702 here vs 718 in Seek.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073bdf0`
 - dispatch entry `0x10f11df4`
@@ -1081,7 +1081,7 @@ Request parse/validation failure at the wrapper.
 
 Despite the name the impl is a mode-select thunk over the same worker used by SetVolume/SetRelativeVolume; mode-0 semantics (dB read vs raw) unresolved.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b7e0`
 - dispatch entry `0x10f11e00`
@@ -1177,7 +1177,7 @@ Request parse/validation failure at the wrapper.
 
 Flag for live-object verification: the installed impl may differ if a derived class overrides +0x2c.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b920`
 - dispatch entry `0x10f11e0c`
@@ -1287,7 +1287,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Feature-gated by impl class like SetRoomCalibrationStatus.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c834`
 - dispatch entry `0x10f11e18`
@@ -1387,7 +1387,7 @@ Request argument parse/validation failure at the wrapper before the impl call.
 
 f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073bf30`
 - dispatch entry `0x10f11e24`
@@ -1473,7 +1473,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 The 'SetVolumeWithoutProxy' tag inside ResetExtEQ confirms f_100d9d40/f_100d99b0-style workers are shared scalar-apply machinery reused across EQ and volume actions.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a8dc`
 - dispatch entry `0x10f11e30`
@@ -1557,7 +1557,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a9f4`
 - dispatch entry `0x10f11e3c`
@@ -1644,7 +1644,7 @@ Request parse/validation failure at the wrapper.
 
 Impl signature is (impl, recordptr) - a different convention than the channel/value impls; the wrapper supplies &rec@sp+0x16.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c4cc`
 - dispatch entry `0x10f11e48`
@@ -1729,7 +1729,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior differs.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073ab0c`
 - dispatch entry `0x10f11e54`
@@ -1820,7 +1820,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Zero-gated dual worker calls are an unusual pattern - possibly 'apply defaults when selector is 0'. Worth revisiting with f_100e27b0.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c6f4`
 - dispatch entry `0x10f11e60`
@@ -1910,7 +1910,7 @@ Request parse/validation failure at the wrapper.
 
 Loudness exists only on the derived/proxy impl class - plausible device-capability gating.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b474`
 - dispatch entry `0x10f11e6c`
@@ -2007,7 +2007,7 @@ InstanceID nonzero; checked inside worker f_100d99b0 under the mutex.
 
 'SetMuteWithoutProxy' log tag in base impl vs the 0x1046xxxx prelude in the derived class shows the two impl classes differ in group/proxy handling of the same SOAP action.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b334`
 - dispatch entry `0x10f11e78`
@@ -2092,7 +2092,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 Flag +0x7ff is the same byte that gates SetVolume's write and selects volume fields in GetHeadphoneConnected - SetOutputFixed is very likely its writer.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b5b4`
 - dispatch entry `0x10f11e84`
@@ -2189,7 +2189,7 @@ Request parse/validation failure at the wrapper.
 
 Shares all worker caveats with SetVolume (dead InstanceID check, hardcoded 'Master', +0x7ff no-op gate, LUT path).
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c224`
 - dispatch entry `0x10f11e90`
@@ -2273,7 +2273,7 @@ Request argument parse/validation failure at the wrapper before the impl call; a
 
 One of three actions missing from the base vtable (with RampToVolume and RestoreVolumePriorToRamp) - feature-gated by impl class.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073b6cc`
 - dispatch entry `0x10f11e9c`
@@ -2357,7 +2357,7 @@ Request parse/validation failure at the wrapper.
 
 Asymmetric with SetBass (+0x34 -> real impl f_100d72dc): bass can be written but not read; treble can be read but not written.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c5e0`
 - dispatch entry `0x10f11ea8`
@@ -2445,7 +2445,7 @@ Request parse/validation failure at the wrapper.
 
 Shared worker for three SOAP actions via arg-remapping thunks; the 'desired<2' split (0x100dcbd0) and the exact LUT semantics are unresolved (likely a u16 gain step table).
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c0e4`
 - dispatch entry `0x10f11eb4`
@@ -2536,7 +2536,7 @@ Request parse/validation failure at the wrapper.
 
 Whether this is deliberate feature-rewiring or the live object uses class B's override is unresolved; the SOAP-visible behavior in class A is a mute toggle.
 
-<details><summary>Implementation & reverse-engineering evidence</summary>
+<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073c38c`
 - dispatch entry `0x10f11ec0`
@@ -2641,7 +2641,7 @@ Impl vtables found in .rodata: base 0x10e872f0 (slots +0x08..+0x64, ends at GetR
 
 Implementation sources (recovered): `zoneplayer/rc_impl.cxx`, `zoneplayer/rc_impl_stp.cxx`
 
-<details><summary>Service evidence (6)</summary>
+<details markdown="1"><summary>Service evidence (6)</summary>
 
 - @ 0x101953c8 — service router function
 - @ 0x10f11d7c — service vtable

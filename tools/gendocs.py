@@ -72,6 +72,17 @@ def _pt_add(m, out, page, key):
         out += [t, ""]
 
 
+def _details(out, lines, summary="Technical details"):
+    """Wrap technical content in a collapsible block (md_in_html)."""
+    out.append('<details markdown="1"><summary><b>%s</b></summary>'
+               % summary)
+    out.append("")
+    out.extend(lines)
+    out.append("")
+    out.append("</details>")
+    out.append("")
+
+
 def _status(s):
     return STATUS_BADGE.get(s, "`%s`" % s if s else "_unassessed_")
 
@@ -106,7 +117,7 @@ def _ev_list(ev, out, indent=""):
 def _ev_details(ev, out, title="Evidence"):
     if not ev:
         return
-    out.append("<details><summary>%s (%d)</summary>" % (title, len(ev)))
+    out.append("<details markdown=\"1\"><summary>%s (%d)</summary>" % (title, len(ev)))
     out.append("")
     _ev_list(ev, out)
     out.append("")
@@ -381,10 +392,9 @@ def render_architecture(m):
     if m.request_vtable:
         out += ["## Request object vtable", ""]
         _pt_add(m, out, "architecture", "request_vtable")
-        out += ["Every action wrapper interacts with the request through "
-                "these vfunc slots (confidence: `%s`)." % _e(
-                    m.request_vtable.get("confidence")),
-                ""]
+        _details(out, ["Every action wrapper interacts with the request "
+                       "through these vfunc slots (confidence: `%s`)."
+                       % _e(m.request_vtable.get("confidence"))])
         rows = [["`%s`" % k, _e(v)] for k, v in m.request_vtable.items()
                 if k != "confidence"]
         _table(out, ["Slot", "Purpose"], rows)
@@ -392,9 +402,10 @@ def render_architecture(m):
     if m.capabilities:
         out += ["## Capability fields", ""]
         _pt_add(m, out, "architecture", "capability_fields")
-        out += ["Object fields the firmware reads to gate behavior. "
-                "Read/write sites are static evidence; the *predicate* each "
-                "gates is noted honestly where unresolved.", ""]
+        _details(out, ["Object fields the firmware reads to gate behavior. "
+                       "Read/write sites are static evidence; the "
+                       "*predicate* each gates is noted honestly where "
+                       "unresolved."])
         rows = []
         for off, cap in m.capabilities.items():
             rows.append(["`%s`" % off, _e(cap.effect), _status(cap.status),
@@ -425,8 +436,8 @@ def render_architecture(m):
     if m.dispatch_candidates:
         out += ["## Dispatch candidates", ""]
         _pt_add(m, out, "architecture", "dispatch_candidates")
-        out += ["Functions that looked like dispatchers, with the verdict "
-                "each received.", ""]
+        _details(out, ["Functions that looked like dispatchers, with the "
+                       "verdict each received."])
         for addr, c in m.dispatch_candidates.items():
             out.append("### `%s`" % addr)
             out.append("")
@@ -441,8 +452,6 @@ def render_architecture(m):
 
     out += ["## Shared subsystems", ""]
     _pt_add(m, out, "architecture", "shared_subsystems")
-    out += ["Reusable primitives recovered from the binary — prefer these "
-            "over re-reading per-action detail.", ""]
     sp = m.shared_primitives
     for k in _SOAP_PRIM_KEYS:
         if k not in sp:
@@ -654,7 +663,7 @@ def render_action(a):
     if a.implementation_notes:
         det.append("- %s" % _e(a.implementation_notes))
     if det or a.evidence:
-        out.append("<details><summary>Implementation & "
+        out.append("<details markdown=\"1\"><summary>Implementation & "
                    "reverse-engineering evidence</summary>")
         out.append("")
         if det:
@@ -797,9 +806,9 @@ def render_service(s):
 def render_state_variables(m):
     out = ["# State variables", ""]
     _pt_add(m, out, "state_variables", "intro")
-    out += ["Evented variables carry `<NAME val=\"...\"/>` elements inside "
-            "`LastChange` documents; `A_ARG_TYPE_*` variables are SCPD "
-            "argument-type declarations, not device state.", ""]
+    _details(out, ["Evented variables carry `<NAME val=\"...\"/>` elements "
+                   "inside `LastChange` documents; `A_ARG_TYPE_*` variables "
+                   "are SCPD argument-type declarations, not device state."])
     allsv = m.all_state_variables()
     rows = []
     for k in sorted(allsv):
@@ -820,11 +829,8 @@ def render_state_variables(m):
         if getattr(sv, "client_summary", None):
             out.append(_para(sv.client_summary))
             out.append("")
-            out.append("**Technical description:**")
-            out.append("")
         if sv.description:
-            out.append(_para(sv.description))
-            out.append("")
+            _details(out, [_para(sv.description)])
         if sv.accepted_values:
             out.append("- accepted values: %s" % _fmt_val(
                 sv.accepted_values))
@@ -844,7 +850,6 @@ def render_state_variables(m):
 def render_events(m):
     out = ["# Eventing", ""]
     _pt_add(m, out, "events", "intro")
-    out += ["UPnP GENA eventing plus the Sonos WSS subscription surface.", ""]
     svc_blurbs = ((getattr(m, "pages_client", {}) or {}).get("events")
                   or {}).get("services") or {}
     _ALIAS = {"mediaserver": "server", "mediarenderer": "renderer"}
@@ -872,8 +877,7 @@ def render_events(m):
             out.append(_para(blurb))
             out.append("")
         if ev.mechanism:
-            out.append(_para(ev.mechanism))
-            out.append("")
+            _details(out, [_para(ev.mechanism)])
         for attr, label in [("namespace", "Namespace"),
                             ("lastchange_var", "LastChange variable"),
                             ("lastchange_template", "Template"),
@@ -951,7 +955,7 @@ def render_errors(m):
 def render_formats(m, kind, title, blurb):
     out = ["# %s" % title, ""]
     _pt_add(m, out, "%s_formats" % kind, "intro")
-    out += [blurb, ""]
+    _details(out, [blurb])
     src = m.uri_formats if kind == "uri" else m.payload_formats
     for k, f in sorted(src.items()):
         out.append("## `%s` %s" % (k, _status(f.status)))
@@ -959,11 +963,8 @@ def render_formats(m, kind, title, blurb):
         if getattr(f, "client_summary", None):
             out.append(_para(f.client_summary))
             out.append("")
-            out.append("**Technical description:**")
-            out.append("")
         if f.description:
-            out.append(_para(f.description))
-            out.append("")
+            _details(out, [_para(f.description)])
         if f.format:
             out.append("```\n%s\n```" % f.format)
             out.append("")
@@ -1010,9 +1011,9 @@ _HTTP_KEYS = [
 def render_http_api(m):
     out = ["# HTTP / non-SOAP surface", ""]
     _pt_add(m, out, "http_api", "intro")
-    out += ["Endpoints and HTTP-layer behaviors recovered from the binary "
-            "outside the SOAP control path. All are static-analysis "
-            "records.", ""]
+    _details(out, ["Endpoints and HTTP-layer behaviors recovered from the "
+                   "binary outside the SOAP control path. All are "
+                   "static-analysis records."])
     sp = m.shared_primitives
     for k in _HTTP_KEYS:
         if k not in sp:
@@ -1022,8 +1023,6 @@ def render_http_api(m):
         out.append("")
         if v.get("client_summary"):
             out.append(_para(v["client_summary"]))
-            out.append("")
-            out.append("**Technical description:**")
             out.append("")
         _generic(out, v)
         out.append("")
@@ -1035,7 +1034,7 @@ def render_firmware(m):
     _pt_add(m, out, "firmware", "intro")
     meta = m.firmware_diff_meta
     if meta.get("note"):
-        out += [_para(meta["note"]), ""]
+        _details(out, [_para(meta["note"])])
     for k in ("matrix_method", "crossbuild_matrix_artifact"):
         if meta.get(k):
             out.append("- **%s:** %s" % (k, _e(meta[k])
@@ -1073,12 +1072,12 @@ _STATUS_ORDER = {"absent": 0, "vocab": 1, "partial": 2,
 def render_subsystems(m):
     out = ["# Non-SOAP subsystems", ""]
     _pt_add(m, out, "subsystems", "intro")
-    out += ["Self-contained protocols/engines living in the same binary "
-            "beside or below the UPnP layer. `absent` = no coverage, "
-            "`vocab` = names/strings catalogued but semantics "
-            "undecoded, `partial` = some real documentation exists. "
-            "Evidence addresses are the rodata anchor strings.",
-            ""]
+    _details(out, ["Self-contained protocols/engines living in the same "
+                   "binary beside or below the UPnP layer. `absent` = no "
+                   "coverage, `vocab` = names/strings catalogued but "
+                   "semantics undecoded, `partial` = some real "
+                   "documentation exists. Evidence addresses are the "
+                   "rodata anchor strings."])
     subs = sorted(m.subsystems.items(),
                   key=lambda kv: (_STATUS_ORDER.get(
                       kv[1].get("status"), 9), kv[0]))
@@ -1101,21 +1100,20 @@ def render_subsystems(m):
         if s.get("client_summary"):
             out.append(_para(s["client_summary"]))
             out.append("")
+        tech = []
         if s.get("summary"):
-            out.append("**Technical description:**")
-            out.append("")
-            out.append(_para(s["summary"]))
-            out.append("")
+            tech += [_para(s["summary"]), ""]
         if s.get("anchors"):
-            out.append("- binary anchors: %s"
-                       % ", ".join("`%s`" % _e(a)
-                                   for a in s["anchors"]))
-            out.append("")
-        _generic(out, {k: v for k, v in s.items()
-                       if k not in ("summary", "status", "anchors",
-                                    "evidence")})
+            tech += ["- binary anchors: %s"
+                     % ", ".join("`%s`" % _e(a)
+                                 for a in s["anchors"]), ""]
+        _generic(tech, {k: v for k, v in s.items()
+                        if k not in ("summary", "status", "anchors",
+                                     "evidence")})
         _ev_details([genmodel.Evidence.from_raw(e)
-                     for e in s.get("evidence") or []], out)
+                     for e in s.get("evidence") or []], tech)
+        if any(x.strip() for x in tech):
+            _details(out, tech)
     return "\n".join(out)
 
 
@@ -1123,32 +1121,27 @@ def render_muse(m):
     mu = m.muse or {}
     out = ["# muse API (v1)", ""]
     _pt_add(m, out, "muse", "intro")
-    out += ["The household/player REST API the official app and cloud "
-            "channel drive — recovered from the binary's route "
-            "registration tables, not from public docs.", ""]
     _pt_add(m, out, "muse", "description")
     if mu.get("description"):
-        out.append("**Technical description:**")
-        out.append("")
-        out.append(_para(mu["description"]))
-        out.append("")
+        _details(out, [_para(mu["description"])])
     _pt_add(m, out, "muse", "flags_decode")
-    if mu.get("flags_decode"):
-        out.append("**flags decode:** %s" % _e(mu["flags_decode"]))
-        out.append("")
     _pt_add(m, out, "muse", "dispatch")
-    if mu.get("dispatch"):
-        out.append("**dispatch:** %s" % _e(mu["dispatch"]))
-        out.append("")
     _pt_add(m, out, "muse", "tables")
+    rec_lines = []
+    if mu.get("flags_decode"):
+        rec_lines += ["**flags decode:** %s" % _e(mu["flags_decode"]), ""]
+    if mu.get("dispatch"):
+        rec_lines += ["**dispatch:** %s" % _e(mu["dispatch"]), ""]
     if mu.get("tables"):
-        out.append("Registration arrays: "
-                   + "; ".join("`%s` — %s" % (k, _e(v))
-                               for k, v in mu["tables"].items()))
-        out.append("")
-    out += ["## Op-object vtable spine", ""]
+        rec_lines += ["Registration arrays: "
+                      + "; ".join("`%s` — %s" % (k, _e(v))
+                                  for k, v in mu["tables"].items())]
+    if rec_lines:
+        _details(out, rec_lines, "Route record internals")
+    out += ["## How operations are built", ""]
     _pt_add(m, out, "muse", "op_spine")
-    out += ["**Technical description:**", "",
+    out += ["<details markdown=\"1\"><summary><b>Technical details"
+            "</b></summary>", "",
             "Every op is a C++ object sharing one vtable skeleton: "
             "`+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate "
             "(`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op "
@@ -1166,9 +1159,12 @@ def render_muse(m):
             "`v1/players/{id}/playerVolume/mute` and "
             "`v1/groups/{id}/groupVolume`). Each verb registers two op "
             "classes — a player-channel variant and a fatter "
-            "household-channel variant.", ""]
+            "household-channel variant.", "",
+            "</details>", ""]
     _pt_add(m, out, "muse", "validation_lib")
-    out += ["**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
+    out += ["<details markdown=\"1\"><summary><b>Technical details"
+            "</b></summary>", "",
+            "**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
             "validators keyed by field name — `f_109ca3b4` emits "
             "'Missing required field: ', `f_109c9cc0` 'Unexpected type "
             "given for key: ', `f_109c8c60` 'Found unexpected array for '/"
@@ -1180,7 +1176,8 @@ def render_muse(m):
             "of '/'above maximum of '), `f_109c7954` 'Parameter '…' "
             "out of range: ', `f_109c74b0` timestamps (' failed "
             "timestamp validation'), `f_109c7740` ' not a valid Muse "
-            "error code'.", ""]
+            "error code'.", "",
+            "</details>", ""]
     pipe = mu.get("pipeline") or {}
     if pipe:
         out += ["## Request pipeline", ""]
@@ -1189,9 +1186,8 @@ def render_muse(m):
                   "path_params", "body", "errors", "op_dispatch"):
             if pipe.get(k):
                 _pt_add(m, out, "muse", k)
-                out.append("**%s.** %s" % (k.replace("_", " "),
-                                           _e(pipe[k])))
-                out.append("")
+                _details(out, ["**%s.** %s" % (k.replace("_", " "),
+                                              _e(pipe[k]))])
     ob = mu.get("outbound") or {}
     if ob:
         out += ["## Outbound (player as muse client)", ""]
@@ -1360,7 +1356,7 @@ def render_muse(m):
     if mu.get("unresolved"):
         out += ["## Unresolved", ""]
         _pt_add(m, out, "muse", "unresolved")
-        out.append(_para(mu["unresolved"]))
+        _details(out, [_para(mu["unresolved"])])
     if mu.get("evidence"):
         out.append("")
         _ev_details([genmodel.Evidence.from_raw(e)
@@ -1371,12 +1367,11 @@ def render_muse(m):
 def render_availability(m):
     out = ["# Availability matrix", ""]
     _pt_add(m, out, "availability", "intro")
-    out += ["Every canonical action record. `advertised` services are in the "
-            "served device-description `serviceList` (all except AudioIn); "
-            "every canonical action is declared in its service's shipped "
-            "SCPD. `stub` = dispatched to a reject-all fault (removed "
-            "surface).",
-            ""]
+    _details(out, ["Every canonical action record. `advertised` services are "
+                   "in the served device-description `serviceList` (all "
+                   "except AudioIn); every canonical action is declared in "
+                   "its service's shipped SCPD. `stub` = dispatched to a "
+                   "reject-all fault (removed surface)."])
     decl = (m.meta.get("counts") or {})
     undisp = (decl.get("removed_stale") or {}).get("undispatched_actions")
     if undisp:

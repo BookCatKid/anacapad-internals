@@ -2,15 +2,21 @@
 
 The URI grammar the player understands. Commands like 'play this stream' take a URI argument, and the leading scheme decides where it goes: the queue, a radio station, a music-library share, a line-in source. Each entry decodes one scheme's shape and what its parts mean.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 URI scheme grammars recovered from literal tables and parser call sites.
+
+</details>
 
 ## `cloud_api_routes` `confirmed`
 
 The outbound cloud API route map — 533 route literals: the full set of Sonos cloud endpoints this firmware knows how to call.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Complete outbound cloud API route+dispatch map — 533 route literals, 324 {scope,path,cmd} op tuples over 7 id scopes
+
+</details>
 
 - **count:** 282
 - **dispatch:** comma-tuple 'householdId,<resource>,<method>\[,<param>\]' strings select the REST call; base path 'v1/households/{householdId}/...' (one variant uses {HHID})
@@ -47,7 +53,7 @@ Complete outbound cloud API route+dispatch map — 533 route literals, 324 {scop
     ```
 - **route_count:** 533
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - fn locSetUpdMgr/cloud client @ 0x10e7bd84 — rodata 0x10e7bd84..0x10e867f0 contiguous route+tuple table
 
@@ -57,15 +63,17 @@ Complete outbound cloud API route+dispatch map — 533 route literals, 324 {scop
 
 explore:* container URIs — browsable 'explore' trees for services that expose them.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 explore:* container URI scheme — sibling to radio/container schemes for explorable content
+
+</details>
 
 music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 - **grammar:** explore:<kind>\[:<subkind>\]::<id> — 'explore:album::alb.%s','explore:artist::{,mainreleases,compilations,singlesandeps,toptracks}::art.%s','explore:playlist::{pp,mp}.%s'
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — 'explore:*' scheme literal adjacent to radio/container schemes
 
@@ -75,13 +83,15 @@ music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 `hls-aac://` — the AAC-coded HLS variant; same engine as hls-radio with ADTS framing expectations.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 HLS AAC variant
 
+</details>
+
 - **scheme:** hls-aac://
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -91,13 +101,15 @@ HLS AAC variant
 
 `hls-radio://` — marks a URI as an HLS radio stream, routing it to the hls-live player rather than a one-shot fetch.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 HLS radio stream
 
+</details>
+
 - **scheme:** hls-radio://
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -107,14 +119,16 @@ HLS radio stream
 
 Marker scheme for AAC-over-HLS streams.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 HLS AAC variant scheme token in the protocol vocabulary.
+
+</details>
 
 - **name:** hls-aac
 - **pattern:** hls-aac
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e939c0 — rodata scheme literal
 
@@ -124,14 +138,16 @@ HLS AAC variant scheme token in the protocol vocabulary.
 
 Marker scheme for HLS-based internet radio streams.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 HLS radio variant scheme token in the protocol vocabulary.
+
+</details>
 
 - **name:** hls-radio
 - **pattern:** hls-radio
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e939cc — rodata scheme literal
 
@@ -141,13 +157,15 @@ HLS radio variant scheme token in the protocol vocabulary.
 
 `hm://` — the Spotify hermes/mercury channel scheme; URIs under it address hermes resources (hwptp devices, tsv, resolve) rather than audio. Never a playable transport URI.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Spotify Hermes-style daemon channel (see hm_scheme): hwptp = hardware-platform player bridge carrying the Connect device API; hwp-events = v1/log_event sink. The Connect device paths (%s/devices/%s/{play,pause-state,volume,set_shuffle,set_repeat,pull_playback,queue}, content_encryption_key, offline/restrictions) are Spotify eSDK cache_restrictions.c/api layer.
 
+</details>
+
 - **scheme:** hm://<daemon>/vN/
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -157,14 +175,16 @@ Spotify Hermes-style daemon channel (see hm_scheme): hwptp = hardware-platform p
 
 hm: scheme token — the hermes/mercury-style URI family used by the embedded Spotify stack for device registration and track resolution.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 hm:// host-scheme for the Spotify Connect Hermes channel: the embedded Spotify eSDK (buildagent esdk paths, sp_ auth keys) addresses the device's hardware-platform daemons as hm://<service>/vN/<path>. Confirmed hosts: 'hwptp' = hw-platform player bridge (hm://hwptp/v1/devices, hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s) and 'hwp-events' = event sink (hm://hwp-events/v1/log_event). The Spotify Connect device API rides it: %s/devices/%s/{state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue} plus %s/content_encryption_key/%s, %s/cache_key, %s/offline/restrictions.
+
+</details>
 
 - **name:** hm:
 - **pattern:** hm:
 
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x10fd6244 — rodata scheme literal
 - @ 0x10fd6244 — hm://hwptp/v1/devices literal
@@ -175,9 +195,11 @@ hm:// host-scheme for the Spotify Connect Hermes channel: the embedded Spotify e
 
 The outbound muse/HTTP path templates — the REST routes the player calls or serves, including cloud API routes.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Outbound muse/HTTP API path templates (client side, plus local /avt.txt persistence): "v1/households/{householdId}/alarms\[/...\]", "v1/groups/{groupId}/alarms/snooze", "v1/players/{playerId}/upnpAlarmClock\[/subscription\[/{logicalSID}\]\]" families - REST CRUD + subscription surfaces consumed/emitted by the cloud bridge.
+
+</details>
 
 ```
 v1/<collection>/{id}/<action>
@@ -185,7 +207,7 @@ v1/<collection>/{id}/<action>
 
 Used by: cloud alarm sync; UPnP-bridge subscription relay
 
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - @ 0x10e7bf40 — v1/households/{householdId}/alarms
 - @ 0x10e83a3c — v1/players/{playerId}/upnpAlarmClock
@@ -197,13 +219,15 @@ Used by: cloud alarm sync; UPnP-bridge subscription relay
 
 The `last.fm-radio-http` scheme — legacy Last.fm radio over HTTP; still accepted by the scheme table even though the service integration is historical.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Last.fm radio HTTP scheme
 
+</details>
+
 - **scheme:** last.fm-radio-http
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -213,14 +237,16 @@ Last.fm radio HTTP scheme
 
 The long tail of URI schemes - file://, rtsp://, mms://, last.fm-radio-http, hls-*, pndrradio-*, hm://, skd:, stub: - mostly alternate transports for specific services.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 URI schemes missed by the main sweep: pndrradioad:// (Pandora ad-insertion transport), pndrradio-http://, hls-radio://, hls-aac://, last.fm-radio-http, skd://, stub://, hm://, file://, rtsp://, mms:// — plus the urn:dev:ops:44974-zp- UDN prefix, urn:ietf:params:oauth:grant-type:jwt-bearer grant, urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1 WMP-registrar advertisement and urn:schemas-rinconnetworks-com:{metadata,update}-1-0 namespaces.
+
+</details>
 
 - **schemes:** `pndrradioad://`, `pndrradio-http://`, `hls-radio://`, `hls-aac://`, `last.fm-radio-http`, `skd://`, `stub://`, `hm://`, `file://`, `rtsp://`, `mms://`
 - **urns:** `urn:dev:ops:44974-zp-`, `urn:ietf:params:oauth:grant-type:jwt-bearer`, `urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1`, `urn:schemas-rinconnetworks-com:metadata-1-0`, `urn:schemas-rinconnetworks-com:update-1-0`
 
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - @ 0x10ecd058 — pndrradioad://
 - @ 0x10f99030 — urn:ietf:params:oauth:grant-type
@@ -232,14 +258,16 @@ URI schemes missed by the main sweep: pndrradioad:// (Pandora ad-insertion trans
 
 The standard OAuth JWT-bearer grant URN used in token exchange flows.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabulary; also listed under misc_schemes.
+
+</details>
 
 - **name:** urn:ietf:params:oauth:grant-type:jwt-bearer
 - **pattern:** urn:ietf:params:oauth:grant-type:jwt-bearer
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10f99030 — rodata URN literal
 
@@ -249,13 +277,15 @@ IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabular
 
 The `pandora.com-pndrradioad` service prefix — identifies Pandora ad-insertion streams distinctly from normal station audio.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 pandora ad service prefix
 
+</details>
+
 - **scheme:** pandora.com-pndrradioad
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -265,13 +295,15 @@ pandora ad service prefix
 
 `pndrradio-http://` — a Pandora radio variant served over plain HTTP. Appears in queue/transport URIs when a Pandora station uses the non-SMAPI path.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Pandora radio HTTP variant
 
+</details>
+
 - **scheme:** pndrradio-http://
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -281,14 +313,16 @@ Pandora radio HTTP variant
 
 Pandora ad-insertion transport scheme — ad segments arrive as pndrradioad:// URIs.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Pandora ad-insertion stream marker; scheme strings embedded in the streamer URI dispatch vocabulary.
+
+</details>
 
 - **name:** pndrradioad://
 - **pattern:** pndrradioad://
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10ecd058 — rodata scheme literal
 
@@ -298,9 +332,11 @@ Pandora ad-insertion stream marker; scheme strings embedded in the streamer URI 
 
 The URI-scheme vocabulary the player advertises in GetProtocolInfo — i.e. what it claims it can play.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 protocolInfo URI scheme vocabulary — the GetProtocolInfo capability set across sink/source
+
+</details>
 
 - **grammar:** ConnectionManager Source/SinkProtocolInfo vocabulary — transport:mimetype:extra triples
 - **schemes:**
@@ -312,7 +348,7 @@ protocolInfo URI scheme vocabulary — the GetProtocolInfo capability set across
 - **sink_csv_verbatim:** file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:* (@0x10eb8750, SinkProtocolInfo)
 - **per_service_extras:** per-service protocolInfo literals also present: real.com-rhapsody-direct:*:audio/x-rhap-radio:*, pandora.com-pndrradio:*:audio/x-pandora-radio:*, x-sonosapi-radio:*:audio/x-sonosapi-radio:* (@0x10e77adc-0x10e77d50) - service-specific accepted types added per registration, not in the base CSV
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e8xxxx — single rodata literal enumerating all protocolInfo triples
 
@@ -322,15 +358,17 @@ protocolInfo URI scheme vocabulary — the GetProtocolInfo capability set across
 
 rdradio: URIs select streaming-radio station sources.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 rdradio: radio-station URI scheme — streaming radio source selector
+
+</details>
 
 radio-service URI family
 
 - **grammar:** rdradio:<kind>:<prefix>. — 'rdradio:artist:Art.','rdradio:station:ps.' + bare 'rdradio:'
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — 'rdradio:' scheme literal
 
@@ -340,15 +378,13 @@ radio-service URI family
 
 A leftover hardcoded Rhapsody integration: album art for Rhapsody content is fetched from a fixed imageserver URL baked into the program - the only hardcoded third-party image CDN in the binary. Everything else goes through per-service metadata.
 
-**Technical description:**
-
 Used by: album-art URL construction for Rhapsody-sourced content
 
 hardcoded Rhapsody/Napster album-art CDN template; %s = image id, fixed 300x300 size. One of few absolute non-Sonos host literals; distinct from the real.com-rhapsody-direct protocolInfo scheme and the old-Rhapsody cpcontainer migration paths
 
 - **grammar:** http://direct-ns.rhapsody.com/imageserver/images/%s/300x300
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e77c7c — format literal
 
@@ -358,14 +394,16 @@ hardcoded Rhapsody/Napster album-art CDN template; %s = image id, fixed 300x300 
 
 The Sonos 'rinconnetworks' XML namespace — appears inside DIDL/LastChange metadata for Sonos extension fields.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 RinconNetworks URN namespace prefix observed in service/URN vocabulary.
+
+</details>
 
 - **name:** urn:schemas-rinconnetworks-com
 - **pattern:** urn:schemas-rinconnetworks-com
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e7761c — rodata scheme literal
 
@@ -375,14 +413,16 @@ RinconNetworks URN namespace prefix observed in service/URN vocabulary.
 
 skd: — a streamer vocabulary token; semantics unresolved (plausibly a secure-key-delivery or SDK marker).
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Scheme token in the streamer URI vocabulary; semantics unresolved.
+
+</details>
 
 - **name:** skd:
 - **pattern:** skd:
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10f1032c — rodata scheme literal
 
@@ -392,9 +432,11 @@ Scheme token in the streamer URI vocabulary; semantics unresolved.
 
 Bare sonos: printf templates (sonos:%d, sonos:%s) — internal identifier formatting, not a playable scheme.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Bare sonos: forms used as printf templates and identifiers: "sonos:%d" (0x10ecc3cb), "sonos:%s" (0x10f0ec90), "sonos:hhid:"/"sonos:unit-hhid:" (0x10f9900c/0x10f9901c), plus structured-token prefixes sonos:device/udn/hhid/user/idtype/environment (muse/auth token namespacing, not playback URIs).
+
+</details>
 
 ```
 sonos:<kind>[:<value>]
@@ -402,7 +444,7 @@ sonos:<kind>[:<value>]
 
 Used by: internal IDs, muse token fields
 
-<details><summary>Evidence (3)</summary>
+<details markdown="1"><summary>Evidence (3)</summary>
 
 - @ 0x10ecc3cb — sonos:%d
 - @ 0x10f9900c — sonos:hhid:
@@ -414,13 +456,15 @@ Used by: internal IDs, muse token fields
 
 The filename pattern for cached album art on disk: AlbumArt_{guid}_Large.jpg — where /getaa responses come from.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg — GUID-braced filename emitted by f_10421e70
 
+</details>
+
 - **grammar:** <base>/AlbumArt_{GUID}_Large.jpg
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10421e70 — fmt site
 
@@ -430,13 +474,15 @@ Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%
 
 The `sonos.com-hls-radio` service prefix — marks HLS-radio streams coming through the Sonos-hosted radio aggregation service.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 hls-radio service prefix
 
+</details>
+
 - **scheme:** sonos.com-hls-radio
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -446,13 +492,15 @@ hls-radio service prefix
 
 The emitted form of a queue track reference — x-rincon-queue:<device>#<position>. Useful when constructing 'play this specific track' URIs.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Queue URI emit form: x-rincon-queue:%s#%u — device selector + #track fragment (1-based position); %s#0 emits queue head; emitted by f_102d5974, f_102d8518, f_102dac20
 
+</details>
+
 - **grammar:** x-rincon-queue:<selector>#<track-index>
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x102d5974 — fmt sites
 
@@ -462,13 +510,15 @@ Queue URI emit form: x-rincon-queue:%s#%u — device selector + #track fragment 
 
 Household settings REST endpoints (/settings/api/v1/locations/.../effectiveSettings) — the location/settings API paths.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Household settings REST paths: /settings/api/v1/locations/%s/effectiveSettings and .../%s — emitted by f_105dd808, f_105de198 (outbound settings client)
 
+</details>
+
 - **grammar:** /settings/api/v1/locations/<id>/effectiveSettings\[/<sub>\]
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x105dd808 — fmt sites
 
@@ -478,15 +528,17 @@ Household settings REST paths: /settings/api/v1/locations/%s/effectiveSettings a
 
 Spotify content URIs — spotify:track: / spotify:episode: plus the x-spotify:// transport wrapper used when the embedded Spotify client owns playback.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 spotify:{track,episode}: + x-spotify:// — Spotify content URI schemes routed via spotify_smapi
+
+</details>
 
 native spotify URI passthrough family (image:%h = hex-encoded variant)
 
 - **grammar:** spotify:{ad,episode,image\[:%h\],interruption,track}:...
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — 'spotify:track:','spotify:episode:','x-spotify://' literals + spotify_smapi.cxx
 
@@ -496,13 +548,15 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 
 A placeholder URI used by dummy/synthetic players in group handling. If it shows up in a queue, the source is a synthetic entry, not real media.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 stub player URI
 
+</details>
+
 - **scheme:** stub://stub:%u
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -512,14 +566,16 @@ stub player URI
 
 stub: - a placeholder scheme used as a no-op transport marker.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Stub scheme token; likely a placeholder/no-op transport marker.
+
+</details>
 
 - **name:** stub:
 - **pattern:** stub:
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10f06b88 — rodata scheme literal
 
@@ -529,9 +585,11 @@ Stub scheme token; likely a placeholder/no-op transport marker.
 
 The queue's URI-sniffing fallback chain: when a scheme isn't directly recognized, the queue probes in this order — explaining why some oddly-schemed URIs still resolve.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 queue URI sniffing/fallback chain
+
+</details>
 
 ```
 queue probe chain: <ASX playlist detect; mime table /x-ms-,/x-mpegurl,audio/aacp,audio/aac,audio/x-aac,audio/x-scpls; "Trying MMS,RTSP next" scheme fallback; "max redirects(%d)"; HTTP/1.0+ICY 200 OK sniffing for SHOUTcast; "Possible URI truncation" warn; isAd tag -> linkUrl set
@@ -539,7 +597,7 @@ queue probe chain: <ASX playlist detect; mime table /x-ms-,/x-mpegurl,audio/aacp
 
 Used by: t; q; u; e; u; e; ; o; p; e; n
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e93d14 — ASX/mime/ICY literals
 
@@ -549,9 +607,11 @@ Used by: t; q; u; e; u; e; ; o; p; e; n
 
 The queue's complete scheme-dispatch table: every URI scheme the track queue will accept, harvested as a contiguous literal run — the authoritative list of what can be enqueued.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 complete playable-URI scheme zoo harvested as a contiguous literal run from tqueue.cxx — the queue's scheme dispatch table
+
+</details>
 
 ```
 {"x-rincon-queue": "x-rincon-queue:<hhid>#<idx|hex> — zone-queue URIs; #0 = shared queue root", "x-rincon-buzzer": "x-rincon-buzzer:%u:o — alarm/buzzer chime source", "x-rincon-stream": "x-rincon-stream:%s:%s — remote line-in stream URI", "x-rincon": "group URI (rejected when \"source or target is an ungroupable player\")", "x-sonos-vli": "x-sonos-vli:%s:%u,%s (see vli_grouping)", "stub": "stub://stub:%u — mdns stub target", "x-rincon-mp3radio": "x-rincon-mp3radio:// — mp3 radio streams", "x-sonosprog-http": "x-sonosprog-http: — programmatic http", "x-sonos-mms": "x-sonos-mms: / x-sonosprog-mms: — MMS radio", "x-sonosapi-rtrecent": "recently-tracked rt content", "x-sonosapi-hls": "x-sonosapi-hls: / x-sonosapi-hls-static: / hls-static: / hls-aac:// / hls-radio:// — HLS family", "mms/rtsp/https/file": "mms://, rtsp://, https://, file:// direct", "sirradio": "sirradio: — Sirius", "x-sonos-spotify": "x-sonos-spotify: / x-sonosprog-spotify:", "x-sonosprog": "x-sonosprog base scheme", "x-rincon-configmode": "x-rincon-configmode:{sonar-calibrate-tone,sonar-calibrate-complete,speaker-detect,speaker-detect.mp3,trueroom-tone} — config-mode tone injection", "x-rincon-sonarcal": "x-rincon-sonarcal:{leader.ogg,testtone.ogg,complete_ht.ogg} — trueroom test-tone queue items", "x-rincon-trueroom": "x-rincon-trueroom: scheme"}
@@ -559,7 +619,7 @@ complete playable-URI scheme zoo harvested as a contiguous literal run from tque
 
 Used by: t; q; u; e; u; e; ; e; n; q; u; e; u; e; /; p; r; o; b; e
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e938e0 — contiguous literal run 0x10e93904-0x10e93a7c
 
@@ -569,9 +629,11 @@ Used by: t; q; u; e; u; e; ; e; n; q; u; e; u; e; /; p; r; o; b; e
 
 The built-in buzzer/alarm-tone URI — a local chime sound, usable as an alarm sound.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Built-in buzzer/alarm-tone URI. "x-rincon-buzzer:" (0x10e93a38), "x-rincon-buzzer:1"/"x-rincon-buzzer:0" (0x10e99a04/0x10eaaef8), "x-rincon-buzzer:%u:o" (0x10eb1958 - %u=tone index, :o suffix).
+
+</details>
 
 ```
 x-rincon-buzzer:<n>[:o]
@@ -579,7 +641,7 @@ x-rincon-buzzer:<n>[:o]
 
 Used by: alarm fallback playback (AVT)
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10eb1958 — %u:o printf form - indexed tone + o-flag
 
@@ -589,9 +651,11 @@ Used by: alarm fallback playback (AVT)
 
 Setup-mode tone URIs used while the player is in calibration/config mode.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Setup/calibration tone URIs: x-rincon-configmode:{sonar-calibrate-tone, sonar-calibrate-complete, speaker-detect(.mp3), trueroom-tone} and x-rincon-sonarcal:{leader.ogg, testtone.ogg, complete_ht.ogg} - local asset playback for Sonar/trueroom calibration.
+
+</details>
 
 ```
 x-rincon-configmode:<tone-name>[.mp3] | x-rincon-sonarcal:<asset>.ogg
@@ -599,7 +663,7 @@ x-rincon-configmode:<tone-name>[.mp3] | x-rincon-sonarcal:<asset>.ogg
 
 Used by: speaker-detect/sonar calibration playback
 
-<details><summary>Evidence (5)</summary>
+<details markdown="1"><summary>Evidence (5)</summary>
 
 - @ 0x10e93df4 — sonar-calibrate-tone
 - @ 0x10e93e2c — leader.ogg
@@ -613,9 +677,11 @@ Used by: speaker-detect/sonar calibration playback
 
 ContentDirectory provider containers — x-rincon-cpcontainer:RDCPA:/RDCPI: URIs address browsable music-service container roots. A 12-entry firmware table maps each container id (e.g. RDCPA:GLBALBUM:, RDCPA:LIBPLAYLISTS:, RDCPI:GLBSTATION:) onto the SMaPI browse path it delegates to (explore:artist:mainreleases::art.<id>, mymusic:playlists, station::ps.<id>...), plus a short item-id prefix (art./alb./pp./mp./ps./sas.) used to build children ids and a flag marking local-library vs cloud-service containers.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 ContentDirectory provider container URI. Variants: "x-rincon-cpcontainer:RDCPA:" / "RDCPI:" (0x10e77970/0x10e7798c - provider-namespace prefixes), "x-rincon-cpcontainer:%s" (0x10e77a40), "x-rincon-cpcontainer:SCPB:%s/%s" (0x10f0dbd4).
+
+</details>
 
 ```
 x-rincon-cpcontainer:<provider-ns>:<id>[/<sub>]
@@ -734,7 +800,7 @@ RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Resid
       - **scheme:** x-sonosapi-radio:
       - **tail:** 0
 
-<details><summary>Evidence (4)</summary>
+<details markdown="1"><summary>Evidence (4)</summary>
 
 - @ 0x10e77970 — RDCPA ns
 - @ 0x10e7798c — RDCPI ns
@@ -747,9 +813,11 @@ RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Resid
 
 The marker for plain internet radio MP3 streams — when a service hands a direct MP3 URL the player wraps it in this scheme.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 MP3-radio stream marker. "x-rincon-mp3radio://" (0x10e93918), "x-rincon-mp3radio:" (0x10eb8788), bare "x-rincon-mp3radio" (0x10ecce84).
+
+</details>
 
 ```
 x-rincon-mp3radio://<url>
@@ -757,7 +825,7 @@ x-rincon-mp3radio://<url>
 
 Used by: AVTransport radio playback
 
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x10e93918 — // form
 - @ 0x10eb8788 — colon form
@@ -768,9 +836,11 @@ Used by: AVTransport radio playback
 
 URI for the player's built-in Sonos playlists (the saved 'Sonos Playlists' list), not to be confused with the playback queue.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Local playlist URI "x-rincon-playlist:" (0x10e89327).
+
+</details>
 
 ```
 x-rincon-playlist:<id>
@@ -778,7 +848,7 @@ x-rincon-playlist:<id>
 
 Used by: saved-queue playlists
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10e89327 — scheme literal
 
@@ -788,9 +858,11 @@ Used by: saved-queue playlists
 
 How you address the local play queue: x-rincon-queue:<device> identifies a player's queue, and #<n> selects the 1-based track position. This is the URI you set as AVTransportURI to play a queue.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Local queue URI scheme. Variants: "x-rincon-queue:" (0x10e93904), "x-rincon-queue:%s" (0x10eb1710) - owner/queue selector printf-formatted.
+
+</details>
 
 ```
 x-rincon-queue:[RINCON_<mac>[_<zone>]]
@@ -800,7 +872,7 @@ Used by: AVTransport queue-backed playback (EnqueueURI/SetAVTransportURI family)
 
 Selector field semantics (room UDN vs queue owner) not yet resolved.
 
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x10e93904 — scheme literal
 - @ 0x10eb1710 — printf variant in AVT code pool
@@ -811,14 +883,16 @@ Selector field semantics (room UDN vs queue owner) not yet resolved.
 
 URIs for the sonar-calibration tones (leader/testtone/complete_ht .ogg) — played during Trueplay setup; not normal content.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg — sonar-calibration audio URI scheme
+
+</details>
 
 - **grammar:** x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg; x-rincon-configmode:{sonar-calibrate-complete,speaker-detect,speaker-detect.mp3,trueroom-tone}; sonar-calibrate-tone
 - **titles:** `ATrueplay`, `ATrueplay Complete`, `ASpeaker Detection`, `ATrueroom`
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — 'x-rincon-sonarcal' scheme literal + sonarctl/route cluster
 
@@ -828,9 +902,11 @@ x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg — sonar-calibration audio 
 
 The URI for room-to-room streaming — pointing a player at x-rincon-stream:<source> makes it play another player's audio (this is what line-in sharing and grouping use underneath).
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Rincon inter-room stream URI. Variants: "x-rincon-stream:" (0x10eacf20), "x-rincon-stream:%s" (0x10e99a5c), "x-rincon-stream:%s:%s" (0x10eb1d08) - room-id\[:sub\] printf forms.
+
+</details>
 
 ```
 x-rincon-stream:<room-id>[:<sub>]
@@ -838,7 +914,7 @@ x-rincon-stream:<room-id>[:<sub>]
 
 Used by: grouped zone playback - slaves pull coordinator stream
 
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x10e99a5c — %s form
 - @ 0x10eb1d08 — %s:%s form
@@ -849,9 +925,11 @@ Used by: grouped zone playback - slaves pull coordinator stream
 
 Assorted internal x-sonos-* schemes (HT audio stream, http wrappers, service markers) — mostly internal transport plumbing.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Assorted internal x-sonos schemes: x-sonos-htastream (HT audio stream), x-sonos-http\[:\], x-sonos-mms/x-sonosprog-mms, x-sonos-spotify/x-sonosprog-spotify, x-sonos-recent\[:\], x-sonos-dock:, x-sonos-clone-gc/x-sonos-gc-cleared-content (group-coordinator internal), x-sonos-upnp-tunnel/x-sonos-upnp-loopback-token, x-sonos-sync-method/x-sonos-method/x-sonos-uri (sync control), x-sonos-auth-https%s.
+
+</details>
 
 ```
 x-sonos-<kind>[:<arg>]
@@ -861,7 +939,7 @@ Used by: internal transport/sync/auth plumbing
 
 Catch-all record; split into per-scheme records as uses get traced.
 
-<details><summary>Evidence (4)</summary>
+<details markdown="1"><summary>Evidence (4)</summary>
 
 - @ 0x10e99698 — x-sonos-htastream
 - @ 0x10eb36bc — x-sonos-clone-gc
@@ -874,13 +952,15 @@ Catch-all record; split into per-scheme records as uses get traced.
 
 `x-sonos-unknown:` — the placeholder for a source whose type couldn't be determined. Shows up in transport state when metadata is missing or the source predates classification.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 unknown-source placeholder URI
 
+</details>
+
 - **scheme:** x-sonos-unknown:
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — scheme literal
 
@@ -890,9 +970,11 @@ unknown-source placeholder URI
 
 Virtual line-in — a URI that references another player's line-in as a source, the mechanism behind 'line-in sharing'.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Virtual line-in source URI. "x-sonos-vli" / "x-sonos-vli:" (0x10ecb64c/0x10ecc20a), "x-sonos-vli:%s:%u" (0x10f01804 - member-id:channel printf form).
+
+</details>
 
 ```
 x-sonos-vli:<member-id>:<channel>
@@ -900,7 +982,7 @@ x-sonos-vli:<member-id>:<channel>
 
 Used by: VirtualLineIn source routing; AVTransport line-in playback
 
-<details><summary>Evidence (2)</summary>
+<details markdown="1"><summary>Evidence (2)</summary>
 
 - @ 0x10f01804 — %s:%u printf form
 - @ 0x10ecb64c — bare token
@@ -911,9 +993,11 @@ Used by: VirtualLineIn source routing; AVTransport line-in playback
 
 The cloud/music-service URI family — x-sonosapi-* URIs are content refs that resolve through Sonos cloud APIs rather than direct URLs.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 Cloud/music-service API URI family: x-sonosapi-hls:%s, x-sonosapi-hls-static:, x-sonosapi-radio\[:ST:%s\], x-sonosapi-stream:, x-sonosapi-iqradio\[:\], x-sonosapi-rtrecent:, x-sonosapi-show:. These mark stream endpoints fetched through the Sonos cloud services rather than direct URLs.
+
+</details>
 
 ```
 x-sonosapi-<service>:[<token>]
@@ -923,7 +1007,7 @@ Used by: AVTransport external-content playback; music-service tracks
 
 One umbrella record for the family; per-service token grammars unresolved.
 
-<details><summary>Evidence (4)</summary>
+<details markdown="1"><summary>Evidence (4)</summary>
 
 - @ 0x10e77930 — x-sonosapi-hls:%s
 - @ 0x10e77cf8 — x-sonosapi-radio:ST:%s
@@ -936,15 +1020,17 @@ One umbrella record for the family; per-service token grammars unresolved.
 
 A Sonos Radio station URI: x-sonosapi-radio:ST:<id>?sid=&flags=&sn= — carries station id and flags for the radio service.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 x-sonosapi-radio:ST:%s?sid=&flags=&sn= — Sonos Radio station URI w/ sid/flags/sn params + X-Sonos-Api-Key
+
+</details>
 
 service-track radio URI carrying station id, flags, serial number
 
 - **grammar:** x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d (sn optional: '&sn=%d' variant exists)
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - firmware — 'x-sonosapi-radio:ST:%s?sid=&flags=&sn=' format literal + X-Sonos-Api-Key header
 
@@ -954,9 +1040,11 @@ service-track radio URI carrying station id, flags, serial number
 
 The x-rincon-* scheme family overview — all the local/internal transports (queue, stream, radio, buzzer, calibration tones, containers).
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 x-rincon* URI scheme family — queue/mp3radio/buzzer/configmode/sonarcal/trueroom/cpcontainer
+
+</details>
 
 - **schemes:**
   - **x-rincon-cpcontainer:{RDCPA,RDCPI,...}:** ContentProvider container refs ('Unknown old Rhapsody x-rincon-cpcontainer' legacy)
@@ -968,7 +1056,7 @@ x-rincon* URI scheme family — queue/mp3radio/buzzer/configmode/sonarcal/truero
   - **x-rincon-configmode:{sonar-calibrate-tone,...}:** config-mode tones
   - **x-rincon-sonarcal:{leader,testtone}.ogg:** sonar/Trueplay calibration audio files
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10edxxxx — rodata scheme literals
 
@@ -978,9 +1066,11 @@ x-rincon* URI scheme family — queue/mp3radio/buzzer/configmode/sonarcal/truero
 
 The x-sonos-* scheme family overview — HT/streaming/API service markers.
 
-**Technical description:**
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 x-sonos* URI scheme family — htastream/prog/api/service schemes + associated headers
+
+</details>
 
 - **schemes:**
   - **x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d:** station-type + service-id + flags + service-number
@@ -995,7 +1085,7 @@ x-sonos* URI scheme family — htastream/prog/api/service schemes + associated h
   - **x-sonos-unknown:** fallback
 - **headers:** `X-Sonos-Api-Key`, `X-Sonos-Corr-Id`, `X-RINCON-BOOTSEQ`, `X-RINCON-VARIANT`, `x-rincon-last-update-device`, `x-rincon-content-version`, `x-rincon-range`
 
-<details><summary>Evidence (1)</summary>
+<details markdown="1"><summary>Evidence (1)</summary>
 
 - @ 0x10edxxxx — rodata scheme templates + fmt params
 

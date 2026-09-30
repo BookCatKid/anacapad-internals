@@ -2180,10 +2180,12 @@
 
 <h1 id="http-non-soap-surface">HTTP / non-SOAP surface<a class="headerlink" href="#http-non-soap-surface" title="Permanent link">&para;</a></h1>
 <p>Beyond the documented UPnP control surface, the player answers plain HTTP requests: a built-in diagnostics website with around sixty pages of live internals, file and command passthroughs, debug endpoints, and the machinery that lets the cloud tunnel commands to the device. All reachable on the local network unless noted.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP control path. All are static-analysis records.</p>
+</details>
 <h2 id="http_status_endpoints"><code>http_status_endpoints</code><a class="headerlink" href="#http_status_endpoints" title="Permanent link">&para;</a></h2>
 <p>The player's built-in diagnostics website. Opening http://<player>:1400/status/ in a browser exposes ~63 pages of live internals — network stats, wireless scan results, CPU/thread info, settings stores, update state — plus passthroughs to shell commands (ifconfig, netstat, ps) and /proc files. It's the same tool Sonos support uses; some pages accept writes (setstring/removestring) so treat it as a control surface.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>name:</strong> /status diagnostic web-handler vocabulary</li>
 <li><strong>role:</strong> embedded HTTP diagnostics/status UI (htdocs at /opt/htdocs); sub-handler names recovered as literal path strings clustered at 0x10e75c5c-0x10e75f80 + ZPInfo field names at 0x10e73e21-0x10e743ad + shell/proc passthrough at 0x10e74f50-0x10e75b00</li>
@@ -3139,7 +3141,6 @@
 </ul>
 <h2 id="device_account_endpoint"><code>device_account_endpoint</code><a class="headerlink" href="#device_account_endpoint" title="Permanent link">&para;</a></h2>
 <p>The /device_account endpoint handling the player's account binding — links the hardware to a Sonos account.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>handler:</strong> f_1065bd70</li>
 <li><strong>flow:</strong> path claim '/device_account' (f_10655ea4) -&gt; f_106570bc validate -&gt; f_1065b730('int_setTransferMode') transfer-mode int; serialize device-account via f_1065a8dc(strlen+encode)/f_109cd7a4/f_1065e99c; state word *(r30+8) in {3,4} selects account variant; constant block 0x110b9044 (6 bytes) feeds the blob; f_10807034 XML append; stack-canary guarded</li>
@@ -3148,14 +3149,12 @@
 </ul>
 <h2 id="http_chunked_strictness"><code>http_chunked_strictness</code><a class="headerlink" href="#http_chunked_strictness" title="Permanent link">&para;</a></h2>
 <p>How strictly the player's HTTP parser enforces chunked transfer-encoding. Matters when a client sends unusual framing — the firmware rejects malformed chunk headers rather than guessing.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>rules:</strong> <code>Reject response when 'chunked' is not the last Transfer-Encoding</code>, <code>Ignore duplicate 'chunked' decoder</code>, <code>Suppress chunked TE on HTTP version &gt;= 2</code>, <code>'Chunky upload is not supported by HTTP 1.0'</code>, <code>Missing chunk/close/size -&gt; assume close signals end</code>, <code>chunk hex-length max bound + hex-digit validation</code>, <code>'Chunk callback failed' / 'cf_body_send last CHUNK'</code>, <code>trailers accepted: 'added last chunk with trailers from client'</code></li>
 </ul>
 <h2 id="httpcache_manager"><code>httpcache_manager</code><a class="headerlink" href="#httpcache_manager" title="Permanent link">&para;</a></h2>
 <p>A small HTTP response cache for music-service (SMAPI) content, keyed by content hashes with local and remote variants. It remembers things like browse artwork and service lists so the controller doesn't re-fetch them constantly.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>file:</strong> httpcachemgr/httpcaches.json — httpcache_manager.cxx</li>
@@ -3163,7 +3162,6 @@
 </ul>
 <h2 id="http_range"><code>http_range</code><a class="headerlink" href="#http_range" title="Permanent link">&para;</a></h2>
 <p>HTTP Range-request support — used for seeking in streams and resuming downloads. Defines which byte-range forms the embedded server accepts.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>grammar:</strong> Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu} — 64-bit</li>
@@ -3171,7 +3169,6 @@
 </ul>
 <h2 id="muse_authhelper"><code>muse_authhelper</code><a class="headerlink" href="#muse_authhelper" title="Permanent link">&para;</a></h2>
 <p>The auth helper shared by muse/websocket endpoints — checks tokens and household membership before a route handler runs.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>impl:</strong> museclient_authhelper.cxx</li>
@@ -3196,14 +3193,12 @@
 </ul>
 <h2 id="muse_common"><code>muse_common</code><a class="headerlink" href="#muse_common" title="Permanent link">&para;</a></h2>
 <p>Shared muse-API plumbing — route table, JSON/request helpers, the layer every /api/v1 handler sits on.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>files:</strong> <code>muse/src/sonos/muse/common/circuitbreaker.cxx</code>, <code>muse/src/sonos/muse/common/context.cxx</code>, <code>muse/src/sonos/muse/common/eventing.cxx</code>, <code>muse/src/sonos/muse/common/noncehandler.cxx</code></li>
 </ul>
 <h2 id="diagnostic_manifest"><code>diagnostic_manifest</code><a class="headerlink" href="#diagnostic_manifest" title="Permanent link">&para;</a></h2>
 <p>The manifest listing which files/commands go into a diagnostic bundle.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>table:</strong> 0x11090034..0x110908c8 (~100 entries) - ordered manifest feeding /support/aggregate diagnostics</li>
@@ -3231,14 +3226,12 @@
 </ul>
 <h2 id="diagnostics"><code>diagnostics</code><a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p>The diagnostics bundle machinery — what /diag* and submitDiagnostics gather and where they send it.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>files:</strong> <code>/oc/zone/common/diag_progress.cxx</code>, <code>/oc/zone/common/diagnostics.cxx</code></li>
 </ul>
 <h2 id="proprietary_headers"><code>proprietary_headers</code><a class="headerlink" href="#proprietary_headers" title="Permanent link">&para;</a></h2>
 <p>Custom HTTP headers the firmware emits and consumes — X-Sonos-* household/player identifiers, X-RINCON-BOOTSEQ boot-counter checks, the fake WMP NSS user-agent used when fetching Windows-media streams, and ICY metadata negotiation.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>outbound:</strong> <code>X-Sonos-Playback-Id: %.*s</code>, <code>X-Sonos-SWGen: %u</code>, <code>X-RINCON-BOOTSEQ: %s</code>, <code>X-RINCON-VARIANT: %u</code>, <code>X-Sonos-Household-Id</code>, <code>X-Sonos-Corr-Id</code>, <code>x-sonos-target-udn</code>, <code>x-sonos-upnp-loopback-token</code>, <code>x-rincon-content-format (repset)</code>, <code>x-rincon-roomicon:generic</code></li>
@@ -3296,7 +3289,6 @@
 </ul>
 <h2 id="discovery_layer"><code>discovery_layer</code><a class="headerlink" href="#discovery_layer" title="Permanent link">&para;</a></h2>
 <p>The combined discovery surface — SSDP + mDNS + Sonos's own peer-finding that builds the household picture.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>mdns:</strong> mDNS controller on RZonePlayer (m_spMdnsController); '%s.local' hostname construct ('Failed construct mdns hostname'); refreshMdnsRegistration; log /opt/log/mdnsd.log; 'new cert updating mDNS service [%s]'</li>
@@ -3306,7 +3298,6 @@
 </ul>
 <h2 id="ssdp_discovery"><code>ssdp_discovery</code><a class="headerlink" href="#ssdp_discovery" title="Permanent link">&para;</a></h2>
 <p>The SSDP responder/advertiser — answers M-SEARCH, announces the player on boot/network change. This is what makes the player discoverable at all.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>wire:</strong> M-SEARCH * HTTP/1.1 + HOST:239.255.255.250 + USN: + ssdp:alive/ssdp:byebye; 'Sent MSEARCH reply to %s:%u'; '%s unicast MSEARCH from %s'</li>
@@ -3324,7 +3315,6 @@
 </ul>
 <h2 id="ssdp_signed_msearch"><code>ssdp_signed_msearch</code><a class="headerlink" href="#ssdp_signed_msearch" title="Permanent link">&para;</a></h2>
 <p>Support for signed/authenticated M-SEARCH — discovery requests carrying credentials get different answers than anonymous ones.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>wire:</strong> M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)</li>
@@ -3333,7 +3323,6 @@
 </ul>
 <h2 id="upnp_cloud_tunnel"><code>upnp_cloud_tunnel</code><a class="headerlink" href="#upnp_cloud_tunnel" title="Permanent link">&para;</a></h2>
 <p>The bridge that lets cloud/remote clients reach local UPnP actions — the upnp* muse namespaces tunnel through it, which is how the app controls a player it's not on the LAN with.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>surface:</strong> every service's upnp<Service> cloud resource exposes {subscribe, renew(logicalSID), unsubscribe(logicalSID)} — GENA subscription management relayed cloud-&gt;local</li>
@@ -3341,7 +3330,6 @@
 </ul>
 <h2 id="soap_client"><code>soap_client</code><a class="headerlink" href="#soap_client" title="Permanent link">&para;</a></h2>
 <p>The outbound UPnP/SOAP client the player uses to call other players — coordinator-to-satellite calls, group joins, delegate actions all go through it.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>wire:</strong> SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"' — urn#action forms</li>
@@ -3350,7 +3338,6 @@
 </ul>
 <h2 id="websocket_impl"><code>websocket_impl</code><a class="headerlink" href="#websocket_impl" title="Permanent link">&para;</a></h2>
 <p>The RFC6455 websocket stack shared by the local API (/api/v1/websocket, /websocket/api) and the cloud channel — opcode handling, per-message-deflate negotiation, ping/pong.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>files:</strong> websocketserver.cxx + websocketclient.cxx + lechmere.cxx</li>
@@ -3360,7 +3347,6 @@
 </ul>
 <h2 id="cert_identity"><code>cert_identity</code><a class="headerlink" href="#cert_identity" title="Permanent link">&para;</a></h2>
 <p>The certificate identities the player can present — the four client key/cert slots (Sonos, device, legacy-accept, registered-device) used for different peer classes.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>crypto:</strong> mbedTLS; sonos::certval::validate(sonos_device_x509_fields<em>, mbedtls_x509_crt</em> cert, crt, crl, x509_crt_profile, name, flags, cb, RootCACertBundle*) — custom device-x509 field validation</li>
@@ -3377,7 +3363,6 @@
 </ul>
 <h2 id="device_auth"><code>device_auth</code><a class="headerlink" href="#device_auth" title="Permanent link">&para;</a></h2>
 <p>How the player authenticates itself and incoming calls — device certs, signed requests and the local-auth decision layer.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>headers:</strong> <code>X-Sonos-DeviceCert: &lt;cert&gt;</code>, <code>X-Sonos-Device-Id</code>, <code>X-Sonos-Api-Key</code>, <code>X-Sonos-Corr-Id</code></li>
@@ -3389,21 +3374,18 @@
 </ul>
 <h2 id="noncehandler"><code>noncehandler</code><a class="headerlink" href="#noncehandler" title="Permanent link">&para;</a></h2>
 <p>The nonce challenge/response machinery — one-time values used to authenticate management operations.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>semantics:</strong> auth-nonce tracking for cloud requests</li>
 </ul>
 <h2 id="circuitbreaker"><code>circuitbreaker</code><a class="headerlink" href="#circuitbreaker" title="Permanent link">&para;</a></h2>
 <p>Circuit-breaker pattern around outbound calls — failing cloud/peer endpoints get backed off instead of retried hot.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>semantics:</strong> circuitBreakerTelemetry — breaker pattern on outbound paths w/ telemetry</li>
 </ul>
 <h2 id="hls_radio"><code>hls_radio</code><a class="headerlink" href="#hls_radio" title="Permanent link">&para;</a></h2>
 <p>HLS support for internet radio — the firmware parses #EXTM3U playlists, picks variants, and recovers when a playlist goes empty.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>schemes:</strong> x-sonosapi-hls:%s?sid=%u&amp;flags=288 + x-sonosapi-hls-static: + x-sonosapi-hls{,-static}:<em>:</em>:* + hls-static:// + sonos.com-hls-{static,radio,aac}</li>
@@ -3412,14 +3394,12 @@
 </ul>
 <h2 id="cloud_request"><code>cloud_request</code><a class="headerlink" href="#cloud_request" title="Permanent link">&para;</a></h2>
 <p>The generic cloud-request helper — HTTPS calls to Sonos APIs with cert pinning, env bases and retry policy.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>files:</strong> <code>/oc/zone/common/cloudrequest.cxx</code></li>
 </ul>
 <h2 id="cloud_registration"><code>cloud_registration</code><a class="headerlink" href="#cloud_registration" title="Permanent link">&para;</a></h2>
 <p>Cloud-side registration handshake — the player exchanging cert + household info for cloud credentials.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>tls:</strong> secure reg over SSL ('Invalid secure reg SSL port','Could not create secure reg SSL Context'); 'Curl - using R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE for %s' — client-cert identity</li>
@@ -3431,7 +3411,6 @@
 </ul>
 <h2 id="service_accounts"><code>service_accounts</code><a class="headerlink" href="#service_accounts" title="Permanent link">&para;</a></h2>
 <p>Music-service account storage — per-service credentials, nicknames and tokens under SystemProperties; what AddAccount/DeleteAccount/RefreshAuthToken act on.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>impl:</strong> zpserviceaccounts.cxx -&gt; RZPServiceAccounts</li>
@@ -3442,7 +3421,6 @@
 </ul>
 <h2 id="device_registration"><code>device_registration</code><a class="headerlink" href="#device_registration" title="Permanent link">&para;</a></h2>
 <p>The registration flow — how a new or reset player registers with Sonos cloud and gets its identity.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>impl:</strong> register.cxx + regdevicecert.cxx + cloudregistration.cxx</li>
@@ -3455,14 +3433,12 @@
 </ul>
 <h2 id="assoctracker"><code>assoctracker</code><a class="headerlink" href="#assoctracker" title="Permanent link">&para;</a></h2>
 <p>Association tracking — which stations/clients are associated to this node on the mesh/wifi.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>semantics:</strong> Wi-Fi station-association tracking</li>
 </ul>
 <h2 id="target_udn_routing"><code>target_udn_routing</code><a class="headerlink" href="#target_udn_routing" title="Permanent link">&para;</a></h2>
 <p>How requests addressed to a specific player UDN get routed inside a grouped/bonded setup — a request can land on one member and be forwarded to the right zone player.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>header:</strong> X-SONOS-TARGET-UDN: uuid:%s + targetUDN param — directs a SOAP action to a specific bonded-zone member UDN</li>
@@ -3470,7 +3446,6 @@
 </ul>
 <h2 id="http_extra_endpoints"><code>http_extra_endpoints</code><a class="headerlink" href="#http_extra_endpoints" title="Permanent link">&para;</a></h2>
 <p>The complete inventory of HTTP paths the binary knows about beyond the SOAP control URLs — diagnostics, config pages, daemon IPC proxies, cloud-tunnel endpoints, media taps. Literal presence doesn't prove the route is registered at runtime, but the table shows the full attack/feature surface.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> HTTP paths outside the /status route-table cluster</li>
@@ -3622,7 +3597,6 @@
 </ul>
 <h2 id="csrf_protection"><code>csrf_protection</code><a class="headerlink" href="#csrf_protection" title="Permanent link">&para;</a></h2>
 <p>Browser-facing config endpoints embed a csrfToken hidden field, so simple cross-site form posts get rejected. If you're automating /advconfig or /status writes you must fetch the form first and echo the token.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>name:</strong> CSRF tokens on browser-facing POST endpoints</li>
@@ -3634,14 +3608,12 @@
 </ul>
 <h2 id="device_description_variants"><code>device_description_variants</code><a class="headerlink" href="#device_description_variants" title="Permanent link">&para;</a></h2>
 <p>The two device-description XML variants — with and without AudioIn — proving AudioIn omission from some descriptions is deliberate.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>description:</strong> ["/xml/device_description.xml", "/xml/group_description.xml", "/xml/satellite_device.xml", "/xml/device_description_no_ai.xml"]</li>
 </ul>
 <h2 id="gena_internals"><code>gena_internals</code><a class="headerlink" href="#gena_internals" title="Permanent link">&para;</a></h2>
 <p>GENA internals — SID preinstall (?sid=0), SubscribedEvents/LogicalSID/NotifyErrors bookkeeping, and the LastChange event assembly.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> GENA internals + per-service LastChange schemas</li>
@@ -3662,7 +3634,6 @@
 </ul>
 <h2 id="didl_classes_ext"><code>didl_classes_ext</code><a class="headerlink" href="#didl_classes_ext" title="Permanent link">&para;</a></h2>
 <p>The extended DIDL-Lite class vocabulary — audiobook/podcast/chapter object classes and playlist MIME types beyond the base UPnP set.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> Extended DIDL object classes</li>
@@ -3675,7 +3646,6 @@
 </ul>
 <h2 id="protocol_info_full"><code>protocol_info_full</code><a class="headerlink" href="#protocol_info_full" title="Permanent link">&para;</a></h2>
 <p>The verbatim GetProtocolInfo source CSV — every MIME/protocolInfo string the player claims to support, including x-rincon-<em> custom schemes, sonos.com-</em> types and DASH.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>name:</strong> Complete GetProtocolInfo Source CSV</li>
@@ -3686,7 +3656,6 @@
 </ul>
 <h2 id="icy_metadata"><code>icy_metadata</code><a class="headerlink" href="#icy_metadata" title="Permanent link">&para;</a></h2>
 <p>ICY/Shoutcast metadata handling — icy-metaint interval parsing and stream-title extraction for internet radio.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> ICY/Shoutcast inline metadata</li>
@@ -3696,7 +3665,6 @@
 </ul>
 <h2 id="alert_engine"><code>alert_engine</code><a class="headerlink" href="#alert_engine" title="Permanent link">&para;</a></h2>
 <p>The alert/chime engine — alertContent items (doorbell/voice-assistant prompts) play over or duck current audio per a priority policy.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> alert/chime interrupt engine</li>
@@ -3708,7 +3676,6 @@
 </ul>
 <h2 id="household_psk_vocabulary"><code>household_psk_vocabulary</code><a class="headerlink" href="#household_psk_vocabulary" title="Permanent link">&para;</a></h2>
 <p>The household key hierarchy — HhPsk, ControlPsk, LanSwapPsk, RoomEncPsk and their backup slots: different keys for household membership, control channel, Wi-Fi roaming and room audio encryption.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> household encryption key elements</li>
@@ -3720,7 +3687,6 @@
 </ul>
 <h2 id="replication_elements"><code>replication_elements</code><a class="headerlink" href="#replication_elements" title="Permanent link">&para;</a></h2>
 <p>The wire elements of household replication — ReplicationOperation/Player/Result triples plus Quarantined/Denylisted device records; the vocabulary of the sync protocol.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> replication-engine wire elements</li>
@@ -3732,7 +3698,6 @@
 </ul>
 <h2 id="token_refresh_state_machine"><code>token_refresh_state_machine</code><a class="headerlink" href="#token_refresh_state_machine" title="Permanent link">&para;</a></h2>
 <p>The OAuth token lifecycle for cloud and music services — expiry detection, refresh requests, and retry/backoff behavior when refresh fails.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> music-account OAuth token refresh lifecycle</li>
@@ -3744,7 +3709,6 @@
 </ul>
 <h2 id="xml_schema_clusters"><code>xml_schema_clusters</code><a class="headerlink" href="#xml_schema_clusters" title="Permanent link">&para;</a></h2>
 <p>The recoverable XML schemas grouped by subsystem — settings stores, HT config, LED patterns, alarms — each element/attribute inventory with where it serializes.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> uncatalogued XML schema clusters</li>
@@ -3757,7 +3721,6 @@
 </ul>
 <h2 id="internal_error_families"><code>internal_error_families</code><a class="headerlink" href="#internal_error_families" title="Permanent link">&para;</a></h2>
 <p>The internal error-code families — how component errors are namespaced before they get mapped to UPnP fault codes at the SOAP boundary.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> non-UPnP fault-code families</li>
@@ -3768,7 +3731,6 @@
 </ul>
 <h2 id="system_property_keys"><code>system_property_keys</code><a class="headerlink" href="#system_property_keys" title="Permanent link">&para;</a></h2>
 <p>The 29 R_* SystemProperties keys — the real key space that GetString/SetString/Remove operate on (crossfade duration, service bitrates, update policy, filtering).</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>provenance:</strong> 28 NUL-bounded standalone R_* literals; 27 have live code consumers found by addis/addi computed-address scan (R_AvailableSvcTypes only via .data ptr table). f_104b1e48 is the onSettingChanged dispatcher: strcmp(key) chain -&gt; per-key side-effect (e.g. R_TrialZPSerial-&gt;f_10121518, R_RadioLocation-&gt;f_1037e40c). R_PLAY_OP_ERROR excluded: enum-name log literal, not a settings key</li>
 <li><strong>kind:</strong> settings key vocabulary</li>
@@ -3806,7 +3768,6 @@
 </ul>
 <h2 id="internal_result_namespace"><code>internal_result_namespace</code><a class="headerlink" href="#internal_result_namespace" title="Permanent link">&para;</a></h2>
 <p>The complete R_* status-code enum — 403 internal result codes grouped by family (account, cloud queue, playback ops, LED, masks...). These are what UPnP faults map FROM; the enum values themselves aren't recoverable as integers.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>name:</strong> internal ERROR_<em>/R_</em> name vocabularies</li>
@@ -3843,7 +3804,6 @@
 </ul>
 <h2 id="smapi_capability_vocabulary"><code>smapi_capability_vocabulary</code><a class="headerlink" href="#smapi_capability_vocabulary" title="Permanent link">&para;</a></h2>
 <p>The full SMAPI capability flag vocabulary exposed by the /customsd form — auth types, container types and ~20 capability bits a music service can declare (favorites, extended metadata, device certs...).</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>name:</strong> SMAPI capability/auth/container vocabulary</li>
@@ -3862,7 +3822,6 @@
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eba94c, notes: SoundLab</p>
 <h2 id="albumart_proxy"><code>albumart_proxy</code><a class="headerlink" href="#albumart_proxy" title="Permanent link">&para;</a></h2>
 <p>The player's album-art endpoint. Controllers are handed URIs like http://<player>:1400/getaa?u=<source-url>&amp;v=<version> and the player fetches the image upstream and streams it back with a ~6-month Cache-Control header. Two things to know: 'u' must be the LAST parameter - the parser stops when it sees u=, so size flags (m=1 medium, s=1 small, vli=1 virtual-line-in art) only take effect if they come before it; and v= is never read by the server at all - it exists purely so you get a fresh URL when art changes. Requests are queued and served asynchronously; if you close the connection early the player detects it and discards the request. Upstream fetch failures come back as 404.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>name:</strong> /getaa album-art proxy</li>
 <li><strong>role:</strong> local HTTP album-art endpoint: serves cached/proxied art to controllers; URI forms /getaa?u=<url>&amp;v=<ver>, /getaa?m=1&amp;u=<url> and /getaa?s=1&amp;u=<url> (m=/s= size variants), plus upstream '?albumArt=true' fetches; art cached as <dir>/AlbumArt_{GUID}_Large.jpg</li>
@@ -3888,7 +3847,6 @@
 </ul>
 <h2 id="muse_route_verbs"><code>muse_route_verbs</code><a class="headerlink" href="#muse_route_verbs" title="Permanent link">&para;</a></h2>
 <p>The complete operation list of the muse (app/cloud) API: every resource and what you can call on it — playback controls, cloud-queue sessions, volume, groups, settings (in privilege tiers), home-theater accessories, Trueplay measurement sessions, alarms, timers, voice onboarding, remote control and diagnostics. It also exposes verbs for hardware this unit lacks (battery cells, water detection, PoE, ship mode), because the API surface is shared across the whole product line.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>name:</strong> muse route registration verbs — complete table</li>
 <li><strong>role:</strong> every muse route registers as a (param,resource,verb) triple; this is the decoded verb inventory per resource — the muse API's real operation surface, 70+ resources</li>
@@ -3969,7 +3927,6 @@
 </ul>
 <h2 id="enum_tables"><code>enum_tables</code><a class="headerlink" href="#enum_tables" title="Permanent link">&para;</a></h2>
 <p>Throughout the binary there are fixed lookup tables mapping enum names to numbers — service states, error codes, LED modes. These tables are how names seen in XML and JSON (like STOPPED or PLAYING) translate into the values the code actually switches on.</p>
-<p><strong>Technical description:</strong></p>
 <ul>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>name:</strong> Static enum name-&gt;integer registration tables</li>

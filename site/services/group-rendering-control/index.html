@@ -2962,56 +2962,56 @@
 req-&gt;v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl-&gt;v[+0x08](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req-&gt;v[+0x14](req, impl_rc)
 propagates the impl return code toward a SOAP fault.</p>
-<details><summary>Evidence (1)</summary>
-
-- fn f_10738e9c @ 0x10738f1c — impl->v\[+0x08\](impl,InstanceID,&byte)
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn f_10738e9c @ 0x10738f1c — impl-&gt;v[+0x08](impl,InstanceID,&amp;byte)</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738e9c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738e9c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r30 v[+0x8]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738e9c — member vfunc calls: \['r30 v\[+0x8\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738e9c — member vfunc calls: ['r30 v[+0x8]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects">Side effects<a class="headerlink" href="#side-effects" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Queries mute state across the group (local zone + member zones) through the group-impl object. Impl-object vtable and member iteration details unresolved</li>
 </ul>
 <h4 id="state-transitions-confirmed">State transitions <code>confirmed</code><a class="headerlink" href="#state-transitions-confirmed" title="Permanent link">&para;</a></h4>
 <p>None proven; read-only.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10738e9c — read-only path
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10738e9c — read-only path</li>
+</ul>
 </details>
-
 <h4 id="events-confirmed">Events <code>confirmed</code><a class="headerlink" href="#events-confirmed" title="Permanent link">&para;</a></h4>
 <p>None proven in the SOAP path.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10738e9c — no event calls in wrapper
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10738e9c — no event calls in wrapper</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed" title="Permanent link">&para;</a></h4>
 <p>Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req-&gt;v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').</p>
-<details><summary>Evidence (1)</summary>
-
-- fn f_10738e9c @ 0x10738f1c — impl->v\[+0x08\](impl,InstanceID,&byte)
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn f_10738e9c @ 0x10738f1c — impl-&gt;v[+0x08](impl,InstanceID,&amp;byte)</li>
+</ul>
 </details>
-
 <h4 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h4>
 <p><strong><code>701</code></strong> <code>confirmed</code></p>
 <p>nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume&gt;100 range), 701/801(member-apply failure), member-delegate-rc}</p>
@@ -3028,22 +3028,25 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10738e9c`
-- dispatch entry `0x10f11aa8`
-- impl call `0x10738f1c` obj `r5-in` slot `8` arg4 `*(sp-0x30+0x18)`
-- impl call `0x10738fa4` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
-- req vcall `0x10738ef8` slot `8` (parse)
-- Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8 — the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
-
-- fn f_10738e9c @ 0x10738e9c — full wrapper decode
-- fn 0x103a3f28 — impl vfunc on vtable 0x10ec37b4 +0x08
-- fn 0x10738e9c @ 0x10738e9c — action wrapper handler
-- @ 0x10f11aa8 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10738e9c</code></li>
+<li>dispatch entry <code>0x10f11aa8</code></li>
+<li>impl call <code>0x10738f1c</code> obj <code>r5-in</code> slot <code>8</code> arg4 <code>*(sp-0x30+0x18)</code></li>
+<li>impl call <code>0x10738fa4</code> obj <code>*(sp-0x30+0x2c)</code> slot <code>12</code> arg4 <code>?</code></li>
+<li>req vcall <code>0x10738ef8</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8 — the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.</p>
+</li>
+<li>
+<p>fn f_10738e9c @ 0x10738e9c — full wrapper decode</p>
+</li>
+<li>fn 0x103a3f28 — impl vfunc on vtable 0x10ec37b4 +0x08</li>
+<li>fn 0x10738e9c @ 0x10738e9c — action wrapper handler</li>
+<li>@ 0x10f11aa8 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="getgroupvolume"><code>GetGroupVolume</code><a class="headerlink" href="#getgroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the current group volume.</p>
@@ -3101,56 +3104,56 @@ propagates the impl return code toward a SOAP fault.</p>
 req-&gt;v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl-&gt;v[+0x10](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req-&gt;v[+0x14](req, impl_rc)
 propagates the impl return code toward a SOAP fault.</p>
-<details><summary>Evidence (1)</summary>
-
-- fn f_107390c4 @ 0x10739144 — impl->v\[+0x10\](impl,InstanceID,&u16)
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn f_107390c4 @ 0x10739144 — impl-&gt;v[+0x10](impl,InstanceID,&amp;u16)</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_1">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_1" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x10]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107390c4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107390c4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_1">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_1" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r30 v[+0x10]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107390c4 — member vfunc calls: \['r30 v\[+0x10\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107390c4 — member vfunc calls: ['r30 v[+0x10]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_1">Side effects<a class="headerlink" href="#side-effects_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Queries group volume state via the group-impl object. Impl-object vtable and member iteration details unresolved</li>
 </ul>
 <h4 id="state-transitions-confirmed_1">State transitions <code>confirmed</code><a class="headerlink" href="#state-transitions-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>None proven; read-only.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x107390c4 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x107390c4 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="events-confirmed_1">Events <code>confirmed</code><a class="headerlink" href="#events-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>None proven in the SOAP path.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x107390c4 — wrapper decode
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x107390c4 — wrapper decode</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed_1">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req-&gt;v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').</p>
-<details><summary>Evidence (1)</summary>
-
-- fn f_107390c4 @ 0x10739144 — impl->v\[+0x10\](impl,InstanceID,&u16)
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn f_107390c4 @ 0x10739144 — impl-&gt;v[+0x10](impl,InstanceID,&amp;u16)</li>
+</ul>
 </details>
-
 <h4 id="errors_1">Errors<a class="headerlink" href="#errors_1" title="Permanent link">&para;</a></h4>
 <p><strong><code>701</code></strong> <code>confirmed</code></p>
 <p>nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume&gt;100 range), 701/801(member-apply failure), member-delegate-rc}</p>
@@ -3167,22 +3170,25 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x107390c4`
-- dispatch entry `0x10f11ab4`
-- impl call `0x10739144` obj `r5-in` slot `16` arg4 `*(sp-0x30+0x18)`
-- impl call `0x107391cc` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
-- req vcall `0x10739120` slot `8` (parse)
-- Direct impl on the impl object: 4-insn predicate — loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
-
-- fn f_107390c4 @ 0x107390c4 — full wrapper decode
-- fn 0x106fd104 — impl vfunc on vtable 0x10ec37b4 +0x10
-- fn 0x107390c4 @ 0x107390c4 — action wrapper handler
-- @ 0x10f11ab4 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x107390c4</code></li>
+<li>dispatch entry <code>0x10f11ab4</code></li>
+<li>impl call <code>0x10739144</code> obj <code>r5-in</code> slot <code>16</code> arg4 <code>*(sp-0x30+0x18)</code></li>
+<li>impl call <code>0x107391cc</code> obj <code>*(sp-0x30+0x2c)</code> slot <code>12</code> arg4 <code>?</code></li>
+<li>req vcall <code>0x10739120</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Direct impl on the impl object: 4-insn predicate — loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.</p>
+</li>
+<li>
+<p>fn f_107390c4 @ 0x107390c4 — full wrapper decode</p>
+</li>
+<li>fn 0x106fd104 — impl vfunc on vtable 0x10ec37b4 +0x10</li>
+<li>fn 0x107390c4 @ 0x107390c4 — action wrapper handler</li>
+<li>@ 0x10f11ab4 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="setgroupmute"><code>SetGroupMute</code><a class="headerlink" href="#setgroupmute" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Mutes or unmutes every player in the group.</p>
@@ -3227,63 +3233,63 @@ propagates the impl return code toward a SOAP fault.</p>
 req-&gt;v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl-&gt;v[+0x0c](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req-&gt;v[+0x14](req, impl_rc)
 propagates the impl return code toward a SOAP fault.</p>
-<details><summary>Evidence (4)</summary>
-
-- fn f_10738fb0 @ 0x10739054 — impl->v\[+0x0c\](impl,InstanceID,byte)
-- fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
-- fn f_103a1b8c @ 0x103a1fe8 — 'SetGroupMute: local set to %d rc=%d'
-- fn f_103a1b8c @ 0x103a1ea4 — 'SetGroupMute: %s set to %d rc=%d' remote member log
-
+<details>
+<summary>Evidence (4)</summary>
+<ul>
+<li>fn f_10738fb0 @ 0x10739054 — impl-&gt;v[+0x0c](impl,InstanceID,byte)</li>
+<li>fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built</li>
+<li>fn f_103a1b8c @ 0x103a1fe8 — 'SetGroupMute: local set to %d rc=%d'</li>
+<li>fn f_103a1b8c @ 0x103a1ea4 — 'SetGroupMute: %s set to %d rc=%d' remote member log</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_2">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_2" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xc]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738fb0 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738fb0 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_2">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_2" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r30 v[+0xc]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738fb0 — member vfunc calls: \['r30 v\[+0xc\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738fb0 — member vfunc calls: ['r30 v[+0xc]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_2">Side effects<a class="headerlink" href="#side-effects_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Worker f_103a1b8c applies the mute locally and builds remote renderingcontrol:setmute upnp operation records (urn:schemas-upnp-org:service:renderingcontrol:1) dispatched to each member zone; logs 'setgroupmute: local set to %d rc=%d' / '%s set to %d rc=%d'. Impl-object vtable and member iteration details unresolved</li>
 </ul>
 <h4 id="state-transitions-strong">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong" title="Permanent link">&para;</a></h4>
 <p>Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' names built in f_1039d11c are evented state variables.</p>
-<details><summary>Evidence (2)</summary>
-
-- @ 0x10ec39fc — 'GroupMute' state-var name
-- @ 0x10ec3a08 — 'GroupVolumeChangeable'
-
+<details>
+<summary>Evidence (2)</summary>
+<ul>
+<li>@ 0x10ec39fc — 'GroupMute' state-var name</li>
+<li>@ 0x10ec3a08 — 'GroupVolumeChangeable'</li>
+</ul>
 </details>
-
 <h4 id="events-strong">Events <code>strong</code><a class="headerlink" href="#events-strong" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738fb0 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738fb0 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed_2">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req-&gt;v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').</p>
-<details><summary>Evidence (4)</summary>
-
-- fn f_10738fb0 @ 0x10739054 — impl->v\[+0x0c\](impl,InstanceID,byte)
-- fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
-- fn f_103a1b8c @ 0x103a1fe8 — 'SetGroupMute: local set to %d rc=%d'
-- fn f_103a1b8c @ 0x103a1ea4 — 'SetGroupMute: %s set to %d rc=%d' remote member log
-
+<details>
+<summary>Evidence (4)</summary>
+<ul>
+<li>fn f_10738fb0 @ 0x10739054 — impl-&gt;v[+0x0c](impl,InstanceID,byte)</li>
+<li>fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built</li>
+<li>fn f_103a1b8c @ 0x103a1fe8 — 'SetGroupMute: local set to %d rc=%d'</li>
+<li>fn f_103a1b8c @ 0x103a1ea4 — 'SetGroupMute: %s set to %d rc=%d' remote member log</li>
+</ul>
 </details>
-
 <h4 id="errors_2">Errors<a class="headerlink" href="#errors_2" title="Permanent link">&para;</a></h4>
 <p><strong><code>701</code></strong> <code>strong</code></p>
 <p>nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume&gt;100 range), 701/801(member-apply failure), member-delegate-rc}</p>
@@ -3305,22 +3311,25 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>*(impl+0x258) flag already set (nested/duplicate invocation while a group-set is active)</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10738fb0`
-- dispatch entry `0x10f11ac0`
-- impl call `0x10739054` obj `r5-in` slot `12` arg4 `*(sp-0x30+0x18)`
-- impl call `0x107390b8` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
-- req vcall `0x10739030` slot `8` (parse)
-- Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740) — posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
-
-- fn f_10738fb0 @ 0x10738fb0 — full wrapper decode
-- fn 0x103a3f40 — impl vfunc on vtable 0x10ec37b4 +0x0c
-- fn 0x10738fb0 @ 0x10738fb0 — action wrapper handler
-- @ 0x10f11ac0 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10738fb0</code></li>
+<li>dispatch entry <code>0x10f11ac0</code></li>
+<li>impl call <code>0x10739054</code> obj <code>r5-in</code> slot <code>12</code> arg4 <code>*(sp-0x30+0x18)</code></li>
+<li>impl call <code>0x107390b8</code> obj <code>*(sp-0x30+0x2c)</code> slot <code>12</code> arg4 <code>402</code></li>
+<li>req vcall <code>0x10739030</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740) — posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.</p>
+</li>
+<li>
+<p>fn f_10738fb0 @ 0x10738fb0 — full wrapper decode</p>
+</li>
+<li>fn 0x103a3f40 — impl vfunc on vtable 0x10ec37b4 +0x0c</li>
+<li>fn 0x10738fb0 @ 0x10738fb0 — action wrapper handler</li>
+<li>@ 0x10f11ac0 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="setgroupvolume"><code>SetGroupVolume</code><a class="headerlink" href="#setgroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Sets every member of the group to the same absolute DesiredVolume (0-100).</p>
@@ -3366,58 +3375,58 @@ propagates the impl return code toward a SOAP fault.</p>
 req-&gt;v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl-&gt;v[+0x14](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req-&gt;v[+0x14](req, impl_rc)
 propagates the impl return code toward a SOAP fault.</p>
-<details><summary>Evidence (2)</summary>
-
-- fn f_107391d8 @ 0x1073927c — impl->v\[+0x14\](impl,InstanceID,desired)
-- fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'
-
+<details>
+<summary>Evidence (2)</summary>
+<ul>
+<li>fn f_107391d8 @ 0x1073927c — impl-&gt;v[+0x14](impl,InstanceID,desired)</li>
+<li>fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_3">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_3" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x14]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107391d8 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107391d8 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_3">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_3" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r30 v[+0x14]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107391d8 — member vfunc calls: \['r30 v\[+0x14\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107391d8 — member vfunc calls: ['r30 v[+0x14]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_3">Side effects<a class="headerlink" href="#side-effects_3" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Applies locally then fans out renderingcontrol:setvolume upnp ops to member zones; bookkeeping via groupvolumesetactionevent records; logs 'setgroupvolume: local:%d netops:%u zones:%u'. Impl-object vtable and member iteration details unresolved</li>
 </ul>
 <h4 id="state-transitions-strong_1">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_1" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x14]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107391d8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x14\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107391d8 — no transition-literal/store pattern; member delegates: ['r30 v[+0x14]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_1">Events <code>strong</code><a class="headerlink" href="#events-strong_1" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107391d8 — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107391d8 — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed_3">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req-&gt;v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').</p>
-<details><summary>Evidence (2)</summary>
-
-- fn f_107391d8 @ 0x1073927c — impl->v\[+0x14\](impl,InstanceID,desired)
-- fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'
-
+<details>
+<summary>Evidence (2)</summary>
+<ul>
+<li>fn f_107391d8 @ 0x1073927c — impl-&gt;v[+0x14](impl,InstanceID,desired)</li>
+<li>fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'</li>
+</ul>
 </details>
-
 <h4 id="errors_3">Errors<a class="headerlink" href="#errors_3" title="Permanent link">&para;</a></h4>
 <p><strong><code>701</code></strong> <code>strong</code></p>
 <p>nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume&gt;100 range), 701/801(member-apply failure), member-delegate-rc}</p>
@@ -3438,22 +3447,25 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x107391d8`
-- dispatch entry `0x10f11acc`
-- impl call `0x1073927c` obj `r5-in` slot `20` arg4 `*(sp-0x30+0x18)`
-- impl call `0x107392e0` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
-- req vcall `0x10739258` slot `8` (parse)
-- Direct impl: reads byte impl+0x22dd then enters the group volume set path on members +0x22c4..+0x22ff. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
-
-- fn f_107391d8 @ 0x107391d8 — full wrapper decode
-- fn 0x106fd5d4 — impl vfunc on vtable 0x10ec37b4 +0x14
-- fn 0x107391d8 @ 0x107391d8 — action wrapper handler
-- @ 0x10f11acc — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x107391d8</code></li>
+<li>dispatch entry <code>0x10f11acc</code></li>
+<li>impl call <code>0x1073927c</code> obj <code>r5-in</code> slot <code>20</code> arg4 <code>*(sp-0x30+0x18)</code></li>
+<li>impl call <code>0x107392e0</code> obj <code>*(sp-0x30+0x2c)</code> slot <code>12</code> arg4 <code>402</code></li>
+<li>req vcall <code>0x10739258</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Direct impl: reads byte impl+0x22dd then enters the group volume set path on members +0x22c4..+0x22ff. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.</p>
+</li>
+<li>
+<p>fn f_107391d8 @ 0x107391d8 — full wrapper decode</p>
+</li>
+<li>fn 0x106fd5d4 — impl vfunc on vtable 0x10ec37b4 +0x14</li>
+<li>fn 0x107391d8 @ 0x107391d8 — action wrapper handler</li>
+<li>@ 0x10f11acc — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="setrelativegroupvolume"><code>SetRelativeGroupVolume</code><a class="headerlink" href="#setrelativegroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Adjusts group volume by a signed Adjustment while preserving per-player offsets; returns the resulting NewVolume. Prefer this over SetGroupVolume for slider UIs.</p>
@@ -3521,56 +3533,56 @@ propagates the impl return code toward a SOAP fault.</p>
 req-&gt;v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl-&gt;v[+0x18](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req-&gt;v[+0x14](req, impl_rc)
 propagates the impl return code toward a SOAP fault.</p>
-<details><summary>Evidence (1)</summary>
-
-- fn f_107392ec @ 0x10739394 — impl->v\[+0x18\](impl,InstanceID,adj,&u16)
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn f_107392ec @ 0x10739394 — impl-&gt;v[+0x18](impl,InstanceID,adj,&amp;u16)</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_4">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_4" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x18]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107392ec — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107392ec — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_4">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_4" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r30 v[+0x18]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107392ec — member vfunc calls: \['r30 v\[+0x18\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107392ec — member vfunc calls: ['r30 v[+0x18]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_4">Side effects<a class="headerlink" href="#side-effects_4" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Relative adjustment applied through the group-impl object. Impl-object vtable and member iteration details unresolved</li>
 </ul>
 <h4 id="state-transitions-strong_2">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_2" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107392ec — no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107392ec — no transition-literal/store pattern; member delegates: ['r30 v[+0x18]']</li>
+</ul>
 </details>
-
 <h4 id="events-strong_2">Events <code>strong</code><a class="headerlink" href="#events-strong_2" title="Permanent link">&para;</a></h4>
 <p>direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x107392ec — bl call scan: notify-family sites = \[\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x107392ec — bl call scan: notify-family sites = []</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed_4">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req-&gt;v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').</p>
-<details><summary>Evidence (1)</summary>
-
-- fn f_107392ec @ 0x10739394 — impl->v\[+0x18\](impl,InstanceID,adj,&u16)
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn f_107392ec @ 0x10739394 — impl-&gt;v[+0x18](impl,InstanceID,adj,&amp;u16)</li>
+</ul>
 </details>
-
 <h4 id="errors_4">Errors<a class="headerlink" href="#errors_4" title="Permanent link">&para;</a></h4>
 <p><strong><code>701</code></strong> <code>strong</code></p>
 <p>nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume&gt;100 range), 701/801(member-apply failure), member-delegate-rc}</p>
@@ -3591,22 +3603,25 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x107392ec`
-- dispatch entry `0x10f11ad8`
-- impl call `0x10739394` obj `r5-in` slot `24` arg4 `*(sp-0x30+0x14)`
-- impl call `0x1073941c` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
-- req vcall `0x1073936c` slot `8` (parse)
-- Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
-
-- fn f_107392ec @ 0x107392ec — full wrapper decode
-- fn 0x106ff454 — impl vfunc on vtable 0x10ec37b4 +0x18
-- fn 0x107392ec @ 0x107392ec — action wrapper handler
-- @ 0x10f11ad8 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x107392ec</code></li>
+<li>dispatch entry <code>0x10f11ad8</code></li>
+<li>impl call <code>0x10739394</code> obj <code>r5-in</code> slot <code>24</code> arg4 <code>*(sp-0x30+0x14)</code></li>
+<li>impl call <code>0x1073941c</code> obj <code>*(sp-0x30+0x2c)</code> slot <code>12</code> arg4 <code>?</code></li>
+<li>req vcall <code>0x1073936c</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.</p>
+</li>
+<li>
+<p>fn f_107392ec @ 0x107392ec — full wrapper decode</p>
+</li>
+<li>fn 0x106ff454 — impl vfunc on vtable 0x10ec37b4 +0x18</li>
+<li>fn 0x107392ec @ 0x107392ec — action wrapper handler</li>
+<li>@ 0x10f11ad8 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h3 id="snapshotgroupvolume"><code>SnapshotGroupVolume</code><a class="headerlink" href="#snapshotgroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Captures per-member volumes so a subsequent group adjustment can be made consistently.</p>
@@ -3642,58 +3657,58 @@ propagates the impl return code toward a SOAP fault.</p>
 req-&gt;v[+0x08] is a parse-status gate whose failure diverts past the impl call to the fault tail;
 impl-&gt;v[+0x1c](impl, InstanceID, ...) runs the action; on non-success cr0.eq-clear, req-&gt;v[+0x14](req, impl_rc)
 propagates the impl return code toward a SOAP fault.</p>
-<details><summary>Evidence (2)</summary>
-
-- fn f_10738db0 @ 0x10738e2c — impl->v\[+0x1c\](impl,InstanceID)
-- fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker
-
+<details>
+<summary>Evidence (2)</summary>
+<ul>
+<li>fn f_10738db0 @ 0x10738e2c — impl-&gt;v[+0x1c](impl,InstanceID)</li>
+<li>fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker</li>
+</ul>
 </details>
-
 <h4 id="requirements-preconditions-strong_5">Requirements / preconditions <code>strong</code><a class="headerlink" href="#requirements-preconditions-strong_5" title="Permanent link">&para;</a></h4>
 <p>impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x1c]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738db0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738db0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}</li>
+</ul>
 </details>
-
 <h4 id="state-dependencies-strong_5">State dependencies <code>strong</code><a class="headerlink" href="#state-dependencies-strong_5" title="Permanent link">&para;</a></h4>
 <p>service-internal state reached through member delegate(s): r30 v[+0x1c]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738db0 — member vfunc calls: \['r30 v\[+0x1c\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738db0 — member vfunc calls: ['r30 v[+0x1c]']</li>
+</ul>
 </details>
-
 <h4 id="side-effects_5">Side effects<a class="headerlink" href="#side-effects_5" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Snapshots group volume state via the group-impl object; downstream produces groupvolumechangedevent / 'sent group volume change %u to esdk (mute %d)'. Impl-object vtable and member iteration details unresolved</li>
 </ul>
 <h4 id="state-transitions-strong_3">State transitions <code>strong</code><a class="headerlink" href="#state-transitions-strong_3" title="Permanent link">&para;</a></h4>
 <p>no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c]</p>
-<details><summary>Evidence (1)</summary>
-
-- fn 0x10738db0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>fn 0x10738db0 — no transition-literal/store pattern; member delegates: ['r30 v[+0x1c]']</li>
+</ul>
 </details>
-
 <h4 id="events-confirmed_2">Events <code>confirmed</code><a class="headerlink" href="#events-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>None proven.</p>
-<details><summary>Evidence (1)</summary>
-
-- @ 0x10738db0 — no event calls in wrapper
-
+<details>
+<summary>Evidence (1)</summary>
+<ul>
+<li>@ 0x10738db0 — no event calls in wrapper</li>
+</ul>
 </details>
-
 <h4 id="return-behavior-confirmed_5">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req-&gt;v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').</p>
-<details><summary>Evidence (2)</summary>
-
-- fn f_10738db0 @ 0x10738e2c — impl->v\[+0x1c\](impl,InstanceID)
-- fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker
-
+<details>
+<summary>Evidence (2)</summary>
+<ul>
+<li>fn f_10738db0 @ 0x10738e2c — impl-&gt;v[+0x1c](impl,InstanceID)</li>
+<li>fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker</li>
+</ul>
 </details>
-
 <h4 id="errors_5">Errors<a class="headerlink" href="#errors_5" title="Permanent link">&para;</a></h4>
 <p><strong><code>701</code></strong> <code>confirmed</code></p>
 <p>nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume&gt;100 range), 701/801(member-apply failure), member-delegate-rc}</p>
@@ -3710,22 +3725,25 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
-<details><summary>Implementation & reverse-engineering evidence</summary>
-
-- handler `0x10738db0`
-- dispatch entry `0x10f11ae4`
-- impl call `0x10738e2c` obj `r5-in` slot `28` arg4 `*(sp-0x30+0x18)`
-- impl call `0x10738e90` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
-- req vcall `0x10738e0c` slot `8` (parse)
-- Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
-
-- fn f_10738db0 @ 0x10738db0 — full wrapper decode
-- fn 0x106ff898 — impl vfunc on vtable 0x10ec37b4 +0x1c
-- fn 0x10738db0 @ 0x10738db0 — action wrapper handler
-- @ 0x10f11ae4 — action dispatch table entry
-
+<details>
+<summary>Implementation &amp; reverse-engineering evidence</summary>
+<ul>
+<li>handler <code>0x10738db0</code></li>
+<li>dispatch entry <code>0x10f11ae4</code></li>
+<li>impl call <code>0x10738e2c</code> obj <code>r5-in</code> slot <code>28</code> arg4 <code>*(sp-0x30+0x18)</code></li>
+<li>impl call <code>0x10738e90</code> obj <code>*(sp-0x30+0x2c)</code> slot <code>12</code> arg4 <code>402</code></li>
+<li>req vcall <code>0x10738e0c</code> slot <code>8</code> (parse)</li>
+<li>
+<p>Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.</p>
+</li>
+<li>
+<p>fn f_10738db0 @ 0x10738db0 — full wrapper decode</p>
+</li>
+<li>fn 0x106ff898 — impl vfunc on vtable 0x10ec37b4 +0x1c</li>
+<li>fn 0x10738db0 @ 0x10738db0 — action wrapper handler</li>
+<li>@ 0x10f11ae4 — action dispatch table entry</li>
+</ul>
 </details>
-
 <h2 id="state-variables">State variables<a class="headerlink" href="#state-variables" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -3793,12 +3811,13 @@ propagates the impl return code toward a SOAP fault.</p>
 <li><strong>remote_rc:</strong> remoteRC (%s) proxy logs {fixed,vol,mute} per member</li>
 </ul>
 <p>Implementation sources (recovered): <code>zoneplayer/grc_zpimpl.cxx</code></p>
-<details><summary>Service evidence (3)</summary>
-
-- @ 0x101953c8 — service router function
-- @ 0x10f11a9c — service vtable
-- @ 0x10738c58 — service dispatcher
-
+<details>
+<summary>Service evidence (3)</summary>
+<ul>
+<li>@ 0x101953c8 — service router function</li>
+<li>@ 0x10f11a9c — service vtable</li>
+<li>@ 0x10738c58 — service dispatcher</li>
+</ul>
 </details>
 
 
