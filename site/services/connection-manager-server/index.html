@@ -2011,7 +2011,10 @@
 <h1 id="connectionmanager-mediaserverconnectionmanagercontrol"><code>ConnectionManager</code> — <code>/MediaServer/ConnectionManager/Control</code><a class="headerlink" href="#connectionmanager-mediaserverconnectionmanagercontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>Standard UPnP ConnectionManager for the embedded MediaServer (the side that serves the local library). Same three actions as the renderer variant.</p>
-<p><strong>Technical description:</strong> Standard UPnP ConnectionManager registered at /MediaServer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Standard UPnP ConnectionManager registered at /MediaServer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x10</code></li>
@@ -2066,7 +2069,10 @@
 <h3 id="getcurrentconnectionids"><code>GetCurrentConnectionIDs</code><a class="headerlink" href="#getcurrentconnectionids" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the CSV list of active connection ids (normally empty).</p>
-<p><strong>Technical description:</strong> Returns the CSV list of active connection ids. Wrapper calls impl-&gt;v[+0x8] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the CSV list of active connection ids. Wrapper calls impl-&gt;v[+0x8] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.</p>
+</details>
 <h4 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2088,6 +2094,8 @@
 <li><strong><code>CurrentConnectionIDs</code></strong> — CSV of active connection IDs; impl 0x10735918 writes a NUL via the core stub f_1032e710, so it is always empty in this build</li>
 <li>validation: arg-name string loaded at 0x10735968 inside impl 0x10735918; emitted via the response writer</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2150,6 +2158,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> n/a — success/failure fully determined by the impl vfunc return
 <strong>Bounded unknown — unresolved:</strong> none</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2170,7 +2179,10 @@
 <h3 id="getcurrentconnectioninfo"><code>GetCurrentConnectionInfo</code><a class="headerlink" href="#getcurrentconnectioninfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns per-connection detail for the media-server side. Unlike the renderer twin it takes no ConnectionID argument and reports the single active/default connection.</p>
-<p><strong>Technical description:</strong> Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req-&gt;v[+0x8], then calls the impl member at svc+4 -&gt;v[+0x1c] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req-&gt;v[+0x8], then calls the impl member at svc+4 -&gt;v[+0x1c] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.</p>
+</details>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2218,6 +2230,8 @@
 </tr>
 </tbody>
 </table>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2283,6 +2297,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2311,7 +2326,10 @@
 <h3 id="getprotocolinfo"><code>GetProtocolInfo</code><a class="headerlink" href="#getprotocolinfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the Source/Sink protocol-info CSVs the media server supports.</p>
-<p><strong>Technical description:</strong> Returns the supported protocol info strings (Source/Sink CSVs) via impl-&gt;v[+0x8] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the supported protocol info strings (Source/Sink CSVs) via impl-&gt;v[+0x8] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.</p>
+</details>
 <h4 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2340,6 +2358,8 @@
 <li><strong><code>Sink</code></strong> — sink protocol-info CSV emitted by impl 0x10735a64</li>
 <li>validation: arg-name string loaded at 0x10735ae8 inside impl 0x10735a64; emitted via the response writer</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2401,6 +2421,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> impl-&gt;v[+0x8] rc gates emit
 <strong>Bounded unknown — unresolved:</strong> whether 0 faults with 402 like its sibling</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2497,16 +2518,24 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>connectionManager</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> shares CurrentConnectionIDs emitter f_10735918 (CM family); SourceProtocolInfo/SinkProtocolInfo are static (GetProtocolInfo)</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 22, name: connectionManager, id: 77, tag: 67</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>compiled lib — no path literal</code></p>
 <details>
 <summary>Service evidence (3)</summary>

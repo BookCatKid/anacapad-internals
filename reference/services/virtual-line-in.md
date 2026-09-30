@@ -4,7 +4,11 @@
 
 Treats a networked line-in source as a virtual transport on this player - transport-style control (Play/Pause/Stop/Next/Previous/SetVolume) plus Start/StopTransmission to run the session. It's the 'line-in from another player' surface.
 
-**Technical description:** Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).
+
+</details>
 
 ## Availability
 
@@ -37,7 +41,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Advances the virtual line-in transport (context-dependent).
 
-**Technical description:** Next-track in the VLI session via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Next-track in the VLI session via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -48,6 +56,8 @@ Advances the virtual line-in transport (context-dependent).
 - **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -123,6 +133,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073ce18`
@@ -142,7 +155,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Pauses the virtual line-in source.
 
-**Technical description:** Pauses VLI playback via impl->v\[+0x18\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Pauses VLI playback via impl->v\[+0x18\].
+
+</details>
 
 #### Inputs
 
@@ -153,6 +170,8 @@ Pauses the virtual line-in source.
 - **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -228,6 +247,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073cf04`
@@ -247,7 +269,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Starts/resumes the virtual line-in source at the given Speed ('1' normal).
 
-**Technical description:** Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v\[+0x14\] on the r5-in VLI session impl.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v\[+0x14\] on the r5-in VLI session impl.
+
+</details>
 
 #### Inputs
 
@@ -262,6 +288,8 @@ Starts/resumes the virtual line-in source at the given Speed ('1' normal).
 - **`Speed`** — string <=0x400 via f_1056157c; passed to impl worker
   - validation: parse only at request layer
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -337,6 +365,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d2dc`
@@ -356,7 +387,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Steps the virtual line-in transport back.
 
-**Technical description:** Previous-track via impl->v\[+0x20\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Previous-track via impl->v\[+0x20\].
+
+</details>
 
 #### Inputs
 
@@ -367,6 +402,8 @@ Steps the virtual line-in transport back.
 - **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -442,6 +479,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073cff0`
@@ -461,7 +501,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the playback volume for the line-in session.
 
-**Technical description:** Sets VLI-session volume (DesiredVolume) via impl->v\[+0x24\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets VLI-session volume (DesiredVolume) via impl->v\[+0x24\].
+
+</details>
 
 #### Inputs
 
@@ -476,6 +520,8 @@ Sets the playback volume for the line-in session.
 - **`DesiredVolume`** — volume value passed to session impl 0x10412b78 -> this+0x130 member write
   - validation: impl-validated
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -551,6 +597,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d0dc`
@@ -570,7 +619,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Begins receiving the line-in stream from the given CoordinatorID; returns the resulting transport settings.
 
-**Technical description:** Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl->v\[+0x8\].
+
+</details>
 
 #### Inputs
 
@@ -594,6 +647,8 @@ Begins receiving the line-in stream from the given CoordinatorID; returns the re
 
 - **`CurrentTransportSettings`** — emitted from session impl transport settings (this+0x130 family)
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -669,6 +724,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d3f4`
@@ -689,7 +747,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Stops the virtual line-in transport.
 
-**Technical description:** Stops VLI playback via impl->v\[+0x10\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Stops VLI playback via impl->v\[+0x10\].
+
+</details>
 
 #### Inputs
 
@@ -700,6 +762,8 @@ Stops the virtual line-in transport.
 - **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -779,6 +843,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 **Bounded unknown — unresolved:** codes for session-state rejections
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d1f0`
@@ -798,7 +865,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Ends the line-in transmission from the given coordinator.
 
-**Technical description:** Stops the VLI transmission to CoordinatorID via impl->v\[+0xc\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Stops the VLI transmission to CoordinatorID via impl->v\[+0xc\].
+
+</details>
 
 #### Inputs
 
@@ -813,6 +884,8 @@ Ends the line-in transmission from the given coordinator.
 - **`CoordinatorID`** — coordinator zone UUID string via f_1056157c; parse failure -> 402
   - validation: non-empty parse required
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -888,6 +961,9 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073d544`
@@ -921,11 +997,18 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `virtualLineIn`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** 'setVirtualLineInGroupIDLocked'/'VirtualLineInGroupID' state + internal event bus; no dedicated emitter recovered
 - **wss_registry:**
   - idx: 70, name: virtualLineIn, id: 309, tag: 77
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -933,6 +1016,9 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 - Request action name matches no entry in the service dispatch table after the name-table search
 
+
+
+</details>
 
 Implementation sources (recovered): `common/vli_{sink,source_manager,playback_tracker}.cxx`, `zoneplayer/media_player_vli_ctrl.cxx`
 

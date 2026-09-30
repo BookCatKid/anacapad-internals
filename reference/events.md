@@ -18,7 +18,12 @@ UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...
 - **LastChange variable:** LastChange
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_102e41a0 AVT event emitter: mutexed (f_10557cac) LastChange doc build using template 0x10eb29e8; e:property write at 0x102e519c; arg+0x3dc string source; f_102b733c doc-write
+
+</details>
+
 
 ## `AlarmClock`
 
@@ -33,11 +38,16 @@ GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `alarmClock`, `alarmVersionChange`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10277d6c initial-state e:property dump {TimeServer, AlarmListVersion, TimeFormat, TimeGeneration, DateFormat} -> f_10676a44 writer
 - **payload_model:** e:property doc via f_10676a44 writer family
 - **wss_registry:**
   - idx: 5, name: alarmClock, id: 20, tag: 64
   - idx: 6, name: alarmVersionChange, id: 24, tag: 1
+
+</details>
+
 
 ## `AudioIn`
 
@@ -52,11 +62,16 @@ GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:up
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `audioInput`, `lineInStatus`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10243170 e:property dump {TOSLinkConnected, IRRepeaterState} -> f_10676a44
 - **payload_model:** e:property doc via f_10676a44 writer family
 - **wss_registry:**
   - idx: 9, name: audioInput, id: 40, tag: 65
   - idx: 19, name: lineInStatus, id: 62, tag: 15
+
+</details>
+
 
 ## `ConnectionManager (mediarenderer)`
 
@@ -71,9 +86,14 @@ GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `connectionManager`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10735918 emits CurrentConnectionIDs
 - **wss_registry:**
   - idx: 22, name: connectionManager, id: 77, tag: 67
+
+</details>
+
 
 ## `ConnectionManager (mediaserver)`
 
@@ -88,9 +108,14 @@ GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `connectionManager`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** shares CurrentConnectionIDs emitter f_10735918 (CM family); SourceProtocolInfo/SinkProtocolInfo are static (GetProtocolInfo)
 - **wss_registry:**
   - idx: 22, name: connectionManager, id: 77, tag: 67
+
+</details>
+
 
 ## `ContentDirectory`
 
@@ -105,12 +130,17 @@ GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (N
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `contentDirectory`, `indexerStatus`, `favoritesVersionChange`, `playlistsVersionChange`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_103035c4 emits {ContainerUpdateIDs, ShareIndexInProgress} + f_10303de4 emits {FavoritesUpdateID, SavedQueuesUpdateID, ShareListUpdateID, RadioFavoritesUpdateID} via event-bus workers f_1067693c/f_1067cdd0
 - **wss_registry:**
   - idx: 23, name: contentDirectory, id: 80, tag: 68
   - idx: 42, name: indexerStatus, id: 152, tag: 23
   - idx: 31, name: favoritesVersionChange, id: 115, tag: 11
   - idx: 50, name: playlistsVersionChange, id: 195, tag: 34
+
+</details>
+
 
 ## `DeviceProperties`
 
@@ -125,6 +155,8 @@ GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `deviceProperties`, `extendedDeviceStatus`, `microphoneSwitchStatus`, `batteryStatus`, `speakerPresenceStatus`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** settings-key event path: impl setters append key\0value\0 pairs via f_10557d70 -> member->v\[+0x10\] notify -> internal event bus (SettingsNeedsUpdateEvent pool) -> GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list; ResetVolumeAfter emitted via f_102fc6f4/f_106f4bac
 - **payload_model:** settings-key notifications (Desired*/Current* key changes) delivered via bus; GENA initial-notify serializes current keys
 - **wss_registry:**
@@ -133,6 +165,9 @@ GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event
   - idx: 14, name: microphoneSwitchStatus, id: 57, tag: 15
   - idx: 12, name: batteryStatus, id: 55, tag: 15
   - idx: 65, name: speakerPresenceStatus, id: 289, tag: 61
+
+</details>
+
 
 ## `GroupManagement`
 
@@ -147,10 +182,15 @@ GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `groupManagement`, `groupCoordinatorChanged`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** group-coordination event pool: 'DelegatedGroupCoordinatorID','LocalGroupUUID','VirtualLineInGroupID','ZoneNameChangedEvent' names recovered; delivered via internal bus + GENA/WSS
 - **wss_registry:**
   - idx: 34, name: groupManagement, id: 136, tag: 70
   - idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12
+
+</details>
+
 
 ## `GroupRenderingControl`
 
@@ -165,9 +205,14 @@ GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `groupRendering`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** internal event 'GroupVolumeChangedEvent'/'GroupVolumeSetActionEvent' pool -> GENA/WSS; evented var 'GroupVolumeChangeable' literal proven; GroupMute/GroupVolume go through the same group-volume event pool
 - **wss_registry:**
   - idx: 35, name: groupRendering, id: 137, tag: 71
+
+</details>
+
 
 ## `HTControl`
 
@@ -182,9 +227,14 @@ GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `htControl`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10739c34/f_10782194 emit {LEDFeedbackState, RemoteConfigured}
 - **wss_registry:**
   - idx: 41, name: htControl, id: 149, tag: 72
+
+</details>
+
 
 ## `MusicServices`
 
@@ -199,11 +249,16 @@ GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `musicServices`, `musicServicesChanged`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_100c7084 e:property dump {ServiceListVersion} -> f_10676a44
 - **payload_model:** e:property doc via f_10676a44 writer family
 - **wss_registry:**
   - idx: 44, name: musicServices, id: 166, tag: 73
   - idx: 45, name: musicServicesChanged, id: 167, tag: 25
+
+</details>
+
 
 ## `QPlay`
 
@@ -217,7 +272,12 @@ GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp
 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - No WSS registry name maps to this service in the 73-entry table; event surface likely absent or folded into another namespace
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** 'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered
+
+</details>
+
 
 ## `Queue`
 
@@ -230,8 +290,13 @@ UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 </details>
 
 - **Namespace:** urn:schemas-sonos-com:metadata-1-0/Queue/
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notes:** Queue uses its own event vocabulary rather than a LastChange blob: QueueOwnerID/QueueID/UpdateID/Curated elements
 - **notify_path:** f_10465b54 Queue event emitter using template 0x10ed1c6c (Queue svc region, near svc ctor f_104656d0)
+
+</details>
+
 
 ## `RenderingControl`
 
@@ -245,8 +310,13 @@ UPnP GENA NOTIFY with e:propertyset -> LastChange -> Event(InstanceID=0) -> val=
 
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/RCS/
 - **LastChange variable:** LastChange
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_100e27b0: builds <Event xmlns=...RCS> LastChange doc (InstanceID, Volume/Mute Master\|LF\|RF) AND writes e:property via f_10676a44 at 0x100e2ea8; notify trigger f_100e328c/f_100e32a4
 - **payload_model:** e:property doc via f_10676a44 writer family
+
+</details>
+
 
 ## `SystemProperties`
 
@@ -261,6 +331,8 @@ GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `systemProperties`, `settingsVersionChanged`, `settingsDataChanged`, `effectiveSettingsDataChanged`, `settingsPlayerSettingsChanged`, `entitlementsVersionChanged`, `voiceAccountsVersionChange`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** settings-key event path: impl setters append key\0value\0 pairs via f_10557d70 -> member->v\[+0x10\] notify -> internal event bus (SettingsNeedsUpdateEvent pool) -> GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list
 - **payload_model:** settings-key notifications (Desired*/Current* key changes) delivered via bus; GENA initial-notify serializes current keys
 - **wss_registry:**
@@ -271,6 +343,9 @@ GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event
   - idx: 60, name: settingsPlayerSettingsChanged, id: 254, tag: 38
   - idx: 28, name: entitlementsVersionChanged, id: 106, tag: 10
   - idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81
+
+</details>
+
 
 ## `VirtualLineIn`
 
@@ -285,9 +360,14 @@ GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `virtualLineIn`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** 'setVirtualLineInGroupIDLocked'/'VirtualLineInGroupID' state + internal event bus; no dedicated emitter recovered
 - **wss_registry:**
   - idx: 70, name: virtualLineIn, id: 309, tag: 77
+
+</details>
+
 
 ## `ZoneGroupTopology`
 
@@ -302,6 +382,8 @@ GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:even
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS events:** `zoneGroupTopology`, `activeZonesChange`, `zoneDefinitionsChange`, `zoneError`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_1074d9b4 emitter: serializes <ZoneGroupState>/<ZoneGroups> full-state doc via f_10743328 -> delivery worker f_10676a44; svc+0xe7c flag gates a secondary emit via f_1074388c; f_1074d644 produces 3 flag bytes; initial-notify caller at 0x10752d2c; second emitter f_10129888 (topology.cxx): <MediaServers><Ex CURL= EURL= T= EXT=><MediaServer Name=> section + 'informLocalPlayerChange' + 'SourceAreasUpdateID'
 - **payload_model:** direct <ZoneGroupState> XML (not LastChange attribute-form) - full-state push on topology change
 - **wss_registry:**
@@ -310,9 +392,14 @@ GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:even
   - idx: 3, name: zoneDefinitionsChange, id: 13, tag: 82
   - idx: 4, name: zoneError, id: 14, tag: 82
 
+</details>
+
+
 ## WSS subscription registry
 
 The named events the player offers on its websocket channel - the modern subscription vocabulary the app actually uses (groupVolume, playbackSession, and friends). Each entry is one name a client can subscribe to.
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 - **name:** WSS eventing subscription-type registry
 - **role:** websocket (secure) event-subscription surface; TLV frame {u16 tag@+0, u8 type@+2} mapped to {id,name} via 73-entry runtime table
@@ -428,11 +515,15 @@ The named events the player offers on its websocket channel - the modern subscri
   - idx: 72, name: zoneGroupTopology, id: 322, tag: 78
 - **entry_semantics:** {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind} — idx==registry slot, id==internal event enum, tag==on-wire TLV tag
 
+</details>
+
 Event names: `accessorySwapStatus`, `tvAudioSignalStatus`, `activeZonesChange`, `zoneDefinitionsChange`, `alarmClock`, `alarmVersionChange`, `areasVersionChange`, `zoneError`, `audioClipStatus`, `audioInput`, `availableSoftwareUpdate`, `avTransport`, `batteryStatus`, `wirelessNetworkStatus`, `microphoneSwitchStatus`, `waterStatus`, `bluetoothPairingStatus`, `bluetoothConnectionStatus`, `poeStatus`, `cloudRegistration`, `connectionManager`, `contentDirectory`, `lineInStatus`, `wiredSubConnectionStatus`, `deviceProperties`, `diagnosticSubmissionResults`, `diagnosticMetadata`, `effectiveSettingsDataChanged`, `entitlementsVersionChanged`, `extendedDeviceStatus`, `extendedPlaybackStatus`, `favoritesVersionChange`, `groupCoordinatorChanged`, `groupManagement`, `groupRendering`, `hdmiStatus`, `historyVersionChanged`, `householdUpdateStatus`, `upgradeManager`, `htControl`, `indexerStatus`, `musicServices`, `musicServicesChanged`, `playbackMetadataStatus`, `playbackStatus`, `playlistsVersionChange`, `positioningSessionStatus`, `positioningSessionError`, `positioningDeviceStatus`, `renderingControl`, `sessionError`, `sessionInfo`, `settingsVersionChanged`, `settingsDataChanged`, `settingsPlayerSettingsChanged`, `systemProperties`, `sleepTimerStatus`, `trueplayStatus`, `speakerPresenceStatus`, `speakerPresenceRateChange`, `trueroomAdaptationStatusEvent`, `trueroomCalibrationStatus`, `trueroomStatusEvent`, `virtualLineIn`, `voiceAccountsVersionChange`, `zoneGroupTopology`
 
 ## GENA internals
 
 How classic UPnP eventing is implemented here: how a subscription is validated, how the notification XML is assembled, and what happens when a subscriber stops answering.
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **files:** `/oc/zone/common/upnpeventing_source.cxx`, `/oc/zone/common/eventing.cxx`, `eventing.cxx`
@@ -446,3 +537,5 @@ How classic UPnP eventing is implemented here: how a subscription is validated, 
 - **channel_type_enum:** `HTSNK`, `FEEDBACK`, `EXT_VOICE+CLIP`, `EXT_CHIRP`, `SIDEBAND_FEEDBACK`, `SETUP_DISCOVERY`, `SPEAKER_DETECT`, `TV_SAT`, `CHSNK_SAT`
 - **trusted_clock:** rwlW_trusted_clock/trclock; "seed set with \[%ld\], offset now \[%lld\]" - seeded by lechmere Date: header
 - **evidence:** `literal block 0x10effc34-0x10f01580`
+
+</details>

@@ -4,7 +4,11 @@
 
 The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.
 
-**Technical description:** UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.
+
+</details>
 
 ## Availability
 
@@ -45,7 +49,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.
 
-**Technical description:** Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -> children enumeration vfunc v\[+0x28\] on the browse object, BrowseMetadata -> metadata path, anything else -> 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v\[+0x24\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -> children enumeration vfunc v\[+0x28\] on the browse object, BrowseMetadata -> metadata path, anything else -> 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v\[+0x24\].
+
+</details>
 
 #### Inputs
 
@@ -106,6 +114,8 @@ Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 
 - **`UpdateID`** — produced by impl 0x103042f0 via media-store member this+0x168
   - special values: 0
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -191,6 +201,9 @@ invalid BrowseFlag: value is neither "BrowseDirectChildren" nor "BrowseMetadata"
 - Any of the six arg parse helpers fails
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306b3c`
@@ -209,7 +222,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.
 
-**Technical description:** Creates a CDS object: ContainerID/Elements -> impl->v\[+0x20\], returning ObjectID/Result.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Creates a CDS object: ContainerID/Elements -> impl->v\[+0x20\], returning ObjectID/Result.
+
+</details>
 
 #### Inputs
 
@@ -238,6 +255,8 @@ Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL
 - **`Result`** — produced by impl 0x103026f8 via media-store member this+0x168
   - special values: see impl 0x103026f8
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -321,6 +340,9 @@ favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 user
 indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306b84`
@@ -342,7 +364,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes ObjectID from the library.
 
-**Technical description:** Destroys ObjectID via impl->v\[+0x28\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Destroys ObjectID via impl->v\[+0x28\].
+
+</details>
 
 #### Inputs
 
@@ -353,6 +379,8 @@ Deletes ObjectID from the library.
 - **`ObjectID`** — request-layer string/int parsed and handed to media-store impl 0x10302834
   - validation: request parse proven; impl applies media-store semantics
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -436,6 +464,9 @@ favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 user
 indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306e70`
@@ -455,7 +486,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).
 
-**Technical description:** Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl->v\[+0x18\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl->v\[+0x18\].
+
+</details>
 
 #### Inputs
 
@@ -483,6 +518,8 @@ Locates the object prefix for ObjectID - returns the StartingIndex under the giv
 - **`UpdateID`** — produced by impl 0x10302d78 via media-store member this+0x168
   - special values: see impl 0x10302d78
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -566,6 +603,9 @@ impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc
 Resolved-object capability check: vtbl\[+0x14\] must equal the prefix-search entry point f_10113d94; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307140`
@@ -585,7 +625,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether the library groups by album artist or contributing artist.
 
-**Technical description:** Returns the album-artist display option via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the album-artist display option via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -595,6 +639,8 @@ Returns whether the library groups by album artist or contributing artist.
 
 - **`AlbumArtistDisplayOption`** — AlbumArtistDisplayOption capability field emitted by impl 0x10307aa4
   - validation: arg-name string 'out' loaded at 0x10307af8 inside f_10307aa4
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -674,6 +720,9 @@ impl single-call impl: rc = worker call result verbatim (mr r3 at 0x10307ab8 is 
 **Bounded unknown — unresolved:** call-derived rc values from worker/delegate chain
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307b70`
@@ -692,7 +741,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns all container prefixes that contain ObjectID (an item can live under several indices).
 
-**Technical description:** Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -719,6 +772,8 @@ Returns all container prefixes that contain ObjectID (an item can live under sev
 - **`UpdateID`** — produced by impl 0x10302cb4 via media-store member this+0x168
   - special values: see impl 0x10302cb4
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -802,6 +857,9 @@ impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail
 Resolved-object capability check: vtbl\[+0x18\] must equal the prefix-search entry point f_10113da4; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x103072ac`
@@ -824,7 +882,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether the local library share is currently marked browseable.
 
-**Technical description:** Returns IsBrowseable via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns IsBrowseable via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -834,6 +896,8 @@ Returns whether the local library share is currently marked browseable.
 
 - **`IsBrowseable`** — produced by impl 0x10302470 via media-store member this+0x168
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -909,6 +973,9 @@ impl 0x10302470: writes byte 1 to out then returns 0; the action never faults fr
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x103077d0`
@@ -929,7 +996,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.
 
-**Technical description:** Returns LastIndexChange timestamp via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns LastIndexChange timestamp via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -939,6 +1010,8 @@ Returns the timestamp/id of the last library reindex - cheap polling point for '
 
 - **`LastIndexChange`** — produced by impl 0x1030259c via media-store member this+0x168
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1014,6 +1087,9 @@ impl 0x1030259c: single exit returns 0; the action never faults from the impl --
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x103079a8`
@@ -1035,7 +1111,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.
 
-**Technical description:** Returns search capabilities via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns search capabilities via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1045,6 +1125,8 @@ Returns which DIDL properties Search would accept - vestigial since Search itsel
 
 - **`SearchCaps`** — SearchCaps capability field emitted by impl 0x10307d44
   - validation: arg-name string 'out' loaded at 0x10307d98 inside f_10307d44
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1124,6 +1206,9 @@ impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim v
 **Bounded unknown — unresolved:** call-derived rc values from worker/delegate chain
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307e10`
@@ -1142,7 +1227,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether a library reindex is currently running.
 
-**Technical description:** Returns IsIndexing flag via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns IsIndexing flag via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1152,6 +1241,8 @@ Returns whether a library reindex is currently running.
 
 - **`IsIndexing`** — produced by impl 0x1030269c via media-store member this+0x168
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1227,6 +1318,9 @@ impl 0x1030269c: single exit returns 0; the action never faults from the impl --
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x103078bc`
@@ -1247,7 +1341,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns which DIDL properties can be used in Browse SortCriteria.
 
-**Technical description:** Returns sort capabilities via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns sort capabilities via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1257,6 +1355,8 @@ Returns which DIDL properties can be used in Browse SortCriteria.
 
 - **`SortCaps`** — SortCaps capability field emitted by impl 0x10307bf4
   - validation: arg-name string 'out' loaded at 0x10307c48 inside f_10307bf4
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1336,6 +1436,9 @@ impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim v
 **Bounded unknown — unresolved:** call-derived rc values from worker/delegate chain
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307cc0`
@@ -1354,7 +1457,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the global library UpdateID - compare before/after to detect any change.
 
-**Technical description:** Returns the system update Id via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the system update Id via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1365,6 +1472,8 @@ Returns the global library UpdateID - compare before/after to detect any change.
 - **`Id`** — produced by impl 0x10302640 via media-store member this+0x168
   - special values: see impl 0x10302640
   - validation: impl-produced
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1440,6 +1549,9 @@ impl 0x10302640: single exit returns 0; the action never faults from the impl --
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1030751c`
@@ -1460,7 +1572,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Triggers a rescan of the configured music shares.
 
-**Technical description:** Triggers a share-index refresh (AlbumArtistDisplayOption) via impl->v\[+0x30\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Triggers a share-index refresh (AlbumArtistDisplayOption) via impl->v\[+0x30\].
+
+</details>
 
 #### Inputs
 
@@ -1471,6 +1587,8 @@ Triggers a rescan of the configured music shares.
 - **`AlbumArtistDisplayOption`** — request-layer string/int parsed and handed to media-store impl 0x10302b78
   - validation: request parse proven; impl applies media-store semantics
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1558,6 +1676,9 @@ worker/delegate rc domain adds \[710\] beyond the documented accumulator bound
 propagated reachability; site-level trigger undecoded
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306f60`
@@ -1577,7 +1698,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Re-sorts the library index using SortOrder.
 
-**Technical description:** Requests an index resort (SortOrder) via impl->v\[+0x34\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Requests an index resort (SortOrder) via impl->v\[+0x34\].
+
+</details>
 
 #### Inputs
 
@@ -1588,6 +1713,8 @@ Re-sorts the library index using SortOrder.
 - **`SortOrder`** — request-layer string/int parsed and handed to media-store impl 0x103028f0
   - validation: request parse proven; impl applies media-store semantics
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1671,6 +1798,9 @@ worker/delegate rc domain adds \[701, 711\] beyond the documented accumulator bo
 propagated reachability; site-level trigger undecoded
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307050`
@@ -1690,7 +1820,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Marks the library share browseable or not.
 
-**Technical description:** Sets Browseable flag via impl->v\[+0x40\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets Browseable flag via impl->v\[+0x40\].
+
+</details>
 
 #### Inputs
 
@@ -1701,6 +1835,8 @@ Marks the library share browseable or not.
 - **`Browseable`** — request-layer string/int parsed and handed to media-store impl 0x10302488
   - validation: request parse proven; impl applies media-store semantics
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1781,6 +1917,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10307424`
@@ -1801,7 +1940,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Rewrites an object's metadata: CurrentTagValue -> NewTagValue DIDL fragments for ObjectID.
 
-**Technical description:** Updates ObjectID: CurrentTagValue -> NewTagValue via impl->v\[+0x24\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Updates ObjectID: CurrentTagValue -> NewTagValue via impl->v\[+0x24\].
+
+</details>
 
 #### Inputs
 
@@ -1820,6 +1963,8 @@ Rewrites an object's metadata: CurrentTagValue -> NewTagValue DIDL fragments for
 - **`NewTagValue`** — request-layer string/int parsed and handed to media-store impl 0x10302e2c
   - validation: request parse proven; impl applies media-store semantics
   - buffer cap: `0x1000`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1907,6 +2052,9 @@ favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 user
 indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10306d28`
@@ -1959,6 +2107,8 @@ indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachabil
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `contentDirectory`, `indexerStatus`, `favoritesVersionChange`, `playlistsVersionChange`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_103035c4 emits {ContainerUpdateIDs, ShareIndexInProgress} + f_10303de4 emits {FavoritesUpdateID, SavedQueuesUpdateID, ShareListUpdateID, RadioFavoritesUpdateID} via event-bus workers f_1067693c/f_1067cdd0
 - **wss_registry:**
   - idx: 23, name: contentDirectory, id: 80, tag: 68
@@ -1966,7 +2116,12 @@ indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachabil
   - idx: 31, name: favoritesVersionChange, id: 115, tag: 11
   - idx: 50, name: playlistsVersionChange, id: 195, tag: 34
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -1975,9 +2130,16 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Notes
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 None Browse internals decoded: handler shim 0x10306b3c -> real handler f_10304390 -> executor f_103042f0. BrowseFlag is literal-validated (BrowseDirectChildren / BrowseMetadata, else 402); DIDL output is generated by per-item writer callbacks (f_10306088/0x10306098/0x103060a8) driven through request v\[+0x24\]. UpdateID comes from the container record via f_1034a224(obj+0x168, selector 0x2bd).
+
+</details>
 
 Implementation sources (recovered): `compiled lib (libsonos-upnp family) — impl classes generated/static`
 

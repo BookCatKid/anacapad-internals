@@ -4,7 +4,11 @@
 
 Standard UPnP ConnectionManager for the renderer half of the device. On Sonos this is mostly vestigial (playback isn't pull-pushed through UPnP connections), so connection ids are typically empty - but the three actions are the real spec.
 
-**Technical description:** Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.
+
+</details>
 
 ## Availability
 
@@ -32,7 +36,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the CSV list of active connection ids (usually empty on a zone player).
 
-**Technical description:** Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.
+
+</details>
 
 #### Outputs
 
@@ -42,6 +50,8 @@ Returns the CSV list of active connection ids (usually empty on a zone player).
 
 - **`CurrentConnectionIDs`** — CSV of active connection IDs; impl 0x10735918 writes a NUL via the core stub f_1032e710, so it is always empty in this build
   - validation: arg-name string loaded at 0x10735968 inside impl 0x10735918; emitted via the response writer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -122,6 +132,9 @@ The impl->v\[+0x8\] call returned 0 — no usable connection list. | n/a — suc
 **Bounded unknown — unresolved:** none
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107359e0`
@@ -142,7 +155,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns per-connection detail (peer manager, protocol info, direction, status) for a ConnectionID previously returned by GetCurrentConnectionIDs.
 
-**Technical description:** Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v\[+0x8\], then calls the impl member at svc+4 ->v\[+0x1c\] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v\[+0x8\], then calls the impl member at svc+4 ->v\[+0x1c\] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.
+
+</details>
 
 #### Inputs
 
@@ -165,6 +182,8 @@ Returns per-connection detail (peer manager, protocol info, direction, status) f
 | `PeerConnectionID` | signed int32 | length-bounded by parse-helper buffer cap |
 | `Direction` | SonosStringArg | length-bounded by parse-helper buffer cap |
 | `Status` | SonosBoolArg | {0,1} |
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -249,6 +268,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107356bc`
@@ -277,7 +299,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the Source and Sink protocol-info CSVs - the MIME-type/protocol strings this renderer can play.
 
-**Technical description:** Returns the supported protocol info strings (Source/Sink CSVs) via impl->v\[+0x8\] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the supported protocol info strings (Source/Sink CSVs) via impl->v\[+0x8\] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.
+
+</details>
 
 #### Outputs
 
@@ -290,6 +316,8 @@ Returns the Source and Sink protocol-info CSVs - the MIME-type/protocol strings 
   - validation: arg-name string loaded at 0x10735abc inside impl 0x10735a64; emitted via the response writer
 - **`Sink`** — sink protocol-info CSV emitted by impl 0x10735a64
   - validation: arg-name string loaded at 0x10735ae8 inside impl 0x10735a64; emitted via the response writer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -369,6 +397,9 @@ impl->v\[+0x8\] rc gates emit | Wrapper parse layer rejected an argument before 
 **Bounded unknown — unresolved:** whether 0 faults with 402 like its sibling
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10735b64`
@@ -389,11 +420,18 @@ impl->v\[+0x8\] rc gates emit | Wrapper parse layer rejected an argument before 
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `connectionManager`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10735918 emits CurrentConnectionIDs
 - **wss_registry:**
   - idx: 22, name: connectionManager, id: 77, tag: 67
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -401,6 +439,9 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 - Request action name matches no entry in the service dispatch table after the name-table search
 
+
+
+</details>
 
 Implementation sources (recovered): `compiled lib — no path literal (same family as MediaServer CM)`
 

@@ -1201,7 +1201,33 @@
    "intro": "How this build compares to other Sonos firmware versions - checked by matching strings and structures inside each binary, not by running devices. A feature string being present proves the code exists; it doesn't prove the feature is switched on.",
    "product_surface": "Across the builds compared, every player advertises the same sixteen service documents with the same commands. Hardware differences (Play:1 versus Playbar) are decided by feature gates inside the binary, not by the published API surface.",
    "service_matrix": "A literal check of which service identifiers exist in each build - shows what the firmware added or dropped between versions.",
-   "entries": "Individual differences found between builds, each with the literal evidence and which firmwares carry it."
+   "entries": "Individual differences found between builds, each with the literal evidence and which firmwares carry it.",
+   "entry_text": {
+    "QPlay service URN literal": "Tencent's QPlay cast protocol existed in older firmware (34.16/57.10) but its service identifier is gone from this build - even though the /QPlay/Control address and its actions remain registered. The shell is present; the advertised capability is not.",
+    "VirtualLineIn service": "Virtual Line-In (one player acting as a line-in source for the group) was added at 57.10 - older 34.16 firmware has no trace of it. It is fully present here.",
+    "sonos-com ContentDirectory namespace": "Sonos added its own ContentDirectory service namespace at 57.10, running alongside the standard UPnP one - a Sonos-specific flavor of the same media browser.",
+    "/status/opt/log/mdnsd.log": "The diagnostics site gained a page exposing the mDNS daemon's log sometime after 34.16.",
+    "/device_account registration subroutes": "Older firmware had four device-account registration endpoints; this build keeps only the single base route - the multi-step registration flow was simplified.",
+    "/api route": "The /api mount point has moved between builds: a capture route at 57.10, a provider root in 86.x - the modern REST surface kept rearranging where it hangs off the HTTP tree.",
+    "FV token grammar": "Favorites URIs changed shape across builds: fixed 'FV:3' tokens in older firmware became parameterized in 86.x, and new FV:GC group-favorites forms appeared.",
+    "x-sonos-* header set": "Several custom HTTP headers were retired after 57.10 (action, dock, starttime), while new loopback-token headers appeared - the inter-process auth plumbing was reworked.",
+    "x-sonosapi-iqradio scheme": "The iQR radio service's URI scheme exists only in 34.16 - that integration was removed entirely in later builds.",
+    "x-rincon-stream / x-sonosapi-show / trueroom": "A cluster of Sonos URI schemes and literals - the group-stream scheme, a 'show' scheme, trueroom calibration, and a test tone - that appear or disappear between builds.",
+    "x-rincon-enc2": "An encrypted-stream URI variant found only in the Playbar (model 9) 86.8 binary - a model-specific transport, absent elsewhere.",
+    "explicitContentFiltering config key": "A config key for explicit-content filtering was added at 57.10 - parental controls arrived mid-series.",
+    "int_setTransferMode": "A transfer-mode setting key that exists only in this exact build - not in 86.8, not in 57.10.",
+    "RINCON metadata NS additions": "Sonos's metadata vocabulary grew in 86.x: new fields for ads, link URLs, and track gain, while the old 'preset' field was dropped. About twenty fields are stable across builds.",
+    "/status route table": "The roughly sixty /status diagnostics pages are identical across 57.10-86.x - the only difference is the mdnsd log page missing in 34.16.",
+    "SystemProperties removed actions": "Two account-provisioning actions were removed in 86.x: they remain in the specification document but no longer exist in the dispatch surface.",
+    "Muse software-update REST surface restructure": "Software-update operations were reorganized at 86.8 into player-scoped routes with a household variant - the update API moved under the modern REST surface.",
+    "Muse common layer moved to sonos-muse-1.0 build tree": "Source-path strings show the muse layer's code moved to a dedicated library tree between 86.8 and this build - an internal reorganization, not a behavioral change.",
+    "RMuseFeature flag additions": "Five new capability flags appeared in 86.10 - feature switches for newer hardware behaviors that don't exist in 86.8.",
+    "Group-forming ungroupable-player guards": "86.10 added a battery of new rejection messages guarding group-forming: situations like trying to group a player that can't be grouped now get explicit error strings.",
+    "Bundled curl upgrade (DoH + HTTPS-RR + happy-eyeballs v2)": "The bundled HTTP library was upgraded in 86.10: newer curl/nghttp2 versions with DNS-over-HTTPS, HTTPS-resource records, and happier-eyeballs v2 connection racing.",
+    "Playback-state guard additions": "86.10 adds safety checks for edge cases like a delegated virtual-line-in session that stopped playing - extra guard rails in the playback engine.",
+    "rootfs content diff \u2014 fenway (m8) vs limelight (m9), same build 86.10-80260": "Same software, different hardware: the Playbar root filesystem carries a DTS decoder library, SQLite, and an IR receiver driver that the Play:1 lacks - plus its own infrared config files.",
+    "anacapad binary .rodata diff \u2014 m8/fenway (Play:1) vs m9/limelight (Playbar), same build 86.8": "A direct string-level comparison of the Play:1 and Playbar binaries from the same build - shows exactly which features exist in code on each model."
+   }
   },
   "subsystems": {
    "intro": "A Sonos player is much more than a UPnP endpoint. Inside this one program are dozens of independent engines: audio decoders, a websocket client for the cloud, alarm scheduling, Wi-Fi and network monitoring, LED control, music-library indexing, clock synchronization. This page lists every subsystem found and how deeply each is understood - 'documented' means mapped end to end, 'partial' means we know what it does but not every detail, 'vocab' means only its vocabulary is recovered so far."

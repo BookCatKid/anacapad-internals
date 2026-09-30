@@ -72,6 +72,12 @@ def _pt_add(m, out, page, key):
         out += [t, ""]
 
 
+def _generic_lines(obj, depth=0):
+    buf = []
+    _generic(buf, obj, depth)
+    return buf
+
+
 def _details(out, lines, summary="Technical details"):
     """Wrap technical content in a collapsible block (md_in_html)."""
     out.append('<details markdown="1"><summary><b>%s</b></summary>'
@@ -421,8 +427,7 @@ def render_architecture(m):
                                            cap.affected_services))
                     out.append("")
                 if cap.notes:
-                    out.append(_para(cap.notes))
-                    out.append("")
+                    _details(out, [_para(cap.notes)])
 
     if m.internal_functions:
         out += ["## Internal functions", ""]
@@ -441,14 +446,15 @@ def render_architecture(m):
         for addr, c in m.dispatch_candidates.items():
             out.append("### `%s`" % addr)
             out.append("")
+            cand = []
             if c.get("assessment"):
-                out.append(_para(c["assessment"]))
-                out.append("")
+                cand += [_para(c["assessment"]), ""]
             if c.get("compares"):
-                out.append("Compares: %s" % ", ".join(
+                cand += ["Compares: %s" % ", ".join(
                     "`%s`" % _e(x.get("str"))
-                    for x in c["compares"] if x.get("str")))
-                out.append("")
+                    for x in c["compares"] if x.get("str"))]
+            if cand:
+                _details(out, cand)
 
     out += ["## Shared subsystems", ""]
     _pt_add(m, out, "architecture", "shared_subsystems")
@@ -460,7 +466,12 @@ def render_architecture(m):
         out.append("### `%s`" % k)
         out.append("")
         if isinstance(v, dict):
-            _generic(out, v)
+            if v.get("client_summary"):
+                out.append(_para(v["client_summary"]))
+                out.append("")
+            _details(out, _generic_lines(
+                {kk: vv for kk, vv in v.items()
+                 if kk != "client_summary"}))
         else:
             out.append(_para(v))
         out.append("")
@@ -585,8 +596,7 @@ def render_action(a):
         out.append(_para(a.summary))
         out.append("")
     if a.description:
-        out.append("**Technical description:** %s" % _para(a.description))
-        out.append("")
+        _details(out, [_para(a.description)])
     if a.inputs:
         out.append("#### Inputs")
         out.append("")
@@ -599,38 +609,41 @@ def render_action(a):
         _table(out, ["Name", "Type", "Values / range"],
                [[r[0], r[1], r[3]] for r in _arg_rows(a.outputs)])
         _arg_details(out, a.outputs)
-    _block(out, "Validation", a.validation)
-    _block(out, "Requirements / preconditions", a.requirements)
-    _block(out, "State dependencies", a.state_dependencies)
+    tech = []
+    _block(tech, "Validation", a.validation)
+    _block(tech, "Requirements / preconditions", a.requirements)
+    _block(tech, "State dependencies", a.state_dependencies)
     if a.side_effects:
-        out.append("#### Side effects")
-        out.append("")
+        tech.append("#### Side effects")
+        tech.append("")
         for se in a.side_effects:
             if isinstance(se, genmodel.SemanticBlock):
-                out.append("- %s" % _para(se.text))
+                tech.append("- %s" % _para(se.text))
             else:
-                out.append("- %s" % _e(se))
-        out.append("")
-    _block(out, "State transitions", a.state_transitions)
-    _block(out, "Events", a.events_triggered)
-    _block(out, "Return behavior", a.return_behavior)
-    _render_errors(out, a.errors)
+                tech.append("- %s" % _e(se))
+        tech.append("")
+    _block(tech, "State transitions", a.state_transitions)
+    _block(tech, "Events", a.events_triggered)
+    _block(tech, "Return behavior", a.return_behavior)
+    _render_errors(tech, a.errors)
     if a.unresolved:
-        out.append("#### Bounded unknowns")
-        out.append("")
-        _generic(out, a.unresolved)
-        out.append("")
+        tech.append("#### Bounded unknowns")
+        tech.append("")
+        _generic(tech, a.unresolved)
+        tech.append("")
     if a.firmware_differences:
-        out.append("#### Firmware differences")
-        out.append("")
+        tech.append("#### Firmware differences")
+        tech.append("")
         for x in a.firmware_differences:
-            out.append("- %s" % _e(x))
-        out.append("")
+            tech.append("- %s" % _e(x))
+        tech.append("")
     if a.notes:
-        out.append("#### Notes")
-        out.append("")
-        out.append(_para(a.notes))
-        out.append("")
+        tech.append("#### Notes")
+        tech.append("")
+        tech.append(_para(a.notes))
+        tech.append("")
+    if tech:
+        _details(out, tech, "Technical analysis")
     impl = a.implementation
     det = []
     if a.handler:
@@ -685,8 +698,7 @@ def render_service(s):
         out.append(_para(s.summary))
         out.append("")
     if s.description:
-        out.append("**Technical description:** %s" % _para(s.description))
-        out.append("")
+        _details(out, [_para(s.description)])
     if s.availability and (s.availability.notes or s.availability.status
                            or s.availability.enabled_source):
         av = s.availability
@@ -704,8 +716,8 @@ def render_service(s):
             out.append("- %s" % _para(av.notes))
         out.append("")
     if s.visibility_note:
-        out.append("**Visibility note:** %s" % _para(s.visibility_note))
-        out.append("")
+        _details(out, ["**Visibility note:** %s"
+                       % _para(s.visibility_note)])
     if s.dispatcher or s.registration:
         out += ["## Dispatch", ""]
         if s.registration:
@@ -766,31 +778,32 @@ def render_service(s):
             out.append("- **WSS event names:** %s" % ", ".join(
                 "`%s`" % x for x in ev.wss_event_names))
         if ev.extra:
-            _generic(out, ev.extra)
+            _details(out, _generic_lines(ev.extra))
         out.append("")
     if s.errors:
         out += ["## Dispatcher-level errors", ""]
-        _render_errors(out, s.errors, heading=None)
+        errbuf = []
+        _render_errors(errbuf, s.errors, heading=None)
+        _details(out, errbuf)
     if s.impl_return_pattern:
         out += ["## Implementation return pattern", ""]
-        out.append(_para(s.impl_return_pattern))
-        out.append("")
+        _details(out, [_para(s.impl_return_pattern)])
     if s.notes:
         out += ["## Notes", ""]
+        nbuf = []
         if isinstance(s.notes, list):
             for n_ in s.notes:
-                out.append("- %s" % _para(n_))
+                nbuf.append("- %s" % _para(n_))
         else:
-            out.append(_para(s.notes))
-        out.append("")
+            nbuf.append(_para(s.notes))
+        _details(out, nbuf)
     extra_render = {k: v for k, v in s.extra.items() if v}
     if extra_render:
         out += ["## Additional records", ""]
         for k, v in extra_render.items():
             out.append("### `%s`" % k)
             out.append("")
-            _generic(out, v)
-            out.append("")
+            _details(out, _generic_lines(v))
     if s.impl_files:
         out.append("Implementation sources (recovered): %s"
                    % ", ".join("`%s`" % f for f in s.impl_files))
@@ -891,15 +904,15 @@ def render_events(m):
             out.append("- **WSS events:** %s" % ", ".join(
                 "`%s`" % x for x in ev.wss_event_names))
         if ev.extra:
-            _generic(out, ev.extra)
+            _details(out, _generic_lines(ev.extra))
         out.append("")
     sp = m.shared_primitives.get("wss_event_vocabulary")
     if sp:
         out += ["## WSS subscription registry", ""]
         _pt_add(m, out, "events", "wss_registry")
-        _generic(out, {k: v for k, v in sp.items() if k != "names"})
+        _details(out, _generic_lines(
+            {k: v for k, v in sp.items() if k != "names"}))
         if sp.get("names"):
-            out.append("")
             out.append("Event names: %s"
                        % ", ".join("`%s`" % x for x in sp["names"]))
         out.append("")
@@ -907,8 +920,7 @@ def render_events(m):
     if ge:
         out += ["## GENA internals", ""]
         _pt_add(m, out, "events", "gena_internals")
-        _generic(out, ge)
-        out.append("")
+        _details(out, _generic_lines(ge))
     return "\n".join(out)
 
 
@@ -977,11 +989,9 @@ def render_formats(m, kind, title, blurb):
                        % "; ".join(_e(x) for x in f.used_by))
             out.append("")
         if f.notes:
-            out.append(_para(f.notes))
-            out.append("")
+            _details(out, [_para(f.notes)])
         if f.extra:
-            _generic(out, f.extra)
-            out.append("")
+            _details(out, _generic_lines(f.extra))
         _ev_details(f.evidence, out)
     return "\n".join(out)
 
@@ -1024,7 +1034,8 @@ def render_http_api(m):
         if v.get("client_summary"):
             out.append(_para(v["client_summary"]))
             out.append("")
-        _generic(out, v)
+        _details(out, _generic_lines(
+            {kk: vv for kk, vv in v.items() if kk != "client_summary"}))
         out.append("")
     return "\n".join(out)
 
@@ -1043,25 +1054,28 @@ def render_firmware(m):
     if meta.get("product_surface"):
         out += ["", "## Product surface", ""]
         _pt_add(m, out, "firmware", "product_surface")
-        _generic(out, meta["product_surface"])
+        _details(out, _generic_lines(meta["product_surface"]))
     if meta.get("service_urn_matrix"):
         out += ["", "## Service-URN matrix", ""]
         _pt_add(m, out, "firmware", "service_matrix")
-        _generic(out, meta["service_urn_matrix"])
+        _details(out, _generic_lines(meta["service_urn_matrix"]))
     out += ["", "## Entries", ""]
     _pt_add(m, out, "firmware", "entries")
+    eblurbs = ((getattr(m, "pages_client", {}) or {}).get("firmware")
+               or {}).get("entry_text") or {}
     for e in m.firmware_differences:
         out.append("### %s" % _e(e.item))
         out.append("")
-        if e.detail:
-            out.append(_para(e.detail))
+        if eblurbs.get(e.item):
+            out.append(_para(eblurbs[e.item]))
             out.append("")
+        if e.detail:
+            _details(out, [_para(e.detail)])
         if e.builds:
             _table(out, ["Build", "State"],
                    [["`%s`" % b, _e(v)] for b, v in e.builds.items()])
         if e.extra:
-            _generic(out, e.extra)
-            out.append("")
+            _details(out, _generic_lines(e.extra))
     return "\n".join(out)
 
 
@@ -1193,8 +1207,7 @@ def render_muse(m):
         out += ["## Outbound (player as muse client)", ""]
         _pt_add(m, out, "muse", "outbound")
         if ob.get("note"):
-            out.append(_para(ob["note"]))
-            out.append("")
+            _details(out, [_para(ob["note"])])
         rows = []
         for name, spec in sorted((ob.get("ops") or {}).items()):
             bits = []
@@ -1212,8 +1225,7 @@ def render_muse(m):
         if fv:
             _pt_add(m, out, "muse", "field_vocab")
             if ob.get("field_vocab_note"):
-                out.append(_para(ob["field_vocab_note"]))
-                out.append("")
+                _details(out, [_para(ob["field_vocab_note"])])
             rows = [["`%s`" % n,
                      ", ".join("`%s`" % _e(f) for f in fs) or "—"]
                     for n, fs in sorted(fv.items())]
@@ -1300,59 +1312,52 @@ def render_muse(m):
         _table(out, ["Method", "Path", "Op", "Trailing param",
                      "Flags", "Exec (vtable +0x0c)", "Params",
                      "Spec lists (classId: root, field:type pairs)"], rows)
+        tech = []
         if r.get("impl_funcs"):
-            out.append("Resource implementation functions (string-block "
-                       "registrar family): %s"
-                       % ", ".join("`%s`" % f for f in r["impl_funcs"]))
-            out.append("")
+            tech += ["Resource implementation functions (string-block "
+                     "registrar family): %s"
+                     % ", ".join("`%s`" % f for f in r["impl_funcs"]), ""]
         if r.get("impl_fields"):
-            out.append("Field vocabulary recovered from the resource's "
-                       "implementation functions: %s"
-                       % ", ".join("`%s`" % _e(x)
-                                  for x in r["impl_fields"]))
-            out.append("")
+            tech += ["Field vocabulary recovered from the resource's "
+                     "implementation functions: %s"
+                     % ", ".join("`%s`" % _e(x)
+                                 for x in r["impl_fields"]), ""]
         if r.get("impl_msgs"):
-            out.append("Implementation messages:")
-            out.append("")
-            for m_ in r["impl_msgs"]:
-                out.append("- `%s`" % _e(m_))
-            out.append("")
+            tech += ["Implementation messages:", ""]
+            tech += ["- `%s`" % _e(m_) for m_ in r["impl_msgs"]]
+            tech.append("")
         ens = r.get("enums") or {}
         if ens:
-            out.append("Related enum registrations (proven integer "
-                       "values — see `enum_tables`):")
-            out.append("")
-            for enm, mem in sorted(ens.items()):
-                out.append("- **%s**: %s"
-                           % (_e(enm), ", ".join(
-                               "`%s`=%s" % (_e(s), v)
-                               for s, v in sorted(
-                                   mem.items(), key=lambda kv: kv[1]))))
-            out.append("")
+            tech += ["Related enum registrations (proven integer "
+                     "values — see `enum_tables`):", ""]
+            tech += ["- **%s**: %s"
+                     % (_e(enm), ", ".join(
+                         "`%s`=%s" % (_e(s), v)
+                         for s, v in sorted(
+                             mem.items(), key=lambda kv: kv[1])))
+                     for enm, mem in sorted(ens.items())]
+            tech.append("")
         if fields_seen:
-            out.append("Op-level JSON keys recovered from op-object "
-                       "methods: %s"
-                       % ", ".join("`%s`" % _e(x) for x in fields_seen))
-            out.append("")
+            tech += ["Op-level JSON keys recovered from op-object "
+                     "methods: %s"
+                     % ", ".join("`%s`" % _e(x) for x in fields_seen), ""]
         if msgs_seen:
-            out.append("Validation / log strings recovered from "
-                       "op-object methods:")
-            out.append("")
-            for m_ in msgs_seen:
-                out.append("- `%s`" % _e(m_))
-            out.append("")
+            tech += ["Validation / log strings recovered from "
+                     "op-object methods:", ""]
+            tech += ["- `%s`" % _e(m_) for m_ in msgs_seen]
+            tech.append("")
         if paths_seen:
-            out.append("Route fragments these ops build or forward to: "
-                       "%s" % ", ".join("`%s`" % _e(p)
-                                        for p in paths_seen))
-            out.append("")
+            tech += ["Route fragments these ops build or forward to: "
+                     "%s" % ", ".join("`%s`" % _e(p)
+                                      for p in paths_seen), ""]
         fv = r.get("field_vocab") or []
         if fv:
-            out.append("Field vocabulary (request/response keys seen in "
-                       "the resource's client tables — not yet bound to "
-                       "individual ops): %s"
-                       % ", ".join("`%s`" % _e(x) for x in fv))
-            out.append("")
+            tech += ["Field vocabulary (request/response keys seen in "
+                     "the resource's client tables — not yet bound to "
+                     "individual ops): %s"
+                     % ", ".join("`%s`" % _e(x) for x in fv), ""]
+        if tech:
+            _details(out, tech, "Recovered vocabulary & internals")
     if mu.get("unresolved"):
         out += ["## Unresolved", ""]
         _pt_add(m, out, "muse", "unresolved")

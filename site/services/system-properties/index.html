@@ -5137,7 +5137,10 @@
 <h1 id="systemproperties-systempropertiescontrol"><code>SystemProperties</code> — <code>/SystemProperties/Control</code><a class="headerlink" href="#systemproperties-systempropertiescontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>A generic key/value store plus the music-service account manager. SetString/GetString/Remove are a free-form property bag that many features lean on (client-facing settings ride through it). The account actions manage per-service credentials: legacy login (AddAccountX), OAuth (AddOAuthAccountX and friends keyed by AccountUDN), nickname/edit/remove, and credential refresh. Two SCPD-advertised actions are dead in this build: ProvisionCredentialedTrialAccountX (name string absent - hard-removed) and ResetThirdPartyCredentials (string present but unreferenced - soft-removed); both fault 401 on the wire.</p>
-<p><strong>Technical description:</strong> System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit<em>/Remove</em>/Replace<em>/Refresh</em>/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit<em>/Remove</em>/Replace<em>/Refresh</em>/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x4</code></li>
@@ -5293,7 +5296,10 @@
 <h3 id="addaccountx"><code>AddAccountX</code><a class="headerlink" href="#addaccountx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Registers a music-service account with legacy credentials (AccountType id, AccountID username, AccountPassword); returns the AccountUDN used by all other account actions.</p>
-<p><strong>Technical description:</strong> Adds a service account: AccountType/AccountID/AccountPassword via impl-&gt;v[+0x18].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Adds a service account: AccountType/AccountID/AccountPassword via impl-&gt;v[+0x18].</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5361,6 +5367,8 @@
 <li><strong><code>AccountUDN</code></strong> — issued service-account UDN</li>
 <li>validation: emitted via req-&gt;v[+0x24/+0x28] response writer vfunc</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5430,6 +5438,7 @@
 </ul>
 <h4 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h4>
 <p>None Optionality measured per-arg: ['AccountType'] via required-lookup v[+0x1c], ['AccountID', 'AccountPassword'] via optional-lookup v[+0x20].</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5452,7 +5461,10 @@
 <h3 id="addoauthaccountx"><code>AddOAuthAccountX</code><a class="headerlink" href="#addoauthaccountx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Registers an OAuth music-service account: AccountType plus token/key/device-id/authorization-code/redirect metadata and optional UserIdHashCode/AccountTier. Returns AccountUDN and the service-provided AccountNickname.</p>
-<p><strong>Technical description:</strong> Adds an OAuth account: 8 credential fields via impl-&gt;v[+0x1c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Adds an OAuth account: 8 credential fields via impl-&gt;v[+0x1c].</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5577,6 +5589,8 @@
 <li><strong><code>AccountNickname</code></strong> — issued account nickname</li>
 <li>validation: emitted via req-&gt;v[+0x24/+0x28] response writer vfunc</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5645,6 +5659,7 @@
 </ul>
 <h4 id="notes_1">Notes<a class="headerlink" href="#notes_1" title="Permanent link">&para;</a></h4>
 <p>None Optionality measured per-arg: ['AccountType', 'AccountTier'] via required-lookup v[+0x1c], ['AccountToken', 'AccountKey', 'OAuthDeviceID', 'AuthorizationCode', 'RedirectURI', 'UserIdHashCode'] via optional-lookup v[+0x20].</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5669,7 +5684,12 @@
 <h3 id="dopostupdatetasks"><code>DoPostUpdateTasks</code><a class="headerlink" href="#dopostupdatetasks" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Runs bookkeeping that should execute after a firmware update (data migration, cached-state rebuild).</p>
-<p><strong>Technical description:</strong> Runs post-update migration/cleanup tasks via impl-&gt;v[+0x14].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Runs post-update migration/cleanup tasks via impl-&gt;v[+0x14].</p>
+</details>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5732,6 +5752,7 @@
 <p><strong>Bounded unknown — proven:</strong> impl result in r3 -&gt; req v[+0x14] fault code; CR0.eq = success
 <strong>Bounded unknown — unresolved:</strong> concrete rc domain of this impl</p>
 <p>impl rc passthrough also present: nonzero impl r3 is passed to -&gt;v[+0x14] verbatim</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5752,7 +5773,10 @@
 <h3 id="editaccountmd"><code>EditAccountMd</code><a class="headerlink" href="#editaccountmd" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Replaces the metadata (Md) blob for an account.</p>
-<p><strong>Technical description:</strong> Edits account metadata: AccountType/AccountID/NewAccountMd via impl-&gt;v[+0x30].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Edits account metadata: AccountType/AccountID/NewAccountMd via impl-&gt;v[+0x30].</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5799,6 +5823,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x80</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5864,6 +5890,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5884,7 +5911,10 @@
 <h3 id="editaccountpasswordx"><code>EditAccountPasswordX</code><a class="headerlink" href="#editaccountpasswordx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Changes the password on a legacy-credential account.</p>
-<p><strong>Technical description:</strong> Parses AccountID + NewAccountPassword, then calls impl-&gt;v[+0x24] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Parses AccountID + NewAccountPassword, then calls impl-&gt;v[+0x24] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5931,6 +5961,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x40</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5997,6 +6029,7 @@
 </ul>
 <h4 id="notes_2">Notes<a class="headerlink" href="#notes_2" title="Permanent link">&para;</a></h4>
 <p>None Optionality measured per-arg: ['AccountType'] via required-lookup v[+0x1c], ['AccountID', 'NewAccountPassword'] via optional-lookup v[+0x20].</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6018,7 +6051,10 @@
 <h3 id="enablerdm"><code>EnableRDM</code><a class="headerlink" href="#enablerdm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Enables or disables Retail Demo Mode on the player.</p>
-<p><strong>Technical description:</strong> Sets the RDM (remote diagnostics) flag via impl-&gt;v[+0x3c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the RDM (remote diagnostics) flag via impl-&gt;v[+0x3c].</p>
+</details>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6045,6 +6081,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6105,6 +6143,7 @@
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
 <p>impl rc passthrough also present: nonzero impl r3 is passed to -&gt;v[+0x14] verbatim</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6125,7 +6164,10 @@
 <h3 id="getrdm"><code>GetRDM</code><a class="headerlink" href="#getrdm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns whether Retail Demo Mode is enabled.</p>
-<p><strong>Technical description:</strong> Reads the RDM flag via impl-&gt;v[+0x40].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Reads the RDM flag via impl-&gt;v[+0x40].</p>
+</details>
 <h4 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6147,6 +6189,8 @@
 <li><strong><code>RDMValue</code></strong> — RDM flag/value emitted by handler 0x10732d6c</li>
 <li>validation: arg-name string loaded at 0x10732df0 inside impl 0x1019db98; emitted via the response writer</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_6">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_6" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6209,6 +6253,7 @@
 <p><strong>Bounded unknown — proven:</strong> impl result in r3 -&gt; req v[+0x14] fault code; CR0.eq = success
 <strong>Bounded unknown — unresolved:</strong> concrete rc domain of this impl</p>
 <p>impl rc passthrough also present: nonzero impl r3 is passed to -&gt;v[+0x14] verbatim</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6230,7 +6275,10 @@
 <h3 id="getstring"><code>GetString</code><a class="headerlink" href="#getstring" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Reads a property value by VariableName from the key/value store.</p>
-<p><strong>Technical description:</strong> Reads config VariableName -&gt; StringValue via impl-&gt;v[+0xc].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Reads config VariableName -&gt; StringValue via impl-&gt;v[+0xc].</p>
+</details>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6278,6 +6326,8 @@
 <li><strong><code>StringValue</code></strong> — property string value</li>
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_7">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_7" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6340,6 +6390,7 @@
 <p><strong>Bounded unknown — proven:</strong> impl vfunc rc surfaced
 <strong>Bounded unknown — unresolved:</strong> concrete rc vocabulary for this operation</p>
 <p>impl rc passthrough also present: nonzero impl r3 is passed to -&gt;v[+0x14] verbatim</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6361,7 +6412,10 @@
 <h3 id="getwebcode"><code>GetWebCode</code><a class="headerlink" href="#getwebcode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns a short WebCode for the given AccountType - used to link an account via the provider's web flow.</p>
-<p><strong>Technical description:</strong> Returns a WebCode for AccountType via impl-&gt;v[+0x14].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns a WebCode for AccountType via impl-&gt;v[+0x14].</p>
+</details>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6409,6 +6463,8 @@
 <li><strong><code>WebCode</code></strong> — web-pairing code produced by impl</li>
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_8">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_8" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6469,6 +6525,7 @@
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
 <p>impl rc passthrough also present: nonzero impl r3 is passed to -&gt;v[+0x14] verbatim</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6490,7 +6547,10 @@
 <h3 id="refreshaccountcredentialsx"><code>RefreshAccountCredentialsX</code><a class="headerlink" href="#refreshaccountcredentialsx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Refreshes OAuth credentials (token/key) for an existing AccountUID.</p>
-<p><strong>Technical description:</strong> Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl-&gt;v[+0x14].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl-&gt;v[+0x14].</p>
+</details>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6547,6 +6607,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_9">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_9" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6616,6 +6678,7 @@
 </ul>
 <h4 id="notes_3">Notes<a class="headerlink" href="#notes_3" title="Permanent link">&para;</a></h4>
 <p>None Optionality measured per-arg: ['AccountType'] via required-lookup v[+0x1c], ['AccountToken', 'AccountKey'] via optional-lookup v[+0x20].</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6637,7 +6700,10 @@
 <h3 id="remove"><code>Remove</code><a class="headerlink" href="#remove" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Deletes VariableName from the key/value store.</p>
-<p><strong>Technical description:</strong> Deletes config VariableName via impl-&gt;v[+0x10].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Deletes config VariableName via impl-&gt;v[+0x10].</p>
+</details>
 <h4 id="inputs_8">Inputs<a class="headerlink" href="#inputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6664,6 +6730,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x400</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_10">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_10" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6731,6 +6799,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6751,7 +6820,10 @@
 <h3 id="removeaccount"><code>RemoveAccount</code><a class="headerlink" href="#removeaccount" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Deletes a music-service account by AccountType + AccountID.</p>
-<p><strong>Technical description:</strong> Removes AccountType/AccountID via impl-&gt;v[+0x20].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Removes AccountType/AccountID via impl-&gt;v[+0x20].</p>
+</details>
 <h4 id="inputs_9">Inputs<a class="headerlink" href="#inputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6788,6 +6860,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x80</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_11">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_11" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6855,6 +6929,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6875,7 +6950,10 @@
 <h3 id="replaceaccountx"><code>ReplaceAccountX</code><a class="headerlink" href="#replaceaccountx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Swaps the account behind AccountUDN for new credentials (NewAccountID/password or OAuth token set), returning NewAccountUDN.</p>
-<p><strong>Technical description:</strong> Replaces an account's credentials: AccountUDN plus five new fields via impl-&gt;v[+0x34].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Replaces an account's credentials: AccountUDN plus five new fields via impl-&gt;v[+0x34].</p>
+</details>
 <h4 id="inputs_10">Inputs<a class="headerlink" href="#inputs_10" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6973,6 +7051,8 @@
 <li><strong><code>NewAccountUDN</code></strong> — replacement account UDN</li>
 <li>validation: emitted via req-&gt;v[+0x24/+0x28] response writer vfunc</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_12">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_12" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7040,6 +7120,7 @@
 </ul>
 <h4 id="notes_4">Notes<a class="headerlink" href="#notes_4" title="Permanent link">&para;</a></h4>
 <p>None Optionality measured per-arg: [] via required-lookup v[+0x1c], ['AccountUDN', 'NewAccountID', 'NewAccountPassword', 'AccountToken', 'AccountKey', 'OAuthDeviceID'] via optional-lookup v[+0x20].</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7063,7 +7144,10 @@
 <h3 id="setaccountnicknamex"><code>SetAccountNicknameX</code><a class="headerlink" href="#setaccountnicknamex" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Sets the display nickname for an AccountUDN.</p>
-<p><strong>Technical description:</strong> Sets AccountNickname for AccountUDN via impl-&gt;v[+0x28].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets AccountNickname for AccountUDN via impl-&gt;v[+0x28].</p>
+</details>
 <h4 id="inputs_11">Inputs<a class="headerlink" href="#inputs_11" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7100,6 +7184,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x40</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_13">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_13" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7169,6 +7255,7 @@
 </ul>
 <h4 id="notes_5">Notes<a class="headerlink" href="#notes_5" title="Permanent link">&para;</a></h4>
 <p>None Optionality measured per-arg: [] via required-lookup v[+0x1c], ['AccountUDN', 'AccountNickname'] via optional-lookup v[+0x20].</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7189,7 +7276,10 @@
 <h3 id="setstring"><code>SetString</code><a class="headerlink" href="#setstring" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Writes VariableName=StringValue into the property store.</p>
-<p><strong>Technical description:</strong> Writes VariableName=StringValue via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Writes VariableName=StringValue via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="inputs_12">Inputs<a class="headerlink" href="#inputs_12" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7226,6 +7316,8 @@
 <li>validation: consumed by impl vfunc on the shared manager object</li>
 <li>buffer cap: <code>0x800</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_14">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_14" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7291,6 +7383,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7465,6 +7558,10 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>systemProperties</code>, <code>settingsVersionChanged</code>, <code>settingsDataChanged</code>, <code>effectiveSettingsDataChanged</code>, <code>settingsPlayerSettingsChanged</code>, <code>entitlementsVersionChanged</code>, <code>voiceAccountsVersionChange</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> settings-key event path: impl setters append key\0value\0 pairs via f_10557d70 -&gt; member-&gt;v[+0x10] notify -&gt; internal event bus (SettingsNeedsUpdateEvent pool) -&gt; GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list</li>
 <li><strong>payload_model:</strong> settings-key notifications (Desired<em>/Current</em> key changes) delivered via bus; GENA initial-notify serializes current keys</li>
 <li><strong>wss_registry:</strong></li>
@@ -7476,16 +7573,25 @@
 <li>idx: 28, name: entitlementsVersionChanged, id: 106, tag: 10</li>
 <li>idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <h2 id="notes_6">Notes<a class="headerlink" href="#notes_6" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Impl object is the SAME secondary-base manager subobject (vtable 0x10e98278, manager+0x3a8) used by DeviceProperties; SP and DP actions dispatch onto the same impl functions. GetString and Remove map to a 2-insn null stub (confirmed no-ops). Shares the DeviceProperties impl object (vtable 0x10e98278, mgr+0x3a8 secondary base). Slots +0x08..+0x40 alias with DP actions; +0x0c/+0x10/+0x24 are proven null stubs (GetString/Remove/EditAccountPasswordX are no-ops).</p>
+</details>
 <h2 id="additional-records">Additional records<a class="headerlink" href="#additional-records" title="Permanent link">&para;</a></h2>
 <h3 id="dispatch_1"><code>dispatch</code><a class="headerlink" href="#dispatch_1" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>kind:</strong> name-table</li>
 <li><strong>table_addr:</strong> 0x10f110f0</li>
@@ -7497,8 +7603,12 @@
 <li><strong>evidence:</strong></li>
 <li>type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f110f0, notes: name-table</li>
 </ul>
+</details>
 <h3 id="dispatch-note"><code>dispatch note</code><a class="headerlink" href="#dispatch-note" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <p>name-&gt;action_id map at 0x10f110f0 (stride 0xc {name_ptr,id,0}); EXACTLY 15 dispatched actions (AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,Remove,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString) matching the DB table. 2 advertised-but-undispatched: ProvisionCredentialedTrialAccountX (string absent -&gt; removed after 34.16, dispatched in 34.16) and ResetThirdPartyCredentials (dead string 0x10f184cc, zero ptr/code refs -&gt; never wired; present in both 86.8 &amp; 86.10 binaries as a leftover).</p>
+</details>
 <p>Implementation sources (recovered): <code>common/netsettings_mgr.cxx</code>, <code>oc/common/src/devmode.cxx</code>, <code>zoneplayer/sharelist.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

@@ -3171,7 +3171,10 @@
 <h1 id="htcontrol-htcontrolcontrol"><code>HTControl</code> — <code>/HTControl/Control</code><a class="headerlink" href="#htcontrol-htcontrolcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>Home-theater control: IR repeater passthrough, LED feedback, and IR-remote learning so a TV remote can drive volume on the soundbar. Relevant to playbar-family hardware with an IR receiver.</p>
-<p><strong>Technical description:</strong> Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x400</code></li>
@@ -3266,7 +3269,10 @@
 <h3 id="commitlearnedircodes"><code>CommitLearnedIRCodes</code><a class="headerlink" href="#commitlearnedircodes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Stores the codes captured by LearnIRCode under a remote Name.</p>
-<p><strong>Technical description:</strong> Commits learned codes under Name via impl-&gt;v[+0x18] on the svc+4 member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Commits learned codes under Name via impl-&gt;v[+0x18] on the svc+4 member.</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3293,6 +3299,8 @@
 <li>validation: non-empty value always faults 501; empty faults 402</li>
 <li>buffer cap: <code>0x20</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -3354,6 +3362,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> HT impl rc surfaced
 <strong>Bounded unknown — unresolved:</strong> codes for hardware/validation failures</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3373,7 +3382,10 @@
 <h3 id="getirrepeaterstate"><code>GetIRRepeaterState</code><a class="headerlink" href="#getirrepeaterstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns whether IR commands are retransmitted to the AV equipment.</p>
-<p><strong>Technical description:</strong> Returns the IR-repeater enabled state via impl-&gt;v[+0x8] on r4-in.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the IR-repeater enabled state via impl-&gt;v[+0x8] on r4-in.</p>
+</details>
 <h4 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3395,6 +3407,8 @@
 <li><strong><code>CurrentIRRepeaterState</code></strong> — state string copied from impl member this+0x1ec under lock this+0x150</li>
 <li>validation: impl copies member string verbatim; no output validation layer</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -3454,6 +3468,7 @@
 <li>impl arg validation failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3475,7 +3490,10 @@
 <h3 id="getledfeedbackstate"><code>GetLEDFeedbackState</code><a class="headerlink" href="#getledfeedbackstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the LED feedback state used to acknowledge IR-learned volume presses.</p>
-<p><strong>Technical description:</strong> Returns the LED-feedback state via impl-&gt;v[+0x8] on r4-in.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the LED-feedback state via impl-&gt;v[+0x8] on r4-in.</p>
+</details>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3497,6 +3515,8 @@
 <li><strong><code>LEDFeedbackState</code></strong> — member LED state emitted under lock this+0x200; NULL out or len==0 -&gt; 402</li>
 <li>validation: impl emits member state verbatim</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -3558,6 +3578,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> HT impl rc surfaced
 <strong>Bounded unknown — unresolved:</strong> codes for hardware/validation failures</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3579,7 +3600,10 @@
 <h3 id="identifyirremote"><code>IdentifyIRRemote</code><a class="headerlink" href="#identifyirremote" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Asks the user to press buttons so the player can identify the remote layout, bounded by Timeout (seconds).</p>
-<p><strong>Technical description:</strong> Identifies an IR remote with a Timeout via impl-&gt;v[+0xc] on the sp+0x2c member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Identifies an IR remote with a Timeout via impl-&gt;v[+0xc] on the sp+0x2c member.</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3606,6 +3630,8 @@
 <li>validation: cmplwi vs 0xffffea60 else 402</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -3667,6 +3693,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> HT impl rc surfaced
 <strong>Bounded unknown — unresolved:</strong> codes for hardware/validation failures</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3685,7 +3712,10 @@
 <h3 id="isremoteconfigured"><code>IsRemoteConfigured</code><a class="headerlink" href="#isremoteconfigured" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns whether an IR remote has been configured.</p>
-<p><strong>Technical description:</strong> Returns whether an IR remote is configured via impl-&gt;v[+0x8] on r4-in.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns whether an IR remote is configured via impl-&gt;v[+0x8] on r4-in.</p>
+</details>
 <h4 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3707,6 +3737,8 @@
 <li><strong><code>RemoteConfigured</code></strong> — flag byte read from impl member this+0x218</li>
 <li>validation: single byte 0/1 written to out</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -3766,6 +3798,7 @@
 <li>impl arg validation failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3786,7 +3819,10 @@
 <h3 id="learnircode"><code>LearnIRCode</code><a class="headerlink" href="#learnircode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Captures a single IRCode within Timeout during remote setup.</p>
-<p><strong>Technical description:</strong> Captures an IRCode within Timeout via impl-&gt;v[+0xc] on the sp+0x4c member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Captures an IRCode within Timeout via impl-&gt;v[+0xc] on the sp+0x4c member.</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3823,6 +3859,8 @@
 <li>validation: cmplwi vs 0xffffea60; &gt;= bound -&gt; 402</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -3884,6 +3922,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> HT impl rc surfaced
 <strong>Bounded unknown — unresolved:</strong> codes for hardware/validation failures</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3902,7 +3941,10 @@
 <h3 id="setirrepeaterstate"><code>SetIRRepeaterState</code><a class="headerlink" href="#setirrepeaterstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Enables or disables IR repeater passthrough.</p>
-<p><strong>Technical description:</strong> Sets the IR-repeater state (DesiredIRRepeaterState) via impl-&gt;v[+0xc] on the svc+4 member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the IR-repeater state (DesiredIRRepeaterState) via impl-&gt;v[+0xc] on the svc+4 member.</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3929,6 +3971,8 @@
 <li>validation: impl strcmp vs 'On'/'Off' else 402</li>
 <li>buffer cap: <code>0x9</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_6">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_6" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -4000,6 +4044,7 @@
 <ul>
 <li>flag null -&gt; 501</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -4019,7 +4064,10 @@
 <h3 id="setledfeedbackstate"><code>SetLEDFeedbackState</code><a class="headerlink" href="#setledfeedbackstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Sets the LED feedback pattern for IR volume presses.</p>
-<p><strong>Technical description:</strong> Sets LED feedback (LEDFeedbackState) via impl-&gt;v[+0x20] on the svc+4 member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets LED feedback (LEDFeedbackState) via impl-&gt;v[+0x20] on the svc+4 member.</p>
+</details>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -4046,6 +4094,8 @@
 <li>validation: impl strcmp vs 'On'/'Off' else 402</li>
 <li>buffer cap: <code>0x4</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_7">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_7" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -4107,6 +4157,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> HT impl rc surfaced
 <strong>Bounded unknown — unresolved:</strong> impl has exactly two exits: {402,0} -- 402 path follows the input-string strcmp gate, 0 on accept</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -4184,16 +4235,24 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>htControl</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> f_10739c34/f_10782194 emit {LEDFeedbackState, RemoteConfigured}</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 41, name: htControl, id: 149, tag: 72</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/htaudio.cxx</code>, <code>zoneplayer/htaudio_satellite_tx.cxx</code>, <code>audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

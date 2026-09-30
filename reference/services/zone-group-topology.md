@@ -4,7 +4,11 @@
 
 Zone topology and household management. GetZoneGroupState is the famous one: a single XML snapshot listing every group, member, coordinator and source - the fastest way to map a household. The rest covers software update control, mobile-device registration, diagnostics upload and coordinator callbacks for alarms/unresponsive members.
 
-**Technical description:** Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.
+
+</details>
 
 ## Availability
 
@@ -37,7 +41,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (e.g. forced downgrade), ExtraOptions for transport options.
 
-**Technical description:** Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl->v\[+0xc\] on the svc+4 member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl->v\[+0xc\] on the svc+4 member.
+
+</details>
 
 #### Inputs
 
@@ -56,6 +64,8 @@ Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (
 - **`ExtraOptions`** — optional options string forwarded to update worker
   - validation: request-layer parse only
   - buffer cap: `0x80`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -133,6 +143,9 @@ UpdateURL does not begin with "http" (strncasecmp 4) -> 402 with detail "Update 
 launcher f_1073f1c8 performs external-update hook (write+exec); its rc is forwarded verbatim and not statically bounded - operation-submitted semantics, not guaranteed success
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733140`
@@ -153,7 +166,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.
 
-**Technical description:** Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl->v\[+0x8\] on the doubly-indirect member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl->v\[+0x8\] on the doubly-indirect member.
+
+</details>
 
 #### Inputs
 
@@ -182,6 +199,8 @@ Asks whether a firmware update is available; UpdateType selects the channel, Cac
 - **`UpdateItem`** — update record emitted on success by the worker path
   - special values: empty when no pending update record
   - validation: emitted on success
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -267,6 +286,9 @@ Software update requested but capability flag impl+0x5f4 clear (feature-gated)
 - type=="Software" and *(impl+0x5f4)==0
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073331c`
@@ -287,7 +309,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the household's group name/id, the member UUIDs, and the Muse household id.
 
-**Technical description:** Returns zone-group identity fields. Wrapper calls impl->v\[+0x34\] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns zone-group identity fields. Wrapper calls impl->v\[+0x34\] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).
+
+</details>
 
 #### Outputs
 
@@ -310,6 +336,8 @@ Returns the household's group name/id, the member UUIDs, and the Muse household 
 - **`CurrentMuseHouseholdId`** — household ID string serialized under topology lock
   - special values: empty string when the corresponding impl member is unset
   - validation: emitted on success only (impl rc==0); 501 when serializer flag clear
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -396,6 +424,9 @@ topology rc domain adds {800} via zgt worker
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733878`
@@ -421,7 +452,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.
 
-**Technical description:** Serializes the full zone-group state XML via impl->v\[+0x28\] on the doubly-indirect member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Serializes the full zone-group state XML via impl->v\[+0x28\] on the doubly-indirect member.
+
+</details>
 
 #### Outputs
 
@@ -431,6 +466,8 @@ Returns the complete zone topology as an XML document: every group, its coordina
 
 - **`ZoneGroupState`** — full ZoneGroupState XML document serialized by f_10743328 under the impl+0x318 topology lock; builder flag gates 501
   - validation: emitted on success; impl returns 501 if builder flag clear
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -512,6 +549,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732ed8`
@@ -533,7 +573,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.
 
-**Technical description:** accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change
+
+</details>
 
 #### Inputs
 
@@ -549,6 +593,8 @@ Registers a mobile controller (name, UDN, IP:port) so the zone can push callback
   - validation: consumed by the impl vfunc
 - **`MobileIPAndPort`** — mobile device IP:port contact address
   - validation: consumed by the impl vfunc
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -627,6 +673,9 @@ no action-level fault path exists - handler commits unconditionally (request-env
 
 - **arg_direction:** required/optional flags and formal in/out direction unresolved: trampoline handler delegates parse+emit to generic req worker; names recovered from packed rodata record
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732ebc`
@@ -646,7 +695,13 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).
 
-**Technical description:** Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl->v\[+0x14\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl->v\[+0x14\].
+
+</details>
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -733,6 +788,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107337cc`
@@ -754,7 +812,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.
 
-**Technical description:** Reports DeviceUUID unresponsive with DesiredAction via impl->v\[+0x10\] on the svc+4 member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reports DeviceUUID unresponsive with DesiredAction via impl->v\[+0x10\] on the svc+4 member.
+
+</details>
 
 #### Inputs
 
@@ -769,6 +831,8 @@ Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it f
 - **`DesiredAction`** — action string forwarded to report worker f_10747b74
   - validation: request-layer parse only
   - buffer cap: `0x80`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -848,6 +912,9 @@ DeviceID lacks RINCON_ prefix (strncmp,7) - f_10121310 returns 402 | Wrapper par
 **Bounded unknown — unresolved:** codes for validation/state failures
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733498`
@@ -869,7 +936,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support.
 
-**Technical description:** Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl->v\[+0x18\] on the doubly-indirect member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl->v\[+0x18\] on the doubly-indirect member.
+
+</details>
 
 #### Inputs
 
@@ -893,6 +964,8 @@ Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the 
 
 - **`DiagnosticID`** — diag ticket ID emitted on success via f_1055fcbc
   - validation: emitted on success only
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -973,6 +1046,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073365c`
@@ -1023,6 +1099,8 @@ Wrapper parse layer rejected an argument before the impl call.
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `zoneGroupTopology`, `activeZonesChange`, `zoneDefinitionsChange`, `zoneError`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_1074d9b4 emitter: serializes <ZoneGroupState>/<ZoneGroups> full-state doc via f_10743328 -> delivery worker f_10676a44; svc+0xe7c flag gates a secondary emit via f_1074388c; f_1074d644 produces 3 flag bytes; initial-notify caller at 0x10752d2c; second emitter f_10129888 (topology.cxx): <MediaServers><Ex CURL= EURL= T= EXT=><MediaServer Name=> section + 'informLocalPlayerChange' + 'SourceAreasUpdateID'
 - **payload_model:** direct <ZoneGroupState> XML (not LastChange attribute-form) - full-state push on topology change
 - **wss_registry:**
@@ -1031,7 +1109,12 @@ Wrapper parse layer rejected an argument before the impl call.
   - idx: 3, name: zoneDefinitionsChange, id: 13, tag: 82
   - idx: 4, name: zoneError, id: 14, tag: 82
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -1040,9 +1123,14 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Additional records
 
 ### `implementation`
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 - **impl_vtable:**
   - **addr:** 0x10f113b8
@@ -1058,6 +1146,8 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
     - **0x1c:** f_10733878 GetZoneGroupAttributes (id 0x25)
     - **0x20:** f_10732ed8 GetZoneGroupState (id 0x29)
   - **evidence:** disasm dispatcher 0x10732ff8 vtable-index dispatch (id odd -> *(vptr+id-9) vfunc); table dump 0x10f113b8
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/topology.cxx`, `zoneplayer/topology_events_report.cxx`, `zoneplayer/zones_{mgr,storage}.cxx`, `common/topology/topology_base.cxx`
 

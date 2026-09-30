@@ -2656,7 +2656,12 @@
 </code></pre>
 <p>Fields: <code>order_in_f_102f9c00</code>, <code>order_in_f_102f9e9c</code>, <code>note</code></p>
 <p>Used by: AVTransport save/restore on zone lifecycle (not a SOAP-visible payload)</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Field-to-offset mapping and value formats per key are not yet decoded - requires the restore worker loop (loads base once, emits/consumes fields by offset).</p>
+</details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>workers:</strong></li>
 <li><strong>read_a:</strong> 0x102f9c00</li>
@@ -2665,6 +2670,7 @@
 <li><strong>xml_layer_b:</strong> 0x106f1b9c</li>
 <li><strong>note:</strong> all four use v[+0x1c] named-record lookups + f_1056157c unpack; the WRITE/serialize counterpart not yet located</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2680,10 +2686,13 @@
 <pre><code>case-sensitive ASCII exact match
 </code></pre>
 <p>Used by: RenderingControl.GetMute; RenderingControl.SetMute (adds FocusMode); RenderingControl.GetVolume (forwarded)</p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>accepted_values:</strong> <code>Master</code>, <code>LF</code>, <code>RF</code>, <code>FocusMode (SetMute only)</code></li>
 <li><strong>parser:</strong> per-action strcmp chains in impl fns (e.g. f_100d71e0, f_100d99b0)</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (2)</summary>
 <ul>
@@ -2700,9 +2709,12 @@
 <pre><code>type-tag-4 integer record
 </code></pre>
 <p>Used by: all RenderingControl actions (inconsistent enforcement)</p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>accepted_values:</strong> <code>0 (where checked)</code></li>
 </ul>
+</details>
 <details>
 <summary>Evidence (2)</summary>
 <ul>
@@ -2719,7 +2731,10 @@
 <pre><code>[-]H:M:S where each component is a scanf %hhu (u8, mod-256 wrap); exactly three required; trailing junk ignored
 </code></pre>
 <p>Used by: AVTransport.Seek (Target for REL_TIME/TIME_DELTA, both indexed and stream modes)</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Action-specific restrictions layer on top: e.g. Seek indexed mode rejects a set sign flag unless Unit==TIME_DELTA, and treats a zero-magnitude pair as a silent no-op success. Stream mode performs no sign or zero gating.</p>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2735,7 +2750,10 @@
 <pre><code>decimal integer, strtol base 10; accepted lexical range 1..65534
 </code></pre>
 <p>Used by: AVTransport.Seek (Target for TRACK_NR, indexed mode)</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>The mask-before-validate ordering looks alarming but is inert: the record field is computed pre-check, the check uses the raw value, and a rejected record is destroyed unsubmitted.</p>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2744,10 +2762,13 @@
 </details>
 <h2 id="codec_mime_flags-strong"><code>codec_mime_flags</code> <code>strong</code><a class="headerlink" href="#codec_mime_flags-strong" title="Permanent link">&para;</a></h2>
 <p>A small lookup that tags audio formats (wav/wma/adts) and MIME types with internal flags — used to pick the right decoder for a stream before playback starts.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>name:</strong> codec/MIME flag tables</li>
 <li><strong>summary:</strong> Two adjacent tables: format-name flags at .rodata 0x10ecc540 {wav=0x1, wma=0x2, adts=0x4} and the MIME-&gt;flag map at 0x10ecc618 {audio/wav|audio/x-wav|audio/vnd.wave=0x1, audio/wma|audio/x-ms-wma=0x2, audio/x-mpegurl=0x8}. x-mpegurl carries bit 0x8 (playlist/m3u class) - the MIME table drives stream-type classification for HTTP fetches.</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (2)</summary>
 <ul>
@@ -2774,11 +2795,14 @@
 <summary><b>Technical details</b></summary>
 <p>UPnP root device-description htdocs template + 35 substitution tokens; advertises 16 SCPD service descriptions</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>tokens:</strong> #UUID# #HOST# #SW_VERSION# #SW_GENERATION# #SW_MINCOMPATVER# #SW_LEGACYCOMPATVER# — template substitution into the root descriptor</li>
 <li><strong>note:</strong> device_description.xml (htdocs) IS the served #TOKEN# template — substitutes 35 tokens (#UUID#,#HOST#,#MODEL#,#SW_VERSION#,#SW_GENERATION#,#SW_MINCOMPATVER#,#SW_LEGACYCOMPATVER#,#MAC_ADDRESS#,#SERIAL_NUM#,#API_VERSION#,#MIN_API_VERSION#,#DISPLAY_VERSION#,#EXTRA_VERSION#,#NS_VERSION#,#HW_VERSION#,#ZONETYPE#,#CD_NAMESPACE#,#MEDIASERVER_NAMESPACE#,#VENDOR_NAME#,#DISPLAY_NAME#,#VARIANT#,#RETAIL_MODE#,#HHSSL_PORT#,#SSL_PORT#,#MUSE_API_VERSIONS#,#NODE_PROTO_VERSIONS#,#HTA_FRAME_VERSIONS#,#TRUEPLAY_SDK_VERSIONS#,#AMP_ONTIME#,#INT_SPEAKER_SIZE#,#MEMORY#,#FLASH#,#QPLAY_SUPPORT#,#API_VERSION#). It DOES advertise SCPDs — 16 <SCPDURL>/xml/<Svc>1.xml elements. AudioIn is NOT in the advertised serviceList (consistent with its reject-all stub). ContentDirectory serviceType is the #CD_NAMESPACE# runtime token (upnp-org vs sonos-com CD namespace substituted per build).</li>
 <li><strong>advertised_services:</strong> 16: AlarmClock,MusicServices,DeviceProperties,SystemProperties,ZoneGroupTopology,GroupManagement,HTControl,QPlay,ContentDirectory(#CD_NAMESPACE#),ConnectionManager(MS),RenderingControl,ConnectionManager(MR),AVTransport,Queue(sonos-com),GroupRenderingControl,VirtualLineIn — AudioIn absent (internal stub)</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2803,6 +2827,8 @@
 <summary><b>Technical details</b></summary>
 <p>DIDL-Lite metadata envelope + full object.* class/protocolInfo/search-criteria grammar + r: rinconnetworks extension ns</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>root:</strong> <DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"> — r: is the Sonos extension ns</li>
 <li><strong>classes:</strong> <code>object.item</code>, <code>object.item.playlistItem</code>, <code>object.item.sonos-favorite</code>, <code>object.item.audioItem.musicTrack{,.recentShow}</code>, <code>object.item.audioItem.audioBroadcast{,.live}</code>, <code>object.item.audioItem.linein{,.homeTheater,.airplay,.bluetooth}</code>, <code>object.item.audioItem.{podcast,show,audioBook.chapter}</code>, <code>object.container.{album.musicAlbum{,.compilation},playlistContainer{,.sameArtist,.tracklist},albumlist,person.musicArtist,person.composer,genre.musicGenre,podcast,sonos-searchTypes}</code></li>
@@ -2810,6 +2836,7 @@
 <li><strong>search_grammar:</strong> SearchCriteria supports: derivedfrom + @refID exists + = + and; '+'-prefixed sort keys; projections 'dc:title,res,res@duration,upnp:artist,upnp:artist@role,upnp:album,upnp:originalTrackNumber'; microsoft:artistAlbumArtist (WMP interop)</li>
 <li><strong>dom_keys:</strong> |DIDL-Lite|item|container|res|vli element keys; 'truncated DIDL metadata' bounds</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2859,11 +2886,14 @@
 <summary><b>Technical details</b></summary>
 <p>GENA event wire envelope — <e:propertyset>/<e:property> var elements + NT/NTS/SEQ/SID + X-RINCON-BOOTSEQ/VARIANT headers</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>grammar:</strong> <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0"><e:property><VAR>val</VAR></e:property>...</e:propertyset></li>
 <li><strong>note:</strong> GENA event body: DOM node 'urn:schemas-upnp-org:event-1-0|propertyset'; each changed var emitted as <e:property> wrapper via f_10676a44</li>
 <li><strong>headers:</strong> NT: upnp:event | NTS: upnp:propchange | SEQ: %d | Sonos extensions X-RINCON-BOOTSEQ:%s X-RINCON-VARIANT:%u; 403 on denial; version-conditional eventing ('DiscoveredZP using %s eventing')</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2888,10 +2918,13 @@
 <summary><b>Technical details</b></summary>
 <p>| SECOND parallel map @0x10f94fa8 (51 entries, HTTP-status domain {400,401,403,404,405,409,410,412,415,417,490,491,499,500,501,503,504}): [499,499,499,499,499,499,499,415,499,404,500,504,403,403,400,400,400,404,400,400,499,403,401,499,412,499,410,409,410,499,499,499,404,404,404,405,401,503,499,404,404,499,499,400,400,400,417,490,491,499,500]. Neither map has a direct lis/addi reference - reached via computed base (names-table-relative) or object-field; index alignment with muse_result_codes segments is inferred, NOT proven (map2[0]=499 does not match OK-&gt;200 naively).</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>name:</strong> HTTP status mapping table (objectStatusMap)</li>
 <li><strong>summary:</strong> .rodata table at 0x10f94ec4 (+second page 0x10f94fa8): dense u16/u32 HTTP-status index-&gt;code map with sentinel 499. Recognized values {400,401,403,404,405,409,410,412,415,417,490,491,499,500,501,503,504}; unmapped -&gt; 499. Consumed by the client-error mapping layer f_1038e82c ('Client error' string, internal codes {401,402,501,1000,1001,1002,1004}) - this is the 'objectStatusMap' referenced by the auth-layer string 'Error code not found in objectStatusMap'. HTTP errors from SMaPI/lechmere/cloud calls are normalized through this table into the internal fault space.</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (3)</summary>
 <ul>
@@ -2906,10 +2939,16 @@
 <summary><b>Technical details</b></summary>
 <p>iTunes-library XML plist import vocabulary (rodata key table @0x11091a24 cluster)</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Apple plist-XML grammar keys; importer maps iTunes XML library (Tracks/Playlists/Master structure) into the content index. Adjacent to selthrd.RIRDecoder/RHWEvtHandlerZP thread descriptors</p>
+</details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>keys:</strong> <code>Audiobooks</code>, <code>Location</code>, <code>Master</code>, <code>Movies</code>, <code>Music</code>, <code>Name</code>, <code>Playlist ID</code>, <code>Playlist Items</code>, <code>Playlist Persistent ID</code>, <code>Playlists</code>, <code>TV Shows</code>, <code>Track ID</code>, <code>Tracks</code>, <code>array</code>, <code>dict</code>, <code>integer</code>, <code>key</code>, <code>plist</code>, <code>string</code>, <code>true</code></li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2922,6 +2961,8 @@
 <summary><b>Technical details</b></summary>
 <p>the three LastChange/Event doc root templates + per-service xmlns</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>templates:</strong></li>
 <li><strong>AVTransport:</strong> <Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/"> @0x10eb29e8 — uses r: extension ns</li>
@@ -2934,6 +2975,7 @@
 <li><strong>Queue:</strong> QueueOwnerID %s, QueueID %.20s, UpdateID %u, Curated (truncated) — QueueID capped 20 chars</li>
 <li><strong>note:</strong> <LastChange>%s</LastChange> — the e:property value is the escaped XML doc</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2952,6 +2994,8 @@
 <summary><b>Technical details</b></summary>
 <p>ConnectionManager protocolInfo capability set (libavcodec decoder) — complete sink/source mime+scheme vocabulary</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>decoder:</strong> libavcodec.so.59 (FFmpeg avcodec) — avcodec_{find_decoder,alloc_context3,parameters_to_context,open2,send_packet,receive_frame,flush_buffers,free_context}; 'starting %s audio decoder at %d.%06d (dc:%d.%06d)' timed decode</li>
 <li><strong>sink_protocolInfo:</strong> http-get: and x-file-cifs: x {audio/{mp3,mp4,x-m4a,mpeg,mpegurl,x-mpegurl,mpeg3,wav,x-wav,wma,x-ms-wma,aiff,x-aiff,flac,ogg}, application/{x-mpegurl,vnd.apple.mpegurl,dash+xml,ogg}} + file:<em>:audio/mpegurl:</em> + sonos.com-{mms:<em>:audio/x-ms-wma:</em>, http:<em> x same mime set, spotify:</em>:audio/x-spotify:<em>, rtrecent:</em>:audio/x-sonos-recent:<em>} + x-rincon{,-mp3radio,-playlist,-queue,-stream}:</em>:<em>:</em> + x-sonosapi-{stream,hls,hls-static}:<em>:</em>:<em> + x-sonosapi-radio:</em>:audio/x-sonosapi-radio:<em> + x-rincon-cpcontainer:</em>:<em>:</em> + real.com-rhapsody-direct:<em>:audio/mp3:</em></li>
@@ -2960,6 +3004,7 @@
 <li><strong>content_types:</strong> application/sonos_service_catalog.v1.xml (SMAPI catalog) + application/merge-patch+json (RFC7396) + application/xml;listing + application/dns-message (DoH) + image/{jpg,gif,png,svg+xml} + application/pdf + audio/{vnd.wave,L16}</li>
 <li><strong>audio_types:</strong> audio/{aacp,aac,x-aac,x-scpls,wav,aiff,x-aiff,flac,mp4,x-m4a,mpeg,mp3,mpeg3,ogg,x-spotify-ogg,x-wav,vnd.wave,wma,x-ms-wma,x-mpegurl,mpegurl,L16}</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2973,12 +3018,18 @@
 <p>savedqueues.rsq persisted-queue store — SavedQueues/SavedQueue XML w/ LUD+Version+Next+Curated+NumTracks, atomic .tmp write, gzip</p>
 </details>
 <p>Fields: <code>LastUpdateDevice</code>, <code>Version</code>, <code>Next</code>, <code>Curated</code>, <code>NumTracks</code></p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>replicated via nodetx like netsettings; 'Migrated tracks for account sn=%u' migration path; 'Reorder tracks returned %u. QueueID: %d; Tracks: %s; NewPos: %s'</p>
+</details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>file:</strong> file:///jffs/settings/savedqueues.rsq (atomic write via .tmp; dir savedqueues.d.rsq; 'application/gzip' adjacency suggests gzip variant)</li>
 <li><strong>grammar:</strong> <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"><SavedQueue Id=".." Curated=".." NumTracks=".."><track elements/></SavedQueues></li>
 <li><strong>validation:</strong> <code>'Replicated SavedQueue file is not valid'</code>, <code>'SavedQueue file at boot is not valid'</code>, <code>'Could not import saved queues file'</code>, <code>'Could not access playlists'</code>, <code>'Could not find given playlistId'</code></li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -2991,12 +3042,15 @@
 <summary><b>Technical details</b></summary>
 <p>SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml — advertised via <SCPDURL> in device_description</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>files:</strong> 21 XML files in opt/htdocs/xml: 16 advertised SCPDs + AudioIn1.xml (unadvertised) + device_description.xml + group_description.xml + musicservices.xml + xsl</li>
 <li><strong>advertised_actions:</strong> 208 total actions across 16 services; 414 in-args, 206 out-args; state-variable tables per service</li>
 <li><strong>advertised_not_implemented:</strong> 8 advertised actions not individually dispatched in 86.10: 6 AudioIn (real impl 34.16/57.10 -&gt; reject-all 401 stub in 86.x) + ProvisionCredentialedTrialAccountX (dispatched 34.16, hard-removed 57.10+, stale ad) + ResetThirdPartyCredentials (dispatched 34.16, soft-removed 57.10+, dead string). All other advertised actions dispatched in every build.</li>
 <li><strong>satellite_template:</strong> opt/htdocs/xml/satellite_device.xml (m8 rootfs) — the bonded-satellite device description: deviceType urn:schemas-upnp-org:device:ZonePlayer:1 with #PLACEHOLDER# vars {#HOST#, #VENDOR_NAME#, #DISPLAY_NAME#, #UUID#, #MODEL#, #SW_VERSION#, #SW_GENERATION#, #HW_VERSION#, #SERIAL_NUM#, #MAC_ADDRESS#, #SW_MINCOMPATVER#, #SW_LEGACYCOMPATVER#, #API_VERSION#, #MIN_API_VERSION#, #DISPLAY_VERSION#, #EXTRA_VERSION#, #NS_VERSION#, #NODE_PROTO_VERSIONS#} + icon /img/icon-#MODEL#.png — the substitution vocabulary for device-description rendering; satellites re-advertise as ZonePlayer:1.</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3018,10 +3072,13 @@
 </details>
 <h2 id="skip_restriction_bits-strong"><code>skip_restriction_bits</code> <code>strong</code><a class="headerlink" href="#skip_restriction_bits-strong" title="Permanent link">&para;</a></h2>
 <p>Why a stream won't let you skip: a bitmask of restriction reasons — the track is an ad, licensing forbids it, there's no next/previous track, or you're paused. Radio services set these per-track.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>name:</strong> skip/restriction bitmask (stream restriction enum)</li>
 <li><strong>summary:</strong> {name,u32} table at .rodata 0x10ed9d30 - proven bit values for the restriction enum previously documented name-only: 'Already Paused'=0x2, 'Not Paused'=0x4, 'License Restriction'=0x8, 'Ad'=0x10, 'No Previous Track'=0x20, 'No Next Track'=0x40. Bit0/0x1 unused in the table; 'Restriction Unknown'/'Full reset' are non-table sentinels. These bits are what SMaPI streams OR into their skip/track-control metadata (e.g. Ad blocks skip).</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3030,10 +3087,13 @@
 </details>
 <h2 id="smapi_capability_bits-strong"><code>smapi_capability_bits</code> <code>strong</code><a class="headerlink" href="#smapi_capability_bits-strong" title="Permanent link">&para;</a></h2>
 <p>The menu of features a music service can advertise: each name maps to one bit in the service's Capabilities number - search, three kinds of favorites (track/album/artist), extended metadata, alarms, playlists, logging, headers, and so on. When a service says it supports track favorites, that's the second bit set in this table.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>name:</strong> SMaPI capability bitmask (Capabilities field)</li>
 <li><strong>summary:</strong> {name,u32} table at .rodata 0x10e769cc - the full 22-bit SMaPI Capabilities vocabulary with PROVEN bit assignments: search=0x1, trFavorites=0x2 (track favorites), authorizationHeader=0x8, alFavorites=0x10 (album), arFavorites=0x20 (artist), logging=0x40, extendedMD=0x200, disableAlarms=0x400, ucPlaylists=0x800 (user-content playlists), playbackLogging=0x1000, accountLogging=0x2000, noMultiAccount=0x4000, mediaUriActions=0x8000, contextHeaders=0x10000, deviceCerts=0x20000, playerIds=0x40000, contextReporting=0x80000, userInfo=0x100000, contentFiltering=0x200000, manifest=0x400000, radioExtendedMD=0x800000, playlistExtendedMD=0x1000000. This is the bitmask OR'd into a music service's Capabilities value; the favorites trio (tr/al/ar) gates which favorite classes a service may contribute to the FV: store.</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3046,6 +3106,8 @@
 <summary><b>Technical details</b></summary>
 <p>SOAP request/response/fault wire envelope: <s:Envelope><s:Header><s:Body><u:{action}{Response} xmlns:u={serviceType}> + UPnPError fault + secure/sensitive param redaction</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>request_parse:</strong> recognizes http://schemas.xmlsoap.org/soap/envelope/|{Envelope,Header,Body,Fault} ns-qualified paths</li>
 <li><strong>response:</strong> <s:Envelope xmlns:s="soap/envelope/" s:encodingStyle="soap/encoding/"><s:Header>{hdrs}</s:Header><s:Body><u:{action}{suffix} xmlns:u="{serviceType}">...</u:{action}{suffix}></s:Body></s:Envelope></li>
@@ -3053,6 +3115,7 @@
 <li><strong>fault:</strong> <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>%d</errorCode>[<errorDescription>%s</errorDescription>]</UPnPError></detail></s:Fault> — faultcode always s:Client; detail carries UPnPError{errorCode,errorDescription}</li>
 <li><strong>param_redaction:</strong> SOAP params flagged secure/sensitive/trackIDing — 'not logging %s, sensitive' + 'not logging %s, secure %d, prevent %d, sensitive %d, trackIDing %d' + 'Invalid secure param %s' — credential/PII params excluded from logging</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3080,7 +3143,10 @@
 <pre><code>&lt;s:Fault&gt;&lt;faultcode&gt;s:Client&lt;/faultcode&gt;&lt;faultstring&gt;UPnPError&lt;/faultstring&gt;&lt;detail&gt;&lt;UPnPError xmlns=&quot;urn:schemas-upnp-org:control-1-0&quot;&gt;&lt;errorCode&gt;%d&lt;/errorCode&gt;&lt;/UPnPError&gt;&lt;/detail&gt;&lt;/s:Fault&gt;
 </code></pre>
 <p>Used by: all 199 action fault paths via req-&gt;v[+0x14]</p>
+<details>
+<summary><b>Technical details</b></summary>
 <p>{'literal_rodata': 'prefix 0x10eebdcc, suffix 0x10eebe60', 'code_vocabulary': '705 verified vtable+0x14 dispatch sites: literal codes {0,1..17,100,250,252,255,401,402,10048}; 582 sites pass computed worker/subsystem rc (bounded per-worker into error bounded_domain). Log-level split at code&gt;=1000 in f_10731560.', 'proven_code_set': 'union of all literal-code records + worker bounded_domain exits: {0,401,402,501,701,702,706,710,711,712,717,718,800,801,802,803,804,808,810,1000,1028,1240} - 401/402 request-layer, 501 action-failed, 701-721 UPnP-AV standard (718=invalid instanceID, 42 sites), 800-811 queue/CD family, 1000+ Sonos-internal (level-8 logging)'}</p>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3093,10 +3159,13 @@
 <summary><b>Technical details</b></summary>
 <p>SOAPACTION HTTP header grammar: SOAPACTION: "{serviceType}#{action}" targeting the control endpoint</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>form:</strong> SOAPACTION: "{serviceType}#{action}" / SOAPACTION: "%s%s%s" / "%s#%s"</li>
 <li><strong>semantics:</strong> UPnP-standard quoted serviceType#actionName targeting the control endpoint</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3434,9 +3503,12 @@
 <p>Signed/checksummed blob envelope: {"magic":"<code>|_(:/)_|</code>","length":%u,"checksum":"0x%08X","counter":%u} parsed by f_10bf85f4 — magic literal + hex checksum integrity wrapper; RESOLVED consumer: group.cxx group effective-values persistence (grkId-keyed store, '[Mg]' log tag, version:11 sibling section, jump-table dispatch 0x10fb03b4)</p>
 </details>
 <p>Fields: <code>magic</code>, <code>length</code>, <code>checksum</code>, <code>counter</code></p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>consumer:</strong> f_10bf8xxx..f_10bfefxx group.cxx family; 'internalReadEffectiveValuesLocked_jsonValue' worker</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3499,6 +3571,8 @@
 <summary><b>Technical details</b></summary>
 <p>complete /status + diagnostic XML doc element grammar</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>psk_material:</strong> <ControlPsk>+<BackupControlPsk>+<HhPsk>+<BackupHhPsk>+<LanSwapPsk>+<BackupLanSwapPsk>+<BackupRoomEncPsk> id= — SonosNet key material present in status dumps</li>
 <li><strong>settings_tasks:</strong> <inflightTask_{addTaskMoment,completionStatus,correlationId,locationId,repeatFailureCount,retryCount,settingsGroupName,updateReason,updateTaskType}>+<pendingTask_{...}>+<IsConnectedToCloud>+<IsQuiescent>+<NumOf{Tasks*,SettingsGroupsInvalidated,Refetch,GroupInvalidations}></li>
@@ -3518,6 +3592,7 @@
 <li><strong>track_drm:</strong> <TrackEncryption{Format,Method}>+<Repeat>+<Shuffle>+<Recurrence>+<SodVolume>+<Crossfade>+<Gain></li>
 <li><strong>upnp_fault:</strong> <UPnPError xmlns='urn:schemas-upnp-org:control-1-0'> — fault element root</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3530,6 +3605,8 @@
 <summary><b>Technical details</b></summary>
 <p>trackqueue.rsq live-queue persistence store — transactional append/replace w/ txn-id guard + range-remap algorithm</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>file:</strong> trackqueue.rsq (live queue persistence; 'file://%s#%d' URI form, /trackqueue.rsq#0); TQD (track-queue-descriptor) context decode 'decoded len %zu exceeds buffer len %zu'</li>
 <li><strong>transactions:</strong> append/replace are transactional: 'commitAppend'/'commitAppend (replace)' + txn-id check 'Append transaction ID mismatch. Aborting commitAppend/commitReplace'</li>
@@ -3537,6 +3614,7 @@
 <li><strong>objects:</strong> <code>trackQueue</code>, <code>trackQueueRAM</code>, <code>spotifyTrackQueue</code>, <code>savedq_mdcache</code>, <code>trackQueueSummary</code>, <code>&lt;TrackQueueSummary&gt;</code></li>
 <li><strong>streaming_proto:</strong> media client accepts 'HTTP/1.0 200 OK' AND 'ICY 200 OK' (Shoutcast ICY) response lines + 'metadata' marker</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3545,10 +3623,13 @@
 </details>
 <h2 id="transport_action_bits-strong"><code>transport_action_bits</code> <code>strong</code><a class="headerlink" href="#transport_action_bits-strong" title="Permanent link">&para;</a></h2>
 <p>The fixed vocabulary behind GetCurrentTransportActions — each transport verb (Play, Stop, Pause, Next, Previous, Seek, Set) owns one bit; the player sets the bits for whatever the current source can actually do and prints the names as a comma-separated list.</p>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>name:</strong> transport-action capability bitmask (GetCurrentTransportActions)</li>
 <li><strong>summary:</strong> {name,u32} table at .rodata 0x10eb39d4 - action-name-&gt;bit map used to synthesize the CSV in GetCurrentTransportActions: Set=0x10000, X_DLNA_SeekTime=0x20000, Play=0x200000, Next=0x100000, Previous=0x400000, Pause=0x1000000, Stop=0x8000. The 'action list computed live from engine capability state' noted on that action resolves to this fixed name-&gt;bit vocabulary; which bits are set at runtime is engine-state-dependent.</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>
@@ -3592,6 +3673,8 @@
 <summary><b>Technical details</b></summary>
 <p>extended per-zone audio/EQ + queue-state status blocks</p>
 </details>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>blocks:</strong></li>
 <li><strong>volume_ducking:</strong> <Zone><Zone>%d</Zone><UnscaledVolume><Volume><DeferredVolume><Ducked><DuckingVolume><DuckingPercent><OverrideVolume><Muted><DeferredMute><ExtSrcVolume><SurroundLevel><ZoneChannelCount></Zone></li>
@@ -3599,6 +3682,7 @@
 <li><strong>queue_status:</strong> <Queue Name='%s'><EntriesMax><EntriesUsed><EntriesHighWater><StringTableSize><StringTableUsed><StringTableHighWater><UpdateID><ObjectID><OwnerID><Policy><CloudQueueHost></Queue></li>
 <li><strong>updateid_vocabulary:</strong> SystemUpdateID, ContainerUpdateIDs, FavoritesUpdateID, RadioFavoritesUpdateID, RadioLocationUpdateID, SavedQueuesUpdateID, ShareListUpdateID, NewQueueLength, NewUpdateID, QueueLengthChange, notifyUpdateID('%s',%u), GetSystemUpdateID</li>
 </ul>
+</details>
 <details>
 <summary>Evidence (1)</summary>
 <ul>

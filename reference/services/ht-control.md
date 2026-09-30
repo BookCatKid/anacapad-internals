@@ -4,7 +4,11 @@
 
 Home-theater control: IR repeater passthrough, LED feedback, and IR-remote learning so a TV remote can drive volume on the soundbar. Relevant to playbar-family hardware with an IR receiver.
 
-**Technical description:** Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.
+
+</details>
 
 ## Availability
 
@@ -37,7 +41,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Stores the codes captured by LearnIRCode under a remote Name.
 
-**Technical description:** Commits learned codes under Name via impl->v\[+0x18\] on the svc+4 member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Commits learned codes under Name via impl->v\[+0x18\] on the svc+4 member.
+
+</details>
 
 #### Inputs
 
@@ -48,6 +56,8 @@ Stores the codes captured by LearnIRCode under a remote Name.
 - **`Name`** — impl reads first byte only: 0 (empty) -> 402, nonzero -> 501; commit never proceeds in this build
   - validation: non-empty value always faults 501; empty faults 402
   - buffer cap: `0x20`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -127,6 +137,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 **Bounded unknown — unresolved:** codes for hardware/validation failures
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10739968`
@@ -146,7 +159,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether IR commands are retransmitted to the AV equipment.
 
-**Technical description:** Returns the IR-repeater enabled state via impl->v\[+0x8\] on r4-in.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the IR-repeater enabled state via impl->v\[+0x8\] on r4-in.
+
+</details>
 
 #### Outputs
 
@@ -156,6 +173,8 @@ Returns whether IR commands are retransmitted to the AV equipment.
 
 - **`CurrentIRRepeaterState`** — state string copied from impl member this+0x1ec under lock this+0x150
   - validation: impl copies member string verbatim; no output validation layer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -231,6 +250,9 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10739d30`
@@ -252,7 +274,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the LED feedback state used to acknowledge IR-learned volume presses.
 
-**Technical description:** Returns the LED-feedback state via impl->v\[+0x8\] on r4-in.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the LED-feedback state via impl->v\[+0x8\] on r4-in.
+
+</details>
 
 #### Outputs
 
@@ -262,6 +288,8 @@ Returns the LED feedback state used to acknowledge IR-learned volume presses.
 
 - **`LEDFeedbackState`** — member LED state emitted under lock this+0x200; NULL out or len==0 -> 402
   - validation: impl emits member state verbatim
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -341,6 +369,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 **Bounded unknown — unresolved:** codes for hardware/validation failures
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10739c34`
@@ -362,7 +393,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Asks the user to press buttons so the player can identify the remote layout, bounded by Timeout (seconds).
 
-**Technical description:** Identifies an IR remote with a Timeout via impl->v\[+0xc\] on the sp+0x2c member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Identifies an IR remote with a Timeout via impl->v\[+0xc\] on the sp+0x2c member.
+
+</details>
 
 #### Inputs
 
@@ -373,6 +408,8 @@ Asks the user to press buttons so the player can identify the remote layout, bou
 - **`Timeout`** — u32; same <0xffffea60 gate else 402; handler ALSO parses an undocumented IRCode string arg (<=0x20 chars) not present in the declared signature
   - validation: cmplwi vs 0xffffea60 else 402
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -452,6 +489,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 **Bounded unknown — unresolved:** codes for hardware/validation failures
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10241f24`
@@ -470,7 +510,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether an IR remote has been configured.
 
-**Technical description:** Returns whether an IR remote is configured via impl->v\[+0x8\] on r4-in.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns whether an IR remote is configured via impl->v\[+0x8\] on r4-in.
+
+</details>
 
 #### Outputs
 
@@ -480,6 +524,8 @@ Returns whether an IR remote has been configured.
 
 - **`RemoteConfigured`** — flag byte read from impl member this+0x218
   - validation: single byte 0/1 written to out
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -555,6 +601,9 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10739b48`
@@ -575,7 +624,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Captures a single IRCode within Timeout during remote setup.
 
-**Technical description:** Captures an IRCode within Timeout via impl->v\[+0xc\] on the sp+0x4c member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Captures an IRCode within Timeout via impl->v\[+0xc\] on the sp+0x4c member.
+
+</details>
 
 #### Inputs
 
@@ -590,6 +643,8 @@ Captures a single IRCode within Timeout during remote setup.
 - **`Timeout`** — u32; impl requires value < 0xffffea60 (unsigned cmplwi) else 402 - effectively unrestricted
   - validation: cmplwi vs 0xffffea60; >= bound -> 402
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -669,6 +724,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 **Bounded unknown — unresolved:** codes for hardware/validation failures
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10242008`
@@ -687,7 +745,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Enables or disables IR repeater passthrough.
 
-**Technical description:** Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v\[+0xc\] on the svc+4 member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v\[+0xc\] on the svc+4 member.
+
+</details>
 
 #### Inputs
 
@@ -698,6 +760,8 @@ Enables or disables IR repeater passthrough.
 - **`DesiredIRRepeaterState`** — impl does literal strcmp vs 'On' then 'Off' (0x10fe55b8/0x10e739b8); any other value -> 402
   - validation: impl strcmp vs 'On'/'Off' else 402
   - buffer cap: `0x9`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -789,6 +853,9 @@ IR repeater not implemented on this hardware (cntlzw flag from member)
 - flag null -> 501
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10739878`
@@ -808,7 +875,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the LED feedback pattern for IR volume presses.
 
-**Technical description:** Sets LED feedback (LEDFeedbackState) via impl->v\[+0x20\] on the svc+4 member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets LED feedback (LEDFeedbackState) via impl->v\[+0x20\] on the svc+4 member.
+
+</details>
 
 #### Inputs
 
@@ -819,6 +890,8 @@ Sets the LED feedback pattern for IR volume presses.
 - **`LEDFeedbackState`** — impl strcmp vs 'On'/'Off'; else 402
   - validation: impl strcmp vs 'On'/'Off' else 402
   - buffer cap: `0x4`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -898,6 +971,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 **Bounded unknown — unresolved:** impl has exactly two exits: {402,0} -- 402 path follows the input-string strcmp gate, 0 on accept
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10739a58`
@@ -929,11 +1005,18 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `htControl`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10739c34/f_10782194 emit {LEDFeedbackState, RemoteConfigured}
 - **wss_registry:**
   - idx: 41, name: htControl, id: 149, tag: 72
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -941,6 +1024,9 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 - Request action name matches no entry in the service dispatch table after the name-table search
 
+
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/htaudio.cxx`, `zoneplayer/htaudio_satellite_tx.cxx`, `audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx`
 

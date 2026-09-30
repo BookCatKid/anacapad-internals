@@ -4,7 +4,11 @@
 
 Tencent QPlay handshake - the single-action auth protocol used by QQ Music clients on Chinese-market zones. The device description advertises QPlay:2 capability via qq:X_QPlay_SoftwareCapability rather than a serviceType.
 
-**Technical description:** QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.
+
+</details>
 
 ## Availability
 
@@ -29,7 +33,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode.
 
-**Technical description:** QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -> exec f_1073a5d0. Exec calls req->v\[+0x1c\] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req->v\[+0x08\] (parse-ok check) -> emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl->v\[+0x08\](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req->member\[+0x04\]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req->v\[+0x24\] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v\[+0x10\] emitter; response committed via req->v\[+0x0c\]. The Seed->Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -> exec f_1073a5d0. Exec calls req->v\[+0x1c\] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req->v\[+0x08\] (parse-ok check) -> emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl->v\[+0x08\](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req->member\[+0x04\]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req->v\[+0x24\] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v\[+0x10\] emitter; response committed via req->v\[+0x0c\]. The Seed->Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).
+
+</details>
 
 #### Inputs
 
@@ -48,6 +56,8 @@ Auth exchange: client sends a Seed string; the player returns Code, MID and DID 
 | `Code` |  | — |
 | `MID` |  | — |
 | `DID` |  | — |
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -137,6 +147,9 @@ action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 - dispatched action name != "QPlayAuth" (strcmp fallthrough)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a4f0`
@@ -162,9 +175,16 @@ action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 - **Mechanism:** GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - No WSS registry name maps to this service in the 73-entry table; event surface likely absent or folded into another namespace
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** 'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -172,6 +192,9 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 - Request action name matches no entry in the service dispatch table after the name-table search
 
+
+
+</details>
 
 Implementation sources (recovered): `compiled lib (qplay) — no path literal`
 

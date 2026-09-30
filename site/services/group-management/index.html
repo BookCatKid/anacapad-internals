@@ -2343,7 +2343,10 @@
 <h1 id="groupmanagement-groupmanagementcontrol"><code>GroupManagement</code> — <code>/GroupManagement/Control</code><a class="headerlink" href="#groupmanagement-groupmanagementcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>Coordinator-facing group-membership service. Group members use these actions to join/leave a coordinator and to report buffering state; normal clients rarely call it, but it is advertised. Everything here operates on group members identified by MemberID.</p>
-<p><strong>Technical description:</strong> Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x2</code></li>
@@ -2406,7 +2409,10 @@
 <h3 id="addmember"><code>AddMember</code><a class="headerlink" href="#addmember" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Joins the calling member (MemberID + BootSeq) to this group. Returns the coordinator's current URI, the joined group UUID, volume/reset hints and transport settings so the new member can align playback.</p>
-<p><strong>Technical description:</strong> Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x8] -&gt; CurrentTransportSettings + out fields via req-&gt;v[+0x24].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x8] -&gt; CurrentTransportSettings + out fields via req-&gt;v[+0x24].</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2495,6 +2501,8 @@
 <li><strong><code>CurrentTransportSettings</code></strong> — serialized group transport settings blob returned on success</li>
 <li>validation: emitted via req-&gt;v[+0x24/+0x28] response writer vfunc</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2583,6 +2591,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2610,7 +2619,10 @@
 <h3 id="removemember"><code>RemoveMember</code><a class="headerlink" href="#removemember" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Removes MemberID from the group.</p>
-<p><strong>Technical description:</strong> Removes MemberID from the group via impl-&gt;v[+0xc] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0xc] -&gt; empty commit via req-&gt;v[+0x0c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Removes MemberID from the group via impl-&gt;v[+0xc] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0xc] -&gt; empty commit via req-&gt;v[+0x0c].</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2637,6 +2649,8 @@
 <li>validation: required; req-&gt;v[+0x1c] lookup + f_1056157c conversion; validate fail -&gt; 402</li>
 <li>buffer cap: <code>0x19</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2706,6 +2720,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2725,7 +2740,10 @@
 <h3 id="reporttrackbufferingresult"><code>ReportTrackBufferingResult</code><a class="headerlink" href="#reporttrackbufferingresult" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Member-to-coordinator feedback of a buffering result code for a track fetch. NOTE: the implementation always returns error 402 in this build - the action exists on the wire but does nothing.</p>
-<p><strong>Technical description:</strong> Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl-&gt;v[+0x10] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x10] -&gt; empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl-&gt;v[+0x10] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x10] -&gt; empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2762,6 +2780,8 @@
 <li>validation: required; req-&gt;v[+0x1c] lookup + f_10561514 conversion; validate fail -&gt; 402</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2821,6 +2841,7 @@
 <li>req-&gt;v[+0x08] returned 0 -&gt; addi r4,0x192 -&gt; -&gt;v[+0x14]</li>
 <li>impl f_105c53d0 always returns 0x192</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2840,7 +2861,10 @@
 <h3 id="setsourceareaids"><code>SetSourceAreaIds</code><a class="headerlink" href="#setsourceareaids" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Sets the group's desired source-area ids (used to steer which zone's content the group plays).</p>
-<p><strong>Technical description:</strong> Sets the group's desired source-area ids via impl-&gt;v[+0x14] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x14] -&gt; empty commit.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the group's desired source-area ids via impl-&gt;v[+0x14] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -&gt; req-&gt;v[+0x08] validate (fail -&gt; 402) -&gt; impl-&gt;v[+0x14] -&gt; empty commit.</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2867,6 +2891,8 @@
 <li>validation: required; req-&gt;v[+0x1c] lookup + f_1056157c conversion; validate fail -&gt; 402</li>
 <li>buffer cap: <code>0x4c5</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2925,6 +2951,7 @@
 <ul>
 <li>req-&gt;v[+0x08] returned 0 -&gt; addi r4,0x192 -&gt; -&gt;v[+0x14]</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3026,27 +3053,41 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>groupManagement</code>, <code>groupCoordinatorChanged</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> group-coordination event pool: 'DelegatedGroupCoordinatorID','LocalGroupUUID','VirtualLineInGroupID','ZoneNameChangedEvent' names recovered; delivered via internal bus + GENA/WSS</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 34, name: groupManagement, id: 136, tag: 70</li>
 <li>idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Dispatcher 0x10738308 decodes fully: binary-search over action table 0x10f11a64; <em>(svc+4) impl NULL -&gt; 401; handler args {svc-adj, req, impl=</em>(svc+4)}; impl vfuncs +0x08 AddMember / +0x0c RemoveMember / +0x10 ReportTrackBufferingResult / +0x14 SetSourceAreaIds; svc object embedded at ctx+0x3fa44 (ctor f_107389bc); px bound at runtime (group-init path), impl class unproven.</p>
+</details>
 <h2 id="additional-records">Additional records<a class="headerlink" href="#additional-records" title="Permanent link">&para;</a></h2>
 <h3 id="implementation_notes"><code>implementation_notes</code><a class="headerlink" href="#implementation_notes" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>source:</strong> gm_impl.cxx + grc_zpimpl.cxx literals 0x10ec300c-0x10ec45cc; scopeGm/scopeGrc; gm_events log fmt "(%2d) add|rem %s / grp %s %s"</li>
 <li><strong>addmember_validation:</strong> <code>ungroupable player rejected (gcUUID+memberID logged)</code>, <code>invalid argument</code>, <code>satellite cannot accept members</code>, <code>incompatible member</code>, <code>invisibility/node-proto compat check</code>, <code>bootseq out-of-sync GM</code>, <code>duplicate member</code></li>
 <li><strong>config:</strong> configure group %d: {fd,bgc,dgc,c,oc} tuple; ChangeCoordinator + DelegateGC ("delaying delegation by %d ms","delegating with member list %s new gc %s"); topology monitor starts on GC change</li>
 <li><strong>vli_session:</strong> vli session end evt -&gt; VliSessionProcessingCompleteEvent (async task)</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/gm_impl.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

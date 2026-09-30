@@ -1,8 +1,14 @@
 # Muse spec-pair streams (auto-extracted)
 
+The field catalog behind the modern REST API. Every request or response body is a set of named fields with declared types — this page lists, for each API operation, which fields it accepts or produces and what type each one is. `globalError` rows name the error payloads an operation can return; rows marked `upnpEvent` are pushed to subscribers rather than returned on request.
+
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Each row is `{member_name_idx, type_name_idx}` decoded through the 331-entry name table at 0x10f97094.
 `ffffffff`/`ffffffff` terminates a stream. `globalError` rows enumerate the error/variant payload types an op may produce;
 `ok`/named members with `upnpEvent` are event-delivered payloads.
+
+</details>
 
 ## stream @ 0x10f9fc74 (n=22)
 adjacent verb/param pool: `getAlarms`, `fetchAlarm`, `createAlarm`, `updateAlarm`, `snoozeAlarm`, `removeAlarm`

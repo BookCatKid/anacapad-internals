@@ -4,7 +4,11 @@
 
 The playback engine of the zone - the largest service. Covers transport control (Play/Pause/Stop/Next/Previous), seeking, source selection via URIs and metadata, play modes and crossfade, the implicit playback queue (add/remove/reorder/clear), saved queues, group coordination transfer (one player handing the coordinator role to another, with full state snapshots), alarms/sleep timers, and Sonos-specific extras like autoplay and direct-control sessions. InstanceID is always 0. Many mutating actions take UpdateID for optimistic concurrency: pass the last queue UpdateID you saw and the call fails if the queue changed underneath you.
 
-**Technical description:** UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc+4)). Impl vfuncs live in a large vtable (A=0x10eaf2ec standalone, B=0x10edfbb8 group-aware; identical except SetAVTransportURI and the three Become*Coordinator* ops). All impls serialize on mutex impl+0x458 and dispatch on the transport-source mode enum at impl+0x4654: 2=indexed/queue (requests submitted to impl+0x580 via f_10255f64/f_10256a84), others reach the streamer session at impl+0x5a0 via op-0x19 submission f_102aff9c on impl+0x5dc.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc+4)). Impl vfuncs live in a large vtable (A=0x10eaf2ec standalone, B=0x10edfbb8 group-aware; identical except SetAVTransportURI and the three Become*Coordinator* ops). All impls serialize on mutex impl+0x458 and dispatch on the transport-source mode enum at impl+0x4654: 2=indexed/queue (requests submitted to impl+0x580 via f_10255f64/f_10256a84), others reach the streamer session at impl+0x5a0 via op-0x19 submission f_102aff9c on impl+0x5dc.
+
+</details>
 
 ## Availability
 
@@ -13,7 +17,11 @@ The playback engine of the zone - the largest service. Covers transport control 
 - enabled gate: `xor(*(r3-in+0x571c))` at `0x10195684` (field_inverted)
 - Registered unconditionally at zoneplayer init (ctor f_102fc9c0 for the svc wrapper at ctx+off). Whether the engine impl is the A or B class depends on grouping state - unresolved selection point.
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 **Visibility note:** always advertised: Control+Event routes registered unconditionally in the static route table and the impl vtable is constructed unconditionally at ZP init; no feature-gate found anywhere in the service-registration path (same pattern as other 'advertised' services)
+
+</details>
 
 ## Dispatch
 
@@ -74,7 +82,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Bulk-enqueues tracks into the implicit playback queue. EnqueuedURIs and EnqueuedURIMetaData are parallel lists (count must equal NumberOfURIs); DesiredFirstTrackNumberEnqueued positions them, EnqueueAsNext inserts after the current track. ContainerURI/ContainerMetaData describe the source list itself. UpdateID guards against concurrent queue edits. Returns where the tracks landed, how many were added, and the new length/UpdateID.
 
-**Technical description:** Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-calling worker f_102b7000, which runs the shared boilerplate (name string from impl+0x3dc, impl+0x458 lock, f_102a5718 submission check, f_100caad8 change emit) and walks the EnqueuedURIs list.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-calling worker f_102b7000, which runs the shared boilerplate (name string from impl+0x3dc, impl+0x458 lock, f_102a5718 submission check, f_100caad8 change emit) and walks the EnqueuedURIs list.
+
+</details>
 
 #### Inputs
 
@@ -126,6 +138,8 @@ Bulk-enqueues tracks into the implicit playback queue. EnqueuedURIs and Enqueued
   - validation: written from the queue record length after the mutation
 - **`NewUpdateID`** — Written by the enqueue worker on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -216,6 +230,9 @@ Request parse layer rejected an argument before the impl was invoked.; impl-side
 
 URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb7e8`
@@ -236,7 +253,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds one track URI (+DIDL-Lite metadata) to the playback queue. DesiredFirstTrackNumberEnqueued picks the position (0 = append), EnqueueAsNext inserts right after the current track. Returns the 1-based position where it landed and tracks actually added.
 
-**Technical description:** Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls shared enqueue worker f_102b6948(engine, args..., 0). The worker logs "avt_impl" "Add to queue %u; URI: %s" and "Add to queue %u; MD: %s", takes the impl+0x458 lock, and performs the enqueue through the queue/session machinery.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls shared enqueue worker f_102b6948(engine, args..., 0). The worker logs "avt_impl" "Add to queue %u; URI: %s" and "Add to queue %u; MD: %s", takes the impl+0x458 lock, and performs the enqueue through the queue/session machinery.
+
+</details>
 
 #### Inputs
 
@@ -273,6 +294,8 @@ Adds one track URI (+DIDL-Lite metadata) to the playback queue. DesiredFirstTrac
   - validation: worker-written count record
 - **`NewQueueLength`** — Written by the enqueue worker on success.
   - validation: written from the queue record length after the mutation
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -367,6 +390,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks. The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102facf8`
@@ -387,7 +413,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a track to a saved queue identified by ObjectID at AddAtIndex. Returns counts and a NewUpdateID for that queue.
 
-**Technical description:** Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.
+
+</details>
 
 #### Inputs
 
@@ -427,6 +457,8 @@ Adds a track to a saved queue identified by ObjectID at AddAtIndex. Returns coun
   - validation: written from the queue record length after the mutation
 - **`NewUpdateID`** — Written by the f_10479fb8 worker on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -527,6 +559,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb2d8`
@@ -547,7 +582,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Persists the current playback queue to flash so it survives reboot.
 
-**Technical description:** Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0 — backing up an empty queue is a silent success no-op. Otherwise it builds the "trackqueue"/"trackqueue.rsq" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0 — backing up an empty queue is a silent success no-op. Otherwise it builds the "trackqueue"/"trackqueue.rsq" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.
+
+</details>
 
 #### Inputs
 
@@ -557,6 +596,8 @@ Persists the current playback queue to flash so it survives reboot.
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -659,6 +700,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the same .rsq container trackqueue.rsq uses for the live queue backup.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8db0`
@@ -679,7 +723,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Makes this player coordinate the standalone group it belongs to; returns the coordinator id and new group id. Used in group rebuild flows.
 
-**Technical description:** Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs "avt_impl" "BecomeCoordinatorOfStandaloneGroup", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs "avt_impl" "BecomeCoordinatorOfStandaloneGroup", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+
+</details>
 
 #### Inputs
 
@@ -701,6 +749,8 @@ Makes this player coordinate the standalone group it belongs to; returns the coo
   - validation: output written by the promotion path when it selects a member
 - **`NewGroupID`** — Group/coordinator identity written by the promotion path on success.
   - validation: written from the group record on success
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -801,6 +851,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513244 - grouped gate: topology singleton + state predicate + f_1075c4d0 precondition on impl+0x44c; error path uses 0x3ff (1023). Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8b04`
@@ -824,7 +877,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Bulk state-transfer: this player takes over as group coordinator, receiving the previous coordinator's complete transport/queue/alarm/sleep state in the arguments (TransportSettings, CurrentQueueTrackList, member list, etc.). Nothing is read from arg descriptors - the handler forwards the whole blob.
 
-**Technical description:** Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs "avt_impl" "BecomeGroupCoordinator", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs "avt_impl" "BecomeGroupCoordinator", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+
+</details>
 
 #### Inputs
 
@@ -879,6 +936,8 @@ Bulk state-transfer: this player takes over as group coordinator, receiving the 
 - **`CurrentVLIState`** — serialized virtual-line-in state blob
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -963,6 +1022,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105133e4 - delegates verbatim to class-A impl 0x102de740 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc8b0`
@@ -985,7 +1047,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Like BecomeGroupCoordinator but also transfers the audio source state (CurrentAVTTrackList, CurrentSourceState, ResumePlayback flag) so the new coordinator continues the same source.
 
-**Technical description:** Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+
+</details>
 
 #### Inputs
 
@@ -1044,6 +1110,8 @@ Like BecomeGroupCoordinator but also transfers the audio source state (CurrentAV
 - **`ResumePlayback`** — whether to resume playback after the handoff
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1128,6 +1196,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105134a8 - delegates verbatim to class-A impl 0x102df410 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc3a0`
@@ -1151,7 +1222,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Asks this coordinator to hand coordination to NewCoordinator, carrying the current transport settings and URI so playback continues; RestartSink controls whether the sink restarts.
 
-**Technical description:** Reassigns group coordination from one member to another with transport-settings handover. Impl f_102af490 logs "change coordinator: old = %s, new = %s, ts = %s, uri = %s" on the avt_impl channel, then under impl+0x458 enforces InstanceID==0 (718) and runs the coordinator-change path taking CurrentCoordinator, NewCoordinator, NewTransportSettings, CurrentAVTransportURI and RestartSink.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reassigns group coordination from one member to another with transport-settings handover. Impl f_102af490 logs "change coordinator: old = %s, new = %s, ts = %s, uri = %s" on the avt_impl channel, then under impl+0x458 enforces InstanceID==0 (718) and runs the coordinator-change path taking CurrentCoordinator, NewCoordinator, NewTransportSettings, CurrentAVTransportURI and RestartSink.
+
+</details>
 
 #### Inputs
 
@@ -1176,6 +1251,8 @@ Asks this coordinator to hand coordination to NewCoordinator, carrying the curre
   - buffer cap: `0x401`
 - **`RestartSink`** — Flag requesting a sink restart on the new coordinator.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1278,6 +1355,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa3ec`
@@ -1298,7 +1378,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Applies a new TransportSettings blob (play state, mode, etc.) to the current URI - used when a group coordinator pushes state to members.
 
-**Technical description:** Installs new transport settings — the VLI/direct-control path. Impl f_102b1d40 logs "avt_impl" "%s: ts = %s \[%s\]" then locks impl+0x458: InstanceID!=0 -> 718 and impl+0x4654 must be 0 — this action is IDLE-ONLY, the inverse of the mode-1|2 actions; any active transport returns 800. It memcpy's a 0x38-byte settings record, parses NewTransportSettings via f_103917b4, checks source state via f_102b0a48, logs "ChangeTransportSettings(): stopping local VLI (txs=%s)" on the vli channel and stops the local VLI via f_106aa3b0, manipulates bit-flags at impl+0x5b4, logs "vli src tx settings sntp port: %u", then "ChangeTransportSettings installClock" -> f_109876d8 + f_106aa13c + a vfunc bctrl installs a clock, finishing with f_1030f7f8(0,0).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Installs new transport settings — the VLI/direct-control path. Impl f_102b1d40 logs "avt_impl" "%s: ts = %s \[%s\]" then locks impl+0x458: InstanceID!=0 -> 718 and impl+0x4654 must be 0 — this action is IDLE-ONLY, the inverse of the mode-1|2 actions; any active transport returns 800. It memcpy's a 0x38-byte settings record, parses NewTransportSettings via f_103917b4, checks source state via f_102b0a48, logs "ChangeTransportSettings(): stopping local VLI (txs=%s)" on the vli channel and stops the local VLI via f_106aa3b0, manipulates bit-flags at impl+0x5b4, logs "vli src tx settings sntp port: %u", then "ChangeTransportSettings installClock" -> f_109876d8 + f_106aa13c + a vfunc bctrl installs a clock, finishing with f_1030f7f8(0,0).
+
+</details>
 
 #### Inputs
 
@@ -1314,6 +1398,8 @@ Applies a new TransportSettings blob (play state, mode, etc.) to the current URI
   - buffer cap: `0x81`
 - **`CurrentAVTransportURI`** — Source URI forwarded into the settings application path.
   - buffer cap: `0x401`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1416,6 +1502,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f95b8`
@@ -1436,7 +1525,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets a sleep timer that fades playback out after NewSleepTimerDuration ('HH:MM:SS').
 
-**Technical description:** Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration — an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2} — any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration — an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2} — any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.
+
+</details>
 
 #### Inputs
 
@@ -1449,6 +1542,8 @@ Sets a sleep timer that fades playback out after NewSleepTimerDuration ('HH:MM:S
   - buffer cap: `0x18`
 - **`NewSleepTimerDuration`** — Duration string parsed by shared parser f_10c3d2c4 (same routine SnoozeAlarm uses); empty string bypasses parsing and cancels the timer.
   - buffer cap: `0x40`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1546,6 +1641,9 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 **Bounded unknown — unresolved:** concrete nonzero codes f_102b4c1c can produce for a valid mode/seconds pair
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9878`
@@ -1566,7 +1664,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Creates a new named saved queue containing one initial track (EnqueuedURI + metadata) and returns its AssignedObjectID plus queue stats.
 
-**Technical description:** Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 718-gate that dispatches into the saved-queue subsystem worker f_10479bb4 (via an atomic-init guarded entry). Title, EnqueuedURI/EnqueuedURIMetaData and the out params are forwarded positionally.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 718-gate that dispatches into the saved-queue subsystem worker f_10479bb4 (via an atomic-init guarded entry). Title, EnqueuedURI/EnqueuedURIMetaData and the out params are forwarded positionally.
+
+</details>
 
 #### Inputs
 
@@ -1603,6 +1705,8 @@ Creates a new named saved queue containing one initial track (EnqueuedURI + meta
   - validation: copied from the queue record update counter state+0xec
 - **`AssignedObjectID`** — Written by the f_10479bb4 worker on success.
   - validation: output of the create path
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1703,6 +1807,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. Persistence: worker builds a job record (vtable 0x10ec7be0 via f_103d1aec), bumps the saved-queue update counter *(state+0xec) by +1, and serializes to "savedqueues.rsq" - the same .rsq format the queue playlist classifier loads.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb0b0`
@@ -1724,7 +1831,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Hands the coordinator role to NewCoordinator. RejoinGroup controls whether this player stays as a member; ClearSource (added in 86.10) controls whether it drops the source.
 
-**Technical description:** Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 — that specific code is treated as success — while every other code passes through verbatim.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 — that specific code is treated as success — while every other code passes through verbatim.
+
+</details>
 
 #### Inputs
 
@@ -1743,6 +1854,8 @@ Hands the coordinator role to NewCoordinator. RejoinGroup controls whether this 
   - buffer cap: `0x18`
 - **`ClearSource`** — Flag forwarded verbatim to f_102ddae8 — requests clearing the current source during delegation.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1834,6 +1947,9 @@ worker rc returned verbatim except 803->0
 **Bounded unknown — unresolved:** the full rc vocabulary of f_102ddae8 (delegation refusal reasons)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa26c`
@@ -1854,7 +1970,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Ends a cloud/direct-control playback session, returning the player to normal UPnP control.
 
-**Technical description:** Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags "end VLI" and "end direct control". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) — the same cleanup Play/Stop use — then returns 0 unconditionally.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags "end VLI" and "end direct control". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) — the same cleanup Play/Stop use — then returns 0 unconditionally.
+
+</details>
 
 #### Inputs
 
@@ -1864,6 +1984,8 @@ Ends a cloud/direct-control playback session, returning the player to normal UPn
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1956,6 +2078,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8e9c`
@@ -1976,7 +2101,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether crossfade between tracks is enabled.
 
-**Technical description:** Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplate: builds a scoped context from the impl+0x3dc name string, RAII-locks impl+0x458, returns 718 on InstanceID!=0; the body fills the CrossfadeMode out byte from engine state.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplate: builds a scoped context from the impl+0x3dc name string, RAII-locks impl+0x458, returns 718 on InstanceID!=0; the body fills the CrossfadeMode out byte from engine state.
+
+</details>
 
 #### Inputs
 
@@ -1995,6 +2124,8 @@ Returns whether crossfade between tracks is enabled.
 
 - **`CrossfadeMode`** — Current crossfade flag as a byte; which engine field feeds it is unresolved.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2075,6 +2206,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc28c`
@@ -2096,7 +2230,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the actions currently legal for this source as a CSV (e.g. 'Play,Pause,Stop,Seek') - depends on the stream type and capabilities, so poll it rather than assuming.
 
-**Technical description:** Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -> *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -> *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.
+
+</details>
 
 #### Inputs
 
@@ -2115,6 +2253,8 @@ Returns the actions currently legal for this source as a CSV (e.g. 'Play,Pause,S
 
 - **`Actions`** — Comma-separated transport action names currently legal for the active source.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2201,6 +2341,9 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - InstanceID argument was nonzero (the engine only accepts instance 0)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f884c`
@@ -2225,7 +2368,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns what media this player can play/record and its recording quality modes.
 
-**Technical description:** Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4 shares the getter boilerplate; no InstanceID input on this action per the extractor's arg map.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4 shares the getter boilerplate; no InstanceID input on this action per the extractor's arg map.
+
+</details>
 
 #### Inputs
 
@@ -2251,6 +2398,8 @@ Returns what media this player can play/record and its recording quality modes.
   - validation: impl-written out arg
 - **`RecQualityModes`** — Supported record quality modes.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2331,6 +2480,9 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8970`
@@ -2357,7 +2509,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns metadata about the current media source: track count and duration, current/next URIs + metadata, and the medium (queue, stream, line-in) - i.e. what container is loaded rather than where playback is within it (use GetPositionInfo for that).
 
-**Technical description:** Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).
+
+</details>
 
 #### Inputs
 
@@ -2401,6 +2557,8 @@ Returns metadata about the current media source: track count and duration, curre
   - validation: impl-written out arg
 - **`WriteStatus`** — Write-protect status string.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2481,6 +2639,9 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa9e4`
@@ -2512,7 +2673,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns where playback sits inside the media: current track number/URI/metadata, track duration, relative and absolute position times, and track counts.
 
-**Technical description:** Returns position metadata for the current track: Track number, TrackDuration, TrackMetaData, TrackURI, RelTime, AbsTime, RelCount, AbsCount. Impl f_102b1a88 is the widest getter (~10 out pointers in r5-r10+stack); mode impl+0x4654 selects whether position comes from the indexed engine or the streamer session.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns position metadata for the current track: Track number, TrackDuration, TrackMetaData, TrackURI, RelTime, AbsTime, RelCount, AbsCount. Impl f_102b1a88 is the widest getter (~10 out pointers in r5-r10+stack); mode impl+0x4654 selects whether position comes from the indexed engine or the streamer session.
+
+</details>
 
 #### Inputs
 
@@ -2553,6 +2718,8 @@ Returns where playback sits inside the media: current track number/URI/metadata,
   - validation: impl-written out arg
 - **`AbsCount`** — Absolute byte/frame count.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2633,6 +2800,9 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fbda4`
@@ -2661,7 +2831,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the time left on the sleep timer and the timer generation counter.
 
-**Technical description:** Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102ada98 shares the getter boilerplate; reads the sleep-timer fields from the engine.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102ada98 shares the getter boilerplate; reads the sleep-timer fields from the engine.
+
+</details>
 
 #### Inputs
 
@@ -2684,6 +2858,8 @@ Returns the time left on the sleep timer and the timer generation counter.
   - validation: impl-written out arg
 - **`CurrentSleepTimerGeneration`** — Monotonic generation counter identifying the timer instance.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2770,6 +2946,9 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl worker returns an 800-class store/commit fault
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb518`
@@ -2794,7 +2973,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 If an alarm is currently ringing, returns its ID, group and the logged start time.
 
-**Technical description:** Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.
+
+</details>
 
 #### Inputs
 
@@ -2820,6 +3003,8 @@ If an alarm is currently ringing, returns its ID, group and the logged start tim
   - validation: impl-written out arg
 - **`LoggedStartTime`** — Start timestamp as logged by the alarm scheduler.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2900,6 +3085,9 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 - impl worker returns an 800-class store/commit fault
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fb664`
@@ -2925,7 +3113,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns transport state (PLAYING/PAUSED_PLAYBACK/STOPPED/TRANSITIONING), status and speed.
 
-**Technical description:** Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -> indexed fill path 0x102b1a44; ==1 -> 0x102b19c8; else -> f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -> indexed fill path 0x102b1a44; ==1 -> 0x102b19c8; else -> f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.
+
+</details>
 
 #### Inputs
 
@@ -2951,6 +3143,8 @@ Returns transport state (PLAYING/PAUSED_PLAYBACK/STOPPED/TRANSITIONING), status 
   - validation: impl-written out arg
 - **`CurrentSpeed`** — Playback speed string - normally 1.
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3026,6 +3220,9 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - InstanceID argument was nonzero (the engine only accepts instance 0)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fbb60`
@@ -3054,7 +3251,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quality mode.
 
-**Technical description:** Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerplate; PlayMode reflects the enum written by SetPlayMode (NORMAL..SHUFFLE_REPEAT_ONE mapped back to its string).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerplate; PlayMode reflects the enum written by SetPlayMode (NORMAL..SHUFFLE_REPEAT_ONE mapped back to its string).
+
+</details>
 
 #### Inputs
 
@@ -3077,6 +3278,8 @@ Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quali
   - validation: impl-written out arg
 - **`RecQualityMode`** — Record quality mode string (NOT_IMPLEMENTED typical).
   - validation: impl-written out arg
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3157,6 +3360,9 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - InstanceID parses to nonzero / session object fails to resolve
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8340`
@@ -3182,7 +3388,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Skips to the next track in the queue. Faults (typically 711/701 family) if the current source doesn't support skipping.
 
-**Technical description:** Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->711, else->701}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->711, else->701}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.
+
+</details>
 
 #### Inputs
 
@@ -3192,6 +3402,8 @@ Skips to the next track in the queue. Faults (typically 711/701 family) if the c
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3301,6 +3513,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8674`
@@ -3323,7 +3538,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Tells the player a URI it may have queued has been deleted from the server so it can drop or skip it.
 
-**Technical description:** Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) — the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs "job"/"deleted uri", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec) — likely triggering source-failover or stop behavior for the deleted content.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) — the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs "job"/"deleted uri", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec) — likely triggering source-failover or stop behavior for the deleted content.
+
+</details>
 
 #### Inputs
 
@@ -3336,6 +3555,8 @@ Tells the player a URI it may have queued has been deleted from the server so it
   - buffer cap: `0x18`
 - **`DeletedURI`** — URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.
   - buffer cap: `0x401`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3432,6 +3653,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f912c`
@@ -3452,7 +3676,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Pauses playback. Only valid while playing; faults on sources that can't pause.
 
-**Technical description:** Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.
+
+</details>
 
 #### Inputs
 
@@ -3462,6 +3690,8 @@ Pauses playback. Only valid while playing; faults on sources that can't pause.
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3557,6 +3787,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8588`
@@ -3579,7 +3812,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Starts or resumes playback. Speed selects the rate - '1' is normal; fractional rate strings select slower/faster trick-play on sources that support it.
 
-**Technical description:** Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.
+
+</details>
 
 #### Inputs
 
@@ -3593,6 +3830,8 @@ Starts or resumes playback. Speed selects the rate - '1' is normal; fractional r
 - **`Speed`** — Playback speed string; impl does strcmp(Speed,"1") - ONLY the exact string '1' is accepted, any other value (including '1.0' or '') returns SOAP fault 717.
   - special values: `1` = the only accepted speed
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3691,6 +3930,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9244`
@@ -3712,7 +3954,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Skips back to the previous track.
 
-**Technical description:** Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998: lock impl+0x458, log 'upnp'/'previous', call f_102b6214. mode!=2 -> f_102b01b4 (submit op-0x19 then streamer prev vfunc at *(impl+0x5a0); streamer nonzero=ok). mode==2 -> FIRST checks capability: f_10258ab0(impl+0x580,0,1) bit 0x00100000 - if the source cannot skip back, returns success WITHOUT submitting anything (silent no-op). If capable: f_102b5ddc, build rec, submit f_10255f64; nonzero rc -> 711, zero -> clear impl+0x6ed8 + return 0.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998: lock impl+0x458, log 'upnp'/'previous', call f_102b6214. mode!=2 -> f_102b01b4 (submit op-0x19 then streamer prev vfunc at *(impl+0x5a0); streamer nonzero=ok). mode==2 -> FIRST checks capability: f_10258ab0(impl+0x580,0,1) bit 0x00100000 - if the source cannot skip back, returns success WITHOUT submitting anything (silent no-op). If capable: f_102b5ddc, build rec, submit f_10255f64; nonzero rc -> 711, zero -> clear impl+0x6ed8 + return 0.
+
+</details>
 
 #### Inputs
 
@@ -3722,6 +3968,8 @@ Skips back to the previous track.
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3826,6 +4074,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8760`
@@ -3848,7 +4099,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Clears the implicit playback queue entirely.
 
-**Technical description:** Removes every track from the local queue. Impl f_102b3bf4 delegates to shared worker f_102b3a84(engine,0,0): it formats its first arg with snprintf("%u") and compares it against stored queue-id strings inside the indexed session impl+0x580 (fields +0x2d8ec skip-match and +0x2fff4 match); the hardcoded selector 0 targets the default queue. When the selector matches, f_10149b24 iterates the queue-list object at session+0x2ff98 and f_102b397c performs the removal; a selector mismatch yields 718.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes every track from the local queue. Impl f_102b3bf4 delegates to shared worker f_102b3a84(engine,0,0): it formats its first arg with snprintf("%u") and compares it against stored queue-id strings inside the indexed session impl+0x580 (fields +0x2d8ec skip-match and +0x2fff4 match); the hardcoded selector 0 targets the default queue. When the selector matches, f_10149b24 iterates the queue-list object at session+0x2ff98 and f_102b397c performs the removal; a selector mismatch yields 718.
+
+</details>
 
 #### Inputs
 
@@ -3858,6 +4113,8 @@ Clears the implicit playback queue entirely.
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3948,6 +4205,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8cc4`
@@ -3968,7 +4228,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes the queued track identified by ObjectID (track object id), guarded by UpdateID for optimistic concurrency.
 
-**Technical description:** Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028) — optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028) — optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.
+
+</details>
 
 #### Inputs
 
@@ -3984,6 +4248,8 @@ Removes the queued track identified by ObjectID (track object id), guarded by Up
   - buffer cap: `0x400`
 - **`UpdateID`** — Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -4086,6 +4352,9 @@ Request parse layer rejected an argument before the impl was invoked.
 - Missing or unparseable input argument at the wrapper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9aa8`
@@ -4106,7 +4375,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes NumberOfTracks consecutive tracks starting at 1-based StartingIndex; returns the NewUpdateID.
 
-**Technical description:** Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work — StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector "0" via snprintf("%u") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match — selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work — StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector "0" via snprintf("%u") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match — selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.
+
+</details>
 
 #### Inputs
 
@@ -4134,6 +4407,8 @@ Removes NumberOfTracks consecutive tracks starting at 1-based StartingIndex; ret
 
 - **`NewUpdateID`** — New queue update-id written by the worker through the out pointer after a successful removal.
   - validation: copied from the queue record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -4236,6 +4511,9 @@ Request parse layer rejected an argument before the impl was invoked.
 - Missing or unparseable input argument at the wrapper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102faf24`
@@ -4256,7 +4534,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Moves a run of tracks (StartingIndex + NumberOfTracks) to InsertBefore within the queue, UpdateID-guarded.
 
-**Technical description:** Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work — StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector — the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work — StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector — the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).
+
+</details>
 
 #### Inputs
 
@@ -4278,6 +4560,8 @@ Moves a run of tracks (StartingIndex + NumberOfTracks) to InsertBefore within th
   - buffer cap: `0x18`
 - **`UpdateID`** — Optimistic-concurrency token handled by the shared worker (nonzero must match current queue update-id, as in RemoveTrackRangeFromQueue).
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -4369,6 +4653,9 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 **Bounded unknown — unresolved:** UpdateID-mismatch and mode codes from the shared worker family (1028/800 there) — which apply here is not fully traced
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f8f88`
@@ -4389,7 +4676,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Rewrites a saved queue's ordering from TrackList/NewPositionList; returns length change and new UpdateID.
 
-**Technical description:** Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gate dispatching into saved-queue worker f_1047a3bc. ObjectID, UpdateID, TrackList/NewPositionList and the out params are forwarded positionally.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gate dispatching into saved-queue worker f_1047a3bc. ObjectID, UpdateID, TrackList/NewPositionList and the out params are forwarded positionally.
+
+</details>
 
 #### Inputs
 
@@ -4426,6 +4717,8 @@ Rewrites a saved queue's ordering from TrackList/NewPositionList; returns length
   - validation: written from the queue record length after the mutation
 - **`NewUpdateID`** — Written by the f_1047a3bc worker on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -4526,6 +4819,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc078`
@@ -4546,7 +4842,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Server-driven 'fire this alarm now' trigger carrying the full alarm definition - used internally when an alarm goes off; also useful for testing alarm playback.
 
-**Technical description:** Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc — the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc — the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.
+
+</details>
 
 #### Inputs
 
@@ -4580,6 +4880,8 @@ Server-driven 'fire this alarm now' trigger carrying the full alarm definition -
   - buffer cap: `0x18`
 - **`IncludeLinkedZones`** — Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -4670,6 +4972,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm state through the duration/time helper family (0x1108b284/f_10c3eb60).
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc4ac`
@@ -4690,7 +4995,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Saves the current playback queue as a named saved queue (Title); ObjectID selects an existing saved queue to overwrite. Returns AssignedObjectID.
 
-**Technical description:** Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \r or \n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) — the same persistence/path helper BackupQueue uses — storing the queue under the given ObjectID and writing the assigned object id.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \r or \n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) — the same persistence/path helper BackupQueue uses — storing the queue under the given ObjectID and writing the assigned object id.
+
+</details>
 
 #### Inputs
 
@@ -4715,6 +5024,8 @@ Saves the current playback queue as a named saved queue (Title); ObjectID select
 
 - **`AssignedObjectID`** — Object id assigned to the new saved queue, written by f_10146e94 through the out pointer.
   - validation: output of the persistence path f_10146e94
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -4818,6 +5129,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f96fc`
@@ -4839,7 +5153,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Repositions playback. Unit selects the seek mode: TRACK_NR jumps to a track number, REL_TIME seeks to 'HH:MM:SS' from track start, TIME_DELTA does a relative jump. Parsing is lenient (numeric prefixes accepted, trailing junk ignored) but the accepted Unit set and the semantics depend on whether the source is indexed or streamed - a request can be accepted yet ignored downstream, so check GetPositionInfo after seeking.
 
-**Technical description:** Repositions playback within the current transport source, dispatched to the zone-player engine as impl vfunc +0x34 -> f_102b95a8(engine,InstanceID,Unit,Target): queue/track ordinal seek (TRACK_NR) or time seek (REL_TIME absolute / TIME_DELTA relative).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Repositions playback within the current transport source, dispatched to the zone-player engine as impl vfunc +0x34 -> f_102b95a8(engine,InstanceID,Unit,Target): queue/track ordinal seek (TRACK_NR) or time seek (REL_TIME absolute / TIME_DELTA relative).
+
+</details>
 
 #### Inputs
 
@@ -4864,6 +5182,8 @@ Repositions playback. Unit selects the seek mode: TRACK_NR jumps to a track numb
   - validation: TRACK_NR (indexed mode only): strtol result must satisfy (t-1) <= 0xFFFD unsigned else 711; on success u16 field t&0xffff is recorded in the rchsrcreq tag-8 record (the truncation is field-width only; the range check ran on the raw strtol value, so no wrap-to-valid exists). REL_TIME/TIME_DELTA: f_102ab830 failure -> 711 indexed / 701 stream; indexed-mode leading '-' under REL_TIME -> 711; indexed-mode zero magnitude -> silent success no-op; stream mode performs no sign or zero gating. Missing/unparsable at the request layer -> 402.
   - Track normalization: strtol -> record field = value & 0xffff -> range check on the RAW value (raw-1 <= 0xFFFD). Ordering means the stored u16 equals the input for every accepted value; masking cannot wrap an out-of-range ordinal into range.
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation
 
@@ -4964,6 +5284,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x10eaf320 and 0x10edfbec both resolve slot +0x34 to it). f_102b95a8(engine,inst,unit,target): inst!=0 -> 718; else f_102b9088(engine,unit,target). Internal callers of the same engine exist (f_102b9464 seeks REL_TIME '00:00:00' as a reset). Accepted Units are mode-dependent, not a single static enum.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f935c`
@@ -4987,7 +5310,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Loads a new source: a track/stream URI plus its DIDL-Lite metadata. This is how a client starts a radio stream or a file URI - the previous queue position is not implied; you typically call Play afterwards.
 
-**Technical description:** Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+
+</details>
 
 #### Inputs
 
@@ -5001,6 +5328,8 @@ Loads a new source: a track/stream URI plus its DIDL-Lite metadata. This is how 
   - buffer cap: `0x18`
 - **`CurrentURI`** — Playback URI installed by the shared worker.
   - buffer cap: `0x401`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5101,6 +5430,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513230 - group worker f_10512bc0 with extra descriptor arg 0x10ea6a2c. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa71c`
@@ -5121,7 +5453,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Turns crossfade on or off.
 
-**Technical description:** Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock impl+0x458, log 'upnp'/'change crossfade', call f_102b26dc. The worker REQUIRES mode impl+0x4654==2 (indexed) - anything else -> 712 immediately. In indexed mode it further requires f_101471f0(impl+0x5dc)!=0 AND strncmp(current URI,'x-sonosapi-hls:',15)!=0 AND f_101475dc!=0 (crossfade-capable, non-HLS source). When the source cannot crossfade: arg==0 still succeeds silently, arg!=0 -> 712. When capable: a request record (f_1032e270 + f_1032e550(rec,arg,1)) is submitted via f_10255f64(impl+0x580); success clears impl+0x6ed8.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock impl+0x458, log 'upnp'/'change crossfade', call f_102b26dc. The worker REQUIRES mode impl+0x4654==2 (indexed) - anything else -> 712 immediately. In indexed mode it further requires f_101471f0(impl+0x5dc)!=0 AND strncmp(current URI,'x-sonosapi-hls:',15)!=0 AND f_101475dc!=0 (crossfade-capable, non-HLS source). When the source cannot crossfade: arg==0 still succeeds silently, arg!=0 -> 712. When capable: a request record (f_1032e270 + f_1032e550(rec,arg,1)) is submitted via f_10255f64(impl+0x580); success clears impl+0x6ed8.
+
+</details>
 
 #### Inputs
 
@@ -5134,6 +5470,8 @@ Turns crossfade on or off.
   - buffer cap: `0x18`
 - **`CrossfadeMode`** — Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5228,6 +5566,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa158`
@@ -5250,7 +5591,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets up gapless playback: the URI + metadata that should follow the current track, so the decoder can pre-buffer it.
 
-**Technical description:** Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate — impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with "lookup of %s URIs for %s failed" topology logging on failure) — i.e. the next-track request can be delegated to the actual playback member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate — impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with "lookup of %s URIs for %s failed" topology logging on failure) — i.e. the next-track request can be delegated to the actual playback member.
+
+</details>
 
 #### Inputs
 
@@ -5264,6 +5609,8 @@ Sets up gapless playback: the URI + metadata that should follow the current trac
   - buffer cap: `0x18`
 - **`NextURI`** — URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.
   - buffer cap: `0x401`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5366,6 +5713,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fa880`
@@ -5386,7 +5736,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets play mode: NORMAL, REPEAT_ALL, REPEAT_ONE, SHUFFLE, SHUFFLE_NOREPEAT, SHUFFLE_REPEAT_ONE (exact accepted set is enforced).
 
-**Technical description:** Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: lock impl+0x458, log 'upnp'/'change play mode', call f_102b24dc(impl,mode-str) which maps the string to an enum {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}. Non-NORMAL modes require capability gates: f_10147928(impl+0x5dc)!=0 (source/queue present), f_10148308!=0 (cap), and byte impl+0x1a03 (shuffle-capable flag), else 712. Per-mode apply: mode==2 -> indexed path; mode==1 -> f_106a9e88(impl+0x5a0,1,mode_enum,0,0) streamer vfunc, its failure -> 712.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: lock impl+0x458, log 'upnp'/'change play mode', call f_102b24dc(impl,mode-str) which maps the string to an enum {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}. Non-NORMAL modes require capability gates: f_10147928(impl+0x5dc)!=0 (source/queue present), f_10148308!=0 (cap), and byte impl+0x1a03 (shuffle-capable flag), else 712. Per-mode apply: mode==2 -> indexed path; mode==1 -> f_106a9e88(impl+0x5a0,1,mode_enum,0,0) streamer vfunc, its failure -> 712.
+
+</details>
 
 #### Inputs
 
@@ -5399,6 +5753,8 @@ Sets play mode: NORMAL, REPEAT_ALL, REPEAT_ONE, SHUFFLE, SHUFFLE_NOREPEAT, SHUFF
   - buffer cap: `0x18`
 - **`NewPlayMode`** — Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5493,6 +5849,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - typed argument parse or request-shape check failed in the wrapper
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f94a0`
@@ -5515,7 +5874,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Snoozes the currently ringing alarm by Duration ('HH:MM:SS').
 
-**Technical description:** Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero — the ringing-alarm flag (else 701). It then logs "upnp"/"snooze", submits a transport op via f_102d0ac8(impl,0,0,...) — the same submission helper as the Pause fallback — calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero — the ringing-alarm flag (else 701). It then logs "upnp"/"snooze", submits a transport op via f_102d0ac8(impl,0,0,...) — the same submission helper as the Pause fallback — calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.
+
+</details>
 
 #### Inputs
 
@@ -5528,6 +5891,8 @@ Snoozes the currently ringing alarm by Duration ('HH:MM:SS').
   - buffer cap: `0x18`
 - **`Duration`** — Snooze duration parsed by shared parser f_10c3d2c4 — the same routine ConfigureSleepTimer uses.
   - buffer cap: `0x40`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5633,6 +5998,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102f9990`
@@ -5653,7 +6021,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Starts autoplay for a source: plays ProgramURI (+metadata) at the configured autoplay volume, optionally grouping linked zones; ResetVolumeAfter restores volume afterwards.
 
-**Technical description:** Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0 — sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0 — sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.
+
+</details>
 
 #### Inputs
 
@@ -5678,6 +6050,8 @@ Starts autoplay for a source: plays ProgramURI (+metadata) at the configured aut
   - buffer cap: `0x18`
 - **`ResetVolumeAfter`** — Forwarded to shared autoplay worker f_102e14e0.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5775,6 +6149,9 @@ operation overridden: autoplay suppressed because an explicit transport operatio
 
 None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) with avt_impl log "preventing autoplay because operation is overridden". Mode(engine+0x4654)==0 runs a full session reset before installing the stored autoplay URI via f_102da774.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x102fc6f4`
@@ -5795,7 +6172,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Stops playback and clears transport position.
 
-**Technical description:** Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -> 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -> 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.
+
+</details>
 
 #### Inputs
 
@@ -5805,6 +6186,8 @@ Stops playback and clears transport position.
 
 - **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -5913,6 +6296,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -6023,9 +6409,16 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - **Mechanism:** UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...
 - **LastChange variable:** LastChange
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_102e41a0 AVT event emitter: mutexed (f_10557cac) LastChange doc build using template 0x10eb29e8; e:property write at 0x102e519c; arg+0x3dc string source; f_102b733c doc-write
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -6034,22 +6427,37 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Implementation return pattern
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 AVT impl universal shape (Ghidra-verified across 15 impls): param_2(InstanceID-path)!=0 -> return 0x2ce=718; else return uVar(engine-vfunc rc). literals 1112=0x458 mutex-offset + 53/56/40/16=struct offsets are noise, not codes. real code vocab {402,718,1024,1025,1028} + engine-passthrough.
 
+</details>
+
 ## Notes
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 - Engine impl object fields recovered: +0x458 command mutex; +0x3dc name string (nonzero gates scoped logging); +0x580 indexed/chsrc session manager (f_10255f64 submit, f_10256a84 ops); +0x5a0 streamer session object (vfuncs f_106a7880 pause, f_106a7a34 next, f_106a7930 seek, f_106a9e88 mode); +0x5dc source/URI control target (cap queries f_10147928/f_101471f0/f_101475dc/f_10148308/f_10688070, precondition f_102931f0); +0x5d4 default state source; +0x4654 transport-source mode enum {0,1,2} (2=indexed/queue); +0x6ed8 pending-op field cleared on successful track/mode ops; +0x7778 cleared by Stop; +0x1a03 shuffle-capable flag; +0x5a86/+0x5a7f/+0x7764/+0x7766/+0x776c chime-restore flags; +0xaaa0 member object touched by Stop. Engine vtables: A=0x10eaf2ec, B=0x10edfbb8 - identical for all actions except SetAVTransportURI and the three Become*Coordinator* ops (B overrides to 0x10513230/0x10513244/0x105133e4/0x105134a8, the group-aware class).
 - Two engine classes implement every action: standalone (vtable 0x10eaf2ec, ctor f_102cc070) and group-capable (vtable 0x10edfbb8, ctor f_104000c4). They share all 54 vfunc slots except ctor/dtor and the four coordinator-sensitive impls (+0x08 SetAVTransportURI, +0x54 BecomeCoordinatorOfStandaloneGroup, +0xd0 BecomeGroupCoordinator, +0xd4 BecomeGroupCoordinatorAndSource). B impls gate on the zonegroup-topology singleton (global 0x110c8478 via f_1090ad44 + state predicate f_109089f0 on obj+0xcc); when ungrouped the B Become* impls tail-call the A impls verbatim.
+
+</details>
 
 ## Additional records
 
 ### `implementation_notes`
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **source:** avt_impl.cxx literal block 0x10eafc0c-0x10eb1fcc; object RAVTMediaRenderer; locks rwlW_avt/rwlR_avt; scope scopeAvt; persistence avt.txt + avt-backup-restore; queues trackqueue/ai_tracker/load_operation_manager
 - **uri_type_enum:** `rincon_uri`, `line_in`, `regular_uri`, `undefined`
 - **seek_units:** `TRACK_NR`, `REL_TIME`, `TIME_DELTA`
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/avt_impl.cxx`, `zoneplayer/trackplay{monitor,recorder}.cxx`, `zoneplayer/play_state_mgr.cxx`
 

@@ -4,7 +4,11 @@
 
 The legacy hardware line-in service. Its specification document still ships and its address is still registered, but the service is not listed in the device description and every action routes to a dead handler that always answers 'not implemented' (error 401). The feature was removed on this model - treat all six actions as dead surface, documented so clients can recognize the fault. The action entries below describe what the API used to do.
 
-**Technical description:** AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.
+
+</details>
 
 ## Availability
 
@@ -33,7 +37,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Historically started streaming this player's analog line-in to the group identified by CoordinatorID, returning the resulting transport settings. In this build it always faults 401.
 
-**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+
+</details>
 
 #### Inputs
 
@@ -59,6 +67,8 @@ Historically started streaming this player's analog line-in to the group identif
   - validation: never fetched — the reject-all dispatcher emits 401 before reading request args
   - A_ARG_TYPE_TransportSettings (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
+<details markdown="1"><summary><b>Technical analysis</b></summary>
+
 #### Validation `confirmed`
 
 n/a — fault precedes any arg validation
@@ -131,6 +141,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -152,7 +165,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Historically stopped line-in transmission to the group. In this build it always faults 401.
 
-**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+
+</details>
 
 #### Inputs
 
@@ -163,6 +180,8 @@ Historically stopped line-in transmission to the group. In this build it always 
 - **`CoordinatorID`** — SCPD-advertised in argument (CoordinatorID) — dispatched to the AudioIn reject-all stub (401); value never consumed
   - validation: never fetched — the reject-all dispatcher emits 401 before reading request args
   - A_ARG_TYPE_MemberID (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -236,6 +255,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -257,7 +279,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Historically renamed the line-in source and set its icon. In this build it always faults 401.
 
-**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+
+</details>
 
 #### Inputs
 
@@ -272,6 +298,8 @@ Historically renamed the line-in source and set its icon. In this build it alway
 - **`DesiredIcon`** — SCPD-advertised in argument (DesiredIcon) — dispatched to the AudioIn reject-all stub (401); value never consumed
   - validation: never fetched — the reject-all dispatcher emits 401 before reading request args
   - Icon (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -345,6 +373,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -366,7 +397,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Historically returned the line-in source name and icon. In this build it always faults 401.
 
-**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+
+</details>
 
 #### Outputs
 
@@ -381,6 +416,8 @@ Historically returned the line-in source name and icon. In this build it always 
 - **`CurrentIcon`** — SCPD-advertised out argument (CurrentIcon) — dispatched to the AudioIn reject-all stub (401); value never consumed
   - validation: never fetched — the reject-all dispatcher emits 401 before reading request args
   - Icon (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -454,6 +491,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -475,7 +515,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Historically set left/right line-in gain levels. In this build it always faults 401.
 
-**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+
+</details>
 
 #### Inputs
 
@@ -490,6 +534,8 @@ Historically set left/right line-in gain levels. In this build it always faults 
 - **`DesiredRightLineInLevel`** — SCPD-advertised in argument (DesiredRightLineInLevel) — dispatched to the AudioIn reject-all stub (401); value never consumed
   - validation: never fetched — the reject-all dispatcher emits 401 before reading request args
   - RightLineInLevel (i4) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -563,6 +609,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -584,7 +633,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Historically returned the left/right line-in gain levels. In this build it always faults 401.
 
-**Technical description:** Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
+
+</details>
 
 #### Outputs
 
@@ -599,6 +652,8 @@ Historically returned the left/right line-in gain levels. In this build it alway
 - **`CurrentRightLineInLevel`** — SCPD-advertised out argument (CurrentRightLineInLevel) — dispatched to the AudioIn reject-all stub (401); value never consumed
   - validation: never fetched — the reject-all dispatcher emits 401 before reading request args
   - RightLineInLevel (i4) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -672,6 +727,9 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 
 - any AudioIn action name — the dispatcher has no name table and unconditionally faults 401
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -707,13 +765,20 @@ action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `audioInput`, `lineInStatus`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10243170 e:property dump {TOSLinkConnected, IRRepeaterState} -> f_10676a44
 - **payload_model:** e:property doc via f_10676a44 writer family
 - **wss_registry:**
   - idx: 9, name: audioInput, id: 40, tag: 65
   - idx: 19, name: lineInStatus, id: 62, tag: 15
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `confirmed`
 
@@ -722,18 +787,29 @@ reject-all dispatcher — every action name faults 401 including the documented 
 - any action invocation on /AudioIn/Control; dispatcher emits 0x191 via req->v\[+0x14\] unconditionally
 
 
+
+</details>
+
 ## Additional records
 
 ### `advertised_actions_not_implemented`
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 - **description:** AudioIn1.xml SCPD advertises 6 actions {StartTransmissionToGroup,StopTransmissionToGroup,SetAudioInputAttributes,GetAudioInputAttributes,SetLineInLevel,GetLineInLevel} but the service is NOT in device_description's serviceList and its dispatcher 0x1073d8f8 rejects every action with 401 — a registered stub (control surface present, impl removed/gated).
 - **status:** confirmed
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8
 
+</details>
+
 ### `crossbuild`
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 AudioIn actions dispatched to REAL handlers in 34.16 & 57.10 (name-literals referenced); in 86.8 & 86.10 the same names are str-only (present, no dispatch ref) -> the AudioIn implementation was REPLACED by the reject-all 401 stub (FUN_1073d8f8 -> req->v\[+0x14\](req,0x191)) in 86.x. Line-in audio in was deprecated for model-9; SCPD still shipped + service omitted from active serviceList.
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/ai_impl_base.cxx`, `zoneplayer/spotify/ai_spotify.cxx`, `zoneplayer/extaudiosrc.cxx`
 

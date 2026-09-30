@@ -2807,7 +2807,10 @@
 <h1 id="audioin-audioincontrol"><code>AudioIn</code> — <code>/AudioIn/Control</code><a class="headerlink" href="#audioin-audioincontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>hidden</code> · <strong>status</strong> <code>confirmed</code></p>
 <p>The legacy hardware line-in service. Its specification document still ships and its address is still registered, but the service is not listed in the device description and every action routes to a dead handler that always answers 'not implemented' (error 401). The feature was removed on this model - treat all six actions as dead surface, documented so clients can recognize the fault. The action entries below describe what the API used to do.</p>
-<p><strong>Technical description:</strong> AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x100</code></li>
@@ -2884,7 +2887,10 @@
 <h3 id="starttransmissiontogroup"><code>StartTransmissionToGroup</code><a class="headerlink" href="#starttransmissiontogroup" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
 <p>Historically started streaming this player's analog line-in to the group identified by CoordinatorID, returning the resulting transport settings. In this build it always faults 401.</p>
-<p><strong>Technical description:</strong> Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2943,6 +2949,8 @@
 <li>validation: never fetched — the reject-all dispatcher emits 401 before reading request args</li>
 <li>A_ARG_TYPE_TransportSettings (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>n/a — fault precedes any arg validation</p>
 <details>
@@ -3001,6 +3009,7 @@
 <ul>
 <li>any AudioIn action name — the dispatcher has no name table and unconditionally faults 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3021,7 +3030,10 @@
 <h3 id="stoptransmissiontogroup"><code>StopTransmissionToGroup</code><a class="headerlink" href="#stoptransmissiontogroup" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
 <p>Historically stopped line-in transmission to the group. In this build it always faults 401.</p>
-<p><strong>Technical description:</strong> Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3048,6 +3060,8 @@
 <li>validation: never fetched — the reject-all dispatcher emits 401 before reading request args</li>
 <li>A_ARG_TYPE_MemberID (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>n/a — fault precedes any arg validation</p>
 <details>
@@ -3106,6 +3120,7 @@
 <ul>
 <li>any AudioIn action name — the dispatcher has no name table and unconditionally faults 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3126,7 +3141,10 @@
 <h3 id="setaudioinputattributes"><code>SetAudioInputAttributes</code><a class="headerlink" href="#setaudioinputattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
 <p>Historically renamed the line-in source and set its icon. In this build it always faults 401.</p>
-<p><strong>Technical description:</strong> Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3163,6 +3181,8 @@
 <li>validation: never fetched — the reject-all dispatcher emits 401 before reading request args</li>
 <li>Icon (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>n/a — fault precedes any arg validation</p>
 <details>
@@ -3221,6 +3241,7 @@
 <ul>
 <li>any AudioIn action name — the dispatcher has no name table and unconditionally faults 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3241,7 +3262,10 @@
 <h3 id="getaudioinputattributes"><code>GetAudioInputAttributes</code><a class="headerlink" href="#getaudioinputattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
 <p>Historically returned the line-in source name and icon. In this build it always faults 401.</p>
-<p><strong>Technical description:</strong> Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+</details>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3272,6 +3296,8 @@
 <li>validation: never fetched — the reject-all dispatcher emits 401 before reading request args</li>
 <li>Icon (string) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>n/a — fault precedes any arg validation</p>
 <details>
@@ -3330,6 +3356,7 @@
 <ul>
 <li>any AudioIn action name — the dispatcher has no name table and unconditionally faults 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3350,7 +3377,10 @@
 <h3 id="setlineinlevel"><code>SetLineInLevel</code><a class="headerlink" href="#setlineinlevel" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
 <p>Historically set left/right line-in gain levels. In this build it always faults 401.</p>
-<p><strong>Technical description:</strong> Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3387,6 +3417,8 @@
 <li>validation: never fetched — the reject-all dispatcher emits 401 before reading request args</li>
 <li>RightLineInLevel (i4) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>n/a — fault precedes any arg validation</p>
 <details>
@@ -3445,6 +3477,7 @@
 <ul>
 <li>any AudioIn action name — the dispatcher has no name table and unconditionally faults 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3465,7 +3498,10 @@
 <h3 id="getlineinlevel"><code>GetLineInLevel</code><a class="headerlink" href="#getlineinlevel" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
 <p>Historically returned the left/right line-in gain levels. In this build it always faults 401.</p>
-<p><strong>Technical description:</strong> Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
+</details>
 <h4 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3496,6 +3532,8 @@
 <li>validation: never fetched — the reject-all dispatcher emits 401 before reading request args</li>
 <li>RightLineInLevel (i4) — advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>n/a — fault precedes any arg validation</p>
 <details>
@@ -3554,6 +3592,7 @@
 <ul>
 <li>any AudioIn action name — the dispatcher has no name table and unconditionally faults 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3644,28 +3683,42 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>audioInput</code>, <code>lineInStatus</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> f_10243170 e:property dump {TOSLinkConnected, IRRepeaterState} -&gt; f_10676a44</li>
 <li><strong>payload_model:</strong> e:property doc via f_10676a44 writer family</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 9, name: audioInput, id: 40, tag: 65</li>
 <li>idx: 19, name: lineInStatus, id: 62, tag: 15</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>confirmed</code></p>
 <p>reject-all dispatcher — every action name faults 401 including the documented AudioIn action set</p>
 <ul>
 <li>any action invocation on /AudioIn/Control; dispatcher emits 0x191 via req-&gt;v[+0x14] unconditionally</li>
 </ul>
+</details>
 <h2 id="additional-records">Additional records<a class="headerlink" href="#additional-records" title="Permanent link">&para;</a></h2>
 <h3 id="advertised_actions_not_implemented"><code>advertised_actions_not_implemented</code><a class="headerlink" href="#advertised_actions_not_implemented" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>description:</strong> AudioIn1.xml SCPD advertises 6 actions {StartTransmissionToGroup,StopTransmissionToGroup,SetAudioInputAttributes,GetAudioInputAttributes,SetLineInLevel,GetLineInLevel} but the service is NOT in device_description's serviceList and its dispatcher 0x1073d8f8 rejects every action with 401 — a registered stub (control surface present, impl removed/gated).</li>
 <li><strong>status:</strong> confirmed</li>
 <li><strong>evidence:</strong></li>
 <li>type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8</li>
 </ul>
+</details>
 <h3 id="crossbuild"><code>crossbuild</code><a class="headerlink" href="#crossbuild" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <p>AudioIn actions dispatched to REAL handlers in 34.16 &amp; 57.10 (name-literals referenced); in 86.8 &amp; 86.10 the same names are str-only (present, no dispatch ref) -&gt; the AudioIn implementation was REPLACED by the reject-all 401 stub (FUN_1073d8f8 -&gt; req-&gt;v[+0x14](req,0x191)) in 86.x. Line-in audio in was deprecated for model-9; SCPD still shipped + service omitted from active serviceList.</p>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/ai_impl_base.cxx</code>, <code>zoneplayer/spotify/ai_spotify.cxx</code>, <code>zoneplayer/extaudiosrc.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

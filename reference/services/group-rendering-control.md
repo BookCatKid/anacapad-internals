@@ -4,7 +4,11 @@
 
 Group-level volume control. These actions apply to the whole group coordinated by this player - SetGroupVolume applies the same absolute volume to every member, while SetRelativeGroupVolume keeps the members' relative offsets (that's the action Sonos apps call for the group volume slider). SnapshotGroupVolume exists so a ramp/group adjustment can later be balanced.
 
-**Technical description:** Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v\[+0x08..+0x1c\]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v\[+0x08..+0x1c\]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.
+
+</details>
 
 ## Availability
 
@@ -36,7 +40,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the group mute state (any/all-muted semantics per the coordinator).
 
-**Technical description:** Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).
+
+</details>
 
 #### Inputs
 
@@ -55,6 +63,8 @@ Returns the group mute state (any/all-muted semantics per the coordinator).
 
 - **`CurrentMute`** — Group mute byte produced by impl f_103a3f28 via the shared group-session state acquired by f_106ff3b8
   - validation: impl-written out arg; no client-side validation
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -145,6 +155,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738e9c`
@@ -167,7 +180,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the current group volume.
 
-**Technical description:** Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v\[+0x10\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v\[+0x10\].
+
+</details>
 
 #### Inputs
 
@@ -187,6 +204,8 @@ Returns the current group volume.
 - **`CurrentVolume`** — Group volume u16 written by impl; group aggregation rule unresolved.
   - unit: percent volume units (unproven)
   - validation: impl-written out arg; no client-side validation
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -277,6 +296,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107390c4`
@@ -299,7 +321,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Mutes or unmutes every player in the group.
 
-**Technical description:** Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').
+
+</details>
 
 #### Inputs
 
@@ -312,6 +338,8 @@ Mutes or unmutes every player in the group.
   - buffer cap: `0x18`
 - **`DesiredMute`** — Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -415,6 +443,9 @@ reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when alre
 - *(impl+0x258) flag already set (nested/duplicate invocation while a group-set is active)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738fb0`
@@ -437,7 +468,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets every member of the group to the same absolute DesiredVolume (0-100).
 
-**Technical description:** Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).
+
+</details>
 
 #### Inputs
 
@@ -451,6 +486,8 @@ Sets every member of the group to the same absolute DesiredVolume (0-100).
 - **`DesiredVolume`** — Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.
   - unit: percent volume units (Sonos convention, unproven for group path)
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -551,6 +588,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107391d8`
@@ -573,7 +613,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adjusts group volume by a signed Adjustment while preserving per-player offsets; returns the resulting NewVolume. Prefer this over SetGroupVolume for slider UIs.
 
-**Technical description:** Adjusts group volume by a signed delta and returns the new group volume. impl->v\[+0x18\](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Adjusts group volume by a signed delta and returns the new group volume. impl->v\[+0x18\](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.
+
+</details>
 
 #### Inputs
 
@@ -597,6 +641,8 @@ Adjusts group volume by a signed Adjustment while preserving per-player offsets;
 - **`NewVolume`** — Resulting group volume written as u16 at impl out-arg (sp+0x12); fan-out/aggregation unresolved.
   - unit: percent volume units (unproven)
   - validation: impl-written out arg; no client-side validation
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -695,6 +741,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107392ec`
@@ -717,7 +766,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Captures per-member volumes so a subsequent group adjustment can be made consistently.
 
-**Technical description:** Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v\[+0x1c\](impl, InstanceID) only - no outputs.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v\[+0x1c\](impl, InstanceID) only - no outputs.
+
+</details>
 
 #### Inputs
 
@@ -727,6 +780,8 @@ Captures per-member volumes so a subsequent group adjustment can be made consist
 
 - **`InstanceID`** — Parsed by f_105614e0 (u32); forwarded to impl.
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -819,6 +874,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738db0`
@@ -851,11 +909,18 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `groupRendering`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** internal event 'GroupVolumeChangedEvent'/'GroupVolumeSetActionEvent' pool -> GENA/WSS; evented var 'GroupVolumeChangeable' literal proven; GroupMute/GroupVolume go through the same group-volume event pool
 - **wss_registry:**
   - idx: 35, name: groupRendering, id: 137, tag: 71
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -864,13 +929,20 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Additional records
 
 ### `implementation_notes`
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **volume_engine:** SetGroupVolume fans to member zones as netops ("local:%d netops:%u zones:%u"); normalize formula "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + "gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d"; per-zone snapshots "snapshot %s: %u (was %u)" + "snapshot sum for %u (of %u) zones"; states total/partial failure, all-fixed, operation in progress; DesiredVolume/DesiredMute; GroupVolumeSetActionEvent {vol,mute,vligrouping} -> VliVolumeProcessingCompleteEvent
 - **state_vars:** `OutputFixed`, `GroupMute`, `GroupVolumeChangeable`
 - **remote_rc:** remoteRC (%s) proxy logs {fixed,vol,mute} per member
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/grc_zpimpl.cxx`
 

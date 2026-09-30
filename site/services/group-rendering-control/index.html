@@ -2829,7 +2829,10 @@
 <h1 id="grouprenderingcontrol-mediarenderergrouprenderingcontrolcontrol"><code>GroupRenderingControl</code> — <code>/MediaRenderer/GroupRenderingControl/Control</code><a class="headerlink" href="#grouprenderingcontrol-mediarenderergrouprenderingcontrolcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>Group-level volume control. These actions apply to the whole group coordinated by this player - SetGroupVolume applies the same absolute volume to every member, while SetRelativeGroupVolume keeps the members' relative offsets (that's the action Sonos apps call for the group volume slider). SnapshotGroupVolume exists so a ramp/group adjustment can later be balanced.</p>
-<p><strong>Technical description:</strong> Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v[+0x08..+0x1c]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v[+0x08..+0x1c]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>status <code>strong</code></li>
@@ -2909,7 +2912,10 @@
 <h3 id="getgroupmute"><code>GetGroupMute</code><a class="headerlink" href="#getgroupmute" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the group mute state (any/all-muted semantics per the coordinator).</p>
-<p><strong>Technical description:</strong> Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the group-level mute state as CurrentMute byte. The group impl computes it (aggregation rule across members is unresolved - any-muted vs all-muted vs coordinator's own).</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2956,6 +2962,8 @@
 <li><strong><code>CurrentMute</code></strong> — Group mute byte produced by impl f_103a3f28 via the shared group-session state acquired by f_106ff3b8</li>
 <li>validation: impl-written out arg; no client-side validation</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>request parsing: req-&gt;v[+0x1c](req, name) returns the arg node; typed helpers convert text
 (f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);
@@ -3028,6 +3036,7 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3050,7 +3059,10 @@ propagates the impl return code toward a SOAP fault.</p>
 <h3 id="getgroupvolume"><code>GetGroupVolume</code><a class="headerlink" href="#getgroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the current group volume.</p>
-<p><strong>Technical description:</strong> Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v[+0x10].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v[+0x10].</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3098,6 +3110,8 @@ propagates the impl return code toward a SOAP fault.</p>
 <li>unit: percent volume units (unproven)</li>
 <li>validation: impl-written out arg; no client-side validation</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>request parsing: req-&gt;v[+0x1c](req, name) returns the arg node; typed helpers convert text
 (f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);
@@ -3170,6 +3184,7 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3192,7 +3207,10 @@ propagates the impl return code toward a SOAP fault.</p>
 <h3 id="setgroupmute"><code>SetGroupMute</code><a class="headerlink" href="#setgroupmute" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Mutes or unmutes every player in the group.</p>
-<p><strong>Technical description:</strong> Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3227,6 +3245,8 @@ propagates the impl return code toward a SOAP fault.</p>
 <li><strong><code>DesiredMute</code></strong> — Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>request parsing: req-&gt;v[+0x1c](req, name) returns the arg node; typed helpers convert text
 (f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);
@@ -3311,6 +3331,7 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>*(impl+0x258) flag already set (nested/duplicate invocation while a group-set is active)</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3333,7 +3354,10 @@ propagates the impl return code toward a SOAP fault.</p>
 <h3 id="setgroupvolume"><code>SetGroupVolume</code><a class="headerlink" href="#setgroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Sets every member of the group to the same absolute DesiredVolume (0-100).</p>
-<p><strong>Technical description:</strong> Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3369,6 +3393,8 @@ propagates the impl return code toward a SOAP fault.</p>
 <li>unit: percent volume units (Sonos convention, unproven for group path)</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>request parsing: req-&gt;v[+0x1c](req, name) returns the arg node; typed helpers convert text
 (f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);
@@ -3447,6 +3473,7 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3469,7 +3496,10 @@ propagates the impl return code toward a SOAP fault.</p>
 <h3 id="setrelativegroupvolume"><code>SetRelativeGroupVolume</code><a class="headerlink" href="#setrelativegroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Adjusts group volume by a signed Adjustment while preserving per-player offsets; returns the resulting NewVolume. Prefer this over SetGroupVolume for slider UIs.</p>
-<p><strong>Technical description:</strong> Adjusts group volume by a signed delta and returns the new group volume. impl-&gt;v[+0x18](impl, InstanceID, Adjustment, &amp;u16 out); the u16 out feeds NewVolume.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Adjusts group volume by a signed delta and returns the new group volume. impl-&gt;v[+0x18](impl, InstanceID, Adjustment, &amp;u16 out); the u16 out feeds NewVolume.</p>
+</details>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3527,6 +3557,8 @@ propagates the impl return code toward a SOAP fault.</p>
 <li>unit: percent volume units (unproven)</li>
 <li>validation: impl-written out arg; no client-side validation</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>request parsing: req-&gt;v[+0x1c](req, name) returns the arg node; typed helpers convert text
 (f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);
@@ -3603,6 +3635,7 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3625,7 +3658,10 @@ propagates the impl return code toward a SOAP fault.</p>
 <h3 id="snapshotgroupvolume"><code>SnapshotGroupVolume</code><a class="headerlink" href="#snapshotgroupvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Captures per-member volumes so a subsequent group adjustment can be made consistently.</p>
-<p><strong>Technical description:</strong> Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl-&gt;v[+0x1c](impl, InstanceID) only - no outputs.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl-&gt;v[+0x1c](impl, InstanceID) only - no outputs.</p>
+</details>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -3651,6 +3687,8 @@ propagates the impl return code toward a SOAP fault.</p>
 <li><strong><code>InstanceID</code></strong> — Parsed by f_105614e0 (u32); forwarded to impl.</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>request parsing: req-&gt;v[+0x1c](req, name) returns the arg node; typed helpers convert text
 (f_105614e0 InstanceID u32, f_10561444 DesiredMute byte, f_10561478 DesiredVolume u16, f_10561514 Adjustment i32);
@@ -3725,6 +3763,7 @@ propagates the impl return code toward a SOAP fault.</p>
 <ul>
 <li>parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -3793,23 +3832,34 @@ propagates the impl return code toward a SOAP fault.</p>
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>groupRendering</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> internal event 'GroupVolumeChangedEvent'/'GroupVolumeSetActionEvent' pool -&gt; GENA/WSS; evented var 'GroupVolumeChangeable' literal proven; GroupMute/GroupVolume go through the same group-volume event pool</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 35, name: groupRendering, id: 137, tag: 71</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <h2 id="additional-records">Additional records<a class="headerlink" href="#additional-records" title="Permanent link">&para;</a></h2>
 <h3 id="implementation_notes"><code>implementation_notes</code><a class="headerlink" href="#implementation_notes" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>volume_engine:</strong> SetGroupVolume fans to member zones as netops ("local:%d netops:%u zones:%u"); normalize formula "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + "gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d"; per-zone snapshots "snapshot %s: %u (was %u)" + "snapshot sum for %u (of %u) zones"; states total/partial failure, all-fixed, operation in progress; DesiredVolume/DesiredMute; GroupVolumeSetActionEvent {vol,mute,vligrouping} -&gt; VliVolumeProcessingCompleteEvent</li>
 <li><strong>state_vars:</strong> <code>OutputFixed</code>, <code>GroupMute</code>, <code>GroupVolumeChangeable</code></li>
 <li><strong>remote_rc:</strong> remoteRC (%s) proxy logs {fixed,vol,mute} per member</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/grc_zpimpl.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

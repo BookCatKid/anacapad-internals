@@ -5325,7 +5325,10 @@
 <h1 id="alarmclock-alarmclockcontrol"><code>AlarmClock</code> — <code>/AlarmClock/Control</code><a class="headerlink" href="#alarmclock-alarmclockcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>Alarm scheduler for the zone. Lets a client create, list, update and delete alarms, and read/set the household clock settings those alarms run against (current time, time zone, time server, 12/24h and date formats, and the daily music-index refresh time). Alarms target a single room by UUID and can play a stream URI or a library playlist at a fixed volume, optionally grouping linked zones. Changes are announced through the evented AlarmListVersion.</p>
-<p><strong>Technical description:</strong> Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x80</code></li>
@@ -5492,7 +5495,10 @@
 <h3 id="createalarm"><code>CreateAlarm</code><a class="headerlink" href="#createalarm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Creates a new alarm and returns its AssignedID, which is needed for UpdateAlarm and DestroyAlarm. StartLocalTime and Duration use 'HH:MM:SS'; Recurrence is a keyword such as ONCE, EVERYDAY, WEEKDAYS or WEEKENDS. RoomUUID selects the player, ProgramURI/ProgramMetaData choose what plays (a stream URI, or a Sonos playlist/library URI), PlayMode picks e.g. NORMAL or SHUFFLE_NOREPEAT, Volume is 0-100, and IncludeLinkedZones controls whether bonded players join in.</p>
-<p><strong>Technical description:</strong> Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -&gt; impl-&gt;v[+0x34], returning AssignedID.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -&gt; impl-&gt;v[+0x34], returning AssignedID.</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5630,6 +5636,8 @@
 <li><strong><code>AssignedID</code></strong> — Newly allocated alarm id</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5700,6 +5708,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5720,7 +5729,10 @@
 <h3 id="destroyalarm"><code>DestroyAlarm</code><a class="headerlink" href="#destroyalarm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Deletes the alarm with the given ID (an AssignedID previously returned by CreateAlarm, or an id from ListAlarms). Returns nothing; the change shows up in AlarmListVersion.</p>
-<p><strong>Technical description:</strong> Deletes alarm ID via impl-&gt;v[+0x3c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Deletes alarm ID via impl-&gt;v[+0x3c].</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5747,6 +5759,8 @@
 <li>validation: consumed by impl vfunc on the service vtable</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5817,6 +5831,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5837,7 +5852,10 @@
 <h3 id="getdailyindexrefreshtime"><code>GetDailyIndexRefreshTime</code><a class="headerlink" href="#getdailyindexrefreshtime" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the 'HH:MM:SS' local time at which the player rebuilds the local music-library index each day.</p>
-<p><strong>Technical description:</strong> Returns CurrentDailyIndexRefreshTime via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns CurrentDailyIndexRefreshTime via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5859,6 +5877,8 @@
 <li><strong><code>CurrentDailyIndexRefreshTime</code></strong> — Configured daily index refresh time</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5922,6 +5942,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5944,7 +5965,10 @@
 <h3 id="getformat"><code>GetFormat</code><a class="headerlink" href="#getformat" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the player's time and date display preferences (e.g. 12h vs 24h clock).</p>
-<p><strong>Technical description:</strong> Returns CurrentTimeFormat/CurrentDateFormat via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns CurrentTimeFormat/CurrentDateFormat via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5973,6 +5997,8 @@
 <li><strong><code>CurrentDateFormat</code></strong> — Configured date format</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6036,6 +6062,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6059,7 +6086,10 @@
 <h3 id="gethouseholdtimeatstamp"><code>GetHouseholdTimeAtStamp</code><a class="headerlink" href="#gethouseholdtimeatstamp" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Converts a monotonically-increasing household timestamp (as used in event and queue bookkeeping) into an absolute UTC time.</p>
-<p><strong>Technical description:</strong> Converts TimeStamp to household UTC time via impl-&gt;v[+0x2c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Converts TimeStamp to household UTC time via impl-&gt;v[+0x2c].</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6107,6 +6137,8 @@
 <li><strong><code>HouseholdUTCTime</code></strong> — Household-local time at the stamp</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6170,6 +6202,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6191,7 +6224,10 @@
 <h3 id="gettimenow"><code>GetTimeNow</code><a class="headerlink" href="#gettimenow" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the player's current UTC time, local time, time zone and TimeGeneration (a counter that increments whenever the household clock is set - useful for detecting clock changes).</p>
-<p><strong>Technical description:</strong> Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_4">Outputs<a class="headerlink" href="#outputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6234,6 +6270,8 @@
 <li><strong><code>CurrentTimeGeneration</code></strong> — Time response field CurrentTimeGeneration</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6299,6 +6337,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6323,7 +6362,10 @@
 <h3 id="gettimeserver"><code>GetTimeServer</code><a class="headerlink" href="#gettimeserver" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the configured household time-server address used to keep zone clocks in sync.</p>
-<p><strong>Technical description:</strong> Returns CurrentTimeServer via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns CurrentTimeServer via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_5">Outputs<a class="headerlink" href="#outputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6345,6 +6387,8 @@
 <li><strong><code>CurrentTimeServer</code></strong> — Configured NTP time server</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_6">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_6" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6408,6 +6452,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6430,7 +6475,10 @@
 <h3 id="gettimezone"><code>GetTimeZone</code><a class="headerlink" href="#gettimezone" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the current time zone index and whether DST is auto-adjusted. Use GetTimeZoneRule to resolve the index to a tz rule string.</p>
-<p><strong>Technical description:</strong> Returns Index/AutoAdjustDst via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns Index/AutoAdjustDst via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_6">Outputs<a class="headerlink" href="#outputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6459,6 +6507,8 @@
 <li><strong><code>AutoAdjustDst</code></strong> — Timezone response field AutoAdjustDst</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_7">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_7" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6522,6 +6572,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6543,7 +6594,10 @@
 <h3 id="gettimezoneandrule"><code>GetTimeZoneAndRule</code><a class="headerlink" href="#gettimezoneandrule" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Same as GetTimeZone but also returns the resolved CurrentTimeZone rule string in one call.</p>
-<p><strong>Technical description:</strong> Returns Index/AutoAdjustDst/CurrentTimeZone via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns Index/AutoAdjustDst/CurrentTimeZone via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_7">Outputs<a class="headerlink" href="#outputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6579,6 +6633,8 @@
 <li><strong><code>CurrentTimeZone</code></strong> — Timezone response field CurrentTimeZone</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_8">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_8" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6642,6 +6698,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6664,7 +6721,10 @@
 <h3 id="gettimezonerule"><code>GetTimeZoneRule</code><a class="headerlink" href="#gettimezonerule" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Looks up a time zone rule string (POSIX-style TZ spec) by Index.</p>
-<p><strong>Technical description:</strong> Returns the TimeZone rule for Index via impl-&gt;v[+0x1c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the TimeZone rule for Index via impl-&gt;v[+0x1c].</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6712,6 +6772,8 @@
 <li><strong><code>TimeZone</code></strong> — Timezone rule string at the requested index</li>
 <li>validation: emitted via response vfuncs</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_9">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_9" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6775,6 +6837,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6796,7 +6859,10 @@
 <h3 id="listalarms"><code>ListAlarms</code><a class="headerlink" href="#listalarms" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the full alarm list as an XML document plus CurrentAlarmListVersion. The version counter is the cheap way to poll for changes; it is also evented.</p>
-<p><strong>Technical description:</strong> Lists all alarms via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Lists all alarms via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_9">Outputs<a class="headerlink" href="#outputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6827,6 +6893,8 @@
 <li>validation: arg-name string 'out' loaded at 0x102735e0 inside f_10273538</li>
 <li>emitted via req-&gt;v[+0x24] at 0x102735e8 inside f_10273538</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_10">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_10" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6890,6 +6958,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6910,7 +6979,10 @@
 <h3 id="setdailyindexrefreshtime"><code>SetDailyIndexRefreshTime</code><a class="headerlink" href="#setdailyindexrefreshtime" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Changes the daily library-index refresh time ('HH:MM:SS').</p>
-<p><strong>Technical description:</strong> Sets the daily music-index refresh time via impl-&gt;v[+0x40].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the daily music-index refresh time via impl-&gt;v[+0x40].</p>
+</details>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6937,6 +7009,8 @@
 <li>validation: consumed by impl vfunc on the service vtable</li>
 <li>buffer cap: <code>0x9</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_11">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_11" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7007,6 +7081,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7027,7 +7102,10 @@
 <h3 id="setformat"><code>SetFormat</code><a class="headerlink" href="#setformat" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Sets the 12/24-hour time format and the date format.</p>
-<p><strong>Technical description:</strong> Sets DesiredTimeFormat/DesiredDateFormat via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets DesiredTimeFormat/DesiredDateFormat via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7064,6 +7142,8 @@
 <li>validation: consumed by impl vfunc on the service vtable</li>
 <li>buffer cap: <code>0x4</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_12">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_12" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7139,6 +7219,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7159,7 +7240,10 @@
 <h3 id="settimenow"><code>SetTimeNow</code><a class="headerlink" href="#settimenow" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Sets the player's clock: DesiredTime is UTC 'HH:MM:SS'-style time plus a time zone so the local offset can be derived. Setting the clock bumps TimeGeneration.</p>
-<p><strong>Technical description:</strong> Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl-&gt;v[+0x28].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl-&gt;v[+0x28].</p>
+</details>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7196,6 +7280,8 @@
 <li>validation: consumed by impl vfunc on the service vtable</li>
 <li>buffer cap: <code>0x1d</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_13">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_13" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7264,6 +7350,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7284,7 +7371,10 @@
 <h3 id="settimeserver"><code>SetTimeServer</code><a class="headerlink" href="#settimeserver" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Sets the address of the household time server (host/IP used for clock sync).</p>
-<p><strong>Technical description:</strong> Sets the NTP time server via impl-&gt;v[+0x20].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the NTP time server via impl-&gt;v[+0x20].</p>
+</details>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7311,6 +7401,8 @@
 <li>validation: consumed by impl vfunc on the service vtable</li>
 <li>buffer cap: <code>0x81</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_14">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_14" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7381,6 +7473,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7401,7 +7494,10 @@
 <h3 id="settimezone"><code>SetTimeZone</code><a class="headerlink" href="#settimezone" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Selects the time zone by Index and toggles automatic DST adjustment.</p>
-<p><strong>Technical description:</strong> Sets timezone Index/AutoAdjustDst via impl-&gt;v[+0x10].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets timezone Index/AutoAdjustDst via impl-&gt;v[+0x10].</p>
+</details>
 <h4 id="inputs_8">Inputs<a class="headerlink" href="#inputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7438,6 +7534,8 @@
 <li>validation: stored in the timezone record</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_15">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_15" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7508,6 +7606,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7528,7 +7627,10 @@
 <h3 id="updatealarm"><code>UpdateAlarm</code><a class="headerlink" href="#updatealarm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Edits an existing alarm in place. ID is the AssignedID from CreateAlarm or ListAlarms; the remaining arguments carry the complete replacement definition (same fields as CreateAlarm), so callers should send the full record rather than a diff.</p>
-<p><strong>Technical description:</strong> Updates an existing alarm by ID with the same field set via impl-&gt;v[+0x38].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Updates an existing alarm by ID with the same field set via impl-&gt;v[+0x38].</p>
+</details>
 <h4 id="inputs_9">Inputs<a class="headerlink" href="#inputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7655,6 +7757,8 @@
 <li>validation: stored in the alarm record</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_16">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_16" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7725,6 +7829,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7893,18 +7998,26 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>alarmClock</code>, <code>alarmVersionChange</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> f_10277d6c initial-state e:property dump {TimeServer, AlarmListVersion, TimeFormat, TimeGeneration, DateFormat} -&gt; f_10676a44 writer</li>
 <li><strong>payload_model:</strong> e:property doc via f_10676a44 writer family</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 5, name: alarmClock, id: 20, tag: 64</li>
 <li>idx: 6, name: alarmVersionChange, id: 24, tag: 1</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/ac_impl.cxx</code>, <code>zoneplayer/areas.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

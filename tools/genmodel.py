@@ -786,7 +786,8 @@ PAGE_TEXT_SPEC = {
     "uri_formats": {"intro"},
     "payload_formats": {"intro"},
     "http_api": {"intro"},
-    "firmware": {"intro", "product_surface", "service_matrix", "entries"},
+    "firmware": {"intro", "product_surface", "service_matrix", "entries",
+                 "entry_text"},
     "subsystems": {"intro"},
     "muse": {"intro", "description", "flags_decode", "dispatch",
              "tables", "op_spine", "validation_lib", "pipeline",
@@ -1169,6 +1170,16 @@ def _check_page_text(qa, model):
                 if sk not in svc_keys:
                     qa.error("client_text events.services key %r matches "
                              "no service" % sk)
+        entry_text = keys.get("entry_text")
+        if isinstance(entry_text, dict):
+            items = {e.item for e in model.firmware_differences}
+            for ek in entry_text:
+                if ek not in items:
+                    qa.error("client_text firmware.entry_text key %r "
+                             "matches no firmware-difference item" % ek)
+            for it in items - set(entry_text):
+                qa.error("firmware-difference %r has no entry_text "
+                         "client blurb" % it)
     for page, required in PAGE_TEXT_SPEC.items():
         have = pages.get(page)
         if not have:

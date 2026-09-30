@@ -5137,7 +5137,10 @@
 <h1 id="contentdirectory-mediaservercontentdirectorycontrol"><code>ContentDirectory</code> — <code>/MediaServer/ContentDirectory/Control</code><a class="headerlink" href="#contentdirectory-mediaservercontentdirectorycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.</p>
-<p><strong>Technical description:</strong> UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x20</code></li>
@@ -5296,7 +5299,10 @@
 <h3 id="browse"><code>Browse</code><a class="headerlink" href="#browse" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.</p>
-<p><strong>Technical description:</strong> Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -&gt; children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -&gt; metadata path, anything else -&gt; 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -&gt; children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -&gt; metadata path, anything else -&gt; 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5427,6 +5433,8 @@
 <li>special values: 0</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5492,6 +5500,7 @@
 <li>BrowseFlag fails both strcmps; executor presets r9=0x192</li>
 <li>Any of the six arg parse helpers fails</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5510,7 +5519,10 @@
 <h3 id="createobject"><code>CreateObject</code><a class="headerlink" href="#createobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.</p>
-<p><strong>Technical description:</strong> Creates a CDS object: ContainerID/Elements -&gt; impl-&gt;v[+0x20], returning ObjectID/Result.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Creates a CDS object: ContainerID/Elements -&gt; impl-&gt;v[+0x20], returning ObjectID/Result.</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5577,6 +5589,8 @@
 <li>special values: see impl 0x103026f8</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5642,6 +5656,7 @@
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
 <p>indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5663,7 +5678,10 @@
 <h3 id="destroyobject"><code>DestroyObject</code><a class="headerlink" href="#destroyobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Deletes ObjectID from the library.</p>
-<p><strong>Technical description:</strong> Destroys ObjectID via impl-&gt;v[+0x28].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Destroys ObjectID via impl-&gt;v[+0x28].</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5690,6 +5708,8 @@
 <li>validation: request parse proven; impl applies media-store semantics</li>
 <li>buffer cap: <code>0x400</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5755,6 +5775,7 @@
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
 <p>indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5774,7 +5795,10 @@
 <h3 id="findprefix"><code>FindPrefix</code><a class="headerlink" href="#findprefix" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).</p>
-<p><strong>Technical description:</strong> Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl-&gt;v[+0x18].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl-&gt;v[+0x18].</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5840,6 +5864,8 @@
 <li>special values: see impl 0x10302d78</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_3">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_3" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -5903,6 +5929,7 @@
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain | resolver f_1034a224 -&gt; f_10349d00 path-walk (ptr/NULL)</p>
 <p><strong><code>800</code></strong> <code>strong</code></p>
 <p>Resolved-object capability check: vtbl[+0x14] must equal the prefix-search entry point f_10113d94; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -5922,7 +5949,10 @@
 <h3 id="getalbumartistdisplayoption"><code>GetAlbumArtistDisplayOption</code><a class="headerlink" href="#getalbumartistdisplayoption" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns whether the library groups by album artist or contributing artist.</p>
-<p><strong>Technical description:</strong> Returns the album-artist display option via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the album-artist display option via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_3">Outputs<a class="headerlink" href="#outputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -5944,6 +5974,8 @@
 <li><strong><code>AlbumArtistDisplayOption</code></strong> — AlbumArtistDisplayOption capability field emitted by impl 0x10307aa4</li>
 <li>validation: arg-name string 'out' loaded at 0x10307af8 inside f_10307aa4</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_4">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_4" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6005,6 +6037,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6023,7 +6056,10 @@
 <h3 id="getallprefixlocations"><code>GetAllPrefixLocations</code><a class="headerlink" href="#getallprefixlocations" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns all container prefixes that contain ObjectID (an item can live under several indices).</p>
-<p><strong>Technical description:</strong> Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl-&gt;v[+0x1c].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl-&gt;v[+0x1c].</p>
+</details>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6086,6 +6122,8 @@
 <li>special values: see impl 0x10302cb4</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_5">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_5" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6149,6 +6187,7 @@
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain | resolver f_1034a224 -&gt; f_10349d00 path-walk (ptr/NULL)</p>
 <p><strong><code>800</code></strong> <code>strong</code></p>
 <p>Resolved-object capability check: vtbl[+0x18] must equal the prefix-search entry point f_10113da4; resolved objects whose class fills that slot with a different implementation fault 800 ("not a prefix-searchable directory object"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6171,7 +6210,10 @@
 <h3 id="getbrowseable"><code>GetBrowseable</code><a class="headerlink" href="#getbrowseable" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns whether the local library share is currently marked browseable.</p>
-<p><strong>Technical description:</strong> Returns IsBrowseable via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns IsBrowseable via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_5">Outputs<a class="headerlink" href="#outputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6193,6 +6235,8 @@
 <li><strong><code>IsBrowseable</code></strong> — produced by impl 0x10302470 via media-store member this+0x168</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_6">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_6" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6252,6 +6296,7 @@
 <li>impl/store gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6272,7 +6317,10 @@
 <h3 id="getlastindexchange"><code>GetLastIndexChange</code><a class="headerlink" href="#getlastindexchange" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.</p>
-<p><strong>Technical description:</strong> Returns LastIndexChange timestamp via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns LastIndexChange timestamp via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_6">Outputs<a class="headerlink" href="#outputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6294,6 +6342,8 @@
 <li><strong><code>LastIndexChange</code></strong> — produced by impl 0x1030259c via media-store member this+0x168</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_7">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_7" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6353,6 +6403,7 @@
 <li>impl/store gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6374,7 +6425,10 @@
 <h3 id="getsearchcapabilities"><code>GetSearchCapabilities</code><a class="headerlink" href="#getsearchcapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.</p>
-<p><strong>Technical description:</strong> Returns search capabilities via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns search capabilities via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_7">Outputs<a class="headerlink" href="#outputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6396,6 +6450,8 @@
 <li><strong><code>SearchCaps</code></strong> — SearchCaps capability field emitted by impl 0x10307d44</li>
 <li>validation: arg-name string 'out' loaded at 0x10307d98 inside f_10307d44</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_8">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_8" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6457,6 +6513,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6475,7 +6532,10 @@
 <h3 id="getshareindexinprogress"><code>GetShareIndexInProgress</code><a class="headerlink" href="#getshareindexinprogress" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns whether a library reindex is currently running.</p>
-<p><strong>Technical description:</strong> Returns IsIndexing flag via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns IsIndexing flag via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_8">Outputs<a class="headerlink" href="#outputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6497,6 +6557,8 @@
 <li><strong><code>IsIndexing</code></strong> — produced by impl 0x1030269c via media-store member this+0x168</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_9">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_9" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6556,6 +6618,7 @@
 <li>impl/store gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6576,7 +6639,10 @@
 <h3 id="getsortcapabilities"><code>GetSortCapabilities</code><a class="headerlink" href="#getsortcapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns which DIDL properties can be used in Browse SortCriteria.</p>
-<p><strong>Technical description:</strong> Returns sort capabilities via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns sort capabilities via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_9">Outputs<a class="headerlink" href="#outputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6598,6 +6664,8 @@
 <li><strong><code>SortCaps</code></strong> — SortCaps capability field emitted by impl 0x10307bf4</li>
 <li>validation: arg-name string 'out' loaded at 0x10307c48 inside f_10307bf4</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_10">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_10" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6659,6 +6727,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> literal exit paths bounded by accumulator scan
 <strong>Bounded unknown — unresolved:</strong> call-derived rc values from worker/delegate chain</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6677,7 +6746,10 @@
 <h3 id="getsystemupdateid"><code>GetSystemUpdateID</code><a class="headerlink" href="#getsystemupdateid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the global library UpdateID - compare before/after to detect any change.</p>
-<p><strong>Technical description:</strong> Returns the system update Id via impl-&gt;v[+0x8].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the system update Id via impl-&gt;v[+0x8].</p>
+</details>
 <h4 id="outputs_10">Outputs<a class="headerlink" href="#outputs_10" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6700,6 +6772,8 @@
 <li>special values: see impl 0x10302640</li>
 <li>validation: impl-produced</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_11">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_11" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6759,6 +6833,7 @@
 <li>impl/store gate failed</li>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6779,7 +6854,10 @@
 <h3 id="refreshshareindex"><code>RefreshShareIndex</code><a class="headerlink" href="#refreshshareindex" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Triggers a rescan of the configured music shares.</p>
-<p><strong>Technical description:</strong> Triggers a share-index refresh (AlbumArtistDisplayOption) via impl-&gt;v[+0x30].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Triggers a share-index refresh (AlbumArtistDisplayOption) via impl-&gt;v[+0x30].</p>
+</details>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6806,6 +6884,8 @@
 <li>validation: request parse proven; impl applies media-store semantics</li>
 <li>buffer cap: <code>0x400</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_12">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_12" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6873,6 +6953,7 @@
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
 <p>propagated reachability; site-level trigger undecoded</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -6892,7 +6973,10 @@
 <h3 id="requestresort"><code>RequestResort</code><a class="headerlink" href="#requestresort" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Re-sorts the library index using SortOrder.</p>
-<p><strong>Technical description:</strong> Requests an index resort (SortOrder) via impl-&gt;v[+0x34].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Requests an index resort (SortOrder) via impl-&gt;v[+0x34].</p>
+</details>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -6919,6 +7003,8 @@
 <li>validation: request parse proven; impl applies media-store semantics</li>
 <li>buffer cap: <code>0x400</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_13">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_13" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -6984,6 +7070,7 @@
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
 <p>propagated reachability; site-level trigger undecoded</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7003,7 +7090,10 @@
 <h3 id="setbrowseable"><code>SetBrowseable</code><a class="headerlink" href="#setbrowseable" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Marks the library share browseable or not.</p>
-<p><strong>Technical description:</strong> Sets Browseable flag via impl-&gt;v[+0x40].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets Browseable flag via impl-&gt;v[+0x40].</p>
+</details>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7030,6 +7120,8 @@
 <li>validation: request parse proven; impl applies media-store semantics</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_14">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_14" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7093,6 +7185,7 @@
 <ul>
 <li>Missing or unparseable input at the req-&gt;v[+0x1c]/helper parse stage</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7113,7 +7206,10 @@
 <h3 id="updateobject"><code>UpdateObject</code><a class="headerlink" href="#updateobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Rewrites an object's metadata: CurrentTagValue -&gt; NewTagValue DIDL fragments for ObjectID.</p>
-<p><strong>Technical description:</strong> Updates ObjectID: CurrentTagValue -&gt; NewTagValue via impl-&gt;v[+0x24].</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Updates ObjectID: CurrentTagValue -&gt; NewTagValue via impl-&gt;v[+0x24].</p>
+</details>
 <h4 id="inputs_8">Inputs<a class="headerlink" href="#inputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -7160,6 +7256,8 @@
 <li>validation: request parse proven; impl applies media-store semantics</li>
 <li>buffer cap: <code>0x1000</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_15">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_15" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (verified on sibling handlers): inputs fetched via req-&gt;v[+0x1c] named lookup + typed parse helpers; req-&gt;v[+0x8] validity check (nonzero proceeds); impl-&gt;v[slot] rc -&gt; cr0.eq emits outputs, nonzero faults through req-&gt;v[+0x14].</p>
 <details>
@@ -7227,6 +7325,7 @@
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
 <p>indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -7430,6 +7529,10 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>contentDirectory</code>, <code>indexerStatus</code>, <code>favoritesVersionChange</code>, <code>playlistsVersionChange</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> f_103035c4 emits {ContainerUpdateIDs, ShareIndexInProgress} + f_10303de4 emits {FavoritesUpdateID, SavedQueuesUpdateID, ShareListUpdateID, RadioFavoritesUpdateID} via event-bus workers f_1067693c/f_1067cdd0</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 23, name: contentDirectory, id: 80, tag: 68</li>
@@ -7437,14 +7540,21 @@
 <li>idx: 31, name: favoritesVersionChange, id: 115, tag: 11</li>
 <li>idx: 50, name: playlistsVersionChange, id: 195, tag: 34</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p>None Browse internals decoded: handler shim 0x10306b3c -&gt; real handler f_10304390 -&gt; executor f_103042f0. BrowseFlag is literal-validated (BrowseDirectChildren / BrowseMetadata, else 402); DIDL output is generated by per-item writer callbacks (f_10306088/0x10306098/0x103060a8) driven through request v[+0x24]. UpdateID comes from the container record via f_1034a224(obj+0x168, selector 0x2bd).</p>
+</details>
 <p>Implementation sources (recovered): <code>compiled lib (libsonos-upnp family) — impl classes generated/static</code></p>
 <details>
 <summary>Service evidence (3)</summary>

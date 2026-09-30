@@ -4,7 +4,11 @@
 
 Coordinator-facing group-membership service. Group members use these actions to join/leave a coordinator and to report buffering state; normal clients rarely call it, but it is advertised. Everything here operates on group members identified by MemberID.
 
-**Technical description:** Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.
+
+</details>
 
 ## Availability
 
@@ -33,7 +37,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Joins the calling member (MemberID + BootSeq) to this group. Returns the coordinator's current URI, the joined group UUID, volume/reset hints and transport settings so the new member can align playback.
 
-**Technical description:** Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x8\] -> CurrentTransportSettings + out fields via req->v\[+0x24\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x8\] -> CurrentTransportSettings + out fields via req->v\[+0x24\].
+
+</details>
 
 #### Inputs
 
@@ -72,6 +80,8 @@ Joins the calling member (MemberID + BootSeq) to this group. Returns the coordin
   - validation: impl-produced
 - **`CurrentTransportSettings`** — serialized group transport settings blob returned on success
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -182,6 +192,9 @@ impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,8
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738654`
@@ -209,7 +222,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes MemberID from the group.
 
-**Technical description:** Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0xc\] -> empty commit via req->v\[+0x0c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0xc\] -> empty commit via req->v\[+0x0c\].
+
+</details>
 
 #### Inputs
 
@@ -220,6 +237,8 @@ Removes MemberID from the group.
 - **`MemberID`** — string, required, 25-char capacity - parsed by f_1056157c at handler 0x10738460
   - validation: required; req->v\[+0x1c\] lookup + f_1056157c conversion; validate fail -> 402
   - buffer cap: `0x19`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -307,6 +326,9 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738460`
@@ -326,7 +348,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Member-to-coordinator feedback of a buffering result code for a track fetch. NOTE: the implementation always returns error 402 in this build - the action exists on the wire but does nothing.
 
-**Technical description:** Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v\[+0x10\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x10\] -> empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v\[+0x10\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x10\] -> empty commit. Impl f_105c53d0 unconditionally returns 402 — the action is a non-functional stub in this build.
+
+</details>
 
 #### Inputs
 
@@ -341,6 +367,8 @@ Member-to-coordinator feedback of a buffering result code for a track fetch. NOT
 - **`ResultCode`** — int, required - parsed by f_10561514 at handler 0x107388a4
   - validation: required; req->v\[+0x1c\] lookup + f_10561514 conversion; validate fail -> 402
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -416,6 +444,9 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 - impl f_105c53d0 always returns 0x192
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107388a4`
@@ -435,7 +466,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the group's desired source-area ids (used to steer which zone's content the group plays).
 
-**Technical description:** Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x14\] -> empty commit.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x14\] -> empty commit.
+
+</details>
 
 #### Inputs
 
@@ -446,6 +481,8 @@ Sets the group's desired source-area ids (used to steer which zone's content the
 - **`DesiredSourceAreaIds`** — string, required - parsed by f_1056157c at handler 0x10738550
   - validation: required; req->v\[+0x1c\] lookup + f_1056157c conversion; validate fail -> 402
   - buffer cap: `0x4c5`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -520,6 +557,9 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 - req->v\[+0x08\] returned 0 -> addi r4,0x192 -> ->v\[+0x14\]
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10738550`
@@ -555,12 +595,19 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `groupManagement`, `groupCoordinatorChanged`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** group-coordination event pool: 'DelegatedGroupCoordinatorID','LocalGroupUUID','VirtualLineInGroupID','ZoneNameChangedEvent' names recovered; delivered via internal bus + GENA/WSS
 - **wss_registry:**
   - idx: 34, name: groupManagement, id: 136, tag: 70
   - idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -569,18 +616,29 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Notes
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Dispatcher 0x10738308 decodes fully: binary-search over action table 0x10f11a64; *(svc+4) impl NULL -> 401; handler args {svc-adj, req, impl=*(svc+4)}; impl vfuncs +0x08 AddMember / +0x0c RemoveMember / +0x10 ReportTrackBufferingResult / +0x14 SetSourceAreaIds; svc object embedded at ctx+0x3fa44 (ctor f_107389bc); px bound at runtime (group-init path), impl class unproven.
+
+</details>
 
 ## Additional records
 
 ### `implementation_notes`
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **source:** gm_impl.cxx + grc_zpimpl.cxx literals 0x10ec300c-0x10ec45cc; scopeGm/scopeGrc; gm_events log fmt "(%2d) add\|rem %s / grp %s %s"
 - **addmember_validation:** `ungroupable player rejected (gcUUID+memberID logged)`, `invalid argument`, `satellite cannot accept members`, `incompatible member`, `invisibility/node-proto compat check`, `bootseq out-of-sync GM`, `duplicate member`
 - **config:** configure group %d: {fd,bgc,dgc,c,oc} tuple; ChangeCoordinator + DelegateGC ("delaying delegation by %d ms","delegating with member list %s new gc %s"); topology monitor starts on GC change
 - **vli_session:** vli session end evt -> VliSessionProcessingCompleteEvent (async task)
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/gm_impl.cxx`
 

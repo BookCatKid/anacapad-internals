@@ -4,7 +4,11 @@
 
 SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.
 
-**Technical description:** Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.
+
+</details>
 
 ## Availability
 
@@ -32,7 +36,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.
 
-**Technical description:** Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl->v\[+0xc\] on the svc+4 member with an output buffer (cap 0x101) for SessionId.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl->v\[+0xc\] on the svc+4 member with an output buffer (cap 0x101) for SessionId.
+
+</details>
 
 #### Inputs
 
@@ -55,6 +63,8 @@ Returns the session id used to authenticate SMAPI calls for the given ServiceId 
 - **`SessionId`** — Session-id string produced by worker f_100c7c6c for the validated service index; empty/absent when the lookup fails.
   - special values: failure -> 402 fault before emission
   - validation: input index must be < 0x100 (impl cmplwi at 0x100c8054)
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -136,6 +146,9 @@ capability/mode flag gate (sp byte flags tested before arg parse)
 - *(sp+0x18)!=0 then *(sp+0x14)==0 -> 401
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a264`
@@ -158,7 +171,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.
 
-**Technical description:** Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) — a doubly-indirect member — and calls its v\[+0x8\] which serializes the service list.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) — a doubly-indirect member — and calls its v\[+0x8\] which serializes the service list.
+
+</details>
 
 #### Outputs
 
@@ -174,6 +191,8 @@ Returns the full music-service descriptor list (XML: service ids, names, capabil
   - validation: arg-name string 'out' loaded at 0x100c67d0 inside f_100c6314
 - **`AvailableServiceListVersion`** — music-service catalogue field emitted via the response writer inside serializer f_100c6314
   - validation: arg-name string 'out' loaded at 0x100c67f4 inside f_100c6314
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -253,6 +272,9 @@ impl->v\[+0x8\] rc surfaced | Wrapper parse layer rejected an argument before th
 **Bounded unknown — unresolved:** none identified
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a424`
@@ -274,7 +296,13 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Forces a refresh of the cached service descriptor list from the cloud/catalog.
 
-**Technical description:** Triggers a refresh of the available music-services list via impl->v\[+0x8\] on the svc+4 member.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Triggers a refresh of the available music-services list via impl->v\[+0x8\] on the svc+4 member.
+
+</details>
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -365,6 +393,9 @@ music-services list refresh rc domain adds {801} via service-catalog worker
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073a3b4`
@@ -397,13 +428,20 @@ music-services list refresh rc domain adds {801} via service-catalog worker
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `musicServices`, `musicServicesChanged`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_100c7084 e:property dump {ServiceListVersion} -> f_10676a44
 - **payload_model:** e:property doc via f_10676a44 writer family
 - **wss_registry:**
   - idx: 44, name: musicServices, id: 166, tag: 73
   - idx: 45, name: musicServicesChanged, id: 167, tag: 25
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -411,6 +449,9 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 - Request action name matches no entry in the service dispatch table after the name-table search
 
+
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/zpserviceaccounts.cxx`, `zoneplayer/svcmanifestfile.cxx`, `zoneplayer/spotify/spotify_smapi.cxx`, `zoneplayer/accountsmgr.cxx`, `zoneplayer/entitlementsmanager.cxx`
 

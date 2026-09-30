@@ -4,7 +4,11 @@
 
 A generic key/value store plus the music-service account manager. SetString/GetString/Remove are a free-form property bag that many features lean on (client-facing settings ride through it). The account actions manage per-service credentials: legacy login (AddAccountX), OAuth (AddOAuthAccountX and friends keyed by AccountUDN), nickname/edit/remove, and credential refresh. Two SCPD-advertised actions are dead in this build: ProvisionCredentialedTrialAccountX (name string absent - hard-removed) and ResetThirdPartyCredentials (string present but unreferenced - soft-removed); both fault 401 on the wire.
 
-**Technical description:** System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit*/Remove*/Replace*/Refresh*/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit*/Remove*/Replace*/Refresh*/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.
+
+</details>
 
 ## Availability
 
@@ -49,7 +53,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Registers a music-service account with legacy credentials (AccountType id, AccountID username, AccountPassword); returns the AccountUDN used by all other account actions.
 
-**Technical description:** Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18\].
+
+</details>
 
 #### Inputs
 
@@ -77,6 +85,8 @@ Registers a music-service account with legacy credentials (AccountType id, Accou
 
 - **`AccountUDN`** — issued service-account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -168,6 +178,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1c\], \['AccountID', 'AccountPassword'\] via optional-lookup v\[+0x20\].
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10731f28`
@@ -190,7 +203,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Registers an OAuth music-service account: AccountType plus token/key/device-id/authorization-code/redirect metadata and optional UserIdHashCode/AccountTier. Returns AccountUDN and the service-provided AccountNickname.
 
-**Technical description:** Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -241,6 +258,8 @@ Registers an OAuth music-service account: AccountType plus token/key/device-id/a
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 - **`AccountNickname`** — issued account nickname
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -331,6 +350,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required-lookup v\[+0x1c\], \['AccountToken', 'AccountKey', 'OAuthDeviceID', 'AuthorizationCode', 'RedirectURI', 'UserIdHashCode'\] via optional-lookup v\[+0x20\].
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732454`
@@ -355,7 +377,13 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Runs bookkeeping that should execute after a firmware update (data migration, cached-state rebuild).
 
-**Technical description:** Runs post-update migration/cleanup tasks via impl->v\[+0x14\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Runs post-update migration/cleanup tasks via impl->v\[+0x14\].
+
+</details>
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -437,6 +465,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732e24`
@@ -457,7 +488,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Replaces the metadata (Md) blob for an account.
 
-**Technical description:** Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
+
+</details>
 
 #### Inputs
 
@@ -476,6 +511,8 @@ Replaces the metadata (Md) blob for an account.
 - **`NewAccountMd`** — new account metadata payload arg
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -559,6 +596,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732310`
@@ -579,7 +619,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Changes the password on a legacy-credential account.
 
-**Technical description:** Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.
+
+</details>
 
 #### Inputs
 
@@ -598,6 +642,8 @@ Changes the password on a legacy-credential account.
 - **`NewAccountPassword`** — argument NewAccountPassword Parsed but provably unused: the impl is a no-op.
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -683,6 +729,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1c\], \['AccountID', 'NewAccountPassword'\] via optional-lookup v\[+0x20\].
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107321cc`
@@ -704,7 +753,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Enables or disables Retail Demo Mode on the player.
 
-**Technical description:** Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
+
+</details>
 
 #### Inputs
 
@@ -715,6 +768,8 @@ Enables or disables Retail Demo Mode on the player.
 - **`RDMValue`** — RDM (remote diagnostics) flag
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -792,6 +847,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732c80`
@@ -812,7 +870,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether Retail Demo Mode is enabled.
 
-**Technical description:** Reads the RDM flag via impl->v\[+0x40\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reads the RDM flag via impl->v\[+0x40\].
+
+</details>
 
 #### Outputs
 
@@ -822,6 +884,8 @@ Returns whether Retail Demo Mode is enabled.
 
 - **`RDMValue`** — RDM flag/value emitted by handler 0x10732d6c
   - validation: arg-name string loaded at 0x10732df0 inside impl 0x1019db98; emitted via the response writer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -903,6 +967,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10732d6c`
@@ -924,7 +991,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reads a property value by VariableName from the key/value store.
 
-**Technical description:** Reads config VariableName -> StringValue via impl->v\[+0xc\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reads config VariableName -> StringValue via impl->v\[+0xc\].
+
+</details>
 
 #### Inputs
 
@@ -944,6 +1015,8 @@ Reads a property value by VariableName from the key/value store.
 
 - **`StringValue`** — property string value
   - validation: consumed by impl vfunc on the shared manager object
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1025,6 +1098,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107319b4`
@@ -1046,7 +1122,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns a short WebCode for the given AccountType - used to link an account via the provider's web flow.
 
-**Technical description:** Returns a WebCode for AccountType via impl->v\[+0x14\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns a WebCode for AccountType via impl->v\[+0x14\].
+
+</details>
 
 #### Inputs
 
@@ -1066,6 +1146,8 @@ Returns a short WebCode for the given AccountType - used to link an account via 
 
 - **`WebCode`** — web-pairing code produced by impl
   - validation: consumed by impl vfunc on the shared manager object
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1143,6 +1225,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10731e04`
@@ -1164,7 +1249,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Refreshes OAuth credentials (token/key) for an existing AccountUID.
 
-**Technical description:** Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl->v\[+0x14\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl->v\[+0x14\].
+
+</details>
 
 #### Inputs
 
@@ -1187,6 +1276,8 @@ Refreshes OAuth credentials (token/key) for an existing AccountUID.
 - **`AccountUID`** — Account credential field consumed by impl vfunc +0x2c
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1278,6 +1369,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1c\], \['AccountToken', 'AccountKey'\] via optional-lookup v\[+0x20\].
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107327d4`
@@ -1299,7 +1393,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes VariableName from the key/value store.
 
-**Technical description:** Deletes config VariableName via impl->v\[+0x10\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Deletes config VariableName via impl->v\[+0x10\].
+
+</details>
 
 #### Inputs
 
@@ -1310,6 +1408,8 @@ Deletes VariableName from the key/value store.
 - **`VariableName`** — property variable name
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x400`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1397,6 +1497,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10731bf8`
@@ -1417,7 +1520,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes a music-service account by AccountType + AccountID.
 
-**Technical description:** Removes AccountType/AccountID via impl->v\[+0x20\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes AccountType/AccountID via impl->v\[+0x20\].
+
+</details>
 
 #### Inputs
 
@@ -1432,6 +1539,8 @@ Deletes a music-service account by AccountType + AccountID.
 - **`AccountID`** — existing account id
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1519,6 +1628,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107320b4`
@@ -1539,7 +1651,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Swaps the account behind AccountUDN for new credentials (NewAccountID/password or OAuth token set), returning NewAccountUDN.
 
-**Technical description:** Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[+0x34\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[+0x34\].
+
+</details>
 
 #### Inputs
 
@@ -1579,6 +1695,8 @@ Swaps the account behind AccountUDN for new credentials (NewAccountID/password o
 
 - **`NewAccountUDN`** — replacement account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1666,6 +1784,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['AccountUDN', 'NewAccountID', 'NewAccountPassword', 'AccountToken', 'AccountKey', 'OAuthDeviceID'\] via optional-lookup v\[+0x20\].
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107329ac`
@@ -1689,7 +1810,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the display nickname for an AccountUDN.
 
-**Technical description:** Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
+
+</details>
 
 #### Inputs
 
@@ -1704,6 +1829,8 @@ Sets the display nickname for an AccountUDN.
 - **`AccountNickname`** — nickname string arg
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1795,6 +1922,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['AccountUDN', 'AccountNickname'\] via optional-lookup v\[+0x20\].
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10731ce8`
@@ -1815,7 +1945,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Writes VariableName=StringValue into the property store.
 
-**Technical description:** Writes VariableName=StringValue via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Writes VariableName=StringValue via impl->v\[+0x8\].
+
+</details>
 
 #### Inputs
 
@@ -1830,6 +1964,8 @@ Writes VariableName=StringValue into the property store.
 - **`StringValue`** — property string value
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x800`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1913,6 +2049,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10731adc`
@@ -1961,6 +2100,8 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `systemProperties`, `settingsVersionChanged`, `settingsDataChanged`, `effectiveSettingsDataChanged`, `settingsPlayerSettingsChanged`, `entitlementsVersionChanged`, `voiceAccountsVersionChange`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** settings-key event path: impl setters append key\0value\0 pairs via f_10557d70 -> member->v\[+0x10\] notify -> internal event bus (SettingsNeedsUpdateEvent pool) -> GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list
 - **payload_model:** settings-key notifications (Desired*/Current* key changes) delivered via bus; GENA initial-notify serializes current keys
 - **wss_registry:**
@@ -1972,7 +2113,12 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
   - idx: 28, name: entitlementsVersionChanged, id: 106, tag: 10
   - idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -1981,13 +2127,22 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Notes
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Impl object is the SAME secondary-base manager subobject (vtable 0x10e98278, manager+0x3a8) used by DeviceProperties; SP and DP actions dispatch onto the same impl functions. GetString and Remove map to a 2-insn null stub (confirmed no-ops). Shares the DeviceProperties impl object (vtable 0x10e98278, mgr+0x3a8 secondary base). Slots +0x08..+0x40 alias with DP actions; +0x0c/+0x10/+0x24 are proven null stubs (GetString/Remove/EditAccountPasswordX are no-ops).
+
+</details>
 
 ## Additional records
 
 ### `dispatch`
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 - **kind:** name-table
 - **table_addr:** 0x10f110f0
@@ -1999,9 +2154,15 @@ Impl object is the SAME secondary-base manager subobject (vtable 0x10e98278, man
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f110f0, notes: name-table
 
+</details>
+
 ### `dispatch note`
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 name->action_id map at 0x10f110f0 (stride 0xc {name_ptr,id,0}); EXACTLY 15 dispatched actions (AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,Remove,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString) matching the DB table. 2 advertised-but-undispatched: ProvisionCredentialedTrialAccountX (string absent -> removed after 34.16, dispatched in 34.16) and ResetThirdPartyCredentials (dead string 0x10f184cc, zero ptr/code refs -> never wired; present in both 86.8 & 86.10 binaries as a leftover).
+
+</details>
 
 Implementation sources (recovered): `common/netsettings_mgr.cxx`, `oc/common/src/devmode.cxx`, `zoneplayer/sharelist.cxx`
 

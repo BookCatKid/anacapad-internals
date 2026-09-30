@@ -4,7 +4,11 @@
 
 Alarm scheduler for the zone. Lets a client create, list, update and delete alarms, and read/set the household clock settings those alarms run against (current time, time zone, time server, 12/24h and date formats, and the daily music-index refresh time). Alarms target a single room by UUID and can play a stream URI or a library playlist at a fixed volume, optionally grouping linked zones. Changes are announced through the evented AlarmListVersion.
 
-**Technical description:** Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.
+
+</details>
 
 ## Availability
 
@@ -46,7 +50,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Creates a new alarm and returns its AssignedID, which is needed for UpdateAlarm and DestroyAlarm. StartLocalTime and Duration use 'HH:MM:SS'; Recurrence is a keyword such as ONCE, EVERYDAY, WEEKDAYS or WEEKENDS. RoomUUID selects the player, ProgramURI/ProgramMetaData choose what plays (a stream URI, or a Sonos playlist/library URI), PlayMode picks e.g. NORMAL or SHUFFLE_NOREPEAT, Volume is 0-100, and IncludeLinkedZones controls whether bonded players join in.
 
-**Technical description:** Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -> impl->v\[+0x34\], returning AssignedID.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -> impl->v\[+0x34\], returning AssignedID.
+
+</details>
 
 #### Inputs
 
@@ -102,6 +110,8 @@ Creates a new alarm and returns its AssignedID, which is needed for UpdateAlarm 
 
 - **`AssignedID`** — Newly allocated alarm id
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -192,6 +202,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734404`
@@ -212,7 +225,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes the alarm with the given ID (an AssignedID previously returned by CreateAlarm, or an id from ListAlarms). Returns nothing; the change shows up in AlarmListVersion.
 
-**Technical description:** Deletes alarm ID via impl->v\[+0x3c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Deletes alarm ID via impl->v\[+0x3c\].
+
+</details>
 
 #### Inputs
 
@@ -223,6 +240,8 @@ Deletes the alarm with the given ID (an AssignedID previously returned by Create
 - **`ID`** — Alarm id to destroy
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -313,6 +332,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734954`
@@ -333,7 +355,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the 'HH:MM:SS' local time at which the player rebuilds the local music-library index each day.
 
-**Technical description:** Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -343,6 +369,8 @@ Returns the 'HH:MM:SS' local time at which the player rebuilds the local music-l
 
 - **`CurrentDailyIndexRefreshTime`** — Configured daily index refresh time
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -423,6 +451,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734d18`
@@ -445,7 +476,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the player's time and date display preferences (e.g. 12h vs 24h clock).
 
-**Technical description:** Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -458,6 +493,8 @@ Returns the player's time and date display preferences (e.g. 12h vs 24h clock).
   - validation: emitted via response vfuncs
 - **`CurrentDateFormat`** — Configured date format
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -538,6 +575,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734f28`
@@ -561,7 +601,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Converts a monotonically-increasing household timestamp (as used in event and queue bookkeeping) into an absolute UTC time.
 
-**Technical description:** Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
+
+</details>
 
 #### Inputs
 
@@ -581,6 +625,8 @@ Converts a monotonically-increasing household timestamp (as used in event and qu
 
 - **`HouseholdUTCTime`** — Household-local time at the stamp
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -661,6 +707,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733fb4`
@@ -682,7 +731,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the player's current UTC time, local time, time zone and TimeGeneration (a counter that increments whenever the household clock is set - useful for detecting clock changes).
 
-**Technical description:** Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -701,6 +754,8 @@ Returns the player's current UTC time, local time, time zone and TimeGeneration 
   - validation: emitted via response vfuncs
 - **`CurrentTimeGeneration`** — Time response field CurrentTimeGeneration
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -785,6 +840,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073505c`
@@ -809,7 +867,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the configured household time-server address used to keep zone clocks in sync.
 
-**Technical description:** Returns CurrentTimeServer via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentTimeServer via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -819,6 +881,8 @@ Returns the configured household time-server address used to keep zone clocks in
 
 - **`CurrentTimeServer`** — Configured NTP time server
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -899,6 +963,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734c1c`
@@ -921,7 +988,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the current time zone index and whether DST is auto-adjusted. Use GetTimeZoneRule to resolve the index to a tz rule string.
 
-**Technical description:** Returns Index/AutoAdjustDst via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns Index/AutoAdjustDst via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -934,6 +1005,8 @@ Returns the current time zone index and whether DST is auto-adjusted. Use GetTim
   - validation: emitted via response vfuncs
 - **`AutoAdjustDst`** — Timezone response field AutoAdjustDst
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1014,6 +1087,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734e14`
@@ -1035,7 +1111,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Same as GetTimeZone but also returns the resolved CurrentTimeZone rule string in one call.
 
-**Technical description:** Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1051,6 +1131,8 @@ Same as GetTimeZone but also returns the resolved CurrentTimeZone rule string in
   - validation: emitted via response vfuncs
 - **`CurrentTimeZone`** — Timezone response field CurrentTimeZone
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1131,6 +1213,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734a40`
@@ -1153,7 +1238,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Looks up a time zone rule string (POSIX-style TZ spec) by Index.
 
-**Technical description:** Returns the TimeZone rule for Index via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the TimeZone rule for Index via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -1173,6 +1262,8 @@ Looks up a time zone rule string (POSIX-style TZ spec) by Index.
 
 - **`TimeZone`** — Timezone rule string at the requested index
   - validation: emitted via response vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1253,6 +1344,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107341cc`
@@ -1274,7 +1368,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the full alarm list as an XML document plus CurrentAlarmListVersion. The version counter is the cheap way to poll for changes; it is also evented.
 
-**Technical description:** Lists all alarms via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Lists all alarms via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1289,6 +1387,8 @@ Returns the full alarm list as an XML document plus CurrentAlarmListVersion. The
 - **`CurrentAlarmListVersion`** — version tag emitted right after CurrentAlarmList by the same serializer
   - validation: arg-name string 'out' loaded at 0x102735e0 inside f_10273538
   - emitted via req->v\[+0x24\] at 0x102735e8 inside f_10273538
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1369,6 +1469,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10734b8c`
@@ -1389,7 +1492,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Changes the daily library-index refresh time ('HH:MM:SS').
 
-**Technical description:** Sets the daily music-index refresh time via impl->v\[+0x40\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the daily music-index refresh time via impl->v\[+0x40\].
+
+</details>
 
 #### Inputs
 
@@ -1400,6 +1507,8 @@ Changes the daily library-index refresh time ('HH:MM:SS').
 - **`DesiredDailyIndexRefreshTime`** — Daily index refresh time to set (HH:MM:SS)
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x9`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1490,6 +1599,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107340dc`
@@ -1510,7 +1622,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the 12/24-hour time format and the date format.
 
-**Technical description:** Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
+
+</details>
 
 #### Inputs
 
@@ -1525,6 +1641,8 @@ Sets the 12/24-hour time format and the date format.
 - **`DesiredDateFormat`** — Date format to set
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x4`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1621,6 +1739,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733c8c`
@@ -1641,7 +1762,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the player's clock: DesiredTime is UTC 'HH:MM:SS'-style time plus a time zone so the local offset can be derived. Setting the clock bumps TimeGeneration.
 
-**Technical description:** Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x28\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x28\].
+
+</details>
 
 #### Inputs
 
@@ -1656,6 +1781,8 @@ Sets the player's clock: DesiredTime is UTC 'HH:MM:SS'-style time plus a time zo
 - **`TimeZoneForDesiredTime`** — Timezone applying to DesiredTime
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x1d`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1742,6 +1869,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733e98`
@@ -1762,7 +1892,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the address of the household time server (host/IP used for clock sync).
 
-**Technical description:** Sets the NTP time server via impl->v\[+0x20\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the NTP time server via impl->v\[+0x20\].
+
+</details>
 
 #### Inputs
 
@@ -1773,6 +1907,8 @@ Sets the address of the household time server (host/IP used for clock sync).
 - **`DesiredTimeServer`** — NTP server to set
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x81`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1863,6 +1999,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10733da8`
@@ -1883,7 +2022,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Selects the time zone by Index and toggles automatic DST adjustment.
 
-**Technical description:** Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
+
+</details>
 
 #### Inputs
 
@@ -1898,6 +2041,8 @@ Selects the time zone by Index and toggles automatic DST adjustment.
 - **`AutoAdjustDst`** — DST auto-adjust flag
   - validation: stored in the timezone record
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1988,6 +2133,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107342f0`
@@ -2008,7 +2156,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Edits an existing alarm in place. ID is the AssignedID from CreateAlarm or ListAlarms; the remaining arguments carry the complete replacement definition (same fields as CreateAlarm), so callers should send the full record rather than a diff.
 
-**Technical description:** Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
+
+</details>
 
 #### Inputs
 
@@ -2059,6 +2211,8 @@ Edits an existing alarm in place. ID is the AssignedID from CreateAlarm or ListA
 - **`IncludeLinkedZones`** — Extend the alarm across linked zones
   - validation: stored in the alarm record
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2149,6 +2303,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107346ac`
@@ -2196,13 +2353,20 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `alarmClock`, `alarmVersionChange`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** f_10277d6c initial-state e:property dump {TimeServer, AlarmListVersion, TimeFormat, TimeGeneration, DateFormat} -> f_10676a44 writer
 - **payload_model:** e:property doc via f_10676a44 writer family
 - **wss_registry:**
   - idx: 5, name: alarmClock, id: 20, tag: 64
   - idx: 6, name: alarmVersionChange, id: 24, tag: 1
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -2210,6 +2374,9 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 - Request action name matches no entry in the service dispatch table after the name-table search
 
+
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/ac_impl.cxx`, `zoneplayer/areas.cxx`
 

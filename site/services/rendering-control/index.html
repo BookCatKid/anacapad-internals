@@ -8581,7 +8581,10 @@
 <h1 id="renderingcontrol-mediarendererrenderingcontrolcontrol"><code>RenderingControl</code> — <code>/MediaRenderer/RenderingControl/Control</code><a class="headerlink" href="#renderingcontrol-mediarendererrenderingcontrolcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>Per-player audio rendering: volume (linear 0-100 and dB), mute, bass/treble/loudness and extended EQ, fixed (line-out level) output mode, headphone detection, room-calibration enable, and volume ramps used by alarms/sleep timers. Channel is 'Master' or 'LF'/'RF' for stereo pairs. NOTE: several actions are deliberately neutered on this hardware (e.g. GetBass is a confirmed no-op) - check each action's status before trusting it.</p>
-<p><strong>Technical description:</strong> UPnP RenderingControl for the zone player: per-channel volume, mute, loudness and EQ state held in a large implementation object (fields through at least +0x9c8) guarded by a recursive mutex at impl+0x938. Two implementation classes share the same SOAP vtable layout: a base 'without proxy' class (vtable 0x10e872f0, methods 0x100dxxxx-0x100exxxx, e.g. SetMute logs 'SetMuteWithoutProxy') and a derived class (vtable 0x10ed279c, overrides at 0x1046xxxx) that performs a grouped-operation prelude (object built from impl+0xbc8 and impl+0x9c8 via f_1046dff0, submitted via f_1046c3cc) before tail-calling the base implementation - i.e. the proxy/grouped variant. Which class is installed at *(svc+4) is decided at rc_impl construction (selection condition unresolved); several actions are 3-instruction null stubs in one or both classes and are documented per-class below.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>UPnP RenderingControl for the zone player: per-channel volume, mute, loudness and EQ state held in a large implementation object (fields through at least +0x9c8) guarded by a recursive mutex at impl+0x938. Two implementation classes share the same SOAP vtable layout: a base 'without proxy' class (vtable 0x10e872f0, methods 0x100dxxxx-0x100exxxx, e.g. SetMute logs 'SetMuteWithoutProxy') and a derived class (vtable 0x10ed279c, overrides at 0x1046xxxx) that performs a grouped-operation prelude (object built from impl+0xbc8 and impl+0x9c8 via f_1046dff0, submitted via f_1046c3cc) before tail-calling the base implementation - i.e. the proxy/grouped variant. Which class is installed at *(svc+4) is decided at rc_impl construction (selection condition unresolved); several actions are 3-instruction null stubs in one or both classes and are documented per-class below.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x1000</code></li>
@@ -8828,7 +8831,10 @@
 <h3 id="getbass"><code>GetBass</code><a class="headerlink" href="#getbass" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Returns the bass level - BUT it is neutered on this build: the implementation is a confirmed no-op placeholder, so the returned CurrentBass is meaningless. GetEQ(EQType='Bass') is the working path.</p>
-<p><strong>Technical description:</strong> NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -&gt; emit path).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -&gt; emit path).</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -8877,6 +8883,8 @@
 <li>validation: no impl-level use or validation (stub impl)</li>
 <li>impl is a null stub in BOTH impl vtables - the bass getter was neutered (likely superseded by GetEQ).</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse only.</p>
 <h4 id="requirements-preconditions">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions" title="Permanent link">&para;</a></h4>
@@ -8906,6 +8914,7 @@
 </ul>
 <h4 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h4>
 <p>Sonos neutered GetBass while leaving GetTreble (+0x38 -&gt; real impl f_100e3450) functional - asymmetric deprecation, consistent with migration to GetEQ/SetEQ parametric EQ.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -8926,7 +8935,10 @@
 <h3 id="geteq"><code>GetEQ</code><a class="headerlink" href="#geteq" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Reads an EQ parameter by EQType (e.g. Bass/Treble/Loudness-style ids) from the audio pipeline.</p>
-<p><strong>Technical description:</strong> Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&amp;ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&amp;ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.</p>
+</details>
 <h4 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -8985,6 +8997,8 @@
 <li><strong><code>CurrentValue</code></strong> — EQ value returned through the ctx worker f_100e382c (same worker the GetVolume 'spatial' branch invokes); out-write path unresolved.</li>
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_1">Validation<a class="headerlink" href="#validation_1" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl consumes no argument registers.</p>
 <h4 id="requirements-preconditions_1">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_1" title="Permanent link">&para;</a></h4>
@@ -9015,6 +9029,7 @@
 </ul>
 <h4 id="notes_1">Notes<a class="headerlink" href="#notes_1" title="Permanent link">&para;</a></h4>
 <p>f_100e382c is the shared EQ-read worker - GetEQ, GetTreble's f_100e1fec sibling, and the GetVolume 'spatial' branch all funnel into EQ-context reads.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9036,7 +9051,10 @@
 <h3 id="getheadphoneconnected"><code>GetHeadphoneConnected</code><a class="headerlink" href="#getheadphoneconnected" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns whether headphones are plugged in (players with a headphone jack).</p>
-<p><strong>Technical description:</strong> Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl+0x7da or +0x7e0 selected by flags +0x7ff/+0x801, Master mute byte impl+0x7f1 at rec+0xc, computed flag at rec+0xd; returns 1.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl+0x7da or +0x7e0 selected by flags +0x7ff/+0x801, Master mute byte impl+0x7f1 at rec+0xc, computed flag at rec+0xd; returns 1.</p>
+</details>
 <h4 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9085,6 +9103,8 @@
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 <li>impl f_100d66cc dumps a {volume,mute,flag} record rather than a simple bool - the headphone semantic likely lives in the flag byte at rec+0xd computed from flags +0x7ff/+0x801.</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_2">Validation<a class="headerlink" href="#validation_2" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl ignores InstanceID.</p>
 <h4 id="requirements-preconditions_2">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_2" title="Permanent link">&para;</a></h4>
@@ -9115,6 +9135,7 @@
 </ul>
 <h4 id="notes_2">Notes<a class="headerlink" href="#notes_2" title="Permanent link">&para;</a></h4>
 <p>Field semantics of +0x7ff/+0x801 remain the key unknown: they appear in SetMute's Master path, GetHeadphoneConnected and SetChannelMap - likely 'output-fixed' and 'headphone/slave' mode flags.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9135,7 +9156,10 @@
 <h3 id="getloudness"><code>GetLoudness</code><a class="headerlink" href="#getloudness" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Returns the loudness-compensation setting for a Channel.</p>
-<p><strong>Technical description:</strong> CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).</p>
+</details>
 <h4 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9196,6 +9220,8 @@
 <li>validation: no impl-level use or validation (stub impl)</li>
 <li>In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub.</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_3">Validation<a class="headerlink" href="#validation_3" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_3">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_3" title="Permanent link">&para;</a></h4>
@@ -9225,6 +9251,7 @@
 </ul>
 <h4 id="notes_3">Notes<a class="headerlink" href="#notes_3" title="Permanent link">&para;</a></h4>
 <p>Loudness exists only on the derived/proxy impl class - plausible device-capability gating.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9246,7 +9273,10 @@
 <h3 id="getmute"><code>GetMute</code><a class="headerlink" href="#getmute" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Returns mute state for a Channel ('Master' unless addressing a stereo-pair side).</p>
-<p><strong>Technical description:</strong> Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.</p>
+</details>
 <h4 id="inputs_4">Inputs<a class="headerlink" href="#inputs_4" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9302,6 +9332,8 @@
 </tr>
 </tbody>
 </table>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_4">Validation<a class="headerlink" href="#validation_4" title="Permanent link">&para;</a></h4>
 <p>InstanceID must parse and equal 0 (else 702); Channel must be exactly Master, LF or RF (else 402).</p>
 <h4 id="requirements-preconditions_4">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_4" title="Permanent link">&para;</a></h4>
@@ -9337,6 +9369,7 @@
 </ul>
 <h4 id="notes_4">Notes<a class="headerlink" href="#notes_4" title="Permanent link">&para;</a></h4>
 <p>GetMute accepts only 3 channels although the mute field array has a 4th entry (+0x7f4 'FocusMode') reachable only via SetMute - read/write asymmetry confirmed in the binary.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9357,7 +9390,10 @@
 <h3 id="getoutputfixed"><code>GetOutputFixed</code><a class="headerlink" href="#getoutputfixed" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns whether output is at fixed level (for line-out/receiver use) vs. variable.</p>
-<p><strong>Technical description:</strong> Pure delegation: impl f_100d6610 forwards to impl-&gt;v[+0xe0](impl, 0, r4-in) - the fixed-output flag lives behind a secondary interface method on the same object.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Pure delegation: impl f_100d6610 forwards to impl-&gt;v[+0xe0](impl, 0, r4-in) - the fixed-output flag lives behind a secondary interface method on the same object.</p>
+</details>
 <h4 id="inputs_5">Inputs<a class="headerlink" href="#inputs_5" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9405,6 +9441,8 @@
 <li><strong><code>CurrentFixed</code></strong> — Produced by a pure vfunc forward: impl calls impl-&gt;v[+0xe0](impl, 0, arg) and returns its result - the flag source is a deeper object interface.</li>
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_5">Validation<a class="headerlink" href="#validation_5" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_5">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_5" title="Permanent link">&para;</a></h4>
@@ -9435,6 +9473,7 @@
 </ul>
 <h4 id="notes_5">Notes<a class="headerlink" href="#notes_5" title="Permanent link">&para;</a></h4>
 <p>Reading flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixed state; unverified which field backs it.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9455,7 +9494,10 @@
 <h3 id="getroomcalibrationstatus"><code>GetRoomCalibrationStatus</code><a class="headerlink" href="#getroomcalibrationstatus" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns whether room calibration (Trueplay) is enabled and available on this player.</p>
-<p><strong>Technical description:</strong> Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg&gt;&gt;16, ...) - a sonar-calibration query helper - and fills the two outputs from the result.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg&gt;&gt;16, ...) - a sonar-calibration query helper - and fills the two outputs from the result.</p>
+</details>
 <h4 id="inputs_6">Inputs<a class="headerlink" href="#inputs_6" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9510,6 +9552,8 @@
 <li><strong><code>RoomCalibrationAvailable</code></strong> — Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a &gt;&gt;16 shift on an arg, and fills the record fields that become these outputs.</li>
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_6">Validation<a class="headerlink" href="#validation_6" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_6">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_6" title="Permanent link">&para;</a></h4>
@@ -9539,6 +9583,7 @@
 </ul>
 <h4 id="notes_6">Notes<a class="headerlink" href="#notes_6" title="Permanent link">&para;</a></h4>
 <p>Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record is a shared config/status query structure.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9561,7 +9606,10 @@
 <h3 id="getsupportsoutputfixed"><code>GetSupportsOutputFixed</code><a class="headerlink" href="#getsupportsoutputfixed" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Returns whether this hardware supports fixed-level output mode at all.</p>
-<p><strong>Technical description:</strong> Locks impl+0x938, builds a small record via f_10203ec8, calls impl-&gt;v[+0xf0](impl,&amp;rec), and when that returns nonzero copies rec+0x24 into the out param; return value is 63 (rc==0 path) or 52 (rc!=0 path).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Locks impl+0x938, builds a small record via f_10203ec8, calls impl-&gt;v[+0xf0](impl,&amp;rec), and when that returns nonzero copies rec+0x24 into the out param; return value is 63 (rc==0 path) or 52 (rc!=0 path).</p>
+</details>
 <h4 id="inputs_7">Inputs<a class="headerlink" href="#inputs_7" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9610,6 +9658,8 @@
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 <li>Return convention is unusual: impl presets r3=0x3f(63), calls v+0xf0; rc==0 -&gt; skip out write, return 63; rc!=0 -&gt; write rec+0x24 to out, return 52 (0x34). The numeric returns are likely internal status enums the request layer interprets.</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_7">Validation<a class="headerlink" href="#validation_7" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_7">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_7" title="Permanent link">&para;</a></h4>
@@ -9640,6 +9690,7 @@
 </ul>
 <h4 id="notes_7">Notes<a class="headerlink" href="#notes_7" title="Permanent link">&para;</a></h4>
 <p>Verify at runtime: the 63/52 returns suggest this getter may fault or emit distinct statuses depending on the delegate result.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9660,7 +9711,10 @@
 <h3 id="gettreble"><code>GetTreble</code><a class="headerlink" href="#gettreble" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns treble level - same neutering caveat as GetBass may apply; GetEQ is the reliable path.</p>
-<p><strong>Technical description:</strong> Acquires an audio-context object (f_10118278 + f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, calls ctx-worker f_100e1fec(this,&amp;ctx) and returns its rc. The impl reads NEITHER the InstanceID argument nor the out pointer - both die in registers at entry.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Acquires an audio-context object (f_10118278 + f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, calls ctx-worker f_100e1fec(this,&amp;ctx) and returns its rc. The impl reads NEITHER the InstanceID argument nor the out pointer - both die in registers at entry.</p>
+</details>
 <h4 id="inputs_8">Inputs<a class="headerlink" href="#inputs_8" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9708,6 +9762,8 @@
 <li><strong><code>CurrentTreble</code></strong> — Emitted as a SIGNED 16-bit value (lha @sp+0x16 -&gt; f_1055fc84) - consistent with a -10..10 treble level.</li>
 <li>The impl f_100e3450 never reads the out pointer (r5 dead from entry) - it delegates to ctx-worker f_100e1fec(this,&amp;ctxobj). Where the out slot is actually written is unresolved: either f_100e1fec writes through an aliased channel or the emitted i16 is stale stack data (same anomaly class as GetBass, though this impl is a real function).</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_8">Validation<a class="headerlink" href="#validation_8" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse only; impl ignores both arguments.</p>
 <h4 id="requirements-preconditions_8">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_8" title="Permanent link">&para;</a></h4>
@@ -9743,6 +9799,7 @@
 <p>concrete rc vocabulary: 0 (success); ctx-reader f_100e1fec rc propagated; ctx machinery identical to GetEQ skeleton</p>
 <h4 id="notes_8">Notes<a class="headerlink" href="#notes_8" title="Permanent link">&para;</a></h4>
 <p>Largest unresolved piece: the CurrentTreble out path. Worth a focused pass on f_100e1fec later.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9763,7 +9820,10 @@
 <h3 id="getvolume"><code>GetVolume</code><a class="headerlink" href="#getvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the linear volume for a Channel (0-100).</p>
-<p><strong>Technical description:</strong> Reads the channel volume through a two-stage impl: shim f_100e43b4 gates InstanceID!=0 -&gt; 702, worker f_100e42a8 acquires an audio-context object (f_10118278/f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, checks readiness gate f_102a5028(*(impl+0x3ac)) (fail -&gt; 501), then reads via f_100da830 -&gt; f_102a50b8 -&gt; f_107ea964.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Reads the channel volume through a two-stage impl: shim f_100e43b4 gates InstanceID!=0 -&gt; 702, worker f_100e42a8 acquires an audio-context object (f_10118278/f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, checks readiness gate f_102a5028(*(impl+0x3ac)) (fail -&gt; 501), then reads via f_100da830 -&gt; f_102a50b8 -&gt; f_107ea964.</p>
+</details>
 <h4 id="inputs_9">Inputs<a class="headerlink" href="#inputs_9" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9819,6 +9879,8 @@
 </tr>
 </tbody>
 </table>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_9">Validation<a class="headerlink" href="#validation_9" title="Permanent link">&para;</a></h4>
 <p>InstanceID must be 0 (else 702). Channel forwarded to the read helper; rejection there returns its own rc.</p>
 <h4 id="requirements-preconditions_9">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_9" title="Permanent link">&para;</a></h4>
@@ -9866,6 +9928,7 @@
 <p>concrete rc vocabulary: 0 (success, worker rc forwarded), 702 null out ptr (0x100e43b4), 501 impl+0x3ac state check fail (0x100e4314-0x100e432c); worker f_100da830 return propagated verbatim as r30</p>
 <h4 id="notes_9">Notes<a class="headerlink" href="#notes_9" title="Permanent link">&para;</a></h4>
 <p>Error code differs from AVTransport: nonzero InstanceID yields 702 here vs 718 in Seek.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9887,7 +9950,10 @@
 <h3 id="getvolumedb"><code>GetVolumeDB</code><a class="headerlink" href="#getvolumedb" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Returns the volume in decibels (scaled; see GetVolumeDBRange for this player's range).</p>
-<p><strong>Technical description:</strong> Returns a volume reading via shared worker f_100dcb00 invoked in mode 0 with flag r6=1 (thunk 0x100dcc64): the dB-scale companion to GetVolume.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns a volume reading via shared worker f_100dcb00 invoked in mode 0 with flag r6=1 (thunk 0x100dcc64): the dB-scale companion to GetVolume.</p>
+</details>
 <h4 id="inputs_10">Inputs<a class="headerlink" href="#inputs_10" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -9946,6 +10012,8 @@
 <li><strong><code>CurrentVolume</code></strong> — Current volume expressed in the worker's mode-0 units (the +0x24 thunk passes mode=0, flag r6=1 to shared worker f_100dcb00 - the 'dB' reading path).</li>
 <li>Exact unit/scale produced by worker mode 0 is unresolved (thunk constants 0/1 select the path inside f_100dcb00).</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_10">Validation<a class="headerlink" href="#validation_10" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl ignores InstanceID/Channel.</p>
 <h4 id="requirements-preconditions_10">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_10" title="Permanent link">&para;</a></h4>
@@ -9975,6 +10043,7 @@
 </ul>
 <h4 id="notes_10">Notes<a class="headerlink" href="#notes_10" title="Permanent link">&para;</a></h4>
 <p>Despite the name the impl is a mode-select thunk over the same worker used by SetVolume/SetRelativeVolume; mode-0 semantics (dB read vs raw) unresolved.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -9995,7 +10064,10 @@
 <h3 id="getvolumedbrange"><code>GetVolumeDBRange</code><a class="headerlink" href="#getvolumedbrange" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Returns the dB volume range this player supports.</p>
-<p><strong>Technical description:</strong> Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range</p>
+</details>
 <h4 id="inputs_11">Inputs<a class="headerlink" href="#inputs_11" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10061,6 +10133,8 @@
 <li><strong><code>MaxValue</code></strong> — never produced - the impl slot resolves to the ButtonSetMute handler f_100dcd88, which writes no range output</li>
 <li>impl is a shared button/apply helper; out writes unverified - possible stale-slot emission like the stub cases.</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_11">Validation<a class="headerlink" href="#validation_11" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl performs no argument checks.</p>
 <h4 id="requirements-preconditions_11">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_11" title="Permanent link">&para;</a></h4>
@@ -10090,6 +10164,7 @@
 </ul>
 <h4 id="notes_11">Notes<a class="headerlink" href="#notes_11" title="Permanent link">&para;</a></h4>
 <p>Flag for live-object verification: the installed impl may differ if a derived class overrides +0x2c.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10110,7 +10185,10 @@
 <h3 id="ramptovolume"><code>RampToVolume</code><a class="headerlink" href="#ramptovolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Starts a timed volume ramp to DesiredVolume of type RampType (used for alarm/sleep-timer fades); returns RampTime.</p>
-<p><strong>Technical description:</strong> CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.</p>
+</details>
 <h4 id="inputs_12">Inputs<a class="headerlink" href="#inputs_12" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10209,6 +10287,8 @@
 <li>unit: seconds (nominal)</li>
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_12">Validation<a class="headerlink" href="#validation_12" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_12">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_12" title="Permanent link">&para;</a></h4>
@@ -10239,6 +10319,7 @@
 </ul>
 <h4 id="notes_12">Notes<a class="headerlink" href="#notes_12" title="Permanent link">&para;</a></h4>
 <p>Feature-gated by impl class like SetRoomCalibrationStatus.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10259,7 +10340,10 @@
 <h3 id="resetbasiceq"><code>ResetBasicEQ</code><a class="headerlink" href="#resetbasiceq" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Resets bass/treble/loudness and stereo balance to neutral; returns the resulting values.</p>
-<p><strong>Technical description:</strong> Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID, chan, val) and, on a cr0 flag, additionally calls the SetMute worker f_100d99b0 - then logs 'ch:%s, vol:%u, on:%d' and returns per-channel results (Bass, Treble, Loudness, LeftVolume, RightVolume).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID, chan, val) and, on a cr0 flag, additionally calls the SetMute worker f_100d99b0 - then logs 'ch:%s, vol:%u, on:%d' and returns per-channel results (Bass, Treble, Loudness, LeftVolume, RightVolume).</p>
+</details>
 <h4 id="inputs_13">Inputs<a class="headerlink" href="#inputs_13" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10335,6 +10419,8 @@
 <li><strong><code>RightVolume</code></strong> — Post-reset value emitted from the impl's record/context after the reset sequence.</li>
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_13">Validation<a class="headerlink" href="#validation_13" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_13">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_13" title="Permanent link">&para;</a></h4>
@@ -10364,6 +10450,7 @@
 </ul>
 <h4 id="notes_13">Notes<a class="headerlink" href="#notes_13" title="Permanent link">&para;</a></h4>
 <p>f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10386,7 +10473,10 @@
 <h3 id="resetexteq"><code>ResetExtEQ</code><a class="headerlink" href="#resetexteq" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Resets the extended EQ band EQType.</p>
-<p><strong>Technical description:</strong> Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -&gt; f_106a9cc4 -&gt; f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -&gt; f_106a9cc4 -&gt; f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.</p>
+</details>
 <h4 id="inputs_14">Inputs<a class="headerlink" href="#inputs_14" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10423,6 +10513,8 @@
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 <li>buffer cap: <code>0x400</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_14">Validation<a class="headerlink" href="#validation_14" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_14">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_14" title="Permanent link">&para;</a></h4>
@@ -10453,6 +10545,7 @@
 </ul>
 <h4 id="notes_14">Notes<a class="headerlink" href="#notes_14" title="Permanent link">&para;</a></h4>
 <p>The 'SetVolumeWithoutProxy' tag inside ResetExtEQ confirms f_100d9d40/f_100d99b0-style workers are shared scalar-apply machinery reused across EQ and volume actions.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10473,7 +10566,10 @@
 <h3 id="restorevolumepriortoramp"><code>RestoreVolumePriorToRamp</code><a class="headerlink" href="#restorevolumepriortoramp" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Undoes a previous RampToVolume, restoring the earlier volume.</p>
-<p><strong>Technical description:</strong> CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.</p>
+</details>
 <h4 id="inputs_15">Inputs<a class="headerlink" href="#inputs_15" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10510,6 +10606,8 @@
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 <li>buffer cap: <code>0x400</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_15">Validation<a class="headerlink" href="#validation_15" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_15">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_15" title="Permanent link">&para;</a></h4>
@@ -10540,6 +10638,7 @@
 </ul>
 <h4 id="notes_15">Notes<a class="headerlink" href="#notes_15" title="Permanent link">&para;</a></h4>
 <p>Inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10563,7 +10662,10 @@
 <h3 id="setbass"><code>SetBass</code><a class="headerlink" href="#setbass" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Sets the bass level - neutered like GetBass on this build; use SetEQ with the bass EQType instead.</p>
-<p><strong>Technical description:</strong> Stores the desired bass value into impl+0x898 under the impl mutex, unless the record equals -1 which short-circuits to a no-op. No event/notify calls appear in this impl - state propagation presumably occurs via a separate apply path (unresolved).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Stores the desired bass value into impl+0x898 under the impl mutex, unless the record equals -1 which short-circuits to a no-op. No event/notify calls appear in this impl - state propagation presumably occurs via a separate apply path (unresolved).</p>
+</details>
 <h4 id="inputs_16">Inputs<a class="headerlink" href="#inputs_16" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10601,6 +10703,8 @@
 <li>validation: impl loads *(arg) as a word at 0x100d72f0; value -1 (0xffffffff) is the no-change sentinel and skips the write; every other value is stored verbatim at impl+0x898 - no range check exists</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_16">Validation<a class="headerlink" href="#validation_16" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl honors -1 sentinel, no range check visible.</p>
 <h4 id="requirements-preconditions_16">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_16" title="Permanent link">&para;</a></h4>
@@ -10630,6 +10734,7 @@
 </ul>
 <h4 id="notes_16">Notes<a class="headerlink" href="#notes_16" title="Permanent link">&para;</a></h4>
 <p>Impl signature is (impl, recordptr) - a different convention than the channel/value impls; the wrapper supplies &amp;rec@sp+0x16.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10650,7 +10755,10 @@
 <h3 id="setchannelmap"><code>SetChannelMap</code><a class="headerlink" href="#setchannelmap" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Assigns left/right channels to players in a stereo pair via ChannelMap.</p>
-<p><strong>Technical description:</strong> Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pre-sets it), checks whether impl vfunc +0x5c is the base implementation 0x100d7364 (derived-class detection), locks impl+0x938, checks flag +0x7ff, calls f_10988984 for a sub-lock byte result, and strcmp's channel tokens ('Master' seen) to dispatch.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pre-sets it), checks whether impl vfunc +0x5c is the base implementation 0x100d7364 (derived-class detection), locks impl+0x938, checks flag +0x7ff, calls f_10988984 for a sub-lock byte result, and strcmp's channel tokens ('Master' seen) to dispatch.</p>
+</details>
 <h4 id="inputs_17">Inputs<a class="headerlink" href="#inputs_17" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10688,6 +10796,8 @@
 <li>Impl also checks impl-&gt;v[+0x5c] == base fn 0x100d7364 to detect class overrides before applying (0x100d7438-0x100d744c).</li>
 <li>buffer cap: <code>0x20</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_17">Validation<a class="headerlink" href="#validation_17" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl does complex conditional dispatch.</p>
 <h4 id="requirements-preconditions_17">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_17" title="Permanent link">&para;</a></h4>
@@ -10718,6 +10828,7 @@
 </ul>
 <h4 id="notes_17">Notes<a class="headerlink" href="#notes_17" title="Permanent link">&para;</a></h4>
 <p>Derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior differs.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10738,7 +10849,10 @@
 <h3 id="seteq"><code>SetEQ</code><a class="headerlink" href="#seteq" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Sets an EQ parameter (EQType, e.g. bass/treble/loudness id) to DesiredValue - the working EQ path.</p>
-<p><strong>Technical description:</strong> Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.</p>
+</details>
 <h4 id="inputs_18">Inputs<a class="headerlink" href="#inputs_18" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10788,6 +10902,8 @@
 <li>validation: null record -&gt; silently skipped; non-null -&gt; applied via f_100e27b0(this,rec,flag) (flag=1 EQType, flag=0 DesiredValue)</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_18">Validation<a class="headerlink" href="#validation_18" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl branches only on ==0 per arg.</p>
 <h4 id="requirements-preconditions_18">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_18" title="Permanent link">&para;</a></h4>
@@ -10818,6 +10934,7 @@
 </ul>
 <h4 id="notes_18">Notes<a class="headerlink" href="#notes_18" title="Permanent link">&para;</a></h4>
 <p>Zero-gated dual worker calls are an unusual pattern - possibly 'apply defaults when selector is 0'. Worth revisiting with f_100e27b0.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10838,7 +10955,10 @@
 <h3 id="setloudness"><code>SetLoudness</code><a class="headerlink" href="#setloudness" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Enables or disables loudness compensation for a Channel.</p>
-<p><strong>Technical description:</strong> CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).</p>
+</details>
 <h4 id="inputs_19">Inputs<a class="headerlink" href="#inputs_19" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10888,6 +11008,8 @@
 <li>In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub.</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_19">Validation<a class="headerlink" href="#validation_19" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_19">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_19" title="Permanent link">&para;</a></h4>
@@ -10917,6 +11039,7 @@
 </ul>
 <h4 id="notes_19">Notes<a class="headerlink" href="#notes_19" title="Permanent link">&para;</a></h4>
 <p>Loudness exists only on the derived/proxy impl class - plausible device-capability gating.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -10938,7 +11061,10 @@
 <h3 id="setmute"><code>SetMute</code><a class="headerlink" href="#setmute" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Mutes or unmutes a Channel.</p>
-<p><strong>Technical description:</strong> Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -&gt; +0x3c8, with a +0x7e0 -&gt; +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -&gt; +0x3c8, with a +0x7e0 -&gt; +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).</p>
+</details>
 <h4 id="inputs_20">Inputs<a class="headerlink" href="#inputs_20" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -10987,6 +11113,8 @@
 <li>validation: Request-layer parse only (req vfunc +0x08); the impl stores the low byte without range checks.</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_20">Validation<a class="headerlink" href="#validation_20" title="Permanent link">&para;</a></h4>
 <p>InstanceID must equal 0 (else 702); Channel must be exactly Master, LF, RF or FocusMode (else 402). DesiredMute is not range-validated.</p>
 <h4 id="requirements-preconditions_20">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_20" title="Permanent link">&para;</a></h4>
@@ -11022,6 +11150,7 @@
 </ul>
 <h4 id="notes_20">Notes<a class="headerlink" href="#notes_20" title="Permanent link">&para;</a></h4>
 <p>'SetMuteWithoutProxy' log tag in base impl vs the 0x1046xxxx prelude in the derived class shows the two impl classes differ in group/proxy handling of the same SOAP action.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11043,7 +11172,10 @@
 <h3 id="setoutputfixed"><code>SetOutputFixed</code><a class="headerlink" href="#setoutputfixed" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Switches between fixed and variable output level where supported.</p>
-<p><strong>Technical description:</strong> Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then conditional fills) and reads flags +0x7ff/+0x801 off an object in r4 - the impl signature differs from the standard (impl,instID,val) shape: it operates on a caller-supplied record and a second object.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then conditional fills) and reads flags +0x7ff/+0x801 off an object in r4 - the impl signature differs from the standard (impl,instID,val) shape: it operates on a caller-supplied record and a second object.</p>
+</details>
 <h4 id="inputs_21">Inputs<a class="headerlink" href="#inputs_21" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -11080,6 +11212,8 @@
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_21">Validation<a class="headerlink" href="#validation_21" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_21">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_21" title="Permanent link">&para;</a></h4>
@@ -11110,6 +11244,7 @@
 </ul>
 <h4 id="notes_21">Notes<a class="headerlink" href="#notes_21" title="Permanent link">&para;</a></h4>
 <p>Flag +0x7ff is the same byte that gates SetVolume's write and selects volume fields in GetHeadphoneConnected - SetOutputFixed is very likely its writer.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11130,7 +11265,10 @@
 <h3 id="setrelativevolume"><code>SetRelativeVolume</code><a class="headerlink" href="#setrelativevolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Adjusts volume by a signed Adjustment; returns NewVolume. Safer than absolute SetVolume for slider deltas.</p>
-<p><strong>Technical description:</strong> Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.</p>
+</details>
 <h4 id="inputs_22">Inputs<a class="headerlink" href="#inputs_22" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -11199,6 +11337,8 @@
 <li><strong><code>NewVolume</code></strong> — Resulting volume after the relative apply; emitted as i16/u16 from the stack out slot written by the worker chain.</li>
 <li>Out-write site inside the worker chain is unresolved (worker writes u16 at its own stack slot 0x12 via f_100da1e0; exact propagation to this out arg not yet traced).</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_22">Validation<a class="headerlink" href="#validation_22" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl does not validate InstanceID/Channel and does not range-check Adjustment at entry.</p>
 <h4 id="requirements-preconditions_22">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_22" title="Permanent link">&para;</a></h4>
@@ -11228,6 +11368,7 @@
 </ul>
 <h4 id="notes_22">Notes<a class="headerlink" href="#notes_22" title="Permanent link">&para;</a></h4>
 <p>Shares all worker caveats with SetVolume (dead InstanceID check, hardcoded 'Master', +0x7ff no-op gate, LUT path).</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11248,7 +11389,10 @@
 <h3 id="setroomcalibrationstatus"><code>SetRoomCalibrationStatus</code><a class="headerlink" href="#setroomcalibrationstatus" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
 <p>Enables or disables Trueplay room calibration.</p>
-<p><strong>Technical description:</strong> ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.</p>
+</details>
 <h4 id="inputs_23">Inputs<a class="headerlink" href="#inputs_23" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -11285,6 +11429,8 @@
 <li>validation: request-layer parse (req vfunc +0x08); no impl-side checks</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_23">Validation<a class="headerlink" href="#validation_23" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse.</p>
 <h4 id="requirements-preconditions_23">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_23" title="Permanent link">&para;</a></h4>
@@ -11315,6 +11461,7 @@
 </ul>
 <h4 id="notes_23">Notes<a class="headerlink" href="#notes_23" title="Permanent link">&para;</a></h4>
 <p>One of three actions missing from the base vtable (with RampToVolume and RestoreVolumePriorToRamp) - feature-gated by impl class.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11336,7 +11483,10 @@
 <h3 id="settreble"><code>SetTreble</code><a class="headerlink" href="#settreble" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Sets treble level - same neuter caveat; prefer SetEQ.</p>
-<p><strong>Technical description:</strong> NEUTERED ACTION: impl vfunc +0x3c is f_100d65f4 (same null stub as GetBass) in both vtables - performs nothing, returns r3 = impl pointer with stale cr0. The action has no outputs, so a successful emit commits an empty OK response while doing nothing.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>NEUTERED ACTION: impl vfunc +0x3c is f_100d65f4 (same null stub as GetBass) in both vtables - performs nothing, returns r3 = impl pointer with stale cr0. The action has no outputs, so a successful emit commits an empty OK response while doing nothing.</p>
+</details>
 <h4 id="inputs_24">Inputs<a class="headerlink" href="#inputs_24" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -11373,6 +11523,8 @@
 <li>validation: no impl use</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_24">Validation<a class="headerlink" href="#validation_24" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse only.</p>
 <h4 id="requirements-preconditions_24">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_24" title="Permanent link">&para;</a></h4>
@@ -11402,6 +11554,7 @@
 </ul>
 <h4 id="notes_24">Notes<a class="headerlink" href="#notes_24" title="Permanent link">&para;</a></h4>
 <p>Asymmetric with SetBass (+0x34 -&gt; real impl f_100d72dc): bass can be written but not read; treble can be read but not written.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11422,7 +11575,10 @@
 <h3 id="setvolume"><code>SetVolume</code><a class="headerlink" href="#setvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Sets the linear volume for a Channel (0-100).</p>
-<p><strong>Technical description:</strong> Sets the Master-channel volume via shared worker f_100dcb00: locks impl+0x938, reads flag impl+0x7ff (nonzero -&gt; skip the write entirely and return), resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then selects a u16-indexed table entry (0x10e87578 + desired*4, field +0x11c) and logs 'vol:%u src:%s'.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sets the Master-channel volume via shared worker f_100dcb00: locks impl+0x938, reads flag impl+0x7ff (nonzero -&gt; skip the write entirely and return), resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then selects a u16-indexed table entry (0x10e87578 + desired*4, field +0x11c) and logs 'vol:%u src:%s'.</p>
+</details>
 <h4 id="inputs_25">Inputs<a class="headerlink" href="#inputs_25" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -11470,6 +11626,8 @@
 <li>validation: No range check in the impl - the raw u16 indexes the LUT; out-of-table semantics bounded only by table size (parser may restrict lexical input).</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_25">Validation<a class="headerlink" href="#validation_25" title="Permanent link">&para;</a></h4>
 <p>Only request-layer parse validation; InstanceID and Channel are ignored by the impl; DesiredVolume is not range-checked in the impl.</p>
 <h4 id="requirements-preconditions_25">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_25" title="Permanent link">&para;</a></h4>
@@ -11499,6 +11657,7 @@
 </ul>
 <h4 id="notes_25">Notes<a class="headerlink" href="#notes_25" title="Permanent link">&para;</a></h4>
 <p>Shared worker for three SOAP actions via arg-remapping thunks; the 'desired&lt;2' split (0x100dcbd0) and the exact LUT semantics are unresolved (likely a u16 gain step table).</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11521,7 +11680,10 @@
 <h3 id="setvolumedb"><code>SetVolumeDB</code><a class="headerlink" href="#setvolumedb" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>direct</code></p>
 <p>Sets the volume in decibels within the range reported by GetVolumeDBRange.</p>
-<p><strong>Technical description:</strong> ANOMALY: the impl slot (+0x28) points at f_100dcc84 - a function that ignores all arguments, XOR-toggles the Master mute byte (impl+0x7f1 ^= 1), syncs the volume mirror (+0x7da-&gt;+0x3c8 when flag +0x7ff is clear), applies state via f_100d7f34, sets dirty +0x7f5 and logs 'ButtonSetMute on:%d src:%s'. In the derived class B the slot is 0x1047241c (a real, unexplored function). In class A the SOAP action behaves as a Master-mute toggle regardless of arguments.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>ANOMALY: the impl slot (+0x28) points at f_100dcc84 - a function that ignores all arguments, XOR-toggles the Master mute byte (impl+0x7f1 ^= 1), syncs the volume mirror (+0x7da-&gt;+0x3c8 when flag +0x7ff is clear), applies state via f_100d7f34, sets dirty +0x7f5 and logs 'ButtonSetMute on:%d src:%s'. In the derived class B the slot is 0x1047241c (a real, unexplored function). In class A the SOAP action behaves as a Master-mute toggle regardless of arguments.</p>
+</details>
 <h4 id="inputs_26">Inputs<a class="headerlink" href="#inputs_26" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -11570,6 +11732,8 @@
 <li>The base-vtable impl f_100dcc84 ignores all three args and toggles the mute byte instead.</li>
 <li>buffer cap: <code>0x18</code></li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation_26">Validation<a class="headerlink" href="#validation_26" title="Permanent link">&para;</a></h4>
 <p>Request-layer parse; impl performs no argument checks (class A impl reads zero argument bytes).</p>
 <h4 id="requirements-preconditions_26">Requirements / preconditions<a class="headerlink" href="#requirements-preconditions_26" title="Permanent link">&para;</a></h4>
@@ -11599,6 +11763,7 @@
 </ul>
 <h4 id="notes_26">Notes<a class="headerlink" href="#notes_26" title="Permanent link">&para;</a></h4>
 <p>Whether this is deliberate feature-rewiring or the live object uses class B's override is unresolved; the SOAP-visible behavior in class A is a mute toggle.</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -11929,19 +12094,32 @@
 <li><strong>Mechanism:</strong> UPnP GENA NOTIFY with e:propertyset -&gt; LastChange -&gt; Event(InstanceID=0) -&gt; val= attributes</li>
 <li><strong>Namespace:</strong> urn:schemas-upnp-org:metadata-1-0/RCS/</li>
 <li><strong>LastChange variable:</strong> LastChange</li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> f_100e27b0: builds <Event xmlns=...RCS> LastChange doc (InstanceID, Volume/Mute Master|LF|RF) AND writes e:property via f_10676a44 at 0x100e2ea8; notify trigger f_100e328c/f_100e32a4</li>
 <li><strong>payload_model:</strong> e:property doc via f_10676a44 writer family</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>confirmed</code></p>
 <p>Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.</p>
 <ul>
 <li>implementation object pointer null at dispatch time</li>
 </ul>
+</details>
 <h2 id="notes_27">Notes<a class="headerlink" href="#notes_27" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p>Impl vtables found in .rodata: base 0x10e872f0 (slots +0x08..+0x64, ends at GetRoomCalibrationStatus - no SetRoomCalibrationStatus/RampToVolume/RestoreVolumePriorToRamp entries) and derived 0x10ed279c. Neither vtable address is stored or materialized anywhere - objects are installed dynamically and derived classes may further override slots (this-adjusting thunks exist at 0x100d6600/0x100d6608/0x100d735c/0x100e32ec/0x100e34dc/0x100e4214 for secondary bases). Common field map established from impl bodies: mute bytes +0x7f1 Master / +0x7f2 LF / +0x7f3 RF / +0x7f4 'FocusMode' (SetMute only), volume u16 +0x7da mirrored to +0x3c8 on write, secondary u16 +0x7e0, flag bytes +0x7ff and +0x801 gating a volume-sync path, event-dirty flag +0x7f5, EQ word +0x898, context/state objects +0x3ac/+0x3c4/+0x9c8/+0xbc8, recursive mutex +0x938 (f_10988564/f_10988990 guard pair).</p>
+</details>
 <h2 id="additional-records">Additional records<a class="headerlink" href="#additional-records" title="Permanent link">&para;</a></h2>
 <h3 id="implementation_notes"><code>implementation_notes</code><a class="headerlink" href="#implementation_notes" title="Permanent link">&para;</a></h3>
+<details>
+<summary><b>Technical details</b></summary>
 <ul>
 <li><strong>source:</strong> rc_impl.cxx literals 0x10e87728-0x10e88d8c; rcMediaRenderer + sonosAsyncFastState(+Cond) fast-state channel; ie-schd/ie-cache threads</li>
 <li><strong>eq_settings:</strong> <code>SubGain</code>, <code>SubCrossover</code>, <code>SubPolarity</code>, <code>SubEnable</code>, <code>VolumeScalingFactor</code>, <code>HeightChannelLevel</code>, <code>DialogLevel</code>, <code>SpeechEnhanceEnabled</code>, <code>SupportsMaxDialogLevel</code>, <code>SurroundLevel</code>, <code>MusicSurroundLevel</code>, <code>SurroundEnable</code>, <code>SurroundMode</code>, <code>AudioDelay</code>, <code>AudioDelayLeftRear</code>, <code>AudioDelayRightRear</code>, <code>NightMode</code></li>
@@ -11952,6 +12130,7 @@
 <li><strong>volume_internals:</strong> "Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d" — balance+per-channel mutes; "ramping to %d"; GainTrimdB %.2f; FocusModeMute; "setMonoMode %s"; "Set real channel map to L: %u - R: %u"; "bonded; set primary's default loudness %d"; save collision policy delay|drop [cSC:%u|sC:%u|sCC:%u]</li>
 <li><strong>sonar:</strong> "sonar %sACTIVE (t:%d e:%d ac:%d id:%s)"; "sonar state changing %s -&gt; %s"; "Will apply and store Sonar calibration %s"/"Will apply HT spatial coefficients"; CalibrationMode must be spectral|spatial; events sonarEnabledChangedTo/sonarCalibConsistentChangedTo/sonarHasCalibrationChangedTo/orientationChangedTo</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/rc_impl.cxx</code>, <code>zoneplayer/rc_impl_stp.cxx</code></p>
 <details>
 <summary>Service evidence (6)</summary>

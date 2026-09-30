@@ -2011,7 +2011,10 @@
 <h1 id="musicservices-musicservicescontrol"><code>MusicServices</code> — <code>/MusicServices/Control</code><a class="headerlink" href="#musicservices-musicservicescontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
 <p>SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.</p>
-<p><strong>Technical description:</strong> Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.</p>
+</details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
 <li>capability flags <code>0x200</code></li>
@@ -2066,7 +2069,10 @@
 <h3 id="getsessionid"><code>GetSessionId</code><a class="headerlink" href="#getsessionid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.</p>
-<p><strong>Technical description:</strong> Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl-&gt;v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl-&gt;v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.</p>
+</details>
 <h4 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2123,6 +2129,8 @@
 <li>special values: failure -&gt; 402 fault before emission</li>
 <li>validation: input index must be &lt; 0x100 (impl cmplwi at 0x100c8054)</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2187,6 +2195,7 @@
 <ul>
 <li><em>(sp+0x18)!=0 then </em>(sp+0x14)==0 -&gt; 401</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2209,7 +2218,10 @@
 <h3 id="listavailableservices"><code>ListAvailableServices</code><a class="headerlink" href="#listavailableservices" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.</p>
-<p><strong>Technical description:</strong> Returns the list of available music services. Wrapper reaches the impl through <em>(</em>(sp+0x18)+0x8) — a doubly-indirect member — and calls its v[+0x8] which serializes the service list.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Returns the list of available music services. Wrapper reaches the impl through <em>(</em>(sp+0x18)+0x8) — a doubly-indirect member — and calls its v[+0x8] which serializes the service list.</p>
+</details>
 <h4 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2245,6 +2257,8 @@
 <li><strong><code>AvailableServiceListVersion</code></strong> — music-service catalogue field emitted via the response writer inside serializer f_100c6314</li>
 <li>validation: arg-name string 'out' loaded at 0x100c67f4 inside f_100c6314</li>
 </ul>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_1">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_1" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2306,6 +2320,7 @@
 </ul>
 <p><strong>Bounded unknown — proven:</strong> impl-&gt;v[+0x8] rc surfaced
 <strong>Bounded unknown — unresolved:</strong> none identified</p>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2327,7 +2342,12 @@
 <h3 id="updateavailableservices"><code>UpdateAvailableServices</code><a class="headerlink" href="#updateavailableservices" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
 <p>Forces a refresh of the cached service descriptor list from the cloud/catalog.</p>
-<p><strong>Technical description:</strong> Triggers a refresh of the available music-services list via impl-&gt;v[+0x8] on the svc+4 member.</p>
+<details>
+<summary><b>Technical details</b></summary>
+<p>Triggers a refresh of the available music-services list via impl-&gt;v[+0x8] on the svc+4 member.</p>
+</details>
+<details>
+<summary><b>Technical analysis</b></summary>
 <h4 id="validation-confirmed_2">Validation <code>confirmed</code><a class="headerlink" href="#validation-confirmed_2" title="Permanent link">&para;</a></h4>
 <p>Wrapper convention (proven on this service): each input is fetched by req-&gt;v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req-&gt;v[+0x8] then validates the request (nonzero proceeds); the impl call impl-&gt;v[slot] returns a code -&gt; cr0.eq emits outputs, nonzero goes through req-&gt;v[+0x14] as a SOAP fault with the impl code verbatim.</p>
 <details>
@@ -2398,6 +2418,7 @@
 <ul>
 <li>the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count&gt;=70-&gt;805, size&gt;128KiB-&gt;806) and partly for savedqueues; other stores’ per-code triggers unresolved</li>
 </ul>
+</details>
 <details>
 <summary>Implementation &amp; reverse-engineering evidence</summary>
 <ul>
@@ -2471,18 +2492,26 @@
 <li>Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload</li>
 <li>Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure</li>
 <li><strong>WSS event names:</strong> <code>musicServices</code>, <code>musicServicesChanged</code></li>
+</ul>
+<details>
+<summary><b>Technical details</b></summary>
+<ul>
 <li><strong>notify_path:</strong> f_100c7084 e:property dump {ServiceListVersion} -&gt; f_10676a44</li>
 <li><strong>payload_model:</strong> e:property doc via f_10676a44 writer family</li>
 <li><strong>wss_registry:</strong></li>
 <li>idx: 44, name: musicServices, id: 166, tag: 73</li>
 <li>idx: 45, name: musicServicesChanged, id: 167, tag: 25</li>
 </ul>
+</details>
 <h2 id="dispatcher-level-errors">Dispatcher-level errors<a class="headerlink" href="#dispatcher-level-errors" title="Permanent link">&para;</a></h2>
+<details>
+<summary><b>Technical details</b></summary>
 <p><strong><code>401</code></strong> <code>strong</code></p>
 <p>unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler</p>
 <ul>
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
+</details>
 <p>Implementation sources (recovered): <code>zoneplayer/zpserviceaccounts.cxx</code>, <code>zoneplayer/svcmanifestfile.cxx</code>, <code>zoneplayer/spotify/spotify_smapi.cxx</code>, <code>zoneplayer/accountsmgr.cxx</code>, <code>zoneplayer/entitlementsmanager.cxx</code></p>
 <details>
 <summary>Service evidence (3)</summary>

@@ -4,7 +4,11 @@
 
 The multi-queue registry: explicit saved/independent queues addressed by QueueID, separate from the implicit playback queue AVTransport edits. Provides create/attach/browse/mutate operations with optimistic concurrency - every mutating action takes the queue's last UpdateID and returns the new one, and a stale UpdateID faults. AttachQueue is how a client adopts a queue owned by another context.
 
-**Technical description:** Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -> req->v\[+0x14\](req,401). Matched entries tail-call svc->v\[+0x38\] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -> req->v\[+0x14\](req,401). Matched entries tail-call svc->v\[+0x38\] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.
+
+</details>
 
 ## Availability
 
@@ -40,7 +44,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Bulk-adds tracks to an explicit queue: EnqueuedURIsAndMetaData holds NumberOfURIs packed URI+metadata entries; positioning via DesiredFirstTrackNumberEnqueued or EnqueueAsNext. UpdateID-guarded.
 
-**Technical description:** Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x2c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x2c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).
+
+</details>
 
 #### Inputs
 
@@ -101,6 +109,8 @@ Bulk-adds tracks to an explicit queue: EnqueuedURIsAndMetaData holds NumberOfURI
 - **`FirstTrackNumberEnqueued`** — index actually assigned to the first enqueued track
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -185,6 +195,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10464f34`
@@ -205,7 +218,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a single track (+DIDL-Lite metadata) to the queue at DesiredFirstTrackNumberEnqueued (or after the current track with EnqueueAsNext). Returns its position, count added and the new UpdateID.
 
-**Technical description:** Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl->v\[+0x8\](impl, QueueID, UpdateID, &URI, &MD, DesiredFirst, EnqueueAsNext, &out1,&out2,&out3,&out4) on the queue-manager — rc==0 emits the four outputs, nonzero goes to req->v\[+0x14\] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl->v\[+0x8\](impl, QueueID, UpdateID, &URI, &MD, DesiredFirst, EnqueueAsNext, &out1,&out2,&out3,&out4) on the queue-manager — rc==0 emits the four outputs, nonzero goes to req->v\[+0x14\] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.
+
+</details>
 
 #### Inputs
 
@@ -248,6 +265,8 @@ Adds a single track (+DIDL-Lite metadata) to the queue at DesiredFirstTrackNumbe
   - validation: written from the queue record length
 - **`NewUpdateID`** — Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -342,6 +361,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1046453c`
@@ -361,7 +383,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Attaches to a queue owned by QueueOwnerID, returning the QueueID to use in subsequent calls plus the owner context.
 
-**Technical description:** Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in — the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x1c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in — the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x1c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -383,6 +409,8 @@ Attaches to a queue owned by QueueOwnerID, returning the QueueID to use in subse
   - validation: engine-assigned
 - **`QueueOwnerContext`** — Written by the queue-manager impl on success.
   - validation: echoed from the queue record
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -471,6 +499,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x104647b8`
@@ -493,7 +524,13 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Persists the queue registry to flash (trackqueue.rsq) so queues survive reboot.
 
-**Technical description:** Backs up queue state — the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x10\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Backs up queue state — the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x10\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -574,6 +611,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10465660`
@@ -594,7 +634,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reads back a queue's contents: starting at StartingIndex, up to RequestedCount tracks, returned as a DIDL-Lite Result document with NumberReturned/TotalMatches and the queue's UpdateID.
 
-**Technical description:** Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x28\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x28\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -628,6 +672,8 @@ Reads back a queue's contents: starting at StartingIndex, up to RequestedCount t
   - validation: arg-name string 'out' loaded at 0x104664b8 inside f_10466280
 - **`UpdateID`** — browse result field emitted via f_10560608 inside impl f_10466280
   - validation: arg-name string 'out' loaded at 0x104664dc inside f_10466280
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -712,6 +758,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10464200`
@@ -731,7 +780,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Creates a new queue owned by QueueOwnerID with a policy (QueuePolicy), returning its QueueID.
 
-**Technical description:** Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x14\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x14\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -756,6 +809,8 @@ Creates a new queue owned by QueueOwnerID with a policy (QueuePolicy), returning
 
 - **`QueueID`** — Written by the queue-manager impl on success.
   - validation: engine-assigned
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -836,6 +891,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10464bd0`
@@ -855,7 +913,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Empties the queue; UpdateID-guarded.
 
-**Technical description:** Removes all tracks from the queue identified by QueueID — explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x18\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes all tracks from the queue identified by QueueID — explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x18\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -877,6 +939,8 @@ Empties the queue; UpdateID-guarded.
 
 - **`NewUpdateID`** — Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -961,6 +1025,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10464908`
@@ -980,7 +1047,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes NumberOfTracks consecutive tracks starting at StartingIndex; returns NewUpdateID.
 
-**Technical description:** Removes a contiguous range from QueueID — explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x1c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes a contiguous range from QueueID — explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x1c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -1008,6 +1079,8 @@ Removes NumberOfTracks consecutive tracks starting at StartingIndex; returns New
 
 - **`NewUpdateID`** — Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1092,6 +1165,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10464a44`
@@ -1111,7 +1187,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Moves a run of tracks to InsertBefore within the queue; UpdateID-guarded.
 
-**Technical description:** Reorders a block within QueueID — explicit-id twin of AVTransport.ReorderTracksInQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x20\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Reorders a block within QueueID — explicit-id twin of AVTransport.ReorderTracksInQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x20\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -1142,6 +1222,8 @@ Moves a run of tracks to InsertBefore within the queue; UpdateID-guarded.
 
 - **`NewUpdateID`** — Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1226,6 +1308,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10464d68`
@@ -1245,7 +1330,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Atomically replaces the whole queue contents: new tracks from ContainerURI/ContainerMetaData plus packed EnqueuedURIsAndMetaData, with CurrentTrackIndex/NewCurrentTrackIndices pointing at what should be playing. Bulk transfer - no per-arg capacity limits.
 
-**Technical description:** Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x30\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x30\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).
+
+</details>
 
 #### Inputs
 
@@ -1298,6 +1387,8 @@ Atomically replaces the whole queue contents: new tracks from ContainerURI/Conta
 - **`NewQueueLength`** — queue length after the operation
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1378,6 +1469,9 @@ Wrapper parse layer rejected an argument before the impl call.
 - Missing or unparseable input argument at the req->v\[+0x1c\]/helper parse stage
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10465090`
@@ -1398,7 +1492,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Saves the queue as a Sonos playlist (Title); ObjectID selects an existing playlist to overwrite. Returns AssignedObjectID.
 
-**Technical description:** Saves QueueID as a Sonos playlist under Title/ObjectID — explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x24\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Saves QueueID as a Sonos playlist under Title/ObjectID — explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x24\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
+
+</details>
 
 #### Inputs
 
@@ -1423,6 +1521,8 @@ Saves the queue as a Sonos playlist (Title); ObjectID selects an existing playli
 
 - **`AssignedObjectID`** — Written by the queue-manager impl on success.
   - validation: store-assigned
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1513,6 +1613,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x104643c0`
@@ -1559,10 +1662,17 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 - **Mechanism:** UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 - **Namespace:** urn:schemas-sonos-com:metadata-1-0/Queue/
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notes:** Queue uses its own event vocabulary rather than a LastChange blob: QueueOwnerID/QueueID/UpdateID/Curated elements
 - **notify_path:** f_10465b54 Queue event emitter using template 0x10ed1c6c (Queue svc region, near svc ctor f_104656d0)
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -1571,9 +1681,16 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Notes
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 None Impl provenance: *(svc+4) resolves to the queue-manager singleton at global 0x11096770 (the same `this` pointer passed to all 0x1047xxxx saved-queue workers by the AVTransport impl shims at 0x102bd048/0x102bd140/0x102bd238). Companion global 0x11096774 holds a refcounted session token: *(token+4) is atomically incremented (stwcx.) before each worker call and released with f_100c5050 afterwards; a null token degrades to a plain tail call. Queue-manager vtable resolved: 0x10ed1bcc (ctor f_10465fac, log tag Queue). All action vfuncs +0x08..+0x30 forward to the shared queue engine at *(qm+0x128) - the same engine workers AVTransport queue ops use (f_102b6948 AddURI, f_102b3a84 RemoveAllTracks): the two services are SOAP facades over one queue engine. All four playlist-format workers share one skeleton: playlist log tag + iterateXxxPlayList %s, fetch through the stream abstraction (f_10545064 open / f_10546520 read / f_1054103c close), per-entry job submission on shared delegate machinery. Formats: ASX (asx/wax/wmx), M3U (m3u8/m3u), PLS, WPL (logged as WLP).
+
+</details>
 
 Implementation sources (recovered): `zoneplayer/tqueue.cxx`, `zoneplayer/spotify/spotify_queue.cxx`
 

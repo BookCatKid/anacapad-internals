@@ -4,7 +4,11 @@
 
 Player identity, hardware features and local configuration: zone name/icon, serial/software/hardware versions, LED and button state, button lock, autoplay preferences (which room's line-in or TV input auto-plays here and at what volume), stereo-pair and home-theater satellite management, household id, config mode, and the room-detection chirp used during setup.
 
-**Technical description:** Device properties service: LED/button state, zone attributes, stereo-pair and home-theater satellite bonding, config mode, and autoplay defaults.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Device properties service: LED/button state, zone attributes, stereo-pair and home-theater satellite bonding, config mode, and autoplay defaults.
+
+</details>
 
 ## Availability
 
@@ -56,7 +60,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Bonds additional players to this player via a ChannelMapSet (which member plays which channel).
 
-**Technical description:** Adds bonded zones (ChannelMapSet) via impl->v\[+0x18\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Adds bonded zones (ChannelMapSet) via impl->v\[+0x18\].
+
+</details>
 
 #### Inputs
 
@@ -67,6 +75,8 @@ Bonds additional players to this player via a ChannelMapSet (which member plays 
 - **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -154,6 +164,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10735e4c`
@@ -174,7 +187,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a surround/sub satellite to a home-theater group via HTSatChanMapSet.
 
-**Technical description:** Adds a home-theater satellite with HTSatChanMapSet via impl->v\[+0x48\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Adds a home-theater satellite with HTSatChanMapSet via impl->v\[+0x48\].
+
+</details>
 
 #### Inputs
 
@@ -185,6 +202,8 @@ Adds a surround/sub satellite to a home-theater group via HTSatChanMapSet.
 - **`HTSatChanMapSet`** — Home-theater satellite channel-map string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -272,6 +291,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737e14`
@@ -294,7 +316,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Creates a stereo pair from two players, describing left/right assignment in ChannelMapSet.
 
-**Technical description:** Bonds two players into a stereo pair with ChannelMapSet via impl->v\[+0x20\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Bonds two players into a stereo pair with ChannelMapSet via impl->v\[+0x20\].
+
+</details>
 
 #### Inputs
 
@@ -305,6 +331,8 @@ Creates a stereo pair from two players, describing left/right assignment in Chan
 - **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -392,6 +420,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10735f3c`
@@ -412,7 +443,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Puts the player into a configuration mode (used during setup/registration); returns the resulting State.
 
-**Technical description:** Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
+
+</details>
 
 #### Inputs
 
@@ -436,6 +471,8 @@ Puts the player into a configuration mode (used during setup/registration); retu
 
 - **`State`** — Resulting config-mode state string written to the response
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -517,6 +554,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a returns r3+0x9
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073611c`
@@ -538,7 +578,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Leaves configuration mode.
 
-**Technical description:** Exits config mode with Options via impl->v\[+0x64\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Exits config mode with Options via impl->v\[+0x64\].
+
+</details>
 
 #### Inputs
 
@@ -549,6 +593,8 @@ Leaves configuration mode.
 - **`Options`** — Exit options string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x80`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -630,6 +676,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a returns r3+0x5
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736270`
@@ -650,7 +699,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 For a given autoplay Source, returns whether linked zones are grouped when autoplay triggers.
 
-**Technical description:** Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -669,6 +722,8 @@ For a given autoplay Source, returns whether linked zones are grouped when autop
 
 - **`IncludeLinkedZones`** — Whether autoplay extends to linked zones
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -746,6 +801,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736c84`
@@ -770,7 +828,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 For a given autoplay Source, returns the UUID of the room that will take over playback.
 
-**Technical description:** Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -789,6 +851,8 @@ For a given autoplay Source, returns the UUID of the room that will take over pl
 
 - **`RoomUUID`** — Configured autoplay source room UUID
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -866,6 +930,9 @@ worker f_1074c090 (632 insns): locked settings read - f_10988564/f_10988990 lock
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736750`
@@ -891,7 +958,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the volume the player jumps to when the given autoplay Source activates.
 
-**Technical description:** Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -910,6 +981,8 @@ Returns the volume the player jumps to when the given autoplay Source activates.
 
 - **`CurrentVolume`** — Configured autoplay volume
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -987,6 +1060,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107370ac`
@@ -1011,7 +1087,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether the player's physical buttons are locked (child-lock).
 
-**Technical description:** Returns CurrentButtonLockState via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentButtonLockState via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1021,6 +1101,8 @@ Returns whether the player's physical buttons are locked (child-lock).
 
 - **`CurrentButtonLockState`** — Button-lock state string read from the impl member pair and written to the response
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1102,6 +1184,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz pair into 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107377d4`
@@ -1124,7 +1209,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the current physical button state (e.g. which buttons are pressed).
 
-**Technical description:** Returns button state via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns button state via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1134,6 +1223,8 @@ Returns the current physical button state (e.g. which buttons are pressed).
 
 - **`State`** — button lock/panel state read from device state by impl 0x107378d0 and emitted as 'State'
   - validation: arg-name string loaded at 0x10737924 inside impl 0x107378d0; emitted via the response writer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1215,6 +1306,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073799c`
@@ -1234,7 +1328,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the household identifier this player is registered to.
 
-**Technical description:** Returns CurrentHouseholdID via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentHouseholdID via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1244,6 +1342,8 @@ Returns the household identifier this player is registered to.
 
 - **`CurrentHouseholdID`** — Household identifier string
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1325,6 +1425,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz *(impl+0x2
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737a20`
@@ -1347,7 +1450,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether the status LED is on or off.
 
-**Technical description:** Returns CurrentLEDState via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns CurrentLEDState via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1357,6 +1464,8 @@ Returns whether the status LED is on or off.
 
 - **`CurrentLEDState`** — Current front-LED state
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1434,6 +1543,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737b1c`
@@ -1456,7 +1568,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns whether autoplay applies the configured autoplay volume (vs. keeping current volume).
 
-**Technical description:** Returns UseVolume flag via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns UseVolume flag via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -1475,6 +1591,8 @@ Returns whether autoplay applies the configured autoplay volume (vs. keeping cur
 
 - **`UseVolume`** — Whether the autoplay volume is applied
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1556,6 +1674,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736df8`
@@ -1580,7 +1701,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns the player's configured room name, icon and room configuration.
 
-**Technical description:** Returns zone attributes via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns zone attributes via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1599,6 +1724,8 @@ Returns the player's configured room name, icon and room configuration.
   - validation: arg-name string loaded at 0x10737ce4 inside impl 0x10737c18; emitted via the response writer
 - **`CurrentTargetRoomName`** — target room name emitted by impl 0x10737c18
   - validation: arg-name string loaded at 0x10737d14 inside impl 0x10737c18; emitted via the response writer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1680,6 +1807,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737d90`
@@ -1699,7 +1829,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns identity and version info: serial number, software/hardware versions, IP and MAC addresses, flags and build metadata.
 
-**Technical description:** Returns zone info via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Returns zone info via impl->v\[+0x8\].
+
+</details>
 
 #### Outputs
 
@@ -1736,6 +1870,8 @@ Returns identity and version info: serial number, software/hardware versions, IP
   - validation: arg-name string loaded at 0x107376ac inside impl 0x10737470; emitted via the response writer
 - **`Flags`** — capability flag word emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x107376d0 inside impl 0x10737470; emitted via the response writer
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1817,6 +1953,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737750`
@@ -1836,7 +1975,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Un-bonds zones described by ChannelMapSet; KeepGrouped controls whether playback grouping is preserved.
 
-**Technical description:** Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v\[+0x1c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v\[+0x1c\].
+
+</details>
 
 #### Inputs
 
@@ -1851,6 +1994,8 @@ Un-bonds zones described by ChannelMapSet; KeepGrouped controls whether playback
 - **`KeepGrouped`** — Keep the zone grouped after unbonding
   - validation: flag consumed by the impl vfunc
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -1938,6 +2083,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x107368d4`
@@ -1958,7 +2106,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes a home-theater satellite by room UUID.
 
-**Technical description:** Removes HT satellite SatRoomUUID via impl->v\[+0x4c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Removes HT satellite SatRoomUUID via impl->v\[+0x4c\].
+
+</details>
 
 #### Inputs
 
@@ -1969,6 +2121,8 @@ Removes a home-theater satellite by room UUID.
 - **`SatRoomUUID`** — Room UUID of the satellite to detach
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x19`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2052,6 +2206,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737f3c`
@@ -2074,7 +2231,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Plays the ultrasonic chirp used by Sonos room/speaker detection during setup; returns a PlayId to stop it.
 
-**Technical description:** Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwappableAudio -> impl->v\[+0x50\], returning PlayId.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwappableAudio -> impl->v\[+0x50\], returning PlayId.
+
+</details>
 
 #### Inputs
 
@@ -2102,6 +2263,8 @@ Plays the ultrasonic chirp used by Sonos room/speaker detection during setup; re
 
 - **`PlayId`** — Play/session id assigned to the chirp
   - validation: emitted via the response object vfuncs
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2183,6 +2346,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz *(r3+0x100
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073730c`
@@ -2203,7 +2369,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Stops a chirp previously started by RoomDetectionStartChirping.
 
-**Technical description:** Stops chirping for PlayId via impl->v\[+0x54\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Stops chirping for PlayId via impl->v\[+0x54\].
+
+</details>
 
 #### Inputs
 
@@ -2214,6 +2384,8 @@ Stops a chirp previously started by RoomDetectionStartChirping.
 - **`PlayId`** — Play/session id returned by RoomDetectionStartChirping
   - validation: numeric value consumed by the impl vfunc
   - buffer cap: `0x18`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2295,6 +2467,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz pair into 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10737220`
@@ -2315,7 +2490,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Breaks a stereo pair described by ChannelMapSet back into two independent players.
 
-**Technical description:** Parses inputs, then calls impl->v\[+0x24\] = null stub f_1019d288. In this build, separating a stereo pair is a binary-proven no-op: the request is accepted and success emitted without any operation or state change.
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Parses inputs, then calls impl->v\[+0x24\] = null stub f_1019d288. In this build, separating a stereo pair is a binary-proven no-op: the request is accepted and success emitted without any operation or state change.
+
+</details>
 
 #### Inputs
 
@@ -2326,6 +2505,8 @@ Breaks a stereo pair described by ChannelMapSet back into two independent player
 - **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2407,6 +2588,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073602c`
@@ -2428,7 +2612,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets whether autoplay groups linked zones for a Source.
 
-**Technical description:** Sets IncludeLinkedZones (+Source) via impl->v\[+0x28\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets IncludeLinkedZones (+Source) via impl->v\[+0x28\].
+
+</details>
 
 #### Inputs
 
@@ -2443,6 +2631,8 @@ Sets whether autoplay groups linked zones for a Source.
 - **`Source`** — Autoplay source identifier string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2524,6 +2714,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736a04`
@@ -2544,7 +2737,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets which room UUID autoplay for a Source should target.
 
-**Technical description:** Sets the autoplay RoomUUID (+Source selector) via impl->v\[+0x30\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the autoplay RoomUUID (+Source selector) via impl->v\[+0x30\].
+
+</details>
 
 #### Inputs
 
@@ -2559,6 +2756,8 @@ Sets which room UUID autoplay for a Source should target.
 - **`Source`** — Autoplay source identifier string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2640,6 +2839,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x1073660c`
@@ -2660,7 +2862,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the autoplay volume for a Source.
 
-**Technical description:** Sets the autoplay Volume (+Source) via impl->v\[+0x38\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets the autoplay Volume (+Source) via impl->v\[+0x38\].
+
+</details>
 
 #### Inputs
 
@@ -2675,6 +2881,8 @@ Sets the autoplay volume for a Source.
 - **`Source`** — Autoplay source identifier string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2752,6 +2960,9 @@ worker f_101935f8 (264 insns): f_1068c190 apply -> persist chain f_10180794/f_10
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736f6c`
@@ -2772,7 +2983,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Locks or unlocks the player's physical buttons.
 
-**Technical description:** Sets DesiredButtonLockState via impl->v\[+0x6c\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets DesiredButtonLockState via impl->v\[+0x6c\].
+
+</details>
 
 #### Inputs
 
@@ -2783,6 +2998,8 @@ Locks or unlocks the player's physical buttons.
 - **`DesiredButtonLockState`** — Desired button-lock state enum string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2864,6 +3081,9 @@ impl worker f_1019db60 is itself a 5-insn accessor returning r3+0x3fa2c member p
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736360`
@@ -2884,7 +3104,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Turns the status LED on or off.
 
-**Technical description:** Sets DesiredLEDState via impl->v\[+0x10\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets DesiredLEDState via impl->v\[+0x10\].
+
+</details>
 
 #### Inputs
 
@@ -2894,6 +3118,8 @@ Turns the status LED on or off.
 
 - **`DesiredLEDState`** — Desired LED state enum string (parsed but IGNORED: impl 0x10537870 is a 2-insn no-op)
   - buffer cap: `0x4`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -2975,6 +3201,9 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10735d5c`
@@ -2995,7 +3224,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Enables or disables applying the autoplay volume.
 
-**Technical description:** Sets UseVolume flag (+Source) via impl->v\[+0x40\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets UseVolume flag (+Source) via impl->v\[+0x40\].
+
+</details>
 
 #### Inputs
 
@@ -3010,6 +3243,8 @@ Enables or disables applying the autoplay volume.
 - **`Source`** — Autoplay source identifier string
   - validation: consumed by impl vfunc +0x40
   - buffer cap: `0x5`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3087,6 +3322,9 @@ worker f_101953c8 (1096 insns): strcmp validation gate -> f_1068bc0c apply -> f_
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
 
+
+</details>
+
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
 - handler `0x10736b44`
@@ -3107,7 +3345,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the room name, icon and configuration shown to users.
 
-**Technical description:** Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via impl->v\[+0x8\].
+<details markdown="1"><summary><b>Technical details</b></summary>
+
+Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via impl->v\[+0x8\].
+
+</details>
 
 #### Inputs
 
@@ -3130,6 +3372,8 @@ Sets the room name, icon and configuration shown to users.
 - **`DesiredTargetRoomName`** — Zone-attribute string field (DesiredTargetRoomName)
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x41`
+
+<details markdown="1"><summary><b>Technical analysis</b></summary>
 
 #### Validation `confirmed`
 
@@ -3212,6 +3456,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 - the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
+
+
+</details>
 
 <details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
 
@@ -3299,6 +3546,8 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `deviceProperties`, `extendedDeviceStatus`, `microphoneSwitchStatus`, `batteryStatus`, `speakerPresenceStatus`
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **notify_path:** settings-key event path: impl setters append key\0value\0 pairs via f_10557d70 -> member->v\[+0x10\] notify -> internal event bus (SettingsNeedsUpdateEvent pool) -> GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list; ResetVolumeAfter emitted via f_102fc6f4/f_106f4bac
 - **payload_model:** settings-key notifications (Desired*/Current* key changes) delivered via bus; GENA initial-notify serializes current keys
 - **wss_registry:**
@@ -3308,7 +3557,12 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
   - idx: 12, name: batteryStatus, id: 55, tag: 15
   - idx: 65, name: speakerPresenceStatus, id: 289, tag: 61
 
+</details>
+
+
 ## Dispatcher-level errors
+
+<details markdown="1"><summary><b>Technical details</b></summary>
 
 **`401`** `strong`
 
@@ -3317,15 +3571,26 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 - Request action name matches no entry in the service dispatch table after the name-table search
 
 
+
+</details>
+
 ## Notes
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 Shared impl object 0x10e98278 is shared with SystemProperties: slots +0x18..+0x40 alias DP group/pair ops with SP account ops (e.g. +0x18 = AddBondedZones + AddAccountX). Same function = same operation; semantic differentiation is in the parsed record argument.
+
+</details>
 
 ## Additional records
 
 ### `impl`
 
+<details markdown="1"><summary><b>Technical details</b></summary>
+
 - **desired_attrs:** action params {DesiredIcon,DesiredConfiguration,DesiredTargetRoomName,DesiredButtonLockState,DesiredLEDState,KeepGrouped}; ops {SetZoneAttributes,SetButtonLockState,SetLEDState,AddHTSatellite,RemoveHTSatellite,AddBondedZone,RemoveBondedZones}; VliPropertiesChangedEvent processing
+
+</details>
 
 Implementation sources (recovered): `common/dp_impl.cxx`, `zoneplayer/dp_zpimpl.cxx`, `zoneplayer/dp_zpimpl_ht.cxx`, `zoneplayer/dp_zpimpl_stp.cxx`
 
