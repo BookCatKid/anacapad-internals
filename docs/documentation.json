@@ -118005,12 +118005,12 @@
   },
   "misc_health": {
    "healthcheck": "healthcheck.cxx: periodic 'Next healthcheck scheduled in %u h %u m %u s' + timer-pop reschedule",
-   "longpress": "longpress.cxx: long-press button handler",
+   "longpress": "longpress.cxx (uTlongpressHandler, tag 'longpress'): the hold-button handler. Two duties: (1) safe-listening/volume restore ('restore system volume to safe listening level (%u)'); (2) GC-cycle playback: maintains an MRU list of household group coordinators ('Adding new GC [%s]:[%s] to list as [%s]','Moving GC [%s] to head of list','Removing GC [%s] from list','Updating last PAUSED/STOPPED GC in HH','Last GC in HH to change playback state is no longer cloneable') and long-press cycles it ('cycling to %s:%s','end of list reached','GC list - head/tail/current'): tries to steal AVT state from the target GC ('Attempting to steal AVT state from [%s:%s]','Could not get AVT control URI for remote GC','Failed to fetch AVT state from GC %s - %d'), else groups to it ('Attempting to group to [%s:%s]','x-rincon:%s'), else falls back to local play ('Unable to play or steal from [%s:%s]. Falling back to playing local'). Side effects: 'Pausing','Muting','Becoming standalone due to button press','Device not grouped','not joinable','Untracked GC action'.",
    "arpchecker": "ARPC checker decoded (arpchecker.cxx, tag 'arpchecker', selthrd callbacks {reset,data,except,timeout}): at init it resolves the local interface and tunes kernel ARP neighbor params via /proc/sys/net/ipv4/neigh/<iface>/{retrans_time_ms,retrans_time,mcast_solicit} ('failed to open proc fs for retrans'/'...mcast'). It then ARP-probes target addresses event-driven through a pipe()-reset socket loop ('performReset called with invalid read FD/new read FD', 'Read error'). The verification predicate is ARP resolution within a failure budget: success logs 'ARP to %s resolved after %d failures', exhaustion logs '%s failed to resolve (%d)'. So it verifies layer-2 reachability of peers (e.g. post-wifi-event sanity), not a service-level check.",
-   "topology_events_report": "topology_events_report.cxx: ZGT change reports",
+   "topology_events_report": "topology_events_report.cxx (conditionallyReportTopologyEvents/onEvent, tag 'topology_events_report'): rate-limited ZGT property-change reporter ('Report Topology Events: %s', 'reported %ds ago:limit','err sec<0'). Emits TopologyEventsReportEvent records for: local role transitions ('%s was GM to loc, %u GMs','%s was SAT to loc, %u sats','GroupCoordinator before/after: %u/%u','evt loc grp role chg','gen plbk corr ctx chg evt'), property deltas ('chmap change %s to %s','HTsat defn change','wifi mode change %u','connection type change','ch frq change','wifi on change','eth link change'), satellite checks ('chk sats of GMs %s'), and release accounting ('updt top rel','loc!=GC. rel=oth','nRel b/a:%u/%u','ev rel dev top set chg'). Guards: 'Unkown TopologyEventsReportEvent type','fail:unparse cid. quit report','%s player %s not local'; band labels '3f.x'/'5f.x'.",
    "todo": [
-    "Established: healthcheck job body + ARP checker fully decoded (proc-sysfs neigh tuning + event-driven ARP probes + failure-budget verdict).",
-    "Remaining: the long-press handler and topology-events reporter bodies - each bounded by its own module strings."
+    "Established: both bodies decoded - longpress = safe-volume restore + household-GC MRU cycle/steal/group fallback chain; topology_events_report = rate-limited property-delta event emitter with role-transition and 6 property watch classes.",
+    "Remaining: the 3f.x/5f.x band-label semantics (likely 2.4/5GHz channel fields) - bounded by the format strings context in the emitter."
    ]
   },
   "device_auth": {
@@ -118073,11 +118073,25 @@
    "dsp": "dsp_preset_satellite.xml + dsp_system_satellite.bin + satellite_processor.bin: satellite-specific DSP chains",
    "tz": "timezone DB from update-timezone.sonos.com/timezone/timezones.xml",
    "todo": [
-    "Established: satellite DSP preset + HTChProcConfig gains; separate bonded volume breakpoints with default fallback; HT_SWAP disabled for bonded members; create/recover/sonar sequences + invisible-secondary semantics.",
-    "Remaining: the AddBondedZones/RemoveBondedZones action arg grammar - bounded by the GroupManagement impl params."
+    "Established: full ChannelMapSet grammar - uuid:tokenList entries; complete channel-token vocabulary {CC,SW,LR,RS,LTF,RTF,LTR,RTR,LW,RW,LTM,RTM,AX1,AX2}; 42-entry speaker-role table at 0xee62b0; flatChannelMapSet joinZone wire form; action arg shapes decoded.",
+    "Remaining: per-token semantic (LTF=left-top-front etc. is nomenclature-obvious but the bit-order inside the channel mask is bounded by the token->bit table index)."
    ],
    "satellite_audio_path": "Satellite audio path decoded: bonded secondaries run a dedicated DSP preset 'dsp_preset_satellite.xml' plus per-channel gains delivered as HTChProcConfig protobufs ('Could not convert loaded satellite protobuf to HTChProcConfig', 'satellite channel: %i %s', 'satellite: failed to set gain for channel type %zu', 'could not send %s to satellite %s;%s. rc %d, error %d, %s, count %u'). Bonded zones carry SEPARATE bonded volume breakpoint tables alongside the defaults - 'Bonded gain for \"%s\" not found in DSPConfig', 'default (%i) and bonded (%i) volume breakpoint lengths differ', 'default and bonded volume breakpoints differ', 'volume (%i) and gain (%i) lengths differ in bonded volume breakpoints', 'no bonded volume breakpoints specified, using default instead', 'Num bonded subs', 'sub_bonded'/'sub_unbonded'. HT_SWAP exists ({HT_SWAP_START,HT_SWAP_END,HT_SWAP_ERROR}) but 'Swap is disabled as this player is in a bonded zone.' - role transitions '_satellite'/'satellite to normal'/'normal to satellite' happen through bonded membership, not the swap FSM. Secondaries are hidden: 'Setting invisible=true based on bonded secondary state'; primary keeps default loudness (\"bonded; set primary's default loudness %d\").",
-   "create_recover": "Create sequence: AddBondedZones -> 'Created bonded zone; start topology monitor' -> state pushed to secondaries ('Pushing bonded zone state to secondaries failed: %d', 'Failed sending state to new bonded zone. Schedule recovery', 'Error creating bonded zone; %d'). Recovery (recoverBondedZone): retries while topology is unsettled ('retrying as topology hasn't settled yet (ct=%u)'), checks 'Status from topology is: %d', then either 'reducing bonded zone to %s', 'separating this player from bonded zone', aborts on 'partner is incompatible', or succeeds ('recoverBondedZone successful %s; %s sent to secondaries'). Sonar config is cleared on RemoveBondedZone, restickBondedSecondary and unstickBondedSecondary paths."
+   "create_recover": "Create sequence: AddBondedZones -> 'Created bonded zone; start topology monitor' -> state pushed to secondaries ('Pushing bonded zone state to secondaries failed: %d', 'Failed sending state to new bonded zone. Schedule recovery', 'Error creating bonded zone; %d'). Recovery (recoverBondedZone): retries while topology is unsettled ('retrying as topology hasn't settled yet (ct=%u)'), checks 'Status from topology is: %d', then either 'reducing bonded zone to %s', 'separating this player from bonded zone', aborts on 'partner is incompatible', or succeeds ('recoverBondedZone successful %s; %s sent to secondaries'). Sonar config is cleared on RemoveBondedZone, restickBondedSecondary and unstickBondedSecondary paths.",
+   "channelmap_grammar": {
+    "ChannelMapSet": "semicolon-separated per-player entries uuid:tokenList; tokenList is comma-separated channel tokens",
+    "channel_tokens": "{CC,SW,LR,RS,LTF,RTF,LTR,RTR,LW,RW,LTM,RTM,AX1,AX2} (table near 0xee6ec0; CC=center, SW=sub, L/R top-front/top-rear/wide/top-middle, AX1/AX2 auxiliary)",
+    "speaker_roles": "42-entry role-name table at 0xee62b0: LFE,Ls,Rs,Lrs,Rrs,Lc,Rc,Cs,Lw,Rw,Lsc,Rsc,Ls1,Rs1,Ls2,Rs2,Lrs1,Rrs1,Lrs2,Rrs2,Lcs,Rcs,Lfh,Rfh,Cvh,Ltf,Rtf,Ltm,Rtm,Ts,Ltr,Rtr,Lrh,Rrh,Lsd,Rsd,Sh,Lfe2,Ldm,Rdm,Ed",
+    "flatChannelMapSet": "flattened wire form sent by joinZone (joinZone: id %s, flatChannelMapSet %s)",
+    "validation": [
+     "invalid channelMapSet",
+     "can't construct channelMapSet",
+     "invalid flatChannelMap",
+     "can't update both name and channelMapSet",
+     "invalid channel map"
+    ],
+    "args": "AddBondedZones{ChannelMapSet}, RemoveBondedZones{ChannelMapSet,KeepGrouped}, AddHTSatellite{HTSatChanMapSet}, RemoveHTSatellite (DeviceProperties)"
+   }
   },
   "topology_engine": {
    "impl": "topology.cxx -> RDeviceTopology",
