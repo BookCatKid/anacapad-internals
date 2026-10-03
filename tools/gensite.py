@@ -71,9 +71,11 @@ def build_nav():
 
 def write_config(nav, services):
     lines = [
-        "site_name: anacapad SOAP/UPnP reference",
-        "site_description: Reverse-engineered SOAP/UPnP surface of "
-        "anacapad 86.10-80260 (model-9 / Playbar)",
+        "site_name: anacapad internals",
+        "site_description: \"Reverse-engineered internals of the Sonos "
+        "anacapad daemon, build 86.10-80260 (model-9 / Playbar): "
+        "SOAP/UPnP, the muse v1 REST API, native subsystems, and "
+        "the firmware artifacts themselves\"",
         "docs_dir: reference",
         "site_dir: site",
         "theme:",

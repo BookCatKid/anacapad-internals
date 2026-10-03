@@ -324,9 +324,9 @@ evidence addresses.
 ## 7. Reproducing
 
 ```
-python3 sonos-research/anacapad-soap/extract_soap_api.py \
+python3 sonos-research/anacapad-internals/extract_soap_api.py \
     artifacts/downloads/rootfs-86.10-80260-1-9/opt/bin/anacapad \
-    --json sonos-research/anacapad-soap/soap_api-86.10-80260.json
+    --json sonos-research/anacapad-internals/soap_api-86.10-80260.json
 ```
 
 Pure stdlib, no external metadata input.  For a new build: point it at the

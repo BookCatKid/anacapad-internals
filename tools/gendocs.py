@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gendocs.py -- Markdown reference generator for the anacapad SOAP database.
+gendocs.py -- Markdown reference generator for the anacapad internals database.
 
 Pipeline:
 
@@ -250,7 +250,7 @@ def _generic(out, obj, depth=0):
 # --------------------------------------------------------------------------
 
 def render_index(m):
-    out = ["# anacapad SOAP/UPnP reference", ""]
+    out = ["# anacapad internals", ""]
     _pt_add(m, out, "index", "intro")
     out += ["Binary `%s`, build `%s`, model-9 (Playbar/limelight). "
             "Generated from the frozen canonical static-analysis dataset "

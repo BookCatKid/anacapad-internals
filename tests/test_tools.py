@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the documentation workflow tools (stdlib unittest).
 
-Run:  python3 -m unittest discover -s tests -v   (from anacapad-soap/)
+Run:  python3 -m unittest discover -s tests -v   (from anacapad-internals/)
 or:   python3 tests/test_tools.py
 """
 import copy

@@ -1,4 +1,4 @@
-# anacapad SOAP documentation workflow
+# anacapad documentation workflow
 
 A repeatable pipeline for reaching 100% semantic documentation coverage of
 the SOAP/UPnP surface recovered from the `anacapad` binary.

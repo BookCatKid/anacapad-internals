@@ -1,4 +1,4 @@
-# anacapad SOAP/UPnP reference
+# anacapad internals
 
 This site documents what a Sonos player's main control program actually does on the network: every command it accepts, every setting it stores, and every update it can push out, all recovered by reading the device's firmware rather than by guessing from the outside. Sonos speakers don't publish this level of detail. The company documents a small set of commands for app developers, but the real surface inside the device is far larger, and everything here was verified against the actual program that ships inside a Playbar-era player. You'll find two kinds of text on every page. The plain paragraphs you see first explain each piece in everyday language: what it does, why it exists, and what it means for you. The collapsed 'Technical details' sections hold the engineer-facing evidence, meaning memory addresses, table layouts, and the reasoning that proves each claim, so you can check the work without wading through it. The aim throughout: if it isn't proven by the firmware, it doesn't appear here.
 

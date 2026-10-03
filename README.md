@@ -1,4 +1,4 @@
-# anacapad-soap
+# anacapad-internals
 
 Reverse-engineering documentation for the Sonos `anacapad` daemon — the
 process that serves the player UPnP/SOAP surface, the `/api/v1` "muse" REST

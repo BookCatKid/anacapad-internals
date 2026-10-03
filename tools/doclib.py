@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Shared library for the anacapad SOAP documentation workflow.
+Shared library for the anacapad documentation workflow.
 
 Loads the extractor JSON (binary-derived structural facts) and
 documentation.json (human + skeleton semantics), and implements the
