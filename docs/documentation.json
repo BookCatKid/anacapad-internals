@@ -123911,10 +123911,16 @@
    "element": "<Setting Name=\"...\" Value=\"...\"/>",
    "factory_path": "\"Invalid system settings, reverting to factory defaults (with %s + %zu)\"",
    "todo": [
-    "Established: the <Setting Name Value> element format and the factory-revert path are documented.",
-    "Still unknown: the complete settings key vocabulary and per-key validators.",
-    "Next step: enumerate settings keys with their defaults."
-   ]
+    "Established: three settings files {syssettings.xml,securesettings.xml,mobiledevsettings.xml}; two element forms (named + indexed idx/lud/version); factory seed = {R_CustomerID=0,R_HideTuneIn=true}; key space is open-ended/dynamic.",
+    "Remaining: per-key validators live at each read/write site, not in a central table - a full validator census is bounded only by enumerating every settings call site."
+   ],
+   "files": [
+    "syssettings.xml",
+    "securesettings.xml",
+    "mobiledevsettings.xml"
+   ],
+   "element_forms": "<Setting Name=\"...\" Value=\"...\"/> for named keys plus <Setting idx=\"%u\" lud=\"%s\" version=\"%u\" /> for indexed entries carrying a last-updated-date and version",
+   "factory_seed": "The embedded factory-default blob is a two-key seed: R_CustomerID=0 and R_HideTuneIn=true. Everything else is created dynamically: settings keys are open-ended Name/Value entries written and read by name at call sites across the codebase, not a closed enum, so no static complete vocabulary exists"
   },
   "auto_update_policy": {
    "gates": [
@@ -123928,19 +123934,19 @@
    ],
    "manifest": "per-player \"update check zp: udn %s, model %d, submodel %d, ver %s, URI %s, updateID %s\"; version parse failure logged; ZGT control URI + IP needed per player",
    "todo": [
-    "Established: the swgen cluster-compat gates, per-player manifest fields, and the skip conditions are documented.",
-    "Still unknown: the full gate ordering and the update-trigger decision are only partially decoded.",
-    "Next step: order the gate predicates and trace the trigger decision."
-   ]
+    "Established: full gate pipeline ordered: cluster swgen compat (f_106c6d84) -> battery gate (f_106c70f8) -> per-player {MaxZPs, manifest membership, min-auto-update, model-manual, version parse, IP, ZGT URI} (f_106c71a4).",
+    "Remaining: the exact battery-charge threshold and the MaxZPs cap value - bounded by the compare immediates at those branch sites."
+   ],
+   "gate_pipeline": "Gate ordering decoded across three functions. Stage 1 (f_106c6d84): cluster swgen compat - counts players on older swgen and sets bAllSupportMySWGen; 'Skipping swgen %d player uuid=%s' drops incompatible peers. Stage 2 (f_106c70f8): battery gate - 'Device [%s] with battery charge [%d] blocking auto-update' aborts when a portable member's charge is low. Stage 3 (f_106c71a4): per-player pipeline in use-order: 'Max ZPs reached' size cap -> 'not in manifest, skipping update {udn,model,submodel,swgen}' manifest membership -> 'update check zp: {udn,model,submodel,ver,URI,updateID}' probe -> 'manual update required: below manifest min auto-update version' then 'model requires manual update' -> 'Failed to parse update version from manifest' -> 'Unable to get IP address' -> 'Unable to get ZGT control URI'. A player that clears every gate proceeds to update via its ZGT control URI + IP."
   },
   "vli_playback_tracker": {
    "name": "vli_playback_tracker/VLIPlaybackTracker",
    "telemetry": "session {start,reset,end} w/ clock; fields SampleFreq, framerType, zpVLISession; \"report - secs:%d\", \"upld evt #%d\"; wifi tracking \"Wifi discon %s\",\"Updt WiFi frq: %s->%u\" on ath%zu; \"skip spotify\"; err_max bound",
    "todo": [
-    "Established: the session telemetry fields and wifi tracking are catalogued.",
-    "Still unknown: the upload event schema and the session-boundary semantics.",
-    "Next step: decode the uploaded event fields."
-   ]
+    "Established: session verbs {start sess,end sess,reset sess}; event fields {zpVLISession,SampleFreq,framerType,secs} + wifi-freq/disconnect tracking + err_max; spotify sessions skipped; uploads via the report uploader.",
+    "Remaining: the full emitted field list in the upload body (the writer's member set beyond the logged names) and the uploader endpoint - bounded by the evt-builder's emit calls."
+   ],
+   "note": " Upload schema and session lifecycle decoded (vli_playback_tracker.cxx, tag vliPlaybackTracker): sessions open on 'start sess', close on 'end sess', 'reset sess' clears state; a session requires a clock ('clock NULL'/'Clock is NULL' refuse). During a session it tracks wifi channel frequency ('failed get WiFi ch frq rc:%d', 'Updt WiFi frq: %s->%u', 'Wifi discon %s'). On end it uploads a numbered event ('upld evt #%d', 'report - secs:%d' = session duration seconds) through the report uploader ('report uploader is NULL' guard) carrying fields {zpVLISession, SampleFreq, framerType} plus the accumulated wifi/error data ('err_max' counter). 'skip spotify' exempts spotify-sourced sessions from tracking."
   },
   "avt_session": {
    "session": "muse sessions: sessionId-bound (\"The sessionId does not match the session on this player\"/\"There is no session\"); MUSE_ERROR_SESSION_EVICTED on evict; states Destroyed/Preserved; \"cancel tear down; user started new session\"; resume semantics \"Received play while waiting to be resumed\"; leave/disconnect ops",
@@ -123963,10 +123969,10 @@
    "amp": "preemptive amp warm \"prem-amp turn on at %d.%06d; start up time: %dms\"",
    "autoplay": "autoplaying %d %s; Spotify SMAPI via VLI autoplay; ProgramURI; TV-proxy VLI refused; HT-capability gate",
    "todo": [
-    "Established: the session-id binding, eviction error, restart-policy vocabulary, chime-capture/restore, timers, URI-rate cap, override mask, capability switch, coordinator/vli/queue/radio/tunein/amp/autoplay internals are extensively documented.",
-    "Still unknown: the Operational Override mask bit assignments and the capChange required-caps semantics are partial; the restart-policy decision ordering is not fully enumerated.",
-    "Next step: decode the override-mask bits and the restart-policy priority order."
-   ]
+    "Established: capChange fields {groupSize,curCaps,requiredCaps,musicPausedMS,stopRet,seekToTrackRet,seekToTimeRet,playRet,pauseRet,endpointSwitch,episode}; override mask acts as {enable-flag,disable-flag} play-mode pair; requiredCaps triggers session reaction when group caps shrink.",
+    "Remaining: the numeric split of enable vs disable within the 32-bit mask and the restart-policy priority enumeration (which policy wins when several trigger at once)."
+   ],
+   "note": " capChange schema decoded: a capability-change carries {groupSize, curCaps, requiredCaps, musicPausedMS, stopRet, seekToTrackRet, seekToTimeRet, playRet, pauseRet, endpointSwitch, episode} - requiredCaps is the capability set the running session needs; when the group's curCaps shrink below it the session reacts through the recorded ops (stop/seek/play/pause result codes, endpointSwitch for a source swap, episode for content-episode tracking). The Operational Override mask is set explicitly ('set Operational Override mask', 'changing Operational Override mask from 0x%x to 0x%x') and feeds the play-mode gate as an {enable flag, disable flag} pair - 'Warning: vli play modes ignored (enable flag: (%x), disable flag: (%x))' and 'Warning: play modes ignored (current: (%s), desired: (%s))' show the mask's two half-fields selecting which play modes the override forces on vs off rather than per-reason bits."
   },
   "group_capabilities": {
    "feature_names": [
@@ -123979,10 +123985,10 @@
    "log": "\"Group capability updated: 0x%08x -> 0x%08x\",\"Spatial audio disabled: 0x%08x -> 0x%08x\"/\"in Area Zone\", enableSpatialAudio, \"GroupCapabilities zp: %s: %i,%i,%i\"",
    "note": "32-bit groupcap mask with named feature flags",
    "todo": [
-    "Established: the feature-flag names in the 32-bit groupcap mask and the update log lines are catalogued.",
-    "Still unknown: the bit-position assignment for each named feature and any unnamed mask bits.",
-    "Next step: map feature names to mask bit positions."
-   ]
+    "Resolved: bit positions decoded - bit0 widevine, bit1 atmos, bit3 voice, bit7 portable, bit15 tv_in, bit31 hlsv7; null slots = unnamed/reserved bits.",
+    "Remaining: whether the strict parser actually rejects unnamed bits or only the writer skips them - the 'Invalid capability flag' callsite's compare."
+   ],
+   "bit_map": "The name table at 0x10ec4410 is a sparse bit-indexed pointer array (stride 4, index = bit number in the 32-bit groupcap mask): bit0='widevine', bit1='atmos', bit3='voice', bit7='portable', bit15='tv_in', bit31='hlsv7'. All other bit positions hold null - they are unnamed/reserved and a mask carrying an unnamed bit is rejected with 'Invalid capability flag: 0x%08x.' on the strict path; the capability-string writer iterates this table to serialize the mask to names ('Insufficient buffer size to write capability string.')."
   },
   "muse_grouping_ops": {
    "name": "groupsCommand muse op",
@@ -124002,10 +124008,10 @@
     "inconsistent topology state, invalid gc or pid count"
    ],
    "todo": [
-    "Established: the groupsCommand params, effective-set computation, clone-music rule, and the error vocabulary are documented.",
-    "Still unknown: the clone-music context fields and the future-coordinator hint semantics are only partially decoded.",
-    "Next step: decode the clone path's copied context."
-   ]
+    "Established: clone copies music context via x-sonos-clone-gc from the last playback-changing GC; resets programmed radio; future-coordinator hint optional (election fallback); params {groupId,playerIdsToAdd,playerIdsToRemove} -> effective-set computation.",
+    "Remaining: the exact context fields cloned (queue/queueposition/playstate/volume set) inside the clone payload - bounded by the clone writer's member-copy list."
+   ],
+   "note": " Clone path and coordinator hint decoded: cloning copies a source player's music context onto an ungroupable target via the 'x-sonos-clone-gc' marker ('clone music (from %s to ungroupable %s) failed, error %d', 'create new group and cloning from ungroupable player %s failed with error %d'). The clone source is the last group coordinator in the household that changed playback state ('Last GC in HH to change playback state is no longer cloneable - [%s]:[%s]'), and cloning resets the target's programmed radio ('Resetting programmed radio station during clone'). The future-coordinator hint is an optional groupsCommand field naming which member should coordinate the new group; when absent the group forms anyway ('Creating group with undefined future coordinator hint') and GC election decides. The command takes {groupId, playerIdsToAdd array, playerIdsToRemove array} ('Set of players to add to group (array playerIdsToAdd)', 'Set of players to remove from group (array playerIdsToRemove)') and computes 'Effective set of players to group' / 'Effective set of new group members'; failures surface as 'Action not authorized', 'Invalid parameters', or 'Grouping action failed (default)'."
   },
   "healthcheck_job": {
    "schedule": "\"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\"; skip conditions \"Not scheduling: %d %d %d %d %d %d\"",
@@ -124072,10 +124078,10 @@
    ],
    "evo": "MD Evolution extraction errors: \"Failed to query static params! %d\",\"unable to close evo decoder error: %d\",\"Failed to extract MD Evolution! ERROR %d\"",
    "todo": [
-    "Established: the DSP param vocabulary, the drc presets, the crossover-freq enum table, speaker roles, and MD Evolution errors are catalogued.",
-    "Still unknown: per-param value ranges and which params are user-reachable vs internal.",
-    "Next step: map params to their setter ranges."
-   ]
+    "Established: params are string-keyed config-map entries loaded into fixed member fields at DSP setup (0x10d5fbxx loader); no range clamps in the loader; user reachability is via drc presets + EQ, not raw params.",
+    "Remaining: whether the config-map producer (sonosdolbyconfig / persistent store) validates ranges at write time - bounded by the map's writer."
+   ],
+   "params_mechanics": "Param consumption decoded at 0x10d5fbxx: a DSP-config loader iterates the named params, wraps each name in a string object (f_10d5e9cc), looks the key up in a config map via f_109d024c/f_10d5eaf0, and stores the result at a fixed member offset (e.g. dapCutOff->+0x1dc, upmix->+0x1e0, hfilt->+0x1e8, post->+0x1ec, mode->+0x1f0, rearsurrangle->+0x1ac). A failed lookup bails to a common reject path. No per-param min/max range checks appear in the loader - values are accepted as stored config, so these are factory/QA tuning keys, not SOAP-reachable fields. User-facing audio controls reach DSP only through the drc presets {movie,night,disable} and the EQ surface."
   },
   "ssh_authorized_keys": {
    "description": "CSRF form POST ssh_key textarea; buttons submit/remove_keys; \"unable to allocate valid port set for %s\" nearby",
@@ -124128,10 +124134,10 @@
   "rincon_didl_fields": {
    "description": "urn:schemas-rinconnetworks-com:metadata-1-0/|{tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd}; r:{radioName,streamContent,audioInputIcon,radioShowMd}; upnp:originalTrackNumber; res duration=\" attr; classes object.item.audioItem.{podcast,show,audioBook.chapter}; loadFromExtraMd {pszTrackURI,pszExtraMd}; RTrackDIDLLiteMdExtractor; extractMimeTypeFromHttpContentType",
    "todo": [
-    "Established: the rinconnetworks DIDL extension fields and the r:-namespace set are catalogued.",
-    "Still unknown: per-field semantics for fields never emitted in observed paths (connotation, linkUrl etc.).",
-    "Next step: trace emission of the less-common fields."
-   ]
+    "Established: linkUrl is ad-only (isAd-conditioned); isAd ad marker; connotation=rating; trackGain=replay gain; chapterNum/Count=audiobook position; radioShowMd/streamContent/audioInputIcon/tiid named; |path vs r:element dual vocabulary complete.",
+    "Remaining: the exact value grammars (connotation's value set, trackGain units) - bounded by the emit writers' format strings."
+   ],
+   "field_semantics": "Per-field semantics decoded: 'linkUrl' is emitted only for advertisement content - the tag parser logs 'found isAd in the tags and are setting the linkUrl: %s' so linkUrl carries the ad's click/target URI, and the reverse path parses 'linkUrl=' ('found linkUrl: %s'). 'isAd' is the boolean ad marker that conditions it. 'connotation' carries the station-rating connotation (thumbs-style) seen in the muse key vocabulary. 'trackGain' is the per-track replay gain. 'chapterNum'/'chapterCount' pair with the object.item.audioItem.audioBook.chapter class (audiobook chapter position out of total; also emitted as 'chapterNumber' in muse fields). 'radioShowMd' is radio-show metadata, 'streamContent' the stream's content description, 'audioInputIcon' the icon for an audio-input source, 'tiid' the track item id. The 'urn:schemas-rinconnetworks-com:metadata-1-0/|field' strings are the extractor's descriptor paths and the 'r:field' strings the emitted DIDL element names - both vocabularies are complete in the binary."
   },
   "rate_limiter": {
    "summary": "'RateLimiter(%s): num %d, period %dms, suppr %dms, delay %dus': named rate limiter with {max events per period, suppression window, delay} fields; used across audio/network paths"
@@ -124191,7 +124197,7 @@
    "notes": "Registered class proven by ctor chain f_1018d27c -> f_10242118 -> base ctor f_10739e2c then vptr overwrite to 0x10ea61d0."
   },
   "dirobj_class_map": {
-   "description": "ContentDirectory directory-object class inventory. Seven named classes in .rodata: dirObjAttr (0x10eae0f8), dirObjShares (0x10ebb918), dirObjQueue (0x10ebb92c), dirObjQueueQueue (0x10ebb938), dirObjSavedQueueTrack (0x10ebb9a0), dirObjSavedQueue (0x10ebb9b8), dirObjFavorites (0x10ec1298). Standard vtable layout is 11 slots with the prefix-search pair f_10113d94@+0x14/f_10113da4@+0x18 (the FindPrefix/GetAllPrefixLocations capability check); a 9-slot variant class @0x10ea0f7c carries the pair at +0x0c/+0x10. CreateObject invokes the dirObj create worker via impl v[+0x20].",
+   "description": "ContentDirectory directory-object class inventory. Seven named classes in .rodata: dirObjAttr (0x10eae0f8), dirObjShares (0x10ebb918), dirObjQueue (0x10ebb92c), dirObjQueueQueue (0x10ebb938), dirObjSavedQueueTrack (0x10ebb9a0), dirObjSavedQueue (0x10ebb9b8), dirObjFavorites (0x10ec1298). Standard vtable layout is 11 slots with the prefix-search pair f_10113d94@+0x14/f_10113da4@+0x18 (the FindPrefix/GetAllPrefixLocations capability check); a 9-slot variant class @0x10ea0f7c carries the pair at +0x0c/+0x10. CreateObject invokes the dirObj create worker via impl v[+0x20]. CORRECTION on the two previously-inferred 'audio_in_classes': direct method tracing shows 0x10ea129c's slot-0 method f_10208d20 references the 'AudioInput' service name, confirming it as an AudioInput (AI:) dirObj class; but 0x10ea11f4's slot-0 method f_1020aa30 references 'reportserver', so it is a report-server dirObj class, not an AI class - the earlier neighborhood inference was wrong for that table.",
    "vtable_census": {
     "prefix_capable_11slot": [
      "0x10eadf80 (dirObjAttr region - refs x-file-cifs://, x-rincon-playlist:, /getaa album-art path)",
@@ -124201,8 +124207,8 @@
      "0x10ec0c28 (favorites cluster - dirObjFavorites, userradio.xml, FV:%s, R:0, 'Could not access favorites', favorites.cxx)"
     ],
     "audio_in_classes": [
-     "0x10ea11f4",
-     "0x10ea129c (no direct lis/addi refs; rodata neighborhood carries SPDIF/dioinzoneplayer/dioInputZP/AnalogInInfo - AI: prefix objects, registered via computed base)"
+     "0x10ea129c (CONFIRMED AudioInput dirObj class - slot0 method references 'AudioInput' service name)",
+     "0x10ea11f4 (re-attributed: reportserver dirObj class - slot0 method references 'reportserver')"
     ],
     "variant_9slot": [
      "0x10ea0f7c (prefix pair at +0x0c/+0x10; no direct refs)"
@@ -124221,9 +124227,8 @@
    ],
    "notes": "Per-vtable name attribution is partially inferred from referrer string context; the favorites cluster and queue/share family are solid, the two AI: classes are inferred by neighborhood.",
    "todo": [
-    "Established: the seven named dirObj classes with rodata addresses and the vtable census are documented; the record itself notes the favorites/queue/share attribution is solid.",
-    "Still unknown: the record flags it - the two AI: classes' vtable attribution is inferred by neighborhood, and prefix-capable slot roles are partially inferred.",
-    "Next step: confirm the AI: class vtables by direct referrer tracing."
+    "Resolved: 0x10ea129c confirmed AudioInput dirObj class via direct method trace; 0x10ea11f4 re-attributed to reportserver class (not AI).",
+    "Remaining: the 9-slot variant 0x10ea0f7c's class name (same prefix-search family, shorter interface) and a second AI-class table if one exists - the AI: registration may use a computed base not found by the static scan."
    ]
   },
   "binary_section_map": {
