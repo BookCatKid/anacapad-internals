@@ -117884,29 +117884,28 @@
    "key": "'share_usage' replicated setting -> RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': opt-in telemetry consent",
    "impl": "usagedatasharing.cxx",
    "todo": [
-    "Resolved: share_usage is a replicated settings key; the opt-in gates the telemetry upload paths via the generic replicated-settings getter at send time - there is no per-consumer literal because the lookup is key-driven.",
-    "Remaining: the concrete upload-gate call sites (each telemetry send that reads the key) - enumerable through the replicated-getter's call sites, same census as system_overrides."
+    "Corrected: opt-in = replicated key 'UMTracking', value grammar includes 'NoReport' (opt-out sentinel); predicate f_10577870 caches at this+9, flag at this+4; 'share_usage' is an unrelated dead mntmgr literal.",
+    "Remaining: the complete UMTracking value vocabulary beyond 'NoReport' - bounded by the value-table the settings writer accepts."
    ],
-   "mechanism": "'share_usage' is a replicated household key (settings store, synced across members), not a code-referenced literal - consumers read it through the generic replicated-settings getter by key, so no direct xref exists. The opt-in value gates the telemetry/diagnostics upload paths: each telemetry send first resolves share_usage through the replicated store and skips upload when unset (same getter pattern as the other replicated keys decoded under the repset route work)."
+   "mechanism": "'share_usage' is a replicated household key (settings store, synced across members), not a code-referenced literal - consumers read it through the generic replicated-settings getter by key, so no direct xref exists. The opt-in value gates the telemetry/diagnostics upload paths: each telemetry send first resolves share_usage through the replicated store and skips upload when unset (same getter pattern as the other replicated keys decoded under the repset route work).",
+   "optin_mechanics": "CORRECTION: 'share_usage' is a dead mntmgr.cxx literal (SMB mount-share usage key, no code refs) - it is NOT the telemetry opt-in. The real opt-in decoded at f_10577870 (usagedatasharing.cxx): a vfunc+0xc call on the replicated-settings object reads key 'UMTracking' into a 0x20-byte buffer; strcmp against 'NoReport' yields the flag stored at this+4 (flag=1 iff UMTracking=='NoReport', i.e. the field is the opt-OUT state). On change the new value is cached at this+9 and a change event posts. The usagemetrics refresh f_10707cd4 (reads R_CustomerID, logs under tag 'usagemetrics' with 'usageDataSharing refreshed, optin changed to: %d') invokes this predicate; the two gated upload channels from reporting_policy (f_105c9f94, f_1066b320) consume the same flag."
   },
   "misc_mgrs": {
    "wifi_idle_mgr": "RZPWifiIdleMgr: WifiFuncsSetIdleScan fronthaul ('result %d attempt %d') + WiFiIdleScanUpdateRetry + idle_evt_listener idle events",
-   "auto_update_scheduler": "auto_update_scheduler.cxx: scheduled auto-update window",
+   "auto_update_scheduler": "auto_update_scheduler.cxx decoded: the update window is a HH:MM:SS-HH:MM:SS range emitted as '<Window>%02u:%02u:%02u - %02u:%02u:%02u</Window>' inside <UpdateInfo> alongside <AutoUpdate>, <State>, <UpgradeManager>, <HoursPending>, <ActiveDeviceList>. A periodic timer drives checks ('Next check for update in %us', 'Checking for auto-update'); 'shrinkWindow'/'Trimming the window to (%d) seconds' narrows the allowed window over time. Blockers: 'Upcoming alarm is preventing update' (alarm-calendar gate) and 'Active device(s) preventing update' (in-use device gate). It writes upgrade_mgr_report.json with {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta}; post-update logs 'dropped post-update'/'on unexpected version' and per-device 'RINCON_%s01400 updated to %s'/'update failed (%d)' plus 'Updated %d/%d devices'.",
    "todo": [
-    "Established: RZPWifiIdleMgr idle-scan management and the auto_update_scheduler module are identified.",
-    "Still unknown: the idle-scan decision inputs and the auto-update window policy internals are untraced.",
-    "Next step: trace the idle-scan trigger predicates and the scheduler's window computation."
+    "Established: auto-update window grammar + blockers (alarm, active devices) + shrinkWindow + full upgrade_mgr_report.json schema; idle-scan role vocabulary from wifi_idle_roles.",
+    "Remaining: the auto-update window's configured bounds (default start/end) and the idle-scan trigger predicates per role - bounded by the window setter and the RZPWifiIdleMgr scan-timer body."
    ]
   },
   "misc_health": {
    "healthcheck": "healthcheck.cxx: periodic 'Next healthcheck scheduled in %u h %u m %u s' + timer-pop reschedule",
    "longpress": "longpress.cxx: long-press button handler",
-   "arpchecker": "arpchecker.cxx: ARP peer verification",
+   "arpchecker": "ARPC checker decoded (arpchecker.cxx, tag 'arpchecker', selthrd callbacks {reset,data,except,timeout}): at init it resolves the local interface and tunes kernel ARP neighbor params via /proc/sys/net/ipv4/neigh/<iface>/{retrans_time_ms,retrans_time,mcast_solicit} ('failed to open proc fs for retrans'/'...mcast'). It then ARP-probes target addresses event-driven through a pipe()-reset socket loop ('performReset called with invalid read FD/new read FD', 'Read error'). The verification predicate is ARP resolution within a failure budget: success logs 'ARP to %s resolved after %d failures', exhaustion logs '%s failed to resolve (%d)'. So it verifies layer-2 reachability of peers (e.g. post-wifi-event sanity), not a service-level check.",
    "topology_events_report": "topology_events_report.cxx: ZGT change reports",
    "todo": [
-    "Established: the healthcheck reschedule loop, long-press handler, ARP checker, and topology-events reporter are identified.",
-    "Still unknown: each component's check semantics - what healthcheck verifies and what it does on failure - are not traced.",
-    "Next step: trace the healthcheck job body and the ARP checker's verification predicate."
+    "Established: healthcheck job body + ARP checker fully decoded (proc-sysfs neigh tuning + event-driven ARP probes + failure-budget verdict).",
+    "Remaining: the long-press handler and topology-events reporter bodies - each bounded by its own module strings."
    ]
   },
   "device_auth": {
@@ -117922,8 +117921,10 @@
    "oauth": "int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken: OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs",
    "ssl": "/ssl_client_cache status endpoint: TLS session cache",
    "todo": [
-    "Established: the cert/token/regcert surface is catalogued. Still unknown: token lifecycle internals - issue, cache, refresh timing, and revocation handling are untraced. Next step: trace getDeviceAuthToken and the resolveToken flow."
-   ]
+    "Established: getDeviceAuthToken is SMAPI/OAuth-only with masked logging + callbackPath result; household authorization API = {resolveToken,getPolicyKey,getPermissions,createInvite} under v1/households/{hhid}/authorization/.",
+    "Remaining: token cache/revocation timing internals - bounded by the token-store fields near the resolveToken handler."
+   ],
+   "token_lifecycle": "Token lifecycle decoded: 'getDeviceAuthToken' is the SMAPI per-service path - it warns 'getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)' so tokens are only issued for credentialType==OAuth accounts, returns via the SMAPI result namespace 'http://www.sonos.com/Services/1.1|getDeviceAuthTokenResult' with a 'callbackPath' field, failures as 'getDeviceAuthToken failed (res = %d)'. The household-side API family resolves via muse routes: 'v1/households/{householdId}/authorization/tokens' (verb resolveToken - 'Request to resolveToken successful [token=******%s]' masks the token in logs), '.../authorization/policy/{policyKey}' (getPolicyKey), '.../authorization/permissions/{role}' (getPermissions), '.../authorization/invite' (createInvite - note the 'none' target placeholder route 'v1/[error: \\'none\\' is not a valid target]/authorization/invite')."
   },
   "media_player_mgr": {
    "impl": "media_player_mgr.cxx: registry of MediaPlayer objects keyed by a 'target key' ('Invalid MediaPlayer target key provided. Aborting construction.'), each bound to a port ('Setting up MediaPlayer for port %u') with its own logger dir ('Failed to create logger conf dir for media player %s'); lifecycle: created '[%zu]' \u2192 registered '[%zu]' \u2192 shutdown; companion media_player_vli_ctrl.cxx wires each player to Virtual Line-In control",
@@ -117967,8 +117968,11 @@
    "dsp": "dsp_preset_satellite.xml + dsp_system_satellite.bin + satellite_processor.bin: satellite-specific DSP chains",
    "tz": "timezone DB from update-timezone.sonos.com/timezone/timezones.xml",
    "todo": [
-    "Established: the state vocabulary, consistency validators, and member events are documented. Still unknown: the satellite audio-path semantics - how the satellite DSP files and swap FSM interact during bonded-zone transitions. Next step: trace a bonded-zone create/swap sequence."
-   ]
+    "Established: satellite DSP preset + HTChProcConfig gains; separate bonded volume breakpoints with default fallback; HT_SWAP disabled for bonded members; create/recover/sonar sequences + invisible-secondary semantics.",
+    "Remaining: the AddBondedZones/RemoveBondedZones action arg grammar - bounded by the GroupManagement impl params."
+   ],
+   "satellite_audio_path": "Satellite audio path decoded: bonded secondaries run a dedicated DSP preset 'dsp_preset_satellite.xml' plus per-channel gains delivered as HTChProcConfig protobufs ('Could not convert loaded satellite protobuf to HTChProcConfig', 'satellite channel: %i %s', 'satellite: failed to set gain for channel type %zu', 'could not send %s to satellite %s;%s. rc %d, error %d, %s, count %u'). Bonded zones carry SEPARATE bonded volume breakpoint tables alongside the defaults - 'Bonded gain for \"%s\" not found in DSPConfig', 'default (%i) and bonded (%i) volume breakpoint lengths differ', 'default and bonded volume breakpoints differ', 'volume (%i) and gain (%i) lengths differ in bonded volume breakpoints', 'no bonded volume breakpoints specified, using default instead', 'Num bonded subs', 'sub_bonded'/'sub_unbonded'. HT_SWAP exists ({HT_SWAP_START,HT_SWAP_END,HT_SWAP_ERROR}) but 'Swap is disabled as this player is in a bonded zone.' - role transitions '_satellite'/'satellite to normal'/'normal to satellite' happen through bonded membership, not the swap FSM. Secondaries are hidden: 'Setting invisible=true based on bonded secondary state'; primary keeps default loudness (\"bonded; set primary's default loudness %d\").",
+   "create_recover": "Create sequence: AddBondedZones -> 'Created bonded zone; start topology monitor' -> state pushed to secondaries ('Pushing bonded zone state to secondaries failed: %d', 'Failed sending state to new bonded zone. Schedule recovery', 'Error creating bonded zone; %d'). Recovery (recoverBondedZone): retries while topology is unsettled ('retrying as topology hasn't settled yet (ct=%u)'), checks 'Status from topology is: %d', then either 'reducing bonded zone to %s', 'separating this player from bonded zone', aborts on 'partner is incompatible', or succeeds ('recoverBondedZone successful %s; %s sent to secondaries'). Sonar config is cleared on RemoveBondedZone, restickBondedSecondary and unstickBondedSecondary paths."
   },
   "topology_engine": {
    "impl": "topology.cxx -> RDeviceTopology",
@@ -118003,8 +118007,10 @@
   "extaudiosrc": {
    "impl": "extaudiosrc.cxx (external audio source plug-in interface; sources get an extaudiosrc_playid; preemption path 'extaudiosrc was playing, stopped it'; 'Using External Audio Source'; ChirpExtAudioSrc is one concrete source ('ChirpExtAudioSrc does not exist!')) the chirp/ultrasound pairing tone arrives through this interface",
    "todo": [
-    "Established: the plugin interface and ChirpExtAudioSrc concrete source are identified. Still unknown: the full source registry - which other ext audio sources exist and the playid allocation/preemption rules. Next step: enumerate extaudiosrc registrations."
-   ]
+    "Established: registry = 4 named mixer streams + ChirpExtAudioSrc class; playid counter + per-playid job stop; preemption on external takeover; write/notify error surface.",
+    "Remaining: the playid counter's wrap/reuse policy - bounded by the alloc site's increment."
+   ],
+   "registry": "Source registry bounded at the four mixer streams {ext-voice-as, ext-chirp-as, setup-chirp-as, setup-discov-as}; ChirpExtAudioSrc is the concrete plugin class ('ChirpExtAudioSrc does not exist!' guard). Playid allocation: an 'extaudiosrc_playid' counter labels each job; stop paths iterate the job queue by playid ('stopPlaying too many to stop %zu', 'stopPlaying[%d] %s[%zu] jobs=%zu', 'stopPlaying with no jobs (state=%d)'). Preemption: 'extaudiosrc was playing, stopped it' - a higher-priority source can evict an active ext job. Write path logs 'wrote zero bytes to stream', 'stream write failed (%zd), %s', 'illegal sample frequency: %u'; notify callbacks 'notifyStatus: err 0x%x', 'notifyTransportError: err %d'; 'Created mixer stream %s'."
   },
   "device_registration": {
    "impl": "register.cxx + regdevicecert.cxx + cloudregistration.cxx",
@@ -118024,8 +118030,10 @@
    "reporting": "upgrade_mgr{,_user}_report.json, /tmp/upgrade_mgr_info.txt, /jffs/upgrade*.log, upgrade_sys_report*.log; reportFirmwareDownload telemetry; 'Upgrade report has more devices than the maximum supported' household cap; 'Unable to report firmware update; muse error'",
    "files": "/jffs/{upgrade.log,upgrade_prev.log,upgrade_tmp_prev.log,app/log/upgrade_mgr.log}",
    "todo": [
-    "Established: the download path, rate limiting, and the fact that upgrade_mgr runs externally are documented. Still unknown: the anacapad-to-upgrade_mgr handshake - which IPC or sentinel triggers a download-versus-apply and how .upd is verified. Next step: trace the Netstart-triggered upgrade entry and the upgrade_mgr CLI/protocol (see queued upgrade records)."
-   ]
+    "Established: handshake = BeginSoftwareUpdate UPnP action -> spawn /bin/upgrade_mgr -> poll report files; manifest .upm and payload .upd URL grammars including sonosid/householdid/au params; user vs auto report file split.",
+    "Remaining: the .upd signature/verification is inside upgrade_mgr itself (a separate binary), outside anacapad's reach - proven boundary."
+   ],
+   "handshake": "The anacapad<->upgrade_mgr handshake is process-spawn + report-file polling, not message IPC. Flow: check decides ('%zu/%zu ZPs need auto-update', or the user path 'User-initiated HH update: ...') -> anacapad downloads the manifest itself ('manifest URL: %s', 'manifest connect error 0x%x (%u)', 'manifest download complete/error') -> the BeginSoftwareUpdate UPnP action is invoked on the local device ('BeginSoftwareUpdate failure for local device (UPnP result: %u)') -> 'creating auto upgr process' spawns /bin/upgrade_mgr ('Failed to spawn auto upgr process'). Manifest URL grammar: '%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s'; the .upd payload URL appends '&sonosid=%s&householdid=%s&au=1'. upgrade_mgr reports back via files anacapad polls: /tmp/upgrade_mgr_info.txt, upgrade_mgr_report.json (auto), upgrade_mgr_user_report.json + _prev (user path, 'Timed out polling for user-initiated HH upgrade report', 'User-initiated HH upgrade report consumed', \"Unknown upgrade client state: '%s'\", a device-count cap 'Upgrade report has more devices than the maximum supported'), and /jffs/app/log/upgrade_mgr.log."
   },
   "content_managers": {
    "favorites": "<Favorites SchemaVersion=\"%d\"> XML + dirObjFavorites; household-replicated ('replicating favorites from %s'); FavoritesUpdateID/RadioFavoritesUpdateID/radioFavoritesMoved; 'Invalid favorites directory state'",
@@ -118034,17 +118042,19 @@
    "tv_processor_usage": "tv_processor_usage.cxx: HT TV-processor usage tracking",
    "queue": "dirObj set {dirObjAttr (album-art/attribute object, /getaa path, x-file-cifs playlist refs), dirObjShares, dirObjQueue, dirObjQueueQueue, dirObjSavedQueueTrack, dirObjSavedQueue}; bounds 'cannot set queues (container size exceeded %d, already set %d)' + 'no directory queue object' + 'createObject: invalid share %s' + 'Truncating queue context property!'; res protocolInfo x-rincon-queue:*:*:*; queue/share DIDL credentials carried under urn:schemas-rinconnetworks-com:metadata-1-0/|usernameX and |passwordX",
    "todo": [
-    "Established: the favorites XML schema + replication, history, radiolog, tv-processor usage, and the queue dirObj set are documented.",
-    "Still unknown: the favorites replication merge rules and the dirObj class internals (beyond the inventory in dirobj_class_map) are only partially decoded.",
-    "Next step: trace the favorites replication conflict path and finish the dirObj vtable attribution."
-   ]
+    "Established: merge = version-gated last-writer-wins (no field merge); .d.xml incoming staging file; full schema + item classes + move semantics + cloud routes.",
+    "Remaining: the exact version field source (FavoritesUpdateID vs SchemaVersion in the compare) - bounded by the caller's arg setup at f_1037ee3c."
+   ],
+   "favorites_merge": "Favorites replication merge decoded (f_1037ee3c receive -> f_1037f1ac decision, tag 'favorites'): on 'replicating favorites from %s' the device runs 'deciding whether to accept replicated list' - the decision compares the incoming list's {version,schema} against a version threshold (cmplwi on the version arg): failing it logs 'Rejected version %u, schema %u from %s / Current SchemaVersion= %d' and returns without applying; passing tail-calls into the apply. So replication is VERSION-GATED last-writer-wins, not field-level merge. The incoming copy lands as userradio.d.xml vs the local userradio.xml. Doc schema: <Favorites SchemaVersion> root wrapping <Radio LastUpdateDevice=.. NextFavorite=..> with <Station Id Title URI>, <Show Id Title URI>, <Genre Id Name> children; item classes 'TuneIn Station' (x-sonosapi-stream:*:*:*), 'Custom Station' (x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*), 'Radio Show' (x-sonosapi-show:), 'SA_RINCON%d_' service-account ids, 'HR:0/1' history refs. Reorder support: 'itemsMoved'/'radioFavoritesMoved' events, 'Did not move favorite (%s \"%s\"); rc %d'. Cloud routes: v1/households/{hhid}/favorites (getFavorites), v1/groups/{groupId}/favorites + v1/households/{hhid}/groups/{gid}/favorites (loadFavorite)."
   },
   "timedjobs": {
    "impl": "timedjob.cxx -> timedjobmgr{,_ac,_btn} channels",
    "semantics": "ReportSvcTimedJob + checkSonosNetDisableTestTimedJob + modZPShutdown_deleteTimedJobManager: scheduled job timers for AC/button/SonosNet-disable-test",
    "todo": [
-    "Established: the timedjob manager channels and named jobs are identified. Still unknown: job scheduling internals - persistence, retry policy, and which jobs persist across reboot. Next step: trace timedjob.cxx's store/load path."
-   ]
+    "Established: absolute m_tmNext scheduling, endpoint binding, remove-queued/done-waiting lifecycle, in-memory only (no persistence path exists in the module).",
+    "Remaining: which named jobs each channel owns - bounded by the schedule call sites' job-name args."
+   ],
+   "scheduling": "Job model decoded (timedjob.cxx, tag 'timedjobmanager', channels {timedjobmgr, timedjobmgr_ac, timedjobmgr_btn}): each job carries an absolute next-fire time m_tmNext ('scheduleJobLater: job: \"%s\" m_tmNext: %ld(%c) is in %ld seconds') and binds to a registered endpoint ('cannot schedule job %p:%p; ep not in list' - the %p:%p pair is {job,endpoint}). Lifecycle: add -> scheduled ('%s job \"%s\" scheduled flag on but time not set' validator) -> remove queued ('job %p:%p remove queued [%d]') -> done waiting ('job %p:%p done waiting' / 'removed (done waiting)') with cancel paths 'removed (add cancelled)', 'job %p:%p not found'. Per-job logging '%s svc:%s td:%ld'. No file/store strings exist in the module - jobs are in-memory only; nothing persists across reboot, registration repeats each boot."
   },
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
@@ -118160,8 +118170,10 @@
     }
    },
    "todo": [
-    "Established: the OAuth grant table (jwt-bearer, RS256/HS256, sonos subject URNs) and the Thor policy layer are recovered. Still unknown: Thor's policy evaluation internals - how UserAuthorization policy keys gate each op. Next step: trace the PolicyKeyTable lookup path."
-   ]
+    "Established: policy key -> role mapping under PolicyKeyTableMutex with cache; role gates {guest,unauthenticated}; JWT + registration-state checks; topology/info-change cache invalidation via ie-obs observers.",
+    "Remaining: the full role vocabulary and per-op policy-key assignment - bounded by the PolicyKeyTable's writer."
+   ],
+   "thor_eval": "Thor evaluation path decoded: the PolicyKeyTable (guarded by PolicyKeyTableMutex, cache-hit log 'Policy mapping retrieved from cache') maps an op's policy key to a ROLE name ('Role from policy key: %s'; policy keys arrive over lechmere - 'Could not parse role from lechmere policy key'). The role then gates: 'Guest access disallowed' / 'Using guest policy' for guest-role ops, 'Unauthenticated control disallowed' for unauthenticated callers. Authorized ops proceed to the credential check: JWT validation ('JWT parsing failed with error=%s', 'Invalid JWT string', 'Invalid signature') plus registration state ('Unable to retrieve current registration status/state', 'Registration request state is not supported'). Singletons 'UserAuthorization' and 'ThorOperations' are registered by the thor static-init (f_1008e190), which also subscribes TopologyZpListChangedEvent/InfoUpdatedEvent observers ('ie-obs') so cached policy invalidates on topology/info changes. 'validateUserAuthorization violation' is a dead literal - the live denial logs are the role gates above."
   },
   "netsettings_mgr": {
    "impl": "netsettings_mgr.cxx",
