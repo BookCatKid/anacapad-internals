@@ -93,7 +93,6 @@ function buildSidebar() {
     },
     {
       text: 'muse API (v1)',
-      collapsed: true,
       items: [
         { text: 'Overview', link: '/muse/' },
         { text: 'Outbound client', link: '/muse/outbound' },
@@ -107,7 +106,6 @@ function buildSidebar() {
     },
     {
       text: 'HTTP layer',
-      collapsed: true,
       items: [
         { text: 'Overview', link: '/http/' },
         ...dirItems('http', '/http', new Set(['index'])),
@@ -115,7 +113,6 @@ function buildSidebar() {
     },
     {
       text: 'Subsystems',
-      collapsed: true,
       items: [
         { text: 'Coverage index', link: '/subsystems/' },
         ...dirItems('subsystems', '/subsystems', new Set(['index'])),
@@ -123,7 +120,6 @@ function buildSidebar() {
     },
     {
       text: 'Firmware artifacts',
-      collapsed: true,
       items: [
         { text: 'Index', link: '/artifacts/' },
         ...dirItems('artifacts', '/artifacts', new Set(['index'])),
