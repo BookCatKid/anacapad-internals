@@ -1270,6 +1270,8 @@ Catch-all record; split into per-scheme records as uses get traced.
 
 ## `x-sonos-unknown`
 
+**TODO:** The x-sonos-unknown scheme is named but its grammar and consumer are undetermined: no format literals or parser sites are anchored for it. Next step: search rodata for x-sonos-unknown literal references and trace the consumer that branches on it.
+
 The 'unknown source' placeholder: the address the player uses when it can't identify what a source is. It's a safe label rather than a wrong guess.
 
 ::: details Technical details
@@ -1389,6 +1391,8 @@ service-track radio URI carrying station id, flags, serial number
 :::
 
 ## `x_rincon_schemes`
+
+**TODO:** The x-rincon-cpcontainer variants {RDCPA,RDCPI,...} are listed but the full scheme set and which component consumes each are not fully enumerated. Next step: complete the scheme census from the protocol-info strings and map each scheme to its dispatcher.
 
 The x-rincon* scheme family as a group: the queue, radio, buzzer, calibration, and container address types collected under their shared 'rincon' prefix, rincon being Sonos's internal platform name.
 

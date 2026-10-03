@@ -148,50 +148,50 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x1056157c` | input_arg_parser | String input-argument record initializer/parser (type tag 7, caller-supplied capacity 0x400); produces the C string consumed by the impl for Unit and Target. |
 | `0x10561444` | input_arg_parser | Byte-width numeric argument parser used for DesiredMute. |
 | `0x10561478` | input_arg_parser | u16-width numeric argument parser used for DesiredVolume. |
-| `0x1055fcbc` | output_formatter | Response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case (XML-escape |
+| `0x1055fcbc` | output_formatter | Response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case ... |
 | `0x105614e0` | input_arg_parser | Numeric input-argument record initializer/parser (type tag 4, 24-byte record); produces the integer value the wrapper forwards as InstanceID. |
 | `0x1055fcf4` | output_formatter | Signed integer (%d/%lld) response-format variant |
 | `0x1055fc08` | output_formatter | Boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d: the boolean-as-int wire encoding |
-| `0x10561514` | input_arg_parser | Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0: used by scalar/enum a |
+| `0x10561514` | input_arg_parser | Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0: used by scalar/enum ... |
 | `0x1055fc4c` | output_formatter | Unsigned (%u)/signed (%d) numeric response formatter |
 | `0x105615a8` | input_arg_parser | Arg-descriptor ctor, type-8 optional-ptr: embedded-buffer descriptor for nullable/ptr args |
 | `0x1055fc84` | output_formatter | Numeric response formatter: %d/%u/%lld variant |
 | `0x105614ac` | input_arg_parser | Arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3: EQ/range int16 args (Bass,Treble,Volume) |
-| `0x102b95a8` | seek_dispatch | AVTransport impl vfunc +0x34 entry: locks engine mutex +0x458, rejects nonzero InstanceID with 718, calls seek engine f_102b9088(engine,Unit,Target), stores Ins |
-| `0x102b9088` | seek_engine | Seek engine: branches on source-mode field engine+0x4654; indexed mode (==2) enforces capability mask from f_10258ab0 (0x400000 track-seek, 0x200000 time-seek), |
-| `0x102ab830` | time_parser | Target time parser for REL_TIME/TIME_DELTA: consumes at most one leading '-' manually (sign flag byte -> *arg2, cr4 captured before sscanf); sscanf(str,'%hhu:%h |
-| `0x10255f64` |  | Indexed-source request submitter: f(impl+0x580, &record). Returns engine rc: 0=accepted, 2 and 3 are distinct rejection codes (mapped to SOAP 800/711 by Next),  |
+| `0x102b95a8` | seek_dispatch | AVTransport impl vfunc +0x34 entry: locks engine mutex +0x458, rejects nonzero InstanceID with 718, calls seek engine f_102b9088(engine,Unit,Target), stores ... |
+| `0x102b9088` | seek_engine | Seek engine: branches on source-mode field engine+0x4654; indexed mode (==2) enforces capability mask from f_10258ab0 (0x400000 track-seek, 0x200000 ... |
+| `0x102ab830` | time_parser | Target time parser for REL_TIME/TIME_DELTA: consumes at most one leading '-' manually (sign flag byte -> *arg2, cr4 captured before sscanf) ... |
+| `0x10255f64` |  | Indexed-source request submitter: f(impl+0x580, &record). Returns engine rc: 0=accepted, 2 and 3 are distinct rejection codes (mapped to SOAP 800/711 by Next) ... |
 | `0x1032e270` |  | Initializes the transport request record that impls fill and pass to f_10255f64/f_102aff9c. |
-| `0x106a7930` | streamer_seek | Direct streamer seek used when engine+0x4654 != 2: locks streamer+0x150, obtains current stream session via *(obj+0x354)->+4->vfunc\[+0x2c\], calls session vfun |
+| `0x106a7930` | streamer_seek | Direct streamer seek used when engine+0x4654 != 2: locks streamer+0x150, obtains current stream session via *(obj+0x354)->+4->vfunc\[+0x2c\], calls session vfunc ... |
 | `0x10258ab0` |  | Capability query f(impl+0x580,sel1,sel2) returning a mask; bit 0x00100000 gates Previous indexed path. |
 | `0x102b5ddc` |  | Pre-submission step shared by indexed Next/Previous - probably pauses/quiets the current streamer session. |
 | `0x100d71e0` | impl | GetMute impl / 3-channel resolver: instID!=0 -> 702; locks impl+0x938; Master/LF/RF -> byte +0x7f1/0x7f2/0x7f3 written to out; unknown channel -> 402. |
 | `0x100db3fc` | impl | SetMute impl shim: locks impl+0x938, logs 'SetMuteWithoutProxy ch:%s, on:%d', delegates to worker f_100d99b0, returns its rc. |
-| `0x100d99b0` | impl_worker | SetMute worker: instID!=0 -> 702; 4-channel strcmp (Master/LF/RF/FocusMode -> +0x7f1..+0x7f4, else 402); Master path syncs +0x7e0->+0x7da when flags +0x7ff&&+0x |
-| `0x100dcb00` | impl_worker | Shared volume worker reached by SetVolume (direct), SetRelativeVolume (thunk mode=1) and GetVolumeDB (thunk mode=0): dead instID compare, zeroes channel-record  |
+| `0x100d99b0` | impl_worker | SetMute worker: instID!=0 -> 702; 4-channel strcmp (Master/LF/RF/FocusMode -> +0x7f1..+0x7f4, else 402); Master path syncs +0x7e0->+0x7da when flags ... |
+| `0x100dcb00` | impl_worker | Shared volume worker reached by SetVolume (direct), SetRelativeVolume (thunk mode=1) and GetVolumeDB (thunk mode=0): dead instID compare, zeroes channel-record ... |
 | `0x100dcc44` | impl_thunk | Arg-remap thunk: -> f_100dcb00(impl,1,instID,0,chanrec,adjustment). |
 | `0x100dcc64` | impl_thunk | Arg-remap thunk: -> f_100dcb00(impl,0,instID,1,chanrec,val). |
-| `0x100dcc84` | impl_anomaly | Installed at SOAP slot +0x28 (SetVolumeDB) in vtable A: ignores args, toggles impl+0x7f1 (Master mute), syncs +0x7da->+0x3c8 when +0x7ff==0, applies f_100d7f34, |
+| `0x100dcc84` | impl_anomaly | Installed at SOAP slot +0x28 (SetVolumeDB) in vtable A: ignores args, toggles impl+0x7f1 (Master mute), syncs +0x7da->+0x3c8 when +0x7ff==0, applies ... |
 | `0x100dcd88` | impl_anomaly | Installed at SOAP slot +0x2c (GetVolumeDBRange): calls f_100d9b4c(this,0,'Master',...), logs 'ButtonSetMute on:%d src:%s'. |
 | `0x100e43b4` | impl_shim | GetVolume impl shim: instID!=0 -> 702 else tail-call worker f_100e42a8. |
-| `0x100e42a8` | impl_worker | GetVolume worker: ctx acquire (f_10118278, f_1011fdd0 on impl+0x3c4/+0x9c8), lock +0x938, readiness gate f_102a5028(*(impl+0x3ac)) -> 501, read f_100da830, 'spa |
+| `0x100e42a8` | impl_worker | GetVolume worker: ctx acquire (f_10118278, f_1011fdd0 on impl+0x3c4/+0x9c8), lock +0x938, readiness gate f_102a5028(*(impl+0x3ac)) -> 501, read f_100da830 ... |
 | `0x102a5028` | state_gate | Readiness/state predicate on the audio-context object (*(impl+0x3ac)); failure -> impl rc 501. |
 | `0x100da830` | read_helper | rc_impl worker handling 'spectral'/'spatial' EQ modes |
 | `0x102a50b8` | read_helper | Nested-object volume read: *(impl+0x3ac)->+0x34->+0xd0 then f_107ea964 writes the u16 via stack-byte out-param. |
-| `0x100d65f4` | null_stub | 3-instruction null stub (stwu/addi/blr): returns r3=impl ptr, writes nothing, leaves stale cr0. Installed at slots +0x30 (GetBass) and +0x3c (SetTreble) in both |
+| `0x100d65f4` | null_stub | 3-instruction null stub (stwu/addi/blr): returns r3=impl ptr, writes nothing, leaves stale cr0. Installed at slots +0x30 (GetBass) and +0x3c (SetTreble) in ... |
 | `0x100d72dc` | impl | SetBass impl: (impl, recordptr); *rec == -1 -> no-op; else lock +0x938 and stw *rec -> impl+0x898. |
 | `0x100e3450` | impl | GetTreble impl: ignores instID and out ptr entirely; ctx acquire + worker f_100e1fec; returns worker rc. |
-| `0x100e1fec` | impl_worker (497i): mutex + XML doc build (f_10807034 appends) + f_1067c6ec notify-all call - produces event/doc then notifies subscribers | Treble ctx-worker (~0x11e0 frame, SPE ops): computes the EQ value consumed by GetTreble.; recovered literals: 'inprocess-events','Change in event loop detected' |
+| `0x100e1fec` | impl_worker (497i): mutex + XML doc build (f_10807034 appends) + f_1067c6ec notify-all call - produces event/doc then notifies subscribers | Treble ctx-worker (~0x11e0 frame, SPE ops): computes the EQ value consumed by GetTreble.; recovered literals: 'inprocess-events','Change in event loop ... |
 | `0x100d7f34` | apply | Apply committed rendering state (called after mute/volume writes; takes impl). |
 | `0x1067c6ec` | notify-all-subscribers thunk: tails f_1067c46c(obj,0,0); that fn iterates subscriber list at obj+0xa0 calling f_10686048 per entry | Notification call on impl+8 with r10=0x1f5 following state writes. |
 | `0x100d993c` | release/free helper: calls 0x11098b08 (free) + f_10572ab0 | rc_impl Master-channel volume worker |
 | `0x100d9b4c` | locked apply helper: f_10988268 lock -> f_100d8568 worker | rc_impl 'FocusMode' setter |
 | `0x100da1e0` | locked apply helper: f_10988268 lock -> f_100d8784 worker | Locked rc_impl worker: acquires impl+0x938 lock (0x10988268) + inner 0x100d8784 |
-| `0x1046dff0` | grouped-op coordinator (327i): orchestrates member calls f_1053ce34/f_1053db38/f_10759984 + XML append f_10807034 + notify; multi-phase op | Derived-class prelude: builds an operation object at sp+0xa0 from impl+0xbc8 and impl+0x9c8, readiness-checks it (f_1053ce34), returns a handle consumed by f_10 |
+| `0x1046dff0` | grouped-op coordinator (327i): orchestrates member calls f_1053ce34/f_1053db38/f_10759984 + XML append f_10807034 + notify; multi-phase op | Derived-class prelude: builds an operation object at sp+0xa0 from impl+0xbc8 and impl+0x9c8, readiness-checks it (f_1053ce34), returns a handle consumed by ... |
 | `0x1046c3cc` | refcount/resume gate: *(r3+0xc54)++; <=2 returns, else tails f_1046c148 | Derived-class prelude companion to f_1046dff0, invoked before tail-calling the base impl. |
 | `0x10988564` | sync | Lock-guard constructor on impl+0x938 (recursive mutex); paired with f_10988990 destructor/unlock. |
-| `0x100e382c` | impl_worker | Shared EQ/context read worker invoked by GetEQ (f_100e4188) and the GetVolume 'spatial' branch; operates on (impl,&ctxobj).; recovered literals: 'Device does no |
-| `0x100e27b0` | impl_worker | EQ apply worker called by SetEQ as f_100e27b0(this, arg, flag) once per zero-valued selector arg.; recovered literals: '<Event xmlns="urn:schemas-upnp-org:metad |
+| `0x100e382c` | impl_worker | Shared EQ/context read worker invoked by GetEQ (f_100e4188) and the GetVolume 'spatial' branch; operates on (impl,&ctxobj).; recovered literals: 'Device does ... |
+| `0x100e27b0` | impl_worker | EQ apply worker called by SetEQ as f_100e27b0(this, arg, flag) once per zero-valued selector arg.; recovered literals: '<Event ... |
 | `0x100d66cc` | impl | GetHeadphoneConnected impl: locks impl+0x938, fills {vol32@+8 (from +0x7da or +0x7e0 by flags +0x7ff/+0x801), mute-byte@+0xc, flag@+0xd} record, returns 1. |
 | `0x100d6764` | impl | GetSupportsOutputFixed impl: builds record via f_10203ec8, calls impl->v\[+0xf0\], returns 63 on rc==0 (no out write) or 52 on rc!=0 (writes rec+0x24 to out). |
 | `0x100d6610` | impl_thunk | GetOutputFixed impl: pure tail-forward impl->v\[+0xe0\](impl,0,r4). |
@@ -199,7 +199,7 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x100dcfc0` | result-record builder: zeroes {+0..+0x1c}, sets +0=0x34 size, calls obj->v\[+0xe4\] and stores result code | SetOutputFixed impl: 0x34-record zero-init + flag reads +0x7ff/+0x801 on the r4 object; likely writer of the +0x7ff fixed-output flag. |
 | `0x100d7400` | impl | SetChannelMap impl: cr0-input entry gate, v+0x5c==f_100d7364 override detection, flag +0x7ff check, 'Master' strcmp dispatch. |
 | `0x100d9d40` | locked settings op: f_10988268 + strcmp(0x11098d98) + f_100d7f34 + notify f_1067c6ec + f_100d993c | Shared per-channel parameter worker used by ResetBasicEQ and ResetExtEQ with (this, arg1, arg2, val) shape. |
-| `0x10988268` | sync | Alternative lock/enter call on impl+0x938 used by f_100d99b0/f_100d66cc with a rc_impl.cxx source-line arg (e.g. 0x49a/0x1009) - location-tagged mutex acquisiti |
+| `0x10988268` | sync | Alternative lock/enter call on impl+0x938 used by f_100d99b0/f_100d66cc with a rc_impl.cxx source-line arg (e.g. 0x49a/0x1009) - location-tagged mutex ... |
 | `0x10988558` | sync | Simple lock on impl+0x938 (no location arg) used by several impls; paired with f_10988984 unlock. |
 | `0x10988984` | sync | Unlock/sub-lock call on impl+0x938 returning a byte consumed by callers (e.g. SetChannelMap). |
 | `0x10203ec8` | thin wrapper -> f_109ec9f0 (19i) | Small record-builder used by GetSupportsOutputFixed before the v+0xf0 delegate call. |
@@ -208,8 +208,8 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x1053ce34` | member bool getter: lbz *(r3+0) return | Readiness/predicate check on the prelude object built by f_1046dff0 in derived-class impls. |
 | `0x1053db38` | no-op stub (blr only); next fn 0x1053db44 = idx*0x28 stride accessor | Cleanup/teardown of the prelude object in derived-class impls. |
 | `0x10759984` | helper (179i): f_1053daf0 + mutex pair + f_10765a00/f_10762df8 list ops | Constructor for the prelude object at sp+0xa0 from impl+0xbc8 and impl+0x9c8 in derived-class impls. |
-| `0x103a1b8c` |  | Group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records  |
-| `0x103a2430` |  | SetGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan- |
+| `0x103a1b8c` |  | Group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records ... |
+| `0x103a2430` |  | SetGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during ... |
 | `0x1039fbd4` |  | 'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event. |
 | `0x104164e4` |  | 'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' - posts the group-volume event. |
 | `0x103a3f28` |  | Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c. |
@@ -240,14 +240,14 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x102931f0` |  | Stop-precondition check on impl+0x5dc: cr0.eq must be set or Stop returns 701 before any work. |
 | `0x102ae2d0` | mutex-guarded worker: f_10988564 lock -> f_103d7e8c -> f_10988990 unlock | Member-object call on impl+0xaaa0 run at the start of Stop before the precondition check. |
 | `0x102d094c` | dispatch helper: f_102d086c -> f_102ceb40 | Conditional teardown call in Stop chime-restore path and Play tail. |
-| `0x102d2bec` |  | Stop worker (impl arg2=1): clears impl+0x7778, calls f_102ae2d0(impl+0xaaa0), checks f_102931f0(impl+0x5dc) -> 701, then mode-dispatches the stop and runs f_102 |
+| `0x102d2bec` |  | Stop worker (impl arg2=1): clears impl+0x7778, calls f_102ae2d0(impl+0xaaa0), checks f_102931f0(impl+0x5dc) -> 701, then mode-dispatches the stop and runs ... |
 | `0x102b00cc` |  | Pause worker: f_102aff9c(impl+0x5dc,rec,0x19,0) then streamer f_106a7880(*(impl+0x5a0)); returns 0 on submit-fail else the streamer result. |
 | `0x102b0140` |  | Stream-mode Next worker: submit op-0x19 then streamer next vfunc f_106a7a34(*(impl+0x5a0)); returns streamer result or 0 on submit-fail. |
 | `0x102b01b4` |  | Stream-mode Previous worker: submit op-0x19 then streamer prev vfunc (*(impl+0x5a0)); returns streamer result or 0 on submit-fail. |
-| `0x102b60b0` |  | Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream pat |
-| `0x102b6214` |  | Previous worker: mode==2 -> capability check (f_10258ab0(impl+0x580,0,1) bit 0x00100000; incapable => silent success no-op) then indexed submit (rc!=0 -> 711);  |
-| `0x102b24dc` |  | SetPlayMode worker: maps {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}; non-NORMAL needs f_10147928+f_10148308+impl+0x1 |
-| `0x102b26dc` |  | SetCrossfadeMode worker: requires mode==2; requires f_101471f0/f_101475dc caps and non-HLS URI (strncmp 'x-sonosapi-hls:'); arg==0 silently succeeds on incapabl |
+| `0x102b60b0` |  | Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream ... |
+| `0x102b6214` |  | Previous worker: mode==2 -> capability check (f_10258ab0(impl+0x580,0,1) bit 0x00100000; incapable => silent success no-op) then indexed submit (rc!=0 -> 711) ... |
+| `0x102b24dc` |  | SetPlayMode worker: maps {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}; non-NORMAL needs ... |
+| `0x102b26dc` |  | SetCrossfadeMode worker: requires mode==2; requires f_101471f0/f_101475dc caps and non-HLS URI (strncmp 'x-sonosapi-hls:'); arg==0 silently succeeds on ... |
 | `0x102b1684` |  | GetTransportInfo worker: mode dispatch filling the three out strings; default path runs f_10308aec(impl+0x5d4) + strlcpy of impl+0x5dc source name. |
 | `0x10147928` |  | Source/queue presence query on impl+0x5dc; nonzero required before any non-NORMAL play mode is accepted. |
 | `0x10148308` |  | Capability query on impl+0x5dc (returns a caps/u16 word used by Next deep path and SetPlayMode gates). |
@@ -261,11 +261,11 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x102ab5d4` | strlen wrapper via 0x11098920 (22i) | Scoped log-record initializer used by Play non-muse path. |
 | `0x10807034` | XML/doc append-alloc via 0x110991a0 (16i) | Scope-guard destructor invoked when the scoped-context self-check fails. |
 | `0x102ab010` | single-insn stub | Deferred function pointer (at 0x10eaea90) swapped in by Play/GetTransportInfo boilerplate. |
-| `0x10479bb4` |  | CreateSavedQueue worker on queue-manager singleton 0x11096770 (mutex via f_10988558 on this+0x28). Builds a 0x4040-byte job record through f_103d1aec (job vtabl |
-| `0x10479fb8` |  | Saved-queue URI-append worker on the queue-manager singleton (0x11096770). Reached through the refcounted-session protocol: caller atomically increments *(sessi |
+| `0x10479bb4` |  | CreateSavedQueue worker on queue-manager singleton 0x11096770 (mutex via f_10988558 on this+0x28). Builds a 0x4040-byte job record through f_103d1aec (job ... |
+| `0x10479fb8` |  | Saved-queue URI-append worker on the queue-manager singleton (0x11096770). Reached through the refcounted-session protocol: caller atomically increments ... |
 | `0x1047a3bc` |  | Saved-queue reorder worker on the queue-manager singleton (0x11096770); same refcounted-session protocol as f_10479fb8. |
 | `0x104794d4` |  | Queue persistence worker invoked by the AVTransport SaveQueue path; performs the on-disk queue save after Title validation. |
-| `0x100c5050` |  | Refcount release helper for the queue-session token object (global 0x11096774); decrements *(obj+4) and frees at zero. Pairs with the atomic stwcx. increment pe |
+| `0x100c5050` |  | Refcount release helper for the queue-session token object (global 0x11096774); decrements *(obj+4) and frees at zero. Pairs with the atomic stwcx. increment ... |
 | `0x1047851c` |  | Queue-subsystem worker called inside the Queue-service registration helper f_104634c4 during singleton refcount setup. |
 | `0x104791b0` |  | Queue-subsystem worker called from the service-registration path f_101981f0 alongside session-token installation on the zoneplayer object. |
 | `0x10465fac` |  | Queue-manager ctor: initializes the Queue-tagged manager object, stores vtable 0x10ed1bcc, builds member sub-objects via f_1067aec4 and f_10807034. |
@@ -279,23 +279,23 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x10465a94` |  | Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3924. |
 | `0x102b6948` |  | Engine add-to-queue worker: logs URI+MD under avt_impl tag, takes engine mutex +0x458, forwards to insert op f_102b674c; single exit returns insert rc verbatim. |
 | `0x102b3a84` |  | Shared remove-all-tracks engine worker. Reached from AVTransport.RemoveAllTracksFromQueue and Queue.RemoveAllTracks (vfunc f_10465a74 via *(qm+0x128)). |
-| `0x1090ad44` |  | Zonegroup-topology singleton accessor: returns the topology/group object from global 0x110c8478 (via f_108073a0/f_1090acf4 refresh). Used by every group-engine  |
+| `0x1090ad44` |  | Zonegroup-topology singleton accessor: returns the topology/group object from global 0x110c8478 (via f_108073a0/f_1090acf4 refresh). Used by every group-engine ... |
 | `0x109089f0` |  | Group membership/state predicate on the topology object: reads obj+0xcc, compares against 0x1d family - nonzero means the zone is in a group-managed state. |
-| `0x1075c4d0` |  | Record/lookup precondition on engine field impl+0x44c against the source object (r31+0x3dc): walks a linked record, nonzero result = precondition satisfied/entr |
+| `0x1075c4d0` |  | Record/lookup precondition on engine field impl+0x44c against the source object (r31+0x3dc): walks a linked record, nonzero result = precondition ... |
 | `0x10513230` |  | Class-B SetAVTransportURI vfunc: thin shim that tail-calls group worker f_10512bc0 with an extra rodata descriptor arg (0x10ea6a2c). |
 | `0x10512bc0` |  | Group-aware SetAVTransportURI worker reached only from the class-B engine; performs URI set with group/coordinator semantics unresolved. |
-| `0x10513244` |  | Class-B BecomeCoordinatorOfStandaloneGroup impl: gates on topology-singleton state (f_1090ad44+f_109089f0) and record precondition f_1075c4d0(impl+0x44c, src),  |
-| `0x105133e4` |  | Class-B BecomeGroupCoordinator impl: if the topology singleton/state check FAILS it tail-calls the class-A impl f_102de740 verbatim (standalone semantics); othe |
+| `0x10513244` |  | Class-B BecomeCoordinatorOfStandaloneGroup impl: gates on topology-singleton state (f_1090ad44+f_109089f0) and record precondition f_1075c4d0(impl+0x44c, src) ... |
+| `0x105133e4` |  | Class-B BecomeGroupCoordinator impl: if the topology singleton/state check FAILS it tail-calls the class-A impl f_102de740 verbatim (standalone semantics) ... |
 | `0x105134a8` |  | Class-B BecomeGroupCoordinatorAndSource impl: identical gating - delegates to class-A f_102df410 when the group state check fails, else group path. |
 | `0x109b6fe4` |  | avt_impl-tagged log/error helper called in the group coordinator paths (arg 3 context selector). |
 | `0x104000c4` |  | Class-B (group-capable) engine ctor storing vtable 0x10edfbb8; sibling of the standalone ctor f_102cc070. |
-| `0x10304390` |  | Real ContentDirectory.Browse handler: parses ObjectID, BrowseFlag, Filter, StartingIndex, RequestedCount, SortCriteria (0x400-capped strings, int helpers), acqu |
-| `0x103042f0` |  | Browse executor: locks/looks up UpdateID via f_1034a224 on browse obj+0x168 (selector 0x2bd), strcmp-dispatches BrowseFlag - BrowseDirectChildren -> children en |
+| `0x10304390` |  | Real ContentDirectory.Browse handler: parses ObjectID, BrowseFlag, Filter, StartingIndex, RequestedCount, SortCriteria (0x400-capped strings, int helpers) ... |
+| `0x103042f0` |  | Browse executor: locks/looks up UpdateID via f_1034a224 on browse obj+0x168 (selector 0x2bd), strcmp-dispatches BrowseFlag - BrowseDirectChildren -> children ... |
 | `0x10305fec` |  | Browse result-record callback (2-ins stub at its head - real body follows); stored at +0x48 of the browse request record. |
 | `0x102e17a8` |  | StartAutoplay impl (engine v+0x9c): null arg-vector gate returns 0x2ce (718), then tail-calls the autoplay installer f_102e14e0. |
-| `0x102e14e0` |  | Autoplay-install worker (engine mutex +0x458). Reads suppression flag engine+0x465c: set -> logs "preventing autoplay because operation is overridden" (avt_impl |
+| `0x102e14e0` |  | Autoplay-install worker (engine mutex +0x458). Reads suppression flag engine+0x465c: set -> logs "preventing autoplay because operation is overridden" ... |
 | `0x102e1d68` |  | RunAlarm impl (engine v+0x98): null arg-vector gate returns 0x2ce (718), then tail-calls alarm worker f_102e17dc. |
-| `0x102e17dc` |  | Alarm-run worker (0x1300 frame): requires r6 non-null else 0x102e1928 path; uses time/duration helper table 0x1108b284 (f_10c3eb60) to resolve the pending alarm |
+| `0x102e17dc` |  | Alarm-run worker (0x1300 frame): requires r6 non-null else 0x102e1928 path; uses time/duration helper table 0x1108b284 (f_10c3eb60) to resolve the pending ... |
 | `0x102d1fc4` |  | SnoozeAlarm impl (engine v+0xa4). |
 | `0x102ad8fc` |  | GetRunningAlarmProperties impl (engine v+0xa0). |
 | `0x102ada98` |  | GetRemainingSleepTimerDuration impl (engine v+0x94). |
@@ -303,66 +303,143 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x10424ac4` |  | Stored-URI/path formatter: fills a 0x1000-byte destination with the autoplay/alarm source spec read from saved state. |
 | `0x102da774` |  | URI-install helper shared with the class-B SetAVTransportURI path (same descriptor 0x10ea6a2c); applies a URI+metadata to the engine session. |
 | `0x103d1aec` |  | Job-record constructor for queue mutations: stores job vtable 0x10ec7be0 at record+0, +0x403c=-1, +0x4018=0, +0x4044=flags arg. |
-| `0x10462c80` |  | M3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates |
+| `0x10462c80` |  | M3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064 ... |
 | `0x10545064` |  | Stream open helper used by playlist parsers to fetch the playlist document (URI -> stream object). |
 | `0x10546520` |  | Stream line-reader: yields successive playlist lines until exhausted (nonzero = line read). |
 | `0x1054103c` |  | Stream-close helper for playlist sources: closes via 0x10551300 + 0x10540b4c |
 | `0x10460764` |  | Per-line URI parse/normalize helper applied to each playlist entry before job submission. |
 | `0x104614b4` |  | Playlist-entry record builder used per parsed line (writes into the 0x5474 entry record). |
 | `0x1010a2c0` |  | Delegate-object initializer invoked by the per-entry job ctors (0x10ed1750/0x10ed1770 vtables). |
-| `0x10461e04` |  | ASX/WAX/WMX playlist expansion worker - same skeleton as the M3U worker: playlist log tag, iterateASXPlayList %s, stream open via f_10545064, per-entry job subm |
+| `0x10461e04` |  | ASX/WAX/WMX playlist expansion worker - same skeleton as the M3U worker: playlist log tag, iterateASXPlayList %s, stream open via f_10545064, per-entry job ... |
 | `0x10463164` |  | PLS playlist expansion worker - same skeleton: iteratePLSPlayList %s, stream open via f_10545064. |
 | `0x10462f54` |  | WPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064. |
 | `0x102b6a9c` | worker | AddURIToQueue impl vfunc +0x64 (both engine classes): InstanceID!=0 -> returns 0x2ce (718); else arg-shifts and tail-calls engine add worker f_102b6948. |
-| `0x102b674c` | worker | Queue-container insert op: builds decimal track-id from *(this+0x580)+0x30000, resolves queue record by id string; missing record -> rc 0x2ce (718); f_10149b24  |
-| `0x102b62e8` | worker | Queue commit op: preloads rc 800 (unable to process) on three failure paths (0x102b635c/0x102b667c/0x102b66b0); forwards record-write rcs from f_1014f808 (0x102 |
-| `0x1019d288` | impl_noop_stub | Null-stub implementation vfunc (stwu/addi/blr). Backs impl vtable 0x10e98278 slot +0x24, shared by DeviceProperties.SeparateStereoPair and SystemProperties.Edit |
-| `0x100ad1bc` | tls_action_name_stash | Stashes the action name into the request-internal object (*(req+0x70)+0xe0). Begins with `cmpwi cr0,r3,0`: if the inner object is NULL it returns early leaving  |
-| `0x1068f8cc` | shared_impl_v18 | Impl vfunc at shared-manager vtable 0x10e98278 +0x18, shared by DeviceProperties.AddBondedZones and SystemProperties.AddAccountX. Obtains a refcounted subobject |
-| `svc_impl_model` | object_model | Service objects embed in the zoneplayer context and share the layout {vptr@+0x00, shared_ptr<Impl>.px@+0x04, shared_ptr<Impl>.pn@+0x08}. ctors zero +4/+8; the i |
-| `cr_return_convention` | abi_convention | Impl-return ABI: impls signal outcome as r3=code + CR0.eq=(code==0) set inside the impl (e.g. cmpwi cr0,r3,0 or mr. before blr - proven in f_102d0ac8 at 0x102d0 |
-| `f_1034a224` | named_worker_resolver | Search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 par |
-| `0x107396d0` | action_reject_stub | Shared HTControl base-class action stub. Calls the request object's v\[+0x08\] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req v\ |
-| `0x10242118` | impl_ctor | Derived HTControl impl-class constructor. Calls the base-class ctor f_10739e2c (which installs vptr 0x10f11b64), then overwrites the vptr with the derived vtabl |
+| `0x102b674c` | worker | Queue-container insert op: builds decimal track-id from *(this+0x580)+0x30000, resolves queue record by id string; missing record -> rc 0x2ce (718); f_10149b24 ... |
+| `0x102b62e8` | worker | Queue commit op: preloads rc 800 (unable to process) on three failure paths (0x102b635c/0x102b667c/0x102b66b0); forwards record-write rcs from f_1014f808 ... |
+| `0x1019d288` | impl_noop_stub | Null-stub implementation vfunc (stwu/addi/blr). Backs impl vtable 0x10e98278 slot +0x24, shared by DeviceProperties.SeparateStereoPair and ... |
+| `0x100ad1bc` | tls_action_name_stash | Stashes the action name into the request-internal object (*(req+0x70)+0xe0). Begins with `cmpwi cr0,r3,0`: if the inner object is NULL it returns early leaving ... |
+| `0x1068f8cc` | shared_impl_v18 | Impl vfunc at shared-manager vtable 0x10e98278 +0x18, shared by DeviceProperties.AddBondedZones and SystemProperties.AddAccountX. Obtains a refcounted ... |
+| `svc_impl_model` | object_model | Service objects embed in the zoneplayer context and share the layout {vptr@+0x00, shared_ptr<Impl>.px@+0x04, shared_ptr<Impl>.pn@+0x08}. ctors zero +4/+8; the ... |
+| `cr_return_convention` | abi_convention | Impl-return ABI: impls signal outcome as r3=code + CR0.eq=(code==0) set inside the impl (e.g. cmpwi cr0,r3,0 or mr. before blr - proven in f_102d0ac8 at ... |
+| `f_1034a224` | named_worker_resolver | Search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 ... |
+| `0x107396d0` | action_reject_stub | Shared HTControl base-class action stub. Calls the request object's v\[+0x08\] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req ... |
+| `0x10242118` | impl_ctor | Derived HTControl impl-class constructor. Calls the base-class ctor f_10739e2c (which installs vptr 0x10f11b64), then overwrites the vptr with the derived ... |
 | `0x1018d27c` | service_factory | HTControl impl factory - allocates and constructs the derived impl object via f_10242118. |
-| `0x104661fc` | action_wrapper | Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse tab |
+| `0x104661fc` | action_wrapper | Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse ... |
 | `0x10464200` | action_table_trampoline | Queue.Browse dispatch-table entry - calls req v\[+0x3c\] (alternate in-arg context fetch) then tail-dispatches impl v\[+0x28\] -> f_104661fc. |
 
 ::: details Functions with remaining unknowns
 
+- `0x100ad1bc`: Established: Stashes the action name into the request-internal object (*(req+0x70)+0xe0). Begins with `cmpwi cr0,r3,0`: if the inner object is NULL it returns early leaving CR0.eq=1. This is the last guaranteed CR0 writer on the dispatch path before handler entry - relevant to the stale-CR0 analysis of impls that do not set CR0 themselves. (role: tls_action_name_stash); 1 recorded call site(s).
 - `0x100c5050`: Established: refcount release helper for the queue-session token object (global 0x11096774); decrements *(obj+4) and frees at zero. Pairs with the atomic stwcx. increment performed by every saved-queue caller (role: worker).
 - `0x100caad8`: Established: deferred-scope callback / transport-changed emit helper installed in the getter scope-guard and invoked on Play submit path (role: leaf combiner, no calls (17i)).
+- `0x100d65f4`: Established: 3-instruction null stub (stwu/addi/blr): returns r3=impl ptr, writes nothing, leaves stale cr0. Installed at slots +0x30 (GetBass) and +0x3c (SetTreble) in both vtables, and +0x48/+0x4c (Loudness) in vtable A only. (role: null_stub); 4 recorded call site(s).
+- `0x100d6610`: Established: GetOutputFixed impl: pure tail-forward impl->v\[+0xe0\](impl,0,r4). (role: impl_thunk); 1 recorded call site(s).
+- `0x100d66cc`: Established: GetHeadphoneConnected impl: locks impl+0x938, fills {vol32@+8 (from +0x7da or +0x7e0 by flags +0x7ff/+0x801), mute-byte@+0xc, flag@+0xd} record, returns 1. (role: impl); 1 recorded call site(s).
+- `0x100d6764`: Established: GetSupportsOutputFixed impl: builds record via f_10203ec8, calls impl->v\[+0xf0\], returns 63 on rc==0 (no out write) or 52 on rc!=0 (writes rec+0x24 to out). (role: impl); 1 recorded call site(s).
+- `0x100d71e0`: Established: GetMute impl / 3-channel resolver: instID!=0 -> 702; locks impl+0x938; Master/LF/RF -> byte +0x7f1/0x7f2/0x7f3 written to out; unknown channel -> 402. (role: impl); 1 recorded call site(s).
+- `0x100d72dc`: Established: SetBass impl: (impl, recordptr); *rec == -1 -> no-op; else lock +0x938 and stw *rec -> impl+0x898. (role: impl); 1 recorded call site(s).
+- `0x100d7400`: Established: SetChannelMap impl: cr0-input entry gate, v+0x5c==f_100d7364 override detection, flag +0x7ff check, 'Master' strcmp dispatch. (role: impl); 1 recorded call site(s).
+- `0x100d7f34`: Established: Apply committed rendering state (called after mute/volume writes; takes impl). (role: apply); 2 recorded call site(s).
 - `0x100d993c`: Established: rc_impl Master-channel volume worker (role: release/free helper: calls 0x11098b08 (free) + f_10572ab0); used by 1 action(s).
+- `0x100d99b0`: Established: SetMute worker: instID!=0 -> 702; 4-channel strcmp (Master/LF/RF/FocusMode -> +0x7f1..+0x7f4, else 402); Master path syncs +0x7e0->+0x7da when flags +0x7ff&&+0x801, mirrors +0x7da->+0x3c8, applies f_100d7f34, dirty +0x7f5, notifies f_1067c6ec+f_100d993c. (role: impl_worker); 1 recorded call site(s).
 - `0x100d9b4c`: Established: rc_impl 'FocusMode' setter (role: locked apply helper: f_10988268 lock -> f_100d8568 worker); used by 3 action(s).
 - `0x100d9d40`: Established: shared per-channel parameter worker used by ResetBasicEQ and ResetExtEQ with (this, arg1, arg2, val) shape (role: locked settings op: f_10988268 + strcmp(0x11098d98) + f_100d7f34 + notify f_1067c6ec + f_100d993c); used by 2 action(s).
 - `0x100da1e0`: Established: locked rc_impl worker: acquires impl+0x938 lock (0x10988268) + inner 0x100d8784 (role: locked apply helper: f_10988268 lock -> f_100d8784 worker); used by 2 action(s).
+- `0x100da830`: Established: rc_impl worker handling 'spectral'/'spatial' EQ modes (role: read_helper); 1 recorded call site(s).
+- `0x100db3fc`: Established: SetMute impl shim: locks impl+0x938, logs 'SetMuteWithoutProxy ch:%s, on:%d', delegates to worker f_100d99b0, returns its rc. (role: impl); 1 recorded call site(s).
 - `0x100dbb74`: Established: rc_impl 'SetVolumeScaling' worker (role: locked settings-store op: f_10988268 + f_100ecbac + f_100d7f34 + f_10557fa8/f_105587f0/f_10558000/f_10559024 settings family + f_100d993c); used by 1 action(s).
+- `0x100dbcd4`: Established: GetRoomCalibrationStatus impl: 0x34-record init, lock +0x938, f_100dbb74(rec, arg>>16) sonar-calibration query. (role: impl); 1 recorded call site(s).
+- `0x100dcb00`: Established: Shared volume worker reached by SetVolume (direct), SetRelativeVolume (thunk mode=1) and GetVolumeDB (thunk mode=0): dead instID compare, zeroes channel-record ptr (always 'Master'), impl+0x7ff!=0 -> silent early return, desired indexes u32 LUT at 0x10e87694, calls f_100d9b4c/f_100da1e0, logs 'vol:%u src:%s'. (role: impl_worker); 3 recorded call site(s).
+- `0x100dcc44`: Established: Arg-remap thunk: -> f_100dcb00(impl,1,instID,0,chanrec,adjustment). (role: impl_thunk); 1 recorded call site(s).
+- `0x100dcc64`: Established: Arg-remap thunk: -> f_100dcb00(impl,0,instID,1,chanrec,val). (role: impl_thunk); 1 recorded call site(s).
+- `0x100dcc84`: Established: Installed at SOAP slot +0x28 (SetVolumeDB) in vtable A: ignores args, toggles impl+0x7f1 (Master mute), syncs +0x7da->+0x3c8 when +0x7ff==0, applies f_100d7f34, logs 'ButtonSetMute'. Vtable B overrides slot with 0x1047241c. (role: impl_anomaly); 1 recorded call site(s).
+- `0x100dcd88`: Established: Installed at SOAP slot +0x2c (GetVolumeDBRange): calls f_100d9b4c(this,0,'Master',...), logs 'ButtonSetMute on:%d src:%s'. (role: impl_anomaly); 1 recorded call site(s).
 - `0x100dcfc0`: Established: setOutputFixed impl: 0x34-record zero-init + flag reads +0x7ff/+0x801 on the r4 object; likely writer of the +0x7ff fixed-output flag (role: result-record builder: zeroes {+0..+0x1c}, sets +0=0x34 size, calls obj->v\[+0xe4\] and stores result code); used by 1 action(s).
 - `0x100dee74`: Established: restoreVolumePriorToRamp impl (vtable A) (role: virtual-base this-adjust thunk: r3-8 -> f_100de178); used by 1 action(s).
 - `0x100e1fec`: Established: treble ctx-worker (~0x11e0 frame, SPE ops): computes the EQ value consumed by GetTreble.; recovered literals: 'inprocess-events','Change in event loop detected' - event-loop reentrancy instrumentation (role: impl_worker (497i): mutex + XML doc build (f_10807034 appends) + f_1067c6ec notify-all call - produces event/doc then notifies subscribers); used by 1 action(s).
+- `0x100e27b0`: Established: EQ apply worker called by SetEQ as f_100e27b0(this, arg, flag) once per zero-valued selector arg.; recovered literals: '<Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/">','<InstanceID val="0">','<Volume/Mute channel=Master|LF|RF val=...' - the function also SERIALIZES the RCS LastChange doc (apply+event-emit combined) (role: impl_worker); 1 recorded call site(s).
+- `0x100e3450`: Established: GetTreble impl: ignores instID and out ptr entirely; ctx acquire + worker f_100e1fec; returns worker rc. (role: impl); 1 recorded call site(s).
+- `0x100e382c`: Established: Shared EQ/context read worker invoked by GetEQ (f_100e4188) and the GetVolume 'spatial' branch; operates on (impl,&ctxobj).; recovered literals: 'Device does not support Sonar.', rc_impl.cxx provenance (role: impl_worker); 2 recorded call site(s).
+- `0x100e42a8`: Established: GetVolume worker: ctx acquire (f_10118278, f_1011fdd0 on impl+0x3c4/+0x9c8), lock +0x938, readiness gate f_102a5028(*(impl+0x3ac)) -> 501, read f_100da830, 'spatial' strcmp -> f_100e382c. (role: impl_worker); 1 recorded call site(s).
+- `0x100e43b4`: Established: GetVolume impl shim: instID!=0 -> 702 else tail-call worker f_100e42a8. (role: impl_shim); 1 recorded call site(s).
 - `0x1010a2c0`: Established: delegate-object initializer invoked by the per-entry job ctors (0x10ed1750/0x10ed1770 vtables) (role: worker).
+- `0x101471f0`: Established: Crossfade-capability query on impl+0x5dc; must be nonzero before nonzero crossfade is accepted..
 - `0x101475dc`: Established: second crossfade-capability query on impl+0x5dc; must be nonzero (role: string/mem op via 0x110999f8 (37i)).
+- `0x10147928`: Established: Source/queue presence query on impl+0x5dc; nonzero required before any non-NORMAL play mode is accepted..
+- `0x10148308`: Established: Capability query on impl+0x5dc (returns a caps/u16 word used by Next deep path and SetPlayMode gates)..
+- `0x1018d27c`: Established: HTControl impl factory - allocates and constructs the derived impl object via f_10242118. (role: service_factory).
+- `0x1019d288`: Established: Null-stub implementation vfunc (stwu/addi/blr). Backs impl vtable 0x10e98278 slot +0x24, shared by DeviceProperties.SeparateStereoPair and SystemProperties.EditAccountPasswordX - both actions are proven no-ops in this build. (role: impl_noop_stub); 2 recorded call site(s).
 - `0x10203ec8`: Established: small record-builder used by GetSupportsOutputFixed before the v+0xf0 delegate call (role: thin wrapper -> f_109ec9f0 (19i)); used by 1 action(s).
+- `0x10214790`: Established: 'Sent group volume change %u to eSDK (mute %d)' - pushes group volume/mute to the eSDK/cloud channel..
+- `0x10242118`: Established: Derived HTControl impl-class constructor. Calls the base-class ctor f_10739e2c (which installs vptr 0x10f11b64), then overwrites the vptr with the derived vtable 0x10ea61d0 carrying the real IdentifyIRRemote/LearnIRCode implementations at slots +0x14/+0x18. (role: impl_ctor); 1 recorded call site(s).
+- `0x10255f64`: Established: Indexed-source request submitter: f(impl+0x580, &record). Returns engine rc: 0=accepted, 2 and 3 are distinct rejection codes (mapped to SOAP 800/711 by Next), anything else treated as generic failure..
+- `0x10256a84`: Established: Indexed session operation call f(impl+0x580,op,rec_ctx,name,flag): op 5 = activate-next-source (Next/Stop), op 1 = stop..
+- `0x102587b4`: Established: Capability-mask reader on the session/queue object (pair with f_10258ab0)..
+- `0x10258ab0`: Established: Capability query f(impl+0x580,sel1,sel2) returning a mask; bit 0x00100000 gates Previous indexed path..
+- `0x102931f0`: Established: Stop-precondition check on impl+0x5dc: cr0.eq must be set or Stop returns 701 before any work..
+- `0x102a5028`: Established: Readiness/state predicate on the audio-context object (*(impl+0x3ac)); failure -> impl rc 501. (role: state_gate); 1 recorded call site(s).
+- `0x102a50b8`: Established: Nested-object volume read: *(impl+0x3ac)->+0x34->+0xd0 then f_107ea964 writes the u16 via stack-byte out-param. (role: read_helper); 1 recorded call site(s).
 - `0x102ab010`: Established: deferred function pointer (at 0x10eaea90) swapped in by Play/GetTransportInfo boilerplate (role: single-insn stub).
+- `0x102ab4dc`: Established: Scoped-context builder taking (buf,name,name_end) - wraps the impl+0x3dc name for logging scope..
 - `0x102ab5d4`: Established: scoped log-record initializer used by Play non-muse path (role: strlen wrapper via 0x11098920 (22i)).
+- `0x102ab830`: Established: Target time parser for REL_TIME/TIME_DELTA: consumes at most one leading '-' manually (sign flag byte -> *arg2, cr4 captured before sscanf); sscanf(str,'%hhu:%hhu:%hhu') must return exactly 3 - per-component strtoul semantics (ws skip, own +/- sign, u8 wrap mod 256), literal colons, trailing junk ignored; seconds computed as (h*60+m)*60+s via shift/subf; on leading '-' the seconds word is negated (neg) while the pair's second word stays 0. Writes a {seconds_word, 0} pair to *arg3 (printed downstream as '%lld.%06lld' = seconds.fraction) and the sign byte to *arg2; returns 1 on success, 0 on malformed input. (role: time_parser).
 - `0x102ad8fc`: Established: getRunningAlarmProperties impl (engine v+0xa0) (role: worker).
 - `0x102ada98`: Established: getRemainingSleepTimerDuration impl (engine v+0x94) (role: worker).
 - `0x102ae2d0`: Established: member-object call on impl+0xaaa0 run at the start of Stop before the precondition check (role: mutex-guarded worker: f_10988564 lock -> f_103d7e8c -> f_10988990 unlock).
+- `0x102aff9c`: Established: Worker dispatching via table @0x11098d98 + helper 0x10687e54.
+- `0x102b0058`: Established: Pre-play check called by Play; when it returns 0 the impl proceeds to f_102cfa50 submission..
+- `0x102b00cc`: Established: Pause worker: f_102aff9c(impl+0x5dc,rec,0x19,0) then streamer f_106a7880(*(impl+0x5a0)); returns 0 on submit-fail else the streamer result..
+- `0x102b0140`: Established: Stream-mode Next worker: submit op-0x19 then streamer next vfunc f_106a7a34(*(impl+0x5a0)); returns streamer result or 0 on submit-fail..
+- `0x102b01b4`: Established: Stream-mode Previous worker: submit op-0x19 then streamer prev vfunc (*(impl+0x5a0)); returns streamer result or 0 on submit-fail..
+- `0x102b05e4`: Established: Transport-state update tail: f(impl,1) run by Stop after the mode-specific work; its rc is returned as the impl status..
+- `0x102b0a48`: Established: Stream-mode stop worker: f(impl,0) invoked when mode==1 in Stop..
+- `0x102b1684`: Established: GetTransportInfo worker: mode dispatch filling the three out strings; default path runs f_10308aec(impl+0x5d4) + strlcpy of impl+0x5dc source name..
+- `0x102b1c5c`: Established: avt_impl queue/transport worker.
+- `0x102b24dc`: Established: SetPlayMode worker: maps {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}; non-NORMAL needs f_10147928+f_10148308+impl+0x1a03 gates; mode==1 applies via streamer f_106a9e88; failures -> 712..
+- `0x102b26dc`: Established: SetCrossfadeMode worker: requires mode==2; requires f_101471f0/f_101475dc caps and non-HLS URI (strncmp 'x-sonosapi-hls:'); arg==0 silently succeeds on incapable sources; submits via f_10255f64..
+- `0x102b2ee4`: Established: Source-state query used by the Play non-muse path to decide whether a rebuild is needed..
 - `0x102b3a84`: Established: shared remove-all-tracks engine worker. Reached from AVTransport.RemoveAllTracksFromQueue and Queue.RemoveAllTracks (vfunc f_10465a74 via *(qm+0x128)) (role: worker).
+- `0x102b4b48`: Established: Post-advance activation call f(impl,1) used after successful indexed Next (and mirrored in Stop)..
 - `0x102b4de8`: Established: configureSleepTimer impl (engine v+0x90) (role: worker).
+- `0x102b5ddc`: Established: Pre-submission step shared by indexed Next/Previous - probably pauses/quiets the current streamer session..
+- `0x102b60b0`: Established: Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8..
+- `0x102b6214`: Established: Previous worker: mode==2 -> capability check (f_10258ab0(impl+0x580,0,1) bit 0x00100000; incapable => silent success no-op) then indexed submit (rc!=0 -> 711); mode!=2 -> f_102b01b4 stream path..
+- `0x102b62e8`: Established: Queue commit op: preloads rc 800 (unable to process) on three failure paths (0x102b635c/0x102b667c/0x102b66b0); forwards record-write rcs from f_1014f808 (0x102b65d4) and f_1014fb34 (0x102b6730); 0 on success.; recovered literals: 'tracksAdded','qLength','trackIndex' - writes queue-state counters on insert (role: worker).
+- `0x102b674c`: Established: Queue-container insert op: builds decimal track-id from *(this+0x580)+0x30000, resolves queue record by id string; missing record -> rc 0x2ce (718); f_10149b24 insert-position mismatch -> rc 0x404 (1028); otherwise returns f_102b62e8 commit rc. (role: worker).
 - `0x102b6948`: Established: engine add-to-queue worker: logs URI+MD under avt_impl tag, takes engine mutex +0x458, forwards to insert op f_102b674c; single exit returns insert rc verbatim (role: worker).
+- `0x102b6a9c`: Established: AddURIToQueue impl vfunc +0x64 (both engine classes): InstanceID!=0 -> returns 0x2ce (718); else arg-shifts and tail-calls engine add worker f_102b6948. (role: worker).
+- `0x102b8c44`: Established: UPnP action logger: emits 'upnp' '<action-name>' records ('pause','stop','next','previous','play','change play mode','change crossfade')..
+- `0x102b9088`: Established: Seek engine: branches on source-mode field engine+0x4654; indexed mode (==2) enforces capability mask from f_10258ab0 (0x400000 track-seek, 0x200000 time-seek), parses Target per unit (strtol for TRACK_NR, %hhu:%hhu:%hhu for time units), builds an rchsrcreq record and submits via f_10255f64; stream mode parses the same time format and calls streamer seek f_106a7930 with milliseconds.; recovered li (role: seek_engine).
+- `0x102b95a8`: Established: AVTransport impl vfunc +0x34 entry: locks engine mutex +0x458, rejects nonzero InstanceID with 718, calls seek engine f_102b9088(engine,Unit,Target), stores InstanceID into engine+0x6ed8 on rc==0. (role: seek_dispatch).
+- `0x102c350c`: Established: State-mutating worker: scoped-context (0x102ab4dc) + notify impl+8 r10=0x1f5 (0x1067c6ec) + guard dtor (0x10807034); queue/avt family.
+- `0x102cfa50`: Established: Capability-gated worker: queries impl+0x5dc caps (0x10148308) before proceeding.
 - `0x102d094c`: Established: conditional teardown call in Stop chime-restore path and Play tail (role: dispatch helper: f_102d086c -> f_102ceb40).
+- `0x102d0ac8`: Established: Mode-agnostic transport-command fallback: f(impl,1,1,-1,-1) used by Pause when the direct streamer path fails; -1,-1 sentinels = current track/pos..
 - `0x102d1fc4`: Established: snoozeAlarm impl (engine v+0xa4) (role: worker).
+- `0x102d2bec`: Established: Stop worker (impl arg2=1): clears impl+0x7778, calls f_102ae2d0(impl+0xaaa0), checks f_102931f0(impl+0x5dc) -> 701, then mode-dispatches the stop and runs f_102b05e4 tail..
+- `0x102d39ac`: Established: Source-classification call f(impl,'upnp') in Play; result==1 selects the non-muse-source rebuild path..
 - `0x102da774`: Established: uRI-install helper shared with the class-B SetAVTransportURI path (same descriptor 0x10ea6a2c); applies a URI+metadata to the engine session (role: worker).
 - `0x102e14e0`: Established: autoplay-install worker (engine mutex +0x458). Reads suppression flag engine+0x465c: set -> logs "preventing autoplay because operation is overridden" (avt_impl) and returns 0x32a (810). Builds the stored autoplay URI into a 0x1000 buffer via f_10424ac4, then if mode(engine+0x4654)==0 does a full session reset (f_102d4e80 zero-arg + f_10688070) before installing the URI via f_102da774 with descriptor 0x10ea6a2c; nonzero mode installs through per-member path f_102e0fb0 (role: worker).
 - `0x102e17a8`: Established: startAutoplay impl (engine v+0x9c): null arg-vector gate returns 0x2ce (718), then tail-calls the autoplay installer f_102e14e0 (role: worker).
 - `0x102e17dc`: Established: alarm-run worker (0x1300 frame): requires r6 non-null else 0x102e1928 path; uses time/duration helper table 0x1108b284 (f_10c3eb60) to resolve the pending alarm into a URI/mode install similar to the autoplay path (role: worker).
 - `0x102e1d68`: Established: runAlarm impl (engine v+0x98): null arg-vector gate returns 0x2ce (718), then tail-calls alarm worker f_102e17dc (role: worker).
+- `0x103042f0`: Established: Browse executor: locks/looks up UpdateID via f_1034a224 on browse obj+0x168 (selector 0x2bd), strcmp-dispatches BrowseFlag - BrowseDirectChildren -> children enumeration vfunc v\[+0x28\], BrowseMetadata -> metadata path, other -> 402..
+- `0x10304390`: Established: Real ContentDirectory.Browse handler: parses ObjectID, BrowseFlag, Filter, StartingIndex, RequestedCount, SortCriteria (0x400-capped strings, int helpers), acquires a browse object via req->v\[+0x34\], builds the {f_10305fec callback, counts, 4 string ptrs, vtable 0x10f11cec} record and calls executor f_103042f0; success emits via per-item DIDL callbacks, failure faults req->v\[+0x14\]..
 - `0x10305fec`: Established: browse result-record callback (2-ins stub at its head - real body follows); stored at +0x48 of the browse request record (role: worker).
 - `0x10308aec`: Established: default-path transport-state filler: f(impl+0x5d4,&outs...) used when mode is neither 1 nor 2 (role: string copy via strlcpy(0x11098ad8) (85i)).
+- `0x1032e270`: Established: Initializes the transport request record that impls fill and pass to f_10255f64/f_102aff9c..
+- `0x1032e2d8`: Established: Destroys/releases a request record (called on both success and failure paths)..
+- `0x1032e494`: Established: Fills a request record from impl+0x5dc state plus a u16 target (track advance ops)..
+- `0x1032e550`: Established: Fills a request record for a mode/flag operation (e.g. crossfade value)..
+- `0x1039d11c`: Established: Builds the 'GroupMute' and 'GroupVolumeChangeable' evented state-variable names..
+- `0x1039fbd4`: Established: 'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event..
 - `0x103a1b8c`: Established: group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records (stride 0x2740, callback f_103a3f28), sets the local zone directly, issues remote member ops, and runs a completion loop over request objects via vfunc +0x00 (role: worker).
 - `0x103a2430`: Established: setGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan-out (role: worker).
+- `0x103a3f28`: Established: Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c..
+- `0x103d1aec`: Established: Job-record constructor for queue mutations: stores job vtable 0x10ec7be0 at record+0, +0x403c=-1, +0x4018=0, +0x4044=flags arg..
 - `0x104000c4`: Established: class-B (group-capable) engine ctor storing vtable 0x10edfbb8; sibling of the standalone ctor f_102cc070 (role: worker).
+- `0x104164e4`: Established: 'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' - posts the group-volume event..
 - `0x10424ac4`: Established: stored-URI/path formatter: fills a 0x1000-byte destination with the autoplay/alarm source spec read from saved state (role: worker).
 - `0x10460764`: Established: per-line URI parse/normalize helper applied to each playlist entry before job submission (role: worker).
 - `0x104614b4`: Established: playlist-entry record builder used per parsed line (writes into the 0x5474 entry record) (role: worker).
@@ -370,8 +447,16 @@ Named helper routines the command routines share, which form the common toolbox:
 - `0x10462c80`: Established: m3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates lines with f_10546520, closes via f_1054103c. Each line is normalized through URI helpers f_10460764/f_104614b4 and submitted as a per-entry job object on delegate vtables 0x10ed1750/0x10ed1770 (ctor f_104637e8 -> f_1010a2c0) (role: worker).
 - `0x10462f54`: Established: wPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064 (role: worker).
 - `0x10463164`: Established: pLS playlist expansion worker - same skeleton: iteratePLSPlayList %s, stream open via f_10545064 (role: worker).
+- `0x10464200`: Established: Queue.Browse dispatch-table entry - calls req v\[+0x3c\] (alternate in-arg context fetch) then tail-dispatches impl v\[+0x28\] -> f_104661fc. (role: action_table_trampoline); 1 recorded call site(s).
+- `0x10465a44`: Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b6948..
+- `0x10465a54`: Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b2da4..
+- `0x10465a64`: Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102dff24..
+- `0x10465a74`: Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3a84..
+- `0x10465a84`: Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3954..
+- `0x10465a94`: Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3924..
 - `0x10465f7c`: Established: queue-manager SaveAsSonosPlaylist vfunc body (vtable +0x24); persists the attached queue as a Sonos playlist (role: worker).
 - `0x10465fac`: Established: queue-manager ctor: initializes the Queue-tagged manager object, stores vtable 0x10ed1bcc, builds member sub-objects via f_1067aec4 and f_10807034 (role: worker).
+- `0x104661fc`: Established: Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse table trampoline f_10464200. (role: action_wrapper); 1 recorded call site(s).
 - `0x10466280`: Established: queue-manager Browse vfunc body (vtable 0x10ed1bcc +0x28); larger function than the forwarder thunks - performs the queue browse enumeration (role: worker).
 - `0x1046c3cc`: Established: derived-class prelude companion to f_1046dff0, invoked before tail-calling the base impl (role: refcount/resume gate: *(r3+0xc54)++; <=2 returns, else tails f_1046c148); used by 1 action(s).
 - `0x1046dff0`: Established: derived-class prelude: builds an operation object at sp+0xa0 from impl+0xbc8 and impl+0x9c8, readiness-checks it (f_1053ce34), returns a handle consumed by f_1046c3cc (role: grouped-op coordinator (327i): orchestrates member calls f_1053ce34/f_1053db38/f_10759984 + XML append f_10807034 + notify; multi-phase op); used by 2 action(s).
@@ -391,25 +476,42 @@ Named helper routines the command routines share, which form the common toolbox:
 - `0x1054103c`: Established: stream-close helper for playlist sources: closes via 0x10551300 + 0x10540b4c (role: worker).
 - `0x10545064`: Established: stream open helper used by playlist parsers to fetch the playlist document (URI -> stream object) (role: worker).
 - `0x10546520`: Established: stream line-reader: yields successive playlist lines until exhausted (nonzero = line read) (role: worker).
+- `0x10557848`: Established: Unlock counterpart of f_10557cac for the impl+0x458 mutex..
+- `0x10557afc`: Established: RAII-scope variant locking impl+0x458, used by the wide-arg getter impls with a scoped-context guard (callback f_100caad8)..
 - `0x10557cac`: Established: mutex-lock counterpart of f_10557848 for impl+0x458 (role: worker).
 - `0x1055fc08`: Established: boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d: the boolean-as-int wire encoding (role: output_formatter); used by 16 action(s).
 - `0x1055fc4c`: Established: unsigned (%u)/signed (%d) numeric response formatter (role: output_formatter); used by 7 action(s).
 - `0x1055fc84`: Established: numeric response formatter: %d/%u/%lld variant (role: output_formatter); used by 8 action(s).
 - `0x1055fcbc`: Established: response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case (XML-escape test fixture) (role: output_formatter); used by 43 action(s).
 - `0x1055fcf4`: Established: signed integer (%d/%lld) response-format variant (role: output_formatter); used by 13 action(s).
+- `0x10561444`: Established: Byte-width numeric argument parser used for DesiredMute. (role: input_arg_parser); 28 recorded call site(s).
+- `0x10561478`: Established: u16-width numeric argument parser used for DesiredVolume. (role: input_arg_parser); 9 recorded call site(s).
 - `0x105614ac`: Established: arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3: EQ/range int16 args (Bass,Treble,Volume) (role: input_arg_parser); used by 4 action(s).
 - `0x105614e0`: Established: numeric input-argument record initializer/parser (type tag 4, 24-byte record); produces the integer value the wrapper forwards as InstanceID (role: input_arg_parser); used by 123 action(s).
+- `0x10561514`: Established: Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0: used by scalar/enum args (Index,ResultCode) (role: input_arg_parser); 6 recorded call site(s).
 - `0x1056157c`: Established: string input-argument record initializer/parser (type tag 7, caller-supplied capacity 0x400); produces the C string consumed by the impl for Unit and Target (role: input_arg_parser); used by 166 action(s).
 - `0x105615a8`: Established: arg-descriptor ctor, type-8 optional-ptr: embedded-buffer descriptor for nullable/ptr args (role: input_arg_parser); used by 2 action(s).
 - `0x1067c6ec`: Established: notification call on impl+8 with r10=0x1f5 following state writes (role: notify-all-subscribers thunk: tails f_1067c46c(obj,0,0); that fn iterates subscriber list at obj+0xa0 calling f_10686048 per entry); used by 1 action(s).
+- `0x10688070`: Established: Stream-session liveness check on impl+0x5dc used by the mode==1 play-mode path before calling the streamer..
 - `0x1068f8cc`: Established: impl vfunc at shared-manager vtable 0x10e98278 +0x18, shared by DeviceProperties.AddBondedZones and SystemProperties.AddAccountX. Obtains a refcounted subobject twice via this->v\[+0x54\], runs f_1057d4cc on it, then invokes obj->v\[+0x28\](obj,0). Returns an incidental pointer (shared_ptr control block), not an rc; does not set CR0 (role: shared_impl_v18); used by 2 action(s).
+- `0x106a7880`: Established: Streamer-session pause vfunc invoked on *(impl+0x5a0) after control submission; nonzero result = accepted..
+- `0x106a7930`: Established: Direct streamer seek used when engine+0x4654 != 2: locks streamer+0x150, obtains current stream session via *(obj+0x354)->+4->vfunc\[+0x2c\], calls session vfunc +0x10 (absolute) or +0x14 (delta) with ms position; returns 1 if dispatched (stream exists), 0 otherwise; session's status byte is written to the out flag but only controls logging. (role: streamer_seek).
+- `0x106a7a34`: Established: Streamer-session next-track vfunc invoked on *(impl+0x5a0); nonzero = accepted..
+- `0x106a9e88`: Established: Streamer-session mode-set call f(streamer,1,mode_enum,0,0) used to forward play-mode changes to the streamer..
+- `0x107396d0`: Established: Shared HTControl base-class action stub. Calls the request object's v\[+0x08\] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req v\[+0x14\]. Occupies vtable slots +0x14 and +0x18 of the HTControl base-class vtable 0x10f11b64, i.e. the IdentifyIRRemote and LearnIRCode slots in the base class. (role: action_reject_stub); 2 recorded call site(s).
 - `0x10759984`: Established: constructor for the prelude object at sp+0xa0 from impl+0xbc8 and impl+0x9c8 in derived-class impls (role: helper (179i): f_1053daf0 + mutex pair + f_10765a00/f_10762df8 list ops); used by 1 action(s).
 - `0x1075c4d0`: Established: record/lookup precondition on engine field impl+0x44c against the source object (r31+0x3dc): walks a linked record, nonzero result = precondition satisfied/entry found (role: worker).
 - `0x10807034`: Established: scope-guard destructor invoked when the scoped-context self-check fails (role: XML/doc append-alloc via 0x110991a0 (16i)).
 - `0x109089f0`: Established: group membership/state predicate on the topology object: reads obj+0xcc, compares against 0x1d family - nonzero means the zone is in a group-managed state (role: worker).
 - `0x1090ad44`: Established: zonegroup-topology singleton accessor: returns the topology/group object from global 0x110c8478 (via f_108073a0/f_1090acf4 refresh). Used by every group-engine impl gate (role: worker).
+- `0x10988268`: Established: Alternative lock/enter call on impl+0x938 used by f_100d99b0/f_100d66cc with a rc_impl.cxx source-line arg (e.g. 0x49a/0x1009) - location-tagged mutex acquisition. (role: sync); 2 recorded call site(s).
+- `0x10988558`: Established: Simple lock on impl+0x938 (no location arg) used by several impls; paired with f_10988984 unlock. (role: sync); 3 recorded call site(s).
+- `0x10988564`: Established: Lock-guard constructor on impl+0x938 (recursive mutex); paired with f_10988990 destructor/unlock. (role: sync); 1 recorded call site(s).
+- `0x10988984`: Established: Unlock/sub-lock call on impl+0x938 returning a byte consumed by callers (e.g. SetChannelMap). (role: sync); 2 recorded call site(s).
 - `0x109b6fe4`: Established: avt_impl-tagged log/error helper called in the group coordinator paths (arg 3 context selector) (role: worker).
+- `cr_return_convention`: Established: Impl-return ABI: impls signal outcome as r3=code + CR0.eq=(code==0) set inside the impl (e.g. cmpwi cr0,r3,0 or mr. before blr - proven in f_102d0ac8 at 0x102d0cac/0x102d0dd4). Wrappers consume it with `beq cr0` -> emit else fault(r3). Impls that never write CR0 (DP/SP secondary-base accessors, null stubs) leave the flag stale from the request-parse layer; their post-impl fault branch is then driven by parse-layer state. (role: abi_convention).
 - `f_1034a224`: Established: search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 parse, sonosTrimWhitespace, strpbrk '\r\n' reject, fault 0x192/402, settings read via *(0x11096770)) (role: named_worker_resolver); used by 1 action(s).
+- `svc_impl_model`: Established: Service objects embed in the zoneplayer context and share the layout {vptr@+0x00, shared_ptr<Impl>.px@+0x04, shared_ptr<Impl>.pn@+0x08}. ctors zero +4/+8; the impl is bound post-construction by shared_ptr-assign. The deleting dtor (e.g. f_10739584 for GRC) decrements the control block at +8 (boost shared_ptr layout). Dispatchers read *(svc+4); NULL -> SOAP 401. (role: object_model).
 
 :::
 
@@ -550,6 +652,7 @@ The classic command-protocol client: the machinery for outbound classic-API call
 
 Parameter redaction: which argument values get scrubbed before logging, which is the privacy machinery keeping credentials out of the logs.
 
+- **TODO:** Established: the per-param redaction flags are identified. Still unknown: where the flags live in the request object and which params are flagged by default. Next step: find the flag-check in the SOAP logger.
 ::: details Technical details
 
 - **flags:** secure + sensitive + trackIDing + prevent per-param flags
@@ -576,6 +679,7 @@ The classic-protocol client stack: the outbound layer for acting as a client tow
 
 The classic eventing implementation: the concrete machinery behind the subscribe-and-notify channel, covering subscription install, renewal, expiry cleanup, and the per-subscriber notify sequence.
 
+- **TODO:** Established: the eventing module files and the dedup flag are identified. Still unknown: the GENA notify-dedup/batching semantics under enableUPnPEventingGNDOptimization. Next step: decode the optimization flag's effect on notify scheduling.
 ::: details Technical details
 
 - **files:** upnpeventing_{sender,source}.cxx + cprovider/sonos_cprovider.cxx
@@ -638,6 +742,7 @@ The subscription manager: it owns the registry of active event subscribers, cove
 
 The websocket event vocabulary: the named events the modern channel carries, which are the subscription terms the app uses.
 
+- **TODO:** Established: the 73-entry runtime registry, populator, and lookup are decoded. Still unknown: per-entry handler semantics - most of the 73 subscription types are name-mapped but their processors are untraced. Next step: follow each table entry's handler pointer.
 ::: details Technical details
 
 - **name:** WSS eventing subscription-type registry
@@ -765,6 +870,7 @@ The websocket event vocabulary: the named events the modern channel carries, whi
 
 The internal event bus: the spine connecting in-process events, which is the backbone the publish-and-subscribe machinery runs on.
 
+- **TODO:** Established: the ~100-event vocabulary and the observer perf bound are recovered. Still unknown: the dispatch mechanism - event object shape, observer registration structure, and which subsystems produce versus consume each event are unmapped. Next step: find the internalevts dispatch loop and enumerate the observer table.
 ::: details Technical details
 
 - **src:** ../anacapa-1.0/oc/zone/common/internalevts.cxx; observer perf bound 'Internal event observer (%s.%s) took too long \[%llu ms\]'
@@ -821,6 +927,7 @@ The device-description template: the skeleton document that becomes the player's
 
 The service manifest: the build's service inventory, which is the list behind what the device description advertises.
 
+- **TODO:** Established: svcmanifests.json per-account storage and household replication are identified. Still unknown: the manifest schema and which fields the player consumes for account behavior. Next step: decode svcmanifestfile.cxx's parse path.
 ::: details Technical details
 
 - **file:** svcmanifests.json per-account manifest; downloaded per sid/sn; 'replicating manifest file from %s': manifests household-replicated via nodetx
@@ -847,6 +954,7 @@ The XML parser: the bundled parser every XML-speaking component decodes through,
 
 The mega implementation object: the large composite structure at the heart of the player, assembled from dozens of sub-interfaces. Most services reach into this single structure for their real work.
 
+- **TODO:** Established: the ctor installs ~30 sub-vptrs from the 0x10e97* family and the DP/SP slice sharing is proven. Still unknown: the identity and slot semantics of most of the ~30 sub-vptr slices - only a few (topology serializer, DP/SP impl) are named. Next step: dump each installed vtable address and resolve each slice's method set.
 ::: details Technical details
 
 - **description:** f_101a22c4 constructs a ~0x1b8 multi-base implementation object installing ~30 sub-vptrs from the 0x10e97* vtable family (0x10e97644..0x10e97e8c). Bound to svc px fields via shared_ptr{px,pn} assigns with new(0x14) control blocks (vptr 0x10e98974, strong/weak=1). Each service px points at a different base slice; DP/SP impl vtable 0x10e97e10 belongs to this family - DP and SP literally share one heap impl instance.
@@ -1164,6 +1272,7 @@ The Bluetooth SBC decoder path: Bluetooth audio handling present in the shared c
 
 Device-discovery announcements and searches: the classic find-each-other protocol where speakers announce presence, search for peers, and log who answered. It's the older discovery layer alongside the Sonos-specific mechanisms.
 
+- **TODO:** Established: the SSDP wire form, extension headers, and HMAC signing presence are confirmed. Still unknown: the signature key provisioning and exact signed octet range. Next step: trace the HMAC key load and the signed-byte span.
 ::: details Technical details
 
 - **wire:** M-SEARCH * HTTP/1.1 + HOST:239.255.255.250 + USN: + ssdp:alive/ssdp:byebye; 'Sent MSEARCH reply to %s:%u'; '%s unicast MSEARCH from %s'
@@ -1186,6 +1295,7 @@ Device-discovery announcements and searches: the classic find-each-other protoco
 
 Signed M-search: the authenticated form of discovery search, a signed variant protecting the exchange.
 
+- **TODO:** Established: the signed M-SEARCH wire form, header set, and HMAC presence are confirmed. Still unknown: the HMAC key provisioning - where hmacDigest/hmac keys come from and what exactly is signed beyond the request text. Next step: trace the key-load path feeding the HMAC init.
 ::: details Technical details
 
 - **wire:** M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)
@@ -1258,6 +1368,7 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
 
 The chirp SDK interface: the internal API for the speaker-identification tone, covering start, stop, and configure. It gives the room-detection commands one shared interface for identification sounds.
 
+- **TODO:** Established: Chirp SDK 4.2.3 with the sonos-cdma profile and its entry points are identified. Still unknown: the message payload format - what data actually traverses the ultrasonic channel during setup. Next step: trace chirp_sdk_send callers and the receive decode path.
 ::: details Technical details
 
 - **name:** Chirp ultrasonic SDK 4.2.3 (chirp-sdk, build 1898)

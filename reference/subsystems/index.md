@@ -6652,6 +6652,10 @@ The reporting and telemetry umbrella: usage metrics, dropout events, TV sessions
 
 The boot chain is layered and safe-by-default: mount the virtual filesystems, lay down the RAM disk, pull in the kernel drivers, check whether a factory reset is being asked for, then bring up networking and the daemons, with a developer override file that can take over on unlocked units. Every boot decision you'd want to trace runs through this one script.
 
+**TODO**
+
+- Established: the full sysinit chain, ramdisk layout, and security-file roles are mapped. Still unknown: dsmf_setup's semantics - the DSMF acronym expansion (device-secure-manufacturing is a guess) and what the hook actually configures. Next step: disassemble the dsmf_setup invocation site and the script/binary it calls.
+
 ::: details Technical details
 
 inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {run_sshd.sh,runledmgrd,runnetstartd,runmdns,rundiagprocessd,runanacapa,runchrony,runsddp} + secure_console_login.sh ttyS0; ctrlaltdel=reboot; shutdown=init.d/rcK. All daemon logs go to /dev/kmsg.
@@ -9768,6 +9772,10 @@ Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Slots 0-2 = functio
 ## `spec_pair_stream`
 
 How every modern-API command's field list is stored: each operation's spec lives in a packed table of small numbers pointing into the master vocabulary table, recovered as a complete field-name dictionary. It's the compressed form of the API's argument lists.
+
+**TODO**
+
+- Established: the index space and packed-pool layout are resolved, and spec_pair_decode_v2's structure is decoded. Still unknown: the consumer-side semantic mapping - which decode consumer binds each spec pair to a JSON field at runtime is only partially traced (see the muse spec_pair_decode_v2 todo). Next step: trace a decoded spec list through to its consumer vtable to confirm the binding.
 
 ::: details Technical details
 

@@ -11,6 +11,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type ui4, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.AudioDelayLeftRear`
 
@@ -23,6 +26,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type ui4, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.AudioDelayRightRear`
 
@@ -35,6 +41,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type ui4, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.Bass`
 
@@ -47,6 +56,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.DialogLevel`
 
@@ -59,6 +71,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.HeightChannelLevel`
 
@@ -71,6 +86,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.Loudness`
 
@@ -83,6 +101,9 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (per-channel via @channel) (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.MusicSurroundLevel`
 
@@ -95,6 +116,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.Mute`
 
@@ -107,6 +131,9 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (per-channel via @channel) (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.NightMode`
 
@@ -119,6 +146,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.OutputFixed`
 
@@ -131,6 +161,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.PresetNameList`
 
@@ -143,6 +176,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type string, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SonarCalibrationAvailable`
 
@@ -155,6 +191,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SonarEnabled`
 
@@ -167,6 +206,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SpeakerSize`
 
@@ -179,6 +221,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type ui4, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SpeechEnhanceEnabled`
 
@@ -191,6 +236,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SubCrossover`
 
@@ -203,6 +251,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SubEnabled`
 
@@ -215,6 +266,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SubGain`
 
@@ -227,6 +281,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SubPolarity`
 
@@ -239,6 +296,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SupportsMaxDialogLevel`
 
@@ -251,6 +311,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SurroundEnabled`
 
@@ -263,6 +326,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type boolean, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SurroundLevel`
 
@@ -275,6 +341,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.SurroundMode`
 
@@ -287,6 +356,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type ui4, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.Treble`
 
@@ -299,6 +371,9 @@ RenderingControl evented variable; emit-literal at RCS template
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (data type i2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RCS.Volume`
 
@@ -311,6 +386,9 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: RenderingControl evented variable; emit-literal at RCS template (per-channel via @channel) (data type ui2, evented=True; emit template at 0x10e88610).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10e88610 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `RenderingControl.A_ARG_TYPE_Channel`
 

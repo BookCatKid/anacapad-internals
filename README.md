@@ -96,8 +96,8 @@ python3 tools/gensite.py          # wraps npm run docs:build -> site/
 # 5. Unit tests
 python3 -m unittest discover -s tests
 
-# 6. Coverage + lint reports (optional)
-python3 tools/coverage.py
+# 6. Internal inventory + lint reports (optional)
+python3 tools/coverage.py   # discovered-vs-documented bookkeeping aid
 python3 tools/lint.py
 ```
 

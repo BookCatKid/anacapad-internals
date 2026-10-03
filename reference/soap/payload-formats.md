@@ -54,6 +54,8 @@ Field-to-offset mapping and value formats per key are not yet decoded - requires
 
 ## `SonosRcChannel`
 
+**TODO:** The SonosRcChannel operand description admits unresolved detail in its accepted-value domain. Next step: trace the channel-token comparisons in the RenderingControl wrapper to enumerate the accepted tokens.
+
 The channel names the volume and tone commands accept: 'Master', 'LF' (left-front), 'RF' (right-front), plus some extended tokens used internally. Sending an unrecognized channel name is an error, so the accepted vocabulary is documented exactly.
 
 ```

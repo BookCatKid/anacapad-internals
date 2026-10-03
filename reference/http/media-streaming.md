@@ -9,6 +9,7 @@ The HLS radio path: playing Apple's segmented-stream format for radio, covering 
 - **schemes:** x-sonosapi-hls:%s?sid=%u&flags=288 + x-sonosapi-hls-static: + x-sonosapi-hls{,-static}:*:*:* + hls-static:// + sonos.com-hls-{static,radio,aac}
 - **ops:** hls-{live,static,???} + hlsradio + hlsmeta/hlsplaylist/hlsrenditions + 'hls-%s said: %u (%g) %d %d' telemetry
 - **routes:** /hls local route
+- **todo:** `Established: the HLS scheme family and ops vocabulary are recovered. Still unknown: the hlsmeta/hlsplaylist/hlsrenditions handler internals and how live versus static sessions differ. Next step: trace the /hls route handlers.`
 
 :::
 

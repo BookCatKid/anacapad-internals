@@ -33,6 +33,7 @@ Device-discovery announcements and searches: the classic find-each-other protoco
   - **msearch_response:** 0x10eef97c: HTTP/1.1 200 OK \| CACHE-CONTROL: max-age = %u \| EXT: \| LOCATION: %s \| SERVER: %s \| ST: %s \| USN: %s \| %s(trailer) - the unicast reply to inbound M-SEARCH
   - **outbound_msearch:** 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)
   - **notes:** alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses
+- **todo:** `Established: the SSDP wire form, extension headers, and HMAC signing presence are confirmed. Still unknown: the signature key provisioning and exact signed octet range. Next step: trace the HMAC key load and the signed-byte span.`
 
 :::
 
@@ -46,6 +47,7 @@ Signed M-search: the authenticated form of discovery search, a signed variant pr
 - **wire:** M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)
 - **signature:** HMAC over request -> base64 ('M-SEARCH signature HMAC init failed','Failed to add M-SEARCH signature'); inbound verify: 'hmac sig verify error'; keys hmacDigest/hmac
 - **response_headers:** `BOOTID.UPNP.ORG: %s`, `CONFIGID.UPNP.ORG: %d`, `CACHE-CONTROL: max-age = %u`
+- **todo:** `Established: the signed M-SEARCH wire form, header set, and HMAC presence are confirmed. Still unknown: the HMAC key provisioning - where hmacDigest/hmac keys come from and what exactly is signed beyond the request text. Next step: trace the key-load path feeding the HMAC init.`
 
 :::
 
@@ -69,6 +71,7 @@ The association tracker: it watches which network devices the player is associat
 ::: details Technical details
 
 - **semantics:** Wi-Fi station-association tracking
+- **todo:** `Established: Wi-Fi station-association tracking exists. Still unknown: what is tracked and how association data feeds other subsystems. Next step: identify assoctracker's data store and consumers.`
 
 :::
 

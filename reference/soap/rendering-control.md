@@ -64,6 +64,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to report the speaker's bass level, but in this firmware build it is a documented no-op: the routine behind it was replaced by an empty routine that performs nothing and returns nothing. The command still appears in the service's advertised list, so an app can call it, it just gets an empty answer rather than a bass value. The settings that do work are reached through the generic GetEQ command instead.
 
+**TODO:** Established: dispatch and handler 0x1073ba88 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073ba88, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -> emit path).
@@ -379,6 +383,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports the loudness setting, Sonos's bass/treble boost that makes quiet listening sound fuller. On this build it is only half-wired: whether the command does anything depends on which internal flavor of the player is running, and the firmware doesn't make that choice visible from the outside. On some configurations it answers properly, and on others the routine slot is a stub.
 
+**TODO:** Established: dispatch and handler 0x1073ad64 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073ad64, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).
@@ -484,6 +492,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports whether the speaker is muted, which is the state behind the mute button. Mute is stored per audio channel (master, left, right), and this reads the flag for the channel you ask about.
 
+**TODO:** Established: dispatch and handler 0x1073ac24 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073ac24, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.
@@ -552,6 +564,7 @@ Service/implementation unavailable at dispatch: the dispatcher found the action 
 
 **`402`**
 
+The meaning admits an additional unresolved fault path beyond the wrapper parse reject. Next step: enumerate the fault emitters in the GetMute handler and identify the non-parse source.
 Request parse/validation failure at the wrapper (missing or malformed InstanceID/Channel), or an unrecognized Channel token rejected by the impl strcmp chain.
 
 - req vfunc +0x08 parse failed
@@ -807,6 +820,10 @@ Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record 
 visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports whether this player can do fixed-level output at all. It is the 'can I even offer the fixed-volume option' check apps use before showing the setting.
+
+**TODO:** Established: dispatch and handler 0x1073aea4 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073aea4, follow the impl/vfunc call, and record the resolved impl function and its engine path.
 
 ::: details Technical details
 
@@ -1265,6 +1282,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to report the decibel range the volume control can span, but in this build it is a documented anomaly: the routine registered for this command is actually the physical-button mute routine, the same code that runs when you press the unit's mute button. Calling it toggles mute rather than returning a range. It is a wiring mistake preserved in the firmware, and a good example of how these reference docs capture what the binary really does rather than what the spec says it should.
 
+**TODO:** Established: dispatch and handler 0x1073b920 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073b920, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range
@@ -1644,6 +1665,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Resets an extended equalizer band back to its neutral value. Extended bands are the finer-grained tone controls beyond basic bass and treble, and this returns the named band to flat without touching other bands.
 
+**TODO:** Established: dispatch and handler 0x1073a8dc are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073a8dc, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -> f_106a9cc4 -> f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.
@@ -1840,6 +1865,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Sets the speaker's bass level, which is the app's bass slider. The value is stored in the player's tone state, and one quirk is that a sentinel value is treated as 'leave it alone' rather than as a real setting.
 
+**TODO:** Established: dispatch and handler 0x1073c4cc are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073c4cc, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 Stores the desired bass value into impl+0x898 under the impl mutex, unless the record equals -1 which short-circuits to a no-op. No event/notify calls appear in this impl - state propagation presumably occurs via a separate apply path (unresolved).
@@ -2034,6 +2063,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Sets one of the speaker's tone parameters through the generic equalizer path. This is the working route the app uses when you move a tone slider, since the dedicated SetTreble command is a no-op in this build.
 
+**TODO:** Established: dispatch and handler 0x1073c6f4 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073c6f4, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.
@@ -2134,6 +2167,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Turns the loudness setting on or off, the fullness boost for quiet listening. Like GetLoudness it is conditionally implemented: on this firmware whether the command really runs depends on which internal player class is installed, which cannot be determined from the outside.
 
+**TODO:** Established: dispatch and handler 0x1073b474 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073b474, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).
@@ -2233,6 +2270,10 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Mutes or unmutes the speaker for a given channel, the mute button. Beyond flipping the flag it also does bookkeeping: on the master channel it synchronizes the saved volume snapshot so that unmuting restores the level you had, marks the state as changed so other parts of the system update, and applies the committed state to the audio hardware.
+
+**TODO:** Established: dispatch and handler 0x1073b334 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073b334, follow the impl/vfunc call, and record the resolved impl function and its engine path.
 
 ::: details Technical details
 
@@ -2654,6 +2695,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to set the treble level, but in this build it is a documented no-op: its routine is the same empty routine as GetBass and GetTreble. The request is accepted and an empty success is returned while nothing changes. Real treble adjustment happens through the generic SetEQ path.
 
+**TODO:** Established: dispatch and handler 0x1073c5e0 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073c5e0, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 NEUTERED ACTION: impl vfunc +0x3c is f_100d65f4 (same null stub as GetBass) in both vtables - performs nothing, returns r3 = impl pointer with stale cr0. The action has no outputs, so a successful emit commits an empty OK response while doing nothing.
@@ -2746,6 +2791,10 @@ visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Sets the speaker's absolute volume, which is what the app's volume slider sends. On the master channel it also maintains a shadow copy of the level used for mute/unmute restore, and in certain configurations the write can be skipped entirely when a flag says an external path owns the level.
 
+**TODO:** Established: dispatch and handler 0x1073c0e4 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073c0e4, follow the impl/vfunc call, and record the resolved impl function and its engine path.
+
 ::: details Technical details
 
 Sets the Master-channel volume via shared worker f_100dcb00: locks impl+0x938, reads flag impl+0x7ff (nonzero -> skip the write entirely and return), resolves current state via f_100d9b4c/f_100da1e0 with literal 'Master', then selects a u16-indexed table entry (0x10e87578 + desired*4, field +0x11c) and logs 'vol:%u src:%s'.
@@ -2811,6 +2860,7 @@ Service/implementation unavailable at dispatch: the dispatcher found the action 
 
 **`402`**
 
+Dual 402 sites (wrapper parse + request-fault vfunc); the request-layer trigger predicates are undecoded. Next step: trace the fault emitters reachable from the SetVolume impl path.
 Request parse/validation failure at the wrapper.
 
 - req vfunc +0x08 parse failed
@@ -2844,6 +2894,10 @@ Shared worker for three SOAP actions via arg-remapping thunks; the 'desired<2' s
 visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to set the volume in decibel units, but in this build it is a documented anomaly: the registered routine ignores the arguments and toggles the speaker's mute state, running the same routine as a press of the physical mute button. Calling it flips mute on or off instead of setting a decibel level. It is another case where the spec advertises one thing and the binary wires another.
+
+**TODO:** Established: dispatch and handler 0x1073c38c are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073c38c, follow the impl/vfunc call, and record the resolved impl function and its engine path.
 
 ::: details Technical details
 

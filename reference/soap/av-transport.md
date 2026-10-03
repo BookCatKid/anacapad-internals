@@ -4131,6 +4131,7 @@ apply worker f_102b60b0 exit accumulator r30: literal {701 x2, 0, 800} plus call
 
 **`701`**
 
+Fault 701 covers 'member-domain' worker rejections lumped with the streamer vfunc returning 0; which specific member-not-possible conditions map here versus 801 is not separated. Next step: trace the worker's rc-to-fault mapping table and split the 701/801 domains.
 Operation not currently possible - streamer vfunc returned 0 (no session/rejected) or indexed submit returned an unmapped rc.
 
 - stream mode: f_106a7a34 streamer result == 0; indexed: submit rc not in {0,2,3}
@@ -4143,12 +4144,14 @@ Indexed submit rc==3 - request rejected by impl+0x580 (queue end / illegal targe
 
 **`800`**
 
+The rc==2 engine rejection is mapped verbatim to fault 800 but the exact engine semantics of code 2 are not decoded. Next step: find the literal-exit site in the seek/transport worker returning 2 and record what condition produces it.
 Indexed submit rc==2 - a distinct engine rejection code (exact semantics unresolved, mapped verbatim).
 
 - f_10255f64 submit returned 2
 
 **`402`**
 
+Two distinct 402 sites are mapped (wrapper parse reject at 0x1073ceb0 and request-fault vfunc at 0x102f870c) but which request-layer predicates fire the second site is undecoded. Next step: disassemble the request-fault path to name its trigger conditions.
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper
@@ -4476,6 +4479,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: fallback worker f_10
 
 **`402`**
 
+Same dual-site gap as Next: the request-fault vfunc site's trigger predicates are undecoded. Next step: trace the fault path at 0x102f8620.
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper
@@ -4626,6 +4630,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 71
 
 **`402`**
 
+Same dual-site gap: request-fault vfunc triggers undecoded. Next step: trace the fault path at 0x102f9308.
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper
@@ -4783,6 +4788,7 @@ Indexed submit failed - the impl+0x580 engine rejected the track-back request.
 
 **`402`**
 
+Same dual-site gap: request-fault vfunc triggers undecoded. Next step: trace the fault path at 0x102f87f8.
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper
@@ -6235,6 +6241,7 @@ Seek not permitted: unit unsupported in current mode, capability bit clear, malf
 
 **`710`**
 
+'Unit token not recognized' is indexed-mode only; the accepted token vocabulary for the indexed seek mode is not enumerated beyond the reject string. Next step: dump the token comparison table in the seek dispatcher to list the valid units.
 Unit token not recognized (indexed mode only).
 
 - Indexed mode (engine+0x4654==2): Unit is none of TRACK_NR/REL_TIME/TIME_DELTA.
@@ -7432,6 +7439,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718, downstream mode
 
 **`402`**
 
+Same dual-site gap: request-fault vfunc triggers undecoded. Next step: trace the fault path at 0x102f8534.
 Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs.
 
 - typed argument parse or request-shape check failed in the wrapper

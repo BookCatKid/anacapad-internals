@@ -32,6 +32,7 @@ Device authentication: how the player proves itself to other devices and service
 - **regcert:** fetchRegDeviceCert/refreshRegDeviceCert -> /regcert local endpoint; RegCertUpdateEvent
 - **oauth:** int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken: OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs
 - **ssl:** /ssl_client_cache status endpoint: TLS session cache
+- **todo:** `Established: the cert/token/regcert surface is catalogued. Still unknown: token lifecycle internals - issue, cache, refresh timing, and revocation handling are untraced. Next step: trace getDeviceAuthToken and the resolveToken flow.`
 
 :::
 
@@ -43,6 +44,7 @@ The nonce routine: it generates and validates one-time values used to prevent re
 ::: details Technical details
 
 - **semantics:** auth-nonce tracking for cloud requests
+- **todo:** `Established: auth-nonce tracking for cloud requests is identified. Still unknown: the nonce lifecycle - issuance, validation, expiry, and replay rejection. Next step: decode noncehandler.cxx.`
 
 :::
 
@@ -101,6 +103,7 @@ The modern-API auth helper: the shared credential-checking machinery the API's a
     - **name:** thor
     - **strings:** `UserAuthorization`, `ThorOperations`, `PolicyKeyTableMutex`
     - **note:** muse authorization is evaluated by the Thor policy subsystem: op calls carry credType through the <Command> envelope and Thor checks the caller against UserAuthorization policy keys
+- **todo:** `Established: the OAuth grant table (jwt-bearer, RS256/HS256, sonos subject URNs) and the Thor policy layer are recovered. Still unknown: Thor's policy evaluation internals - how UserAuthorization policy keys gate each op. Next step: trace the PolicyKeyTable lookup path.`
 
 :::
 
@@ -112,6 +115,7 @@ The circuit-breaker implementation: after enough failures to an endpoint, calls 
 ::: details Technical details
 
 - **semantics:** circuitBreakerTelemetry: breaker pattern on outbound paths w/ telemetry
+- **todo:** `Established: the circuit-breaker pattern with telemetry is identified. Still unknown: threshold/trip semantics - which failures count, the trip window, and the half-open retry policy. Next step: decode circuitbreaker.cxx's state machine.`
 
 :::
 

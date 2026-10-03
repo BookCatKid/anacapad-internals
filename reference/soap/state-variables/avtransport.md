@@ -11,6 +11,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.AVTransportURIMetaData`
 
@@ -23,6 +26,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentCrossfadeMode`
 
@@ -35,6 +41,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type boolean, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentMediaDuration`
 
@@ -47,6 +56,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentPlayMode`
 
@@ -59,6 +71,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentRecordQualityMode`
 
@@ -71,6 +86,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentSection`
 
@@ -83,6 +101,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type ui4, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentTrack`
 
@@ -95,6 +116,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type ui4, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentTrackDuration`
 
@@ -107,6 +131,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentTrackMetaData`
 
@@ -119,6 +146,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentTrackURI`
 
@@ -131,6 +161,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.CurrentTransportActions`
 
@@ -143,6 +176,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.NextAVTransportURI`
 
@@ -155,6 +191,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.NextAVTransportURIMetaData`
 
@@ -167,6 +206,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.NumberOfTracks`
 
@@ -179,6 +221,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type ui4, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.PlaybackStorageMedium`
 
@@ -191,6 +236,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.PossiblePlaybackStorageMedia`
 
@@ -203,6 +251,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NONE
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NONE, NETWORK (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.PossibleRecordQualityModes`
 
@@ -215,6 +266,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.PossibleRecordStorageMedia`
 
@@ -227,6 +281,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.RecordMediumWriteStatus`
 
@@ -239,6 +296,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.RecordStorageMedium`
 
@@ -251,6 +311,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportErrorDescription`
 
@@ -263,6 +326,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportErrorHttpCode`
 
@@ -275,6 +341,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type ui4, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportErrorHttpHeaders`
 
@@ -287,6 +356,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportErrorURI`
 
@@ -299,6 +371,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportPlaySpeed`
 
@@ -311,6 +386,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_IMPLEMENTED (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportState`
 
@@ -323,6 +401,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.TransportStatus`
 
@@ -335,6 +416,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:AlarmRunning`
 
@@ -347,6 +431,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type boolean, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:CurrentValidPlayModes`
 
@@ -359,6 +446,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:DirectControlAccountID`
 
@@ -371,6 +461,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:DirectControlClientID`
 
@@ -383,6 +476,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:DirectControlIsSuspended`
 
@@ -395,6 +491,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type boolean, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:EnqueuedTransportURI`
 
@@ -407,6 +506,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:EnqueuedTransportURIMetaData`
 
@@ -419,6 +521,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:NextTrackMetaData`
 
@@ -431,6 +536,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:NextTrackURI`
 
@@ -443,6 +551,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type string, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:RestartPending`
 
@@ -455,6 +566,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type boolean, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:SleepTimerGeneration`
 
@@ -467,6 +581,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type ui4, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVT.r:SnoozeRunning`
 
@@ -479,6 +596,9 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 :::
 
 - form: `<NAME val="..."/> attribute inside LastChange/Event doc`
+- **TODO:** Established: AVTransport evented variable (r: prefix = rincon/Sonos extension).  (data type boolean, evented=True; emit template at 0x10eb2a58).
+- **TODO:** Still unknown: the producer path - which impl function writes this value and triggers the LastChange update - is not traced; only the emit literal is anchored.
+- **TODO:** Next step: xref 0x10eb2a58 to find the emit call site, then walk back to the writer that fills the value.
 
 ### `AVTransport.AVTransportURI`
 

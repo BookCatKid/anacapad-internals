@@ -157,6 +157,7 @@ Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes 
 
 **`701`**
 
+The resolved domain documents 702 and 402 precisely but 701/801 is still the pooled 'member rejection' bucket. Next step: disassemble the GRC worker's return-code ladder to name which member failures emit 701 versus 801.
 nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}
 
 - group object lookup via f_1075cf7c fails (no group bound)
@@ -314,6 +315,7 @@ Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes 
 
 **`701`**
 
+Same pooled-domain gap as GetGroupMute: 701/801 member rejections are not separated. Next step: trace the worker rc mapping in the group-volume path.
 nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}
 
 - group object lookup via f_1075cf7c fails (no group bound)
@@ -989,6 +991,7 @@ Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes 
 
 **`701`**
 
+Same pooled-domain gap: which member failures produce 701 versus 801 is unseparated. Next step: decode the snapshot worker's rc ladder.
 nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}
 
 - group object lookup via f_1075cf7c fails (no group bound)

@@ -544,6 +544,7 @@ The named event channels the player offers on its modern websocket connection, w
   - idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81
   - idx: 72, name: zoneGroupTopology, id: 322, tag: 78
 - **entry_semantics:** {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind}: idx==registry slot, id==internal event enum, tag==on-wire TLV tag
+- **todo:** `Established: the 73-entry runtime registry, populator, and lookup are decoded. Still unknown: per-entry handler semantics - most of the 73 subscription types are name-mapped but their processors are untraced. Next step: follow each table entry's handler pointer.`
 
 :::
 

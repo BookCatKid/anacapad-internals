@@ -538,18 +538,20 @@ class GenSiteTests(unittest.TestCase):
 
 
 class TodoPolicyTests(unittest.TestCase):
-    """The no-coverage-labels policy: every record whose status is
-    anything other than 'confirmed' carries an informative TODO, and no
-    generated page emits coverage/confidence metadata."""
+    """Completeness policy: a record is finished only when everything
+    recoverable from the binaries for it is documented. Any record that
+    still carries structured unknowns must carry an informative `todo`
+    (established / still unknown / next step). No generated page may emit
+    grading or coverage metadata. TODO presence is derived from the
+    record's own content, never from the deprecated `status`/`confidence`
+    bookkeeping fields."""
 
     DOCS = os.path.join(ROOT, "docs", "documentation.json")
-    # evidence-item grades, resolution verdicts and per-expression decode
-    # grades are domain facts, not coverage labels on a record
+    # evidence items, resolution verdicts and per-expression decode
+    # metadata are domain facts, not record-level completeness signals
     SKIP_KEYS = {"evidence", "engine_resolution", "enabled",
                  "enabled_source"}
-    CONFIDENCE_WORDS = {"inferred", "weak", "unproven", "speculative",
-                        "partial", "strong", "absent", "documented",
-                        "unresolved"}
+    UNKNOWN_KEYS = {"unresolved", "open_questions", "unknowns", "gaps"}
     BADGE = re.compile(
         r"`(confirmed|strong|partial|inferred|weak|vocab|absent|"
         r"documented|unresolved|resolved|todo)`")
@@ -576,17 +578,25 @@ class TodoPolicyTests(unittest.TestCase):
 
     # -- helpers ----------------------------------------------------------
     def _incomplete(self, o, path="", _in_skipped=False):
-        """Yield (path, status) for graded records lacking a todo."""
+        """Yield (path, signal) for records that still carry structured
+        unknowns but no todo. Signals: a non-empty unresolved/
+        open_questions/unknowns/gaps key, or an action implementation
+        block whose impl_function is null without a resolved engine
+        verdict (a resolved reject-all dispatcher is a documented
+        limitation, not an unknown)."""
         if isinstance(o, dict):
-            st = o.get("status")
-            if isinstance(st, str) and st != "confirmed" \
-                    and not _in_skipped and not o.get("todo"):
-                yield path, st
-            conf = o.get("confidence")
-            if isinstance(conf, str) and not _in_skipped \
-                    and conf.strip().lower() in self.CONFIDENCE_WORDS \
-                    and not o.get("todo"):
-                yield path, "confidence:%s" % conf[:40]
+            if not _in_skipped and not o.get("todo"):
+                for k in self.UNKNOWN_KEYS:
+                    if o.get(k):
+                        yield path, "structured unknown: %s" % k
+                        break
+                else:
+                    impl = o.get("implementation")
+                    if isinstance(impl, dict) and "impl_function" in impl \
+                            and not impl["impl_function"] \
+                            and (impl.get("engine_resolution") or {}) \
+                                    .get("status") != "resolved":
+                        yield path, "impl_function untraced"
             for k, v in o.items():
                 yield from self._incomplete(
                     v, "%s/%s" % (path, k),
@@ -607,7 +617,7 @@ class TodoPolicyTests(unittest.TestCase):
                 yield from self._todos(v, "%s[%d]" % (path, i))
 
     # -- data policy ------------------------------------------------------
-    def test_every_nonconfirmed_record_has_todo(self):
+    def test_every_record_with_structured_unknowns_has_todo(self):
         missing = list(self._incomplete(self.doc))
         self.assertEqual([], missing[:50])
 

@@ -54,6 +54,15 @@ def _para(text):
     return _esc(str(text)).strip()
 
 
+def _snip(text, limit=200):
+    """Truncate at a word boundary with an ellipsis; never mid-word."""
+    t = str(text or "").strip()
+    if len(t) <= limit:
+        return t
+    cut = t[:limit].rsplit(" ", 1)[0].rstrip(",;:.")
+    return cut + " ..."
+
+
 def _pt(m, page, key):
     """Hand-authored client-facing prose for a page/section, from
     client_text.json 'pages'. Returns a paragraph string or None."""
@@ -459,7 +468,7 @@ def render_architecture(m):
         rows = []
         for addr, f in m.internal_functions.items():
             rows.append(["`%s`" % addr, _e(f.get("role")),
-                         _e(f.get("description"))[:160]])
+                         _e(_snip(f.get("description"), 160))])
         _table(out, ["Address", "Role", "Description"], rows)
         open_fns = [(a, f) for a, f in m.internal_functions.items()
                     if f.get("todo")]
@@ -810,7 +819,7 @@ def render_service(s):
         for n, sv in s.state_variables.items():
             rows.append(["`%s`" % n, _e(sv.data_type),
                          "yes" if sv.evented else "no",
-                         _e(sv.description)[:120]])
+                         _e(_snip(sv.description, 120))])
         _table(out, ["Name", "Type", "Evented", "Description"], rows)
     if s.events:
         out += ["## Events", ""]
@@ -1035,11 +1044,11 @@ def render_errors(m):
         for a in s.actions.values():
             for e in a.errors:
                 rows.append(["`%s`" % a.name, "`%s`" % e.code_label,
-                             _e(e.meaning)[:140]])
+                             _e(_snip(e.meaning, 140))])
         if s.errors:
             for e in s.errors:
                 rows.append(["_(dispatcher)_", "`%s`" % e.code_label,
-                             _e(e.meaning)[:140]])
+                             _e(_snip(e.meaning, 140))])
         if not rows:
             continue
         out.append("### `%s`" % s.name)
@@ -1296,7 +1305,7 @@ def render_subsystems(m):
             continue
         first = raw[0] if isinstance(raw, list) else raw
         open_rows.append(["[`%s`](index.md#%s)" % (n, n),
-                          _e(first[:200])])
+                          _e(_snip(first))])
 
     def _first_todo(t):
         return t[0] if isinstance(t, list) else t
@@ -1306,38 +1315,38 @@ def render_subsystems(m):
         if s.todo:
             soap_rows.append(
                 ["service [`%s`](../soap/%s.md)" % (s.name, s.slug),
-                 _e(_first_todo(s.todo)[:200])])
+                 _e(_snip(_first_todo(s.todo)))])
         for a in s.actions.values():
             if a.todo:
                 soap_rows.append(
                     ["action [`%s`](../soap/%s.md#%s)"
                      % (a.name, s.slug, a.name.lower()),
-                     _e(_first_todo(a.todo)[:200])])
+                     _e(_snip(_first_todo(a.todo)))])
             for e in a.errors:
                 if getattr(e, "todo", None):
                     soap_rows.append(
                         ["error [`%s` %s](../soap/%s.md#%s)"
                          % (a.name, e.code_label, s.slug,
                             a.name.lower()),
-                         _e(_first_todo(e.todo)[:200])])
+                         _e(_snip(_first_todo(e.todo)))])
         for e in s.errors:
             if getattr(e, "todo", None):
                 soap_rows.append(
                     ["error [`%s` dispatcher %s](../soap/%s.md)"
                      % (s.name, e.code_label, s.slug),
-                     _e(_first_todo(e.todo)[:200])])
+                     _e(_snip(_first_todo(e.todo)))])
         av = s.availability
         if av and getattr(av, "todo", None):
             soap_rows.append(
                 ["availability [`%s`](../soap/%s.md)" % (s.name, s.slug),
-                 _e(_first_todo(av.todo)[:200])])
+                 _e(_snip(_first_todo(av.todo)))])
 
     sv_rows = []
     for k, sv in m.all_state_variables().items():
         if getattr(sv, "todo", None):
             sv_rows.append(
                 ["[`%s`](../soap/state-variables.md)" % k,
-                 _e(_first_todo(sv.todo)[:200])])
+                 _e(_snip(_first_todo(sv.todo)))])
 
     fmt_rows = []
     for kind, src in (("uri", m.uri_formats),
@@ -1347,7 +1356,7 @@ def render_subsystems(m):
                 fmt_rows.append(
                     ["[`%s`](../soap/%s-formats.md#%s)"
                      % (k, kind, str(k).lower()),
-                     _e(_first_todo(f.todo)[:200])])
+                     _e(_snip(_first_todo(f.todo)))])
 
     prim_rows = []
     for k, v in sorted(m.shared_primitives.items()):
@@ -1356,42 +1365,42 @@ def render_subsystems(m):
                 else "other-recovered-subsystems"
             prim_rows.append(
                 ["[`%s`](../architecture.md#%s)" % (k, anchor),
-                 _e(_first_todo(v["todo"])[:200])])
+                 _e(_snip(_first_todo(v["todo"])))])
 
     fn_rows = []
     for addr, f in sorted(m.internal_functions.items()):
         if isinstance(f, dict) and f.get("todo"):
             fn_rows.append(
                 ["[`%s`](../architecture.md#internal-functions)" % addr,
-                 _e(_first_todo(f["todo"])[:200])])
+                 _e(_snip(_first_todo(f["todo"])))])
 
     misc_rows = []
     if m.request_vtable.get("todo"):
         misc_rows.append(
             ["[request vtable](../architecture.md#request-object-vtable)",
-             _e(_first_todo(m.request_vtable["todo"])[:200])])
+             _e(_snip(_first_todo(m.request_vtable["todo"])))])
     for raddr, r in (m.routing.get("routers") or {}).items():
         for rec in r.get("records") or []:
             if rec.get("todo"):
                 misc_rows.append(
                     ["routing [`%s`](../architecture.md)" % rec.get("path"),
-                     _e(_first_todo(rec["todo"])[:200])])
+                     _e(_snip(_first_todo(rec["todo"])))])
     if isinstance(m.muse, dict) and m.muse.get("todo"):
         misc_rows.append(
             ["[muse API](../muse/index.md)",
-             _e(_first_todo(m.muse["todo"])[:200])])
+             _e(_snip(_first_todo(m.muse["todo"])))])
     for k, v in sorted((m.muse or {}).items()):
         if k == "todo":
             continue
         if isinstance(v, dict) and v.get("todo"):
             misc_rows.append(
                 ["muse record `%s`" % k,
-                 _e(_first_todo(v["todo"])[:200])])
+                 _e(_snip(_first_todo(v["todo"])))])
     cl = getattr(m, "cert_layer", None) or {}
     if isinstance(cl, dict) and cl.get("todo"):
         misc_rows.append(
             ["cert layer (`documentation.json` `cert_layer`)",
-             _e(_first_todo(cl["todo"])[:200])])
+             _e(_snip(_first_todo(cl["todo"])))])
 
     if open_rows or soap_rows or sv_rows or fmt_rows \
             or prim_rows or fn_rows or misc_rows:

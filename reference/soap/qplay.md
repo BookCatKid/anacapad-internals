@@ -4,6 +4,8 @@
 
 This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers, which is the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present, because QPlay shipped only on units sold for the Chinese market, which is why most users have never seen it.
 
+**TODO:** Established: QPlay is a registered stub in this build; QPlayAuth's handler could not be resolved from any dispatch table. Still unknown: where (or whether) the QPlayAuth dispatch entry is registered - the service may be table-less in this firmware. Next step: search for the QPlayAuth literal near dispatch-table construction sites and confirm no live dispatcher binds it.
+
 ::: details Technical details
 
 QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth: likely registered but dispatch entry unresolved in this build.
@@ -32,6 +34,10 @@ QPlay (QQ Music) authentication service stub; the extractor resolved no handler 
 visibility `advertised` · reachability `callable` · dispatch `strcmp-dispatched`
 
 The QPlay login handshake, the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration, so it is meaningless to ordinary apps.
+
+**TODO:** Established: dispatch and handler 0x1073a4f0 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.
+**TODO:** Still unknown: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined.
+**TODO:** Next step: disassemble handler 0x1073a4f0, follow the impl/vfunc call, and record the resolved impl function and its engine path.
 
 ::: details Technical details
 
