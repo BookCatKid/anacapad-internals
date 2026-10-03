@@ -445,7 +445,7 @@ class GenModelTests(unittest.TestCase):
         self.assertIn("Friendly action blurb.", md)
         self.assertIn("Technical details", md)
         self.assertIn("dispatch table entry", md)
-        self.assertIn("<details", md)
+        self.assertIn("::: details", md)
         r = genmodel.qa(m)
         self.assertTrue(any("/A/Control.Ghost" in e
                             for e in r.errors))
@@ -511,44 +511,28 @@ class GenModelTests(unittest.TestCase):
 
 
 class GenSiteTests(unittest.TestCase):
-    """gensite.py drives MkDocs; we test the nav/config generation only
-    (the build itself requires the .venv mkdocs install)."""
+    """gensite.py wraps `npm run docs:build`; the sidebar/config lives in
+    reference/.vitepress/config.mts (TypeScript, evaluates at build time).
+    These tests check the config contract rather than running the build."""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-        self.ref = os.path.join(self.tmp, "reference")
-        os.makedirs(os.path.join(self.ref, "services"))
-        for f in ("index.md", "architecture.md"):
-            with open(os.path.join(self.ref, f), "w") as fh:
-                fh.write("# Page\n")
-        with open(os.path.join(self.ref, "services", "av-transport.md"),
-                  "w") as fh:
-            fh.write("# `AVTransport` — `/MediaRenderer/AVTransport/Control`\n")
-        self._src, self._yml = gensite.SRC, gensite.MKDOCS_YML
-        gensite.SRC = self.ref
-        gensite.MKDOCS_YML = os.path.join(self.tmp, "mkdocs.yml")
+    CFG = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "reference", ".vitepress",
+        "config.mts")
 
-    def tearDown(self):
-        gensite.SRC, gensite.MKDOCS_YML = self._src, self._yml
-        shutil.rmtree(self.tmp)
+    def test_config_exists_and_discovers_services(self):
+        src = open(self.CFG).read()
+        self.assertIn("'..', 'services'", src)
+        self.assertIn("readdirSync(SERVICES_DIR)", src)
 
-    def test_nav_picks_up_services(self):
-        nav, services = gensite.build_nav()
-        self.assertEqual(dict(nav)["Architecture"], "architecture.md")
-        self.assertEqual(services,
-                         [("AVTransport", "services/av-transport.md")])
+    def test_config_sets_base_and_search(self):
+        src = open(self.CFG).read()
+        self.assertIn("'/anacapad-internals/'", src)
+        self.assertIn("provider: 'local'", src)
 
-    def test_config_is_valid_yaml(self):
-        try:
-            import yaml
-        except ImportError:
-            self.skipTest("pyyaml not installed")
-        nav, services = gensite.build_nav()
-        gensite.write_config(nav, services)
-        with open(gensite.MKDOCS_YML) as f:
-            cfg = yaml.safe_load(f)
-        self.assertEqual(cfg["docs_dir"], "reference")
-        self.assertIn({"Architecture": "architecture.md"}, cfg["nav"])
+    def test_config_disables_vue_hostile_markdown(self):
+        src = open(self.CFG).read()
+        for rule in ("html_inline", "html_block", "curly_attributes"):
+            self.assertIn("'%s'" % rule, src)
 
 
 if __name__ == "__main__":

@@ -4,11 +4,11 @@
 
 This service is the queue engine's own control surface, the internal and more powerful twin of the 'add to queue' commands most apps use. The difference: instead of editing 'the' queue, these commands can create, attach to, and manage multiple queues identified by number, each owned by some component of the system. It is how Sonos's own internals (and advanced third-party tools) build playlists, inspect them, save them as Sonos playlists, and keep track of who's allowed to modify what. It is the machinery underneath the single user-facing queue.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -> req->v\[+0x14\](req,401). Matched entries tail-call svc->v\[+0x38\] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.
 
-</details>
+:::
 
 ## Availability
 
@@ -44,11 +44,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a batch of tracks to a specific queue in one call, the multi-queue equivalent of adding an album to the play queue. You pick the queue by ID, pass the track list plus where to insert it, and get back how many were added, the queue's new length, and its new version stamp.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUpdateID through out params. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x2c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).
 
-</details>
+:::
 
 #### Inputs
 
@@ -110,36 +110,36 @@ Batch-enqueue into an explicit queue; writes NumTracksAdded/NewQueueLength/NewUp
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10464f34; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, out-arg write×4, commit×1); member delegates: r5 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464f34; req-vfunc call map: {'0x14': 1, '0x24': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r5 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464f34; member vfunc calls: \['r5 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -149,31 +149,31 @@ service-internal state reached through member delegate(s): r5 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464f34; no transition-literal/store pattern; member delegates: \['r5 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464f34; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464f34; commit/fault slot usage: {'0x14': 1, '0x24': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -196,9 +196,9 @@ Wrapper parse layer rejected an argument before the impl call.
 Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10464f34`
 - dispatch entry `0x10ed19ec`
@@ -210,7 +210,7 @@ Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pl
 - fn 0x10464f34 @ 0x10464f34; action wrapper handler
 - @ 0x10ed19ec; action dispatch table entry
 
-</details>
+:::
 
 ### `AddURI`
 
@@ -218,11 +218,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds one track to a specific queue. It is the single-item version of AddMultipleURIs: queue ID, the item's address and metadata, where it should land, and whether it should be inserted as 'play next'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateID (int), EnqueuedURI (string, cap 0x401), EnqueuedURIMetaData (cap 0x1001), DesiredFirstTrackNumberEnqueued (int), EnqueueAsNext (bool byte), then calls impl->v\[+0x8\](impl, QueueID, UpdateID, &URI, &MD, DesiredFirst, EnqueueAsNext, &out1,&out2,&out3,&out4) on the queue-manager: rc==0 emits the four outputs, nonzero goes to req->v\[+0x14\] as a SOAP fault. This is the Queue-service twin of AVTransport.AddURIToQueue but keyed by explicit QueueID.
 
-</details>
+:::
 
 #### Inputs
 
@@ -266,36 +266,36 @@ Enqueues one track into an explicit queue. Wrapper parses QueueID (int), UpdateI
 - **`NewUpdateID`**: Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1046453c; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×4, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1046453c; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1046453c; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -305,31 +305,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1046453c; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1046453c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1046453c; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -362,9 +362,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1046453c`
 - dispatch entry `0x10ed19f8`
@@ -375,7 +375,7 @@ Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pl
 - fn 0x1046453c @ 0x1046453c; action wrapper handler
 - @ 0x10ed19f8; action dispatch table entry
 
-</details>
+:::
 
 ### `AttachQueue`
 
@@ -383,11 +383,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Connects to an existing queue someone else created and returns its ID plus its owner context. This is how a component that didn't create a queue gets permission to work with it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in: the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x1c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -410,36 +410,36 @@ Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj
 - **`QueueOwnerContext`**: Written by the queue-manager impl on success.
   - validation: echoed from the queue record
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x104647b8; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104647b8; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104647b8; member vfunc calls: \['r30 v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -449,31 +449,31 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104647b8; no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104647b8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104647b8; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -500,9 +500,9 @@ Wrapper parse layer rejected an argument before the impl call.
 Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x104647b8`
 - dispatch entry `0x10ed1a04`
@@ -516,7 +516,7 @@ Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pl
 - fn 0x104647b8 @ 0x104647b8; action wrapper handler
 - @ 0x10ed1a04; action dispatch table entry
 
-</details>
+:::
 
 ### `Backup`
 
@@ -524,42 +524,42 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Writes a queue's state to storage so it survives a reboot. It is the queue-engine counterpart of the 'save the play queue to disk' feature on the main transport service.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Backs up queue state: the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x10\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10465660; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r5 v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465660; req-vfunc call map: {'0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r5 v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465660; member vfunc calls: \['r5 v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -569,31 +569,31 @@ service-internal state reached through member delegate(s): r5 v\[+0x10\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465660; no transition-literal/store pattern; member delegates: \['r5 v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465660; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465660; commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -612,9 +612,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10465660`
 - dispatch entry `0x10ed1a10`
@@ -626,7 +626,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10ed1a10; action dispatch table entry
 - @ 0x1046593c; impl vfunc: li r3,0x320; blr
 
-</details>
+:::
 
 ### `Browse`
 
@@ -634,11 +634,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reads back the contents of a queue, meaning the track list it currently holds, for apps that want to display or inspect what's in it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x28\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -673,36 +673,36 @@ Browses a queue's contents. impl is the queue-manager object (r5-in); the action
 - **`UpdateID`**: browse result field emitted via f_10560608 inside impl f_10466280
   - validation: arg-name string 'out' loaded at 0x104664dc inside f_10466280
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10464200; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (none); member delegates: r4 v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464200; req-vfunc call map: {}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464200; member vfunc calls: \['r4 v\[+0x3c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -712,31 +712,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x3c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464200; no transition-literal/store pattern; member delegates: \['r4 v\[+0x3c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464200; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464200; commit/fault slot usage: {}
 
-</details>
+:::
 
 
 #### Errors
@@ -759,9 +759,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10464200`
 - dispatch entry `0x10ed1a1c`
@@ -772,7 +772,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - fn 0x10464200 @ 0x10464200; action wrapper handler
 - @ 0x10ed1a1c; action dispatch table entry
 
-</details>
+:::
 
 ### `CreateQueue`
 
@@ -780,11 +780,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Makes a brand-new queue owned by a named component of the system, with a policy describing its behavior, and returns the new queue's ID. This is how the system sets up separate track lists beyond the one the user sees.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, returning the new QueueID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x14\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -810,36 +810,36 @@ Creates a new queue owned by QueueOwnerID/QueueOwnerContext with QueuePolicy, re
 - **`QueueID`**: Written by the queue-manager impl on success.
   - validation: engine-assigned
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10464bd0; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r29 v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464bd0; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464bd0; member vfunc calls: \['r29 v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -849,31 +849,31 @@ service-internal state reached through member delegate(s): r29 v\[+0x14\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464bd0; no transition-literal/store pattern; member delegates: \['r29 v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464bd0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464bd0; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -892,9 +892,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10464bd0`
 - dispatch entry `0x10ed1a28`
@@ -905,7 +905,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - fn 0x10464bd0 @ 0x10464bd0; action wrapper handler
 - @ 0x10ed1a28; action dispatch table entry
 
-</details>
+:::
 
 ### `RemoveAllTracks`
 
@@ -913,11 +913,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Empties one specific queue: every track removed while the queue itself keeps existing but holds nothing. Its version stamp bumps so other users know it changed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes all tracks from the queue identified by QueueID: explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x18\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -940,36 +940,36 @@ Removes all tracks from the queue identified by QueueID: explicit-id twin of AVT
 - **`NewUpdateID`**: Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10464908; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464908; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464908; member vfunc calls: \['r30 v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -979,31 +979,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x18\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464908; no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464908; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464908; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1026,9 +1026,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10464908`
 - dispatch entry `0x10ed1a34`
@@ -1039,7 +1039,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - fn 0x10464908 @ 0x10464908; action wrapper handler
 - @ 0x10ed1a34; action dispatch table entry
 
-</details>
+:::
 
 ### `RemoveTrackRange`
 
@@ -1047,11 +1047,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes a contiguous run of tracks from a specific queue, as in 'remove items 3 through 10 from queue 2', and returns the queue's new version stamp.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes a contiguous range from QueueID: explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x1c\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1080,36 +1080,36 @@ Removes a contiguous range from QueueID: explicit-id twin of AVTransport.RemoveT
 - **`NewUpdateID`**: Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10464a44; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464a44; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464a44; member vfunc calls: \['r30 v\[+0x1c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1119,31 +1119,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464a44; no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464a44; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464a44; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1166,9 +1166,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10464a44`
 - dispatch entry `0x10ed1a40`
@@ -1179,7 +1179,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - fn 0x10464a44 @ 0x10464a44; action wrapper handler
 - @ 0x10ed1a40; action dispatch table entry
 
-</details>
+:::
 
 ### `ReorderTracks`
 
@@ -1187,11 +1187,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Moves a block of tracks to a new position inside a specific queue, which is the multi-queue version of dragging songs around in the queue view.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Reorders a block within QueueID: explicit-id twin of AVTransport.ReorderTracksInQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x20\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1223,36 +1223,36 @@ Reorders a block within QueueID: explicit-id twin of AVTransport.ReorderTracksIn
 - **`NewUpdateID`**: Written by the queue-manager impl on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10464d68; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464d68; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464d68; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1262,31 +1262,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464d68; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464d68; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10464d68; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1309,9 +1309,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10464d68`
 - dispatch entry `0x10ed1a4c`
@@ -1322,7 +1322,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - fn 0x10464d68 @ 0x10464d68; action wrapper handler
 - @ 0x10ed1a4c; action dispatch table entry
 
-</details>
+:::
 
 ### `ReplaceAllTracks`
 
@@ -1330,11 +1330,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Swaps a queue's entire contents for a new list in one operation: wipe what's there and load this instead. It returns the queue's new version stamp.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x30\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).
 
-</details>
+:::
 
 #### Inputs
 
@@ -1388,36 +1388,36 @@ Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manag
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10465090; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r5 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465090; req-vfunc call map: {'0x14': 1, '0x24': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r5 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465090; member vfunc calls: \['r5 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1427,31 +1427,31 @@ service-internal state reached through member delegate(s): r5 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465090; no transition-literal/store pattern; member delegates: \['r5 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465090; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10465090; commit/fault slot usage: {'0x14': 1, '0x24': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1470,9 +1470,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10465090`
 - dispatch entry `0x10ed1a58`
@@ -1484,7 +1484,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - fn 0x10465090 @ 0x10465090; action wrapper handler
 - @ 0x10ed1a58; action dispatch table entry
 
-</details>
+:::
 
 ### `SaveAsSonosPlaylist`
 
@@ -1492,11 +1492,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Saves a specific queue's contents as a named Sonos playlist, turning a queue's contents into a stored playlist. It is the internal counterpart of 'Save queue' in the app.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Saves QueueID as a Sonos playlist under Title/ObjectID: explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl->v\[+0x24\](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1522,36 +1522,36 @@ Saves QueueID as a Sonos playlist under Title/ObjectID: explicit-id twin of AVTr
 - **`AssignedObjectID`**: Written by the queue-manager impl on success.
   - validation: store-assigned
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper-proven: args parsed via req->v\[+0x1c\] named lookup + typed helpers; impl call via impl->v\[slot\]; rc==0 -> emit, else fault through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x104643c0; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104643c0; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104643c0; member vfunc calls: \['r30 v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1561,31 +1561,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x24\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104643c0; no transition-literal/store pattern; member delegates: \['r30 v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104643c0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x104643c0; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1614,9 +1614,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x104643c0`
 - dispatch entry `0x10ed1a64`
@@ -1628,7 +1628,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 - fn 0x104643c0 @ 0x104643c0; action wrapper handler
 - @ 0x10ed1a64; action dispatch table entry
 
-</details>
+:::
 
 ## State variables
 
@@ -1662,17 +1662,17 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 - **Mechanism:** UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 - **Namespace:** urn:schemas-sonos-com:metadata-1-0/Queue/
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notes:** Queue uses its own event vocabulary rather than a LastChange blob: QueueOwnerID/QueueID/UpdateID/Curated elements
 - **notify_path:** f_10465b54 Queue event emitter using template 0x10ed1c6c (Queue svc region, near svc ctor f_104656d0)
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `strong`
 
@@ -1682,23 +1682,23 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 
 
-</details>
+:::
 
 ## Notes
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 None Impl provenance: *(svc+4) resolves to the queue-manager singleton at global 0x11096770 (the same `this` pointer passed to all 0x1047xxxx saved-queue workers by the AVTransport impl shims at 0x102bd048/0x102bd140/0x102bd238). Companion global 0x11096774 holds a refcounted session token: *(token+4) is atomically incremented (stwcx.) before each worker call and released with f_100c5050 afterwards; a null token degrades to a plain tail call. Queue-manager vtable resolved: 0x10ed1bcc (ctor f_10465fac, log tag Queue). All action vfuncs +0x08..+0x30 forward to the shared queue engine at *(qm+0x128) - the same engine workers AVTransport queue ops use (f_102b6948 AddURI, f_102b3a84 RemoveAllTracks): the two services are SOAP facades over one queue engine. All four playlist-format workers share one skeleton: playlist log tag + iterateXxxPlayList %s, fetch through the stream abstraction (f_10545064 open / f_10546520 read / f_1054103c close), per-entry job submission on shared delegate machinery. Formats: ASX (asx/wax/wmx), M3U (m3u8/m3u), PLS, WPL (logged as WLP).
 
-</details>
+:::
 
 Implementation sources (recovered): `zoneplayer/tqueue.cxx`, `zoneplayer/spotify/spotify_queue.cxx`
 
-<details markdown="1"><summary>Service evidence (4)</summary>
+::: details Service evidence (4)
 
 - @ 0x101953c8; service router function
 - @ 0x10ed19a8; service vtable
 - @ 0x10464268; service dispatcher
 - @ 0x102bd0a4; saved-queue shim loads singleton 0x11096770 as worker `this`
 
-</details>
+:::

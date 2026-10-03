@@ -4,11 +4,11 @@
 
 This is the biggest and most important service on the player: the remote control for playback itself. The transport commands live here, meaning play, pause, stop, skip, seek, and setting what to play. The queue lives here too: adding tracks, removing them, reordering them, and saving the queue as a Sonos playlist. So do the play modes like shuffle and repeat, plus crossfade, the sleep timer, and the alarm run and snooze commands used when an alarm actually fires. Finally, the whole group-coordination family is in this service: becoming the leader of a group, handing leadership to another speaker, and joining or leaving the coordinated-playback roles. If you think of the Sonos app as a remote control, this service is the buttons that matter most.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc+4)). Impl vfuncs live in a large vtable (A=0x10eaf2ec standalone, B=0x10edfbb8 group-aware; identical except SetAVTransportURI and the three Become*Coordinator* ops). All impls serialize on mutex impl+0x458 and dispatch on the transport-source mode enum at impl+0x4654: 2=indexed/queue (requests submitted to impl+0x580 via f_10255f64/f_10256a84), others reach the streamer session at impl+0x5a0 via op-0x19 submission f_102aff9c on impl+0x5dc.
 
-</details>
+:::
 
 ## Availability
 
@@ -17,11 +17,11 @@ UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc
 - enabled gate: `xor(*(r3-in+0x571c))` at `0x10195684` (field_inverted)
 - Registered unconditionally at zoneplayer init (ctor f_102fc9c0 for the svc wrapper at ctx+off). Whether the engine impl is the A or B class depends on grouping state - unresolved selection point.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **Visibility note:** always advertised: Control+Event routes registered unconditionally in the static route table and the impl vtable is constructed unconditionally at ZP init; no feature-gate found anywhere in the service-registration path (same pattern as other 'advertised' services)
 
-</details>
+:::
 
 ## Dispatch
 
@@ -82,11 +82,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a batch of tracks to the play queue in one shot, which is what happens when you tap 'play album' or 'add all to queue' rather than dropping songs in one at a time. You send a list of track addresses (with optional metadata about each), where to insert them, and whether to drop them at the end or next-up, and the speaker reports back how many were added and the queue's new length.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-calling worker f_102b7000, which runs the shared boilerplate (name string from impl+0x3dc, impl+0x458 lock, f_102a5718 submission check, f_100caad8 change emit) and walks the EnqueuedURIs list.
 
-</details>
+:::
 
 #### Inputs
 
@@ -139,36 +139,36 @@ Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-cal
 - **`NewUpdateID`**: Written by the enqueue worker on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fb7e8; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, out-arg write×4, validate×1, commit×1); member delegates: r28 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb7e8; req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r28 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb7e8; member vfunc calls: \['r28 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -178,31 +178,31 @@ service-internal state reached through member delegate(s): r28 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb7e8; no transition-literal/store pattern; member delegates: \['r28 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb7e8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb7e8; commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -231,9 +231,9 @@ Request parse layer rejected an argument before the impl was invoked.; impl-side
 URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fb7e8`
 - dispatch entry `0x10eb3018`
@@ -245,7 +245,7 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 - @ 0x10eb3018; action dispatch table entry
 - fn 0x102b7170; AVT impl vtable 0x10eaf2ec slot +0x68 entry
 
-</details>
+:::
 
 ### `AddURIToQueue`
 
@@ -253,11 +253,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a single track or stream to the play queue. You give it the item's address (its URI, the URL-like locator Sonos uses for songs, streams, and service items) plus metadata describing it, and optionally where in the queue to put it and whether it should be queued to play right after the current song. This is the most basic queue-edit command the app issues.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls shared enqueue worker f_102b6948(engine, args..., 0). The worker logs "avt_impl" "Add to queue %u; URI: %s" and "Add to queue %u; MD: %s", takes the impl+0x458 lock, and performs the enqueue through the queue/session machinery.
 
-</details>
+:::
 
 #### Inputs
 
@@ -295,36 +295,36 @@ Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls share
 - **`NewQueueLength`**: Written by the enqueue worker on success.
   - validation: written from the queue record length after the mutation
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102facf8; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102facf8; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102facf8; member vfunc calls: \['r29 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -334,31 +334,31 @@ service-internal state reached through member delegate(s): r29 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102facf8; no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102facf8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102facf8; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -391,9 +391,9 @@ Request parse layer rejected an argument before the impl was invoked.
 URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks. The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102facf8`
 - dispatch entry `0x10eb3024`
@@ -405,7 +405,7 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 - @ 0x10eb3024; action dispatch table entry
 - fn 0x102b6a9c; AVT impl vtable 0x10eaf2ec slot +0x64 entry
 
-</details>
+:::
 
 ### `AddURIToSavedQueue`
 
@@ -413,11 +413,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Appends a track to an existing saved queue, meaning a Sonos playlist. Rather than touching the live queue, this edits a stored list: you identify which playlist by its object ID, pass the track and its metadata plus a position, and the item lands inside that stored list for later recall.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.
 
-</details>
+:::
 
 #### Inputs
 
@@ -458,36 +458,36 @@ Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718
 - **`NewUpdateID`**: Written by the f_10479fb8 worker on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fb2d8; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×3, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb2d8; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb2d8; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -497,31 +497,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb2d8; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb2d8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb2d8; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -560,9 +560,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fb2d8`
 - dispatch entry `0x10eb3030`
@@ -574,7 +574,7 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 - @ 0x10eb3030; action dispatch table entry
 - fn 0x102bd140; AVT impl vtable 0x10eaf2ec slot +0x88 entry
 
-</details>
+:::
 
 ### `BackupQueue`
 
@@ -582,11 +582,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Writes the current play queue to storage so it survives a reboot or a crash. Ordinarily the queue lives in memory, and this command snapshots it to the player's flash so the same 'now playing' list can be restored after a power cut or update. Backing up an empty queue is a silent success since there is simply nothing to write.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0: backing up an empty queue is a silent success no-op. Otherwise it builds the "trackqueue"/"trackqueue.rsq" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.
 
-</details>
+:::
 
 #### Inputs
 
@@ -597,36 +597,36 @@ Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads 
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f8db0; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x80\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8db0; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x80\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8db0; member vfunc calls: \['r30 v\[+0x80\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -636,31 +636,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x80\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x80\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8db0; no transition-literal/store pattern; member delegates: \['r30 v\[+0x80\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8db0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8db0; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -701,9 +701,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the same .rsq container trackqueue.rsq uses for the live queue backup.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8db0`
 - dispatch entry `0x10eb303c`
@@ -715,7 +715,7 @@ None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the sa
 - @ 0x10eb303c; action dispatch table entry
 - fn 0x102ab62c; AVT impl vtable 0x10eaf2ec slot +0x80 entry
 
-</details>
+:::
 
 ### `BecomeCoordinatorOfStandaloneGroup`
 
@@ -723,11 +723,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Promotes this speaker into the coordinator role of its own group. 'Coordinator' is Sonos's name for the speaker in a group that owns the music: it picks the source, drives playback, and streams audio to the followers. This command is used when a speaker that was playing on its own (a 'standalone group' of one) needs to formally take the leadership seat, for example when other rooms are about to join it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs "avt_impl" "BecomeCoordinatorOfStandaloneGroup", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
-</details>
+:::
 
 #### Inputs
 
@@ -750,36 +750,36 @@ Promotes this player to coordinator of its standalone group. Impl f_102d5524 log
 - **`NewGroupID`**: Group/coordinator identity written by the promotion path on success.
   - validation: written from the group record on success
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f8b04; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8b04; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8b04; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -789,31 +789,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8b04; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8b04; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8b04; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
 
-</details>
+:::
 
 
 #### Errors
@@ -852,9 +852,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513244 - grouped gate: topology singleton + state predicate + f_1075c4d0 precondition on impl+0x44c; error path uses 0x3ff (1023). Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8b04`
 - dispatch entry `0x10eb3048`
@@ -869,7 +869,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - @ 0x10eb3048; action dispatch table entry
 - fn 0x102d5524; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513244 slot +0x54 entry
 
-</details>
+:::
 
 ### `BecomeGroupCoordinator`
 
@@ -877,11 +877,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Makes this speaker take over as the leader of an existing group, adopting whatever the group is already playing. It is used when group leadership is being reassigned: the app (or the system) decides a different speaker should carry the session, and this command performs the takeover while keeping the group's music going.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs "avt_impl" "BecomeGroupCoordinator", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
-</details>
+:::
 
 #### Inputs
 
@@ -937,36 +937,36 @@ Makes this player the coordinator of an existing group, adopting the group sourc
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fc8b0; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v\[+?\], r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc8b0; req-vfunc call map: {'0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+?\], r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc8b0; member vfunc calls: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -976,31 +976,31 @@ service-internal state reached through member delegate(s): r4 v\[+?\], r30 v\[+?
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+?\], r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc8b0; no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc8b0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc8b0; commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1023,9 +1023,9 @@ Request parse layer rejected an argument before the impl was invoked.
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105133e4 - delegates verbatim to class-A impl 0x102de740 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fc8b0`
 - dispatch entry `0x10eb3054`
@@ -1039,7 +1039,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - fn 0x102de740; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x105133e4 slot +0xd0 entry
 - @ 0x102fc8b0; handler body: gate + impl call + commit only; no parse/emit arg sites
 
-</details>
+:::
 
 ### `BecomeGroupCoordinatorAndSource`
 
@@ -1047,11 +1047,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Makes this speaker both the leader of a group and the origin of the group's music. It is the combined version of the takeover, effectively saying 'I become coordinator and everyone plays what I am playing'. It is used when you want the system to follow this room's selection rather than the previous leader's.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1111,36 +1111,36 @@ Makes this player group coordinator AND selects this player's source for the gro
   - validation: fetched via request-object slot; impl validates internally
   - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fc3a0; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, 0x34×1, commit×1); member delegates: r4 v\[+?\], r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc3a0; req-vfunc call map: {'0x34': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+?\], r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc3a0; member vfunc calls: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1150,31 +1150,31 @@ service-internal state reached through member delegate(s): r4 v\[+?\], r29 v\[+?
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+?\], r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc3a0; no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc3a0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc3a0; commit/fault slot usage: {'0x34': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1197,9 +1197,9 @@ Request parse layer rejected an argument before the impl was invoked.
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105134a8 - delegates verbatim to class-A impl 0x102df410 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fc3a0`
 - dispatch entry `0x10eb3060`
@@ -1214,7 +1214,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - fn 0x102df410; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x105134a8 slot +0xd4 entry
 - @ 0x102fc3a0; handler body: gate + impl call + commit only; no parse/emit arg sites
 
-</details>
+:::
 
 ### `ChangeCoordinator`
 
@@ -1222,11 +1222,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Moves group leadership from one member to another in a controlled hand-off. The old leader passes its transport settings to the new one so playback continues seamlessly. Unlike the 'Become*' commands where a speaker claims leadership itself, this one is the system's way of directing a swap between named members, with the play state carried across.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Reassigns group coordination from one member to another with transport-settings handover. Impl f_102af490 logs "change coordinator: old = %s, new = %s, ts = %s, uri = %s" on the avt_impl channel, then under impl+0x458 enforces InstanceID==0 (718) and runs the coordinator-change path taking CurrentCoordinator, NewCoordinator, NewTransportSettings, CurrentAVTransportURI and RestartSink.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1252,36 +1252,36 @@ Reassigns group coordination from one member to another with transport-settings 
 - **`RestartSink`**: Flag requesting a sink restart on the new coordinator.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fa3ec; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa3ec; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa3ec; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1291,31 +1291,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa3ec; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa3ec; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa3ec; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1356,9 +1356,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fa3ec`
 - dispatch entry `0x10eb306c`
@@ -1370,7 +1370,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - @ 0x10eb306c; action dispatch table entry
 - fn 0x102af490; AVT impl vtable 0x10eaf2ec slot +0x5c entry
 
-</details>
+:::
 
 ### `ChangeTransportSettings`
 
@@ -1378,11 +1378,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Installs a new set of playback settings. This is the command external sources use when they want to take over the player's audio pipeline directly. Sonos calls this family of sessions 'direct control': an outside system (like a music service's own connect protocol or a line-in style feed) tells the player what to stream and how, rather than the player pulling from its queue. Because it replaces the player's normal source, it only works while the player is idle, and sending it during active playback is rejected.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Installs new transport settings (the VLI/direct-control path. Impl f_102b1d40 logs "avt_impl" "%s: ts = %s \[%s\]" then locks impl+0x458: InstanceID!=0 -> 718 and impl+0x4654 must be 0) this action is IDLE-ONLY, the inverse of the mode-1|2 actions; any active transport returns 800. It memcpy's a 0x38-byte settings record, parses NewTransportSettings via f_103917b4, checks source state via f_102b0a48, logs "ChangeTransportSettings(): stopping local VLI (txs=%s)" on the vli channel and stops the local VLI via f_106aa3b0, manipulates bit-flags at impl+0x5b4, logs "vli src tx settings sntp port: %u", then "ChangeTransportSettings installClock" -> f_109876d8 + f_106aa13c + a vfunc bctrl installs a clock, finishing with f_1030f7f8(0,0).
 
-</details>
+:::
 
 #### Inputs
 
@@ -1399,36 +1399,36 @@ Installs new transport settings (the VLI/direct-control path. Impl f_102b1d40 lo
 - **`CurrentAVTransportURI`**: Source URI forwarded into the settings application path.
   - buffer cap: `0x401`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f95b8; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x60\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f95b8; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x60\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f95b8; member vfunc calls: \['r30 v\[+0x60\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1438,31 +1438,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x60\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x60\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f95b8; no transition-literal/store pattern; member delegates: \['r30 v\[+0x60\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f95b8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f95b8; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1503,9 +1503,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f95b8`
 - dispatch entry `0x10eb3078`
@@ -1517,7 +1517,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - @ 0x10eb3078; action dispatch table entry
 - fn 0x102b1d40; AVT impl vtable 0x10eaf2ec slot +0x60 entry
 
-</details>
+:::
 
 ### `ConfigureSleepTimer`
 
@@ -1525,11 +1525,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets or cancels the sleep timer, the 'stop playing after N minutes' feature. You pass a duration and the speaker schedules itself to stop (or fade out) at that point, while passing an empty value cancels a running timer. This is what the app's sleep-timer picker ultimately sends.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration (an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2}) any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1543,36 +1543,36 @@ Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks t
 - **`NewSleepTimerDuration`**: Duration string parsed by shared parser f_10c3d2c4 (same routine SnoozeAlarm uses); empty string bypasses parsing and cancels the timer.
   - buffer cap: `0x40`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f9878; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x90\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9878; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x90\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9878; member vfunc calls: \['r30 v\[+0x90\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1582,31 +1582,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x90\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x90\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9878; no transition-literal/store pattern; member delegates: \['r30 v\[+0x90\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9878; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9878; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1642,9 +1642,9 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f9878`
 - dispatch entry `0x10eb3084`
@@ -1656,7 +1656,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 - @ 0x10eb3084; action dispatch table entry
 - fn 0x102b4de8; AVT impl vtable 0x10eaf2ec slot +0x90 entry
 
-</details>
+:::
 
 ### `CreateSavedQueue`
 
@@ -1664,11 +1664,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Creates a new saved queue (a Sonos playlist) from a title plus an optional first track. The speaker registers the list, gives it an object ID, and later commands can add more tracks to it. This is behind the 'Save as Sonos playlist' action in the app.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 718-gate that dispatches into the saved-queue subsystem worker f_10479bb4 (via an atomic-init guarded entry). Title, EnqueuedURI/EnqueuedURIMetaData and the out params are forwarded positionally.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1706,36 +1706,36 @@ Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 7
 - **`AssignedObjectID`**: Written by the f_10479bb4 worker on success.
   - validation: output of the create path
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fb0b0; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×4, out-arg write×4, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb0b0; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb0b0; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1745,31 +1745,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb0b0; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb0b0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fb0b0; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1808,9 +1808,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. Persistence: worker builds a job record (vtable 0x10ec7be0 via f_103d1aec), bumps the saved-queue update counter *(state+0xec) by +1, and serializes to "savedqueues.rsq" - the same .rsq format the queue playlist classifier loads.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fb0b0`
 - dispatch entry `0x10eb3090`
@@ -1823,7 +1823,7 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 - @ 0x10eb3090; action dispatch table entry
 - fn 0x102bd048; AVT impl vtable 0x10eaf2ec slot +0x84 entry
 
-</details>
+:::
 
 ### `DelegateGroupCoordinationTo`
 
@@ -1831,11 +1831,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Hands group leadership to another member without the new leader asking for it. The current coordinator names its successor and can additionally tell the old member to rejoin the group as a follower and/or clear the music source. It is the orderly version of a takeover: the leader resigns in favor of a chosen member rather than the member seizing the role.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 (that specific code is treated as success) while every other code passes through verbatim.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1855,36 +1855,36 @@ Hands group-coordinator responsibility to another member. Impl f_102de180: Insta
 - **`ClearSource`**: Flag forwarded verbatim to f_102ddae8: requests clearing the current source during delegation.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fa26c; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r30 v\[+0x58\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa26c; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x58\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa26c; member vfunc calls: \['r30 v\[+0x58\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1894,31 +1894,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x58\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x58\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa26c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x58\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa26c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa26c; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1948,9 +1948,9 @@ worker rc returned verbatim except 803->0
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fa26c`
 - dispatch entry `0x10eb309c`
@@ -1962,7 +1962,7 @@ worker rc returned verbatim except 803->0
 - @ 0x10eb309c; action dispatch table entry
 - fn 0x102de180; AVT impl vtable 0x10eaf2ec slot +0x58 entry
 
-</details>
+:::
 
 ### `EndDirectControlSession`
 
@@ -1970,11 +1970,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Closes an external direct-control session, which is the counterpart of ChangeTransportSettings. When an outside system that was feeding the player directly (a connected music service, a virtual line-in session) is finished, this tears the session down so the player returns to its normal queue and sources.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags "end VLI" and "end direct control". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) (the same cleanup Play/Stop use) then returns 0 unconditionally.
 
-</details>
+:::
 
 #### Inputs
 
@@ -1985,36 +1985,36 @@ Tears down an external direct-control or VLI playback session. Impl f_102d3824 r
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f8e9c; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x50\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8e9c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x50\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8e9c; member vfunc calls: \['r30 v\[+0x50\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -2024,31 +2024,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x50\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x50\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8e9c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x50\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8e9c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8e9c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -2079,9 +2079,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8e9c`
 - dispatch entry `0x10eb30a8`
@@ -2093,7 +2093,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - @ 0x10eb30a8; action dispatch table entry
 - fn 0x102d3824; AVT impl vtable 0x10eaf2ec slot +0x50 entry
 
-</details>
+:::
 
 ### `GetCrossfadeMode`
 
@@ -2101,11 +2101,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports whether crossfade is currently on: whether the speaker blends the end of one track into the start of the next for a few seconds instead of a hard cut.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplate: builds a scoped context from the impl+0x3dc name string, RAII-locks impl+0x458, returns 718 on InstanceID!=0; the body fills the CrossfadeMode out byte from engine state.
 
-</details>
+:::
 
 #### Inputs
 
@@ -2125,36 +2125,36 @@ Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplat
 - **`CrossfadeMode`**: Current crossfade flag as a byte; which engine field feeds it is unresolved.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad370 @ 0x102ad370; getter decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad370 @ 0x102ad424; cmpwi r29,0 gate
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc28c; member vfunc calls: \['r30 v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -2164,31 +2164,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x24\]
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad370 @ 0x102ad370; read-only
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad370 @ 0x102ad370; no emit calls
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad370 @ 0x102ad428; r30=0x2ce
 
-</details>
+:::
 
 
 #### Errors
@@ -2207,9 +2207,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fc28c`
 - dispatch entry `0x10eb30b4`
@@ -2222,7 +2222,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - fn 0x102fc28c @ 0x102fc28c; action wrapper handler
 - @ 0x10eb30b4; action dispatch table entry
 
-</details>
+:::
 
 ### `GetCurrentTransportActions`
 
@@ -2230,11 +2230,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports which transport commands are currently legal on this player, which is the list behind which buttons the app greys out. For example, 'Next' only appears when there is actually a next track, and 'Seek' only appears when the current source supports scrubbing. The answer is computed live from what is playing right now, so it changes as you move through a queue or switch sources.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -> *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.
 
-</details>
+:::
 
 #### Inputs
 
@@ -2254,42 +2254,42 @@ Returns the comma-separated list of currently-allowed transport actions. Impl f_
 - **`Actions`**: Comma-separated transport action names currently legal for the active source.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - fn f_102b2a8c @ f_102b2a8c; impl decode
 - fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
 - fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - fn f_102b2a8c @ f_102b2a8c; impl decode
 - fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
 - fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Action list computed from current source capabilities via f_102b29d0/f_102fcbf4; the per-capability action mapping is unresolved.
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - fn f_102b2a8c @ f_102b2a8c; impl decode
 - fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
 - fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
-</details>
+:::
 
 
 #### Side effects
@@ -2299,37 +2299,37 @@ Action list computed from current source capabilities via f_102b29d0/f_102fcbf4;
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - fn f_102b2a8c @ f_102b2a8c; impl decode
 - fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
 - fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - fn f_102b2a8c @ f_102b2a8c; impl decode
 - fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
 - fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - fn f_102b2a8c @ f_102b2a8c; impl decode
 - fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
 - fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
-</details>
+:::
 
 
 #### Errors
@@ -2342,9 +2342,9 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f884c`
 - dispatch entry `0x10eb30c0`
@@ -2360,7 +2360,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - fn 0x102f884c @ 0x102f884c; action wrapper handler
 - @ 0x10eb30c0; action dispatch table entry
 
-</details>
+:::
 
 ### `GetDeviceCapabilities`
 
@@ -2368,11 +2368,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports what categories of media this player can play and record, which is a fixed description of the hardware's talents: the kinds of sources it accepts, and which recording media and qualities it advertises (for a speaker, essentially none). Apps use it to know what a given box can do before offering it sources.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4 shares the getter boilerplate; no InstanceID input on this action per the extractor's arg map.
 
-</details>
+:::
 
 #### Inputs
 
@@ -2399,36 +2399,36 @@ Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4
 - **`RecQualityModes`**: Supported record quality modes.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad4a4 @ f_102ad4a4; impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad4a4 @ f_102ad4a4; impl decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Device capability strings read from static engine config; provenance unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad4a4 @ f_102ad4a4; impl decode
 
-</details>
+:::
 
 
 #### Side effects
@@ -2438,31 +2438,31 @@ Device capability strings read from static engine config; provenance unresolved.
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad4a4 @ f_102ad4a4; impl decode
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad4a4 @ f_102ad4a4; impl decode
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad4a4 @ f_102ad4a4; impl decode
 
-</details>
+:::
 
 
 #### Errors
@@ -2481,9 +2481,9 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8970`
 - dispatch entry `0x10eb30cc`
@@ -2501,7 +2501,7 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 - fn 0x102f8970 @ 0x102f8970; action wrapper handler
 - @ 0x10eb30cc; action dispatch table entry
 
-</details>
+:::
 
 ### `GetMediaInfo`
 
@@ -2509,11 +2509,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports the big-picture state of what is loaded in the player: how many tracks are in the current program, the total duration, what is playing now and what comes next (with metadata for each), and which 'medium' is in use (queue, stream, line-in, and so on). It is the summary an app calls when it wants the full session context rather than just 'what song is this'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).
 
-</details>
+:::
 
 #### Inputs
 
@@ -2558,36 +2558,36 @@ Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIM
 - **`WriteStatus`**: Write-protect status string.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102adcb4 @ f_102adcb4; impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102adcb4 @ f_102adcb4; impl decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Media descriptor fields read from engine session state; per-field provenance unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102adcb4 @ f_102adcb4; impl decode
 
-</details>
+:::
 
 
 #### Side effects
@@ -2597,31 +2597,31 @@ Media descriptor fields read from engine session state; per-field provenance unr
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102adcb4 @ f_102adcb4; impl decode
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102adcb4 @ f_102adcb4; impl decode
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102adcb4 @ f_102adcb4; impl decode
 
-</details>
+:::
 
 
 #### Errors
@@ -2640,9 +2640,9 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fa9e4`
 - dispatch entry `0x10eb30d8`
@@ -2665,7 +2665,7 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 - fn 0x102fa9e4 @ 0x102fa9e4; action wrapper handler
 - @ 0x10eb30d8; action dispatch table entry
 
-</details>
+:::
 
 ### `GetPositionInfo`
 
@@ -2673,11 +2673,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports exactly where playback is within the current track, which is the data behind the app's progress bar: which track number is playing, how long it is, title/artist/album metadata, the track's address, and the elapsed position (in time, and as counts for stream-type sources). Apps poll this regularly while a song plays to keep the scrubber moving.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns position metadata for the current track: Track number, TrackDuration, TrackMetaData, TrackURI, RelTime, AbsTime, RelCount, AbsCount. Impl f_102b1a88 is the widest getter (~10 out pointers in r5-r10+stack); mode impl+0x4654 selects whether position comes from the indexed engine or the streamer session.
 
-</details>
+:::
 
 #### Inputs
 
@@ -2719,36 +2719,36 @@ Returns position metadata for the current track: Track number, TrackDuration, Tr
 - **`AbsCount`**: Absolute byte/frame count.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1a88 @ f_102b1a88; impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1a88 @ f_102b1a88; impl decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Mode impl+0x4654 selects the position source (indexed session vs streamer); per-field provenance unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1a88 @ f_102b1a88; impl decode
 
-</details>
+:::
 
 
 #### Side effects
@@ -2758,31 +2758,31 @@ Mode impl+0x4654 selects the position source (indexed session vs streamer); per-
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1a88 @ f_102b1a88; impl decode
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1a88 @ f_102b1a88; impl decode
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1a88 @ f_102b1a88; impl decode
 
-</details>
+:::
 
 
 #### Errors
@@ -2801,9 +2801,9 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fbda4`
 - dispatch entry `0x10eb30e4`
@@ -2823,7 +2823,7 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 - fn 0x102fbda4 @ 0x102fbda4; action wrapper handler
 - @ 0x10eb30e4; action dispatch table entry
 
-</details>
+:::
 
 ### `GetRemainingSleepTimerDuration`
 
@@ -2831,11 +2831,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports how much time is left on a running sleep timer, plus a generation counter that changes whenever the timer is reset. This lets an app tell 'still 12 minutes' apart from 'a new timer was just set'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102ada98 shares the getter boilerplate; reads the sleep-timer fields from the engine.
 
-</details>
+:::
 
 #### Inputs
 
@@ -2859,36 +2859,36 @@ Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102a
 - **`CurrentSleepTimerGeneration`**: Monotonic generation counter identifying the timer instance.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ada98 @ f_102ada98; impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ada98 @ f_102ada98; impl decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Sleep-timer remaining time + generation counter read from engine timer state; field offsets unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ada98 @ f_102ada98; impl decode
 
-</details>
+:::
 
 
 #### Side effects
@@ -2898,31 +2898,31 @@ Sleep-timer remaining time + generation counter read from engine timer state; fi
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ada98 @ f_102ada98; impl decode
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ada98 @ f_102ada98; impl decode
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ada98 @ f_102ada98; impl decode
 
-</details>
+:::
 
 
 #### Errors
@@ -2947,9 +2947,9 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fb518`
 - dispatch entry `0x10eb30f0`
@@ -2965,7 +2965,7 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 - fn 0x102fb518 @ 0x102fb518; action wrapper handler
 - @ 0x10eb30f0; action dispatch table entry
 
-</details>
+:::
 
 ### `GetRunningAlarmProperties`
 
@@ -2973,11 +2973,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports details about the alarm currently ringing, if one is: which alarm it is (its ID), which group it belongs to, and when it was scheduled to start. The answer is empty when no alarm is going off.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3004,36 +3004,36 @@ Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl 
 - **`LoggedStartTime`**: Start timestamp as logged by the alarm scheduler.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad8fc @ f_102ad8fc; impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad8fc @ f_102ad8fc; impl decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Alarm context fields read from engine alarm state; empty when idle; provenance unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad8fc @ f_102ad8fc; impl decode
 
-</details>
+:::
 
 
 #### Side effects
@@ -3043,31 +3043,31 @@ Alarm context fields read from engine alarm state; empty when idle; provenance u
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad8fc @ f_102ad8fc; impl decode
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad8fc @ f_102ad8fc; impl decode
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad8fc @ f_102ad8fc; impl decode
 
-</details>
+:::
 
 
 #### Errors
@@ -3086,9 +3086,9 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fb664`
 - dispatch entry `0x10eb30fc`
@@ -3105,7 +3105,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 - fn 0x102fb664 @ 0x102fb664; action wrapper handler
 - @ 0x10eb30fc; action dispatch table entry
 
-</details>
+:::
 
 ### `GetTransportInfo`
 
@@ -3113,11 +3113,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports the headline playback state: whether the player is playing, paused, stopped, or transitioning, plus a status string and the play speed. This is the single most-asked question on the whole service, and the app's play/pause button position is driven by it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -> indexed fill path 0x102b1a44; ==1 -> 0x102b19c8; else -> f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3144,37 +3144,37 @@ Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then wo
 - **`CurrentSpeed`**: Playback speed string - normally 1.
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b1738 @ 0x102b1738; gate decode
 - fn f_102b1684 @ 0x102b1684; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1738 @ 0x102b1818; cmpwi r29,0 gate
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 mode impl+0x4654 selects which state source fills the outputs (indexed vs streamer vs default f_10308aec path).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1684 @ 0x102b1928; cmplwi mode,2/1 dispatch
 
-</details>
+:::
 
 
 #### Side effects
@@ -3184,31 +3184,31 @@ mode impl+0x4654 selects which state source fills the outputs (indexed vs stream
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1738 @ 0x102b1738; read-only
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1738 @ 0x102b1738; no emit calls
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success after filling outs; 718 only for InstanceID!=0. No other faults observed in the impl.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b1738 @ 0x102b17fc; return paths
 
-</details>
+:::
 
 
 #### Errors
@@ -3221,9 +3221,9 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fbb60`
 - dispatch entry `0x10eb3108`
@@ -3243,7 +3243,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - fn 0x102fbb60 @ 0x102fbb60; action wrapper handler
 - @ 0x10eb3108; action dispatch table entry
 
-</details>
+:::
 
 ### `GetTransportSettings`
 
@@ -3251,11 +3251,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports the current play mode (normal, repeat-all, repeat-one, shuffle, shuffle+repeat) and the recording-quality mode string. The app reads it to show which shuffle/repeat icon should be lit.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerplate; PlayMode reflects the enum written by SetPlayMode (NORMAL..SHUFFLE_REPEAT_ONE mapped back to its string).
 
-</details>
+:::
 
 #### Inputs
 
@@ -3279,36 +3279,36 @@ Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerpla
 - **`RecQualityMode`**: Record quality mode string (NOT_IMPLEMENTED typical).
   - validation: impl-written out arg
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad634 @ f_102ad634; impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only (where present).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad634 @ f_102ad634; impl decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 PlayMode string derived from the stored play-mode enum; RecQualityMode from engine settings; field provenance unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad634 @ f_102ad634; impl decode
 
-</details>
+:::
 
 
 #### Side effects
@@ -3318,31 +3318,31 @@ PlayMode string derived from the stored play-mode enum; RecQualityMode from engi
 #### State transitions `confirmed`
 
 None.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad634 @ f_102ad634; impl decode
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 None - pure read.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad634 @ f_102ad634; impl decode
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success; 718 for InstanceID!=0 where the arg exists.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102ad634 @ f_102ad634; impl decode
 
-</details>
+:::
 
 
 #### Errors
@@ -3361,9 +3361,9 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8340`
 - dispatch entry `0x10eb3114`
@@ -3380,7 +3380,7 @@ Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven co
 - fn 0x102f8340 @ 0x102f8340; action wrapper handler
 - @ 0x10eb3114; action dispatch table entry
 
-</details>
+:::
 
 ### `Next`
 
@@ -3388,11 +3388,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Skips to the next track, the app's forward button. What it does depends on the source: on queue playback it advances to the next queued song, while on streams and external sources it asks that source for the next item (or does nothing if the source has no concept of 'next'). If there is nothing to skip to, the command quietly has no effect.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->711, else->701}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3403,37 +3403,37 @@ Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: loc
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b9874 @ 0x102b9874; gate decode
 - fn f_102b60b0 @ 0x102b60b0; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b9874 @ 0x102b9874; gate decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session path via impl+0x5a0.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b60b0 @ 0x102b60dc; cmplwi mode,2
 
-</details>
+:::
 
 
 #### Side effects
@@ -3443,31 +3443,31 @@ mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session pa
 #### State transitions `confirmed`
 
 Current track advances by one (indexed) or streamer skip issued; submission vs completion distinction preserved: stream-mode success means the streamer vfunc returned nonzero.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b60b0 @ 0x102b61f8; f_10256a84(op5) source-activate path
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8674; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 Indexed submit rc {2->800,3->711,else->701}; stream path: streamer vfunc nonzero -> 0 else 701.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b60b0 @ 0x102b6184; rc->800/711/701 isel map
 
-</details>
+:::
 
 
 #### Errors
@@ -3514,9 +3514,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8674`
 - dispatch entry `0x10eb3120`
@@ -3530,7 +3530,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - fn 0x102f8674 @ 0x102f8674; action wrapper handler
 - @ 0x10eb3120; action dispatch table entry
 
-</details>
+:::
 
 ### `NotifyDeletedURI`
 
@@ -3538,11 +3538,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Warns the player that something it might be playing has been deleted upstream, for example a music-share folder that was removed or a queue entry whose backing item vanished. The speaker compares the deleted address against its current source. If it is not using that item, the notice is ignored, and if it is, playback of the now-dangling source is cleaned up.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) (the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs "job"/"deleted uri", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec)) likely triggering source-failover or stop behavior for the deleted content.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3556,36 +3556,36 @@ Notifies the player that a URI it may be playing has been deleted upstream. Impl
 - **`DeletedURI`**: URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.
   - buffer cap: `0x401`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f912c; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x48\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f912c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x48\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f912c; member vfunc calls: \['r30 v\[+0x48\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -3595,31 +3595,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x48\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x48\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f912c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x48\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f912c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f912c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -3654,9 +3654,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f912c`
 - dispatch entry `0x10eb312c`
@@ -3668,7 +3668,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - @ 0x10eb312c; action dispatch table entry
 - fn 0x102d5858; AVT impl vtable 0x10eaf2ec slot +0x48 entry
 
-</details>
+:::
 
 ### `Pause`
 
@@ -3676,11 +3676,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Pauses playback, the pause button. On sources that cannot truly pause (live radio, some streams), the underlying operation effectively stops or mutes the feed, and resuming means reconnecting.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3691,37 +3691,37 @@ Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b3
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102d2b28 @ 0x102d2b28; gate+body decode
 - fn f_102b00cc @ 0x102b00cc; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 None beyond InstanceID==0; no mode gate in the impl entry itself.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d2b28 @ 0x102d2b28; gate decode
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 Requires a live streamer/control target for the fast path; otherwise the f_102d0ac8 fallback handles (or fails) it.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b00cc @ 0x102b0134; f_106a7880 on *(impl+0x5a0)
 
-</details>
+:::
 
 
 #### Side effects
@@ -3731,31 +3731,31 @@ Requires a live streamer/control target for the fast path; otherwise the f_102d0
 #### State transitions `confirmed`
 
 Pause submitted to control target + streamer; submission vs actual pause completion is the accepted/submitted distinction - the SOAP call returns after the streamer vfunc returns, not after audio pauses.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b00cc @ 0x102b0134; streamer vfunc path
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8588; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 Success iff worker returned nonzero (submitted + streamer accepted) OR the f_102d0ac8 fallback succeeded; impl rc = fallback rc on the zero path, else 0.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d2bcc @ 0x102d2be0; fallback call f_102d0ac8(impl,1,1,-1,-1)
 
-</details>
+:::
 
 
 #### Errors
@@ -3788,9 +3788,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8588`
 - dispatch entry `0x10eb3138`
@@ -3804,7 +3804,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - fn 0x102f8588 @ 0x102f8588; action wrapper handler
 - @ 0x10eb3138; action dispatch table entry
 
-</details>
+:::
 
 ### `Play`
 
@@ -3812,11 +3812,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Starts or resumes playback, the play button. It only accepts normal speed; asking for any other speed is refused, because this firmware does not support trick-play speeds on the standard path. What it does depends on the source: resume the queue at its stored position, reconnect a stream, or hand the command to whatever external session owns the source.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3831,36 +3831,36 @@ Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 
   - special values: `1` = the only accepted speed
   - buffer cap: `0x400`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d4078 @ 0x102d4078; full impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 Speed must be exactly '1'. Engine object must be live; *(impl+0x3dc)!=0 gates the logging preamble.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d4078 @ 0x102d4110; strcmp(Speed,"1")
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse source triggers a rebuild/log path before play is submitted.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb145c; 'Received play for non-muse source'
 
-</details>
+:::
 
 
 #### Side effects
@@ -3870,31 +3870,31 @@ Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse
 #### State transitions `confirmed`
 
 Play submission to the engine/session machinery; exact track-selection semantics of the -1,-1 sentinels unresolved.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d4078 @ 0x102d4204; -1,-1 sentinel args
 
-</details>
+:::
 
 
 #### Events `strong`
 
 f_100caad8 is invoked on the submit path - the shared transport-changed emit used by the getter-scope boilerplate.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d4078 @ 0x102d41e8; f_100caad8 call
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 rc of f_102cfa50 (or the non-muse path result) is returned as the impl status; cr0.eq=success convention -> SOAP emit vs req->v\[+0x14\] fault.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f9244; wrapper decode
 
-</details>
+:::
 
 
 #### Errors
@@ -3931,9 +3931,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f9244`
 - dispatch entry `0x10eb3144`
@@ -3946,7 +3946,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - fn 0x102f9244 @ 0x102f9244; action wrapper handler
 - @ 0x10eb3144; action dispatch table entry
 
-</details>
+:::
 
 ### `Previous`
 
@@ -3954,11 +3954,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Skips back to the previous track, the back button. It has the same source-dependence as Next: on queue playback it steps back one song (or to the start of the current one, per Sonos convention), and on streams it asks the source whether a 'previous' exists.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998: lock impl+0x458, log 'upnp'/'previous', call f_102b6214. mode!=2 -> f_102b01b4 (submit op-0x19 then streamer prev vfunc at *(impl+0x5a0); streamer nonzero=ok). mode==2 -> FIRST checks capability: f_10258ab0(impl+0x580,0,1) bit 0x00100000 - if the source cannot skip back, returns success WITHOUT submitting anything (silent no-op). If capable: f_102b5ddc, build rec, submit f_10255f64; nonzero rc -> 711, zero -> clear impl+0x6ed8 + return 0.
 
-</details>
+:::
 
 #### Inputs
 
@@ -3969,37 +3969,37 @@ Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998:
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b9938 @ 0x102b9938; gate decode
 - fn f_102b6214 @ 0x102b6214; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 InstanceID==0 only.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b9938 @ 0x102b9938; gate decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x580,0,1); without it Previous is a silent success no-op.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b6214 @ 0x102b6288; andis. caps,0x10 -> silent success
 
-</details>
+:::
 
 
 #### Side effects
@@ -4009,32 +4009,32 @@ Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x58
 #### State transitions `confirmed`
 
 Moves to previous track when the source supports it; capability-gated no-op otherwise - request accepted vs operation submitted distinction is explicit in this impl.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b6214 @ 0x102b6288; capability short-circuit
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8760; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 rc==0 on success incl. the capability no-op; 711 on indexed submit failure; 701 on streamer failure.
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b6214 @ 0x102b62dc; li r3,0x2c7
 - fn f_102b6214 @ 0x102b624c; r30=0x2bd
 
-</details>
+:::
 
 
 #### Errors
@@ -4075,9 +4075,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8760`
 - dispatch entry `0x10eb3150`
@@ -4091,7 +4091,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - fn 0x102f8760 @ 0x102f8760; action wrapper handler
 - @ 0x10eb3150; action dispatch table entry
 
-</details>
+:::
 
 ### `RemoveAllTracksFromQueue`
 
@@ -4099,11 +4099,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Empties the play queue completely, which is 'clear queue' in the app. Everything queued, including the currently selected track's list membership, is dropped, and playback of the queue stops since there is nothing left to play.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes every track from the local queue. Impl f_102b3bf4 delegates to shared worker f_102b3a84(engine,0,0): it formats its first arg with snprintf("%u") and compares it against stored queue-id strings inside the indexed session impl+0x580 (fields +0x2d8ec skip-match and +0x2fff4 match); the hardcoded selector 0 targets the default queue. When the selector matches, f_10149b24 iterates the queue-list object at session+0x2ff98 and f_102b397c performs the removal; a selector mismatch yields 718.
 
-</details>
+:::
 
 #### Inputs
 
@@ -4114,36 +4114,36 @@ Removes every track from the local queue. Impl f_102b3bf4 delegates to shared wo
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f8cc4; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x78\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8cc4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x78\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8cc4; member vfunc calls: \['r30 v\[+0x78\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -4153,31 +4153,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x78\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x78\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8cc4; no transition-literal/store pattern; member delegates: \['r30 v\[+0x78\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8cc4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8cc4; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -4206,9 +4206,9 @@ Request parse layer rejected an argument before the impl was invoked.
 None The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8cc4`
 - dispatch entry `0x10eb315c`
@@ -4220,7 +4220,7 @@ None The Queue service reaches the identical engine worker through queue-manager
 - @ 0x10eb315c; action dispatch table entry
 - fn 0x102b3bf4; AVT impl vtable 0x10eaf2ec slot +0x78 entry
 
-</details>
+:::
 
 ### `RemoveTrackFromQueue`
 
@@ -4228,11 +4228,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes one track from the queue by position. It optionally accepts an update-ID, a version number for the queue, so the app can say 'delete track 5, but only if the queue is still the one I last saw'. That prevents two people (or a stale app screen) from editing different versions of the list and silently clobbering each other.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028): optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.
 
-</details>
+:::
 
 #### Inputs
 
@@ -4249,36 +4249,36 @@ Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fe
 - **`UpdateID`**: Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f9aa8; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x70\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9aa8; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x70\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9aa8; member vfunc calls: \['r30 v\[+0x70\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -4288,31 +4288,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x70\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x70\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9aa8; no transition-literal/store pattern; member delegates: \['r30 v\[+0x70\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9aa8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9aa8; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -4353,9 +4353,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f9aa8`
 - dispatch entry `0x10eb3168`
@@ -4367,7 +4367,7 @@ Request parse layer rejected an argument before the impl was invoked.
 - @ 0x10eb3168; action dispatch table entry
 - fn 0x102aa770; AVT impl vtable 0x10eaf2ec slot +0x70 entry
 
-</details>
+:::
 
 ### `RemoveTrackRangeFromQueue`
 
@@ -4375,11 +4375,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes a contiguous run of tracks from the queue, as in 'remove tracks 3 through 10'. Both arguments count from 1, and zero is rejected rather than treated as a no-op, so callers must pass real positions.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work (StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector "0" via snprintf("%u") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match) selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.
 
-</details>
+:::
 
 #### Inputs
 
@@ -4408,36 +4408,36 @@ Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 71
 - **`NewUpdateID`**: New queue update-id written by the worker through the out pointer after a successful removal.
   - validation: copied from the queue record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102faf24; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x74\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102faf24; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x74\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102faf24; member vfunc calls: \['r30 v\[+0x74\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -4447,31 +4447,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x74\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x74\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102faf24; no transition-literal/store pattern; member delegates: \['r30 v\[+0x74\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102faf24; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102faf24; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -4512,9 +4512,9 @@ Request parse layer rejected an argument before the impl was invoked.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102faf24`
 - dispatch entry `0x10eb3174`
@@ -4526,7 +4526,7 @@ Request parse layer rejected an argument before the impl was invoked.
 - @ 0x10eb3174; action dispatch table entry
 - fn 0x102acca8; AVT impl vtable 0x10eaf2ec slot +0x74 entry
 
-</details>
+:::
 
 ### `ReorderTracksInQueue`
 
@@ -4534,11 +4534,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Moves a block of tracks to a different position in the queue, which is drag-and-drop in the app's queue view. You name the starting track, how many tracks move, and before which position they should land, and all positions count from 1.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work (StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector) the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).
 
-</details>
+:::
 
 #### Inputs
 
@@ -4561,36 +4561,36 @@ Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: Ins
 - **`UpdateID`**: Optimistic-concurrency token handled by the shared worker (nonzero must match current queue update-id, as in RemoveTrackRangeFromQueue).
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f8f88; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, validate×1, commit×1); member delegates: r30 v\[+0x6c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8f88; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x6c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8f88; member vfunc calls: \['r30 v\[+0x6c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -4600,31 +4600,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x6c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x6c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8f88; no transition-literal/store pattern; member delegates: \['r30 v\[+0x6c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8f88; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f8f88; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -4654,9 +4654,9 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f8f88`
 - dispatch entry `0x10eb3180`
@@ -4668,7 +4668,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 - @ 0x10eb3180; action dispatch table entry
 - fn 0x102acf60; AVT impl vtable 0x10eaf2ec slot +0x6c entry
 
-</details>
+:::
 
 ### `ReorderTracksInSavedQueue`
 
@@ -4676,11 +4676,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reorders tracks inside a saved queue (a Sonos playlist) rather than the live play queue. It is the stored-list equivalent of dragging songs around in the queue editor.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gate dispatching into saved-queue worker f_1047a3bc. ObjectID, UpdateID, TrackList/NewPositionList and the out params are forwarded positionally.
 
-</details>
+:::
 
 #### Inputs
 
@@ -4718,36 +4718,36 @@ Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gat
 - **`NewUpdateID`**: Written by the f_1047a3bc worker on success.
   - validation: copied from the queue-record update counter
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fc078; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc078; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc078; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -4757,31 +4757,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc078; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc078; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc078; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -4820,9 +4820,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fc078`
 - dispatch entry `0x10eb318c`
@@ -4834,7 +4834,7 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 - @ 0x10eb318c; action dispatch table entry
 - fn 0x102bd238; AVT impl vtable 0x10eaf2ec slot +0x8c entry
 
-</details>
+:::
 
 ### `RunAlarm`
 
@@ -4842,11 +4842,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Fires a programmed alarm immediately, meaning 'run this alarm now' rather than waiting for its scheduled time. It is used for alarm previews and by the system's own scheduling path when an alarm's moment arrives.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc: the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.
 
-</details>
+:::
 
 #### Inputs
 
@@ -4881,36 +4881,36 @@ Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-cal
 - **`IncludeLinkedZones`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fc4ac; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc4ac; req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc4ac; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -4920,31 +4920,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc4ac; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc4ac; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc4ac; commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -4973,9 +4973,9 @@ Request parse layer rejected an argument before the impl was invoked.
 None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm state through the duration/time helper family (0x1108b284/f_10c3eb60).
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fc4ac`
 - dispatch entry `0x10eb3198`
@@ -4987,7 +4987,7 @@ None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm st
 - @ 0x10eb3198; action dispatch table entry
 - fn 0x102e1d68; AVT impl vtable 0x10eaf2ec slot +0x98 entry
 
-</details>
+:::
 
 ### `SaveQueue`
 
@@ -4995,11 +4995,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Saves the current play queue as a named Sonos playlist, the 'Save queue' action. You give it a title, and it trims whitespace and rejects empty names. The queue must actually contain something for this to work, since you cannot save an empty list.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \r or \n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) (the same persistence/path helper BackupQueue uses) storing the queue under the given ObjectID and writing the assigned object id.
 
-</details>
+:::
 
 #### Inputs
 
@@ -5025,36 +5025,36 @@ Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4
 - **`AssignedObjectID`**: Object id assigned to the new saved queue, written by f_10146e94 through the out pointer.
   - validation: output of the persistence path f_10146e94
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f96fc; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x7c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f96fc; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x7c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f96fc; member vfunc calls: \['r30 v\[+0x7c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -5064,31 +5064,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x7c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x7c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f96fc; no transition-literal/store pattern; member delegates: \['r30 v\[+0x7c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f96fc; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f96fc; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -5130,9 +5130,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f96fc`
 - dispatch entry `0x10eb31a4`
@@ -5145,7 +5145,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 - @ 0x10eb31a4; action dispatch table entry
 - fn 0x102aa8b4; AVT impl vtable 0x10eaf2ec slot +0x7c entry
 
-</details>
+:::
 
 ### `Seek`
 
@@ -5153,11 +5153,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Jumps to a different position in what's playing, covering both the app's scrub bar and 'play track 7'. You say what kind of target (a track number in the queue, an absolute timestamp like 2:30, or a relative offset like -30 seconds) and the value, and the player repositions within the current source if that source supports seeking. Live streams simply cannot be scrubbed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Repositions playback within the current transport source, dispatched to the zone-player engine as impl vfunc +0x34 -> f_102b95a8(engine,InstanceID,Unit,Target): queue/track ordinal seek (TRACK_NR) or time seek (REL_TIME absolute / TIME_DELTA relative).
 
-</details>
+:::
 
 #### Inputs
 
@@ -5183,7 +5183,7 @@ Repositions playback within the current transport source, dispatched to the zone
   - Track normalization: strtol -> record field = value & 0xffff -> range check on the RAW value (raw-1 <= 0xFFFD). Ordering means the stored u16 equals the input for every accepted value; masking cannot wrap an out-of-range ordinal into range.
   - buffer cap: `0x400`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation
 
@@ -5285,9 +5285,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x10eaf320 and 0x10edfbec both resolve slot +0x34 to it). f_102b95a8(engine,inst,unit,target): inst!=0 -> 718; else f_102b9088(engine,unit,target). Internal callers of the same engine exist (f_102b9464 seeks REL_TIME '00:00:00' as a reset). Accepted Units are mode-dependent, not a single static enum.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f935c`
 - dispatch entry `0x10eb31b0`
@@ -5302,7 +5302,7 @@ Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x1
 - fn 0x102b9088 @ 0x102b9088; seek engine: Unit strcmp chains, Target parsers, cap gating, submit calls
 - fn 0x102b95a8; AVT impl vtable 0x10eaf2ec slot +0x34 entry
 
-</details>
+:::
 
 ### `SetAVTransportURI`
 
@@ -5310,11 +5310,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Tells the player what to play, the single most important content command. You pass an address (a queue reference, a stream URL, a line-in selector, a service item) plus metadata describing it, and the player adopts it as the current source. 'Play this radio station' and 'play from this queue' both reduce to setting the right URI here, and what happens afterward depends on what the address points at.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
-</details>
+:::
 
 #### Inputs
 
@@ -5329,36 +5329,36 @@ Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling sh
 - **`CurrentURI`**: Playback URI installed by the shared worker.
   - buffer cap: `0x401`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fa71c; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa71c; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa71c; member vfunc calls: \['r30 v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -5368,31 +5368,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x8\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa71c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa71c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa71c; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -5431,9 +5431,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513230 - group worker f_10512bc0 with extra descriptor arg 0x10ea6a2c. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fa71c`
 - dispatch entry `0x10eb31bc`
@@ -5445,7 +5445,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - @ 0x10eb31bc; action dispatch table entry
 - fn 0x102dcb58; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513230 slot +0x08 entry
 
-</details>
+:::
 
 ### `SetCrossfadeMode`
 
@@ -5453,11 +5453,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Turns crossfade on or off, the smooth blend between consecutive tracks. It only applies to queue playback, because blending requires both tracks to come from the same local list, and on other sources the command is rejected.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock impl+0x458, log 'upnp'/'change crossfade', call f_102b26dc. The worker REQUIRES mode impl+0x4654==2 (indexed) - anything else -> 712 immediately. In indexed mode it further requires f_101471f0(impl+0x5dc)!=0 AND strncmp(current URI,'x-sonosapi-hls:',15)!=0 AND f_101475dc!=0 (crossfade-capable, non-HLS source). When the source cannot crossfade: arg==0 still succeeds silently, arg!=0 -> 712. When capable: a request record (f_1032e270 + f_1032e550(rec,arg,1)) is submitted via f_10255f64(impl+0x580); success clears impl+0x6ed8.
 
-</details>
+:::
 
 #### Inputs
 
@@ -5471,38 +5471,38 @@ Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock imp
 - **`CrossfadeMode`**: Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b99fc @ 0x102b99fc; gate decode
 - fn f_102b26dc @ 0x102b26dc; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 Only meaningful when a queued/indexed source is active (mode==2); streaming sources reject nonzero crossfade.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b26dc @ 0x102b2704; cmpwi mode,2 -> 712 otherwise
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi-hls:' URI - HLS streams cannot crossfade.
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b26dc @ 0x102b2768; strncmp(uri,'x-sonosapi-hls:',15)
 - fn f_102b26dc @ 0x102b277c; f_101475dc cap check
 
-</details>
+:::
 
 
 #### Side effects
@@ -5512,31 +5512,31 @@ Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi
 #### State transitions `confirmed`
 
 Crossfade mode applied through the indexed request machinery; arg==0 on an incapable source is a silent success no-op.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b26dc @ 0x102b27cc; arg==0 -> success even when blocked
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa158; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 0 on success (incl. silent no-op); 712 for wrong mode, incapable source, or submit failure.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b26dc @ 0x102b270c; li r3,0x2c8
 
-</details>
+:::
 
 
 #### Errors
@@ -5567,9 +5567,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fa158`
 - dispatch entry `0x10eb31c8`
@@ -5583,7 +5583,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - fn 0x102fa158 @ 0x102fa158; action wrapper handler
 - @ 0x10eb31c8; action dispatch table entry
 
-</details>
+:::
 
 ### `SetNextAVTransportURI`
 
@@ -5591,11 +5591,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Announces the upcoming track so the player can pre-buffer it, which is the mechanism behind gapless playback. While one song plays, the app (or the queue engine) supplies the next track's address and metadata, and the player gets it ready so the transition has no silence. It only works on queue playback, the mode that knows what 'next' means.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate: impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with "lookup of %s URIs for %s failed" topology logging on failure), i.e. the next-track request can be delegated to the actual playback member.
 
-</details>
+:::
 
 #### Inputs
 
@@ -5610,36 +5610,36 @@ Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, the
 - **`NextURI`**: URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.
   - buffer cap: `0x401`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fa880; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa880; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa880; member vfunc calls: \['r30 v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -5649,31 +5649,31 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa880; no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa880; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fa880; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -5714,9 +5714,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fa880`
 - dispatch entry `0x10eb31d4`
@@ -5728,7 +5728,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - @ 0x10eb31d4; action dispatch table entry
 - fn 0x102af288; AVT impl vtable 0x10eaf2ec slot +0x0c entry
 
-</details>
+:::
 
 ### `SetPlayMode`
 
@@ -5736,11 +5736,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Chooses the play mode: normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. This is what the shuffle and repeat buttons send. Some modes only make sense on the queue (you cannot repeat-one a live radio station), and the player rejects those combinations.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: lock impl+0x458, log 'upnp'/'change play mode', call f_102b24dc(impl,mode-str) which maps the string to an enum {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}. Non-NORMAL modes require capability gates: f_10147928(impl+0x5dc)!=0 (source/queue present), f_10148308!=0 (cap), and byte impl+0x1a03 (shuffle-capable flag), else 712. Per-mode apply: mode==2 -> indexed path; mode==1 -> f_106a9e88(impl+0x5a0,1,mode_enum,0,0) streamer vfunc, its failure -> 712.
 
-</details>
+:::
 
 #### Inputs
 
@@ -5754,38 +5754,38 @@ Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: 
 - **`NewPlayMode`**: Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.
   - buffer cap: `0x400`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b9a9c @ 0x102b9a9c; gate decode
 - fn f_102b24dc @ 0x102b24dc; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc and pass f_10147928/f_10148308 checks plus the impl+0x1a03 flag.
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102b24dc @ 0x102b25d4; f_10147928 gate
 - fn f_102b24dc @ 0x102b25f0; impl+0x1a03 byte gate
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mode==0 has its own NORMAL path.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b24dc @ 0x102b2530; cmplwi mode,2/1 dispatch
 
-</details>
+:::
 
 
 #### Side effects
@@ -5795,31 +5795,31 @@ mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mo
 #### State transitions `confirmed`
 
 Play mode changes to the mapped enum; unknown strings rejected before any state change.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b24dc @ 0x102b25fc; string->enum table
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f94a0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 Worker rc returned as impl status: 0 on success, 712 for unknown string, missing source, capability failure, or streamer rejection.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102b24dc @ 0x102b2554; li r3,0x2c8
 
-</details>
+:::
 
 
 #### Errors
@@ -5850,9 +5850,9 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f94a0`
 - dispatch entry `0x10eb31e0`
@@ -5866,7 +5866,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - fn 0x102f94a0 @ 0x102f94a0; action wrapper handler
 - @ 0x10eb31e0; action dispatch table entry
 
-</details>
+:::
 
 ### `SnoozeAlarm`
 
@@ -5874,11 +5874,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Snoozes the currently ringing alarm for a given duration, the alarm-clock snooze button. It parses the requested nap length and reschedules the alarm to fire again then, and the duration must be in the format the shared alarm machinery understands.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero (the ringing-alarm flag (else 701). It then logs "upnp"/"snooze", submits a transport op via f_102d0ac8(impl,0,0,...)) the same submission helper as the Pause fallback: calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.
 
-</details>
+:::
 
 #### Inputs
 
@@ -5892,36 +5892,36 @@ Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_10
 - **`Duration`**: Snooze duration parsed by shared parser f_10c3d2c4: the same routine ConfigureSleepTimer uses.
   - buffer cap: `0x40`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102f9990; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0xa4\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9990; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xa4\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9990; member vfunc calls: \['r30 v\[+0xa4\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -5931,31 +5931,31 @@ service-internal state reached through member delegate(s): r30 v\[+0xa4\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xa4\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9990; no transition-literal/store pattern; member delegates: \['r30 v\[+0xa4\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9990; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f9990; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -5999,9 +5999,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f9990`
 - dispatch entry `0x10eb31ec`
@@ -6013,7 +6013,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - @ 0x10eb31ec; action dispatch table entry
 - fn 0x102d1fc4; AVT impl vtable 0x10eaf2ec slot +0xa4 entry
 
-</details>
+:::
 
 ### `StartAutoplay`
 
@@ -6021,11 +6021,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Launches an autoplay program, the mechanism behind 'when this alarm fires, start this playlist in that room'. You provide the program to run (what to play and its settings) and the player submits a session for it, using the same machinery that backs alarm-triggered playback.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0: sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.
 
-</details>
+:::
 
 #### Inputs
 
@@ -6051,36 +6051,36 @@ Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a
 - **`ResetVolumeAfter`**: Forwarded to shared autoplay worker f_102e14e0.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x102fc6f4; wrapper + impl decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc6f4; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc6f4; member vfunc calls: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -6090,31 +6090,31 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc6f4; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc6f4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102fc6f4; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -6150,9 +6150,9 @@ operation overridden: autoplay suppressed because an explicit transport operatio
 None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) with avt_impl log "preventing autoplay because operation is overridden". Mode(engine+0x4654)==0 runs a full session reset before installing the stored autoplay URI via f_102da774.
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102fc6f4`
 - dispatch entry `0x10eb31f8`
@@ -6164,7 +6164,7 @@ None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) 
 - @ 0x10eb31f8; action dispatch table entry
 - fn 0x102e17a8; AVT impl vtable 0x10eaf2ec slot +0x9c entry
 
-</details>
+:::
 
 ### `Stop`
 
@@ -6172,11 +6172,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Stops playback, the stop button. Unlike pause (which freezes position for resume), stop tears the current transport down, and for queue playback resuming afterward means starting the track over.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -> 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.
 
-</details>
+:::
 
 #### Inputs
 
@@ -6187,38 +6187,38 @@ Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2
 - **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 See inputs/impl notes
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102d2e54 @ 0x102d2e54; gate decode
 - fn f_102d2bec @ 0x102d2bec; worker decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 None beyond InstanceID==0.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d2e54 @ 0x102d2e54; gate decode
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/0x5a7f/0x7764 gate the chime-restore behavior.
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102d2bec @ 0x102d2c64; mode dispatch
 - @ 0x10eb12cc; 'restoring after stop chime: ret=%d ar=%d wrca=%d pavt=%d'
 
-</details>
+:::
 
 
 #### Side effects
@@ -6228,32 +6228,32 @@ Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/
 #### State transitions `confirmed`
 
 Stop submitted; queue/URI fields cleared on the chime path; transport-state update run.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn f_102d2bec @ 0x102d2cd8; fields cleared
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x102f849c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 701 when f_102931f0(impl+0x5dc) fails its precondition; else mode-path rc flows through f_102b05e4's status (0=success).
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - fn f_102d2bec @ 0x102d2c40; li r3,0x2bd on f_102931f0 fail
 - fn f_102d2bec @ 0x102d2d74; f_102b05e4 rc -> r28
 
-</details>
+:::
 
 
 #### Errors
@@ -6298,9 +6298,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x102f849c`
 - dispatch entry `0x10eb3204`
@@ -6314,7 +6314,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - fn 0x102f849c @ 0x102f849c; action wrapper handler
 - @ 0x10eb3204; action dispatch table entry
 
-</details>
+:::
 
 ## State variables
 
@@ -6409,16 +6409,16 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - **Mechanism:** UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 - **Namespace:** urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...
 - **LastChange variable:** LastChange
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notify_path:** f_102e41a0 AVT event emitter: mutexed (f_10557cac) LastChange doc build using template 0x10eb29e8; e:property write at 0x102e519c; arg+0x3dc string source; f_102b733c doc-write
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `strong`
 
@@ -6428,43 +6428,43 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 
 
-</details>
+:::
 
 ## Implementation return pattern
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 AVT impl universal shape (Ghidra-verified across 15 impls): param_2(InstanceID-path)!=0 -> return 0x2ce=718; else return uVar(engine-vfunc rc). literals 1112=0x458 mutex-offset + 53/56/40/16=struct offsets are noise, not codes. real code vocab {402,718,1024,1025,1028} + engine-passthrough.
 
-</details>
+:::
 
 ## Notes
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - Engine impl object fields recovered: +0x458 command mutex; +0x3dc name string (nonzero gates scoped logging); +0x580 indexed/chsrc session manager (f_10255f64 submit, f_10256a84 ops); +0x5a0 streamer session object (vfuncs f_106a7880 pause, f_106a7a34 next, f_106a7930 seek, f_106a9e88 mode); +0x5dc source/URI control target (cap queries f_10147928/f_101471f0/f_101475dc/f_10148308/f_10688070, precondition f_102931f0); +0x5d4 default state source; +0x4654 transport-source mode enum {0,1,2} (2=indexed/queue); +0x6ed8 pending-op field cleared on successful track/mode ops; +0x7778 cleared by Stop; +0x1a03 shuffle-capable flag; +0x5a86/+0x5a7f/+0x7764/+0x7766/+0x776c chime-restore flags; +0xaaa0 member object touched by Stop. Engine vtables: A=0x10eaf2ec, B=0x10edfbb8 - identical for all actions except SetAVTransportURI and the three Become*Coordinator* ops (B overrides to 0x10513230/0x10513244/0x105133e4/0x105134a8, the group-aware class).
 - Two engine classes implement every action: standalone (vtable 0x10eaf2ec, ctor f_102cc070) and group-capable (vtable 0x10edfbb8, ctor f_104000c4). They share all 54 vfunc slots except ctor/dtor and the four coordinator-sensitive impls (+0x08 SetAVTransportURI, +0x54 BecomeCoordinatorOfStandaloneGroup, +0xd0 BecomeGroupCoordinator, +0xd4 BecomeGroupCoordinatorAndSource). B impls gate on the zonegroup-topology singleton (global 0x110c8478 via f_1090ad44 + state predicate f_109089f0 on obj+0xcc); when ungrouped the B Become* impls tail-call the A impls verbatim.
 
-</details>
+:::
 
 ## Additional records
 
 ### `implementation_notes`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **source:** avt_impl.cxx literal block 0x10eafc0c-0x10eb1fcc; object RAVTMediaRenderer; locks rwlW_avt/rwlR_avt; scope scopeAvt; persistence avt.txt + avt-backup-restore; queues trackqueue/ai_tracker/load_operation_manager
 - **uri_type_enum:** `rincon_uri`, `line_in`, `regular_uri`, `undefined`
 - **seek_units:** `TRACK_NR`, `REL_TIME`, `TIME_DELTA`
 
-</details>
+:::
 
 Implementation sources (recovered): `zoneplayer/avt_impl.cxx`, `zoneplayer/trackplay{monitor,recorder}.cxx`, `zoneplayer/play_state_mgr.cxx`
 
-<details markdown="1"><summary>Service evidence (3)</summary>
+::: details Service evidence (3)
 
 - @ 0x101953c8; service router function
 - @ 0x10eb300c; service vtable
 - @ 0x102fa5c4; service dispatcher
 
-</details>
+:::

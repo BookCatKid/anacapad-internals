@@ -49,11 +49,11 @@ The tables below are the player's URL map for control traffic. Each row is one s
 
 Every command receives its arguments through the same generic 'request' object. Think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free: missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list with confidence, since the form's slots are visible in the code.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Every action wrapper interacts with the request through these vfunc slots (confidence: `inferred`).
 
-</details>
+:::
 
 | Slot | Purpose |
 |---|---|
@@ -71,11 +71,11 @@ Every action wrapper interacts with the request through these vfunc slots (confi
 
 The player keeps internal switches that decide which features exist on this particular hardware or in this mode: a capabilities checklist consulted at runtime. Some commands read these switches before doing anything. A feature may be compiled into the firmware but disabled on this model, or enabled only while a certain mode is active. This is why 'the command exists' doesn't always mean 'the command works', because a switch can make an otherwise-live command refuse to run.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Object fields the firmware reads to gate behavior. Read/write sites are static evidence; the *predicate* each gates is noted honestly where unresolved.
 
-</details>
+:::
 
 | Field | Effect | Status | Load sites |
 |---|---|---|---|
@@ -288,76 +288,76 @@ Named helper routines the command routines share, which form the common toolbox:
 
 Functions we investigated because they looked like command routers: the routines that might have been the switchboard steering incoming commands to the code that runs them. Most turned out to be something else. The survivors are documented here with the evidence for and against.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Functions that looked like dispatchers, with the verdict each received.
 
-</details>
+:::
 
 ### `0x105cd004`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RESOLVED: HTTP-client auth-retry method. Detects 'HTTP/1.1 401'/'HTTP/1.0 401' status lines (0x105cd030/0x105cd04c); vtable slots at 0x10edee00/0x10edeeb0/0x10ef4ae4 = same method installed on 3 HTTP-client subclass vtables - shared auth-retry base behavior. NOT a SOAP dispatcher.
 
 Compares: `HTTP/1.1 401`, `HTTP/1.0 401`
 
-</details>
+:::
 
 ### `0x10651eec`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RESOLVED: RINCON repset/content-format endpoint. 'x-rincon-content-format' hdr -> paranoid_atoui -> fmt index; handler table obj\[fmt+0x21\] (0x10651f50): null slot -> 404 (0x194); fmt<=4 requires auth ctx r31 else 401 (0x191) - low formats privileged; dispatch obj->v\[+0x8\](obj,fmt,arg,req) at 0x10651f90; f_10652038 installs handler vfunc f_10653a34; f_10652008 tail emits text/xml 'RINCON_FFFFFFFFFFFF99999' descriptor. Runtime-registered route (no static caller).
 
 
-</details>
+:::
 
 ### `0x1068e65c`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 NOT a SOAP dispatcher: native binary protocol handler. Parses a TLV-ish record via f_109dd184, reads tag byte at buf+2 and u16 at buf+0, f_109e10d8 maps to a command id (compared 0x4a), calls f_1067c700 worker; result stored at r31+0x30 with a 0x34-length path. Same TLV helper family as 0x1068e904/0x1068ec54. A non-SOAP native protocol surface (SCI/netstart/zone-bus candidate). Body literals identify the surface: Invalid transport: WSS is required / Invalid namespace: UPnP renew not supported / Invalid namespace: UPnP unsubscribe not supported -> websocket (WSS) eventing handler carrying a binary/TLV-framed command set (cmd 0x4a seen); UPnP-style SUBSCRIBE/RENEW/UNSUBSCRIBE namespaces rejected by name.
 
 
-</details>
+:::
 
 ### `0x1068e904`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RESOLVED: shared WSS SUBSCRIBE completion. ~10 per-service wrappers at stride ~0x308 (0x10610018,0x10610320,...) each resolve 'logicalSID' via f_1060b590 then bl f_1068e904. Uses TLV helpers f_109dd184/f_109e10d8 + f_109dcb6c + inet_aton (callback host resolution). Sibling of f_1068e65c which does the same path for the GENA/SUBSCRIBE request object.
 
 
-</details>
+:::
 
 ### `0x1068ec54`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RESOLVED: shared WSS event-delivery/UNSUBSCRIBE worker. ~10 per-service wrappers at stride ~0x2cc (0x1060d5a8,0x1060d874,...) call it. Operates on subscription message object fields +0xec/+0xf0/+0xf4/+0x108/+0x10c; span copies via f_1068c040.
 
 
-</details>
+:::
 
 ### `0x106bb20c`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RESOLVED: settings config-key dispatcher (registered by name). Compares key 'explicitContentFiltering' at 0x106bb274/0x106bb3f4; fault-code 0x191(401) at 0x106bb318. No static callers/vtable -> bound through runtime settings-handler registry. NOT a SOAP dispatcher; part of the HTTP settings/config surface.
 
 Compares: `explicitContentFiltering`, `explicitContentFiltering`
 
-</details>
+:::
 
 ### `0x1073d8f8`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f11f70 at svc+0, installed by ctor f_1073d930 into *(r3-in+0xaa6c)). Reject-all: emits 401 for every action: the service is a registered stub in this build. Evidence is definitive: unconditional 401 emit (li r4,0x191) + vtable 0x10f11f70 at svc+0 installed by ctor f_1073d930.
 
 
-</details>
+:::
 
 ## Shared subsystems
 
@@ -367,7 +367,7 @@ Building blocks reused across many commands: URI grammars for the address format
 
 The fault wire format: the exact document shape of a returned error, which is what a failure looks like on the network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** SOAP fault wire template
 - **format:** <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>%d</errorCode></UPnPError></s:Fault>
@@ -377,14 +377,14 @@ The fault wire format: the exact document shape of a returned error, which is wh
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eebdcc, notes: prefix template
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eebe60, notes: suffix template; %d errorCode interpolated between them
 
-</details>
+:::
 
 
 ### `soap_fault_code_vocabulary`
 
 The fault-code vocabulary: the full set of numeric error codes the command layer can emit, in their own terms.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **extraction:** original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.
@@ -400,41 +400,41 @@ The fault-code vocabulary: the full set of numeric error codes the command layer
 - **notes:**
   - **census_union:** Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.
 
-</details>
+:::
 
 
 ### `soap_client`
 
 The classic command-protocol client: the machinery for outbound classic-API calls, used when the player itself calls another device's commands like group fan-out to members.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"': urn#action forms
 - **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant: SOAP relayed over the cloud tunnel shares the dispatcher
 - **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx: outbound control-point stack
 
-</details>
+:::
 
 
 ### `soap_param_redaction`
 
 Parameter redaction: which argument values get scrubbed before logging, which is the privacy machinery keeping credentials out of the logs.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **flags:** secure + sensitive + trackIDing + prevent per-param flags
 - **semantics:** params (passwords, tokens, account data) flagged to be excluded from SOAP request logging; 'Invalid secure param' when a redacted param is malformed
 
-</details>
+:::
 
 
 ### `upnp_client_stack`
 
 The classic-protocol client stack: the outbound layer for acting as a client toward other devices.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **lifecycle:** Subscribe{Logical SID,Port,Secure Eventing,srRet} -> SID+UDN assigned -> renew (HTTP result/SR codes) -> 'Unsubscribe in renew' resubscribe-on-4xx -> unsubscribe
@@ -442,40 +442,40 @@ The classic-protocol client stack: the outbound layer for acting as a client tow
 - **ordering:** OOS SEQ detection: 'Received OOS %u/%u for SID' + 'last handled: %u'; 'changedMap: 0x%x' per-var changed bitmask
 - **cloud_mirror:** each service's subscription also exposed as v1/players/{playerId}/upnp<svc>/subscription/{logicalSID} {subscribe,renew,unsubscribe} ops
 
-</details>
+:::
 
 
 ### `upnp_eventing_impl`
 
 The classic eventing implementation: the concrete machinery behind the subscribe-and-notify channel, covering subscription install, renewal, expiry cleanup, and the per-subscriber notify sequence.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** upnpeventing_{sender,source}.cxx + cprovider/sonos_cprovider.cxx
 - **opt:** enableUPnPEventingGNDOptimization flag: GENA notify-dedup/batching
 - **semantics:** upnpeventing module w/ 'svc:%s' service tagging
 
-</details>
+:::
 
 
 ### `upnp_genaclient`
 
 The classic event-protocol client: the client side of subscribe-and-notify, used when the player subscribes to other devices' events.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** `/oc/protocol/client/src/renew.cxx`, `/oc/protocol/client/src/request.cxx`, `request.cxx`
 
-</details>
+:::
 
 
 ### `gena_eventing`
 
 The classic subscribe-and-notify protocol implemented in full: listeners subscribe per service and get every state change pushed, which is the machinery behind the older event channel.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** `/oc/zone/common/upnpeventing_source.cxx`, `/oc/zone/common/eventing.cxx`, `eventing.cxx`
@@ -490,14 +490,14 @@ The classic subscribe-and-notify protocol implemented in full: listeners subscri
 - **trusted_clock:** rwlW_trusted_clock/trclock; "seed set with \[%ld\], offset now \[%lld\]" - seeded by lechmere Date: header
 - **evidence:** `literal block 0x10effc34-0x10f01580`
 
-</details>
+:::
 
 
 ### `subscription_manager`
 
 The subscription manager: it owns the registry of active event subscribers, covering who subscribed, renewals, and expiry cleanup, so a lapsed client stops receiving traffic.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **singleton:** 0x11097680
 - **register:** v\[+0x3c\] invoked by GENA handler f_105e8290 on valid SUBSCRIBE (NT/NTS/SID/SEQ checks pass); concrete class runtime-bound
@@ -505,14 +505,14 @@ The subscription manager: it owns the registry of active event subscribers, cove
 - **record_fields:** sub obj: frame@+0x30, flag@+0x34, state@+0x38
 - **status:** strong
 
-</details>
+:::
 
 
 ### `wss_event_vocabulary`
 
 The websocket event vocabulary: the named events the modern channel carries, which are the subscription terms the app uses.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** WSS eventing subscription-type registry
 - **role:** websocket (secure) event-subscription surface; TLV frame {u16 tag@+0, u8 type@+2} mapped to {id,name} via 73-entry runtime table
@@ -633,14 +633,14 @@ The websocket event vocabulary: the named events the modern channel carries, whi
   - idx: 72, name: zoneGroupTopology, id: 322, tag: 78
 - **entry_semantics:** {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind}: idx==registry slot, id==internal event enum, tag==on-wire TLV tag
 
-</details>
+:::
 
 
 ### `internal_event_bus`
 
 The internal event bus: the spine connecting in-process events, which is the backbone the publish-and-subscribe machinery runs on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **src:** ../anacapa-1.0/oc/zone/common/internalevts.cxx; observer perf bound 'Internal event observer (%s.%s) took too long \[%llu ms\]'
@@ -662,14 +662,14 @@ The internal event bus: the spine connecting in-process events, which is the bac
 - **bus_name:** inprocess-events
 - **observer_api:** Registering "%s" observer "%s". Total observers: %zu (events are named *Event objects; observers register by event name; delivery logs "Queued %s(%u) from \"%s\": { %s }" and "Beginning delivery of %s(%u) event on thread %zu") each event has a name, numeric id and a {json} payload string.
 
-</details>
+:::
 
 
 ### `device_description_template`
 
 The device-description template: the skeleton document that becomes the player's self-description once filled with this unit's values. It's the file every client fetches first.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **mechanism:** placeholder substitution ('Sending device_description.xml to %s (cv=%d)')
@@ -692,27 +692,27 @@ The device-description template: the skeleton document that becomes the player's
 - **qplay:** <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</qq:X_QPlay_SoftwareCapability>: QPlay v2 advertised in description
 - **note:** Confirmed absence: no 'scpd','stateVariable','serviceStateTable','sendEvents','allowedValue','dataType' literal exists anywhere in the image - this build never emits SCPD/service-description XML; the state-variable registry lives only inside the eventing engine.
 
-</details>
+:::
 
 
 ### `svcmanifest`
 
 The service manifest: the build's service inventory, which is the list behind what the device description advertises.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **file:** svcmanifests.json per-account manifest; downloaded per sid/sn; 'replicating manifest file from %s': manifests household-replicated via nodetx
 - **impl:** svcmanifestfile.cxx
 
-</details>
+:::
 
 
 ### `xml_parser`
 
 The XML parser: the bundled parser every XML-speaking component decodes through, covering metadata, specs, and settings.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **library:** expat 2.5.0 with EXPAT_ACCOUNTING_DEBUG + EXPAT_ENTITY_DEBUG + EXPAT_ENTROPY_DEBUG instrumented (billion-laughs amplification accounting + entropy checks); xmlparse.c:%d debug sites
@@ -720,14 +720,14 @@ The XML parser: the bundled parser every XML-speaking component decodes through,
 - **client_parse_error:** 'error parsing XML returned from SOAP request / (utf8 issue?)' (f_10562cac prints ***** banner on outbound-response parse failure)
 - **usage:** inbound SOAP body (req +0x08 -> f_10562d64 -> f_10562cac), outbound SOAP responses, DIDL-Lite metadata, ZGT state, plist XML
 
-</details>
+:::
 
 
 ### `mega_impl_object`
 
 The mega implementation object: the large composite structure at the heart of the player, assembled from dozens of sub-interfaces. Most services reach into this single structure for their real work.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **description:** f_101a22c4 constructs a ~0x1b8 multi-base implementation object installing ~30 sub-vptrs from the 0x10e97* vtable family (0x10e97644..0x10e97e8c). Bound to svc px fields via shared_ptr{px,pn} assigns with new(0x14) control blocks (vptr 0x10e98974, strong/weak=1). Each service px points at a different base slice; DP/SP impl vtable 0x10e97e10 belongs to this family - DP and SP literally share one heap impl instance.
@@ -739,14 +739,14 @@ The mega implementation object: the large composite structure at the heart of th
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: GroupManagement impl hunt (final negative result): AddMember's impl call at 0x1073874c has an 8-arg out-fill signature (f(r3=impl, r4=&MemberIDbuf(sp+0x30), r5=BootSeq byte, r6=&out(sp+0x70), stack args 0x24/&sp+0x2b/&sp+0x4f8/0x401). Neither serializer-interface vtable matches: their vfuncs take (out, argobj, emitbuf) and would consume r5 as an emit target, not the BootSeq byte. Vtable-signature, thunk-signature, direct-store, indexed-store, registration-table, and px-address-compute searches all exhausted) GM px (ctx+0x3fa48) is bound by a shared_ptr copy-assign helper (f_101a20d0, dst=new/getter-returned ptr, src=ptr-to-{px,pn}) inside the master impl factory f_103fa434, where the dst address is produced by callees and resists static recovery
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: RESOLVED: GroupManagement impl = dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0 registers name 'gm_impl' via f_10391210, ~0xda8-byte multi-base object), NOT a topology-mega-impl slice. Bound via f_101a20d0 shared_ptr copy-assign at f_103fa434:0x103fbfe8. All four action impls verified: AddMember f_10394d10, RemoveMember f_10395b0c->f_10395854, ReportTrackBufferingResult f_105c53d0 (unconditional-402 stub), SetSourceAreaIds f_10395564: resolved via the 'gm_impl' debug-tag string inside the ctor
 
-</details>
+:::
 
 
 ### `svc_array`
 
 The service array: the registry of service objects embedded in the program, which is the table behind which services exist.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **description:** Embedded service array in service ctx (r31=ctx+0x40000): 0xc-stride {vptr,px,pn} objects. ctx+0x3fa44 GroupManagement f_107389bc, +0x3fa50 GroupRenderingControl f_10739428, +0x3fa5c f_1073ca24, +0x3fa68 ContentDirectory f_10307e94, +0x3fa74 f_104656d0, +0x3fa80 VirtualLineIn f_1073d65c. Getter f_1019dbe4 computes base+0x3fa44 (svc array head); per-service getters adjust secondary base -0x3a8. px=impl shared_ptr ptr, pn=control block; dtor decrefs pn.
@@ -754,28 +754,28 @@ The service array: the registry of service objects embedded in the program, whic
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1018fb74, notes: ctor batch in f_1018d27c
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1019dbe4, notes: array getter +0x3fa44
 
-</details>
+:::
 
 
 ### `composite_subobject_interfaces`
 
 How the big implementation objects are assembled: a single service object is built from many sub-objects each providing one interface, and this maps which sub-objects exist and what each contributes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **signal_accessor:** +0x124-family vtable slots (0x10e98098 etc.): f_10187d14 = this-adjust thunk (-0x124) -> f_10187c18; the real method mutex-guarded (f_1098dfe0/f_10990bcc) registers a {callback f_101804d4, dtor f_10180cf4} pair via f_10694308 (signal-connect) and returns a shared_ptr'd observable (stwcx. atomic refcount in f_10187d1c at 0x10187da8) - the composite's per-subsystem event-source accessors
 - **doc_writer:** f_100e5628 = adapted span-writer: stw self-ptr fixup then f_100d698c(*(in+4), *(in+4)+*(in+8)) byte-span append into a doc; sibling f_100e5670 = mode dispatch on {1,2,3}
 - **implication:** the 'queue engine' and sibling embedded objects are the composite's OBSERVABLE SURFACE - runtime-wired interfaces bridging subsystems to the subscription/event layer; their vtables are runtime-bound exactly as documented
 - **status:** strong
 
-</details>
+:::
 
 
 ### `native_protocols`
 
 The native protocol set: Sonos's own internal protocols recovered as a group, covering the channel-source/sink audio distribution, node messaging, and related private wire formats.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **sp_tlv:**
   - **name:** secure-pairing TLV stream (log tag 'sp_a5335660d494963ab7b783a270417bb8')
@@ -1016,14 +1016,14 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **headers_frame_validation:** nghttp2 HEADERS-state literals: 'HEADERS: stream closed' / 'HEADERS: no HEADERS allowed from client in reserved state' / 'HEADERS: could not unpack' / 'HEADERS: insufficient padding space' / 'HEADERS: invalid padding' (@0x10f89708-0x10f89dbc) - frame-parser validation layer beyond the documented PRIORITY/RST_STREAM surface
 - **status:** strong
 
-</details>
+:::
 
 
 ### `hwmessagelib`
 
 The hardware-message library: the shared library for hardware-level messaging between components, which is the plumbing under button, LED, and hardware events.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **api:** hwmessagelib_connection_{init,destroy,getReadFD,readNextMsg}: fd-based protobuf connection; libhwmessagelib.so.1 + libprotobuf-nanopb.so.0
@@ -1032,14 +1032,14 @@ The hardware-message library: the shared library for hardware-level messaging be
 - **features:** temperature_volume + ST_SCHEDULED_POST_WOW + IN_BUTTON_OBSERVATION_MODE + ENABLED_{,UN}AVAILABLE/DISABLED_{,UN}AVAILABLE state enum + hwmodel field
 - **semantics:** the protobuf hardware-message bus (functional 'SCI') carrying button/LED/temp/sensor/battery/capzone/switch/audio/HT events from hardware daemons into anacapad
 
-</details>
+:::
 
 
 ### `wifi_sonosnet`
 
 SonosNet wireless: Sonos's own mesh network, which is the proprietary wireless linking that speakers use instead of (or alongside) your WiFi.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **mgmt:** wifictrl cmd channel (Ignoring wifictrl cmd=%d) + netstart daemon applies settings + wifi mode change/on change transitions
@@ -1051,14 +1051,14 @@ SonosNet wireless: Sonos's own mesh network, which is the proprietary wireless l
 - **power:** wifiDisable (reason) + wifiPowerSave
 - **files:** `/oc/zone/common/wifi_idle_mgr.cxx`
 
-</details>
+:::
 
 
 ### `bt_sbc`
 
 The Bluetooth SBC decoder path: Bluetooth audio handling present in the shared codebase for products that include it, dormant on this wired-only hardware.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **libs:** libsbc.so.1 + libsonossbcpacket.so.1
@@ -1066,14 +1066,14 @@ The Bluetooth SBC decoder path: Bluetooth audio handling present in the shared c
 - **packets:** 'invalid number of frames per sbc packet'; 'unexpected sbc {config,encode} result expected=%u->%u got=%zd->%zd'
 - **led:** BT-mode LED state: m_bIsInExclusiveBTMode + m_bIsBTConnected + bFlashMode
 
-</details>
+:::
 
 
 ### `ssdp_discovery`
 
 Device-discovery announcements and searches: the classic find-each-other protocol where speakers announce presence, search for peers, and log who answered. It's the older discovery layer alongside the Sonos-specific mechanisms.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1 + HOST:239.255.255.250 + USN: + ssdp:alive/ssdp:byebye; 'Sent MSEARCH reply to %s:%u'; '%s unicast MSEARCH from %s'
@@ -1089,28 +1089,28 @@ Device-discovery announcements and searches: the classic find-each-other protoco
   - **outbound_msearch:** 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)
   - **notes:** alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses
 
-</details>
+:::
 
 
 ### `ssdp_signed_msearch`
 
 Signed M-search: the authenticated form of discovery search, a signed variant protecting the exchange.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)
 - **signature:** HMAC over request -> base64 ('M-SEARCH signature HMAC init failed','Failed to add M-SEARCH signature'); inbound verify: 'hmac sig verify error'; keys hmacDigest/hmac
 - **response_headers:** `BOOTID.UPNP.ORG: %s`, `CONFIGID.UPNP.ORG: %d`, `CACHE-CONTROL: max-age = %u`
 
-</details>
+:::
 
 
 ### `proprietary_headers`
 
 The proprietary HTTP headers: the Sonos-specific request and response headers the firmware recognizes, which are private extensions riding on ordinary HTTP.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **outbound:** `X-Sonos-Playback-Id: %.*s`, `X-Sonos-SWGen: %u`, `X-RINCON-BOOTSEQ: %s`, `X-RINCON-VARIANT: %u`, `X-Sonos-Household-Id`, `X-Sonos-Corr-Id`, `x-sonos-target-udn`, `x-sonos-upnp-loopback-token`, `x-rincon-content-format (repset)`, `x-rincon-roomicon:generic`
@@ -1164,14 +1164,14 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
   - **status:** confirmed
   - **notes:** Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.
 
-</details>
+:::
 
 
 ### `chirp_sdk`
 
 The chirp SDK interface: the internal API for the speaker-identification tone, covering start, stop, and configure. It gives the room-detection commands one shared interface for identification sounds.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **name:** Chirp ultrasonic SDK 4.2.3 (chirp-sdk, build 1898)
@@ -1182,7 +1182,7 @@ The chirp SDK interface: the internal API for the speaker-identification tone, c
 - **build:** 1898
 - **internals:** `chirp_sdk_process_shorts_input`, `chirp_sdk_process_shorts_output`, `chirp_sdk_send`, `chirp_levenshtein`
 
-</details>
+:::
 
 
 ### Other recovered subsystems

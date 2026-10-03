@@ -2,11 +2,11 @@
 
 A Sonos player is much more than a set of remote commands. Inside this one program are dozens of independent subsystems: the queue engine, the group-streaming machinery, the alarm scheduler, the music-library indexer, the HTTP server that hosts the diagnostics pages, the IPC buses the player's many internal processes use to talk, and more. The command services documented elsewhere are really just the network front-end to these engines. This page is the tour of everything under the hood: each subsystem gets a plain explanation of what it does and why it exists, with the engineering evidence collapsed underneath.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Self-contained protocols/engines living in the same binary beside or below the UPnP layer. `absent` = no coverage, `vocab` = names/strings catalogued but semantics undecoded, `partial` = some real documentation exists. Evidence addresses are the rodata anchor strings.
 
-</details>
+:::
 
 | Subsystem | Coverage | Summary |
 |---|---|---|
@@ -344,7 +344,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 
 Sonos can enroll a system in A/B experiments pushed from the cloud: feature tests where some households get a new behavior and others don't, with the player reporting which variant it ran. This block receives the experiment assignments from Sonos's servers, stores them locally, and applies the right code path, so two identical speakers can behave differently depending on which test group they landed in.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 production A/B experiment framework: a /experiments local endpoint plus a replicated <ZoneExperiments> store of <ZoneExperiment id name value defaultValue> rows; presence gated by featureConfigZoneExperiment; values influence runtime policy
 
@@ -354,17 +354,17 @@ production A/B experiment framework: a /experiments local endpoint plus a replic
 - **keys:** featureConfigZoneExperiment, zoneExperiments, experimentId, experiment
 - **fetch_pipeline:** RFeatureConfigManager/FeatureConfigManager (featureconfig.cxx region): fetches '/features/v1/config?' with query params {swVersion,hwVersion} over HTTPS with 'cache-control: no-cache'. Cache precedence: cloudconfig_override.json > cloudconfig.json (cloud-cached) > cloud-persisted: 'Using override config' / 'Using %s cloud-cached config' / 'Using cloud-persisted config'. Lifecycle: 'stale' marker, 'Already have fresh data. Skipping Fetch.', 'failed to fetch config: not securely registered', connect failure -> 'rescheduling in 1 hour'. Parse failure paths for each tier ('Error parsing feature config' / 'Error parsing cached config').
 - **assignment_model:** NO on-device bucketing exists: the device sends only {swVersion,hwVersion} and receives per-experiment {id(%llu),name,value(%u),defaultValue(%u)} rows: cohort assignment happens entirely in the cloud config service; the device applies value-vs-defaultValue. The 'number of labels not equal to number of buckets' string is third-party (libbpf/perf), unrelated.
-<details markdown="1"><summary>Evidence (4)</summary>
+::: details Evidence (4)
 
 - @ 0x10ef3d0d; <ZoneExperiment
 - @ 0x10e75d30; /experiments
 - @ 0x10f9c96c; experimentId
 - @ 0x10ef3d34; <ZoneExperiment id name value defaultValue> element schema
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `abr_engine`
 
@@ -372,7 +372,7 @@ production A/B experiment framework: a /experiments local endpoint plus a replic
 
 The adaptive-bitrate engine: the logic that keeps internet streams alive when your connection is shaky. It picks which stream quality to fetch, watches how well downloads keep up, and switches quality up or down to avoid dropouts. When a radio station stutters on bad wifi and then recovers, this is the machinery making that judgment call.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch new playlist","fetching new playlist now"}; playlist failures {"Timed out looking for playlist","no time to recover (%ld buffer)","Too many empty playlists and no audio left/(still %ldms ahead)","Switching source due to empty playlists"}; notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey; fetch "open: %s (0x%x) %d len %llu offset %llu"/"redirect: %s -> %s"/"Segment's content type"/"Using file ext."; "URIs for %g seconds, wake up in %d"; "prebuffering %u bytes within %ld msec"; "start new stream for URI \[%s\], resumeLoc %zu time offset"; "Reset ABR state: start bitrate %u"/"Last estimated bitrate %u"; rate model "rate: SR=%.03lf (%zu) S=%d Sth=%d BL=%.0lf" + "rate(%7d): %.2lf/%.2lf SA=%.2lf b=%u/%u B=%u/%u/%u h=%d/%d r=%.2lf a=%.2lf" + happy metrics {"happy (a > %.2lf)","happy (saturated)","rate update: a=1","was happy","unhappy",Underruns}; InitFramerForTrackList-fail source switch; codec mp4a.40.*; URI version regex /v\[0-9\]+\.\[0-9\]+(\.\[0-9\]+)?(-\[a-zA-Z\]+)?(\+\[a-zA-Z.\]+)?(\[?#/\]|$)
 
@@ -380,14 +380,14 @@ DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch 
 - **status_schemas:**
   - **abr:** <ABRState Name="ABR State"><NodeTXBuffer>%.3lf sec %s</NodeTXBuffer><ProcessRate>%.0lf bps</ProcessRate><Happy>%u / %u</Happy></ABRState>
   - **events:** <ABREvents numEvents><EventEntry ts br sa a r flags="%u\|%u\|%u\|%u" happy/>
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed3964; abr/fetcher block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `account_cert_lifecycle`
 
@@ -395,7 +395,7 @@ DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch 
 
 Every player carries a device certificate, a cryptographic identity card issued by Sonos that proves to the cloud 'this is a genuine Sonos device'. This block manages that certificate's whole lifecycle: requesting it, storing it, and renewing it before expiry. Without it, cloud features can't authenticate the box at all.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 three cert managers (certmanager/devicecertmanager/regdevicecert) over four keycert identities; the registration cert carries the device's SonosID and is required for token generation ('sr: reg cert not available; cannot generate token'); a /regcert status endpoint exposes DeviceCertInfo XML; root-of-trust bundles are fetched from /certbundles/v4/trusted_roots.rcb with ETag caching and retry backoff; signer internals (chlog.cxx): 'sr: header encoder not valid or no data was encoded','sr: payload encoder not valid or no data was encoded','sr: signature generation failed','sr: signature base64 encode failed','sr: trusted time not available; cannot generate token': signing requires trusted time; nearby state names APS_NOT_VALID/AHA_NOT_VALID; sr: token cache (tokencache/token_cache): 'sr: token length too long','sr: could not generate token','invalid token type requested %d; key %s','found a record for key %s','token for key %s found','record for key %s does not match type: requested %d available %d','token for key %s generated'
 
@@ -413,7 +413,7 @@ three cert managers (certmanager/devicecertmanager/regdevicecert) over four keyc
 - **registration_flow:** regdevicecert.cxx: POST {"id":"%s","status":"%s"} to /product/v2/households/%s/players?action=refresh, then ?action=complete&token=%s. Status FSM: 'registration during suspend' / 'registration time expired' / 'registration success' / 'retrying registration at time %ld' / 'registration error' / 'Unexpected 401 response'; fields regStatus, playerReg, RegisteredCustomerID, RegisteredCertSonosID. The signing key arrives over IPC ('Invalid registration signing key in IPC payload' / 'Registration signing key set/cleared'). Secure-reg transfer: 'Transfer mode old (e:%d) new (e:%d)' + scheduled tjmgrExitSecureRegTransferState; conflict check 'Household customer ID \[%s\] in conflict with local device \[%s\]'.
 - **muse_registration_verbs:** Device-registration muse surface (0x10e7c8e8-0x10e7cc00): GET v1/households/{householdId}/devices/registrations -> getDeviceRegistrations; GET v1/users/{userId}/devices/registrations -> getUserDeviceRegistrations; initDeviceRegistration on v1/households/{householdId}/users/{userId}/devices/registrations; completeDeviceRegistration / refreshDeviceRegistration / deregisterDevice on v1/households/{householdId}/devices/registrations/{deviceId}; getRegistrationStatus on v1/players/{playerId}/devices/registration (+household-scoped twin); setRegistrationState on the player-scoped registration resource; transferDeviceRegistration on v1/players/{playerId}/devices/transfer (+household-scoped twin). These are the cloud-side counterparts of the regdevicecert refresh/complete flow.
 - **account_keys:** Credential key formats: 'SA_RINCON%u_' / 'SA_RINCON%u_%s' account keys, per-service 'X_#Svc%u-%x-Token' and 'X_#Svc%u-%x-Key' (service-id + serial-number hex). modifyRecord validation: 'failed to upgrade guest account (sn=%u)', 'Ignoring modifyRecord (SN=%u) from %s. New entry has inconsistent Type %u, OADevID %s, or ID %s' -> 'corruptModifyRecord'; change fields newAccountID/oldAccountID/newAccountType/oldAccountType/newAccountOADevID/oldAccountOADevID. Lookup: 'findRecord(%u,%s,%d) returning oldest %s'/'could not find any accounts' and 'findRecord(%u,%u,%d)': oldest-match fallback.
-<details markdown="1"><summary>Evidence (9)</summary>
+::: details Evidence (9)
 
 - @ 0x10ef220e; devicecertmanager.cxx
 - @ 0x10efc8e6; regdevicecert.cxx
@@ -425,10 +425,10 @@ three cert managers (certmanager/devicecertmanager/regdevicecert) over four keyc
 - @ 0x10eeb82c; /certbundles/v4/trusted_roots.rcb + ETag flow
 - @ 0x10f043a4; reg cert required for token generation
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `account_migration`
 
@@ -436,19 +436,19 @@ three cert managers (certmanager/devicecertmanager/regdevicecert) over four keyc
 
 When account formats change between firmware versions, existing saved logins have to be converted. This block migrates stored service accounts from older formats to newer ones during updates, so your services stay logged in across an upgrade.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthResult}: "migrated account to OAuth, type:%u, sn: %u" + retry {res,retry count,"delay migration until cloud connection","expected ouath account; reset to retry migration"}; "failed to replace email with username for last.fm"; sonos-radio gate {"no SBiz entitlement; preinstalling Sonos Radio","found SBiz entitlement; blocking preinstall"} + "stale entitlements; scheduling job to refresh"; preinstall SID=%u attempts; SA_RINCON65031_ service-account prefix; settings {R_HideTuneIn,R_MigratedTuneIn}; maintenance {"failed to download manifest file for account sid/sn","received empty hash","failed to update userInfo and clean up user hash","Failed to getUserInfo during SvcMaintenance","failed to migrate built-in accounts","failed to migrate pre cloud replication accounts"}
 
 - **name:** zpserviceaccounts: OAuth migration + preinstall
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e9b28c; zpserviceaccounts block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `addrmon`
 
@@ -456,19 +456,19 @@ OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthRe
 
 The address monitor: it watches the player's own network addresses and notifies the rest of the system when they change. If your router hands the speaker a new IP, or a network interface flaps, this is the component that notices first and tells the discovery, streaming, and web layers to re-announce or rebind. Without it, the speaker would keep advertising an address it no longer owns.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RTM_NEWLINK/RTM_GETLINK via netlink; {"read error %d %s","incorrect type","unexpected message %X"}; select events selthrd.RIfAddressMonitor.{reset,data,except,timeout}
 
 - **name:** netlink interface-address monitor
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee69ac; addrmon
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `aha_ops`
 
@@ -476,19 +476,19 @@ RTM_NEWLINK/RTM_GETLINK via netlink; {"read error %d %s","incorrect type","unexp
 
 Operations for a legacy partner integration called 'aha': present in the shared codebase as part of the service-integration layer, where Sonos keeps the machinery for services that were supported on some products or generations.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ops {AHA_STOP,AHA_RESTORE,AHA_END_VLI_SESSION,AHA_SUSPEND_VLI_SESSION,AHA_PAUSE_VLI_SESSION}; "failed to gen group byebye headers" + groupAdvertise_; RChannelLogger; "%d seconds on account %d/%u"; "Recorded sync error on account %u/%u"; sources {"Source set to %d - %s",Compressed Line-In,Uncompressed Line-In,Compressed Dock,Uncompressed Dock,Coordinator Local Library}
 
 - **name:** AHA ops + group advertise
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f03fec; aha block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `arp_assoc`
 
@@ -496,19 +496,19 @@ ops {AHA_STOP,AHA_RESTORE,AHA_END_VLI_SESSION,AHA_SUSPEND_VLI_SESSION,AHA_PAUSE_
 
 Watches the low-level network association table, tracking which devices are reachable on the local network segment. It feeds the connectivity diagnostics that answer 'can this speaker see the others', complementing the higher-level discovery machinery with raw link-level evidence.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 arpchecker "ARP failure: %d consecutive attempts for %s failed: groupcast problem suspected" + "ARP to %s resolved after %d failures" + source_ip/msreplyfailure; arping {async,sync} "started for %s, every %u ms for %u ms" + reset-on-data + timeout adjust + "pending reset in progress" guard; assoctracker CrAssoc metrics {mstime1,mstime2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1,ddtime2,ddnum} + "Skip reporting invalid CrAssoc event"; async arping 'cannot start async arping for %s, pending reset in progress','async arping started for %s, every %u ms for %u ms'/'sync arping started for %s, every %u ms for %u ms','timeout, new timeout %d s, %d us','got data, needs reset: %d, new timeout %d s, %d us'
 
 - **name:** arpchecker+arping+assoctracker: L2 connectivity
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eefee8; arp/assoc blocks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_clip`
 
@@ -516,19 +516,19 @@ arpchecker "ARP failure: %d consecutive attempts for %s failed: groupcast proble
 
 The short-sound player: machinery for playing brief audio clips over the system, such as chimes, doorbell sounds, and prompts. It's distinct from the main music pipeline because these sounds can overlay what's playing rather than replacing it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 muse routes players/%s/audioClip + groups/%s/playback/%s + "forward to %s"; clip object type audioClip; fields {priority,clipType,clipLEDBehavior,clipBehavior,buzzers}; buzzer clips file://%s/buzzers/%d.mp3 + %u:%c; custom requires streamUrl "Missing streamUrl (required for custom clip type)"; httpAuthorization → "Secure streamUrl required when providing httpAuthorization"; delivery {Using AVT,Using External Audio Source}; priority "Cannot interrupt current clip due to priority policies"; pause content first "Failed to pause content because group info could not be retrieved for UUID=%s, ZoneGroupID=%s"; errors {Invalid clip type,Invalid clip id,Clip id not found,Error starting audio clip,failed getting audio clip response,"unexpected object type %s, expecting audioClip"}; resume content after
 
 - **name:** AudioClipManager: doorbell/alert clips
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10edf87c; audioclip block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_decoder`
 
@@ -536,20 +536,20 @@ muse routes players/%s/audioClip + groups/%s/playback/%s + "forward to %s"; clip
 
 The audio decoding layer: the component that turns compressed audio data into raw sound samples ready for the amplifier. Every format the player accepts (MP3, FLAC, AAC, and friends) flows through here, and it picks the right decoder for the stream at hand and manages the decode loop.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 status <SampleRate><SampleBitDepth><NumChannels><ChannelMap><FrameSize>; lifecycle {decoder create/init,header,seek tvResume=%ld.%ld,"seeking to absolute position = (%llu / %llu)","capping aboslute seek position",scan,get pos}; errors {decode err skip/pos/flush/set pos,too many errors,no progress(eof,o),open failed,streaming hint failed,read out of accum space,read eof,reached expected eof pos,seek failed,len failed}; unsupported {too many samples,channels,bit depth}; REPLAYGAIN_TRACK_GAIN= + gain=%f; ogg errors {seek,bailed out,no mem,no init}; ffmpeg/WMA: wmaSeekPacket offset bound; AVFormatContext alloc/open; stream-info/audio-stream find; resume loc byte→time fallback "Resume location %zu exceeds file size %zu, falling back to time-based seek"; "Seeking to position %zu"/"Seeking to time: %lld microseconds"; "Stream duration: %zu milliseconds"/"File size: %zu bytes"/"Estimated offset %zu exceeds file size"; attached-picture extract image/jpeg; libavformat metadata album_artist; codec ctx {not found id,alloc,params,open,pAVPacket/pAVFrame}; frames {send/recv errors,send result status eof}; payload bounds {Extradata too large,Codec params size,Packet size too large,Codec params too large for cache,Packet too large for cached payload}; "no client, ptvResume, fileURI, or uri opener provided, we won't continue"
 
 - **name:** generic audio decoder + ffmpeg WMA path
 - **ogg_vorbis:** nullaudio "starting null audio play"+"dropping %zu bytes"; gapless ogg "we have gapless ogg, %d samples, %zu frame size"/"gapless requested %d samples > decoded frame size"; bounds {oob num samples > max vorbis packet}; states {ogg eof,ogg only header byte found,ogg hard stop requested}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10edde80; decoder blocks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_decoders`
 
@@ -557,21 +557,21 @@ status <SampleRate><SampleBitDepth><NumChannels><ChannelMap><FrameSize>; lifecyc
 
 The collection of specific decoder modules plugged into the decoding layer: the individual format handlers for MP3, FLAC, the AAC family, and friends, which the player picks between per stream.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 vorbis errors {vorbis_synthesis_pcmout produced null PCM data,failed to initialize vorbis given config data,neither config nor music data,no samples produced,insufficient bytes,decoding failed,vorbis_synthesis_read failed}; status XML <SampleRate><FrameSize><NumChannels><ChanMap>%s (%s)</ChanMap>; AAC: "DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d", errors {can't initialize decoder library,Unable to decode init frame,unknown AAC format,Invalid sample rate idx,Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d,Explicitly expressed samplerate not supported,Failed to get the extension sampling freq idx}; XML {DEC_AACDecoder,DEC_InputChanCount,DEC_OutputChanCount,DEC_BitRate,DEC_FrameSize,DEC_AudioObjectType}; AOT enum {AAC-LC,HE-AAC,ER-AAC-LC,ER-AAC-SCAL - Decoding base layer only,ER-BSAC,ER-AAC-LD,HE-AAC v2,ER_AAC_ELD,xHE-AAC}; Ogg seek/resume: 'Detected Ogg seek page (extra header sent by Spotify)','Found location in seek header: ptvResume=%ld.%06ld, pos=%zu','seek tvResume=%ld.%06ld','pos=%zu, resumeLoc=%zu','Found resumeLoc %zu on current packet'/'on previous packet','seek to %d seconds in %s failed after %u probes','processHeaders failed on (re)open \[resumeLoc=%zu, seek=%d, st=0x%X\]'/'succeeded'; page/page-end states 'Finished processing the last ogg page, end of stream','Last page, processed segment %zu of %zu','end of ogg stream (last page)'/'(no more packets)','Detected Ogg headers','Processing ogg headers','Found Ogg headers in stream','Failed processing instream Ogg headers','Unexpected ogg headers','Resetting stored ogg headers','notifyFrame(Headers) buffering error'/'notifyFrame(Audio) buffering error','unsupported frequency and channel combination - sr:%lu numChans:%d','rate:%lu numChans:%d','first: %02x (%zu bytes)','vorbis_packet_blocksize returned %ld (%zu)'; Vorbis comments parsed: MEDIAJUKEBOX:ALBUM ARTIST=, METADATA_BLOCK_PICTURE=; file-decoder error-recovery ladder: per-stage failures {position failed,flush failed,start position failed (to=%d),scan failed,get pos failed,'decoder %s','no progress (eof=%d o=%zu)'} + decode-err recovery {'decode err skip failed','decode err pos failed','decode err flush failed','decode err set pos failed (to=%d o=%zu)'}; unsupported-file guards {'unsupported file (too many samples: %u > %u)','unsupported file (%u channels)','unsupported file (%u-bit)'}; audio_stream_local/dsp: 'setPlaybackStreamSampleType to %s', volume bookkeeping 'changed m_extSrcVolumeMusic from %f dB to %f dB, v:%u'/'changed volume from %f dB to %f dB, sv:%u uv: %u'; WAV guards 'failed parsing header (st=%u, fp=%u)','buffer length 0, no data available','Attempted to divide by 0 - found lDataLen: (%u) wNumChannels: (%u) wBitsPerSample: (%u)','%u bit, %u Hz'; mp3 'Failed to allocate mp3 implementation!'; FLAC cuesheet limits 'MIME type string must contain only printable ASCII characters (0x20-0x7e)','description string must be valid UTF-8'
 
 - **name:** audio decoder layer (vorbis/AAC)
 - **detail:** ogg/vorbis {nullaudio "starting null audio play"+"dropping %zu bytes","oob, num samples larger than max vorbis packet size","we have gapless ogg, %d samples, %zu frame size","gapless requested %d samples > decoded frame size","ogg eof","ogg only header byte found","ogg hard stop requested"}; SBC {"Invalid packet header","params: freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu","Truncated packet. Lost %zu of %zu frames","frame size changed %zu->%zu","decoder error %zd on frame %zu","Bad SBC frame %zu. read %zd/%zd, decoded %zu/%zu","unexpected NOTIFYFRAME_ERR_BUFFERING","unknown frame status %d"}; WMA {"oob, num samples larger than max wma packet size (%zu * %zu == %zu) > %zu","wma player end of file","notify frame stop/do not decode","skipping wma frame","wma decoder error, resetting/no reset/hard stopping","number of channels encoded %d, will not decode > stereo"}; ALAC {"alac decoder status: %d","producing zeros only","alac out-of-bounds read prevented","error initializing ALAC","created alac for %u-bit samples, %d sample freq, %d-channel","unexpected sample bit depth: %u"}
 - **adts_aiff_framer:** ADTS framer (domain suffix formats '%sadts-?'/'%sadts-%s'): sync scan 'found sync'/'skipped %zu', 'unexpected layer %d', 'incomplete header r:%zu'/'(missing CRC r:%zu)', 'unsupported sampling frequency %u', 'unexpected change of format: prev %d', 'Number of audio channels is too high: %u', 'buffer size too small, need %zu bytes', 'incomplete audio data r:%zu l:%zu', 'At Offset:%zu want:%zu dropping frame', 'buffering error, goto cleanup'. AIFF checks: 'exceeded max AIFF audio channels (%d) found %d channels', 'less than min AIFF audio channels (%d) found %d channels', 'File bit-depth unsupported. Found %d', emitted labels '%u-channels'/'%u-bit'. Audiotap record framing: 'j,%zu:%s' tagged-length records and 'i0'-prefixed integer fields on the audiotap.poll stream.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f1a010; decoder block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_fifo`
 
@@ -579,19 +579,19 @@ vorbis errors {vorbis_synthesis_pcmout produced null PCM data,failed to initiali
 
 The audio buffer: the queue of decoded sound samples sitting between decoding and output. It absorbs timing jitter so playback stays smooth when a fetch stalls or the decoder hiccups. How deep and well-managed this buffer is determines whether a flaky network means a gap in the music or nothing noticeable at all.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 records with {pos,range}; writes {"Advance write to next record","Rejecting write, as provided offset %zu != %zu (pending)","not enough fifo records","truncated write","Audio fifo records reset"}; discontinuity {"Discontinuity @ offset %zu in record %zu (expecting: %zu)","*** Too many discontinuities"}; reads {"Consumed contiguous samples (%zu - %zu)","Advance read to next contiguous record","Read %zu bytes from record","No bytes to read from fifo... EOF","audio fifo read at boundary eof","consumed exactly to the eof marker","reached logical boundary","already has pending offset"}; prebuffer {"prebuffering... (used/prebuffer)","Waited %ums for audio from the eSDK","Finished prebuffering in %u ms (st,flush)","prebuffering elapsed %u ms (used/free)","exit waiting for audio, not rendering"}: Spotify eSDK feed
 
 - **name:** audiofifo: record-based circular audio buffer (eSDK)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef04f0; audio_fifo block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_rate_ctrl`
 
@@ -599,19 +599,19 @@ records with {pos,range}; writes {"Advance write to next record","Rejecting writ
 
 The audio rate controller: it keeps the player's playback clock disciplined against the incoming audio so buffers neither starve nor overflow. It's part of why multi-room audio works at all, because every speaker's clock drifts differently and this machinery continuously corrects so rooms stay in step.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, "Rate Maxed"/"Rate Inv Maxed" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; "time went back; try again"; "Thread descheduled for %uus. Limit %uus"; SRC mute on |drift| "(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u"; "Out of bounds. drift: %f mute count: %d"
 
 - **name:** Audio Rate Controller (ASRC) + timesync drift
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f2b610; arc/timesync block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_stream_mixer`
 
@@ -619,19 +619,19 @@ ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Un
 
 Mixes multiple audio streams: the component that lets overlay sounds like alerts, chimes, and calibration tones blend into whatever's playing rather than fighting for the output.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} + stats "E:%d, D:%d, B:%d, PR:%d"; fade engine "fade added: %i.%i sample_len(%u) current_gain target_gain rate" + max/min/fade complete + "no fade slots available"; skipAhead "delta:%u > buffered:%u"; "discontinuity detected after scheduled resync"; mixer: bManageOutputLatency,startup buffers,buffers; fd poll sound.fd.poll.%04X; stall detect "loop(wall): %uus loop(cpu): %uus, sel: %uus"; states MTS_PLAYING transition; DSP drain FSM {"start dsp flushing %i buffers","dsp flushing ended %i frames early","driver draining","dsp flushing complete with od %u"}; stream names as-{dspin,dspout}{-tv,-ext-voice,-ext-chirp}/as-src{in,out}-ext-voice/%s-chsnk%zu; system/audio_out_disable + "Running with audio output disabled"; forcePerfectInitialSync; "KERNEL_PRINTK_ENABLE ... mixer scheduling can't be guaranteed"; "Testpoint delay of %ums"; stream FSM trace 'mixer stream state changing, from: %s to %s','event for stream %zu (%s) was fired, state: %s, resetting','playing overlap = %d usec','Possible mixer thread stall, loop(wall): %uus loop(cpu): %uus, sel: %uus','delaying mixer by %ums','audio output %s by testpoint'; external-voice stream names as-dspin-ext-voice, as-dspout-ext-voice, as-srcin-ext-voice, as-srcout-ext-voice; persistent-EQ 'Found and applying persistent EQ xml file'/'Error parsing persistent EQ xml file'/'No DSP Systems to Parse'; audio_stream_local.cxx: corked reads 'first corked read diff %d | opt %d.%06d npt %d.%06d','corked read has masker fade out samples left, insert masker before consuming first frame','dropping %d usec \[%zu\] of stream data \[%zu\]','initial samples dropped: %zu (%zu usec)','reset audio stream src','src output would exceed available space: %d','src output buffer overflow','sample rate converter error (read %d)'; audio_stream_dsp.cxx: 'setting subwoofer active to %s','changed bFixedOutputEnabled to %d','set streamSampleType to %s'/'setPlaybackStreamSampleType','set volume to %f dB','Zone %d changed playback volume from %f dB to %f dB, sv: %u','changed m_playbackStreamSampleType from %s to %s','changed m_extSrcVolume from %f dB to %f dB, v:%u'/'m_extSrcVolumeMusic'; mixer thread RPmixthrd; buffer checks 'this DSP implementation requires %d buffers but maximum is %d','Error: block size %zu cannot exceed DSP block size max %d'; 'sound device hardware adjustment %u samples, %u usec'; connect guards 'Failed to connect nullptr audio stream','Failed to connect audio stream %s with invalid ID %s'
 
 - **name:** audio_stream + mixing_threaded: per-stream mixer
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f29ab7; audio_stream/mixing blocks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_tap`
 
@@ -639,20 +639,20 @@ stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} +
 
 A single audio tap: a capture point inside the audio path where the firmware can siphon off sound. Calibration and diagnostics features attach here to hear what the player is actually emitting rather than trusting what it was told to play.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 errors {no tap specified,syntax error,invalid request,permission denied} + audio/wav; mic gate "allowed %d mic %d"; taps {linein,codecout,irdecoder,mixersat,mixergm,as-srcin-chsnk0,as-srcout-chsnk0,mixerstats,dspout,formatter,llaout,mixerout,mzdsp,extvoice,extchirp}; spdiftap.compressed + "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!"; sonos-dspid header
 
 - **name:** AudioTap: debug tap points
 - **manager:** audiotap_manager + trueplay_manager; "number of max taps exceeds the avaialable capacity"; "Active Tap %s"/"Closing Tap %s"/"No Active Taps to check if already tapped"; guards {"Location is not tappable","Location is already being tapped","Max number of blocks already being tapped"}; vars {channelname,vartype,VAR_FLOAT,VAR_STRING,VAR_INT} fmt %.04f; "number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE"; "unknown channel type"; sonarEQ.xml + "found legacy tuning"; status "<b>--------Trueplay-------</b>" + "Minimum Trueplay version" + {Small,Large} classes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e73cb8; audiotap block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_taps`
 
@@ -660,7 +660,7 @@ errors {no tap specified,syntax error,invalid request,permission denied} + audio
 
 The family of audio capture points: places in the audio pipeline where sound can be tapped for measurement. Room tuning, the Trueplay-style calibration, and diagnostics that need to hear what the player is actually emitting all use them.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap; tap instances are typed rolling_data_tap objects; 'Datatap snapshot failed after %zu' + 'Error: failed to read metadata from buffer!'; datatap carries a format-version tag 'simple:v1' beside the rolling_data_tap type; empty <SPDIFTap></SPDIFTap> emitted when no tap attached
 
@@ -669,7 +669,7 @@ PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_t
 - **endpoints:** /audio_tap, /spdiftap, /snapshotspdiftap, /downloadspdiftap; request errors 'AudioTap: no tap specified', 'syntax error', 'invalid request', 'permission denied'
 - **file_format:** tap files carry metadata+audio sections with a metadata version: 'Audio tap metadata version mismatch (tap: %d, expected: %d)', truncation checks ('last %zu audio bytes missing', 'last %zu metadata bytes missing'), 'Audio tap file valid (%zu/%zu)', rewind/start markers; snapshot file audiotap.spdif; compressed state 'spdiftap.compressed': 'Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!'
 - **tv_sync:** 'Synchronize SPDIF tap playback with output tap (%s)', 'TV input sample rate mismatch with audio tap (tv:%u tap:%u)', 'TV input read error during audio tap playback': the SPDIF tap doubles as the TV-input capture path for lip-sync
-<details markdown="1"><summary>Evidence (6)</summary>
+::: details Evidence (6)
 
 - @ 0x10feb6e7; audiotap_manager.cxx
 - @ 0x10e738c4; spdiftap.c
@@ -678,10 +678,10 @@ PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_t
 - @ 0x10f287d0; tap metadata version check
 - @ 0x10f26ea4; TV input sample-rate mismatch vs audio tap
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audioin_groups`
 
@@ -689,19 +689,19 @@ PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_t
 
 Grouping machinery for the line-in input, letting a line-in source be shared across a group like any other source. It's present in the shared codebase while the user-facing service on this build is stubbed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 groups keyed by coordinator {'Removing group with coord %s','Adding group with coord %s demoMode %d','addGroup: coordinator %s already added','addGroup: no room available for coordinator %s','added %s number of groups %zu remote %zu','removed %s remaining number of groups %zu remote %zu',"StopTransmissionToGroup: couldn't find coordinator %s"}; URI x-rincon-stream:; formats {UNCOMPRESSED,COMPRESSED,v-spdif} + 'Running demo mode forcing uncompressed'; module names audioinzoneplayer/AudioInputZP/reportserver; htc_zpimpl for HT-satellite input wiring
 
 - **name:** AudioIn group management (ai_impl)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eacd98; ai_impl block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audiotap_manager`
 
@@ -709,19 +709,19 @@ groups keyed by coordinator {'Removing group with coord %s','Adding group with c
 
 Coordinates the audio capture points: which taps exist, who's listening on each, and when they open and close. It arbitrates so calibration, diagnostics, and any other audio listener don't fight over the feed or interfere with playback.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 raudiotapMutex; "failed to setup async request %d %s"; "can't consume from a closed request"; audiotap.poll; "failed write %d %s"; tap guards 'number of max taps exceeds the avaialable capacity'\[sic\],'Active Tap %s','Closing Tap %s','No Active Taps to check if already tapped','Location is not tappable','Location is already being tapped','Max number of blocks already being tapped'; typed-param schema debugParameters/{channelname,vartype}/{VAR_FLOAT,VAR_STRING,VAR_INT}
 
 - **name:** audiotap async requests
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee6170; audiotap reqs
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `authz`
 
@@ -729,19 +729,19 @@ raudiotapMutex; "failed to setup async request %d %s"; "can't consume from a clo
 
 The authorization machinery: the component that checks credentials on incoming requests, covering API keys on the modern surface and permission checks across the system. It's the bouncer logic behind 'Invalid API key'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 policies {"Static policy not found for role (%s), version (%s)","Static fast policy not found","Not in offline mode","Using guest policy for offline mode","Using mTLS policy","Using guest policy"}; token ops {"Failed to get the permissions: http=%d","Failed to parse getPermissions response","Failed to resolve token \[token=******%s\]: http=%d" (masked),"Failed to parse token response","Request to resolveToken successful \[token=******%s\]"}; cache {cache-control-header,responseResolveToken,museAuthzCache,InMemoryHttpCacheMutex,"Policy mapping retrieved from cache"}; guards {"Credential is not allowed","Guest access disallowed","Unauthenticated control disallowed"}
 
 - **name:** /authz: policy + token resolution
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef9a80; authz block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `auto_update`
 
@@ -749,19 +749,19 @@ policies {"Static policy not found for role (%s), version (%s)","Static fast pol
 
 The automatic-update machinery: it decides when the system should fetch and install firmware on its own schedule, per the household's update settings. This is what makes a fleet of speakers update overnight without you doing anything, because each player knows the policy, checks for a new build, and applies it when its window arrives.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SESSION_MONITOR,ST_SESSION_REPORT,ST_SESSION_ACTIVE} + PendingStart/SessionStart/SessionStartLocal/SessionAttempts counters; settings {R_AutoUpdateWindowStart,R_AutoUpdatePolicy,R_CheckUpdateInterval}; blockers {"Upcoming alarm is preventing update","Active device(s) preventing update"}; "Trimming the window to (%d) seconds"/shrinkWindow; upgrade_mgr_report.json {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta,numZPsToUpdate,numZPsDropped,targetSystemVersion,updateHHResult,numFailedZPs,numZPsWithError}; "RINCON_%s01400 updated to %s"/"update failed (%d)"; "Retrying upgrade (%d/%d)..."/"Giving up after max upgrade attempts"; upgrade_mgr.txt state file
 
 - **name:** upgrade_mgr: auto-update scheduler FSM
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eae3f4; auto_update_scheduler block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `bandwidth_meter`
 
@@ -769,19 +769,19 @@ states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SE
 
 Measures actual network throughput: a meter the streaming code consults to decide whether the connection can sustain a given bitrate. It feeds the adaptive-quality decisions, so when it reports a weak link the player picks lower-quality stream variants before the music stutters.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s","Bandwidth not calculated, latency zero","WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d","LOW BW (kbit/s): %u < %u, count = %u","Bandwidth window not updated, latency zero"}; asserts {first_chunk_request_time not set,latest_chunk_finished_time not set,finished_time >= stats->first_chunk_request_time}
 
 - **name:** eSDK bandwidth measurement
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe42ec; bandwidth
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `boot_sequence`
 
@@ -789,19 +789,19 @@ Measures actual network throughput: a meter the streaming code consults to decid
 
 The player's boot logic: the ordered bring-up sequence inside this program, covering which subsystems initialize in which order, what must succeed before the next stage starts, and what the player does when something fails partway. It ends with the player announcing itself to the household.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "updating boot sequence due to wifi connection event"; settings {TargetRoomName,LocalAccountTransferMode,ForceWifiDisable,ForceMeshDisable,SonosNetDisable,WEPKey}
 
 - **name:** boot_sequence_mgr: bootseq triggers
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef0a8c; boot_seq block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `browse_prefixes`
 
@@ -809,19 +809,19 @@ The player's boot logic: the ordered bring-up sequence inside this program, cove
 
 The prefix-jump machinery: the 'go to the Ss' indexing that lets a long library list be navigated alphabetically, behind the FindPrefix and prefix-location commands.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:} + urn:schemas-rinconnetworks-com:metadata-1-0/|total; additional RDC browse paths explore:artist:compilations::art.%s, mymusic:playlists, mymusic:album::alb.%s
 
 - **name:** SMAPI/browse object-id prefixes
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0f62c; browse prefixes
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `bt_sbc`
 
@@ -829,19 +829,19 @@ The prefix-jump machinery: the 'go to the Ss' indexing that lets a long library 
 
 Bluetooth SBC audio support: the decoder path for the standard Bluetooth audio format, present in the shared codebase for products that include Bluetooth. On this wired-only Playbar hardware it ships dormant, so the code is built in but never exercised.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 params "freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu"; errors {Invalid packet header,Failed to parse %zd,Truncated packet. Lost frames,Invalid packet,frame size changed %zu->%zu,decoder error %zd on frame %zu,Bad SBC frame %zu read/decoded,NOTIFYFRAME_ERR_BUFFERING,unknown frame status}
 
 - **name:** SBC decoder (Bluetooth RX)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee54d0; sbc block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `business_msp`
 
@@ -849,13 +849,13 @@ params "freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%z
 
 A managed-service-provider and business-tier integration block: machinery for enterprise-managed Sonos deployments where an organization administers fleets of players. It's part of the platform layer and stays mostly dormant on consumer households.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION)
 
 - binary anchors: `AddRemoveSonosBusinessMSP`, `Sync Sonos Business MSP`, `/msprox`, `AddRemoveSonosBusinessMSP`, `SFB_PREMIUM_MSP`
 
-<details markdown="1"><summary>Evidence (5)</summary>
+::: details Evidence (5)
 
 - @ 0x10e749a4; AddRemoveSonosBusinessMSP
 - @ 0x10e74e7c; Sync Sonos Business MSP
@@ -863,10 +863,10 @@ Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP
 - @ 0x10f99990; SFB_*_MSP tier enum
 - @ 0x10e74e94; AddRemoveSfbMSP op
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `buttons_ir`
 
@@ -874,7 +874,7 @@ Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP
 
 The physical controls layer: the code that reads the unit's buttons (play/pause, volume, mute) and the infrared remote input, turning hardware presses into the same commands an app would send.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered\[.xml\] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database; zp-level FSM: 'zp_pre_setup_state','init minimal node','processing local %s'; skipBack/skipToNextTrack dispatch 'playback#skipBack'/'playback#skipToNextTrack' via group UUID ('Could not get group UUID for player %s to send skipBack command','Error sending skipBack command to local: %s','playback#skipBack response: %s'); play/pause FSM 'entering play/pause toggle','processing the play/pause button up event','executing pause','playback paused (cid: %s)','Error (%d) invoking pause','Pause failed - Cleared fast volume zero','executing un-mute instead of pause' (un-mute fallback when mute state can't be read),'waiting for PlaybackStateChangedEvent to clear fast volume zero','play/pause toggle cleared HW fault'; demo-mode IR learn loop 'Starting IR remote learning','Remote learning successfully configured remote for demo mode.','Remote learning one button code not found in DB for demo mode.','Remote learning timed out before remote was configured for demo mode.','Remote learning failed to configure for demo mode.'; config-mode entries: '%sentering speaker-detect config mode' alongside button-notify and room_calibration-calibrate; 'Entering %s config mode.','invalid input parameters v:%s t:%s'; IR decoder detail (irdecoder.cxx): debounce layer 'handling debounced input'/'debounced volume up'/'debounced volume Down','currently not playing','handling raw volume up'/'raw volume down'/'raw volume mute'/'raw input code'; install guards 'attempted to install a null code'/'null remote','unknown IR control target while installing code','unknown IR code pattern while installing code','attempting to add null remote to db'/'remote to full db','attempting to set too long a controller name'/'excessively long main code'/'alt code'/'repeat code','Cannot add {repeat,vol up,vol down,input,vol mute} code: list full.','Failed to open IR device! (%d)','Could not get IR file descriptor!','Failed to close IR device','Could not write ir configuration!','db code length \[%d\] exceeds buffer','exceeded temp buff size: i = %d','Input buffer too large (%d > %d), contents truncated','Ignoring excessively long code during learn, length: \[%d\]','new capture %d','Successful long code learn.','total bytes received: %d'
 
@@ -885,7 +885,7 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 - **lock:** SetButtonLockState/GetButtonLockState/GetButtonState SOAP surface; DesiredButtonLockState/CurrentButtonLockState vars; UnpairedButtonLock; BUTTONS_LOCKED + IN_BUTTON_OBSERVATION_MODE + DAT_IN_BUTTONLESS_SETUP_MODE states; 'button-notify' config mode (cm_button/buttonAction); 'Becoming standalone due to button press'
 - **ir:** irdecoder.cxx select-thread (selthrd.RIRDecoder.*); LearnIRCode/CommitLearnedIRCodes/GetButtonState actions; one-button learn mode with timeout + UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND fault; codes fetched from http://ir.ws.sonos.com/IRCode/ (O_IR_DB_WS_IRCODE_URL key), <IRCode> XML schema; demo-mode missing-code path
 - **cloud:** v1/players/{playerId}/virtualRemoteControl/buttonCommand + household-scoped variant, sendButtonCommand op: cloud-injected virtual remote
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10ec9b6e; longpress.cxx
 - @ 0x10ea75fa; irdecoder.cxx
@@ -895,10 +895,10 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 - @ 0x10ec74e0; '%s button pressed (cid: %s)' forwarding log
 - @ 0x10ea701c; UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND learn-mode fault
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `capability_guards`
 
@@ -906,19 +906,19 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 
 The per-setting capability gate messages: 'supported only for devices that support power over ethernet', 'water sensor', 'microphone switch', 'subwoofer', 'suspendable devices', plus a minimum-battery requirement. These explain why a settings update can be rejected on one model but accepted on another, because the validator checks hardware capabilities, not just the data format.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "Supported only for devices that support power over ethernet and have ethernet support"; "Supported only for devices with a water sensor"; "Supported only on devices with a microphone switch"; "Device is not a subwoofer"; "Supported only on suspendable devices" + {requiredMinimumBatteryPercentage,requiredMaximumBatteryPercentage,durationSeconds}; "Supported only on devices with a battery"; "Supported only on devices with bluetooth" + "Unable to set bluetooth pairing, unsupported"; "target is not a home theater source"/"target does not support HDMI CEC" + tvPowerState; "Setting is not valid"
 
 - **name:** settings capability guards
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e99764; capability guards
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `catalog_translate`
 
@@ -926,19 +926,19 @@ The per-setting capability gate messages: 'supported only for devices that suppo
 
 The catalog-ID translator: it asks the cloud to map an item ID from one service's namespace into another's, for example 'the same album on Spotify versus Deezer'. Without it every service would need its own browsing logic, and with it one service's 'station' and another's 'channel' both arrive in the app as the same kind of browsable item.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 translateId(%s,%s,%s) with missing-param errors {objectId,serviceId,targetObjectId}; cloud GET catalog/id/%s?destinationServiceId=%s + targetSid; caching {"retrieved translation from cache","translation not cached; connecting to translation service","translateId response: %d %s","saved translation to cache"}; catalogSvcMgr
 
 - **name:** /content/api + zpCatalogTranslation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb3c38; catalog block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cec_diagnostics`
 
@@ -946,19 +946,19 @@ translateId(%s,%s,%s) with missing-param errors {objectId,serviceId,targetObject
 
 The HDMI control-channel diagnostic fields: the state variables reporting what the TV link is doing, including power status, audio-return-channel state, and error flags. When a soundbar can't see or control the TV it sits under, these are the readings that report what the HDMI channel is actually doing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {tvCECStatus,tvPowerStatus,deviceCEC,stateSAM,errorSAM,stateARC,errorARC,errorTV,eARCActive,testAudio,testVideo}
 
 - **name:** HDMI-CEC/ARC diagnostics fields
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fa2160; cec fields
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cert_files`
 
@@ -966,19 +966,19 @@ The HDMI control-channel diagnostic fields: the state variables reporting what t
 
 The on-flash layout for cert material: files named for `encrypted-private-key`, `expiration`, `encryption-key-type`, and `sonos-key-and-cert`. Rotation and renewal rewrite these; a corrupt or expired set cascades into mTLS and token-signing failures across every authenticated surface. Losing or corrupting these files means losing the device's cryptographic identity, so their handling is deliberately careful.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "%s/%s.%s"; keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert}; "failed to retrieve key"
 
 - **name:** device cert file layout
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10faf07c; cert files
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `chanmapset`
 
@@ -986,19 +986,19 @@ The on-flash layout for cert material: files named for `encrypted-private-key`, 
 
 The ChannelMapSet initializer: builds the channel-map tables that describe how speaker channels are assigned (stereo pair L/R, surround roles), with bounds ('Initializer List too large, truncating') and duplicate detection. The watchdog thread `awThreadWDCheck` guards its init. When you bond speakers, this is the data deciding who plays left, who plays right, and who carries the low end.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 chanmapset var; 'Initializer List is too large: %d > %d, truncating to %d'; 'Duplicate entry: %s at index %zu and %zu'; awThreadWDCheck watchdog; sync protocol: 'upd \[%zu\] error, stored uuid: %s','chk \[%zu\], remote uuid: %s, remote state: %d, my state %d' (dp_zpimpl_ht.cxx)
 
 - **name:** ChannelMapSet init
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee6e84; chanmapset
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `chirp`
 
@@ -1006,7 +1006,7 @@ chanmapset var; 'Initializer List is too large: %d > %d, truncating to %d'; 'Dup
 
 The acoustic data-over-sound stack (Chirp SDK 4.2.3, Chirp core 4.2.1) used for setup and secure pairing. The `sonos-cdma` profile spreads symbols across CDMA notes; decoding runs an FFT peak-picker, note estimator, scorer, and voter. Built-in profiles include audible, ultrasonic, and the secure-setup variant. This is how the app passes Wi-Fi credentials to an unprovisioned player by playing a sound from the phone. When you're arranging surrounds and can't tell two identical boxes apart, the app triggers this and the speaker you're pointing at announces itself audibly.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 profile sonos-cdma; decode pipeline {chirp_decoder_t,chirp_cdma_decoder_t,chirp_cdma_match_t,chirp_note_estimate_t(u16),chirp_peaks_t/chirp_peak_t,chirp_scorer_t(u64),chirp_voter_t}; encode {chirp_cdma_encoder_t,chirp_codebook_t(u8*),chirp_rms_t,chirp_decorator_t}; fft {chirp_maths_fft_init/deinit,double}; errors {"No frames selected to decode (is sustain period too short?)","payload contains unknown symbols","Preamble payload has too few symbols ... TODO: #741","Payload does not support symbol sizes beyond 64-bit","Preamble code is outside of symbol range","corrupt_random_symbols","symbol_bits will overflow a cast","failed to read fixed config and codebook"}; sdk {chirp_sdk_random_payload,chirp_sdk_get_info,_chirp_on_received_cdma}; playback {"Start chirping with unique device value:%d","current chirp output volume: %d","A chirp signal is already playing with playId %d","Stop chirp playId %d differ than m_chirpPlayId","Failed to stop chirp","Couldn't create a chirp audio stream","Error initializing chirp","Chirp setup failed - chirp sender does not exist!","Unable to play chirp"}; stream taps {as-dspin-ext-chirp,as-dspout-ext-chirp,ext-chirp-as,setup-chirp-as}; stream errors {stream_chirp_init_sync,lack_data_no_drain,read_err_full,read_err_part_data}; "Ignoring busy transition due to chirp only"; muse routes v1/players/{playerId}/roomDetection/chirp{,/{playId}} + household variants
 
@@ -1017,14 +1017,14 @@ profile sonos-cdma; decode pipeline {chirp_decoder_t,chirp_cdma_decoder_t,chirp_
   - **validator:** profile.c: 'Version'/'Schema version' keys, 'Profile name is too long','Invalid number of entries in the profile object when parsing a JSON (found %d, should be %d)','Unknown JSON key: %s'. protocol.c: per-object entry-count checks for {protocol,protocol-acoustic,protocol-encoding} + 'Invalid key in {acoustic,encoding,protocol}: %s','Preamble must be at least 1 byte long'. protocol-acoustic.c rules: 'Base frequency is below 20','Channel count is not within acceptable range','Header note length invalid','Body note duration invalid','Attack time is invalid','Release time is invalid','Attack/release combination is invalid','Portamento is invalid','Preamble silence time is invalid','Body silence duration is invalid','Preamble must have some length'. protocol-encoding.c: 'Alphabet bits is not within acceptable range','Min message length cannot be less than 1 byte','Max message length cannot be less than 1 byte','Max message length cannot be less than min message length','Polyphony is outside valid range','Total frame length cannot be more than 256 symbols'. config.c: 'Config is not supported by sample rate: %d Hz','Voter %d frame offset exceeds half-note limit (%d > %d)','Error instantiating spectral_weighting_points','Invalid voter config key: %s'.
   - **dump_printer:** profile dump: ' - Version: %d',' - Schema version: %d'; protocol dump: ' - Frequency base: %.1fHz',' - Frequency interval: %.1fHz',' - Channels: %d',' - Channel interval: %.1fHz',' - Note duration, header: %.3f'/'body: %.3f',' - Envelope duration, attack: %.3f'/'release: %.3f',' - Portamento: %.3f',' - Silence duration, header: %.3f'/'body: %.3f',' - Polyphony: %d',' - Symbol bits: %d',' - Alphabet bits: %d',' - Message length: %d - %d',' - RS length: %d - %d',' - CRC length: %d'; decoder config dump: ' - Hop size: %d',' - Minimum sample rate: %d',' - FFT size: %d',' - Payload metrics enabled: %d',' - Buffer metrics enabled: %d' + per-voter '   * Reverb cancellation exponent: %f','   * Reverb cancellation magnitude: %f','   * Frame offset: %d','   * Preamble threshold: %f','   * Amplitude threshold: %f','   * Spectral weighting size: %d'.
   - **decoder:** decoder.c: 'Blockbuffer failed to append samples','Cannot initialise decoder with NULL profile','Cannot initialise decoder with zero sample rate','Invalid channel: %d','Invalid profile/sample rate'; cdma_decoder.c: 'chirp_cdma_decoder_process_frame: Call to add_score failed', 'Detected code: \[%d, %d, %d, %d ...\]' emitted on symbol decode.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd04d6; chirp blocks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `chirp_stack`
 
@@ -1032,7 +1032,7 @@ profile sonos-cdma; decode pipeline {chirp_decoder_t,chirp_cdma_decoder_t,chirp_
 
 The full chirp implementation stack: the complete path from a room-detection command to an audible tone coming out of a specific speaker, covering request handling, tone selection, and routing through the audio path.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos-cdma' profile: used for room detection during setup: muse routes roomDetection/chirp (start/stop signalling with {playId}), DSP-routed audio streams as-dspin-ext-chirp/as-dspout-ext-chirp, a per-device unique payload ('Start chirping with unique device value:%d') and calibrated output volume ('Chirp volume not yet calibrated')
 
@@ -1050,7 +1050,7 @@ embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos
 - **profile_schema:** Full profile JSON grammar recovered (chirp-core source paths /code/chirp-core/source/core/src/profile/{profile,protocol,protocol-acoustic,protocol-encoding,config}.c). Built-in profiles: 'audible', 'sonos-cdma', 'sonos_secure_setup', 'ultrasonic'. Top-level keys: 'schema_version', 'decoder_config'. Protocol-acoustic keys: base_frequency (>=20Hz), channel_count, channel_interval, envelope_attack, envelope_release, preamble (u64 list, >=1 byte, code must be in symbol range), header_note_duration, header_silence_duration, frequency_interval, body_note_duration, body_silence_duration, portamento, template. Protocol-encoding keys: alphabet_bits, crc_length, message_length_min/max, polyphony, rs_length_min/max (Reed-Solomon): 'Total frame length cannot be more than 256 bytes' AND '256 symbols', 'Max message length too large to be expressed in a single symbol'. Decoder config keys: fft_size, hop_size, sample_rate_min, payload_metrics_enabled, buffer_metrics_enabled, voters\[\] each {amplitude_threshold, frame_offset (<= half-note limit), preamble_threshold, reverb_cancellation_exponent, reverb_cancellation_magnitude, spectral_weighting}. Banner: 'Chirp SDK with "%s" profile v%u \[max %u bytes in %.2fs\], supporting %u channel(s), using %s modulation.' Constraints: 'Bandwidth cannot be measured for equal-tempered settings', 'Minimum FFT bin is negative', 'Maximum FFT bin is bigger than half of the block size', 'Config/Protocol is not supported by sample rate: %d Hz', attack/release combination invalid checks. Payload: symbol_bits<=64 ('Created new payload (symbol_bits = %d, length = %d, total bits = %d)'), chirp_levenshtein decode-metric, chirp_decode_metrics_t, 'Generated random chirp with identifier: %s'.
 - **builtin_profile_data:** Compiled-in profile descriptors (.data 0x11094580-0x110948xx): records headed {name*, 0x80000 flag, preamble, 5-float per-voter threshold array}. audible: thresholds 0.95x5, packed fields 0xfb05f6/0xa000000/0x3010f0f. sonos_secure_setup: 0.97x5 + 0.99/0.97. sonos-cdma: thresholds {0.2,0.4,0.6,0.8,0.53} then a channel/freq-symbol map (repeating {17000,0},{18000,12},{19000,24},{20000,36} pairs (4-channel 17-20kHz ultrasonic preamble map, symbol codes stepping 12), tail variants {17000,17.248},{18000,34.405},{19200,34.238},{19400,0} and {17000,8},{18000,6},{19000,4}. 'sonos-cdma' is therefore the ultrasonic inaudible-band profile (17-20kHz carriers) used for secure setup; 'audible' is the audible-band profile. Exact field names still inferential) the structs are positional C initializers.
 - **send_path:** room_detection_send: 'set_config (%d): %s', 'sample rate: %s', 'max payload is: %zu', 'generation status %d'/'generation incomplete %d'/'duration truncated'/'generated signal (%zu bytes)'/'generation took %u ms'; play-id bookkeeping "playId can't be REA_PLAY_ID_NULL", 'Failed to stop chirp with playId %d', 'Stop chirp playId %d differ than m_chirpPlayId %d', 'Chirp payload %s not supported.', "Couldn't create a chirp audio stream.", 'A chirp signal is already playing with playId %d.': single in-flight chirp stream enforced
-<details markdown="1"><summary>Evidence (9)</summary>
+::: details Evidence (9)
 
 - @ 0x10fd2948; chirp_private_cdma.c
 - @ 0x10fd0c49; protocol-acoustic.c
@@ -1062,10 +1062,10 @@ embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos
 - @ 0x10fcecfc; SDK profile banner (profile v%u, max bytes, modulation)
 - @ 0x10fd1cf8; 'Chirp protocol must be fixed length for CDMA'
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cloud_api_paths`
 
@@ -1073,7 +1073,7 @@ embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos
 
 The URL builders for every cloud call: token, invite, user, firmware-download, and event endpoints, each under household, player, service, or group prefixes with their parameters. Collected in one map, they show the full surface of what the player can ask the cloud, which is the outbound counterpart of the API it serves.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent} + prefixes {households/,players/,services/,users/,groups/} + subs {/permissions,/extended}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue,targetType,targetid,reportFirmwareDownload}
 
@@ -1104,14 +1104,14 @@ paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accou
   - **voice:** {playerId}/voice/accounts->{getVoiceAccounts,createVoiceAccount}; accounts/{accountId}->{updateVoiceAccount,removeVoiceAccount}; amazonChallenge->createAmazonChallenge; setup->notifyInitiateOnboarding
   - **zones:** households/{hh}/zones->getActiveZoneList; zones/definition->{getZoneDefinitionList,addZoneDefinition}; definition/{zoneId}->{get,update,remove}ZoneDefinition; missingDefinition->addMissingZoneDefinition; activeZone/{zoneId}->updateActiveZone; memberSettings/{zoneId}->updateZoneMemberSettings; activate/{zoneId}->activateZone; deactivate/{zoneId}->deactivateZone; players/{playerId}/zones/{join,unjoin}/{zoneId}
 - **url_segments:** {households/,players/,groups/,services/,users/,/tokens,/permissions,/invite,/redeem,/users,/extended,/createGroup,/duck,/unduck,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent,/definition,/missingDefinition,/activeZone,/memberSettings,/activate,/deactivate,/unjoin}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds}; verbs {deleteInvite,getUsers,redeemInvite,createInvite,batchTranslate,reportProductEvent,reportAccountSubscription,reportSoftwareDownload,reportFirmwareDownload}; fields {targetType,targetid,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fba284; cloudapi paths
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cloud_synchronizer`
 
@@ -1119,19 +1119,19 @@ paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accou
 
 The cloud synchronizer: it keeps household state like settings, accounts, and playlists mirrored between the local system and Sonos's cloud so both sides stay current. It's why your settings survive a player replacement and why changes made remotely appear on the speakers.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 cloud_synchronizer thread: registerServices (max-count abort, called-once guard), "received JIT event", "discarding %s type %d"
 
 - **name:** RCloudSynchronizer
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef1ba0; cloudrequest region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `common_logger`
 
@@ -1139,19 +1139,19 @@ cloud_synchronizer thread: registerServices (max-count abort, called-once guard)
 
 The shared logging machinery: the unified way every subsystem writes log lines, covering formatting, severity levels, and the named log channels each module writes to. It provides one consistent logging surface instead of per-module output.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.backup,logger,rsettings}; line fmt "\[%s | %07ld%03ld\] <%s,%d> "; "Invalid log category name (%s), length: %zu, range \[%d, %d\]"; IO {stat/ferror/read failed}; E_ codes {E_INVALID_SETTING,E_UNSUPPORTED,E_NETWORK_DATA_ERROR,E_NETWORKIOERROR,E_NETWORKTIMEOUT,E_NETWORKOVERFLOW,E_INTERNALERROR,ADD_ME}; rapidjson errors {Invalid escape character,Surrogate pair invalid,Invalid encoding,Number too big for double,Miss fraction/exponent,Missing name/colon/comma,Parsing terminated,Unspecific syntax error,Missing closing quotation mark,Document empty,Document root not singular}
 
 - **name:** common_logger config
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f933f8; logger+json
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cpu_monitor`
 
@@ -1159,19 +1159,19 @@ keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.b
 
 The CPU monitor: it watches processor load and reports it. The readings feed diagnostics (why was the box slow?) and give features a signal to back off when the player is busy, keeping audio playback prioritized over background work.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %2u  %2u   %2u   %2u | %6u %5lld"; parses %zu x7; "cpu%d switched to a shutdown state"; "Avoided dividing by zero calculating cpu core: %d bOverflow: %d"; "core%d: idle at %d%%"
 
 - **name:** CPU monitor
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea5d00; cpu monitor region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `crash_report`
 
@@ -1179,19 +1179,19 @@ reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %
 
 Crash-event telemetry: per-process crash counts with upload responses (procName, numCrashes, uploadResp, playerCrash, lifetime). Reported events feed the crash-upload cloud service; failed uploads are logged for retry. When the program dies, this captures the state around the failure (logs, stack, context) and packages it so Sonos can diagnose crashes in the field without reproducing them.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {procName,numCrashes,uploadResp,playerCrash,lifetime}; "%s %s crash event, crashCount: %i"; Reported/Failed to report
 
 - **name:** crash-event reporting
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f028b8; crashreport block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `crossfade`
 
@@ -1199,19 +1199,19 @@ Crash-event telemetry: per-process crash counts with upload responses (procName,
 
 The crossfade implementation: the audio machinery that overlaps the tail of one track with the head of the next during the crossfade window. Behind the simple on/off setting is a real mixing path that only works when both tracks come from the same local queue, which is why the command rejects other sources.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"attempting to crossfade with underflowed stream","recovered crossfade stream underflow","crossfade %zu samples","attempting to int16 crossfade with empty stream, clearing crossfade","unknown stream type in int16 crossfade: %d","crossfaded %zu bytes (%zu samples, %zu usec), %zu more samples to fade this frame, %zu samples to fade","unknown stream type in crossfade: %d","ending xfade","xfade already on - %zu samples remain unwritten","xfade corked stream: replace buffered data via non-xfade overlap","xfade timestamp too far in past, nst %d.%06d, pt %d.%06d","set xfade lfnf","xfadeable timestamp","inserting volume norm ramp: %d @time %d.%06d","xfade for %zu samples, %f seconds","xfade gap, samples %zd","starting xfade (xfade %s)"}; fmt %ld:%02ld:%02ld; "notifyStateChange \[%s\]: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld" + "notifyStateChange music quality: %s"
 
 - **name:** crossfade engine
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb9ee8; xfade block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `csfcm`
 
@@ -1219,19 +1219,19 @@ The crossfade implementation: the audio machinery that overlaps the tail of one 
 
 An internal component identified by build-tree naming: part of the firmware's module set recovered structurally. Its exact expansion isn't recoverable from the binary's strings, so it's documented by where it sits and what it connects to rather than by guessed meaning.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free'}; log fmt '%s:%05d \[%s\] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s'
 
 - **name:** channel-source frame-context manager
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb5f04; csfcm
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `daemon_ipc`
 
@@ -1239,19 +1239,19 @@ csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS'
 
 The request-forwarding table that lets this program ask its sibling system daemons to do things: the power coordinator, the Bluetooth manager, the LED manager, and the network-startup process, plus the answers those requests can return. It's the inter-process glue of the appliance.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/sonosledmgrd-external,/netstartd-external} proxy to sibling daemons; watchdog {/watchdog,/watchdog-legacy,/legacy-to-sentry,/upload} + attachments {watchdog_log,watchdog_dmesg} + crashdump; sentry {"No URL found to upload dump file: %s",text/plain; charset="us-ascii","Failed to write attachment %s to sentry upload",sentry\[tags\]}; flags {/tmp/anacapa_prevent_crashdump_upload,/tmp/backtrace,/tmp/crashed_play_state,/jffs/app/debug/sonosledmgrd.dmp,/opt/log/btservice.log}; "writeStream failed - Bytes compressed: %d/%d" + htsnk
 
 - **name:** /X-external daemon proxy + watchdog/sentry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea7e40; daemon ipc block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dataio`
 
@@ -1259,19 +1259,19 @@ routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/
 
 The data I/O layer: shared helpers for reading and writing structured records, used across the subsystems that serialize state to disk or wire. It was recovered by name and structure during the firmware mapping rather than from public docs.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-control,max-age=,ETag,WWW-Authenticate}; errors {'populate client config failed','unexpected response condition','parse_key failed',"Couldn't load api header, error 1/2"}; awaitAvail {'tried to read %zu bytes where only %zu available','range limited %zu bytes available','socket is closed','took %ldms (e:%d b:%zu w:%zu sbo:%d)'}; SSL 'SSL %s error -0x%x %d to %s with local port %u' + session ticket during dataio SSL read; http {'http readable but 0','http read error %d %s','http timeout'}; header validation {'Bad HTTP Header','BAD HTTP Header EOR mismatch Actual: %zu, Exptd: %zu','BAD HTTP Header EOR out-of-bond'}; chunked-response parser internals: 'BAD HTTP Header EOR out-of-bond EOR: %zu, Total: %zu','BAD HTTP Header EOR: %zu, Total: %zu','Error processing chunked response','Error in the stream (>32bit)/(hex)/(terminator). Can't proceed.','Parser is in incorrect state, probably bug with no calling reset(). Can't proceed.','Programmer error. Should not end up here.','we're at/past the file size! at: %zu, expected: %zu'; SSL {'Received new session ticket during dataio SSL write','SSL write timeout'}; request bookkeeping 'Failed to get request metadata ID hash'/'Added request metadata: %s'; test boundary 'SONOSMULTIPARTBOUNDARY.BLAHBLAHBLAH'
 
 - **name:** dataio HTTP transport
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee7cd4; dataio block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `desired_settings`
 
@@ -1279,19 +1279,19 @@ dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-con
 
 The 'Desired' replicated settings: desired time format, date format, time server, time, timezone, and daily index-refresh time. 'Desired' means 'what the household wants' as opposed to what's currently applied, and the distinction matters during merges and clock sync. This split lets the system validate a change before committing it and roll back cleanly if applying fails.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime}
 
 - **name:** Desired* setting keys
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f1164c; desired settings
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dev_disc`
 
@@ -1299,19 +1299,19 @@ The 'Desired' replicated settings: desired time format, date format, time server
 
 The device-discovery thread (ddt): logs alive/gone announcements per device with source addresses, counts lost discovery messages, and handles the local-network discovery exchanges. It's the player's ear for other devices appearing and disappearing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "%s - rx %s ALIVE %s %s %d %u %s (%zd)", "%s - rx %s BYEBYE %s", "%s - rx CDALIVE %s %s %d", "%s - rx CDBYEBYE %s", "rx  QUARANTINE_RECHECK %s"; "%s - %u SSDP messages lost"; zp byebye; "ddt hint:%d"; "Finished working on type %d"; SSDP M-SEARCH response signing: 'Failed to calculate M-SEARCH signature','M-SEARCH signature base64 encoding failed'; header vocabulary: X-RINCON-HOUSEHOLD, X-RINCON-PROXY, X-RINCON-REASON, HOUSEHOLD.SMARTSPEAKER.AUDIO, SECURELOCATION.UPNP.ORG, X-SONOS-HHSECURELOCATION, X-SONOS-DEVICEID, X-SONOS-SESSIONRETRIES, X-SONOS-SESSIONSECONDS, X-SONOS-MDPMODEL, MAN: "ssdp:discover"; socket opts 'Sonos ucast opt error %d %s'/'Sonos mcast opt error %d %s'; notify handler select-threads selthrd.RMSearchNotifyHandler.{reset,data,except,timeout}; 'Failed to setup MSearchNotifyHandler'; manifest gate 'Manifest URL must use HTTPS: %s','Service manifest URI truncated: %s','Failed to load manifest %s (URLs too long?)','OnSuccessStringId'; metrics config rev negotiation 'update the metric report config? existing rev: %d; proposed rev: %d','trying to configure non-existent uploader %s','Failed to add category: %s','reporting xml configuration format error'; orientation enum fragments VERTICAL_ABOVE/VERTICAL_BELOW; also hosts WMP NSS registrar 'urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1' and DIDL-Lite namespace|element map (DIDL-Lite/item/container/res)
 
 - **name:** RDevDiscThread/ddt SSDP device discovery
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef1d08; ddthrd.cxx
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `device_registration`
 
@@ -1319,19 +1319,19 @@ devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "
 
 The two-phase secure-enrollment handshake: `POST /product/v2/households/{hh}/players?action=refresh` starts it, `?action=complete&token={tok}` finishes with the issued credential. The FSM logs state changes, handles suspend/resume mid-registration, retries on schedule, and treats an unexpected 401 as terminal. This is the path a replacement or reset player takes to get a household cert. This is the step that ties a fresh speaker to an account after setup, turning 'a box on the network' into 'your registered product'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh then ?action=complete&token={tok}; FSM "regState changed %d -> %d" + "Transfer mode old (e:%d) new (e:%d)"; logs {during suspend,time expired,success,retrying registration at time %ld,error,Unexpected 401 response}; vars {regStatus,playerReg,sslerror,errno,mutualssl,sslError}; cert lifecycle {Flushed cert,removed invalid cert}; secure-reg-transfer IPC: signing key via {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}, jobs {tjmgrExitSecureRegTransferState,newRegisteredCertSonosIDLocked,exitSecRegTransferState}; household-customer conflict {"Household customer ID \[%s\] in conflict with local device \[%s\]","changed \[%s\] -> \[%s\]"} vars {RegisteredCustomerID,RegisteredCertSonosID}; events {Received %s event. Sonos ID,NewCertRegistrationEvent inprocess-event}; RegisterZoneProvider UPnP action; replicated headers {X-RINCON-LAST-UPDATE-DEVICE,X-RINCON-CONTENT-FORMAT,CONTENT-ENCODING,X-RINCON-SIGNATURE} + "unexpected content version/format"; {ReplicatedSettings,settingsReplication,netsettingsReplication}; "Removing settings denylists after registration"
 
 - **name:** secure device registration (regdevicecert)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10efc8f8; regdevicecert rodata block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `device_unlock`
 
@@ -1339,7 +1339,7 @@ Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh th
 
 A hidden developer-unlock feature: hitting specific unlock endpoints marks the player as unlocked with a flag file and reboots it. There's a server-side limit on how many times a unit can be unlocked, and diagnostic tests refuse to run on unlocked hardware, so unlocked units are treated as non-production.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unlock.htm endpoints write /tmp/device_unlocked_flag; unlocks are rate-limited ('Too Many Unlocks' HTML page) and DevUnlock reboots the player; RdeviceIsUnlocked and RabortIfUnlocked let self-tests detect and refuse to run on unlocked units; 'unlockedBld' marks the build state
 
@@ -1349,17 +1349,17 @@ developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unl
 - **behavior:** unlock writes /tmp/device_unlocked_flag and an <Unlocked>1</Unlocked> record; the deviceUnlock op + 'DevUnlock' page return 'Rebooting...'; a server-side cap yields '<h2>Too Many Unlocks</h2>' when the per-device unlock budget is exhausted
 - **safety:** RdeviceIsUnlocked + RabortIfUnlocked R_* hooks let diagnostic/self-test code abort on unlocked hardware: unlocked units are treated as non-production
 - **ssh_console_gates:** run_sshd.sh: dropbear (-R -F, ecdsa host key at /jffs/persist/ssh/dropbear_ecdsa_host_key, client keys /jffs/sys/debug/ssh/authorized_keys (the /ssh/authorized_keys form target) is init-respawned BUT blocks on 'waitwhiletrue \[ ! -f /tmp/device_unlocked_flag \]') SSH only serves after device unlock. secure_console_login.sh similarly gates the ttyS0 getty on /proc/sonos-lock/console_enable == '1' (secure-boot console lock), then secure_console.sh does 'login -f root' auto-login: serial console is root with no password once the proc lock is lifted; absent on pre-secure-boot players (console disabled by other methods).
-<details markdown="1"><summary>Evidence (4)</summary>
+::: details Evidence (4)
 
 - @ 0x10f00014; /devunlock endpoint literal
 - @ 0x10f00020; 'Too Many Unlocks' rate-limit page
 - @ 0x10efff88; /tmp/device_unlocked_flag
 - @ 0x10efffb0; DevUnlock page → Rebooting...
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `devicecertmanager`
 
@@ -1367,19 +1367,19 @@ developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unl
 
 The manager that downloads and refreshes the device cert from the cloud: ETag-cached GETs, metadata records (requestTimeMS, downloadStatusCode, previousETag), 'downloaded' vs 'unchanged' outcomes, and a scheduled refresh job when metadata is unknown. This is how a player's identity cert survives factory refurbs and re-enrollment. Where the cert files are storage, this is the brain: tracking issuance, scheduling renewal before expiry, and deciding which certificate is currently active.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ETag-cached downloads; metadata {requestTimeMS,downloadStatusCode,httpResultCode,previousETag}; outcomes {downloaded,unchanged}; "Cert download attempt finished"; "Unknown cert metadata state: %s. Scheduling cert refresh job."; error taxonomy {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present}; headers {X-Sonos-Muse-Household-Id,X-Sonos-Denylisted}; "Retrieved manufacturing data: %s"; files generated lazily "file not available yet, generating"
 
 - **name:** device cert download manager
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef2224; devicecertmanager block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `diagnostics`
 
@@ -1387,20 +1387,20 @@ ETag-cached downloads; metadata {requestTimeMS,downloadStatusCode,httpResultCode
 
 The distributed diagnostics engine: builds a DiagnosticManifest (v2.0.0), POSTs to `/v2/diags` on product-diagnostics with serial_num, distributes a diagId to every player, triggers per-device collection, and gathers the results. `submitDiagnostics` in the app is the front door to this pipeline. The /status website, the log collection behind 'submit diagnostics', and the support-bundle assembly all live here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 manifest <DiagnosticManifest attrs> ver 2.0.0 → POST /v2/diags product-diagnostics; init body {"serial_num":"%s"}; fields {quarantined,secreg,swversion,ZPSupportInfo,ZPInfo,LocalUID,IPAddress,SoftwareVersion,QuarantineReason,StubReason,ZPNetworkInfo}; coordination: distribute diagId to players, trigger diag on controllers, collect submit statuses ("Timed out waiting"/"All devices reported"); files {manifest.xml,%s.xml,%s.sha256,%s.xml.gz}; modes {Diagnostic stub,Local diagnostic}; local aggregate http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x; diag_progress var; counters Num players/Num stubbed players; orchestration detail: 'Failed to generate hash on Stubbed Support Document'/'Failed to serialize hash on Stubbed Support Document','%s for %s submit error: confirmation guid (%s) doesn't match actual guid (%s)' (submit-confirmation GUID check); eventloop lifecycle 'Eventloop stopped.','Eventloop has no more work to do.','Eventloop shutdown. Cancelling watchdog.','Eventloop failure!'; pDiagProgress member
 
 - **name:** distributed diagnostics
 - **coordinator:** DiagMgr: types {Healthcheck,Feedback,ExtraLocal,Diagnostics}+diag_metadata; ops {submitQueuedDiagnostic,SubmitDiagnostics}; queue bounds {"submission queue full","result queue full"}; params {includeControllers,initiatingDeviceId} fmt %s%hu; delayed "triggered ... for %us from now"; results {unrecognized status,Failed to update status,failed-other submission in process,unsuccessful-no devices submitted,successful}; completed log "submissionId: %s, status: %d, diagnosticId: %d"; zpDiagSubmit+tracking+diag_mgr vars; <ZPNetworkInfo type = 'User'> + <!-- START/END UUID: %s --> markers + " unreachable"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f05460; certmanager block diag region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `didl_extractor`
 
@@ -1408,20 +1408,20 @@ manifest <DiagnosticManifest attrs> ver 2.0.0 → POST /v2/diags product-diagnos
 
 The metadata-document extractor: it pulls Sonos's extra fields out of track descriptions, including internal IDs, radio names, track gain, chapter numbers, ad markers, stream content, and podcast or audiobook typing. It's how the player reads the rich details inside each catalog entry.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd,streamContent,audioInputIcon,radioShowMd,streamInfo,rating,policies,podcast,episodeNumber,releaseDate,narrator,albumArtist,numSections} + upnp {originalTrackNumber,album}; classes {object.item.audioItem.podcast,.show,.audioBook.chapter,.musicTrack.recentShow}; loadFromExtraMd(trackURI,extraMd); extractMimeTypeFromHttpContentType (trunc/mtParams errors); protocolInfos {http-get,rtsp-rtp-udp,x-sonos-vli:*:audio:*,x-rincon-queue:*:*:*}; " duration=" attr; &#10; newline; -yYy- marker; additional rincon-md names: author, authorId, book, bookId, contentService, displayTitle, http, isCompleted, mimeType, narratorId, ordinal, podcastId, producerId, resumeOffsetMillis, resumeTrackId, showSecondsRemaining, summary, tags, resMD, room, playmode, description, type (audiobook/podcast resume+identity fields: bookId/podcastId/narratorId/producerId/resumeOffsetMillis/resumeTrackId/isCompleted/showSecondsRemaining); element set {DIDL-Lite,item,container,res,desc,vli}; queue URN urn:schemas-sonos-com:metadata-1-0/Queue/; fault URNs urn:schemas-upnp-org:control-1-0|UPnPError + |errorCode
 
 - **name:** RTrackDIDLLiteMdExtractor: track DIDL parser
 - **uri_service_map:** {x-rincon-mp3radio,x-rincon-internal,x-rincon-buzzer,sonos.com-{hls-static,hls-radio,hls-aac,rtrecent,spotify,http,mms},x-sonosapi-iqradio,audio/x-sonos-recent,pandora.com-{pndrradio-http,pndrradioad},real.com-{rhapsody-direct,rhapsody-http-1-0},sirius.com-sirradio,last.fm-radio-http,https:,file:,rhap:,radio-{rhap,radea,npsdy}:,pndrradio-http://,pndrradioad://,lfmtrack:,x-sonos-dock:,hls-static://}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecc67c; didl extractor block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `drm_content_keys`
 
@@ -1429,19 +1429,19 @@ rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterC
 
 The content-key path for protected audio: for services that deliver encrypted content, this handles the key material that unlocks it, including the playback-ID header services use to correlate a playback with the device that requested it. A necessarily careful component.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry detected from ContentKeys"; X-Sonos-Playback-Id: %s header; "getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)"
 
 - **name:** DRM content keys + playback-id header
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f1032c; drm block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dropout_logging`
 
@@ -1449,19 +1449,19 @@ skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry d
 
 The dropout-event telemetry: tracks group-role changes, corrected-context changes, and presentation-time conditions; slots events into a bounded list with per-condition increments ('set pt reached', 'pt in fut - inaud'). This is the data behind 'why did my music skip' support queries. When music stutters, this is what noticed: it records where and when gaps happened so diagnostics can explain the dropout.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,set/reset pt}; slot model {clr slot,slot in use skip incr,set slot %zu idx %zu to %s,no space in list}; conditions {set pt reached,flag report at %zu sbmt,set pos aud,pt in fut - inaud,GCI but no CID}; per-ch incr "incr call: %s, %zu, %zu, ch %zu, %d.%06d"; fields {inputType,SatChCount,HtsnkVersion,msAfterPt,GroupRole,GCTimeValid,GCTime,btRole,submit}; counters {htsnk_missed_total,htsnk_missed_duration_total,htsnk_late_total,htsnk_strm_reset_duration_total,htsnk_strm_silence_duration_total,htsnk_strm_plc_duration_total}; reasons {chsnk_lse,chsnk_ch_data_full,chsnk_w_err,chsrc_framer_uflw,htsnk_invld_sntp,htsnk_late_frames,htsnk_missed_frames,htsnk_time_backw,htsnk_stream_err,htsnk_stream_uflw,htsnk_stream_reset_duration,htsnk_wrong_frame}; bt_audio + injectdropout test cmd {"missing dt param","Injected dropout error"}; "Sat chs %zu"/"Sat htsnk ver %u"
 
 - **name:** DropoutEventHandler: dropout telemetry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ebe644; dropout handler block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dsp_files`
 
@@ -1469,20 +1469,20 @@ triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,
 
 The signal-processing file inventory: the EQ data files, preset files, and per-variant processing binaries shipped in the firmware image. These are the tuning tables and parameter blobs the signal-processing stage loads, which is the data side of how this model is voiced.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,dsp_system_satellite.bin,satellite_processor.bin}; sonar-tone flush {"flushing sonar tones","Flushed"}; htdocs_locked; "modZPAmpTimer() called"; "unable to delete %s even though it exists"/"successfully deleted %s"; settings {ZPLocalSettingsFile,ZPExpirationTime,ZPGroupExpirationTime,ZPForcedUPnPExpirationTimeout,ZPMusicServicesBackstop,ZPTimeZonesBackstop}; "Setting JFFS root to %s" + ServerRoot + ContinueAfterIPChange + #GROUP_NAME# + "Failure generating group description xml"; loader domain dsp_file_loader: 'DSP file path is longer than buffer %zu: %zu','unable to open file %s','file was not opened. Cannot read %s','output buffer is not a valid pointer','Could not get size of file: %s','getFileSize cannot get file size before opening: %s','Invalid channel map: (%s)','setNumChannels(%d) greater than max (%d).','Invalid string format. Requires x.x.x.x, provided %s','Unable to parse version from end string %s','Unable to parse version from start string %s'
 
 - **name:** DSP preset/system files + settings
 - **unlock_dsp_console:** opt/htdocs_locked/dsp/{configDSP,meters}.{htm,css,js} (unlock-gated live DSP console (served via /tmp/htdocs_locked). Exercises the real DSP routes: GET /getDSP (bare = all-block dump, ?audioSystemsTuning, ?ChProcSysPlaybar.ChProcInputMeter, ?<BlockName>, ?<meterId>), POST /putDSP (form pairs 'Block.param=val -- '), GET eqdata.txt + ChProcInputMeter.xml + getDSP_{3,playbar}.xml (static block descriptor XML). Param grammar 'Block.param') ChProcSysPlaybar.ChProcInputMeter, BassManager.mode, active_iir, allpass1.a{0,1,2}/b{0,1,2}/type/bandpassQ, freq '700', gain '0.707', AB_indicator/ab_control preset-compare. Confirms /getDSP returns per-block param XML and /putDSP takes dotted-name writes: the same dotted namespace as the DSP param registry.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e7390c; dsp files block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dsp_ht_engine`
 
@@ -1490,7 +1490,7 @@ files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,
 
 The full home-theatre audio configuration surface: surround and subwoofer state, downmix mode, dialog enhancement, autoplay silence thresholds, and a large per-zone audio record covering everything from balance to sub crossover to tuning status. Bass management, channel mixing, and delay alignment across bar, surrounds, and sub all happen here, which is the processing that makes a rig sound like one system.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 home-theatre DSP parameter surface + per-zone audio state schemas fully recovered: HT config XML (surround/sub/downmix/dialog/AI-speech/height levels, autoplay/autostop thresholds, Tweaks bitmask), 37-field per-Zone audio XML, zone volume/duck XML; R_MASK_* speaker layouts enumerate supported channel masks; nanopb validation: 'volume (%i) and gain (%i) lengths differ in bonded volume breakpoints','default (%i) and bonded (%i) volume breakpoints differ'; dsp_asrc block
 
@@ -1511,7 +1511,7 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 - **block_params:** per-block param vocabularies. BassManager {RampTimeSec,MinBassGaindB,MaxBassGaindB,EnergyEpsilon,DefaultGain,FixedBassGaindB,'Time constant (sec)',UseFixedGain,CurrentBassGaindB,EnergySumBassManager}; per-channel filter naming %s_{Xover,SumBass,LRXover,CXover,MixL,MixR,LRBassSum,LRCBassSum,Lowpass,Highpass,BassSum,CorrFilter,BassGain}; DRC/voice {compression,dialogEnhance,volumeScalingRatio,dialogRefLeveldB,DRCVolumeSPL,sourceGainOffsetdB,detectorLevel,targetGaindB,DRCDetectFilter,DRCMeter,DRCSmoothGain,DRCVoiceBoost}; SonarSpatial {BypassMode,_RoomCalGains,_PassThruPanGain,_RoomCalPanGain,'invalid channel specified in SonarSpatial\[ setGain\| getGain\]'}; limiter {rampLength,smoothedGain_TCsec,channel_%d_{threshold,attack,release,gain,smoothedgain},threshold,attack,release}; downmixer {runDownmix,runLimiter,downmixForSub,scaleFactordB,volNormSteps,SourceGainOffset,'Sum of linear downmix gains for one output channel: %f (%f dB)','Scale factor %f dB rounded down to %g dB (%f)','nOutputs %zu != NUM_OUTPUTS %d','Error: Unsupported number of downmixer inputs: %zu'}; multigain {targetGaindB_%zu,targetPhase_%zu,currentGaindB_%zu,currentPhase_%zu,gaindB,phase,gaindB_%zu,phase_%zu,TimeConstant,targetPhase,'inverted, normal','multigain: channel number not found in parameter name, probably an old version','multigain: skipping non-existent channel %d in %s'}; upmixer {musicMode,surroundsRequested,rearSurroundsRequested,localChannelMap,satelliteChannelMap,fullRangeSurrounds,'Running upmix','Upmixing surrounds','Atmos music center upmix',centerSideMidCoef,frontBackMidCoef,leftRightMidCoef,centerSideHighCoef,frontBackHighCoef,leftRightHighCoef,current GainC mid/hi,EnergyDistributionExponent,{Music,Video,AtmosMusic}GainC{Min,Max}{Mid,Hi}Freq,VideoGainFBMin/Max,{width,depth}{Music,Video}{Mid,High},centerSideExponent,fullModeStereoScalingdB,musicSurroundDiffRatiodB,videoSurroundDiffRatiodB,'bypass mode',vmix_g%zu_%zu_%s_%s + vmix_g + vmix_g%d_%d,Upmixer_{Xover,DetectHighpass,SurroundDelayL,SurroundDelayR,SurroundFilter},UpmixDeltaEQ,CenterUpmixEQ,CenterUpmixDiscreteBlend,Upmixer_DebugMeter,Upmixer_Debug_Gain}; ExcursionCtrl {SlHP {Dynamic,Smooth},'EB notch {Dynamic,Smooth}','Swap filter run order',Sldg HP/EB notch Action Thresh,'LF/EB allocation, dB',Max/Min Freq,'Freq Up/Down Rate (Hz/sec)','Max/Min EB Cut','EB Cut More/Less Rate','Meter RMS TC, ms','Local Block Size',Sldg HP Q,'EB notch {freq,Q}','EB detector Q',Present SlHPFreq,'Present EB notch depth','Enable ExCtrl','Excursion gain',meters meter_{intermediate,final} Excursion \[Input Signal\|Input Volts\],max excursion,meter_{cutoff,notchdb,HpActionLevel,HpActionLevel_vs,EbActionLevel,EbActionLevel_vs}}; ExcursionLimiter {'Max Excursion mm','Bass delay','Target Excursion, mm','Excursion Filter Gain','RMS Time Constant, sec','Limiter Attack/Release, msec','Minimum/Maximum Cutoff, Hz','Stage 0/1 Q','Cutoff Attack/Release, msec',ModelGain,BassDelay}; ClipMeter {Ymax,Xmax,'Threshold dB','Absolute Threshold dB',MeterAttackSecs,MeterDecaySecs}; AudioStreamGains {gainOffset/normGain/volume/'balance left'/'balance right' {gain dB,target gain dB},'gainOffset gain dB ch %zu','gainOffset target gain dB ch %zu'}; meter/sig-gen {AttRel,'Attack ms','Release ms','AttRel, Peak',FollowMode,'TCMS ms','reset peak',peaklevdB,'Decimation Factor','num Iterations',levlinear,MeterPeak,MIPSBurnerMeter,DotProduct,Sine,WhiteNoiseRPDF,'Sig Level dB','Pass Level dB','Time Constant ms','Sine, WhiteNoiseRPDF','Signal Type','Output Mask' (bitmask '0x00000003, 0x0000000c, 0x00000030, 0x000000c0, 0xffffffff'),speaker_mask,'Speaker mask variant %d not valid'}
 - **iir_machinery:** coeff-set machinery (dsp_iirblock + XFade variants): bounds errors {getFilterCoeffs,getTargetCoefSection,getCoefSection,setCoefSection,copyIIR} all 'Set %d or section %d out of range for %s'; naming chan_%zu_set, coeffset_desc_%d, set_%s, section, filter_%d_%d, coeff dump '%8x, %8x, %8x, %8x, %8x'; setters %s_setCoeffSetMap 'invalid coeff set %d for channel %zu'/without channel, %s_setCoeffSetName 'coeffset description set number out of range', setBlankSonarCoeffs/blankSonarEQ + 'received coefficient set'; iirblock error family {'filter_set_section or coeffset_desc_set format not found','filter set number not found in parameter name','filter section number not found in parameter name','filter set %d or section %d out of range','IIR filter missing/invalid coefficients','IIR filter type %s not supported','IIR filter type %s given %d parameters','set number not found in coeffset description parameter name','channel index is not in limits. provided idx %d, max idx: %zu','channel index is not a number','set index is not in limits','set index is not a number'}; xfade FSM 'transition concluded at state %d' + 'startTransition \[%d\] from stateCur:\[%d\] and stateNext:\[%d\]'/'from stable state:\[%d\]', 'applying putdsp coeffs to %s','setSmoothBypass \[%c\]', 'Invalid dynamic frequency cutoff, will set to minimum of 0.'; BlockDelayLine {currentDelay,maxDelay}; status XML <SelfTrueplayEQ>, <SelfTrueplayInfo><FreshestFilterBank>%s</FreshestFilterBank>, dumpSonarEQInfo
 - **config_builder:** dsp_config_manager/dsp_config_parser/dsp_builder: init guards {'DSPControl is NULL cannot initialize','DSPSystem is NULL cannot initialize','no config file present'}; load {'Loading preset config %s','Building paths','default preset file could not be found','Problem populating file contents','Problem loading preset xml file (%s)','applying \[%s\] config from file %s','%s Preset not found','Parser Error','Could not open (%s)','applying \[%s\] config from loaded contents','using preset pre-load but did not find %s in %s','Preset name too long! %u: %zu'}; preset-name grammar: base_%s_%s joined with variant suffixes {orientation_horizontal,orientation_wall_above,orientation_wall_below,orientation_vertical_tag_left,orientation_vertical_tag_right,orientation_wall_mounted,sub_bonded,sub_unbonded,stereo_paired,stereo_unpaired,hardware_type_1,hardware_type_2,during_trueplay_calibration,_satellite,_flex,_default,_system,_preset}; builder paths 'Constructed {Override,} {System,Preset} \[Flex\|satellite\] Path: %s' 8 forms + 'Not Enough Information to build %s path' + 'DSP Builder initializer is Empty! Can't build system/preset' + 'DSP file Path is empty'; hdsp_array multi-config loader {'running block before finalizing load','Array File Found: %s','setting io buffs before finalizing load','nConfig out of range','incorrect number of taps or channels: nTaps: %d nWfTaps: %d','attempting to select/load config in system that doesn't allow multiple configurations','configuration file missing','Coeff text length in XML file exceeds allocated size','%s/app/debug/%s'}; arrayDef fields {Array,numChan,numTaps,arrayDef,weights,alphas,delays,delayUnder}; config identity fields {currentConfig,digest,digestibility,descriptability,dateness,_PassThruSum,_Delay}
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10e878fc; SubCrossover
 - @ 0x10f25449; DialogEnhancementLevel
@@ -1522,10 +1522,10 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 - @ 0x10feabd8; per-Zone audio XML schema (37 fields)
 - @ 0x10f2b138; Zone volume/ducking XML schema
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dsp_params`
 
@@ -1533,19 +1533,19 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 
 The runtime signal-processing parameter surface: dynamic-range boost, speaker angles, virtualizer mode, bass extraction, and per-mode profiles, with a 'load defaults' fallback when config is missing. These are the actual coefficients and settings the audio processing applies, tuned per model.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 errors {error parsing mode state,error parsing bass extraction mode,error parsing dap profile mode}; /drc {boost}; /staticparams {speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; /dynamicparams {oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal}; "Config %s not found, loading default" + /default; iirblock params {HoldTimeSec,PassThruGain}
 
 - **name:** /drc /staticparams /dynamicparams
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe6a4c; dsp params block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dts_decoder`
 
@@ -1553,19 +1553,19 @@ errors {error parsing mode state,error parsing bass extraction mode,error parsin
 
 The DTS decoder: supports the profile family from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express, with careful sync detection and status reporting. The second surround format the Playbar can decode alongside Dolby.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resolution Audio,HD-MA,Express,Unknown DTS profile}; sync "Endian-Check: Unexpected Input Syncword Error"; "invalid dcadec audio mode, returning empty speaker layout"; status <BitDepth><DTSProfile><BitRate><NumPrimaryChannels><AudioMode><DialNormGainDB><ChannelMap>; errors {invalid sample size N-bit,encoded frame exceeds maximum,packet parse,frame 0 warning,unsupported sample freq,unsupported amode}; modes {Dual Mono,Stereo}
 
 - **name:** dcadec: DTS decoder
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe7670; dcadec block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ducking`
 
@@ -1573,20 +1573,20 @@ profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resol
 
 When a speaker needs to quiet the music for something urgent like a voice reply, a chime, or a page, the players agree on it over a ducking protocol. The requesting player raises a flag, others dequeue it under a lock, and expired requests are cleaned up so a stray duck can't leave a room muted. This is why a chime can be heard over music without stopping it, and why the whole group dips together and recovers together.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 duck.cxx inter-player ducking protocol: 64-bit ducking flags queued per-source ('Queueing ducking bit from %s 0x%016llx - %d', 'zone %d received ducking bit 0x%016llx - %d', 'too many pending ducking bits', 'Dequeueing ducking bit 0x%016llx'), tracked under duck_tracker_mtx with expireRemoteDuckingFlags + runDuckingHeartbeat (a liveness heartbeat that expires remote duck flags); commands forwarded to members ('failed to forward duck command %s to %s'). Policy gates on the request path: 'ducking globally enabled/disabled, honoring/dropping duck req', 'voice enabled device, dropping muse duck request', 'failed to acquire gc/avt, honoring duck req', 'playing tv, drop duck req'; muse ducking policy setting ('muse ducking policy: %x -> %x', key R_MuseDuckingPolicy) + fastvolduck/duckOrUnduck paths; 'process ducking flags 0x%016llx -> %s' + 'Ducking flags unchanged. No update to send.'; DUCKING_LOCAL_MUSE bit auto-cleared by timeout ('WARNING: DUCKING_LOCAL_MUSE cleared by timeout'). Evented XML <PlaybackDucked>%u</PlaybackDucked> + <DuckingFlags>%s</DuckingFlags> + DuckingEvent + isDucking + RecordDuckingActionEvent telemetry. Alert/chime layer: alertContent loop player ('alertContent: %s no read source', 'could not open default content for %s', 'default interrupted %s', 'completed default loop \[rclS:%lld\]'), household chimes ('playing join household chime', 'stopping/ramping down discovery chime', JOIN_CHIME_UNAVAILABLE/REGISTRATION_CHIME_UNAVAILABLE), transport restore after chime ('restoring after {pause,stop,end} chime: ret=%d ar=%d wrca=%d pavt=%d'), AUDIOCLIP/ALEXA_ALERT clip types, spotify:interruption: URIs, muse audioClip resource + /duck//unduck endpoints + v1/players/%s/playerVolume/{duck,unduck} outbound fan-out.
 
 - **name:** duck.cxx: group ducking engine
 - **forward_targets:** Duck-command forwarding targets are selector strings 'FV:GC' (forward to group coordinator) and 'FV:GC-HB' (forward to coordinator's bonded peer(s)), beside peers 'all secondaries', 'group coordinator', 'bonded peer': NOT favorites URIs despite the FV: prefix. Logs: 'Forward %s %d to %s %s' / 'failed to forward duck command %s to %s.' (duck.cxx 0x10ebf2xx block).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ebf1a4; duck.cxx
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `effective_settings`
 
@@ -1594,19 +1594,19 @@ duck.cxx inter-player ducking protocol: 64-bit ducking flags queued per-source (
 
 Effective-settings resolution: it computes the setting value actually in force after layering defaults, household values, group values, and device overrides. This is the machinery behind the effectiveSettings API surface.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 routes v1/players/{playerId}/effectiveSettings{,/{groupName}} + household variants; verbs {getAllSettings,getSettingsGroup groupName,updateAllSettings,updateSettingsGroup groupName}; /settings/api/v1/locations/%s/effectiveSettings{,/%s}; keys {isEffectiveP2PPolicyEncrypted,effectiveSettingsDataChanged,patchEffective*,playerSettingsEvent}; "\[Mg\] getEffectiveSettings() bad groupId \[%u\]"; "\[Mg\] internalReadEffectiveValuesLocked_jsonValue(%s) bad keyId %u \[grkId:%u|end:%u\]" (key-id store)
 
 - **name:** effectiveSettings muse resource
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e7ceb8; effsettings block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `embedded_sqlite`
 
@@ -1614,7 +1614,7 @@ routes v1/players/{playerId}/effectiveSettings{,/{groupName}} + household varian
 
 A bundled SQLite database library is linked into the program, and several subsystems keep structured state in it, including the timer and alarm store. The library index and various registries lean on this embedded database rather than flat files. Which tables exist and where the database file lives is still unmapped.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_timeout) backs LocalTimer persistence in timer.db (the alarm/sleep-timer store; two tables with full DDL recovered verbatim | proven tables (timers_impl.cxx): timers(id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL)) local/suspend timers (timers_impl.cxx) | suspend model: pause -> row in paused_timers w/ remaining_seconds+paused_utc_time; resume -> recompute trigger_time | libFLAC embedded codec: reference libFLAC 1.3.4 20220220
 
@@ -1627,7 +1627,7 @@ embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_t
 - **tables:**
   - **timers:** id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration INTEGER NOT NULL, triggered NUMERIC NOT NULL: local timers, suspend-aware (timers_impl.cxx @0x10edcf88)
   - **paused_timers:** id TEXT PRIMARY KEY, remaining_seconds INTEGER NOT NULL, paused_utc_time TEXT NOT NULL, total_duration INTEGER NOT NULL: timers parked during suspend; resume recomputes trigger_time from paused_utc_time+remaining (timers_impl.cxx @0x10edd018)
-<details markdown="1"><summary>Evidence (6)</summary>
+::: details Evidence (6)
 
 - @ 0x1006282c; sqlite3_exec
 - @ 0x10edd644; LocalTimer from sqlite3
@@ -1636,10 +1636,10 @@ embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_t
 - @ 0x10edd38c; paused_timers SELECT (remaining_seconds,paused_utc_time)
 - @ 0x10edd464; timer.db filename
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `enet_stats`
 
@@ -1647,19 +1647,19 @@ embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_t
 
 Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats counters (rx/tx packets/bytes/errors/drops/multicasts/collisions), and deep EthIntrf detail (CRC, frame, FIFO, missed errors). The `/enetports` and `/ethportstatistics` endpoints serve this data. The link status, throughput, and error counts it tracks feed the network diagnostics that explain wired-connection problems.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 <EnetPorts><Port port='%d'><Link>%d</Link><Speed>%d%s</Speed></Port></EnetPorts>; EthPrtStats counters {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u
 
 - **name:** ethernet port stats
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef3494; enet stats region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `entitlements`
 
@@ -1667,7 +1667,7 @@ Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats
 
 Sonos-side licensing: each account or household can carry entitlement records describing type, trial status, product tier, and date ranges. The runtime policy consults them, so for example a business-tier entitlement can change which features are offered. It's the record behind 'this feature isn't available on your system', covering subscriptions, flags, and regional eligibilities that apply here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 /entitlements/api + "using cloud URL: %s" + X-Sonos-User-Id header + cache {cache-control,etag} + "cloud entitlements: rc %d, http %d"; internals {savePendingEntitlementsLocked,entmt,"unable to fire internal changed event","calling notifyClients","triggering version changed muse event",entitlements_manager,entitlements_mgr,"failed to get valid userId","Failed to get Entitlements Cache","No valid HTTPCacheManager","entitlements for "%s" changed","scheduled job to consider updating Sonos Radio"}; "Insufficient buffer for header line \[%s\]"
 
@@ -1676,14 +1676,14 @@ Sonos-side licensing: each account or household can carry entitlement records de
 - **record_schema:** <Entitlements><Entitlement type="%s" isTrial="%s" sku="%s" startDate="%s" endDate="%s" codes="%s"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}
 - **known_entitlement_types:** type names present: SBiz (Sonos Business: the business-subscription marker; gates Sonos Radio preinstall + drives RRuntimeZPPolicy), businessCore, sonosRadio, controlChannels, restrictedAccess (capability keys co-located with the record schema). Field vocab: credentialTypeAllowed, allowGuestAccess, isTrial, startDate, endDate.
 - **runtime_zppolicy:** RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled \[sic) binary typo\], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ebf80c; entitlements block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `esdk_events`
 
@@ -1691,19 +1691,19 @@ Sonos-side licensing: each account or household can carry entitlement records de
 
 The embedded component's event layer: how the Spotify library reports state changes like connection, playback, and errors up to the player.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities}; endsong {ms_played:%zu,"Overwriting EndSong track_id with new value!","no track ID/file ID: played:%zu, ms:%zu",intent (%s)}; evs {evs_default_cb %s. error %d,"Error encoding %s","Error encoding envelope","Error sending %s"}; channel hm://hwp-events/v1/log_event; "No file with desired bitrate"; error report "device_id=%s, playback_id=%s, track_uri=%s, source=%s, hostname=%s, url=%s, error_code=%d, stack_error_message=%s, stack_error_code=%d, response_status_code=%d"
 
 - **name:** eSDK event telemetry (evs)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe2c2c; evs
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `esdk_httpio`
 
@@ -1711,19 +1711,19 @@ The embedded component's event layer: how the Spotify library reports state chan
 
 The embedded component's web I/O: the network layer the Spotify library uses for its own web requests, which is how it talks to Spotify's servers.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http request"}; response {"transfer-Encoding","unsupported transfer-encoding","CDN content-encoding unsupported","Redirect to %s","failed to parse or invalid content-range '%s' (req_offset:%d)","Content-Type: %s","bytes ","can't find HTTP headers end marker","invalid HTTP header, can't find protocol marker or status code","failed to find HTTP header line end marker"}; socketio {"%s operation timeout","failed to write/read data to/from socket '%i'","reached socket EOF"}; DNS {"Result for \"%s\": addr %s","Invalid address family %d","Failed for \"%s\", error %d"}; {"Unable to set the track info","Unable to set hostname","No domain in URL","No http/https in URL","Failed to decode LicenseResponse"}
 
 - **name:** eSDK httpio layer
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe4a38; httpio
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `esdk_socket`
 
@@ -1731,19 +1731,19 @@ tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http reque
 
 The embedded component's socket layer: the raw socket plumbing the Spotify library uses beneath its HTTP and protocol traffic, which is how it makes its network connections inside the player.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"recv(%d, %p, %d) = -1 (errno %d: %s)","Socket close/getsockname/bind error: %d","Tried to use IPv6 but this platform does not support it.","connect(%d %s port %d)","Socket connection error: %d","Unable to set option:%d error:%s(%d)","Creating IPv4 socket (domain %d)","No free sockets available","Unable to create socket","Socket accept error: %d","Network initialization failed. error code: %d"}; DNS {"Failed DNS request for \"%s\", error %d (%s)","Successfully enqueued DNS request","Unable to enqueue DNS request, queue is full"}; stream {"STREAM_STATE #%u: %s -> %s",STREAM_INACTIVE,STREAM_STARTING}; socketio {"work_mem","can't parse url","New socket required: %d%d%d%d%d","creating new socket","reusing the socket","failed to format/write/read HTTP headers","not enough memory to read HTTP headers or invalid HTTP headers","no active socket","socket read failed"}; channels {"out of buffer! asked for %d bytes","error: out of channels","channel %d data %p size %d","CDN URL is too long to handle: %d","AP error %d on channel %d","cb->used + data_size < cb->size","Sent %s(%d) to ap Size %d"}; {".spotify.com",HTTP/1.,ap_list"}; option enum kSpSocket{ReuseAddr,ReusePort,MulticastTTL,MulticastLoop,Membership,NonBlocking} error paths; 'Requested hostname:\'%s\' is longer than %d' bound; kSpSocket option names {ReuseAddr,ReusePort,MulticastTTL,MulticastLoop,Membership,NonBlocking}
 
 - **name:** eSDK socket layer
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fdec20; sockets
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `event_loop`
 
@@ -1751,19 +1751,19 @@ The embedded component's socket layer: the raw socket plumbing the Spotify libra
 
 The main event loop: a thread pool processing queued work with watchdog timestamps and elapsed-time logging. Everything in this program that waits for something (timers, sockets, messages) ultimately wakes through this loop, so it's the heartbeat under all the subsystems documented here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,stopped,has no more work,shutdown. Cancelling watchdog,failure,elapsed-time:%lld}; scope names scopeDefault/scope:mtx/scope:cv/scopeHttpClient + warn_fault/authservice/trueplay_zp log scopes
 
 - **name:** main event loop
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f05d80; eventloop region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `eventloop_perf`
 
@@ -1771,19 +1771,19 @@ eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,s
 
 The in-process event loop's performance instrumentation: per-observer callback durations checked against a threshold, plus counters tracking events queued and failed-to-queue. If the event loop stalls, everything stalls, so this watches how long work takes and surfaces wedged tasks in diagnostics.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "Eventloop %p configured/removed"; inprocess-events-loop; "%s callback in observer %s exceeded duration threshold %lldms > %lldms"; counters {"Unique identifier for a set of counters","In-Process Event Subjects","The number of events queued",perf_counter_keyed,queueFail="events that failed to queue","The event size in bytes",dispatchDelay="time waiting to dispatch","In-Process Event Observers",cbTime="observer handler duration. Warn if over threshold"}
 
 - **name:** inprocess eventloop + perf counters
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10faf178; eventloop
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `exec_pages`
 
@@ -1791,19 +1791,19 @@ The in-process event loop's performance instrumentation: per-observer callback d
 
 The status-site exec pages: a command table mapping diagnostic URLs to shell commands, covering file listings, disk usage, network interfaces, routes, processes, and time sources. These are literal shell-outs behind admin pages, and their output is raw command text rather than a structured document.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {/debugfiles:"/bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug",/du-jffs:"/usr/bin/du -a -d 5 -k -x /jffs",/ifconfig:"/sbin/ifconfig",/lsmod:"/sbin/lsmod",mount:"/bin/mount",/netstat:"/bin/netstat -an",/ntpsources:"/bin/chronyc -n sources -v",ps:"/bin/ps",/route:"/sbin/route -n",/scanresults:"/wifi/athconfig scangetresults ath0",/showmacs:"/usr/sbin/brctl showmacs br0",free:"/usr/bin/free",date:"/bin/date"}; jobs {RefreshSSLCache,"Save SSL Client Cache to JFFS",SaveSSLCache}; more {/showports:"brctl showports br0",/showstats:"brctl showstats br0",/showstp:"brctl showstp br0",uptime:"/usr/bin/uptime"}; file pages {/VERSION,/etc/resolv.conf,/jffs/app/log/anacapa.log.backup,/jffs/app/log/upgrade_mgr.log,/jffs/irconfig.txt,/jffs/localsettings.txt,/jffs/netstartd_prev.log,/jffs/recovery.log,/jffs/recovery_prev.log,/jffs/settings/alarmclock.xml,/jffs/settings/areas.json,/jffs/settings/cloudconfig.json,/jffs/settings/householdsettings.json,/jffs/settings/zones.json,/jffs/settings/zpMetricsConfigV2.xml,/jffs/shadow/stats,/jffs/sys/log/setup{,_ok}/setup.{dmesg,log},/jffs/upgrade{,_prev,_tmp_prev}.log}; support-bundle file inventory (log/page sources): /usr/sbin/brctl {showstats,showstp} br0, /jffs/sys/log/setup/{dmesg,log}, /jffs/sys/log/setup_ok/{dmesg,log}, /jffs/upgrade.log, /jffs/upgrade_prev.log, /jffs/upgrade_tmp_prev.log, /jffs/watchdog.dmesg, /jffs/watchdog.log, /opt/log/anacapa.{ext.audio.action,gm.events,ht,hw.events,musedebug,museevt,rc.upnp,snf,spotify.debug,spotify,sps,trueplay,vl}.log, /opt/log/chronyd.log, /opt/log/dropbear.log, /opt/log/ledmgr.debug.log
 
 - **name:** /status exec-page commands
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e74f10; exec table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ext_audio_src`
 
@@ -1811,19 +1811,19 @@ The status-site exec pages: a command table mapping diagnostic URLs to shell com
 
 The external-audio-source job engine: clips and spoken announcements arrive as jobs with a priority and exclusivity state machine, covering doorbell-style audio clips and voice-assistant responses. This is what plays voice-assistant replies over music, and it's also where line-in family and externally pushed feeds enter the pipeline once treated as sources.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too many/no jobs),processJob,WaitForComplete,playDeferredStream(deferred j/d counts),playStream(exclusivity skip)} + "too many deferred jobs"/"playing job %u is missing"/"current job %u gone"; clip types {COMMON,AUDIOCLIP,AVT_HACK,ALEXA_TTS,ALEXA_WELCOME,ALEXA_FAILURE,ALEXA_ALERT,GOOGLE_MEDIA,GOOGLE_ALARM,GOOGLE_TTS,SVE_TTS,VOCAL_GUIDANCE,ALERT,SETUP_CHIRP,DISCOVERY} with intr flag "processing type %s %d (intr=%d)"; volume override "\[%i, %i - %i over %ums\]" ramp + "\[%i, % i\]"; "eventing play status for job %u: %s \[%s\] @%d.%06d"; decoder {failed to get decoder,illegal sample frequency,zero len frame,decoder flagged playback stop,unsupported channel count > 2}; extaudiosrc_playid; mixer stream lifecycle '\[%s\] Created mixer stream %s', notify {notifyStatus: err 0x%x, notifyTransportError: err %d}, exclusivity policy 'skipping stream due to exclusivity'; job mgmt: '\[%s\] stopPlaying too many to stop %zu'/'with no jobs (state=%d)'/'stopPlaying\[%d\] %s\[%zu\] jobs=%zu','\[%s\] wrote zero bytes to stream','\[%s\] stream write failed (%zd), %s','\[%s\] wait for complete (state=%d, term=%d)','\[%s\] resetting stream %f ms available','\[%s\] eventing play status for job %u: %s \[%s\] @%d.%06d'; log tag ext_audio_action
 
 - **name:** extaudiosrc: clip/TTS injection engine
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec01fc; extaudiosrc block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `factory_reset`
 
@@ -1831,14 +1831,14 @@ job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too m
 
 The factory-reset machinery: the sequence that wipes settings, accounts, and stored state back to out-of-box condition. This entry documents which steps run in what order when a reset is requested.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted confirm form, /jffs/factoryReset.txt marker file ('unable to create factory reset file.', 'factory reset had errors', ': not factory reset'), LED_MODE_FACTORY_RESET pattern, sonosFactoryResetFull entry point, household-wide consequence ('device: %s %s removed from vanished list after factory reset'), and 'Invalid system settings (%s), resetting to factory defaults' as a self-heal path; muse route management/factoryReset can trigger it remotely
 
 - binary anchors: `factoryReset.txt`, `sonosFactoryResetFull`, `management/factoryReset`, `v1/players/{playerId}/management/factoryReset`, `factoryReset.txt`, `factoryReset.txt`, `sonosFactoryResetFull`, `LED_MODE_FACTORY_RESET`, `Remote factory reset`, `<PresetNameList val="FactoryDefaults"/>`, `management/factoryReset`
 
 - **mechanics:** <PresetNameList val="FactoryDefaults"/> is the settings-side reset verb; after reset the device broadcasts its removal so peers drop it from 'vanished' lists; corrupt system settings auto-trigger a reset
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10ef824c; factoryReset.txt
 - @ 0x10062b81; sonosFactoryResetFull
@@ -1849,10 +1849,10 @@ factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted co
 - @ 0x10f13f90; peers remove reset device from vanished list
 - @ 0x10efecdc; invalid system settings → auto factory defaults
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `favorites`
 
@@ -1860,20 +1860,20 @@ factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted co
 
 The favorites engine: the store of saved items like stations, playlists, and songs that the app shows as favorites, including the version counters that tell apps when the list changed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 replication "replicating favorites from %s"/"deciding whether to accept replicated list" + informReplicationAndNotify{,ForDestroy} + offerRemoteSetting; DIDL ns {xmlns:dc purl.org/dc/elements/1.1,xmlns:upnp,xmlns:r rinconnetworks,xmlns DIDL-Lite}; migration {old rhapsody→new,old non-OAuth} + "Failed to parse account service ID / serial number from Sonos URI"; errors {Invalid favorite id,Could not access favorites,initContentResource {parse URI,extract item ID,Invalid item ID,No valid mapping for item type}}; shortcuts/shortcut type; fields {AlbumArtURI,NextFavorite,FirmwareVersion,Description,ResMD}; cdudn + nameSpace + restricted + parentID; store-commit faults: mutations persist through f_10384490 atomic-save of userradio.xml - fault ladder {402,501,701,702,803,805,806,807} where 805=item-count>=70 (favorites cap), 806=file>128KiB; these surface verbatim through dirObjFavorites vfuncs on CDS CreateObject/UpdateObject/DestroyObject
 
 - **name:** favorites: userradio + recents
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - @ 0x10ec0e24; favorites block
 - @ 0x10384490; userradio.xml atomic-save fn - fault ladder proven
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `favourites_model`
 
@@ -1881,7 +1881,7 @@ replication "replicating favorites from %s"/"deciding whether to accept replicat
 
 The favorites data model: how favorite items are represented and organized internally, which is the structure behind the favorites API and file formats. It's distinct from the library index because favorites point outward at services and stations, so they get their own store with their own update signal.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sonos favourites store + ContentDirectory projection: FV:2 root container paired with FavoritesUpdateID; XML store schema recovered; mutation via CDS CreateObject/UpdateObject/DestroyObject on the dirObjFavorites vtable + muse getFavorites/loadFavorite routes
 
@@ -1897,7 +1897,7 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 - **unresolved:** exact Favorites XML element schema per-favourite; which op-table slot maps to which CDS verb; whether UpdateObject reorder or a dedicated move path drives 'radioFavoritesMoved'
 - **mutate_semantics:** Reorder verbs: 'Did not move favorite (%s "%s"); rc %d' + itemsMoved/radioFavoritesMoved notifications. Metadata fields beyond favoriteId/ordinal: r:description, r:resMD, r:room, r:playmode, r:type (all under urn:schemas-rinconnetworks-com:metadata-1-0/\|). Categories::shortcuts/:playlists/:audiobooks. Station classes: 'TuneIn Station', 'Custom Station', 'Radio Show', 'instantPlay'. DIDL forms: object.item.audioItem.musicTrack, object.container.radioShow, object.item.audioItem.audioBook, object.item.sonos-favorite ('object.item'+'object.item.sonos-favorite' concat). res protocolInfo: x-rincon-mp3radio:*:*:*, x-sonosapi-show:*:*:*, x-sonosapi-stream:*:*:*. Account URI SA_RINCON%d_; parsing: 'Failed to parse account service ID / serial number from Sonos URI. favorite=%s, uri=%s'. Mutate pipeline: informReplicationAndNotify / informReplicationAndNotifyForDestroy → offerRemoteSetting → userradio{,.d}.xml replication ('replicating favorites from %s', 'deciding whether to accept replicated list'). Legacy conversion: 'Successfully converted old rhapsody favorite. Was: %s, now: %s' + 'Failure converting old non-OAuth favorite'. Errors: 'Invalid favorite id.'/'Could not access favorites.' + initContentResource (Unable to parse URI/extract item ID/Invalid item ID %s/No valid mapping for item type %d).
 - **savedqueue_format:** <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"> root; per-queue NumTracks="%u" attribute; res protocolInfo file:*:audio/mpegurl:*; validation 'Saved queue ID not valid %s'/'Next available queue ID not valid %s'/'Saved queue ID and next available queue ID mismatch %d'/'Number of tracks not valid %s'/'Number of expected tracks %d available %d'/'Saved Queue track list corrupted, expected %u, saw %u.'; migration skip 'Not migrating ObjID=%s SN=%u SID=%u'; 'Cannot parse service ID from URI %s'
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10ec12ca; favorites.cxx
 - @ 0x10ec0ce2; NextFavorite
@@ -1908,10 +1908,10 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 - @ 0x10ec0f04; urn:schemas-rinconnetworks-com:metadata-1-0/\|favoriteId
 - @ 0x10ece800; mp3/id3 probe literals in sharelist region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `fcs_detail`
 
@@ -1919,19 +1919,19 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 
 Internals of an internal component abbreviated 'fcs' in build metadata: the filesystem-config-storage path in detail, recovered structurally as part of the settings persistence machinery.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffer (timestamp page); /fcs page serves 'Feature config override' HTML: readonly cloudsourcedconfig textarea + overrideconfig textarea POST to /fcs with button=submit|remove; success page meta-refreshes to /fcs
 
 - **name:** fcs_detail
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - firmware; handler disas
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `fd_event`
 
@@ -1939,19 +1939,19 @@ f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffe
 
 The file-descriptor event machinery: named threads driving the operating system's event-notification facility, with capacity limits and monitored-descriptor bookkeeping. It's the primitive 'wake me when this socket is readable' underneath the event loop, and networking code relies on it everywhere.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.read,removeFd,waitForEvent}; EventSync %s; epoll {create1,ctl,wait} errors incl "unsupported flags","already monitored","exceeded the fd capacity of %d"
 
 - **name:** fdevent epoll wrapper
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef3fec; fdevent region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `fdevent`
 
@@ -1959,19 +1959,19 @@ ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.rea
 
 The same descriptor-event layer as fd_event: the event engine everything else (the address monitor, the select thread, audio descriptors) multiplexes on. Capacity is bounded and overflow is a hard error.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read}; EventSync %s; epoll_create1/epoll_ctl/epoll_wait error paths; fd capacity bound "%d already monitored"/"exceeded the fd capacity of %d"
 
 - **name:** fdevent: epoll event engine
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef3fec; fdevent block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `feature_flag_registry`
 
@@ -1979,7 +1979,7 @@ ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.
 
 Feature flags arrive as keys in a cloud-delivered settings document rather than as compile-time switches. A known set of flag names enumerates what's gated, including low-power modes, smarter playback, adaptive streaming, and quick pairing. This is the master list of toggles, which explains why behavior can differ between households on the same firmware.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 complete compile-time feature/config flag vocabulary (48 keys): featureConfig* family keys in the cloud-config JSON doc plus enable*/disable* booleans read at init: the build's feature map showing which subsystems are switchable; RMuseFeature enum tail (device capabilities): SWAP_INITIATOR, LED_STATUS, LED_MUTE, BLE_DISCONNECT_SCAN, LACKS_HI_RES_MUSIC, HEIGHT_CHANNEL_TUNING, DUAL_MONO, WIDEVINE, DOLBY_ATMOS, WAKEABLE, HLS_V7, MUSE_OVER_BLE, VIDEO_PLAYBACK, SUPPORTS_FLEXIBLE_SURROUNDS, HP_SWAP_TARGET, EPHEMERAL_PLAYER, RECONFIGURABLE_OUTPUTS, AUTOMATIC_WIRED_SOFTAP, EPHEMERAL_BONDING, IS_HEADPHONE_MEDIAPLAYER, DEFAULT_STATUS_LED_OFF, DEFAULT_AUTOPLAY_LINEIN (guard: 'Number of device features exceeds size of RMuseFeature array')
 
@@ -1995,7 +1995,7 @@ complete compile-time feature/config flag vocabulary (48 keys): featureConfig* f
   enableContentAccessSetting, enableSemiSleep, enableHTSourceSleep, enableSpatialAudio, enableExternalPartnerMode, enableSpotifyConnectForAllAccts, enableSpotifySMAPIVolumeNormalization, enableVoiceDataCollection, enableSvcHomeControlLutron, enableSvcPlus, enableAmazonMusicDASH, enableAppleMusicHlsv7, enableTuneInReplacement, enableTuneInMigration, enableTrueplayDataCollection, enableSystemAPIV2, enable3ChannelSatellites, enableHTSNKv2, enableSPSDataCollection, enablePortableSurrounds, enableMaxDialogueLevel, enableRemoveMSPCredentialsFromUPnP, enableChsrcPerfOptimizations, enableUPnPEventingGNDOptimization, enableSecureAlbumArt, enableCEP20ThreadTweaks, enablePitchfork, enableSslClientCacheRefresh, enableDhcpProxyFailureTelemetry, enableOnDeviceSoundGeneration, enableRadioSocTemperatureTelemetry, enableHomeTheaterWifi6GHzFronthaul, enableTopologyReports, enableFastNetworkSwitching, enableQuickbonding, enabledSTP, enabledHT, enableTrueRoom, enableFlexibleSurroundsTuning, enableVirtualHeight, enableCloudSetting, disableWebSocketPerMessageDeflate, disableTlsRsaCiphersuites
   ```
 - **notable:** enableTrueRoom (next-gen tuning), enableVirtualHeight + enableFlexibleSurroundsTuning (Atmos-era HT), enable3ChannelSatellites, enableHTSNKv2 (channel-sink v2), enableTuneInReplacement/Migration (service swap), enableSvcHomeControlLutron/enableSvcPlus (partner integrations), disableTlsRsaCiphersuites (hardening), enablePitchfork (IBT plans)
-<details markdown="1"><summary>Evidence (6)</summary>
+::: details Evidence (6)
 
 - @ 0x10f97b28; featureConfigPlink
 - @ 0x10f97b70; featureConfigSmartPlay
@@ -2004,10 +2004,10 @@ complete compile-time feature/config flag vocabulary (48 keys): featureConfig* f
 - @ 0x10ef3d34; <ZoneExperiment id name value defaultValue> schema
 - @ 0x10f97ab4; featureConfig key table 0x10f97ab4-0x10f97bc4; enable* table 0x10f9bedc-0x10f9ccc8
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `feature_flags`
 
@@ -2015,19 +2015,19 @@ complete compile-time feature/config flag vocabulary (48 keys): featureConfig* f
 
 The feature-flag registry: the build-time map behind the pushed feature document, carrying the same flag vocabulary plus defaults. A cloud-pushed value beats the build default, and this is what lets Sonos ship one codebase with per-model and per-household variation.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,featureConfigSemiSleep,DropoutContext,HomeTheaterWifiPerfTelemetry,MetricsService,Plink,Quickbonding,SemiSleep,SmartPlay,SpotABR,SsdpAdvertiseConfig,ZoneExperiment,featureConfigZoneExperiment}
 
 - **name:** featureConfig registry: build feature map
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9bf94; featureConfig block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `fileio`
 
@@ -2035,19 +2035,19 @@ flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enab
 
 The async file-I/O layer: stream registration, shared-folder reading, an in-memory fast path, resumable fetches, and content-type sniffing. It's the generic 'open an address as a stream' layer under playlists, artwork, and library browsing, and it includes the atomic-write pattern that keeps state files from corrupting.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "File is in memory" skip-open; "Success opening URI %s; stream type %d"; "Sonos API URI %s not dereferenced before opening stream"; prebuffering + "reopening http for streaming at %zu" + ?after= resume; "application/xml; listing" dir listing; "no framer found in factory, returning null, we should not reach here"
 
 - **name:** fileDataMgr: async stream I/O
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec182c; fileio block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `fmp4_parser`
 
@@ -2055,19 +2055,19 @@ async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "Fi
 
 The fragmented-MP4 parser for segmented audio: it validates the container's box order, builds the sample table, and rejects encryption variants it can't parse. The segmented-audio format that adaptive streams use gets unpacked here, extracting frames and metadata from the container.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 boxes {mfhd(seq check),tfhd(version),tfdt,trun space bounds} + "tfhd not found before trun"; trun table "seqnum %u truntblnum %zu fsize %zu foffset %zu fsamples %zu bdo %llu trundo %i truneo %zu trunes %zu trunep %zu"; senc "Sub-entry encryption isn't supported" + "Cannot parse all the IVs in senc at %dth entry"; "stream quality: encoder %s, bit depth %u, sample rate %u, bitrate %u, channels %u"; trims {encoder delay,padding} + "skipping frame; seek time offset"/"< usable offset"; atoms {iTunNORM,iTunSMPB,TLOU/ALOU ITU loudness,mehd,trex,traf,esds max/avg bitrate,alac sub,mp4a ch/bitdepth/samplerate}; errors {bad moof,no moov,no dat,unknown fmp4 encoder type,unsupported file ch/bitdepth,unsupported frequency %u-bit %uhz %u channels,frag w/o traf,STZ2 ignored}; formats %ub%u; trun box bounds checking 'not enough bytes for trun %zu vs %zu','not enough space for trun %zu vs %zu seqnum %u','miss calculation on space used %zu expected %zu','not enough space available %zu vs %zu','%p:%zu: setpos for read %zu'; 'invalid num bytes for compatible brands %zu'; track import guards 'ignoring non-local track %s'; gap/padding handling 'applying encoder delay %d samples'/'removing padding %d samples'; seek 'skipping frame; seek time offset %f > current time offset %f'; 'stream pos %zu couldn't set streaming hint to true'
 
 - **name:** segaudio fmp4: fragmented MP4 parser
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec9e38; fmp4 block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `group_object_model`
 
@@ -2075,7 +2075,7 @@ boxes {mfhd(seq check),tfhd(version),tfdt,trun space bounds} + "tfhd not found b
 
 How zones actually group: the coordinator and satellite topology, zone storage, the play-state manager, and the group event model all sit here. It's the internal structure behind the household map and the group events apps consume, covering how a group is represented with its leader, its members, and their state.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_DEVICE, stereo-pair/sub combos), coordinator ops (BecomeGroupCoordinator\[AndSource\] with GC-state cloning + VLI delegation, ChangeCoordinator, DelegatedGroupCoordinatorID), topology monitor with settle-retry, satellite lifecycle (Add/RemoveHTSatellite, recoverBondedZone FSM), per-satellite DSP protobuf + tuning push; zonesmonitor/RZonesMonitor: 'Topology monitor: Secondary linkage broken. Start recovery job', jobs 'monitorTopology%d'/'Stop topology monitor', DefunctDeviceRemovedEvent + bondedZonePartnerDefunct -> recoverBondedZone + refreshSonarState; topology_report/ReportCallBack layer: 'reporting %s','ReportCallBack player %s was not found','%s local player %s was not found', topologyReport/TopologyEventsReport/topologyEventsReport channels, 'cid:%s/%s,in:%u/%u' correlation ids; topology_events_report.cxx: reportEventsLocked/updateRelationshipsLocked/conditionallyReportTopologyEvents/onEvent; device-role detection '%s was GM to loc, %u GMs'/'%s was SAT to loc, %u sats'; change-detection vocabulary {chmap change %s to %s,HTsat defn change %s to %s,wifi mode change %u to %u,connection type change %u to %u,ch frq change %u to %u,wifi on change %u to %u,eth link change %u to %u,evt loc grp role chg,gen plbk corr ctx chg evt,'chk sats of GMs %s'}; report path 'Report Topology Events: '%s'', throttle 'reported %ds ago:limit', 'err sec<0: %d', 'fail:unparse cid. quit report', '%s player %s was not found'/'not local', 'Unkown TopologyEventsReportEvent type' \[sic\]; AddHTSatellite pre-clear 'Clearing local sonar configuration in AddHTSatellite on SOURCE %s'; group-clone rejections 'music context content cannot be copied'/'cannot be swapped'; VLI playback-probe 'Resume result %d'/'not resuming'/'Saw playing %d, %s'
 
@@ -2109,7 +2109,7 @@ zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_
   - **settings:** gainTrimDB \[%.2f\] apply
 - **topo_events_detail:** topology_events_report.cxx: change detectors {chmap,HTsat defn,wifi mode,connection type,ch frq,wifi on,eth link,sats of GMs,local grp role,plbk corr ctx type} + "GroupCoordinator before/after: %u/%u"/"nRel b/a:%u/%u"; fields gcuid,cid:%s/%s,in:%u/%u; rate-limit "reported %ds ago:limit"; "fail:unparse cid. quit report"; names TopologyEventsReport/topologyEventsReport
 - **coordinator_monitor:** Coordinator linkage: 'member list generated: \[%s\]', '%s linkage broken for %s: Local gID: %s; Other gID: %s', 'Coordinator %s linkage broken' -> topology monitor deschedule + ChangeTransport notify ('failed notifying %s of changed transport'); accepting-gate verbs startAcceptingGroupCommands/stopAcceptingGroupCommands; LocalGroupUUID + VirtualLineInGroupID + setVirtualLineInGroupID{Locked} local state.
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10ed15f2; play_state_mgr.cxx
 - @ 0x10e96cc6; zones_storage.cxx
@@ -2119,10 +2119,10 @@ zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_
 - @ 0x10e73ab4; dsp_system_satellite.bin + satellite_processor.bin
 - @ 0x10e878b4; HT_BONDED_MASTER/SATELLITE role enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `group_rc`
 
@@ -2130,19 +2130,19 @@ zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_
 
 The group rendering-control engine: the internal machinery that applies group volume and mute to all members, behind the group volume commands. The group-level controls live here so one slider can move every speaker in a room at once.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zones"} + DesiredVolume/DesiredMute; algo "calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f" + gvd {t,c,f,m,cv,sv}; tracking {addZone already tracked,removeZone not tracked,transitionValid c/m/f}; faults {total failure,partial failure,all members use fixed volume,operation in progress,unexpected upnp fault}; events {GroupVolumeSetActionEvent(vol,mute,vligrouping),VliVolumeProcessingCompleteEvent vliType}; members {localRC vol/mute/fixed,remoteRC %s vol/mute/fixed}; ops {SetGroupMute local/remote rc,SetGroupVolume local netops zones + per-member rc}; group caps {"Group capability updated: 0x%08x -> 0x%08x","Spatial audio disabled in Area Zone","Spatial audio disabled: mask"} + enableSpatialAudio + "GroupCapabilities zp: %s: %i,%i,%i"; cap strings {widevine,atmos,portable,tv_in,hlsv7}
 
 - **name:** grc_zpimpl: group rendering control
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec3a58; grc_zpimpl block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `healthcheck`
 
@@ -2150,19 +2150,19 @@ group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zone
 
 The health-check machinery: periodic self-tests the player runs to verify it's functioning, with results feeding diagnostics and recovery decisions. It runs on its own timer, catching trouble before a user notices it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)" + "Not scheduling: %d %d %d %d %d %d" 6-gate + "Healthcheck timer pop"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}; instruction-file fetch taxonomy: 'Unable to retrieve instruction file. I/O Error: 0x%x. HTTP Result: %d','Indeterminate instruction file length','Incomplete instruction file','Failed to parse instruction file','Instruction file too large'; cache update 'Updating history cache: \[status=%s\] \[key=%s\] \[etag=%s\] \[cache-control=%s\]'
 
 - **name:** healthcheck: periodic health probe
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec4574; healthcheck block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `healthcheck_contact`
 
@@ -2170,19 +2170,19 @@ schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u seco
 
 The healthcheck's server-contact half: instruction fetch, permission gating, and reschedule-on-response. The returned instructions can trigger diagnostics or other maintenance, making it a managed maintenance channel the cloud can steer.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 schedule "Next healthcheck scheduled to run in %u h %u m %u s" + "Not scheduling: %d %d %d %d %d %d" + "Healthcheck timer pop" + "Rescheduling next healthcheck"; server /ws/diag/diag_instructions.xml?hhid= + SubmitPermission + ServerDiagInstructions + "Contacting server for instructions"; errors {I/O Error + HTTP Result,Indeterminate length,Incomplete file,Failed to parse,too large}
 
 - **name:** healthcheck: server instructions
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec4574; healthcheck block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `hhsettings_rest`
 
@@ -2190,20 +2190,20 @@ schedule "Next healthcheck scheduled to run in %u h %u m %u s" + "Not scheduling
 
 The household-settings API inside the device: public keys readable by anyone, restricted keys needing permissions, and admin keys needing admin rights. Errors are specific, so clients can distinguish 'doesn't exist' from 'can't write'. When a component needs to read or write shared household configuration, this is the client that makes the call.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 path grammar {public/{key},restricted/{key},restricted-admin/{key}}; errors {Key not found.,Failed to delete setting.,invalid value size or type for setting key,HHSettingsMgr reported invalid setting value for key,Failed to store setting.,HHSettingsMgr failed to store settings,Deleting all settings in a category is not allowed. Provide a key.,Unsupported Request}; get path logs "key = %s not found in processGetRequest"
 
 - **name:** household settings REST API
 - **visibility:** "ALERT! Display of these settings on status page (/householdsettings.json) needs to be addressed before setting this category"; vars {householdsettings,userMetricsTracking,householdsettings.json,hhsettingsfile}; frozen:1 flag
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f063f8; hhsettings region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `history_mgr`
 
@@ -2211,20 +2211,20 @@ path grammar {public/{key},restricted/{key},restricted-admin/{key}}; errors {Key
 
 The cloud play-history manager: it posts played tracks, keeps caches honoring freshness headers, serves 'recently played', and repairs a corrupt cache. This is the 'recently played' list that syncs across the household and the app.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 historyService + rphistory + historyEntryInvalid event + ucsType; cache {preCache,postCache,preEtag,postEtag,cacheControl,historyRequest} + "Updating history cache: \[status\]\[key\]\[etag\]\[cache-control\]" + "Cached etag" + "corrupt cache could not be served after a 304"; POST postHistory + recentlyPlayed + max-age + "max-age=%s, etag=%s, http-result=%d" + "Post History Buffer Cleared"; queue faults {bufferFull,invalidContentType,resourceIncomplete(name,type,objectId),groupIncomplete(name,id,coordinatorId)}; fields {imageUrl,explicit}; getHistory {serving the cache,#getHistory response} gated by {Securely Registered,History Enabled}; deleteHistory history?id=; "Failed to generate defaults for history entry"; "Failed to initialize history from cache"; cache edge: 'corrupt cache could not be served after a 304 Not Modified response from the cloud'; cloud ops: 'postHistory response from cloud: %s','POST history failed with response %s','Delete history response from cloud: %s','history#getHistory failed. Securely Registered: %s, History Enabled: %s'/'Not securely registered','history#getHistory response from cloud: %s','History could not be retrieved due to an internal error'; entry reject taxonomy 'Failed to post history entry, resource incomplete: '/'group incomplete: ','Failed to queue history entry, incompatible content type: '/'resource incomplete - name, type, or objectId missing: '/'group incomplete - name, id, or coordinatorId missing: '; cache 'Failed to initialize history from cache.','Cached etag: %s','error while generate defaults for %s','Failed to generate defaults for history entry %zu'
 
 - **name:** historyMgr: cloud history
 - **salt_literal:** Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec4878; history_mgr block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `hls_audio`
 
@@ -2232,19 +2232,19 @@ historyService + rphistory + historyEntryInvalid event + ucsType; cache {preCach
 
 The segmented-stream audio player: seeks land on segment boundaries (or snap forward), it can switch variants when a playlist mixes formats, and it tracks stream metadata per segment. The engine behind most internet-radio playback on the platform.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "requires group capabilities %u"; seek {to time %.3f (%lu:%02lu:%02lu),to time from start of current segment,pass segment,to segment start time range}; "forcing a source switch due to multiple codec variants in playlist"; ADTS metadata {metadata,no metadata bumping seconds advanced,cached seconds advanced mismatch}; EXT-X-KEY {METHOD= AES-128,/SAMPLE-AES,,KEYFORMAT=,URI=data,URI=""} + "encrypted but no key URI"/"encrypted but no data from key URI"/"No IV, using seq. num"/"SAMPLE-AES detected. Setting up audio framer decryption"/"Key extracted. method=%d"/"undefined encryption method"; track playback {bitrate %u stream %u segment %llu offset %zu,InitFramerForTrackList failed,m_dTimeOffset,Trim offset required,resetMetadata,track play time,seconds advanced,time offset of segment byte offset}; bitrate report "hls-%s said: %u (%g) %d %d"; types {hls-live,hls-static,hls-???}; master {fetching master,updated master URI}; playlist errors {EXT-X-TARGETDURATION not present,media seq went backwards,media len changed,Invalid media playlist,Seeking pass the end,empty track list,Error %x occurred}; stale {d d llu llu}; Segment Map entries
 
 - **name:** hlsaudio + segaudio: HLS player
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec4f88; hls blocks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `hls_player`
 
@@ -2252,7 +2252,7 @@ The segmented-stream audio player: seeks land on segment boundaries (or snap for
 
 The segmented-stream engine's stream semantics: live-versus-static variant tags, segment-aligned seeking, format-variant failover, and decryption-key handling for protected streams. The policy layer over the segment fetcher.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forcing a source switch due to multiple codec variants in playlist"; ADTS md + "seconds advanced" tracking + "doesn't line up with seek"; encryption {encrypted-but-no-key-URI,no-data,"No IV, using seq. num.","SAMPLE-AES detected. Setting up audio framer decryption",key-uri http status,read size mismatch}; byte-range map "couldn't get file size from http headers for map"/"found offset %zu"; InitFramerForTrackList; seg index "starting at bitrate %u stream %u segment %llu offset %zu"; master {updated master URI,fetching master,version %u bitrate max/cur/min,getIndexURI,"Failed to calculate absolute media URI"}; ABR {"downgrade bitrate","already at the minimum","upgrade bitrate","advancing stream index"}; rendition filters {rgchStreamURI empty,PROGRAM-ID,invalid rendition,"rejecting binaural/downmix rendition",BANDWIDTH unsupported/0}; "unexpected, we have %zu dolby streams in the playlist"; BR P|TYPE=SNG marker; seq discontinuity detect; threads {segaudio,hlsmeta,hlsplaylist}
 
@@ -2260,14 +2260,14 @@ variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forci
 - **status_schemas:**
   - **hls:** <HLS Name="Playlist"><HLSVersion><IsStatic><IsEncrypted><TargetDurationSec><CurrentBitRate><TrackEncryptionMethod><TrackEncryptionFormat></HLS>
   - **bitrates:** <BitrateStreams numBitrates="%zu"><StreamEntry br strm codec segidx/>
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec4f88; hlsaudio block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `household_settings`
 
@@ -2275,19 +2275,19 @@ variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forci
 
 The `householdsettings.json` store: versioned JSON with per-category sections (public/restricted/restricted-admin), each carrying read/write permission strings and a settings list (explicitContentFiltering, recentlyPlayed, etc.). `lastUpdateDevice`/`version` fields drive replication conflict resolution. Configuration shared by the whole home lives here, replicated so every player holds the same values rather than each having its own copy.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 file householdsettings.json {fileVersion,fileSchemaVersion,householdSettings}; JSON \[{version,lastUpdateDevice},\[{name:"restricted-admin",readPermission:null,writePermission:"hh-config-admin",settings:\[{explicitContentFiltering,recentlyPlayed}\]}\]\]; categories {restricted-admin,protected-admin,protected}; frozen:1 marker; "File upgraded to v%d schema"/"File overwritten due to invalid setting"; UMTracking→userMetricsTracking migration; "version incremented after invalid settings offered"; hhSwgenState swgen must be >= player; /householdsettings.json status-page ALERT; 'JSON parse error: %s (v1?:%d)','getMuseHHName'
 
 - **name:** householdsettings.json persistence
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef43f0; hhsettingsfile block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ht_audio_sources`
 
@@ -2295,19 +2295,19 @@ file householdsettings.json {fileVersion,fileSchemaVersion,householdSettings}; J
 
 The TV-audio source type registry: the named source types for satellite, downmix, processor, and channel-sink TV feeds, which appear in session reports and in the source-selection logic deciding which theater path feeds a zone. It's how the system detects and selects the TV-connected inputs that feed a soundbar.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 source names {tv-sat-as,tv-gm-dm-as,tv-proc-as,AIHomeTheater,chsnk-sat-as}; ForceSubmitTvSessionReport op
 
 - **name:** TV audio source types
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea5f94; ht source names
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `htaudio_chproc`
 
@@ -2315,7 +2315,7 @@ source names {tv-sat-as,tv-gm-dm-as,tv-proc-as,AIHomeTheater,chsnk-sat-as}; Forc
 
 Home-theater channel processing: the stream types, dynamic-range state per zone, channel-map transitions, and optical input handling. This is where a stereo TV signal becomes surround across bonded speakers, the routing brain of theater audio.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 DRC "changedDRCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, speechExtraction=%d"; streams {htain,htaoutl,htaoutr,htaouts,remote,downmix}; "tv channel map changed from %s to %s"; system/dsp_disable; app/debug/dsp/persistentEQ.xml; spdif-input + protocolInfo="spdif"; autoplay FSM {autoplay_tv,"auto stop %s silence threshold %ums","auto play %s silence threshold %ums","mode change %s -> %s","Silence threshold reached (%ums). Engaging auto stop.","Triggering autoplay. Ignore Silence Threshold (%d)","Transitioning to TV due to user interaction"}
 
@@ -2326,14 +2326,14 @@ DRC "changedDRCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, spe
   - **transitions:** 'State change %s -> %s. %s' (free-text reason), '. databurst %d', '. no preamble in %u frames. Last playing %s', '. no preamble in %u frames', '. reset: \[%s\]'. Detection: 'Found bitstream type %d with %u-frame stride','Found apparent PcPd with only %u frames padding! This might be a lookalike PCM signal.','Possible frame misalignment detected! Pa seen in subframe B.','Multichannel PCM not aligned to channel 0 (index %u), correcting.','Sync acquired for databurst (%d) index (%u)','PaPb preamble not found at expected position \[%08x - %08x\]','Failure to align bitstream. PaPb preamble not found at expected position. Instead found %08x - %08x: %08x - %08x','Databurst mismatch in encoded state. Expected %d but found %d'/'during alignment. Expected %d but found %d','Unable to confirm databurst (%d) of unexpected size %u expected %u','Unknown repetition period for burst type %d','No repetition information available for burst type %d','Unsupported databurst %d confirmed','Broken padding during bitstream confirmation','null burst terminated by non-zero frame','Too many frames to cache %u > %zu','Aligning to first encoded audio sample. %u frames copied. %u more required','Requested exactly %u frames, but was incorrectly sent %u instead','Discontinuity detected: \[%s\]','Unexpected state: %d','No room in parsing output buffer. Buffer max: %zu buffered: %u'.
   - **audio_tap:** Tap ingestion: 'Encountered signal loss in the audio tap','Failed to read audio tap metadata','Audio tap read size mismatch (req %zu, avail %zu)','Audio tap read failure: (%zu/%zu bytes)','!!!!! rewinding audio tap !!!!!','!!!!! start of audio tap !!!!!','Audio tap metadata version mismatch (tap: %d, expected: %d)','Audio tap truncated (last %zu audio bytes missing)'/'(last %zu metadata bytes missing)','Audio tap file valid (%zu/%zu)','Audio tap file invalid; closing'; tap file audiotap.spdif; testpoint 'oTestpoint fade duration override %d -> %d msec'.
   - **interval_stats:** Interval stat names: 'Timer Read Wait','maximum runtime of component stage','first sample rate within interval','first frame read size within interval','estimated amount of audio buffered in input','amount of audio buffered in stream'/'in driver'/'in aggregate','first reset reason within interval'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f273d8; chproc block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `htaudio_satellite_tx`
 
@@ -2341,20 +2341,20 @@ DRC "changedDRCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, spe
 
 The satellite-transmission statistics: time-to-play, bytes sent, transmit errors, late frames, and resync counts. On a surround setup, these counters explain lip-sync drift and dropouts between the soundbar and its satellites, which is the wireless link that makes rear speakers wire-free.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 stats schema {timeToPlay/Time between send and play,txSent/Total bytes transmitted,txErrors/Total number of transmission errors,serializationErrors/Total number of serialization errors,numLateFrames/number of times we were late to transmit a frame,Total resynchronization frames,playbackEnd/Total playback ended frames,mx_proc/Highest SatMixer processing time,tx_proc/Highest SatTx processing time}; "HT Audio Satellite TX General"; SBC encode path: 'unexpected sbc config result expected=%u->%u got=%zu->%zu', 'invalid number of frames per sbc packet %zu', 'encode error %zd', 'unexpected sbc encode result expected=%u->%u got=%zd->%zd'; mesh send 'send to mesh failed %u' + 'could not send %s to satellite %s;%s. rc %d, error %d, %s, count %u'; socket opts 'could not set TOS 0x%x for ht %d'/'could not set QOS %d for ht %d'/'network io non-blocking'; 'Request resyncLocked'; param change traces 'bass change %i -> %i','treble change %i -> %i','loudness change %d -> %d','Loudness SPL = %d, scaling = %d','vol change %u (%u%%) -> %u (%u%%)','extsrc vol change %u, %u -> %u, %u'; mixer loops mixgm.select.read (group-mixer) + mixsat.select.read (satellite); stream lifecycle 'Input stream changed to %s','Stream %s idle','numSamplesAvailable < REQUIRED_SAMPLE_UNIT_TIME - %zu < %d','Start sending stream %s','Stream %s drained','numSamplesAvailable < numSUTsRequested - %zu < %zu'; satellite add/remove 'could not add satellite %s','satellite %s;%s, model %s, added to ht config','satellite %s removed from ht config','Failed to find event object %s for releasing','No Expanded Channel Map for Requested Channel'; 'sat pkt: %zu channels, %zu samples ea.'; sat-add guards 'secondary device %s not found','incompatible secondary device %s','Add HT Sat.  New map: %s'
 
 - **name:** HT audio satellite TX stats
 - **control_frames:** htsat_tx control frame = 16 bytes {u8 code, payload/pad 15B}; header region ctx+0x9b4-0x9bb = {zeros x7, type=0x36}; 'invalid control frame. len (%u) vs (%zu)' is the TX-side length check (f_104f0d6c region).
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee5c90; ht tx stats
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `http_client`
 
@@ -2362,19 +2362,19 @@ stats schema {timeToPlay/Time between send and play,txSent/Total bytes transmitt
 
 The HTTP client: the machinery for outgoing web requests. Every call the player makes to services, the cloud, or other players goes through here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 sonos::http::performAsync; errors {"not scheduled. No active thread pool available. Cancelling.","Client not setup","HTTP request attempted with empty URL","Curl error (%d): %s","Request timed out in %lld ms","curl_multi_perform/poll/info_read"}; perf counters {taskCount=tasks actively processed,mainLoopIteration=main loop time}; asio categories {generic,std:unknown,asio.netdb,asio.addrinfo,asio.misc}; netdb errors {Service not found,Socket type not supported,Host not found (authoritative)/(non-authoritative),"query valid but no data","non-recoverable database lookup"}; misc {Already open,End of file,Element not found,"descriptor does not fit into select fd_set"}; io_service {epoll re-registration,Invalid service owner,Service already exists,sonosAsyncThreadPoolCond,sonosAsyncWorkGuard}; bundled curl internals exposed: happy-eyeballs ladder ('connect attempt #%d successful','checked connect attempts: %u ongoing, %u inconclusive','happy eyeballs timeout expired, start next attempt','starting %s attempt for ipv%s -> %d','restarted baller %d -> %d','HAPPY_EYEBALLS timeout due, re-evaluate','Connection timeout after %lld ms','discarding oldest attempt to keep limit','all attempts inconclusive, restarting one','no more attempts to try','baller %d: result=%d'); SPDY layer errors {Unsupported SPDY version,Invalid frame octets,Data transfer deferred,No more Stream ID available,Stream was already closed or invalid,Stream is closing,The transmission is not allowed for this stream,Stream ID is invalid,Invalid stream state,Another DATA frame has already been deferred}; HPACK static-table name strings (keep-alive,set-cookie,user-agent,:authority,retry-after,max-forwards,last-modified,if-none-match,accept-ranges,accept-charset,accept-language,accept-encoding,content-language,www-authenticate); async_http_client error enum {CONNECTION_ERROR_WRITE,HTTP_ERROR_POST_FAILED,HTTP_ERROR_RETURNED,HTTP_ERROR_MALFORMED_URL,HTTP_ERROR_TOO_MANY_REDIRECTS,UNKNOWN_ERROR}; curl guards 'Can't call curl_multi_wakeup: curl not initialized.','Failed to set CURLOPT_URL.'/'CURLOPT_HTTPHEADER'; inter-player proxying 'Forwarding request to player %s at %s'; result logging 'Unexpected result for %s request to %s. Reason: %s','%s response for %s request to %s. HTTP status: %d'; bundled curl state tags {TCP-ACCEPT,LIB-IDS,HTTPS-CONNECT,HAPPY-EYEBALLS} + version '1.47.0'
 
 - **name:** async HTTP client (curl multi + asio)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f92844; http client
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `httpcache`
 
@@ -2382,19 +2382,19 @@ sonos::http::performAsync; errors {"not scheduled. No active thread pool availab
 
 The web cache manager: hash-based invalidation shared across the LAN, mount checking for the writable partition, and per-key status tracking. This is why artwork and metadata stay consistent across players, because invalidation propagates.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 hash-based invalidation {cacheHashes,"\[%s\] Cache not found. Cannot invalidate.","\[%s\] Invalidated local cache","\[%s\] hashLocal = %s","\[%s\] hashRemote = %s","\[%s\] Invalidating remote caches"}: propagates invalidation to remote players; /jffs mount check via statvfs + /proc/mounts; null hash 12 zeros
 
 - **name:** HTTP cache manager
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef4dac; httpcache block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `hw_events`
 
@@ -2402,21 +2402,21 @@ hash-based invalidation {cacheHashes,"\[%s\] Cache not found. Cannot invalidate.
 
 The hardware-event layer: low-level system messages for buttons, orientation, and thermal events arrive on a dedicated thread, with overflow and malformed-message handling. How physical things happening to the box become software events.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}; readEvent {overflow,unknown,readNextMsg ERROR}; button forwarding {'Forwarding button events','Disabling button event forwarding'} to private-IP-only target {Unable to translate address,Host not private IP,Invalid host IP,Invalid port no,socket errors}; FSM states {NOT_IN_HOUSEHOLD,PROCESSING_PLAYBACK,IN_DEMO_MODE,IN_RDM_MODE,IN_BUTTON_OBSERVATION_MODE,IN_TRANSFER_MODE,PROCESSING_JOIN,JOIN_CHIME_UNAVAILABLE,REGISTRATION_CHIME_UNAVAILABLE,BUTTONS_LOCKED,DAT_IN_BUTTONLESS_SETUP_MODE,DAT_IN_SETUP_DISCOVERY}; setup combo {VOL_DN|VOL_UP starts timer → setup-ready on pop, VOL_UP+VOL_DN timer popped}; '%s press/release count = %zu'; '%s ignored in notify mode'; 'Disallowed action (%d - %s) because (%d - %s)'; 'inline action'; allowPlaybackRequests; 'collecting triggered diags'; 'enter %s household mode'; 'cancel join household mode'; PLAYPAUSE; '%s button pressed (cid)'; 'Play button held'; orientation {old->new,orientation_change,syslib orient}; led_diags {'Diag mode:%u, leftMS:%u; timeMS:%u; next mode: %u','set diag mode:%d'}; setup {'join hh','enabling wifi and %s','signaling netstartd (%s) %s',openap}
 
 - **name:** hwevt_handler: button/orientation/thermal
 - **status_schema:** <HW Name="CurrentStatus"><Orientation/></HW> + <HWMembers Name="Members"><State/><Flags/><MicFlags/></HWMembers>
 - **version:** 7.31.0-test
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec6db8; hwevt block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ibt`
 
@@ -2424,20 +2424,20 @@ hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHand
 
 Intended-target fan-out: a single modern-API command can name a set of target players, and this planner expands it into per-target executions after validating that the command supports fan-out and each target parses. This is how the app sends one 'set volume' to a whole room instead of issuing per-player calls.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 plan {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list","failed to generate ibt plan"}; intendedTargets param {"implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; dispatch "\[dispatch\] unsupported IBT command (%s)"; JWT {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}; ibt log domain; enablePitchfork flag
 
 - **name:** IBT: intended-target command fan-out
 - **target_param_check:** intendedTargets support is decided by a per-command declared-param match, not a static whitelist table: f_10a1cc00 builds {name,namelen} ranges from the command's registered param list and a memcmp chain (f_10a1dbxx region) tests for 'intendedTargets'. No route spec declares it -- it is a transport-ctx parameter (ctx {householdId,intendedTargets,explicitTargets,muse-async-cmd-id,upnpAnacapaPort}); commands opt in by declaring it in their param list at registration. The exact opt-in command set is therefore data-driven from the runtime command registry -- static ceiling for the whitelist.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fac620; ibt block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `inprocess_events`
 
@@ -2445,19 +2445,19 @@ plan {"already generated ibt plan, no action taken","executing ibt plan for comm
 
 The in-process observer registry: named observers register per subject, and power-sensitive listeners are flagged. This is the publish-and-subscribe fabric under the modern-API events for components inside the same process, letting one subsystem tell another that something changed without any network involved.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; observer-name fmt %s-%s (ie-obs); PlaybackEvent; flags {enableSemiSleep,enableHTSourceSleep}; TTM {secondary,useCase,attempts,"We timed out on %zu devices after %u attempts",msTTM,msDRP}; fmts {%d:%d.%06d,%d:%d.%6d}; errors {I/O Error: 0x%x. HTTP Result: %d uri: %s,recurse,redir,unsupported}; ie-schd,ie-cache
 
 - **name:** inprocess-events observer registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e86c88; inprocess-events
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `interrupt_reasons`
 
@@ -2465,19 +2465,19 @@ subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; o
 
 The playback-interrupt reason codes: the 'why did my music duck or stop' taxonomy covering cloud commands, TV playback, AirPlay, audio clips, speaker detection, fixed volume, room detection, remote control, and voice-assistant playback. It records why playback stopped, powering the diagnostics that explain unexpected quiet.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL}; CEC errors {CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS}
 
 - **name:** playback interrupt/source enum
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10facb9c; interrupt enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `iocompress`
 
@@ -2485,19 +2485,19 @@ The playback-interrupt reason codes: the 'why did my music duck or stop' taxonom
 
 The compression wrapper: shared helpers that compress and decompress buffers, used for saved queues, replication payloads, and anywhere compact storage saves space. It wraps a standard compression library with per-stage failure logging.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RCompressBuffer {deflateInit2,deflate,deflateEnd failed} + RDecompressBuffer {inflateInit2,inflate,inflateEnd failed}; socket-opt line 'r: %d smwb %u cmwb %u sncto %d cncto %d' (send/recv mbuf watermarks + connect timeouts); 'failed to init deflate/inflate stream op %d','expected empty deflate block not present; len %zu','deflate failed rc %x','deflate out buffer requirement not met %zu'
 
 - **name:** iocompress: zlib buffers
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec7c08; iocompress block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ir_learn`
 
@@ -2505,19 +2505,19 @@ RCompressBuffer {deflateInit2,deflate,deflateEnd failed} + RDecompressBuffer {in
 
 The infrared learning flow: multi-pass signal capture with repeat-style detection and tolerance checks, rejecting codes that don't fit the cloud IR database's format. It captures an unknown remote's signals during setup so the speaker can respond to it, which is the implementation behind the remote-teaching commands.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 htaudio.cxx IR subsystem: code lists vol_up_codes/vol_down_codes/vol_mute_codes/input_codes (bounded); learn FSM passes{1,3} redundancy checks "first and third passes have different sizes"/"don't match"; repeat styles {alternating,repeating,non-repeating}; one-button learn with timeout (UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND); config /opt/ir/irconfig.txt; cloud database http://ir.ws.sonos.com/IRCode/: submit <IRCode><code><value><guid> XML (guid from //dev//urandom), query "Requesting: %s" -> "Code found for remote id \[%s\]"; embedded remote-name table {Sharp,LG/Haier L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA 46LA45RQ,Orion SLED3280,Mitsubishi WD-65638/60738,JVC JLC42BC3000/LT-19E610,Seiki LC-32B56,SuperSonic SC-240/491,ViewSonic VT4210LED/VT3205LED,Loewe}; "Denylisted pyle!"; "Outstanding codes yet to be learned: Lengths are: %d, %d, %d"
 
 - **name:** IR learn + cloud IR database
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea6550; htaudio.cxx IR block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `json_parser`
 
@@ -2525,19 +2525,19 @@ htaudio.cxx IR subsystem: code lists vol_up_codes/vol_down_codes/vol_mute_codes/
 
 The bundled JSON parser: its error vocabulary covers exceeded depth, invalid escapes and characters, unexpected tokens, and out-of-memory, which are the failure modes any JSON-reading endpoint can hit. Every JSON-speaking component decodes through this one library.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 error enum {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}
 
 - **name:** embedded JSON parser error enum
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f05a74; json error enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `json_schema_validator`
 
@@ -2545,19 +2545,19 @@ error enum {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid str
 
 The JSON document validator used by local settings: it checks a decoded document against its expected shape, covering required fields, size limits, uniqueness, and cross-field dependencies. Every settings write is checked against the schema before persistence, and it's the machinery behind the modern API's field-by-field request validation.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 keywords {patternProperties,maxLength,minLength,maxItems,minItems,dependencies,maxProperties,minProperties,required,additionalProperties,uniqueItems,instanceRef,expected,duplicates,disallowed,exclusiveMaximum,exclusiveMinimum,additionalItems,properties,fileFormatVersion,targetTypes,readPerm,writePerm}; "\[Vf\] ValidationFailureMsg\[%s\] %s"; schemaValidator; groups {playerUI,playerBasic}
 
 - **name:** JSON Schema validator
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fb0ca0; schema validator
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `lechmere_wss`
 
@@ -2565,7 +2565,7 @@ keywords {patternProperties,maxLength,minLength,maxItems,minItems,dependencies,m
 
 The persistent secure-websocket channel between player and cloud, internally called 'lechmere'. It's the always-on pipe that cloud commands and modern-API calls arrive over, using a compact binary message format inside standard web framing. It's the link that makes your speaker controllable from anywhere, not just your home network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions INNER FRAME FORMAT RECOVERED: 6-byte ASCII header {protocolVersion:2 chars, messageType:2 chars, extendedHeaderLength:2 chars} followed by extended header + payload (min frame len 6, checked cmpli 6 at f_105d539c). Parse errors 'Bad protocol version: %c%c', 'Bad message type: %c%c; %d', 'Bad extended header length: %c%c', 'could not recv extended header; expected %u read %u'. Message type validated via table lookup (f_11098e98 plt veneer); 2-char code registry AA..AK (.data 0x110941a4, 11 ptrs) dispatched via handler table built at f_10ac47fc region. Tunneled UPnP headers inside: 'x-sonos-method:', 'x-sonos-uri:', 'SOAPACTION:', 'X-Sonos-Udn'. Version str 'lechmere.%hhu%n'. AA..AK REGISTRATION DECODED: two consumers of the type table at 0x110941a4 found - f_10bd59xx walks entries 0..10 building records per code (2 lbz reads of each char, two calls to f_1082dfc0, entropy from mftb-based f_10809f0c, 0x100-byte alloc via plt 0x11098418); f_10bd65xx is a second walker (lwzu r28,\[r22+4\] over the table, counter 0..10) that strlen-checks each code (cmpli 0xf) and inserts it via f_10806d50 seeded with magic 0xc70f6907 (hash-table insert keyed on the 2-char code) building a per-code context record {+0,+4,+8,+c,+1c fields}. The codes are therefore a FIXED set of channel/stream identifiers registered into a keyed dispatch structure - they are not individually special-cased anywhere in code, so per-code semantics are data-driven (opaque map keys), which is the static-analysis ceiling for AA-AK message-type meaning. .got2 0x1108de34 points at the adjacent namespace/verb registry (0x110941d4). TWO-LETTER-CODE LAYER RESOLVED: the same keyed-map machinery used for AA..AK registration (f_10806d50 insert, seed 0xc70f6907) is consumed by f_1082dfc0 lookups in \[Mm\] ingestMigrationDataIntoBitFieldAry (0x10bd65xx-0x10bd6axx): migration/patch data is parsed as two-character tokens, each token hash-mapped to a field-id (<0xa, cmplwi 0xa) which sets bit 1<<fieldId in a bitfield array at ctx+0x98. So the two-letter-code alphabet is a shared field/channel registry: message-type codes (AA..AK) and migration field codes live in the same class of keyed dispatch structure. REGISTRATION LOOP FULLY DECODED (0x10bd65a4): the walker counter is bound at 0xa - only TEN codes (AA..AJ) are registered, each into a 0x24-byte record {code-str, len, loop-index at +0x1c} hash-inserted via f_10806d50/seed 0xc70f6907 then map-inserted via f_10bd6ec4; failures unwind through f_10807034 deletes. AA..AJ are the ten location-settings MIGRATION FIELD ids (bit positions 0-9 in ctx+0x98 bitfield); AK, the 11th table entry, is not a migration field - it belongs to a different channel role. Component tags recovered in the adjacent code: \[Mg\] settings manager, \[Mm\] locSetMigMgr migration manager (migrationmanager.cxx, keys __migration_data, __location_summation, _settings.json), \[Pc\] patch-completion ingest (\[Pc\] completePatchAttributeIngest() type mismatch \[%s|%s|%u\] vT\[%d\] aT\[%d\]), \[Rq\] request authz (isAuthorizedForNamespace, subvert-read/write guards), \[Gp\] group settings, \[Vf\] ValidationFailureMsg. NOTE: the 'uuuuubtnufr' table at 0x10e88fd4 is NOT a type map - it is a JSON escape table (control bytes -> \u or named \b\t\n\f\r) used by the attribute JSON emitter at 0x10a01xxx.; websocket permessage-deflate negotiation params {server_max_window_bits,client_max_window_bits,server_no_context_takeover,client_no_context_takeover} + parser errors 'unexpected parameter encountered'/'unexpected token encountered'
 
@@ -2612,7 +2612,7 @@ lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiat
   - **AK:** not registered by the migration walker (counter bound 0xa) - separate channel role
   - **record:** 0x24 bytes {strbuf ptr, len, data ptr +0xc, index +0x1c} built per code at f_10bd65e0-0x10bd6630
 - **payload_parser:** f_105d4ff4 (pseudo-HTTP request parse on the frame payload: line-scan via memchr('\n'), strips the '\r' line-ending, then strncasecmp header names {x-sonos-method: (0x10), x-sonos-uri: (0xd), content-length: (0x10), SOAPACTION: (0xc), X-Sonos-Udn}) i.e. the lechmere frame body is a tunneled minimal HTTP request carrying UPnP/SOAP control to the cloud. The 2-char frame messageType IS the AA..AK code set; 'Bad message type: %c%c; %d' fires when the code is not in the registered table. AA..AJ are also reused as the ten location-settings migration field-ids (the same keyed map); AK is registered in the type table but excluded from the migration walker: a non-migration lechmere message type.
-<details markdown="1"><summary>Evidence (14)</summary>
+::: details Evidence (14)
 
 - @ 0x10e75541; lechmere.event
 - @ 0x10ee71a0; lechmere.%s.ws.sonos.com endpoint template
@@ -2629,10 +2629,10 @@ lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiat
 - @ 0x10ef63f4; lechmereConnection status field set
 - @ 0x10ef63e0; lechmere.cxx literal block: frame header fields, headers, conn event keys, error vocabulary
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `led_engine`
 
@@ -2640,7 +2640,7 @@ lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiat
 
 The status LED is a scripted animation system: patterns are small programs of color steps with hold and fade times, selected by internal state codes for conditions like setup, muted, playing, and device errors. Hardware capability flags adapt it to models with different light configurations. The on/off setting you see in the app is just the visible tip of this machinery.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time led_ids repeats steps> programs of <LedStepEntry rgb hold fade> steps, serialized with cksum+flags; R_LED_* codes select the default pattern; SetLEDState toggles the user-visible on/off only
 
@@ -2651,7 +2651,7 @@ Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time 
 - **state_machine:** applyLEDModeLocked tracks m_fLedBrightness, m_nextLedPatternPriorityLevel, m_lastClr, m_fade_effect; interacts with BT mode (m_bIsInExclusiveBTMode/m_bIsBTConnected) and aux toggle; feedbackFlash + executeDiagMode + updateCaptouchBrightness + setLEDBrightness entry points; 'led_set_resumeDefaultLedPattern has bFlashMode set. Returning saved pattern'
 - **default_patterns:** resumeDefaultLEDPattern maps R_LED_* to patterns: R_LED_BROKEN_DEVICE, R_LED_JOIN_HH, R_LED_BEGIN_SETUP_MODE, R_LED_IN_SETUP_MODE, R_LED_MUTED, R_LED_AUDIO_OFF, R_LED_PLAYING, R_LED_HHID (+ WAC/WAC_TIMEOUT/UPGRADE/etc. in the R_LED family)
 - **unresolved:** pattern priority arbitration rules, the SetLEDState vs. override stack, which patterns correspond to which R_LED codes
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10e990a0; <LedStepEntry
 - @ 0x10fbb0a5; R_LED_BEGIN_SETUP_MODE
@@ -2661,10 +2661,10 @@ Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time 
 - @ 0x10fba55c; setHwFeatures LED capability flags
 - @ 0x10fbb590; resumeDefaultLEDPattern R_LED_* mapping
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `led_hw`
 
@@ -2672,19 +2672,19 @@ Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time 
 
 The LED hardware feature map: per-model booleans covering whether the unit has a microphone light, a mute light, only a status light, or brightness control. This is why the mute light is separate from the status light on some products, and it's the low-level end of the indicator.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHardwareLedSwap,bCanSetWhiteBrightness}; leds_zp; "After ~RLEDsZP"
 
 - **name:** HW LED feature flags
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fba544; led hw block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `libsonos_certval`
 
@@ -2692,7 +2692,7 @@ setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHa
 
 Device-certificate verification lives in its own shared library, separate from the main player code. It checks a presented certificate against a bundled set of roots, honors a fallback bundle, and watches for bundle updates at runtime. The practical effect is that trust for device identity is maintained as a separate, updatable component rather than baked into the program.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 shared lib (1.7MB, stripped but dynsym-rich) implementing sonos::certval::validate(sonos_device_x509_fields*, mbedtls_x509_crt* cert, ca_crt, crl, profile, name, flags, cb...) + sonos::RootCACertBundle: the whole device-cert verification pipeline lives HERE, not in anacapad; that's why CSR/body internals are thin in the main binary
 
@@ -2703,7 +2703,7 @@ shared lib (1.7MB, stripped but dynsym-rich) implementing sonos::certval::valida
 - **notes:** CertType distinguishes bundle pools; getRootCerts takes std::function filter/select callbacks incl a SonosRcbStatus_t(u8,u8,u8,u8,const SonosRcb*,x509*,u32*,x509**) selector; dates parsed via '%m/%d/%y'; 'CERT_INVALID' literal; imports are ZZ*-obfuscated ordinals (same patched-toolchain export scrubbing as anacapad)
 - **rcb_shipped_layout:** SHIPPED FILE etc/fallback_trusted_roots.rcb decoded at byte level: magic 'rcbundle\x00' @0; u16 ver-hi + version string '78.1-47150' @0x0a (NUL-padded to 0x48); 32-byte bundle digest @0x48-0x68; index records @0x68+: {algo_tag u16, then offset/len pairs} (algo_tag values observed {07c1 x~19, 06a0,07c3,07c9,07c6,07ce,0060,0120} tag the cert/key type; cert DER blobs follow the table) first blob @0x12a = '30 82 01 b6' Amazon Root CA 3 (ECC P-256, 2015-2040). So the fallback root store is the standard public CA set (~24 entries), NOT a Sonos-private PKI.
 
-</details>
+:::
 
 ## `load_content`
 
@@ -2711,19 +2711,19 @@ shared lib (1.7MB, stripped but dynsym-rich) implementing sonos::certval::valida
 
 The 'load content' verb family of the modern API: loading a container, a stream, a favorite, a playlist, or a track list, with a whitelist of item types. This is the modern-API entry point for 'play this thing', the step between browsing a service and actually playing its content.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 verbs {loadContainer,loadStream,loadFavorite,loadPlaylist,loadTrackList} with guidance "Use playback#loadTrackList to load tracks"/"Use playback#loadStream to load streams"; item types {spotify.connect,linein.homeTheater.spdif,linein.airplay,trackList.program,episode.podcast,chapter.audiobook,homeTheater-input,TV Audio}; meta json paths {/containerType,/containerName,/name,/explicit,/durationMs,/artist,/imageUrl,/releaseDate,/mimetype}; errors {Invalid favorites directory state,Invalid content resolver state,Account error,Invalid serviceId,Could not find default account for serviceId,SID mismatch lookupAccountByUDN vs RMuseUniversalMusicObjectId,Could not find UDN,serviceId is not associated with accountId}; "cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued)" + "item.id tracking is out of memory"; local-library + r:contentService + /getaa? art; sn_%u/mhhid_ id prefixes; "RadioShow name/Id truncated"; shared|private visibility; protocolInfo http-get:*:%s:*
 
 - **name:** favorites + loadContent resolution
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecf310; favorites/loadContent block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `local_routes_2`
 
@@ -2731,21 +2731,21 @@ verbs {loadContainer,loadStream,loadFavorite,loadPlaylist,loadTrackList} with gu
 
 A second cluster of local routes bound through a path-matcher rather than the master route table: group and zone operations like create-group, unjoin, activate, duck, and member settings. They're recorded here because they don't appear in the primary route table.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 paths {/createGroup,/unjoin,/activate,/deactivate,/duck,/unduck,/definition,/missingDefinition,/activeZone,/memberSettings}: cluster shares a path-matcher (no pointer table; PIC-formed literals)
 
 - **name:** zone/group route paths + duck
 - **testpoint_dispatch:** Testpoint handler: URL form 'testpoint?name=<name>.<method>' ('<h2>Bad Testpoint Request</h2>Usage: <pre>testpoint?name=&lt;name&gt;.&lt;method&gt;</pre>'); errors '<h2>Testpoint Dispatch Failed</h2>Check query params','<h2>Unknown Testpoint Name</h2>'.
 - **support_forms:** Support-form surface: hidden csrfToken + FirstZP select (option 0 disabled/1 enabled) + PriorityBridge field; /support/directsubmit POST '<h2>%s</h2><form action="/support/directsubmit" method="POST"><input type="hidden" name="csrfToken" value="%s" ...'; confirmation 'Your confirmation number is: <strong>%u</strong>.'
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fba3b4; route path cluster
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `log_domain_map`
 
@@ -2753,7 +2753,7 @@ paths {/createGroup,/unjoin,/activate,/deactivate,/duck,/unduck,/definition,/mis
 
 Every log channel the program can write to names a subsystem boundary, and the 21 log domains are effectively a module map of the whole binary. It's useful when reading log output or diagnostic pages, because each line tells you which part of the system produced it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring
 
@@ -2761,17 +2761,17 @@ Every log channel the program can write to names a subsystem boundary, and the 2
 
 - **domains:** anacapa.log (main), alarm.job, avt.play (AVTransport playback), chsrc.state (CHSRC source bus), dc (direct control?), ext.audio.action, gm.events (GroupManagement), hdmi, ht (home-theatre), hw.events, lechmere.event (WSS channel), musecmdandrsp (muse request/response trace!), musedebug, museevt (muse events), rc.upnp, snf, spotify.debug, spotify, sps, trueplay, tv, vl (line-in)
 - **siblings:** btmanager, btservice, chronyd, dropbear, ledmgr.debug, mdnsd, netstartd, sddpd, sonosledmgrd, udhcpc, wacd, wpa_supplicant
-<details markdown="1"><summary>Evidence (4)</summary>
+::: details Evidence (4)
 
 - @ 0x10e755e1; anacapa.snf.log
 - @ 0x10e75539; anacapa.lechmere.event.log
 - @ 0x10e754a1; anacapa.dc.log
 - @ 0x10e75434; full /opt/log/anacapa.*.log table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `log_domains`
 
@@ -2779,19 +2779,19 @@ Every log channel the program can write to names a subsystem boundary, and the 2
 
 The log-domain map: per-subsystem log files under the device's log directory, the main program log, and the categories config file. The domain name in a log line maps to exactly one of these, and the severity and filtering machinery decides what gets written and where.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 files /opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.events,ht,hdmi,hw.events,lechmere.event,musecmdandrsp,musedebug,museevt,rc.upnp,snf,spotify,spotify.debug,sps,trueplay,tv,vl}.log + anacapa.log + /jffs/app/log/anacapa.log.backup; conf {/opt/conf/anacapa.conf,/jffs/conf/anacapa.conf}; "Capped MaxConn value %d to %d. Edit anacapa.h to increase cap."; ZPSTR_BUFFERING state; R_TrialZPSerial key
 
 - **name:** anacapa log-domain map
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e7543d; log domains
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `longpress`
 
@@ -2799,20 +2799,20 @@ files /opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.ev
 
 The long-press button behavior: holding the play button cycles through 'cloneable' group coordinators, which is what lets a held button clone another room's queue. It distinguishes a held button from a tapped one, providing the timing logic behind press-and-hold actions.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 GC list {head,tail,current} of cloneable group coordinators; "cycling to %s:%s"/"end of list reached"; tracked GC actions {Adding new GC,Moving GC to head,Removing GC,"Updating last PAUSED/STOPPED GC","Last GC in HH to change playback state is no longer cloneable",Untracked GC action}; "not joinable"
 
 - **name:** longpress: GC-clone cycling
 - **setup_ready_combo:** VOL_UP+VOL_DN combo: each press starts a timer ('VOL_UP starts timer, when pops, switch to setup-ready mode' / 'VOL_DN starts timer...'); holding both pops the timer and the device switches to setup-ready mode ('VOL_UP + VOL_DN timer popped, switching to setup-ready mode' and inverse order): the physical-button path into setup/join flow. Button presses can also tear down grouping: 'Becoming standalone due to button press'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec9b7c; longpress block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mdns_controller`
 
@@ -2820,19 +2820,19 @@ GC list {head,tail,current} of cloneable group coordinators; "cycling to %s:%s"/
 
 The discovery-service controller: register-once guards, record populate/update/remove with duplicate suppression, and startup of player discovery. The code that publishes this speaker's presence on the local network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Service lifecycle: register-once guard ("Attempted to register ... twice"), TXTRecord populate, value update/remove with dup guards ("ignoring duplicate value","ignoring removal of non-existant value"), unregister; player discovery "Unable to start mDNS player discovery; error %i" + QueryRecord; local. domain; "\[%s\] vs \[%s\]" compare
 
 - **name:** mDNS service controller
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0671c; mdnscontroller region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mdns_discovery`
 
@@ -2840,19 +2840,19 @@ Service lifecycle: register-once guard ("Attempted to register ... twice"), TXTR
 
 The discovery half: record-key enumeration, gone-reason updates, a compatibility check for older or incomplete records, and household filtering so foreign speakers get ignored. How the player decides which discovered devices are family.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 'Error enumerating key %zu in TXT record: %i'; 'QRCB: Update bye-bye reason to %s'; compat "Sonos mDNS TXT record for '%s' is older version or missing keys"; household filter '%s is not in our household: discovered:%s - ours: %s'; notify 'Notify topology of %s at %s; bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}'; stub://stub:%u URI; {'Restart mdns discovery','mdns Browse callback error %i','%s is local; ignoring','Unknown player %s went bye-bye','Discovered new player %s'}; device-discovery datastore: 'topo_datastore' keys {dd_in_hh,dd_in_ver}, 'ip cached (%s) with new discovery url (%s)','invalid discovery url (%s), no IP will be assigned','Handled device props for %s (%s)','Error: software version string (%s) failed to parse'
 
 - **name:** mDNS discovery
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f06a34; mdns discovery
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `media_player_abstraction`
 
@@ -2860,7 +2860,7 @@ The discovery half: record-key enumeration, gone-reason updates, a compatibility
 
 Beneath the transport commands sits a plug-in layer of source implementations, one per stream type such as line-in, TV, Spotify, or AirPlay-style sources. Each plugs in through the same interface, so the transport commands you call work identically regardless of which source is actually playing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source; media_player_mgr runs under 'mediaplayermanager' domain; VLI session control guarded by scopeVliCtrl lock; third linein source class object.item.audioItem.linein.bluetooth present
 
@@ -2869,7 +2869,7 @@ source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay
 - **plugins:** media_player_mgr.cxx (manager), ai_impl_base.cxx/ai_impl (audio-input impl base), extaudiosrc.cxx + extaudiosrc_playid (external sources), media_player_vli_ctrl.cxx (virtual line-in control), htaudio_autoplay.cxx (TV), ChirpExtAudioSrc (acoustic)
 - **autoplay:** StartAutoplay; GetAutoplayRoomUUID/SetAutoplayRoomUUID target room; AutoplayVolume + UseAutoplayVolume + Get/SetUseAutoplayVolume; SetAutoplayLinkedZones + 'Found %zu linked rooms during StartAutoplay'; <AutoPlay><Mode><SilentSeconds> XML + HTASilenceThresholdAutoPlaySec + 'Triggering autoplay. Ignore Silence Threshold'; AutoPlaySettingsEvent; 'lonely local line-in autoplay'; alarm path 'Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)'; DEFAULT_AUTOPLAY_LINEIN + vhautoplaytv/autoplay_tv; 'preventing autoplay because operation is overridden'
 - **vli_autoplay:** 'using VLI to autoplay Spotify SMAPI URI: %s', 'setTransportToVLIStreamURI; URI: %s; autoplay: %d; become gc: %d': VLI streams carry external sources including Spotify SMAPI URIs, optionally promoting this player to group coordinator
-<details markdown="1"><summary>Evidence (6)</summary>
+::: details Evidence (6)
 
 - @ 0x10ecb98a; media_player_mgr.cxx
 - @ 0x10ec01ea; extaudiosrc.cxx
@@ -2878,10 +2878,10 @@ source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay
 - @ 0x10eb2930; linked-rooms expansion in StartAutoplay
 - @ 0x10f26b80; <AutoPlay><Mode><SilentSeconds> XML
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `media_player_mgr`
 
@@ -2889,19 +2889,19 @@ source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay
 
 The media-player registry: each playback session is tracked with its identity, port, and security settings, plus lifecycle events as players register and shut down. It's the bookkeeping behind 'which playback objects exist right now'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor for %s"/"found backup for %s"/"%s target \[%s\] for type %d resolved to %s"/"no actor available"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming
 
 - **name:** mpmgr: MediaPlayer actor registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecb874; media_player_mgr.cxx
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `memmon`
 
@@ -2909,19 +2909,19 @@ actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor fo
 
 The memory monitor: reads `/proc/meminfo` (MemAvailable, MemFree) plus per-process statm/cmdline, writes rotating logs to `/tmp/memorylog/log.N`, and emits 'memory report avail/free' records with a skip counter. Low-memory pressure reports are how OOM-adjacent bugs get diagnosed. Watches memory usage and feeds diagnostics plus the safeguards that act when memory runs low.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 reads /proc/meminfo {MemAvailable:,MemFree:} + /proc/%s/{statm,cmdline}; writes /tmp/memorylog/log.%d (+.old rotation); vars {memlog,memavailable,memfree,memory_status,memmon}; "memory report avail=%s free=%s"; "report skipped %s (count: %u)"
 
 - **name:** memory monitor
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f06588; memmon region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `memory_monitor`
 
@@ -2929,19 +2929,19 @@ reads /proc/meminfo {MemAvailable:,MemFree:} + /proc/%s/{statm,cmdline}; writes 
 
 The memory monitor: the threads that sample and log memory usage over time, including skip counts so missed samples are visible. It provides the data behind 'the player was low on memory' diagnostics, tracking allocation and pressure across the program.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /tmp/memorylog/log.%d with .old rotation; "memory report avail=%s free=%s"; "report skipped %s (count: %u)"; fields {memavailable,memfree}; threads memlog/memmon/memory_status
 
 - **name:** memmon: memory tracking
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f06588; memmon block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mntmgr`
 
@@ -2949,19 +2949,19 @@ reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /
 
 The shared-folder mount manager: shares get mounted under the device's temp directory, trial mounts probe dialect support, duplicates are deduplicated, a max-share count is enforced, and idle shares get unmounted. It's the filesystem layer behind 'the library reads my NAS folders'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 mount points /tmp/smb/%d_%d + trial /tmp/smb/tmp%d_%u; "already mounted unc=%s share=%s loc=%s"; "too many shares mounted"; trial mount "Trial mount found unsupported protocol: %s (strike %d/%d)" + "flagging %s as failed"; "not http mounting %s as %s"
 
 - **name:** mntmgr: SMB mount manager
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ece5d0; mntmgr block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `model_sku_vocabulary`
 
@@ -2969,7 +2969,7 @@ mount points /tmp/smb/%d_%d + trial /tmp/smb/tmp%d_%u; "already mounted unc=%s s
 
 The model identifiers and product names embedded in the firmware for capability checks, covering the internal codes for each hardware flavor. These are what let the firmware report which features a given model supports.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID; display-name entries incl 'Connect:Amp','(Unknown)','RylesS767'
 
@@ -2990,16 +2990,16 @@ The model identifiers and product names embedded in the firmware for capability 
     ```
   - **note:** ordered literal run 0x10efa2a8-0x10efa5dc bounded by RMuseFeature array check; masks group related bits
 - **model_tables:** Three model-name tables recovered (rodata 0x10f7c300-0x10f7c620): (1) display-name ptr table, 48 entries indexed by model ordinal: 0 Bridge,1 Play:5,2 Dock,3 Play:3,4 Sub,5 Play:1,6 Playbar,7 Boost,8 Play:5,9 Playbase,10 Play:1,11 One,12 Beam,13 Connect,14 Amp,15 Move,16 One,17 Arc,18 Table lamp,19 Bookshelf,20 One SL,21 Port,22 Five,23 Sub,24 Roam,25 TITAN,26 Picture frame,27 Table lamp,28 Bookshelf,29 Arc SL,30 Roam SL,31 Ray,32 Beam,33 Beam SL,34 Sub Mini,35 One SL,36 Era 100,37 Optimo1 SL,38 Era 300,39 Floor lamp,40 One SL,41 Move 2,42 Arc Ultra,43 Era 100 Pro,44 Ace,45 Jaws,46 Pallas Plus -- including names for then-unreleased products (Arc Ultra, Era 100 Pro, Ace/earbuds, Jaws, Pallas Plus, TITAN, Ryles30/Gambit/Roundhouse/Disco codenames in the code table). (2) parallel model-code table (CR100,ZP80,ZP100,ZP120,BR100,ZPS5,WD100,ZPS3,ANVIL,ZPS1,BR200,ZPS6,ZPS11-14...,Sub 4,Ryles30,Gambit,Roundhouse,Disco). (3) device-identity record at 0x10f7c4e8: {code:'S9', zpsId:'ZPS9', display:'Playbar', fields {0xa,0x8000,0x30206772,0x37008,...}, ordinal=6} -- S9=ZPS9=Playbar confirmed as this build's target; ordinal 6 selects 'Playbar' in table 1. Separate dspconfigparam codename table at 0x10f24808 (Default,Playbar,Sol,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-{T,P,G},Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Fury,Optimo2,Optimo1) -- DSP-config model names, 'ConfigParam lookup from player model %d failed' consumer; 'SYMFONISK' brand literal at 0x10f7c518.
-<details markdown="1"><summary>Evidence (3)</summary>
+::: details Evidence (3)
 
 - @ 0x10f249a4; ZPS9
 - @ 0x10e741dd; HwFeatures
 - @ 0x10f2490c; ZPSnn identifier table (two rodata runs)
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `model_table`
 
@@ -3007,19 +3007,19 @@ The model identifiers and product names embedded in the firmware for capability 
 
 The model-compatibility table: every model ID this build recognizes, with the local unit being the Playbar entry. Use it to map a firmware build to the products it can run on, and an unknown ID means 'not a supported model' at validation time.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 models recognized by this build: {ZPS1,ZPS3,ZPS6,ZPS9(this unit),ZPS11,ZPS12,ZPS13,ZPS14,ZPS15,ZPS16,ZPS17,ZPS18,ZPS19,ZPS20,ZPS21,ZPS22,ZPS23,ZPS24,ZPS26,ZPS27,ZPS31,ZPS35,ZPS37,ZPS38,ZPS43,ZPS54,ZPS55,ZP120,ANVIL}
 
 - **name:** ZPS model-compatibility table
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f2490c; model table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mp3_decoder`
 
@@ -3027,20 +3027,20 @@ models recognized by this build: {ZPS1,ZPS3,ZPS6,ZPS9(this unit),ZPS11,ZPS12,ZPS
 
 The MP3 stream decoder: variable-bitrate header handling, duration math, frame resync with a bounded retry, and error reporting for corrupt frames. The decoder that plays the most common audio format on the platform.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 normalization {id3,lame}; "WMA radio not supported on this platform"; resync bound "20 resync required: corrupt file"; frame errors {illegal sample rate,read frame header/sync/data overflow/data failed}; xing {"No size in xing header","xing we can't load",VBR dur "%zukb/%ukbps = %llds",CBR dur,"Assume that VBR file without a ToC has constant bitrate of %d"}; ID3v2 skip; "Found valid header after searching %zu bytes"; seekSeconds duration bound; mpg123-backed with custom 'sonos mp3 header' pre-parse ('error, not enough data to parse sonos mp3 header' vs plain 'mp3 header'); AudioDataDescriptor input rejected ('error, decoding using AudioDataDescriptor not supported'); format-change discard ('discard block immediately following unexpected format change','new format r:%li ch:%i enc:%i'); status XML <DEC_MP3Decoder>%s</DEC_MP3Decoder> + <DEC_Version>MPEG Version %s + <DEC_Layer>%u + 'MPEG Version %s, Layer: %d, Frame Len: %d','Samplerate: %ld, Bitrate %d','Number of Channels Input %u: Output %u, output channel mode: %s','Emphasis %d: abr %d, vbr mode: %s' (Constant/Variable/Average Bitrate Mode); mpg123 msg surface 'Message: Track ended.','Message: Output format will be different on next call.','Message: For feed reader: "Feed me more!"'; WAV parser guards 'exceeded max WAV audio channels (%d) found %d','less than min WAV audio channels','buffer length 0','Attempted to divide by 0 - found lDataLen/wNumChannels/wBitsPerSample/lSampleRate','%u-channel, %u-bit, %u-samplerate'
 
 - **name:** mp3 stream decoder (xing/VBR)
 - **stream_decode:** MP3 stream reader: ID3v2 skip ('Failed to read full ID3 header','Ran out of data while skipping ID3v2 tag','Found valid header after searching %zu bytes','No header. pos=%zu'), Xing/ToC ('No size in xing header, using %zu',"xing we can't load"), duration estimates ('Using VBR duration calc: %zukb/%ukbps = %llds','Using CBR duration calc','Assume that VBR file without a ToC has constant bitrate of %d'), seek bounds ('seekSeconds (%lld) exceeds duration','seeking to/past end of track'), frame errors ('read frame {header,sync,data overflow,data} failed','corrupt file (t:%ld)','got frame with illegal sample rate','no more frames sfp:%d','stopping with %zu frames left','stream ended prematurely (s=%zu d=%zu)','(resync required \[%u\]','20 resync required: corrupt file'), buffer status 'fillBuffer returning, buf is %u%% full and %u avail', normalization tags 'Normalization id3:%d lame:%d', 'WMA radio not supported on this platform'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ece800; mp3 block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mp_autoplay`
 
@@ -3048,19 +3048,19 @@ normalization {id3,lame}; "WMA radio not supported on this platform"; resync bou
 
 The media-player autoplay logic for virtual line-in sources: target resolution decides which coordinator a pushed session lands on, and this is what makes a phone's AirPlay-style session start on the right room. It's the autoplay feature as implemented in the media-player layer.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 params {vol,useVol,includeZones} + "airplay include zones: %d" + AirplayIncludeGroupedEvt; linein types {object.item.audioItem.linein.{homeTheater,airplay,bluetooth}} + x-sonos-vli; target resolution {"lonely local line-in autoplay","no autoplay target","couldn't determine coordinator/AVT control URI/control URI","Not executing on invisible/node proto incompatible ZP"}; "for controlURI \[%s\] for coordinator \[%s\]. programURI \[%s\]"; "Autoplay command failed ret=%d"; "AutoStop called on unhandled URI"; http://%s:%u
 
 - **name:** media_player_autoplay: VLI autoplay
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecb510; mp_autoplay block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mpegts_id3`
 
@@ -3068,19 +3068,19 @@ params {vol,useVol,includeZones} + "airplay include zones: %d" + AirplayIncludeG
 
 The MPEG-TS demuxer plus timed-ID3 extraction for HLS radio metadata: PAT/PMT parsing, audio PID selection ('No audio PID'), stream-type rejection, PTS handling, and timed-ID3v2 tag extraction with size caps and OOB guards. This is where stream metadata (artist/title) inside radio HLS comes from. Parses the transport-stream container and ID3 metadata tags some broadcast-style streams carry.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), eslen, "No audio PID"/"Audio PID is 0x%x", "non-audio and non-timed_id3 PID", PTS, peslen/payload; timed-ID3v2 extraction: tag footer detect, "Ignoring too large timed ID3 size", OOB guards, "unsupported mp3 segment"; PAT/PMT discovery 'found PAT PID'/'found PMT PID 0x%x'/'Can't read PMT', afelen/sectlen/desclen/silen field widths, 'ID3v2 tag is malformed'/'detected ID3v2 footer'/'cannot skip initial ID3v2 tag'
 
 - **name:** MPEG-TS demuxer + timed ID3 (HLS radio metadata)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed9380; ts/id3 parser region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mpmgr`
 
@@ -3088,19 +3088,19 @@ TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), 
 
 The media-player manager's actor layer: the registry and resolver that maps a target key to a concrete media-player actor, including the 'no actor available' failure modes. Every player-scoped modern-API command resolves through here first.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; resolve {getActor,Actor Filter null,unexpected target ID type,found actor,found backup,target resolved,no actor available}; lifecycle {registered \[%zu\],created \[%zu\],Invalid target key abort,Request to shutdown,shutdown}; per-MP config Player%s + anacapa_logger.toml + /localsettings.txt; VLI hooks {onVirtualLineInGetVolume,SessionStartInfoUpdated,StartSession,StopSession,SuspendSession,NameChanged,MetaDataChanged,PlayModesChanged,onPlaybackStateChanged,processSetVolume,waitOnTxBitFlagsClearedLocked}; events {VolumeSetActionEvent(vol,mute),VliVolumeProcessingCompleteEvent(type,success,flags)+signal rc,VliSessionProcessingCompleteEvent(type,action,success,flags),"vliType old: %s new %s cookie %d"}
 
 - **name:** media_player_mgr: actor registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecb874; mpmgr block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `multi_daemon_boundary`
 
@@ -3108,7 +3108,7 @@ actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; 
 
 This program is one daemon of about thirteen on the player. It pushes network settings to the network-startup daemon over a local socket and receives connection updates back, while LED, Bluetooth, and power behavior live in their own daemons. Most device behaviors are actually owned by these siblings, and this layer marks where this program's job ends and theirs begins.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/netstartd.ipc: netstartd gets netsettings/PSK pushes and satellite notifications, reports connection-type updates back; per-daemon crash machinery (.dmp/.properties/_backtrace/count files) and /opt/log sinks | netstartd client side (ipc_msg.cxx region): connect.sendMessageLocked hello handshake; performReset-triggered reconnect; deferral "Deferring IPC reconnect"; timeout "attempting reconnect (retries=%u)"; "Bad IPC message received (%d %d %d)"; transport threads selthrd.RIPCHandler.{reset,data,except,timeout}; control msgs "Disabling/Enabling networking","Signaling start/end of network connectivity test"
 
@@ -3121,7 +3121,7 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 - **launcher_scripts:** etc/run{anacapa,netstartd,ledmgrd,diagprocessd,sddp,mdns,chrony}+rundaemon.sh: inittab-supervised wrapper scripts; shared helpers: trackrestart(name,trackfile,debounce-s) logs restarts to /var/run/<daemon>.start; waitwhiletrue loops on /var/run/stop<daemon> sentinel files; waitfordns blocks until /var/run/waitforip clears AND resolv.conf has a nameserver. Daemon->binary map: netstartd=/wifi/netstartd, ledmgrd=sonosledmgrd (stale-pid watchdog writes <3> messages into /opt/log/sonosledmgrd.log and restarts), diagprocessd=/etc/diagprocessd, sddpd, mdnsd=/sbin/mdnsd -f, chronyd (slew-for-small/step-once-per-run clock discipline).
 - **sddp:** sddpd = Control4 SDDP (Simple Device Discovery Protocol) daemon (/etc/sddpd.conf: Type=sonos:Zoneplayer, PrimaryProxy=media_service, Proxies={media_service,amplifier}, Manufacturer=Sonos, Model=Zoneplayer, Driver=sonos.c4z (Control4 driver DB), MaxAge=1800) the device announces itself to Control4 systems. /jffs/dev_sddp.conf overrides the shipped config (-c flag).
 - **anacapa_upgrade_hook:** runanacapa intercepts upgrades BEFORE exec'ing anacapad: if /var/run/upgradeinfo exists -> mkdir /tmp; mv /jffs upgrade_tmp_prev.log; run /bin/upgrade >> /tmp/upgrade.log; echo 'RESULT = $rr'; rm upgradeinfo; exit rr: the daemon slot doubles as the upgrade runner. Normal path also cleans stale /tmp/smb/* mounts.
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10ea7f20; /btmanager-external
 - @ 0x10ea7f70; /netstartd-external
@@ -3132,10 +3132,10 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 - @ 0x10efab18; 'Pushed netsettings update to netstartd'
 - @ 0x10ea7cc0; per-daemon .dmp/.properties/backtrace crash files
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_field_schema`
 
@@ -3143,19 +3143,19 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 
 The JSON field names used in modern-API payloads, grouped by domain: auth fields, battery fields, device fields, plus settings, positioning, and queue fields. These are the wire keys a client must produce, and the binary is the authoritative spelling for each one.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery {statusReason,chargingState,validCharger,rawBatteryPercentage,batteryPercentage,batteryTemperature}; device {deviceFeatures,isCoordinator,isVisible,isSatellite,isSecure,bootSequenceId,systemUptimeSeconds,anacapaUptimeSeconds,museHouseholdName,primaryDeviceId,networkIPAddress,networkMask,networkType,wifiSignalStrength}; audio in {bluetoothSource,lineInSource,audioInputName,audioInputIcon}; misc {pageSize,websocketUrl,vanishReason,toVersion,clientState,deviceState,downloadDuration,isSuspended,credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate,businessCore,controlChannels,restrictedAccess,sonosRadio,speed}; playback caps {canSkipToPrevious,canPause,canStop,canRepeat,canRepeatOne,canCrossfade,canShuffle,canSkipToItem}; policy {showNPreviousTracks,pauseTtlSec,playTtlSec,limitedSkips,pauseAtEndOfQueue,refreshAuthWhilePaused,notifyUserIntent,pauseOnDuck}; track meta {catalogId,region,nextItem,currentVideo,streamInfo,replayGain,advertisement,episodeNumber,chapterNumber,episodeName,immersive,connotation}; session {epochId,periodicIntervalMillis,sendPlaybackActions,macAddr,hmacDigest,sessionState}; misc2 {zoneInfo,isUnregistered,targetRoomName,meshDisable,suppressTVConfigError,repeatOne,shuffle,customerId,updateURL,enableMonitor,manifestRevision,latestSwGen,wifiDisableState}; SFB wire keys {third-party-integ,no-ads,hd-content,special-content,on-demand-archive,can-skip,content-saving,messaging,save-groups,basic-ui,commercial-msp,essentials-msp,premium-msp,dashboard-access,schedules-access}; alarm ops {getAlarms,fetchAlarm,createAlarm,updateAlarm,snoozeAlarm,removeAlarm}; duration fmt ISO8601 PT0H5M0S
 
 - **name:** muse JSON field schema
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9a8e8; field schema
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_logging`
 
@@ -3163,19 +3163,19 @@ auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery
 
 The internal command and event logger for the modern API, recording which operations were invoked. It's useful for understanding which operations are considered sensitive enough to log and for debugging replayed command histories.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {muselogevt,muselogcmd}; logged ops {loadAudioClip,startDirectControlEx,setProtectedAdminSettings,createVoiceAccount}
 
 - **name:** muse cmd/event logging
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9880c; muselog
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_perf`
 
@@ -3183,19 +3183,19 @@ The internal command and event logger for the modern API, recording which operat
 
 A per-stage profiler inside the modern-API engine: it times each phase a request passes through, covering authorization, parsing, routing, and execution, plus per-operation stages. It exists so latency inside the API pipeline can be measured and reported.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 fmt "- %c%010u - %6s -" + "%s: %lldms, %fms avg \[count=%u\]"; stages {AUTH_IS_AUTHORIZED,AUTH_PARSE_DEVICE_TOKEN,AUTH_POLICY_TABLE_CACHE_FETCH,COMMAND_DISPATCH,COMMAND_EXECUTE,COMMAND_LOGGER,COMMAND_PARSE,COMMAND_REPORT,PLAYER_VOLUME_SET_VOLUME}
 
 - **name:** muse::PerfProfiler
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f98a78; perf profiler
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_semantics`
 
@@ -3203,7 +3203,7 @@ fmt "- %c%010u - %6s -" + "%s: %lldms, %fms avg \[count=%u\]"; stages {AUTH_IS_A
 
 The 'muse' API is Sonos's real product API: the REST-style surface the app talks to over the cloud and websocket channel. Hundreds of routes are catalogued, covering every classic command reachable through it plus modern-only features the old surface never had. This is the vocabulary of what the API can mean, not just its URL list.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume
 
@@ -3218,7 +3218,7 @@ the muse API is the real product surface: 525 route strings, organized as househ
 - **auth_model:** household-scoped authorization namespace: authorization/tokens → resolveToken ('Request to resolveToken successful \[token=******%s\]' (only token tail logged); authorization/policy/{policyKey} → getPolicyKey (fetches named policy keys like authzPolicyKeyLechmere); authorization/permissions/{role} → getPermissions (role→permissions map); invite flow createInvite→authorization/invite, redeemInvite→authorization/redeem (+deleteInvite)). How new players/users join a household; players/{id}/authorization/{authorizeDevice,authenticateClient}; authorization/users lists household users
 - **artifact:** one registration literal is malformed: 'v1/\[error: 'none' is not a valid target\]/authorization/invite': an error string was embedded where a path param failed to bind, showing routes are assembled param-by-param at registration
 - **outbound_auth:** outbound calls use 'Authorization: Bearer %s' or 'Authorization: Basic %s' plus X-Updated-Authorization/X-Goog-Updated-Authorization response handling; token lifecycle events authTokenChanged/authTokenRefreshed; SMAPI refreshAuthToken op at sonos.com/Services/1.1; getDeviceAuthToken warns when credentialType != OAuth
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10e7bf40; v1/households/{householdId}
 - @ 0x10ef9166; muse_async_command_handler_impl.cxx
@@ -3229,10 +3229,10 @@ the muse API is the real product surface: 525 route strings, organized as househ
 - @ 0x10e7c3ec; 'v1/\[error: ...not a valid target\]/authorization/invite' malformed registration literal
 - @ 0x10ef9be8; resolveToken success log masks token to last chars
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_target_validator`
 
@@ -3240,19 +3240,19 @@ the muse API is the real product surface: 525 route strings, organized as househ
 
 The gate that resolves a command's target: implicit targets (the receiving player), explicit targets (another player or group by ID), and the rejections for unauthorized or missing targets. This is the first thing a command hits after auth, and most client-error failures originate here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 rejects {guest_access_disallowed,forbidden,not_authorized,not_found}; museinfoserviceobserver/infoservice
 
 - **name:** muse_target_validator
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9860c; target validator
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `music_services`
 
@@ -3260,19 +3260,19 @@ rejects {guest_access_disallowed,forbidden,not_authorized,not_found}; museinfose
 
 The available-services store: the service-catalog file plus its state variables and settings, replicated across players. This is how the household agrees on which music services are installed and at what version, and it's the machinery behind the service catalog.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVersion,AvailableServiceDescriptorList,AvailableServiceTypeList,AvailableServiceListVersion}; settings {OnlineUpdateBaseURL,R_TrialZPSerial,R_AvailableSvcTrials}; replication locks {rwlR_msd,rwlW_msd} + msdZonePlayer; accept logic "deciding whether to accept replicated list from: %s; ver: %u format: %u"/"replicating services from %s"/"Replicated list accepted"; zp-vs-rs compare {zpETag,rsETag,zpLUD,rsLUD,zpVer,rsVer}; "ServiceTypeList, adding built-in: %s"/"adding: %s; name: %s"; "Warning. No SD found for %d"; poll "next check for available services in %u s \[source=%s\]"; "Could not submit Available Services DIAG. Service count is: %zu"; checkForAvailableMusicServices job; "Not enough space to write full list"
 
 - **name:** musicservices: available-services replication
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e76a94; musicservices block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `netif_monitor`
 
@@ -3280,19 +3280,19 @@ musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVe
 
 The interface-address monitor: low-level system events feeding handlers for link and address changes. Both the address-watch and link-watch consumers ride it, so the rest of the system learns the moment connectivity shifts.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 netlink {RTM_NEWLINK,RTM_GETLINK}; errors {read error,incorrect type,unexpected message %X}; selthrd.RIfAddressMonitor.{reset,data,except,timeout}
 
 - **name:** RIfAddressMonitor: netlink ifaddr watch
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee69ac; addrmon block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `netstart_events`
 
@@ -3300,20 +3300,20 @@ netlink {RTM_NEWLINK,RTM_GETLINK}; errors {read error,incorrect type,unexpected 
 
 The network-startup event vocabulary: the provisioning subsystem's observable transitions covering setup start and stop, connection-type updates, and setup-mode states. It's how this program learns the network is coming up, came up, or failed, so it doesn't talk before there's a path.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 events {netstartd hello,Setup start,Setup stop,Netstart is idle,Netstart alive,Netstart open,In setup mode,Netstart SSID set/clear,Netstart triggered upgrade (0x%x),Got connection type update \[%s\]}; WAC {/var/run/wac_mode,Unknown WAC mode %d,WAC mode disabled/enabled/timeout}; ForceShutdownOnNewSSID %d; shutdown {"Deferring shutdown, reason \[%d\]","deferring newHHID event","ignoring network bounce mid-shutdown",zpShutdown,/tmp/netstartd.pid}; IP-change {re-binding old->new,clearing link-local subscriptions on 169.254.* change,shutting down for new IP,newAddr event with same addr}; conn types {SonosNet (Ethernet),Home Theater 2.0,Home Theater (Ethernet),Home Theater,Ethernet (WiFi Disabled),Ethernet,SonosNet (wireless)}; events {newHHID,newSSID}; "%s: %s event resetting connection to mDNS"
 
 - **name:** netstartd IPC event vocabulary + connection types
 - **satellite_notify:** 'Failed to send IPC message to netstartd to notify about satellite addition': anacapad pushes satellite-addition notifications to netstartd over the IPC channel alongside netsettings/PSK pushes and connection-type updates.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f02798; netstart block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `noderx`
 
@@ -3321,7 +3321,7 @@ events {netstartd hello,Setup start,Setup stop,Netstart is idle,Netstart alive,N
 
 The inter-player receive transport: packet bookkeeping, a flight-recorder line per packet, late-joiner handling, and loss-suppression logic. It's the receiver half of the framed group-audio channel, accepting the node-level messages household members exchange.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight rec " %u r:%d.%06d s:%c p:%d.%06d"; startup {"Starting up; id:%u, delayPkts:%u, delayFrms:%u","Startup large packet gap:%u, don't NACK",bFinalStartPacket,allowing NACK resend of LCG,ignoring discontig NACK resend,ignoring partial frames}; NACK "out of order packet; send nack immediately" + "NACKed for %u IDs, %u packets, ob/lr/lcg/lrx"; pause/resume {thread pausing/resuming, state validation p/sp/pr/ip}; frame layer {wFirstFrameOffset,wBytesOfDataLeftToRead,pwLen,Playtime} + errors {expected frame not found,frame length conflict,Packet stream framing error,frame too large,bufferNextProtocolFrame WOULDBLOCK/E_WOULDBLOCK,readNextDataBlock timeout,forcing decoder reset}; skipAhead entries {immed,shifted,released blocks,too many}; resync {"resynchronization flushing packets %u-%u",resynchronization message}; "Ignore packet with incorrect protocol version"; "Received dup packet id with different class"/oob/mismatch replace; "RX buffer full"/"RX discontig"; threads {noderx-data,noderx-pause,noderx.rxd.usleep,noderx.loc.usleep}; "failing noderx for io error (c=%u t=%lld)"
 
@@ -3338,14 +3338,14 @@ indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight re
     - **oldestBufferedPkt:** Oldest buffered packet ID
     - **lastReadPkt:** Last read packet ID
     - **lastConsecutiveGoodPkt:** Last good consecutive packet ID
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecfae4; noderx block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `nslookup_detail`
 
@@ -3353,19 +3353,19 @@ indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight re
 
 The name-lookup diagnostic page detail: a permission gate plus a lookup routine driven by a parameter table. It's one of the tools-page commands, listed separately because it resolves names on demand for network debugging.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 f_100b96d0: gate → execs nslookup via f_10549cf8 with table arg 0x11097680+0x810
 
 - **name:** nslookup_detail
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - firmware; handler disas
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `overrideconfig`
 
@@ -3373,19 +3373,19 @@ f_100b96d0: gate → execs nslookup via f_10549cf8 with table arg 0x11097680+0x8
 
 The config-override endpoint: a form submission that commits an override file with strict validation and a success redirect. It's the engineering mechanism for config overrides that survive reboot, a deliberate escape hatch over the normal config stores.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 form post committing override file; errors {Error reading request body,Request body size does not match content length,Error initializing object,Error committing override file}; success <html>meta refresh 1;url=/fcs Success</html>; Content-Type application/x-www-form-urlencoded
 
 - **name:** /overrideconfig endpoint
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f06248; overrideconfig region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `perf_counters`
 
@@ -3393,20 +3393,20 @@ form post committing override file; errors {Error reading request body,Request b
 
 The performance-counter schema: keyed counters with window timestamps, descriptions, and min/avg/max accounting. These are the raw counts and timings behind performance diagnostics, measuring how long operations take and how often they run.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEndTime='The end of the window as UTC wall clock time',description}; 'average value should be 0'; emit root perf_counter_table, manager perfCountMgr, 'subcounters' key; 'detected "%s" (service=%d/%u) but no counters available'; museperf tagged record
 
 - **name:** perfcounter schema
 - **fields:** metrics {accum,accumBytes=aggregate size of processed frames,aheadTime=amount of audio prebuffered,frameToFrame=time between frames,wouldBlock=transmits blocked count,queueExpiry=queue expiration time,frameTypes,frameSizeBytes,frameSizeSamples,processing indicators,user action,transport error,initial,perf-counters}; windows {"Creating %s window ending at time %lld","Cannot reverse time","Ringbuffer cannot rotate backwards","Rotation required"}; json {wallClockTimeUTC,timeSinceBoot,windowDuration,processName,counters}; "AFC truncated!"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb7e40; perfcounter
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `perfect_sync`
 
@@ -3414,19 +3414,19 @@ headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEn
 
 The 'perfect sync' machinery: Sonos's multi-room synchronization, which is how grouped speakers keep their audio clocks aligned tightly enough that rooms play in lip-sync-level unison. It's the technically hardest part of grouping and a long-standing Sonos differentiator.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "perfect initial sync %d.%06d, available %u"; forcePerfectInitialSync + "Forced perfect initial sync %s on stream %s"; "forced perfect initial sync, ignoring %d usec diff"
 
 - **name:** forced perfect initial sync
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f29c37; sync block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `play_history`
 
@@ -3434,7 +3434,7 @@ The 'perfect sync' machinery: Sonos's multi-room synchronization, which is how g
 
 Recently-played tracking: plays are recorded by the track monitor, buffered, and posted to the household history API, and the app fetches a cached list from the same place. Ratings like 'like' and 'dislike' exist but only for the cloud queue. It's the persistent record of what was played, feeding any 'recently played' view.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture plays, entries buffered and POSTed to the household history API with completeness gating + buffer-full drops; getHistory is ETag-cached; deleteHistory/removeHistoryItem/clearHistory ops; ratings via playbackMetadata/ratings: explicitly 'only implemented for cloud queue'; TPM trace vocabulary: 'TPM update for track uri: %s, id:%s, pos: %lld, calc: %u, final: %d', 'TPM Position update track mismatch (curr:%s \[%u\]) != (info:%s \[%u\]), pos: %lld, calc: %u', 'Track pos %lldms, track duration %lldms (est)'/'(est omitted when exact)'; boundary FSM 'Track Changed w/o Delivery Done','Track Changed, next track @ %d.%06d, now %d.%06d'/'next track end @ %d.%06d, now %d.%06d','Track Changed without knowing prior track end!','Track end time @ %d.%06d','upcoming end time @ %d.%06d','Logical Track Boundary','Pausing track, offset %u ms','Seeking to position %u ms, streamId: %u'; TPM memory pressure: 'memory pressure streams'/'memory pressure canceled','relief fell back to canceled','Detected old complete/in progress stream segment...removing','no match found for complete','overlap','RESYNCING...retry later (strm: %d   play: %d)','Omitting playhead from report due to LSE'
 
@@ -3446,7 +3446,7 @@ historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture
 - **gating:** 'History is disabled, history is not POSTed': opt-out gate; entries dropped when 'resource incomplete - name, type, or objectId missing' / 'group incomplete - name, id, or coordinatorId missing'; 'Failed to queue history entry, buffer full' + 'Post History Buffer Cleared'
 - **ratings:** r:rating DIDL element + urn:schemas-rinconnetworks-com:metadata-1-0/\|rating; 'rating is only implemented for cloud queue', 'cloud queue server does not supporting rating', 'rating.type is not recognized'
 - **pipeline:** trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10ec49da; historymgr.cxx
 - @ 0x10f01174; <WebSocketHistory
@@ -3456,10 +3456,10 @@ historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture
 - @ 0x10ec4a90; 'History is disabled, history is not POSTed'
 - @ 0x10eb0bb8; 'rating is only implemented for cloud queue'
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `playlist_parsers`
 
@@ -3467,7 +3467,7 @@ historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture
 
 Below the URI layer sit real playlist parsers: ASX/WMP (mswmext), M3U (x-mpegurl), Apple HLS playlists (vnd.apple.mpegurl), DASH manifests. They turn playlist URLs into the track lists the queue consumes. Readers for external playlist formats (M3U, PLS, and friends) so saved playlists from other apps can be imported and played.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction ("found linkUrl"); Post-stream readData dump {bytesLeft,len,buf}; HLS player status XML '<HLS Name="Playlist"><HLSVersion>%d<IsStatic>%s<IsEncrypted>%s<TargetDurationSec>%d<CurrentBitRate>%d<TrackEncryptionMethod>%s<TrackEncryptionFormat>%s'; storeStream rejection taxonomy: empty/NULL URI, invalid rendition, binaural/downmix reject, unsupported bandwidth/bandwidth-0/no-bandwidth, unsupported Atmos, unsupported codec, no supported codec; ABR ladder 'downgrade bitrate: %u %u %u','unable to downgrade bitrate, already at the minimum','we should stop at the max bitrate','starting context: br=%u(%u) strm=%u seq=%llu'; '<BitrateStreams numBitrates="%zu">'/'<StreamEntry br="%u" strm="(%zu,%zu)" codec="%s"'; seek machinery 'seek to time %.3f (%lu:%02lu:%02lu)','seek to time %.3f from start of current segment','cached seconds advanced %f doesn't line up with seek, offset %f','PlayTrack: pEntry->m_dTimeOffset %f, prev time offset: %f, dur %f','Trim offset required %f','time offset of segment %llu byte offset %zu is %.3f','stopping decoding \[%s\] with %f secs processed'; ADTS-bump heuristic 'no ADTS metadata, bumping seconds advanced, seconds advanced %f'; segment ops 'couldn't find segment %llu for ref time %s','seq discontinuity %llu %llu','adv: seq=%llu secs=%f c=%zu','just fetched track \[%2zu: %llu\] with a count of %zu key \[%s\] (dis %d)'; key fetch 'Failed to open key uri. http status=%d','Unable to read key. (%zu!=%zu)','encrypted, but no key URI'/'no data from key URI','undefined encryption method'; 'pretty weedy around here: %d' (sparse-playlist log)
 
@@ -3475,14 +3475,14 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 - **hls_parser:** hlsplaylist/hlsrenditions parser (0x10ec5aac block): recognized tags #EXT-X-VERSION, #EXT-X-MEDIA, #EXT-X-STREAM-INF, #EXT-X-TARGETDURATION (default when absent: 'tag not present; setting %u'), #EXT-X-MEDIA-SEQUENCE, #EXT-X-PLAYLIST-TYPE ('playlist type: %s', 'static HLS (end list)'), #EXT-X-ENDLIST, #EXT-X-PROGRAM-DATE-TIME ('No ... for 1st segment'), #EXT-X-KEY/#EXT-X-SESSION-KEY with KEYFORMAT="com.apple.streamingkeydelivery" (FairPlay SKD), #EXT-X-DISCONTINUITY, #EXT-X-INDEPENDENT-SEGMENTS, #EXT-X-MAP ('HLS Segment Map entry'), #EXT-X-BYTERANGE. Validation: 'Invalid initial playlist: %s: header=%s', 'invalid #EXT-X-MEDIA rendition tag', 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA', 'invalid rendition, attempt to store duplicate group-id', 'Invalid media playlist: %s: line=%s'. ABR/rendition selection: BANDWIDTH required ('rejecting bandwidth 0'/'unsupported bandwidth %llu'/'no bandwidth was specified'), codec allowlist ('rejecting unsupported codec %s', 'at least one supported codec in playlist not found'), Atmos/JOC handling ('we have %zu dolby streams', 'rejecting unsupported Atmos stream', 'JOC / Atmos', 'Downmixed from Atmos', 'Undefined channel rendition'), binaural/downmix rendition rejection, 'forcing a source switch due to multiple codec variants'; bitrate ladder traversal ('advancing stream index to %d \[%s\]', 'invalid stream index %u (max=%zu)', 'failed to get URI for br index %d stream %d'). Segment machinery: 'segmented content', seeking ('seeking pass segment %llu'/'seeking to segment %llu start time = %.2f range start %llu len %llu'/'Seeking pass the end of the playlist'), 'Error creating URI for HLS segment: %s with base: %s', 'total dur after adding segment duration: %f'/'stream duration from HLSPlaylist: %f'. Status XML <HLSInfo><HLS Name="Playlist"><HLSVersion>%d + <BitrateStreams numBitrates="%zu"><StreamEntry br="%u" strm="(%zu,%zu)" codec="%s".
 - **hls_live_edge:** Live-edge handling: 'index starts on seq %llu%s' (live/static marker), 'Initial sequence: %llu (%llu)'/'empty track list', 'media seq went backwards: %llu -> %llu', 'media len changed: %zu-> %zu', 'media list: %llu %zu'. Stale-seq policy: 'stale sequence number %llu, not writing' BUT 'stale sequence number %llu, but with updated X-MAP' + 'overriding decision to discard due to X-MAP presence; updating %llu': a fresh EXT-X-MAP rescues a stale playlist. Track records 'set track id=%d ix=%zu seq=%llu o=%.2f d=%.3f c=%zu uri=%s' + 'update track id=%d ix=%zu seq=%llu uri=%s d=%.3f c=%zu' + 'track encryption method=%d, uri=%s'; edge cases 'next track idx hits max tracks, wrapping with mod', 'track list is split!', 'stale: %d %d %llu %llu', 'Error encountered creating HLS Segment Map entry for %s', 'setting byte range offset to (%llu)', 'failed to update track list n:%d s:%llu c:%zu', 'Error %x occurred while processing media playlist', 'ignoring media playlist: %s: line=%s', 'error parsing datetime \[%s\]'.
 - **rendition_attrs:** EXT-X-MEDIA attribute set handled: AUTOSELECT, SAMPLE-RATE ('unsupported sample rate %zu'), channel count ('invalid bit depth %zu','rendition has invalid channel count, stop parsing %zu'), GROUP-ID ('rendition has no group id, stop parsing','duplicate group-id'), TYPE ('rendition is not audio, cannot parse'), rendering labels {Binaural Rendering,Unknown Rendering,Undefined channel rendition}; unknown attrs logged 'found unknown/unhandled EXT-X-MEDIA attribute %s'; selection trace 'rendition: group %s, autoselect %s, numchans %zu, rendition %s, name %s'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed1854; play_state_mgr region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `psk_hierarchy`
 
@@ -3490,19 +3490,19 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 The household's shared-secret key tree: several keys guard different channels, including the household communications key, the control key, the room-name encryption key, and the network-swap key, each with a backup mirror for seamless rotation. Rotation regenerates all of them and propagates to members, and this is the cryptographic root of trust for inter-player traffic.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each +Backup mirror id; rotation {"Unable to generate new HH/control/room name encrypt/lan swap PSK","Unable to update settings with new PSKs","PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)","Bumping netsettings version","not rotated"}; encoding {"Encoding SonosNet key failed","Encoding DTLS HH PSK failed"}; "Pending netsettings.json update discarded after replicating"; "Settings Replication changed SN Disable from %d to %d (source: %s)"; SSID protection {"SSID missing from known networks list","Registering for next topology update to protect SSID","Current SSID protected/already protected/not protected, could not get current SSID/missing from networks list","Not connected to a WiFi network, skipping SSID protection"}; "Received netsettings update from netstartd"/"netsettings changed"; app/run/nettestresult.txt; PSK rotation: 'Unable to generate new {HH,control,room name encrypt,lan swap} PSK','Unable to update settings with new PSKs','PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)','Encoding DTLS HH PSK failed'; key fields {controlPsk,roomEncPsk,lanSwapPsk}
 
 - **name:** 4-PSK household crypto hierarchy + rotation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10efadb8; netsettings block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `qplay`
 
@@ -3510,19 +3510,19 @@ PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each
 
 The QPlay integration: the Tencent QQ Music casting feature, covering the machinery behind the auth handshake and the session that streams audio afterward. It's a China-market feature, dormant elsewhere.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #QPLAY_SUPPORT# placeholder; action QPlayAuth; updateSharedTQPlayMode; no seed/code exchange or control channel found: stub-grade support
 
 - **name:** QPlay (Tencent): minimal presence in this build
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef8cc6; QPlay:2 capability + #QPLAY_SUPPORT# + QPlayAuth
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `qplay_protocol`
 
@@ -3530,7 +3530,7 @@ QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #
 
 The QPlay protocol implementation: the wire details of the Tencent casting protocol, including the seed-and-code exchange and the session flow. It's one of the private protocols sitting alongside the documented services, and it's how a Tencent-linked client pushes music at the player.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event route: the only service missing its event pair), a QPlayAuth action taking Seed/Code/MID/DID arguments (seed→code auth handshake: controller sends Seed, device answers with a Code computed from MID machine-id and DID device-id), a shared-T QPlay mode with context restrictions ('Calling updateSharedTQPlayMode in bad context!'), compile flag #QPLAY_SUPPORT#, and the device-description capability <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability>
 
@@ -3539,7 +3539,7 @@ Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event ro
 - **unresolved:** the post-auth control channel (UDP keepalive/position reports in public QPlay docs), how MID/DID are generated, and the replay/validity rules on Seed
 - **soap:** /QPlay/Control registered; QPlayAuth dispatch site 0x1073a4f0 does strcmp on the action name then calls vtable+0x14/+0x38 on the action object; sibling function at 0x1073a5d0 initializes string-arg records for Seed (via arg-parser f_1056157c), then Code, MID, DID
 - **auth_args:** QPlayAuth args: Seed (in), Code, MID, DID: matches the public QPlay auth scheme where the speaker derives an auth code from a controller-supplied seed bound to its IDs
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10f11d58; QPlayAuth
 - @ 0x10ef8cc0; qq:X_QPlay_SoftwareCapability = QPlay:2 in device description
@@ -3549,10 +3549,10 @@ Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event ro
 - @ 0x10f11d64; 'Seed' arg literal (f_1056157c arg-parser site 0x1073a61c)
 - @ 0x10f11d6c; 'MID' + 'DID' arg literals adjacent
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `queue_persistence`
 
@@ -3560,7 +3560,7 @@ Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event ro
 
 How the queue survives reboots: saved queues and the live queue are both written to disk as structured documents, saved queues in a compressed XML file and the live queue in its own store. Both are validated at boot and kept in sync across the household. This is the machinery behind your queue and Sonos playlists being intact after a power cut.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 .rsq on-disk queue format: savedqueues.rsq is a <SavedQueues LastUpdateDevice Version Next> XML doc of <SavedQueue Id Curated NumTracks> elements each holding <Track URI= MD=> entries; live queue persists as trackqueue.rsq; atomic write via .tmp rename + .d.rsq backup; validated at boot and on replication receipt; play_state_mgr.cxx: current play-state file /tmp/current_play_state ('couldn't rename/create/update current play state file'); Queue LastChange event schema '<Event xmlns="urn:schemas-sonos-com:metadata-1-0/Queue/"><QueueOwnerID val="%s"/><QueueID val="%.20s"><UpdateID val="%u"/><Curated val="..."'; 'hPlaybackPolicy' member; '(warning) %s not handled due to empty enqueued URI','trackValidateURI detected unplayable queue entry: %s','Post stream readData dump; bytesLeft: %zu, len: %zu, rgchBuf: %s','found linkUrl: %s'; tqueue playability guards: 'adding unplayable track to queue: %s // %s','not attempting unsupported playback %s','Possible URI truncation: %s','bad encaps: %s (%s)','Failed to convert track URI flags: %s','Failed to extract objectID from %s'
 
@@ -3577,7 +3577,7 @@ How the queue survives reboots: saved queues and the live queue are both written
 - **playmodes:** `NORMAL`, `SHUFFLE_NOREPEAT`, `REPEAT_ALL`, `SHUFFLE_REPEAT_ONE`
 - **events:** playmodelEvent {eventType,curationState}; "setting link URL: %s" on isAd tag; trackQueueSummary name
 - **queue_xml:** queue doc: <QueueID val="%.20s"/><QueueOwnerID val="%s"/><UpdateID val="%u"/><Curated val="..."/>; fields {QueueID,QueueOwnerID,QueueOwnerContext,QueuePolicy,EnqueuedURIsAndMetaData,CurrentTrackIndex,NewCurrentTrackIndices}; verbs {AddMultipleURIs,AddURI,AttachQueue,Backup,CreateQueue,RemoveAllTracks,RemoveTrackRange,ReorderTracks,ReplaceAllTracks,SaveAsSonosPlaylist}; policy flags {fullTrackOnly,allowShuffle,allowRepeat,cacheOnPause,stopOnError,clearOnEnd,pauseAtEnd,repeatLastTrack}
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10ed3104; savedqueues.rsq
 - @ 0x10ed3164; <SavedQueues
@@ -3587,10 +3587,10 @@ How the queue survives reboots: saved queues and the live queue are both written
 - @ 0x10ed34f4; <Track URI=.. MD=..> entry element
 - @ 0x10ed329c; file:///jffs/settings/savedqueues.rsq
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `rdmbuttonfwd_detail`
 
@@ -3598,19 +3598,19 @@ How the queue survives reboots: saved queues and the live queue are both written
 
 The button-forwarding endpoint's behavior: it checks authentication and whether the player is in remote-diagnostics mode, and only then do physical button presses get forwarded to the remote observer. Otherwise requests are rejected.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 → f_100b9bb0 forwards buttons; else 403-class: GET/POST path via f_100b9bb0 after RDM-mode predicate f_105e9468
 
 - **name:** rdmbuttonfwd_detail
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - firmware; handler disas
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `runtime_flag_files`
 
@@ -3618,7 +3618,7 @@ f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 → f_100b9bb0 
 
 A set of sentinel files in the device's temporary and runtime directories flips behavior at runtime: unlocked, broken-device, WiFi-disabled, crashed-play-state, setup mode, and similar markers. They're the mechanism behind diagnostics, developer mode, and setup states, letting a file's presence or absence toggle behavior without code changes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, brokendevice, wifidisabled, htdocs_locked, crashed_play_state, anacapa-has-run, fresh_hh.txt, anacapa_prevent_crashdump_upload, sonosConcurrencyUnrecoverableError), /var/run mode files (wac_mode, netstart_mode, netmanager_extender_flags, systemtimeoffset), /tmp/memorylog 4-file ring + .old copy, /tmp/smb/ mount workspace, /tmp/backtrace + diagstdout/diagstdin diag scratch, /tmp/event_preserve + event_reporter_v3 buffers
 
@@ -3642,7 +3642,7 @@ runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, bro
   - **/var/run/systemtimeoffset:** persisted clock offset (SNTP)
 - **persistent:** jffs flash: settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}, localsettings.txt, irconfig.txt, persist/ssh/dropbear_ecdsa_host_key, sys/log/setup*/ boot logs, shadow/stats, recovery+upgrade+watchdog logs; /opt/conf + /jffs/conf anacapa.conf (jffs overrides opt)
 - **hardware_if:** /proc/ath_rincon/* (SonosNet radio: device, fullstatus, mibcc, nf, phyerr, roam, station, status, dfs + ath1 variant); /proc/driver/{accel,audioctl,fpga/{circ,data,reg/all},gravity-vector,ledctl/status,tas5708 (amp),tdm/{regs,rxring,stats,txring},temp-sensor}; /dev/{audioctl,dsp,chk,mtd/0}; /proc/fs/cifs/DebugData
-<details markdown="1"><summary>Evidence (6)</summary>
+::: details Evidence (6)
 
 - @ 0x10efff88; /tmp/device_unlocked_flag
 - @ 0x10ef4e9c; /tmp/brokendevice
@@ -3651,10 +3651,10 @@ runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, bro
 - @ 0x10e7525c; /jffs/settings/* persistent store paths
 - @ 0x10e75bcc; /tmp flag-file cluster
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `runtime_policy`
 
@@ -3662,19 +3662,19 @@ runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, bro
 
 The runtime policy object: it consults the config and settings stores to decide allowed-versus-disallowed outcomes for feature gates that depend on live configuration rather than build flags. It's the rule-check layer applied to operations and settings at execution time.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ctor deps {fcs,hhsettings,settingsmgr}; Disallowed; P2P {isEffectiveP2PPolicyEncrypted,'Effective P2P Policy is encrypted \[%s\]'}; flags {'Use Thor w/ Muse','Chsrc Optimization Enabled'}; policy dimensions: LisEntitlementOn (entitlement gate), isBusinessSystem + isBusinessSubscriber, usageContextCloudSetting, Cloud Schedule ('Business Cloud Schedule has changed' re-eval trigger), 'Guest Access Enabled', 'Unathenticated Control Enabled' \[sic\], 'Insecure UPnP Allowed', 'Effective P2P policy is encrypted'; RuntimePolicyEvent re-eval loop ('Reevaluating runtime policies' on isBusinessSubscriber/Cloud Schedule change); ctor failure 'Error: Cannot construct RRuntimeZPPolicy \[localSettingsMgr=%s,entitlementsMgr=%s\]'; fetch failure 'Failed to fetch latest entitlements in %s \[ec=%s\]'; cloud-settings XML '<CloudSettings cacheStatus="get_status_fresh" eTag="%s" type="json">'; playback-restriction vocabulary ('%s Disallowed (%s)' pattern): Pausing, Resuming, Seeking, Previous Track Visible, Next Track Visible, Skipping Previous, Skipping Next, Shuffle, Repeat All, Repeat One
 
 - **name:** runtime policy (RRuntimePolicy)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10efdaa4; runtime policy
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `scrobbler`
 
@@ -3682,7 +3682,7 @@ ctor deps {fcs,hhsettings,settingsmgr}; Disallowed; P2P {isEffectiveP2PPolicyEnc
 
 Last.fm scrobbling is built in: the player handshakes with post.audioscrobbler.com (Audioscrobbler protocol 1.2), then POSTs each played track as form fields (artist/title/timestamp/album/MBID...). On a BADTIME handshake it recovers by reading the HTTP Date: header. A newer ws.audioscrobbler.com/2.0 API is also linked. Which account it scrobbles for and the exact trigger policy are still unresolved. Reports what you played to listening-history services (last.fm-style): packages each finished track into a submission.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API; last.fm REST auth: method 'auth.getMobileSession' + signed '&api_sig=' (md5 constants present); last.fm API key 49f9477923cc3ab8ed90029f6e7e1d9f; timing telemetry '%s failed, ret = %hu, tvStart = %d s %d us, m_tvConnectDone = %d s %d us, m_tvDone = ...'
 
@@ -3695,7 +3695,7 @@ Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sock
 - **result_codes:** R_LASTFM_BAD_ACCOUNT, R_LASTFM_BAD_SUBLEVEL, R_LASTFM_NO_ACCOUNT, R_LASTFM_NO_CONTENT, R_LASTFM_STREAM_LIMIT
 - **unresolved:** submission trigger policy (when a track scrobbles), queueing/retry on failure, where session creds live (SystemProperties?), which player state gates scrobbling, ws.audioscrobbler.com/2.0 usage
 - **endpoint:** https://ws.audioscrobbler.com/2.0/ (Audioscrobbler 2.0 REST); xmlpost CONTENT-LENGTH; "openConnection to %s failed"; "Data overflowed; ignore submit"
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10ee4c18; http://post.audioscrobbler.com/
 - @ 0x10f0e118; https://ws.audioscrobbler.com/2.0/
@@ -3706,10 +3706,10 @@ Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sock
 - @ 0x10ee4ca0; 'BADTIME -- stealing time from Date: header'
 - @ 0x105240c8; submission builder in f_105236c8
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `select_thread`
 
@@ -3717,19 +3717,19 @@ Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sock
 
 The central event-wait thread: descriptor add and remove with per-user accounting, interrupt handling, and change detection. It's the program's main loop that waits on sockets, timers, and hardware at once, the heartbeat of the whole process.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {epollAddFD,selthrd,RSelectThreadMutex,SelthrdUpdateMutex,epollReset}; errors {"Error in addUser - too many users","Error adding/removing interrupt fd to epoll","%s improperly changed its FD to %d (watching %d)","Error in eventfd (%d)","Error removing fd %d for %p %s (%s)","%s: %p %s already watching fd %d, removing it first","Error adding fd %d","Update error stu %p not in st %p","Error %d in epoll wait (%s)"}; sonos-concurrency cond API {sonosCondCreate,sonosCondWait,sonosCondWaitFor,sonosCondWaitUntil,sonosCondNotifyOne,sonosCondNotifyAll} (cond_impl.cxx); mainSonosThread; UnrecoverableError_int; thread-dump fmt '%5lu %30s(%3d,%3d)\[%02X\]: ' + 'waiting on %s %s (%d),'; registered fd-handler names incl selthrd.{RIRDecoder,RHWEvtHandlerZP,RTrackPlayMonitor,RIfAddressMonitor,RMSearchNotifyHandler,ArpChecker,ARPingManager,RIPCHandler}.{reset,data,except,timeout}
 
 - **name:** RSelectThread epoll wrapper
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fba020; select thread
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `semisleep_power`
 
@@ -3737,7 +3737,7 @@ The central event-wait thread: descriptor add and remove with per-user accountin
 
 A suspend and resume engine: the strings and flags show players can enter a low-power 'semi sleep' state and resume, which is relevant to idle latency and to why a sleeping player can lag on its first command. The details are not yet fully decoded.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log "...(considering suspend) %s" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; "Unable to remove time on a ringing timer" guards firing timers. | Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018: parked timers survive suspend; resume recomputes.; powPrvntIdlM/powWakLkMgr guards: 'ERROR: modifyPreventIdleLockForOperationTimeout(%d, %lld) not acquired by guard','ERROR: modifyWakeLockForOperationTimeout(%d, %lld) not acquired by guard'; wifi_idle_mgr 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d'
 
@@ -3747,7 +3747,7 @@ low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemi
 - **fsm_bits:** entry: UserSuspend/Suspend and reset/int_internalSuspend → 'suspending stop'/'suspendSession'; state: isSuspended/suspended + <r:DirectControlIsSuspended> replicated element + 'suspend bypass flag' gating LED apply; wake: powerWakeupFromSemiSleep; 'registration during suspend' queues/defers registration
 - **errors:** ERROR_PAND_SUSPENDED (Pandora op fails while suspended); SONOS_PLAYER_SLEEPING/LOW_BATTERY lechmere close reasons
 - **wake_related:** WoW wake of vanished group members + WakeOnLANRequestEvent + wake-lock guards ('modifyWakeLockForOperationTimeout(%d, %lld) not acquired by guard'), 'SYSTEM_ERROR_WAKEUP_FAILURE'; 'powerWakeupFromSemiSleep' muse op + 'STAY_AWAKE' flag
-<details markdown="1"><summary>Evidence (12)</summary>
+::: details Evidence (12)
 
 - @ 0x10e86d24; enableSemiSleep
 - @ 0x10f97b58; featureConfigSemiSleep
@@ -3762,10 +3762,10 @@ low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemi
 - @ 0x10fba624; LED apply gated by suspend bypass flag
 - @ 0x10edccbc; timers_impl.cxx literal block: timer op logs + SQLite DDL
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sethostip_detail`
 
@@ -3773,19 +3773,19 @@ low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemi
 
 The host-address override endpoint detail: a gate plus a routine that sets the host address and responds. It's one of the engineering endpoints, wired through a different route than the normal pages.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 f_100b9fac: gate → tail f_105499fc (host-ip set + respond)
 
 - **name:** sethostip_detail
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - firmware; handler disas
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `settings_replication`
 
@@ -3793,7 +3793,7 @@ f_100b9fac: gate → tail f_105499fc (host-ip set + respond)
 
 Household state is kept in sync by a replication protocol: each named store (accounts, network settings, favorites, saved queues, areas) has a version-and-format handshake and per-item transfers between players. The wire exchange is now fully decoded, including how a newer setting is announced, pulled, signature-checked, and installed. The whole protocol is gated on registration, so an unregistered player refuses to replicate.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 the household replication bus: per-setting transfers ('replicateOne from %s to %s setting %u version %u') with a version+format negotiation ('deciding whether to accept replicated list from: %s; ver: %u format: %u'); per-setting denylisting on badFormat/badEncoding; a separate player-level quarantine subsystem enforcing admission policy (HTTPS required, known user, secure reg required) with scheduled rechecks; suppressed while unregistered; \[Gp\] ingest taxonomy: 'settings \[%s\] player only settings group received location settings \[%s\] \[%llu\]' (player-only vs location settings group split), 'setupSettingsContainerFromStorage(%s) \[%d\] attemptSettingsIngestFromStorage failed %08X'/'attemptSettingsIngestFromStorage success from old schema'; ingest key 'attributeSources'; JSON-schema 'multipleOf' keyword recognized; netsettings.json schema keys {genVersion,genTime,/sonosnet,sonosnetDisable,/networks,pass,backupPsk,backupControlPsk,backupRoomEncPsk,backupLanSwapPsk} + 'Parsing error %s'; settings-REST validation ladder {'Failed to get protected settings','Unsupported setting','unsupported object type','unknown settings group name','missing settings group name','invalid JSON body','JSON body must be an object','invalid settings group for update','unknown settings key','bad schemaVersion, eTag, or timestamp','unexpected json structure','Unable to set SonosNet Channel'}; file push 'Send file %s, version %u, in format %u to %s' + 'Error generating signature'
 
@@ -3826,7 +3826,7 @@ the household replication bus: per-setting transfers ('replicateOne from %s to %
   - **denylist:** 'denylisting replicated setting %u, unknown or blocked'; 'Removing settings denylists after registration'; 'Setting %u needs to call addServiceSetting'
   - **magic:** 'RINCON_FFFFFFFFFFFF99999': device-id/magic pattern literal
   - **gate:** 'Not replicating while unregistered': replication requires completed registration
-<details markdown="1"><summary>Evidence (9)</summary>
+::: details Evidence (9)
 
 - @ 0x10efd14e; replicated_settings.cxx
 - @ 0x10eacbb0; <ReplicationOperation
@@ -3838,10 +3838,10 @@ the household replication bus: per-setting transfers ('replicateOne from %s to %
 - @ 0x10f17d48; quarantine admission reasons: HTTPS/unknown user/secure reg
 - @ 0x10e76e68; ver/format negotiation on accept
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sharelist`
 
@@ -3849,19 +3849,19 @@ the household replication bus: per-setting transfers ('replicateOne from %s to %
 
 The music-share list manager: add, remove, re-index, and re-sort shares, replicate the list across players with a 'whose is newer' comparison, and drop shares whose protocol fails verification. It's the registry of configured music shares, meaning which folders on which machines are in the library.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter: us \[%s|%u\] vs them \[%s|%u\]"; ops {localAddShare,localRemoveShare,localRequestReindex,localRequestResort,localRemoveUnsupportedShares}; protocol gate {verified supported protocol→keep,else remove + count} + VerifiedValidProtocol flag; errors {share ID not found,path already exists,subsumed by existing share,Path is malformed,Access denied,Cannot exceed maximum shares,Mounting failed,Local index storage error,Remote file share error,Indexing canceled,connection failure,replication failed,replication skipped fmt mismatch}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)" + "Turning resort request into full reindex" + "processing index complete (c:%d i:%d f:%d lc:%s)" + commit {m_bCommitted,m_bWait,m_bTerminate} + index recovery "recovered ix=%d with ver=%d"; R_BrowseByFolderSort + Tracknum sort
 
 - **name:** sharelist: SMB share replication + index
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e89d48; sharelist block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `shoutcast`
 
@@ -3869,7 +3869,7 @@ replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter:
 
 The Shoutcast and ICY stream client: request headers, response handling for the ICY and HTTP variants, redirects, and metadata-interval handling. This is what plays legacy internet-radio streams, which many stations still use.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; responses {ICY 200,HTTP/1.1 200,HTTP/1.0 200,HTTP/1.1 30x,HTTP/1.0 30x} + redirect to %s; "request buffer is too small"; "add header \[%s: %s\]"; "opening connection with \[%s\]"; "Redirect audio/x-mpegurl to %s" (M3U); inline metadata {StreamTitle,text=""} + "end of file or I/O error"; shoutcastradio type; explicitContentFiltering + rsmapicontextzp; private-frame extraction: 'Found %zu bytes of%s private frame data for %s' (' (incomplete)' marker), 'get meta: %f %s, %s', 'new meta: %s', 'new artwork: %s': artwork URLs ride ICY private frames
 
@@ -3878,15 +3878,15 @@ request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; response
   - **literal:** GET %s HTTP/1.1\r\nCONNECTION: close\r\nACCEPT: */*\r\nHOST: %s%s\r\nUser-Agent: %s Nullsoft Winamp3 version 3.0 (compatible)\r\nIcy-MetaData: 1\r\n
   - **address:** 0x10ed46d0
   - **notes:** The stream client spoofs 'Nullsoft Winamp3 version 3.0 (compatible)' as the User-Agent suffix and sets Icy-MetaData: 1 to opt into inline ICY metadata blocks (the metaint interval stream interleave). ACCEPT-ENCODING is NOT offered - streams are read raw.
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - @ 0x10ed462c; shoutcast block
 - @ 0x10ed46d0; GET template w/ Winamp3 UA spoof + Icy-MetaData: 1
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `shutdown_reasons`
 
@@ -3894,19 +3894,19 @@ request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; response
 
 The idle and shutdown reason codes: the vocabulary covering API calls, Bluetooth connections, partner disappearing, recovery, user suspend, user shutdown, and critical shutdown, plus the idle-state transitions. Suspend/resume decisions and 'why did it power off' answers come from this set.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "idle state is %sidle, changing to %sidle" + dpUpdateIdleState; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; "unable to parse KVPair. %s is an invalid KV pair string."; battery {RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; EnetPorts {<Port port Link Speed> + EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,...}}
 
 - **name:** idle/shutdown reason enum + battery
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef3328; idle/shutdown block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `shutdown_seq`
 
@@ -3914,19 +3914,19 @@ The idle and shutdown reason codes: the vocabulary covering API calls, Bluetooth
 
 The ordered teardown sequence: web client, zone player, the cloud-API thread pool, the internal event distributor, then timed jobs and state, each component stopped in a specific order. It's how the program shuts down cleanly instead of dying mid-operation.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ordered teardown {HttpClient,ZonePlayer,AsyncMuseThreadPool,InternalEventDispatcher,resetZone,DropoutEventHandler,deleteTimedJobManager,AsyncThreadPool,finalSection,finalSectionEnd}
 
 - **name:** modZPShutdown sequence
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e743d7; shutdown order
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `signal_source`
 
@@ -3934,19 +3934,19 @@ ordered teardown {HttpClient,ZonePlayer,AsyncMuseThreadPool,InternalEventDispatc
 
 The signal and tone source: single-instance tone injection with play-ID validation, channel targeting, and policy gating. Calibration tones and test signals use this engine, and it's where audio signals conceptually originate inside the system.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 errors "invalid playId"/"failed to stop signal"/"incorrect playId"/"nothing is currently playing"/"couldn't create an audio stream"/"only one signal can run at any given time"/"invalid channel"/"disallowed by policy"; channelNumber param
 
 - **name:** signal/tone source
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed2dc8; signal source region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `smapi_descriptor`
 
@@ -3954,19 +3954,19 @@ errors "invalid playId"/"failed to stop signal"/"incorrect playId"/"nothing is c
 
 The music-service descriptor schema: the API key, presentation map, strings, reporting, and browse sections plus account tiers. The descriptor is what the player reads to learn a service's capabilities, and it's the contract a custom service must implement.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 fields {apiKey,advertising,presentationMap,strings,reporting,browse,Moment}; accountTiers {paidLimited,paidPremium}; additional capability checkbox values from the embedded form: noMultiAccount, plus confirm contextHeaders/deviceCerts/playerIds/userInfo/contentFiltering/manifest/authorizationHeader/mediaUriActions already catalogued; capability checkboxes submit via an HTML form POST (type=submit): noMultiAccount is the exact wire key; service-type names partner-defined-context, artistRadio/artist-radio, artistTopTracks
 
 - **name:** SMAPI service descriptor schema
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea5c70; smapi descriptor fields
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `smartplay`
 
@@ -3974,19 +3974,19 @@ fields {apiKey,advertising,presentationMap,strings,reporting,browse,Moment}; acc
 
 The SmartPlay bridge-content loader: when triggered it asks the cloud for content suited to a group and starts playback, all timed. This is the 'speaker plays something sensible when you press play with an empty queue' feature, Sonos's smarter playback-decision machinery.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge/content/api + "service base path: %s"; timings {"loadContent took %ld ms: GroupId %s GC %s %s","getContent took %ld ms: %s","fetchContentAndStartPlay took %ld ms, success: %s"}; errors {loadContent failed,getContent parse failed,getContent failed}
 
 - **name:** smartplay: bridge content loader
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed4968; smartplay block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sntp_server`
 
@@ -3994,7 +3994,7 @@ reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge
 
 Sonos runs its own time system: players sync from Sonos's own time-server pool, and one household player also hosts a time server the others can sync from, with that server role able to migrate between players. Grouped playback start times are scheduled on this shared clock, which is how multi-room audio stays in sample-accurate sync.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller): players sync from *.sonostime.pool.ntp.org or the group coordinator, one player hosts an SNTP server for the household ('Starting SNTP server switch'), and SNTP validity gates synchronized playback scheduling; server-clock lifecycle: 'Created SNTP Server, port: %hu clock: %s','No clock set!','SNTP server thread loop starting','SNTP server cfg change requested'; per-clock {added/failed 'server clock %d on %','server clock on %u already present','stop monitoring server clock','server clock on %u removed'/'not found', request failed -> 'thread exiting','could not process sntp-%u-clock request; thread exit'}; virtual clocks 'request virtual clock %s install on port:%u'/'cannot install virtual clock on port:%u'/'request virtual clock removal on %s:%u'/'cannot remove virtual clock on port %u','adding/removing virtual clock fd %d'; fd mgmt 'added/failed sntp interrupt fd','remove %d succeeded/failed','event mask was zero but remove for %d succeeded','removed/failed to remove sntp interrupt fd %d'
 
@@ -4007,7 +4007,7 @@ Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller
 - **vli:** VLI streams carry SNTP config: 'vli sntp port %u', 'vli src tx settings sntp port'
 - **unresolved:** server-election rule, clock-domain semantics, port number, jitter/drift thresholds
 - **server_detail:** sntpsrv.cxx: local SNTP responder: 'failed sntp response on %s:%u', per-clock request handling 'could not process sntp-%u-clock request; thread exit', 'processing sntp-%u-clock evtMask: %u fd: %d' under domain 'sntp_srv', interrupt fds added/removed dynamically. sntppoll.cxx: '{sntppoll' status XML + sntp.txt dump + save_sntp key; zone/common/sntp.cxx provides 'sntp.poll'. VLI transport is SNTP-disciplined: 'vli src tx settings sntp port: %u', 'vli sntp port %u', 'htsnk_invld_sntp' (HT sink rejects invalid sntp). Drift telemetry: 'error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'.
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10ed6496; sntpsrv.cxx
 - @ 0x10ed62e8; handleSntpRequest
@@ -4017,10 +4017,10 @@ Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller
 - @ 0x10eb4bd4; 'Starting SNTP server switch.'
 - @ 0x10eb5758; synchronizedPlay SNTP wait
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `socket_hal`
 
@@ -4028,19 +4028,19 @@ Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller
 
 The socket abstraction layer for the embedded Spotify component: platform sockets wrapped for the Connect stack, including DNS queueing and the connect and accept error vocabulary. Everything the component does on the network lands here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 errors {"listen socket_listen/bind/set_option/create ret: %d","DNS callback not set","Requested hostname longer than %d","DNS lookup returned %d","connect socket_create/set_option/connect ret: %d","cb_socket_connect() = %d","try again, returning","Error setting kSpSocketReuseAddr/ReusePort/MulticastTTL/MulticastLoop/Membership/NonBlocking","udp socket_bind/create ret: %d","socket_close/accept/set_option/read ret: %d","Returning EOF/error on disconnected socket"}; tags {SOCKET-MANAGER,TLS-INTERNAL,Socket reporting error}
 
 - **name:** eSDK socket HAL
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd80c4; socket HAL
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sonarctl_detail`
 
@@ -4048,19 +4048,19 @@ errors {"listen socket_listen/bind/set_option/create ret: %d","DNS callback not 
 
 The /sonarctl endpoint detail: a control surface for the room-detection acoustic subsystem, gated like the other engineering endpoints. An internal handle on the chirp machinery used during setup.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 gate f_105489fc → method check (r9==1 POST?) → f_100b4614+f_100b4364+f_100b4388 response helpers; flushes sonar tones ("flushing sonar tones"/"Flushed")
 
 - **name:** /sonarctl
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x100bc354; handler disas
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sonoscp`
 
@@ -4068,19 +4068,19 @@ gate f_105489fc → method check (r9==1 POST?) → f_100b4614+f_100b4364+f_100b4
 
 The content-provider umbrella: the music-service client, the Windows Media provider, and service-descriptor handling together. It's the module that speaks to external content sources, the integration layer between the player and outside catalogs.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 vars {reports,playbackPolicies}; errors {"Unable to validate specified service id %u","ignoring unsupported object %s","could not identify default account for object %s","cannot map content type %s to SMAPI protocol \[accountId:%s,sid:%s,obj:%s\]","cannot generate SMAPI URL"}; CQ URI cache {"Fetching CQ itemId %s using cached trackURI.","Adding track URI for itemId %s to cache.","Invalidating CQ track URI cache.","CloudQueueWindow init: %s"}; audio/x-spotify
 
 - **name:** sonoscp content provider
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb9c50; sonoscp block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sound_device`
 
@@ -4088,19 +4088,19 @@ vars {reports,playbackPolicies}; errors {"Unable to validate specified service i
 
 The sound-device abstraction: the layer between the mixer and the hardware, covering device open, buffer negotiation, and the fault vocabulary the audio stack surfaces. On this model it fronts the audio-bus driver, sitting between 'set volume' and the amplifier.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample width inconsistency}; system/src_disable + StdQ ASRC Coeffs + "Running with SRC bypassed"; orientation sensing; "reset vcxo"; health flags {AMP_CURRENT_WARN,AMP_FAULT_WARN,AUDIO_WARN_TEMP,CPU_WARN_TEMP,CPU2_WARN_TEMP,SOC_WARN_TEMP,AMP_CURRENT_FAULT,AMP_FAULT,AUDIO_FAULT_TEMP,CPU_FAULT_TEMP,CPU2_FAULT_TEMP,SOC_FAULT_TEMP,PS36_FAULT,UV36_FAULT,UV14_FAULT,POWER_WARN_TEMP,POWER_FAULT_TEMP,MOTION_FAULT_TEMP,MOTION_WARN_TEMP}_STATUS
 
 - **name:** sounddev: output device + HW health
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f2ac18; sounddev block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sound_swap`
 
@@ -4108,19 +4108,19 @@ syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample
 
 SoundSwap: the feature that moves a TV's audio between a soundbar and a paired portable speaker. Its state machine handles swap requests, target selection, and handoff, driven by modern-API verbs. Think 'move what's playing to the speaker I'm next to'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 sound_swap/audio_swap; queue audioSwapEventQueue + progress audioSwapProgress; behaviors SWAP_BEHAVIOR_{DO_NOTHING,PUSH_SWAP,PULL_SWAP,UNDEFINED}; push/pull disband target|initiator group; HTSatelliteChecker gates (isFound,isHTSat,playerUDN,HTPrimaryUDN + topology/group-props/GC-AVT lookups); FSM "New state: %i"/"Event %i not handled in state %i"/transition-failure -> reset; result fields {swapResult,swapType,swapTarget,swapGC,initAction,candCount,respCount}; gates {bonded zone,HT Satellite,unknown state,unswappable audio,already in progress}; muse calls museCmdSetGroupMembers/museCmdModifyGroupMembers via groups/%s/groups/modifyGroupMembers; initiator provenance flag museInitiated=%d on Swap initiated; FSM detail: swap-behavior enum {SWAP_BEHAVIOR_DO_NOTHING,SWAP_BEHAVIOR_PUSH_SWAP,SWAP_BEHAVIOR_PULL_SWAP,SWAP_BEHAVIOR_UNDEFINED} with 'Performing SWAP_BEHAVIOR_%s. Target = %s. GroupUUID = %s (size = %d). WM = %d.' action lines + 'Failed to disband {target's,initiator's} group with error code %d. Continue regardless.'; eligibility gates {'Initiator is playing non-swappable content','Swap is disabled as this player is in a bonded zone','Swap is disabled as this player is an HT Satellite','Can't swap because local player is in unknown state','Can't swap because initiator is playing unswappable audio','Ignoring swap request, one is already in progress'}; state machine {'Initialized SoundSwapController. Initial state is %i','Processing event: %i','Event %i not handled in state %i','Transition failure handler failed. Resetting system.','State %i failed to handle transition failure event. Resetting system.','New state: %i','Swap initiated target=%s museInitiated=%d.','Swap failed errCode=%d. target=%s event=%d state=%d swapInProgress=%d.','Swap completed successfully in onSwapMusicSuccess. target=%s'}; probe fields 'pszGCUUID = %s. bIsPlaying: %d. bIsContentSwappable = %d.' + 'AVTransportURI: %s.' + 'isFound = %i. isHTSat = %i. playerUDN = %s. HTPrimaryUDN = %s.'
 
 - **name:** SoundSwapController: audio-swap FSM (zpSwap)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed6b44; sound swap region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spdif_detect`
 
@@ -4128,19 +4128,19 @@ sound_swap/audio_swap; queue audioSwapEventQueue + progress audioSwapProgress; b
 
 The optical-input detector: format detection on the input that decides which decoder path gets the stream, covering PCM, Dolby, and DTS. Detection failures surface as the input 'working' but producing silence.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3),NULL Burst,Pause Burst}; unsupported taxonomy {AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1/2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1-3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA,Unsupported}
 
 - **name:** SPDIF IEC61937 burst-format detection
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee650c; spdif fmt enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spotify_smapi_ctrl`
 
@@ -4148,19 +4148,19 @@ detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (D
 
 The Spotify service-integration bridge: the layer that lets a Connect session appear as a controllable media source, translating between component callbacks and the Sonos transport and queue model. It's the Sonos-side control path for the Spotify integration.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 setPositionInfo fmt "trackId='%s', position=nullptr, duration=%d, bLastReport=true"; "discarding pre-transition position %lldms"; TransitionAck \[pos,preLogout pos,transAck\] + "Begin AwaitingTransitionAck \[preLogout=%lldms\]"; stream status "SMAPI current stream\[%u\] mediaType\[%d\]=%s (curTrkStatus\[%u\]=%d/nextTrkStatus\[%u\]=%d)"; "Notified we are receiving delegation. Resetting track queue info."; "Error event in SMAPI mode, e=0x%08x"; error map "error: %s ecode=%d (%s), mapped to 0x%08x"
 
 - **name:** RSpotifySMAPIControl
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea46c0; smapi block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spotify_thread`
 
@@ -4168,19 +4168,19 @@ setPositionInfo fmt "trackId='%s', position=nullptr, duration=%d, bLastReport=tr
 
 The eSDK thread: the event pump, message queue, rate limiting, and the transition-ack machinery that serializes Connect commands. Most 'Connect did nothing' bugs are a queued op dying silently on this thread. The dedicated thread running the embedded Spotify component, isolated from the main event loop.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 single-request constraint "Already have a spotify request in progress, can only have one!!" + "Executing %s ..."/"%s timeout"; rate limit {"restricting excessive fatal error reporting","spotify telemetry rate limit exceeded!",spotrl}; connect ops {SpDisableConnect,SpEnableConnect,SpSetDisplayName,SpSetDeviceIsGroup,Enable/Disable Connect} "Set display name \[%s\], is%s grouped"; playback {SpPlaybackIncreaseUnderrunCount "Underruns reported: %u",SpPlaybackSetBitrate setbr,SpPlaybackPause/Play,SpPlayUriWithOptions,SpPlaybackEnableShuffle/Repeat,SpGetMetadata,SpZeroConfGetVars}; ads spotify:ad:/spotify:interruption:; restart token "'Radio' stripped from restart token. Token was %s now %s"; login {SpConnectionLoginOauthToken,waitForLogin,waitForLogout,"Login user change while in progress \[%s => %s\]","Already logging in as \[%s\]","Login mismatch","username %s... is longer than maximum %zu"}; logout {SpConnectionLogout,"logout %u, reset","Async logout initiated for VLI source switch","logout-%u - %d \[%s\]"}; work {RSpotifyEventWork::doWork(),DefaultWork}; "Failed to update the volume to %u (status=%d)"
 
 - **name:** spotify request thread
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea49d4; spotify thread block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spotify_vli_session`
 
@@ -4188,19 +4188,19 @@ single-request constraint "Already have a spotify request in progress, can only 
 
 The Spotify-to-virtual-line-in session: how a Connect takeover materializes as a virtual-line-in session on the group, covering delegation guards, session lifecycle, and the transport handoff. The x-sonos-vli address scheme is this session's address.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 session verbs {start,suspendSession,startAudio,pauseAudio,stopAudio,playModesChanged}; power {Spotify eSDK source power suspend/resume (e=0x%08x)}; delegation {"Ignoring audio flush/track changed/seeks (pos %u)/pause/became inactive while setting state / delegating","Spotify eSDK source selected, isDelegating %d, isActive %d","source not selected","Source Deselected, from sender %d"}; cookies {"%s:%d spotify old cookie: %d new: %d","Ignoring stale stopSession due to cookie mismatch"}; callbacks onVirtualLineIn{SuspendSession,StartAudio,StopAudio,PlayModesChanged} cookie %d; metadata {track,artist,album,playback_source_uri,bitrate} + Next Metadata; "Error event in VLI mode, e=0x%08x"; R_SPOT_EVT_AUDIO_TIMEOUT; RSpotifyVLIControl deactivate; VLI ABR policy: 'VLI ABR enabled: bitrate %u timeout %d','VLI ABR: BR %u tv %ld','lower bitrate to %u kbps after %zu buffering errors for %u mins','back to higher bitrate %u kbps after %u mins','%d mins since downshift, %d mins until upshift.','Starting bitrate %u','metadata changed, quality: %s, hifi: %s' + {oldQuality,oldHifiStatus}; status line 'BR %3u BL%% %2u/%2u FIFO %3u rate %4u/%4u/%4u Kbps %s %s'; 'Buffering error with time %ld.%ld is stale. Removing...','buf err %zu rate %u BL %u'; transport error taxonomy 'Transport error %s for Spotify VLI, URI: %s, recoverable: %s, ip: %s, host: %s, extra info: %s, http: %d' + rate-limited suppression ('%u messages suppressed'); spotify_playback_session.cxx + spotify_queue.cxx internals: NTS callbacks NTSCallbackConnectionMessage/ConnectionNewCreds/ConnectionNotify/PlaybackNotify/PlaybackApplyVolume/StreamEnd/StreamSeekToPosition/StreamGetPosition/Error; kSpConnectionNotifyTransmittingData; 'Connect Mode Toggled: %s'; VLI/SMAPI dual stream tracking '(VLI: %d \[%d\], SMAPI: %d \[%d\])'; 'Last played stream id=%u, pos: %u'; context pull 'Pulling context (playing=%d, seek time: %d.%06d, byte offset: %zu bitrate %u, observable: %d)','%s started externally. objectId=%s bIsObservable=%s bIsDelegating=%s bIsPlaying=%s'; TPM 'Spotify setPositionInfo (legacy TPM values): uri=%s, playbackId=%s, position=%.3f seconds, isFinalReport=%d','Failure parsing TPM uri: %s'; 'PlaybackId is not a valid streamId (%s)','ignoring play when not the active device','SpPlaybackSetDeviceInactive command failed'; queue ack FSM '(%s||%s||%u) Set (current|next) position: %lldms','(%s) EndSong @ %lldms / %ums','Track Finished Playing','Resetting position for track %s||%s as the download has not completed','Setting download complete for previous track (streamId: %u)','(%s) ??? Track complete inconsistency','Unknown track change (%s||%s) != upcoming track','ERROR current track mismatch','ERROR next track mismatch','!!!! \[BUG\] RESOLVING acked NEXT track mismatch'; media delivery 'eSDK media delivery stream start (id:%u, type:%s, size:%u)'/'data (id: %u), size: %u, offset: %u'/'end'/'flush'/'getPosition'; 'Dns HAL Exit: %s (status = %d, err = %d)','previous fatal error seen; resetting.','NTS shut down.','%s, attempting refresh','Login error 0x%x g=%d sn=%u','Setting the eSDK to the player volume (%u)','Starting Spotify playback with object: %s','No account is logged in','No descriptor for sid=%u','Bad credentials for sn=%u','Invalid account auth type','No account for sid=%u'; zeroconf dump fields devid/remoteName/deviceType/libraryVer/resolverVer/productId; 'Not changing container (%s) playing %s %s','track: not Spotify - %s (%s)','container: \[%s\] from \[%s\]'; transport-error rate limiting: 'Transport error logging rate limited - suppressing further errors' / 'Transport error logging no longer rate limited: %u messages suppressed' + per-error 'Transport error %s for Spotify VLI, URI: %s, recoverable: %s, ip: %s, host: %s, extra'
 
 - **name:** Spotify eSDK VLI session control
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea5420; spotify vli block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ssh_keys`
 
@@ -4208,19 +4208,19 @@ session verbs {start,suspendSession,startAudio,pauseAudio,stopAudio,playModesCha
 
 The authorized-keys management: gated install and removal of SSH public keys, which is an engineering and debug feature rather than a consumer surface. The gate means it only works when the device is in a permitted state.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 params {ssh_key,button,remove_keys}; ops {"SSH auth key added to authorized keys file","SSH authorized keys file removed"}; dropbearkey /usr/bin/dropbearkey + host key /jffs/persist/ssh/dropbear_ecdsa_host_key + ecdsa-sha2-nistp256; fingerprint formats {pubkey,sha256-base64,md5-hex}; gated by R_ALLOW_SSH_PUBKEY_INSTALL (per gap audit)
 
 - **name:** /ssh/authorized_keys management
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10efefb4; ssh block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ssl_sessions`
 
@@ -4228,19 +4228,19 @@ params {ssh_key,button,remove_keys}; ops {"SSH auth key added to authorized keys
 
 The secure-session cache: session-resumption storage so repeated connections to the same host skip full handshakes. Its errors are distinct from certificate errors, since a bad cache entry isn't a bad certificate.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {'Cached SSL session for %s:%d','Failed to cache SSL session','SSL connection not established','Received new session ticket during mbedtls_ssl_{read,write,handshake}.'}; client-cache file guards: 'SSL client cache file %s does not exist (%s)','SSL client cache file %s parse failed (%s)','SSL client cache %s name mismatch (%s)'
 
 - **name:** mbedTLS session cache
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee6c18; ssl session cache
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `stream_fetcher`
 
@@ -4248,19 +4248,19 @@ The secure-session cache: session-resumption storage so repeated connections to 
 
 The generic stream fetcher: a state machine covering open, headers, redirects, resume-at-offset, and error recovery for HTTP audio. It sits under the playlist parsers and feeds the decoder, providing the network half of streaming playback.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey (encrypted HLS); "New bitrate: %d, Old bitrate: %d" adaptive switch; playlist FSM {"Timed out looking for playlist","Playlist failure with no time to recover (%ld buffer)","fetch empty","Too many empty playlists and no audio left"/"(still %ldms ahead)","Switching source due to empty playlists","end of static list","Unable to select another DS"/"waiting to fetch new playlist"}; "Startup ahead: %ld"; "URIs for %g seconds, wake up in %d"; "prebuffering %u bytes within %ld msec"; open fmt "open: %s (0x%x) %d len %llu offset %llu"; "stopping decoding while sleeping"; RSpotifyAudioInput/spotifyAudioInput ogg-vorbis VLI framer: 'Final track samples received (last page)','Spotify ogg VLI framer duration: %llds','Invalid samples per second (%ld) in vorbis info','fifo size (%zu) too small for prebuffering %d'; quality-ladder bookkeeping 'update last quality to %u %u %d','add new quality','%s first quality'
 
 - **name:** stream playlist fetcher (HLS/radio)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed38c8; audio_stream region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `stream_playback`
 
@@ -4268,21 +4268,21 @@ notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey (encry
 
 The stream playback engine: source selection, playlist fetch scheduling, failover between alternates, and recovery accounting that decides if there's time to recover before the buffer runs dry. This is the engine that keeps a radio stream alive through network hiccups.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 policy {"Cloud queue policy pause expiry time hit","Queue content expired","clearing queue per policy","Queue policy stop on error","Ignoring playback policy change for context version %s"}; routines {running/End of pauseRoutine,running stopRoutine}; states {DEFER_PLAYING timeout,TRAN_PAUSED,PLAYING_START,suspended}; "Resetting required group caps \[0x%08x\] -> \[0x%08x\]"; "logical track boundary at %u"; frame timing {"notifyFrameInternal: behind %dms","ahead %lldms. Sleeping %lu ms, playtime=%d.%06d, sent at=%d.%06d, now=%d.%06d","tracking E_WOULDBLOCK count","setting origin time to %d.%06d"}; start hints {waiting,fast startup,future,met,no hint,crossfading}; buffer {"buffering underflow after %lld ms, requesting resync \[BH:%lld, FH:%u%%, FA:%lld, FR:%d\]","recovered buffering underflow"}; metrics {timeStart,timeEnd,behindMS,chsrc_behind}; skip reasons {duplicate,restricted,explicit,denylisted,Upcoming Spotify not playable,Spotify filtered for explicit}; "PlayTTL expired, pausing playback"; mime/URI consistency check + getTrackURIAndFramer \[f,u,m,cld\]; oob metadata {cache reset,enabled,disabled}; "Ignoring provided mediaUrl"; session ops {stationMetadata,rejoinSession,leaveSession,trackMetadata,streamUrl}; seek {"Overriding seek with value from SMAPI service: %lds","tvSeek framerResumePos"}; URIs {x-rincon-sonarcal,x-rincon-configmode,file://%s/sonar-tone/%s,file:///opt/buzzers/%s}; "Apple Music: use the derefenced URI to determine the framer, see CP-7253"; "Hit the end of the programmed radio queue"; "reporting enqueued stream URI instead of track URI"
 
 - **name:** stream playback FSM + frame timing
 - **error_report:** %s Transport error %s for account type %u, URI: %s, friendly name: %s, share/server: %s, path: %s, ip: %s, host: %s, extra info: %s, http: %d, framer: %s, ahead: %d, rate: %d
 - **crossfade:** "Setting up for %d.%06d sec crossfade"/"Not fading" + prev/next track length logs
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea992c; playback block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `tdm_driver`
 
@@ -4290,19 +4290,19 @@ policy {"Cloud queue policy pause expiry time hit","Queue content expired","clea
 
 The audio-bus driver interface to the signal-processing hardware: a memory-mapped ring buffer with bus-mode setup and frame handling that restarts on oversized blocks. This is the hardware boundary for the amplified products' output path, and everything above it eventually lands here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"Restart SPDIF block @ %d frames.","OVERSIZE SPDIF block @ %d frames!"}; device /dev/dsp; {"open failed (err=%d)","ioctl TDM_SETMODE failed (err=%d)","mmap failed (err=%d)","munmap1/munmap2 failed (err=%d)"}
 
 - **name:** TDM/SPDIF DSP driver
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1102a380; TDM
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `telemetry`
 
@@ -4310,20 +4310,20 @@ The audio-bus driver interface to the signal-processing hardware: a memory-mappe
 
 The telemetry machinery overall: gathering usage and health data about the system, covering what gets measured and how it's packaged for Sonos. It runs on its own collection-and-submission pipeline, distinct from the support-triggered diagnostics upload.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 PlayerButtons + TelemetryBasePlayer + TelemetryCategoryContext + telemetry tag; fields {event_id,event_name,event_schema_version,household_id,model_type,muse_household_id,serial_number,sonos_id,sw_build_type,sw_full_version,timestamp_utc,audio_type}; "PlayerButtons missing required field %s"; T1.0 vs T2.0 event schema split: 'T2.0 event callback triggered: name: %s, Category: %s, nameSchemaVer: %s' vs 'T1.0 event callback triggered: name %s category %s'; uploader config keys {defaultUploader,optOutExemptUploader,reportIntervalSec,uploader-ref}
 
 - **name:** telemetry: event schema
 - **shipped_config:** opt/conf/zpMetricsConfigV2.xml rev=13: 104 categories; only 3 default ON: nowplaying.playReport (optOutExempt uploader), zpAM.maintenance, quarantining; everything else (all muse.* subscribe/unsubscribe/getVolume/duck/getPlaybackStatus, all upnp.* GetMute/GetPositionInfo/SetRoomCalibrationStatus/ReportUnresponsiveDevice/reportPlaySeconds/etc.) is OFF. Usage telemetry is near-silent by default. Comment in file: 'DO NOT CHANGE THIS ORDER, as old (S1) players only load up to a certain point': the category table is POSITIONALLY parsed for S1 compat.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec7290; telemetry block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `telemetry_client`
 
@@ -4331,19 +4331,19 @@ PlayerButtons + TelemetryBasePlayer + TelemetryCategoryContext + telemetry tag; 
 
 The telemetry submission client: endpoint selection, batch send, retry, and the event schemas it accepts. It's the sending side of telemetry, delivering collected usage and health data to Sonos's servers.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 reportKVEvent; "report: %s %s %s %u %u"; "name: %s, schemaver: %s, category: %s"; "Encoding failed/succeeded: %zu bytes"; "Callback is not set to call in %s"/"Callback not set in %s"
 
 - **name:** telemetry_client
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fb9c2c; telemetry
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `telemetry_submission`
 
@@ -4351,7 +4351,7 @@ reportKVEvent; "report: %s %s %s %u %u"; "name: %s, schemaver: %s, category: %s"
 
 The diagnostics and telemetry pipeline: usage events get tagged, packaged, and uploaded to Sonos, alongside the user-facing 'submit diagnostics' flow and a per-player telemetry-level setting. Several telemetry channels are individually feature-flagged. This is the packaging and upload step for gathered data leaving the device.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-MessageType: product-data-telemetry header, zonereportmgr.cxx zone reports, submitDiagnostics/submitQueuedDiagnostic pipeline with manifest submission, positioning telemetry level route, per-feature telemetry flags; opt-out exemption flag optOutExempt; RCB cache lives at sys/run/rcb
 
@@ -4368,7 +4368,7 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
   - **naming:** event names parsed "%\[^/\]/%\[^/\]" (namespace/name), malformed rejected; fields locid, sys/run/updateID, uptime, report flags 0x%x, UsageMetrics
   - **confidence:** PROVEN persistence format + retry + integrity
 - **sdata_category_registry:** .sdata registry @0x11095d88: three fn-table ptrs (0x10fce6d8/0x10fce65c/0x10fce638 - callback blocks in the eSDK code region) followed by {name_ptr, u32=4} pairs naming channels {api, zc, download, audio, esdk}. 'esdk' is referenced by 10 fns in the eSDK region (0x10cf8-0x10d4c); 'api'->f_10331f34; 'download'->f_105a7e78/f_1068baa4; 'audio'->f_107d5b0c. Consistent with the libsonoseventreporter init_event_ctx/report_event channel registry; priority/weight word constant 4.
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10eeb50d; reportuploader.cxx
 - @ 0x10ed877a; trackplayrecorder.cxx
@@ -4378,10 +4378,10 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
 - @ 0x10ea13ec; Telemetry 1.0 Event field format
 - @ 0x10e81dc0; positioning/telemetryLevel muse route
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `testenv_environment`
 
@@ -4389,7 +4389,7 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
 
 A hidden /testenv page lets a tester point the whole player at a different Sonos cloud environment (production, perf, staging, test or int) and override the update URL. It lists the six backend APIs the player will use, and the change spreads to every player in the household within about two minutes. Engineering test-environment hooks (lab/test-mode paths) that ship dormant in production builds.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 POST /testenv switches the player's cloud environment between PROD, PERF, STAGE, TEST and INT, with an optional OnlineUpdateBaseURL override; the page displays the six resolved API bases (Cloud, Service catalog, System, Transfero, Metrics, Update) and CustomerId; the change replicates household-wide ('may take up to 120 seconds ... to replicate throughout household') and logs 'Setting cloud env to %s'
 
@@ -4398,15 +4398,15 @@ POST /testenv switches the player's cloud environment between PROD, PERF, STAGE,
 - **form:** GET renders a form: env selector (prod/perf/stage/test/int), url text input (OnlineUpdateBaseURL override), submit/reset buttons; POST returns a 1-second meta-refresh 'Success' page
 - **api_bases:** Cloud API, Service catalog API, System API, Transfero API, Metrics API, Update API: six resolved service bases per environment
 - **propagation:** change is written through the replicated-settings layer: 120s household-wide convergence warning on the form
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - @ 0x10f1756c; full /testenv form: env select + URL override + 6-API table
 - @ 0x10f174e8; 'Setting cloud env to %s' log
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `thermal`
 
@@ -4414,7 +4414,7 @@ POST /testenv switches the player's cloud environment between PROD, PERF, STAGE,
 
 The thermal management: temperature sensors feeding throttle and shutdown decisions, plus the events and shutdown reasons that fire when the unit overheats. It explains 'the speaker shut itself off' on hot days, and it protects the hardware when it runs hot.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 syslib thermal {open,get_temp,close} + "cpu:%d, amp:%d, soc:%d" + temperature_volume + ampstate + hardware fields; "Hardware %s; clamping volume to %d%%"; state transitions {Entering/Leaving hardware warning state,Entering/Leaving hardware fault state} + hw:st + "Warning/Fault Code(s):%s" + fullSync; satsw "Error %d from uploadSatSwitchTimeReport" + satSwitch; lmrep "Error %d from WifiFuncsGetLmChangeStats" + {lmChannel,lmNeighbor,roamEvent,beaconLostEvent}
 
@@ -4424,14 +4424,14 @@ syslib thermal {open,get_temp,close} + "cpu:%d, amp:%d, soc:%d" + temperature_vo
   - **libs:** <ThirdPartyLibraryInfo><Library Name="Spotify eSDK"><Version/></Library></ThirdPartyLibraryInfo>
   - **roomcal:** <RoomCalibrationInfo><RoomCalibrationActiveState>Inactive\|…</><RoomCalibrationUserIntent/><RoomCalibrationAvailCalID/><RoomCalibrationOrientation/></RoomCalibrationInfo>
   - **faults:** <Faults Name="WarningsAndFaults"><FaultState><WarningState><LastBitmask><LastBitmask2></Faults>
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e98e30; thermal/status blocks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `timed_jobs`
 
@@ -4439,7 +4439,7 @@ syslib thermal {open,get_temp,close} + "cpu:%d, amp:%d, soc:%d" + temperature_vo
 
 The timed-job registry: the named scheduled tasks like healthcheck, certificate refresh, token refresh, and history sync, each with its interval and last-run bookkeeping. It's the cron-like layer inside the program.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 jobs {netsettingsBumpVersion,checkSonosNetDisableTestTimedJob,netsettingsRotateKeys,CheckForMissedPlayers,JITCloudFetch,RefreshSonosRadio,AddRemoveSonosBusinessMSP,fetchCertBundle,resetBTRecoverState,pollWirelessNetworkStatus,backupLogFiles,refreshSSLClientCache,reportSSLClientCacheStats,saveSSLClientCache,userInitiatedHHUpdate}; workers {asyncWorkerModZp,asyncMuseModZp}; setup {"Setting up ZonePlayer","ZonePlayer setup complete","Setting up MediaPlayer for port %u","Setup for MediaPlayer on port %u complete","no %s found in %s"}; jobs {High Res Usage Metrics/HRUsageMetrics,Account Maintenance/SvcAccountMaint}; scheduler internals (timedjob.cxx, domain timedjobmanager): 'scheduleJobLater: job: "%s" m_tmNext: %ld(%c) is in %ld seconds','%s svc:%s td:%ld','job %p:%p removed (add cancelled)','job %p:%p remove queued \[%d\]','job %p:%p done waiting','job %p:%p removed (done waiting)','job %p:%p not found'; slow-run watchdog: '%s completed job "%s"','%s job "%s" took %lds. %zu consecutive.','%s job "%s" ran normally after %zu consecutive slow runs'; error domain ERROR_SONOSAPI_%d; timedjobmgr_btn job + hwmessagelib_connection_init for button events
 
@@ -4447,14 +4447,14 @@ jobs {netsettingsBumpVersion,checkSonosNetDisableTestTimedJob,netsettingsRotateK
 - **sqlite_schema:** TimersStorage ('timerstorage' domain) prepared-statement set TimerStmt::*: timers table CREATE TABLE IF NOT EXISTS timers (id TEXT PRIMARY KEY, trigger_time TEXT NOT NULL, total_duration NUMERIC NOT NULL, triggered NUMERIC NOT NULL) + paused_timers (id TEXT PK, remaining_seconds INTEGER NOT NULL, paused_utc_time TEXT NOT NULL, total_duration ...); PRAGMA user_version gates compat ('Future db version detected %d vs %d - ignoring'). Stmts: SET_TIMER REPLACE INTO timers (id,trigger_time,total_duration,triggered) VALUES (?1,?2,?3,0); DEL_TIMER by id; DEL_TIMER_OLD DELETE WHERE trigger_time < strftime('%Y-%m-%dT%H:%M:%S', ?1) (trigger_time is ISO-8601); GET_TIMER_FROM_ID/ITR_TIMER SELECT id,trigger_time,total_duration,triggered,rowid; SZ_TIMER count(*); UPD_TIMER UPDATE SET triggered=(CASE WHEN triggered=0 THEN ?2 ELSE triggered END). Write-once annotate ('annotate timer UNKNOWN id %s %u \[%d\]'). Paused mirror: SET_TIMER_PAUSED REPLACE INTO paused_timers(id,remaining_seconds,paused_utc_time,total_duration); DEL/GET/ITR/SZ_TIMER_PAUSED. Ops: 'set timer %s \[%s\]', 'delete timer by age %s', bind {trigger,remaining_seconds,paused_utc_time,totalDuration}. Size limits: 'timer db ready \[%zu\] WARNING db is large'/'ERROR db exceeded limit'/'sql failures prevent timer db usage'; busy-timeout set; DataSource=:memory: test path; per-op 'prepare TimerStmt::* statement failure' errors.
 - **suspend_aware:** suspend-aware timer ops: 'set local timer; time %s','set duration timer; time %s','create/delete/pause/resume local timer; time %s' + '(considering suspend)' failure variants: timer layer suspends/resumes with power state
 - **registry_table:** complete job table at 0x11090040: {display_name*, short_name*, handler_fn} triples: Account Maintenance/SvcAccountMaint@0x105e7978, CheckOnlineUpdates@0x100b9338, Collect Dropout Triggered XML/CollectDropoutTriggeredXml@0x105eb628, Upload Events/UploadEvents@0x100b937c, Collect Button Triggered XML/CollectButtonTriggeredXml@0x106455e4, Refresh registration cert/RefreshRegCert@0x105e8110, Fetch cloud config/FetchCloudCfg@0x100ba320, Music account replication push/MAReplPush@0x100ba5dc, Music account replication pull/MAReplPull@0x100bb4ec, Download metrics config/DLMetricsCfg@0x105e7ec0, Remove Expired Vanished ZonePlayers/RemoveExpZPs@0x105eb720, Send PlayerConfig report/UploadCfgReport@0x105eb7b8, Send optOutExempt events/UploadOptOutExemptEvents@0x100b944c, Refresh Entitlements/RefreshEntitlements@0x100b94e0, Sync JIT services to cloud/JITCloudFetch@0x100b950c, Refresh Sonos Radio/RefreshSonosRadio@0x100b952c, Sync Sonos Business MSP/AddRemoveSfbMSP@0x105eb708, Upload Protobuf Events/UploadProtoEvents@0x10254ee0, Upload Crash Dump/UploadCrashDump@0x100b9948, Refresh SSL Client Cache/RefreshSSLCache@0x100b946c, Save SSL Client Cache to JFFS/SaveSSLCache (terminator, NULL handler)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e74914; job registry
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `tj_wakeup`
 
@@ -4462,19 +4462,19 @@ jobs {netsettingsBumpVersion,checkSonosNetDisableTestTimedJob,netsettingsRotateK
 
 The timed-job wakeup machinery: the scheduler half that fires jobs on time, including across suspend, which is the 'wake the device to run a job' path that interacts with semi-sleep.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 async wakeMissingPlayers {task,timer,request,retry TJ,cancel,failure} + "Unexpected WakeOnLANRequestEvent type": WakeOnLAN; "Restoring AVT and track queue"/"Backing up track queue"/"Backing up AVT"; "Chirp setup failed - chirp sender does not exist"; "Setup volume not yet calibrated"; "Unable to play chirp"; refreshMdnsRegistration; /players/ api 1.1.0; settings {R_VolNormMode,R_CrossfadeDuration,R_AirplayIncludeLinked}; manual node engine ctor node version; spotmdns thread
 
 - **name:** TJ: wake-missing-players + backup
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecb048; tj block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `token_refresh`
 
@@ -4482,19 +4482,19 @@ async wakeMissingPlayers {task,timer,request,retry TJ,cancel,failure} + "Unexpec
 
 The credential-refresh state machine: dedicated threads watch token expiry, request refresh through the cloud, wait for completion, and stash the results. When service calls start failing with auth errors while a token looks valid, this is the machinery that was supposed to have refreshed it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 threads {cqatrs_tx,cloudqueue_tr}; log "\[%s HTTP %d from %s%s\] %s"; states {"using token from file","requesting new token refresh sync","requesting token refresh sync %u %d -> %d","need to wait for token refresh","waiting for token refresh completion","waiting for refresh tx complete; current state %d","Attempting to refresh token (hrs=%d te=%d)","transition token refresh action %u %d -> %d","Token refresh succeeded. Beginning retry."}; errors {"last refresh token for load timed out","no last refresh token time","expected entry not found to complete tx","expected entry not found waiting for tx","Refresh token failed with upnp result: %d","Refresh token failed. Could not find SD, sid=%u","unexpected token action %d"}; keyed by acct. sn. %u
 
 - **name:** OAuth token-refresh FSM
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec236c; tokenrefresh block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `track_play_monitor`
 
@@ -4502,21 +4502,21 @@ threads {cqatrs_tx,cloudqueue_tr}; log "\[%s HTTP %d from %s%s\] %s"; states {"u
 
 The track-play monitor and recorder: it records what actually played for history and scrobbling, detects interrupted versus natural finishes, and emits the play events the history manager ships. The 'recently played' list is this recorder's output.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 per-track log entries {Track Or Station URI,Extra Md,Context URI,CQ Auth Token,SMAPI Device Id,CloudQueueVersion,CQ Context Version,CQ Playback Id,API Key,Framer Name}; play line "%s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s)"; segments "seg start @ %d.%06d (packetId: %u), end ..."; PlaybackId remap; string-pool bounded (pool %d%% full, "Resetting due to no free RTrackLogEntries"); states In progress/Final/LSE; selthrd.RTrackPlayMonitor thread
 
 - **name:** RTrackPlayMonitor/trackPlayRecorder: play-segment recording
 - **events:** R_STREAM_OP_{SAMPLE(publish segment),OPEN(offset),CLOSE(packetId),INTERRUPT(act,offset),ACK(act,packetId),ERROR,IMMED_RESYNC,SCHED_RESYNC,BOUNDARY,ORIGIN_TIME_SELECTED,QUALITY_SELECTED(bd,sr,c,br,nc,a,fmt)} + R_PLAY_OP_{SAMPLE,BOUNDARY,RESYNC(immed\|sched),ERROR,CHANGE_SRC,CODEC_SELECTED,ORIGIN_TIME_SELECTED}; sources {REMOTE,CHSRC,Virtual Line-In}; errors {NO_ERROR,CLOUD_QUEUE_ERROR}
 - **recorder:** segment containers: streams/playback/canceled per lifecycle {(init),(finalize),(RESYNC),(RESYNCED),(RESYNCING),(SCHED RESYNC)}; full-container overwrite; zero-sample cancel; memory-pressure relief falls back to canceled; "Overwriting stream error"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ed8350; trackplaymonitor/recorder region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `trueplay`
 
@@ -4524,19 +4524,19 @@ per-track log entries {Track Or Station URI,Extra Md,Context URI,CQ Auth Token,S
 
 The Trueplay and sonar tuning feature: room calibration as a whole, which is measuring the room's acoustics and adjusting the speaker's sound to fit. It's the tuning system the app walks you through, documented here as the internal machinery it corresponds to.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 config modes {button-notify,room_calibration-calibrate,speaker-detect,trueroom} + "configMode CountDown:%d"; eTag manifest /etags.txt matched against tone files {leader.ogg,testtone.ogg,complete_ht.ogg,inverter_*} at path %s/%s/%s/%s-%s under tones; fetch via players/%s/settings/player muse settings + forward; "eTag is matching a known file"; types {plug-in spectral,polarity}; params {tone_duration,force,v:%s t:%s}; "Sonar cal volume - using clipped volume %d instead of requested %d"; TP update "found TP version ... do update to v%s"; teardown {"Clearing Trueroom tone folder on JFFS","Error removing Trueplay asset dir"}; restore paths {common RC,original RC,TV Surround Level,enable sonar,set AVT,reset AVT,re-enable Trueplay}; "Trueroom config mode - Not restoring/restoring the AVT"; fields {HTBondedZoneCommitState,AvailableRoomCalibration,RoomCalibrationState,Orientation,LastChangedPlayState,AlexaCBLSupported,SupportsAudioIn,SupportsAudioClip,HtBondedZoneCommitUpdateEvt}; cm_button "pressed %s"; compatibility probing: 'Parsed HTA Frame version: %u','Found compatible HTA Frame version %u','Parsed Trueplay SDK version: %s','Found compatible Trueplay SDK version %s','Parsed Control API version: %s','Connect to %s result: %x'
 
 - **name:** trueplay_dp: sonar calibration engine
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ebd630; trueplay_dp block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `trueplay_api`
 
@@ -4544,7 +4544,7 @@ config modes {button-notify,room_calibration-calibrate,speaker-detect,trueroom} 
 
 The Trueplay API factory + node layer: `trueplay_api.cpp` provides the SDK entry points, node messages carry protobuf-encoded actions/statuses with version negotiation, and TrueplayAPIFactory instantiates the right implementation per product. The interface other components and clients use to drive a calibration session.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 SDK 6.2.0.1-main.Unspecified.2db5546c; factory TrueplayAPIFactory + initNode/initNodeMajorVersion; version negot {"Build version for TP API is %s","Updating Trueplay SDK version to %s","Trueplay SDK version %s not supported, creating previous version","Requested version %s is already in use ... no-op","SDK full version","Node data schema version"}; node methods {setup,setupMeasurement,startMeasurement,computeData,handleMsg}; minimal-node build {"channel types not available for a minimal node build","local channel types not available","Number of mics and number of DSP channels must both be 0 when one is 0","not compatible with having microphones"}; TPNodeSetupInfo; file errors
 
@@ -4553,14 +4553,14 @@ SDK 6.2.0.1-main.Unspecified.2db5546c; factory TrueplayAPIFactory + initNode/ini
 - **sdk:** SDK 6.2.0.1-main.Unspecified.2db5546c; "SDK full version: %s"; "Node data schema version: %s"; "nMics = %u & nDSPChannels = %u"; "Running a minimal node build"; "Code was compiled for minimal node support which is not compatible with having microphones"; "Node microphone data is %s"; "Trueplay data handler is a nullptr"; "Trueplay data handler reports that data collection %s allowed."; "Node isn't setup when starting a measurement/computing data"; "Starting the measurement"
 - **node_fsm:** actions TP_NODE_ACTION_{NONE,SETUP,START_MEASUREMENT,SEND_BACK_DATA,COLLECT_DATA,SEND_STATUS}; status TP_NODE_STATUS_{IDLE,SETUP,MEASURING,MEASUREMENT_DONE,DATA_COMPUTED,ERROR,EXCEPTION}
 - **codec:** protobuf bridge {tpNodeActionToPBNodeAction,pbNodeActionToTPNodeAction,tpNodeStatusToPBNodeStatus,pbNodeStatusToTPNodeStatus,pbChannelTypeToTPChannelType,encodeNodeRequest,decodeNodeRequest,encodeNodeResponse,decodeNodeResponse}; "Received node message"; "Node message is: %s"; "Node response is: %s"; "Error decoding node message"; TPThrowException/"TPException in " + " - l."; "A critical error equivalent to an exception occurred and anything happening after is undefined behaviour: %s"; "<%s - %s:l%d> "; Unhandled {trueplay channel type,node action,protobuf node action,trueplay node status,protobuf channel type} + "Protobuf encoding/decoding of node request/response failed." + "Either nRows or nCols is 0 but the other isn't."
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fbd900; trueplay_api block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ttm_helper_detail`
 
@@ -4568,19 +4568,19 @@ SDK 6.2.0.1-main.Unspecified.2db5546c; factory TrueplayAPIFactory + initNode/ini
 
 The time-to-music measurement endpoint detail: an engineering endpoint that times how long a play command takes end to end. It's a performance probe for the play path.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 f_100b9740: gate f_105489e4 → dumps runtime text blob (0x11095f88 table, f_100d567c copy) as text/plain
 
 - **name:** ttm_helper_detail
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - firmware; handler disas
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `unlock`
 
@@ -4588,19 +4588,19 @@ f_100b9740: gate f_105489e4 → dumps runtime text blob (0x11095f88 table, f_100
 
 The engineering unlock endpoint: a challenge-and-response state toggle with auth checks and a rate limit. When unlocked, additional diagnostic surfaces open up, and production devices keep it closed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 flags {/tmp/device_unlocked_flag,/tmp/htdocs_locked,/opt/htdocs_locked}; flow {Fuse Value:,Challenge:} + form "Serial: %s / %s %s / POST {confirm textarea 11x80}"; responses {"DevUnlock Rebooting...",Success,Too Many Unlocks,Not Applicable}; muse op deviceUnlock; rate-limit "Too Many Unlocks"
 
 - **name:** /devunlock + /mfgunlock + deviceUnlock
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10efff88; unlock block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `update_coordinator`
 
@@ -4608,19 +4608,19 @@ flags {/tmp/device_unlocked_flag,/tmp/htdocs_locked,/opt/htdocs_locked}; flow {F
 
 The update coordinator: it schedules firmware downloads, enforces battery and version gates, drives the update-available event, and coordinates the household-wide rollout. 'Update available but never installs' is usually a gate failing here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 beginUpdate/beginUpdate called./Update already started.; updateHookJob + upgradeinfo + /var/run; "Current Swgen Min downgrade version %s"; "error updating %s"; "Failed to query cloud settings"; update_coordinator actor; cert.xml+metadata.txt loads "loading %s (0x%x) took %ums"
 
 - **name:** update coordinator
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0526c; update coordinator region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `update_machinery`
 
@@ -4628,7 +4628,7 @@ beginUpdate/beginUpdate called./Update already started.; updateHookJob + upgrade
 
 Firmware updates are manifest-driven: a cloud manifest lists per-model target versions and a minimum auto-update version, and household updates run a check-download-launch sequence across members with the coordinator orchestrating. Below the manifest's auto-update floor a device needs a manual update. Clients see this through the documented update commands and the modern-API update routes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled; timezone table lifecycle: 'no timezone data available (%d)','Unable to open (or copy) timezones file','Timezone url: %s','Downloaded new time zone table; version %u','Download of new time zone table failed: %d'; tone-dir ops 'downloadDir: %s','%s exists: %s','%s removed ok: %s','Failed to delete tone download folder %s','%s created ok: %s','Failed to create tone download folder %s'; update confirm form '<html><head></head><body>Serial: %s<br />%s %s<br /><form action="%s" method="POST"><label for="confirm">Cod...' (POST confirm code page), 'next check for update in %us'; async_file_downloader domain: 'Failed to open file: %s','Failed to write file: %s','Unexpected response (%d) when downloading file (%s).','Cancelled download attempt of file (%s) from url (%s).','Download attempt of file (%s) failed from url (%s).'; cert manifest fields 'MinVersion: \[%s\]','PrevSWGenMinVersion: \[%s\]'; build string '86.10-80260-dev-secbuild-20260826'; min swgen bounds '58.0-00000'/'85.0-00000'; version formatters %u.%u.%u.%u-%u.%u, %hhu.%hhu-%u, %u.%u-%05u, <version>%s</version>/<version>%u</version>; 'CONNECT_ONLY is required','Failed to get recent socket'; manifest parser keys {sys_flags,auto_fromver_min,base_url,default_version,description_url,update_list,supported_models,submodel_min,submodel_max,fromver_min,fromver_max,milestone_index,model_list} + logs 'manifest: Setting system version=%s','manifest: System flags=0x%x','manifest: Setting descr=%s','manifest: Setting base version=%s','manifest\[%zu\]: Adding %d.\[%d,%d\] \[%s,%s\] 0x%x %s %s %u' + errors 'too many manifest entries!','Hardware manifest lists not in descending order.','Attempt to set swgen to an invalid value: %u','Input string too long. Returning VALUE_INVALID'; subscribeToUpdatesRequestHandler; UpdateItem emit attrs incl QuarantineReason/UUID/ZoneName/Icon/Configuration; NoReport
 
@@ -4649,7 +4649,7 @@ manifest-driven update pipeline: update_manifest carries a base update URL + per
 - **preinstall_script:** the .upd 'preinstall.sh' section (byte-identical m8-86.8 vs m9-86.10 (frozen across both axes): modes {umountnone: REGION fixup) mdputil\|keyval ^REGION, if 5 -> 'mdputil -fwe 2'; postinst: upgrade.log juggling: /jffs/upgrade.log -> upgrade_prev.log, /tmp/upgrade.log -> /jffs, 'Manual upgrade. No log to copy.', touch upgrade_sys_report.log, double sync}; default path: warn-only if /jffs >=98% full ('WARNING: /jffs usage near or at capacity. Upgrade might fail'), require anacapad stopped (else exit 1), then kill udhcpc/inetd/netstartd via kill_attempt() + touch /var/run/stopnetstartd + touch /var/run/upgradeflag (upgrade-in-progress sentinel under /dev/mtd presence check).
 - **sibling_binaries:** /bin/upgrade (the low-level upgrader): /dev/chk checksum-device verification; runs "/bin/sh %s postinst" on the package; preserves across upgrade: /jffs/netsettings.txt, /jffs/persist/deactivated_state(.json), settings/musicservices.xml, settings/savedqueues.rsq, /jffs/shadow/{abstract,strings,trackinfo} (play-history store!), /jffs/sys/run/rcb/*.rcb + upd_cert_bundle.rcb (cert-bundle update delivery path), watchdog logs, app/install, debug/devmode.bin; writes /var/run/upgrade_report.txt; /var/upgradescript hook; download via /usr/bin/wget; -e option multi-use; ends /sbin/reboot. /bin/upgrade_mgr (orchestrator): emits JSON status {Serial,CurrentVersion,HardwareVersion,State,TargetVersion,UpdateID,ServerIP,Result,ExtendedError,ErrorMsg,DownloadDuration,Type,Duration,NumUpdateZPs,SystemResult,SystemVersion,Timestamp,Version}; progress CBs "<url> COMPLETE?phase=%s", "ERROR?phase=%s;error-code=%d", "STATUS?phase=%s;percent-complete=%d"; update-check URL query ?Version=%s.%s-%s&Auto=%s&Client=%s; pid /tmp/upgrade_mgr.pid; guards bad hw version/bad version. /sbin/frcheck: reads /dev/audioctl + hal_inputs_get_buttons_state (button-combo check) AND /jffs/app/run/factoryReset.txt sentinel (factory reset is triggered by EITHER held-buttons-at-boot OR the sentinel file. /usr/sbin/keyval: KV reader "keyval \[-l<len>\] \[-d<chr>\] \[-s\] <key> \[file\]") the ^KEY convention used by every script. /bin/mdputil: manufacturing-data util: manifest show/clear, GETFSN serial fetch per deviceID, -B init, -fwe write (used by upgrade umountnone region fix).
 - **upd_sections:** .upd container section map (from decrypted receipt 86.10-80260-1-9): section_type 3=preinstall.sh (postinst hooks), 6=kernel uImage, 4=rootfs.squashfs, 13=device-payload NCD image: all encrypted to recipient 12e82a182af27801eba0ff3c94e8e649ed962dbb. Kernel = Linux-2.6.35-yocto-standard (uImage magic 27051956, gzip vmlinux).
-<details markdown="1"><summary>Evidence (6)</summary>
+::: details Evidence (6)
 
 - @ 0x10eae506; auto_update_scheduler.cxx
 - @ 0x10fafc18; migrationmanager.cxx
@@ -4658,10 +4658,10 @@ manifest-driven update pipeline: update_manifest carries a base update URL + per
 - @ 0x10f076a4; per-device manifest row fields
 - @ 0x10e838ac; v1/players/{playerId}/update/check muse route
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `upnputil`
 
@@ -4669,19 +4669,19 @@ manifest-driven update pipeline: update_manifest carries a base update URL + per
 
 Shared control-protocol utilities: parsing host:port out of server addresses with strict validation, and mapping internal statuses to wire-level result codes. Small plumbing used across the classic command surface.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 RparseServerLocationAndPort {"Unable to extract host, allocation too small","Port specified is too long","invalid port. Max value is 65535","unrecognized scheme in URL"}; RmapStatusToUPNPRESULT {UPNP_RESULT_CANT_CONNECT,UPNP_RESULT_GENERAL_FAILURE} + original error 0x%08x; UDN "uuid:%s::urn:schemas-upnp-org:device:ZonePlayer:1"; loopbackSecurityTokenMutex; time fmts {%04hu-%02hu-%02huT%02hu:%02hu:%02hu,%04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx,%02hu:%02hu:%02hu,%+02d:%02d}; statuses {UNPLAYABLE,MEMBER,NO-CONTENT,LAN-SWAPPABLE}; invalid chars ",\\<>;?*|+=\[\]:\""; URL escape sets {$-_.+!*'(),/,$-_.!*'(),,-_.!*()}; audio fmt "bd:%u,sr:%u,c:%u,l:%u,d:%u"; "parser ctx allocation failed"
 
 - **name:** UPnP utility layer
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fb135c; upnputil
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `usage_metrics`
 
@@ -4689,19 +4689,19 @@ RparseServerLocationAndPort {"Unable to extract host, allocation too small","Por
 
 The usage-metrics schema: the counters and records the device reports for feature usage, submitted under the same permission gates as diagnostics. These are the statistics feeding Sonos's telemetry.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 <UsageMetrics><ver>2</ver> + <ucs>/<uc> records {ms_cdctrluri,ms_regctrluri,ms_croot,ms_fn} posted to submit.aspx under /HRMetrics/; cfg fetches {pollInterval.htm,wifiTxRateThreshold.htm,wifiLatencyThreshold.htm}?hhid=%s; wifi counters {ath%u,rxPrr,beacon_flags,datarx,secdrp,roaming,trf2g,trf5g,trg2g,trg5g,tbtm2g,tbtm5g,rfail,q*_nbf,q*_cmp,q*_bpk,q*_ltc,hwstat,rxbhs,rxhang,rxfMax,rxcMax,txfMax,bprowar,gtkfm,gtkfc,nogcfc,links}; per-AP "MAC/rssiF/rssiT/PktMin/PER" + "BSSID/perAP/rssiAP"; "Audio-drop ... include with future periodic submission" + rate-limit; WD daily write; CPUTempHist <temperatures>; unlocked/hw_warn/hw_fault flags; usageDataSharing optin
 
 - **name:** usagemetrics: periodic health report
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0c724; usagemetrics block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `user_update`
 
@@ -4709,19 +4709,19 @@ The usage-metrics schema: the counters and records the device reports for featur
 
 The user-initiated update flow: the 'check for updates' path versus the coordinator's scheduled path, sharing the same manifest and download machinery with a different trigger. It's the path for updates you explicitly start.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 flow {"Running user-initiated HH update",no updates available,manifest download failed,no devices need updating,checkDevicesToUpdate failed,launchUpdate failed}; reports upgrade_mgr_user_report.json + _prev.json + /tmp/upgrade_mgr_info.txt; "report has more devices than the maximum ... omitted from the householdUpdateStatus event"; "Unknown upgrade client state"; "report consumed"/"Timed out polling"; app/run; failure taxonomy 'User-initiated HH update: {no updates available, manifest download failed, no devices need updating, checkDevicesToUpdate failed, launchUpdate failed}'; report artifact upgrade_mgr_user_report_prev.json
 
 - **name:** UserUpdateScheduler: user-initiated HH update
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e95664; user_update block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `vli_ctrl`
 
@@ -4729,20 +4729,20 @@ flow {"Running user-initiated HH update",no updates available,manifest download 
 
 The virtual-line-in control interface: the event grammar, the format whitelist, the metadata extractor for pushed items, and the address-to-service routing. It's the control plane for external sources feeding the player.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 types {AirPlay,bluetooth/Bluetooth,tvproxy/TV Proxy} + "StartSession for unusable/unknown type"; scoped scopeVliCtrl/VliCtrlIx; protocolInfo x-sonos-vli:*:audio:*; cookie+fromSender tracking "%s:%d vliType %s cookie: %d"; "waiting for tx flags failed"/"completion signal timed out %#x %#x" + "timed out!!!!!!!"; "VLIGroupIDs cannot contain commas"
 
 - **name:** VliCtrl: VLI transport ctrl interface
 - **events:** `VliTransportAction(action)`, `AvtHaltActionEvent(action,vliType,cookie,fromSender)`, `AvtVliActionEvent`, `VolumeSetActionEvent(vol,mute,from_sonos,vligrouping)`, `GroupVolumeSetActionEvent(vol,mute,from_sonos,vligrouping)`, `VolumeChangedEvent(vli source,vol,mute,vligrouping)`, `VliPropertiesChangedEvent(name\|md\|mode,cookie)`
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ecc104; VliCtrl block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `voice_skill`
 
@@ -4750,19 +4750,19 @@ types {AirPlay,bluetooth/Bluetooth,tvproxy/TV Proxy} + "StartSession for unusabl
 
 The voice-assistant integration bits: the skill and voice-account vocabulary, the clip types for spoken responses, and the voice-related feature flags. It covers the parts of voice-assistant presence that live inside this program on products that support them.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {hasToken,skillStage,skillAuthCodeUS,skillAuthCodeEU,skillAuthCodeFE,skillRedirectUrl,authCode,redirectUrl,timeoutSeconds}
 
 - **name:** voice-skill onboarding fields
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fae1d8; voice skill
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `wac_mode`
 
@@ -4770,7 +4770,7 @@ The voice-assistant integration bits: the skill and voice-account vocabulary, th
 
 The wireless-accessory-configuration setup mode: the Apple-style onboarding flow where the player broadcasts a temporary setup network so a new device can receive its first network credentials. This is the first-boot and add-a-player path, driven by a dedicated daemon and a timeout.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed int, 'Unknown WAC mode %d') with enabled/disabled/timeout transitions; driven by netstartd via /tmp/netstartd.ipc ('WAC mode enabled/disabled/timeout', 'In setup mode', 'Netstart SSID set/clear'); LED goes to R_LED_WAC mode | netstartd IPC drives WAC: dispatcher f_10691034 msg ids 35/36=WAC disabled/enabled, 37/39/41=WAC timeout cluster; ids 42/46/47=setup-mode enter/setup start/stop.
 
@@ -4778,7 +4778,7 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 
 - **netstart_ipc:** netstartd events consumed: 'netstartd hello', 'Setup start/stop', 'Netstart is idle/alive/open', 'In setup mode', ' Netstart SSID set/clear', 'Netstart triggered upgrade (0x%x)', 'Got connection type update from netstartd: \[%s\]', recovery AP connection: %02X*6: a recovery-AP fallback exists
 - **conn_types:** connection-type vocabulary reported by netstartd: 'SonosNet (Ethernet)', 'SonosNet (wireless)', 'Home Theater 2.0', 'Home Theater (Ethernet)', 'Home Theater', 'WiFi', 'Ethernet (WiFi Disabled)', 'Ethernet'
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10e7573d; wacd.log
 - @ 0x10f02dc8; WAC mode enabled
@@ -4788,10 +4788,10 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 - @ 0x10f02db4; WAC enabled/disabled/timeout event strings
 - @ 0x10f02ee8; recovery AP connection MAC print: recovery AP fallback
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `watchdog`
 
@@ -4799,19 +4799,19 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 
 The watchdog subsystem: a hardware watchdog device plus capture files, a health-check thread on a configurable frequency, a client-registration interface, and a forced reboot on unresponsiveness. It's the dead-man's switch that restarts the device if the software stops checking in, the safety net against hangs.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {"Watchdog not started","Watchdog already created","Creating watchdog","No watchdog to destroy","Destroying watchdog","Invalid watchdog health check frequency","Watchdog constructed with %u seconds frequency","trigger called with status %d"}; "WATCHDOG: %s manual trigger (UTC %s)"/"unresponsive! (UTC %s)"; /sbin/reboot + return code; /watchdogcrash; "Performing health check"/"Waiting for next health check"; watchdog.poll; "In watchdog thread, performing health check"/"Exiting watchdog thread"; forceTrigger; client API {"client %s not found","Unregistered watchdog client %s","client must have a name","health check callback must be non-null","client %s already registered","Registered watchdog client %s"}; MTD /dev/mtd/0
 
 - **name:** watchdog driver interface
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe4fe4; watchdog
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `wmp_provider`
 
@@ -4819,19 +4819,19 @@ device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {"Watchdog not 
 
 The Windows Media Player content provider: browse and search over shared Windows libraries, with its own capability flags and search grammar. A leftover integration for libraries served by Windows Media Player's sharing feature.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:class derivedfrom "object.item.audioItem" and @refID exists false' + container class specs {person.musicArtist,album.musicAlbum,genre.musicGenre,playlistContainer}; sort/filter "+upnp:album,+upnp:originalTrackNumber,+dc:title" + microsoft:{artistAlbumArtist,artistPerformer,authorComposer} + upnp:genre + "1+upnp:originalTrackNumber"; field set dc:title,res,res@duration,upnp:artist,upnp:artist@role,upnp:album,upnp:originalTrackNumber; rincon md ns urn:schemas-rinconnetworks-com:metadata-1-0/|otherArtist; albumArt via %s?albumArt=true and /getaa?m=1&u=%s; "URI already has a serial number"/"not enough room for account ID"
 
 - **name:** sonos_cprovider: WMP content provider
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0dbf8; cprovider block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ws_client`
 
@@ -4839,20 +4839,20 @@ WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:clas
 
 The outbound websocket client used for the cloud channel: it performs the upgrade handshake, negotiates compression, retries session opens, generates nonces, and reports disconnect reasons and close codes. It's the machinery for when the player itself connects out to a websocket service.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-Accept,Sec-WebSocket-Extensions}; "failing connection due to unsolicited per msg deflate"; per-msg deflate only before open; openSession retry; nonce gen/encode; {"disconnectedReason":"%s"}; close codes on close frame; LoadBalancerHost/WebsocketServerHost; reasons {NEW_IP,BLUETOOTH,POWERED_OFF,UPGRADE,NEW_SSID,SLEEPING,RECONNECT}; threads wsc_mtx/wsc_smtx/wsc_cond
 
 - **name:** websocketclient: outbound WS (lechmere/cloud)
 - **status_schema:** <State>Open\|Closed</State><MillisecondsOpen\|Closed><PerMsgDeflate><TotalUncompressedKBytesSent><TotalCompressedKBytesSent><TotalKBytesSent><TotalUncompressedKBytesReceived><TotalCompressedKBytesDecompressed><TotalKBytesReceived><OpenCount><CloseCount><ConsecutiveFailures><UnackedPings><LastPingTime><PingTimeWeightedAverage><Messages><LastHttpStatus><LastWebSocketCode>
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0d018; websocketclient block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ws_server`
 
@@ -4860,19 +4860,19 @@ client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-
 
 The local websocket endpoint: the player runs a websocket server so apps can hold a live control connection instead of polling. It does the standard handshake, negotiates compression, and then carries the same event traffic the cloud pipe does, making it the local twin of the remote channel.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 websocketserver.cxx serves a local RFC6455 endpoint at /api/v1/websocket (route literal '/websocket/api' also present) for controller/UI clients. Server-side handshake headers sec-websocket-key + sec-websocket-version + 'Upgrade: websocket'; per-message deflate negotiated ('could not initialize per message deflate on ws client'); opcodes emitted as websocket(data|ping|pong|close|cont); 'Websocket protocol error'/'Write to websocket failed. opcode: %u, len: %zu'/'Connection already closed'. Status XML: <WebsocketRegistration>%s (%s)</WebsocketRegistration> or empty <WebsocketRegistration/>; connection cap telemetry <TruncatedConnectionList maxwebsockets="%zu" connections="%zu"/>. Internal state key ws_per_msg_deflate_run_state; event field 'websocketUrl' in the name table.
 
 - **name:** websocketserver: local /api/v1/websocket endpoint
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f01b4c; websocketserver.cxx block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zgt_errors`
 
@@ -4880,19 +4880,19 @@ websocketserver.cxx serves a local RFC6455 endpoint at /api/v1/websocket (route 
 
 The topology service's error layer: the error paths for unresponsive-device reports and malformed attribute requests. These are the error strings a bad topology request produces.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "Handling ReportUnresponsiveDevice %s/%s from %s:%hu"; GetZoneGroupAttributes {"No valid UUID in request server","TServer is not valid for request","TRequest is invalid in the control server"}
 
 - **name:** ZGT error paths
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f1143c; zgt error paths
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zones_mgr`
 
@@ -4900,19 +4900,19 @@ The topology service's error layer: the error paths for unresponsive-device repo
 
 The zone lifecycle manager: zone-definition changes fire events, lookups are exposed through the modern API, and channel-map updates flow from primary to secondary players to keep stereo and surround mappings consistent. It's the bookkeeping of which player is in which room and group.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 events {ZoneMemberSettingsChangedEvt,ZonesDefinitionsChangedEvent}; muse ops {museGetZoneDefinition "found zone \[%s\]"}; transitions {"zone transition on secondary/primary: zoneId %s","zone transition failed on primary"}; cms (channel-map-set) {"cms init from %s","cms update from pri: %s","cms update from sec: %s = %s + %s","zoneDef %s inconsistent with cms %s","can't construct channelMapSet"}; file <File name="activeZones">; ops {adding/removing player,joinZone id+flatChannelMapSet,unjoinZone,activateZone,deactivateZone,updateActiveZone,sendUpdateZoneMemberSettingsCmd}; guards {"primary change not supported for HT","update with offline primary not supported for HT","update only allows add or remove, not both","can't update both name and channelMapSet","Zone contains incompatible protocol versions","zone is not active","zone id not found","zone def not found","invalid activeZone","invalid channelMapSet","invalid flatChannelMap","invalid zone name","invalid name:","no name","secondary not reachable","more zones active than RMuseActiveZoneList can hold"}; "Legacy zone exists on %s"; "primary unavailable: sending Remove ops to secondaries"; "re-activate the current zone"; "updating ActiveZone: %s -> %s"/"primary change: %s -> %s"/"offline primary: %s -> %s"; zone-activation ops: 'joinZone failed: %s: %u','re-activation failed: %u','Set of players in zone','try updating the active zone setup: %s %s','RemoveHTSatellite(%s) failed: %u','update active zone failed','activateZone failed','deactivating %s zone: %s','deactivateZone failed','Remove ops failed','update zone name failed','active zone needs no change'
 
 - **name:** RZonesManager: zone lifecycle FSM
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e95d24; zones_mgr block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zones_storage`
 
@@ -4920,19 +4920,19 @@ events {ZoneMemberSettingsChangedEvt,ZonesDefinitionsChangedEvent}; muse ops {mu
 
 The zone-definition store: the name, ID, and channel-map records with create, update, and remove operations, plus replication. This is the persistence behind stereo pairs and home-theater bonds surviving reboots.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 zone defs {name,id,channelMapSet} + "reached maximum zone definitions"/"too many zones defined in the config file \[max=%d\]" + "zone def full: %s removed"; ops {create,update id,remove (active-guard "zone currently active")}; replication {"received replicated file","failed to rename offered replicated file","failed to load offered replicated file","ignoring replicated file: incompatible schema"}; JSON load errors {missing value,zones data array,root not object,incorrect schema \[%d != %d\],parsing offset,open errno} + RapidJSON vocab; gainTrimDB remote apply; forwarding {activateZone,updateActiveZone,joinZone,updateZoneMemberSettings cmd to %s} + "primary %s not found" + "output buffer full"; file format: {schemaVersion, zones data array} logged under 'zonesstorage'; setup path: 'loading saved zones during setup succeeded'/'saved zones successfully migrated during setup'/'creating new zones config file'; remote settings change: gainTrimDB \[%.2f\] on %s
 
 - **name:** zones_storage: zone-def persistence
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e96cd8; zones_storage block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zpinfo_dpimpl`
 
@@ -4940,19 +4940,19 @@ zone defs {name,id,channelMapSet} + "reached maximum zone definitions"/"too many
 
 The ZPInfo diagnostic surface: the device-info document schema (attributes, network info, support fields) plus the ethernet-port statistics and shutdown-log surfaces. The structured 'everything about this unit' report for support.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo}; events {LineInStateChangedEvent,ReplicatedSettingsChangedEvent}; idle FSM "idle state is %sidle, changing to %sidle" + "Reporting device %sidle"; actors {dpimpl,RDPZoneImpl,dpZoneImpl,dpUpdateIdleState}; /dev/audioctl + U-Boot 17.2.7 + "OTP: %.32s"; KVPair parse; battery {RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}
 
 - **name:** ZPInfo/dpimpl fields
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef31cc; dpimpl region
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `account_actions`
 
@@ -4960,19 +4960,19 @@ vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,Eth
 
 The operations behind music-service account management: the routines that actually add, edit, and remove the saved logins for services like Spotify. They sit underneath the account commands documented on the service pages.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUID,NewAccountID,NewAccountUDN,RDMValue}; actions {AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString}
 
 - **name:** DeviceProperties account actions
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f111a4; account action vocab
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `accounts_replication`
 
@@ -4980,20 +4980,20 @@ args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,Ac
 
 Keeps music-service accounts in sync across the household: when you add a Spotify login on one speaker, this machinery replicates it to the others so any room can play that service. It's why you only have to sign in once for the whole house.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ops {markAccountsForPushLocked,setAndUpdatePreferredSerialNum,addAccountWithUserCredentials,int_addAccountWithOAuthToken,addPreinstalledService,addAccountWithOAuthToken,addAccountWithOAuthCode,addAccountForOAuthDirectControl,modifyAccount,migrateAccountsToSMAPI,migrateAccountSID,migrateAccountToOAuth,updateAccountUserInfo,reportAllActiveAccounts,ReportSvcTimedJob,matchImpl,pullFromReplicationService,pushToReplicationService,getPreferredAccount}; zpam: %s,%d,%d,%u; file accounts.xml; outcomes {retry,conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason,vcCloud}; validation {invalid service ID,missing service uuid,missing account type,missing metadata,missing cloud vector clock,missing serial number,missing account ID,missing household vector clock,"Discarding invalid cloud record: %s \[uuid=%s, hh=%s, cloud=%s\]",exceeded max deleted accounts}; guest migration {"Existing account is not a guest account, migrateGuestAccount failing","Bad guest migration: UDN = %s - UserIDHash = %s","Migrated %s replication account","Migrated tombstoned %s replication account"}; "End direct control context UUID: %s"; "Invalid replication operation"; "no preferred account set"; "Failed to download manifest file (%s) for service %u"; getDeviceAuthToken failed; 'Account added. Returning UDN=%s','can't extract account UID from %s','Updating guest account nickname from: %s to: %s','Unable to update guest account sn=%u,h=%s'
 
 - **name:** accounts manager + replication
 - **detail:** matching {performsSMAPIAccountMatching,"Account matched g=%d,sn=%u,h=%s","New account matched to existing guest account with SN=%u, Hash=%s"}; DC outcomes {login failed,no account,stale account,unsupported service,unexpected,Could not resolve serviceId}; corruption {emptyUUID,dupUUID,caller,accountCorruption,"Error reading file while detecting stale anonymous/corrupted accounts","Found corrupted accounts"}; guest {"Link code required to add guest account","Added guest account with SN=%u","Updating guest account nickname","addAccount failed: guest upgrade not allowed via reauth.","account already exists on household"}; maintenance {restore,addAccount,migrate,"Removed account with corrupted type. SN=%d, SID=%u, UID=%u",corruptedAccountRemoval,"removing duplicate account with SID",duplicateAccountRemoval,"Removed account multiple",numAccounts}; migrations {"Migrated Pandora built-in (%d,%d->%d)",pre-cloud,anonymous,"Migrated Account with SID %u. (%u,%u->%u)",legacyTuneInReplaced,"UserIdHash \[%s\] already exists and will not be updated for SN=%u"}; replication status XML <AccountsInfo><Replication><ReplicationOperation>%s\|n/a</ReplicationOperation><ReplicationResult>%d\|n/a</ReplicationResult></Replication><ReplicationPlayer>%s</ReplicationPlayer><ReplicationTime>%Y-%m-%d %H:%M:%S</ReplicationTime></AccountsInfo>; outcomes {"Pull successful","Corrupted accounts not updated","Pull rescheduled in %lld","Push successful","Push rescheduled in %lld"}; "Rejected version %u, schema %u from %s"; "replicating accounts file from %s"; spotifyTransferStartDirectControlEx; R_SvcAccounts
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eaba78; accounts replication
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `acoustic_metrics`
 
@@ -5001,19 +5001,19 @@ ops {markAccountsForPushLocked,setAndUpdatePreferredSerialNum,addAccountWithUser
 
 Gathers measurements about the audio hardware: signal levels, channel data, and other acoustic telemetry the player reports for diagnostics and tuning. It is the instrumentation side of the audio path: while the pipeline plays sound, this machinery watches what comes out and packages the readings so support tools and calibration features can see what the hardware is actually doing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {tdoas,scrollbackAttempt,confidence,correlationMaxValue,thresholdPeakMaxValue,leadingEdgeSpectralSimilarity,leadingEdgePriorEnergy,leadingEdgePosteriorEnergy,leadingEdgeEnergyCoherence,maxPeakEnergyCoherence,maxPeakPosteriorEnergy,noiseRms,signalRms,normalisedResiduals,peakMagnitudeRatios,leadingEdgePercentageEnergy,f1SpectralSimilarity,f2SpectralSimilarity,leadingEdgeKurtosis,leadingEdgeRiseTime,normalisedAggregateResidual,decayConstant,numMeasurements,numRetries,orchestrator,debugData,tvUsec,errorTime,expirationTime}
 
 - **name:** positioning acoustic-metric schema
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fadf24; acoustic metrics
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `alarm_clock`
 
@@ -5021,7 +5021,7 @@ Gathers measurements about the audio hardware: signal levels, channel data, and 
 
 The alarm engine itself: the scheduler that wakes up, checks which alarms are due, and fires them, including triggering playback in the right rooms. The alarm commands documented elsewhere just edit the list, while this subsystem does the waking and firing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **muse_validation:**
   - **errors:** `Invalid service id`, `Failed to convert content payload for alarm contentType=%s, objectId=%s`, `Invalid startTime`, `No alarm active to silence`, `Invalid duration provided`, `Device not group coordinator or source`, `Alarm not found`, `Invalid recurrence`, `Invalid alarm ID`, `Invalid Recurrence`, `Invalid StartTime`, `Writing alarm failed with error: %d`, `Unable to return active alarm: definition has been deleted`
@@ -5034,7 +5034,7 @@ The alarm engine itself: the scheduler that wakes up, checks which alarms are du
 - **schema:** <Alarm><Mode/><Scheduler/><UTCTime/><LocalTime/><Pending><PendingAlarm><ID>%u</ID><Type>%s</Type><Time>%s</Time><TimeUTC/><Recurrence>%s</Recurrence><NextUTC/><NextLocal/></PendingAlarm></Pending></Alarm>; <AlarmClock LastUpdateDevice="/<Alarms LastUpdateDevice="/<Alarms>; alarm.xml persistence + SQLite3; types {Expired,AVS Alarm,AVS Timer,AVS Reminder,Muse Timer}
 - **internals:** fields {StartTime,Recurrence,ProgramURI,ProgramMetaData,PlayMode,IncludeLinkedZones,AutoAdjustDst,TimeSource,DailyIndexRefresh}; vars {AlarmListVersion,TimeFormat,DateFormat,DailyIndexRefreshTime,TimeServer,TimeGeneration,CurrentAlarmList,CurrentAlarmListVersion}; events {UTCTimeAvailableEvent,AlarmClockTimeZoneChangedEvent}; sysclock {"NTPTimeOffset getUTCTimeNow is disabled","reading sysclock_state returned zero bytes",SYNCED,UNSYNCED,"Read %s from sysclock_state file","sysclock_state file is corrupt","NTPTimeOffset timeDiff: %ld *pbLargeAdjustmentMade: %d","large adjustment to system clock detected","reportTimeSyncFailure detects no internet",syncFailed,ntpSync,syncInternetTime}; migration {"Fail converting old rhapsody alarm","x-rincon-buzzer:0","Done converting old rhapsody alram. Was: %s, now: %s","Failure converting old non-OAuth alarm"}; conflict "New alarm %u conflicted with running alarm %u on ZP %s at %s"; exec {"Ignoring alarm %u for room %s while in Exclusive BT Mode","Not executing on invisible ZP %s","unable to determine invis/compat","RunAlarm failed","Can't get AVT URI for designated/coordinator ZP","selecting id:%d ty:%d for execution isLocal:%d","scheduling next alarm (%d) in %ld secs (coordinator:%s) nextLocal:%ld","start: executing alarm id:%u type:%d","%s will run alarm id:%u type:%d","use cloud schedule instead of local alarm","unrunnable or expired alarm","annotate and expire"}; jobs {timedjobmgr_ac,RACZonePlayer,acZonePlayer,AlarmClock_Schedule,AlarmClock_Execute}; "Alarm's TJM is not running"; content {"Failed to convert load content payload","Failed to update resolved content for alarmId","alertContent: could not open default/completed default loop \[rclS:%lld\]/default interrupted","no read source"}; file://%s/buzzers/0.mp3
 
-</details>
+:::
 
 ## `album_art`
 
@@ -5042,11 +5042,11 @@ The alarm engine itself: the scheduler that wakes up, checks which alarms are du
 
 Fetches and serves album artwork: it downloads cover images from music services, caches them locally, and serves them over the player's own web interface so apps can display what the speaker sees. This is why the artwork loads even when the original image host would be slow, because the speaker acts as a local image server for its own now-playing art.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **worker:** "album URI dereferenced to: %s"; "Fetching album art for %s: %s"; "invoking vliStreamImage on %s %u %u %u %s"; "vliStreamImage failed"
 
-</details>
+:::
 
 ## `amp_manager`
 
@@ -5054,19 +5054,19 @@ Fetches and serves album artwork: it downloads cover images from music services,
 
 Manages the internal amplifier: enabling and disabling output stages, applying gains, and handling the amp's power state. On a self-amplified speaker like a Playbar this is the last stop before the drivers: the code that decides when the amplifier is awake, how loud its output stage runs, and when it powers down to save energy.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 AmplifierPowerStateChangedEvent; transitions {"zone %d volume %f -> %f","zone %d is playing %d -> %d"}; notify ops {manageAmpStateLocked_notifyVolume,notifyPlayState,notifyPlayingUnmuteableSource_p/np,notifyOutputFixed,resetPreemptiveTurnOn,notifyPreemptiveTurnOn}; preemptive "zone %zu preemptive turn on %d -> 0/%d"; power {"entered ampPowerOnLocked() - %dms","ignored unsupported amp command: power/mute/hipower (%d)","failed to power on/unmute/mute/power off amps (%d)","failed to transition to high/low power rail (%d)","left ampPowerOnLocked()","requested amp power off"}; off-decision "roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d"; "scheduling off in %d sec"; {ampMgr,RAmpManager,ampPowerOnLocked,ampPowerOffLocked,"failed to unmute amps to clear fault","ampState %d -> %d",notifyAmpState,"init failed (%d)"}
 
 - **name:** ampMgr power manager
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe5434; ampMgr
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ap_layer`
 
@@ -5074,19 +5074,19 @@ AmplifierPowerStateChangedEvent; transitions {"zone %d volume %f -> %f","zone %d
 
 The access-point layer: code for when a Sonos player acts as or manages a wireless access point. This era's hardware could host its own wireless segment as part of Sonos's dedicated mesh and during setup, and this layer is the machinery behind that role.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 endpoints {apresolve.spotify.com,ap.spotify.com,local apresolve,fallback}; handshake {"Connecting (%s) %s:%d timeout: %d sec","Sending Hello message to AP","Writing apresolve request","logging in, type %d sz %d user %s","Failed to decode ApWelcome: %s","!"ApWelcome failed""}; TLV {"Failed reading TLV header %d %d/7 oserr %d","Packet from AP is too large! Type: %d / Size: %d","ap->packet_size <= 16384","Skipped %s(%d) (%d > %d)","Corrupted packet, invalid MAC"}; connectivity {"Permanent connection error: %d","Regained network connectivity, reconnecting","Lost network connectivity, disconnecting","Connectivity went from one type to another (%d -> %d), populating disconnected sockets array","Too long without response from server","SpPumpEvents() is called too slowly: %d ms for 100 calls","ap os error code: %d"}; AP resolver request ' 200GET /?client=TSP_VERSION_PLATFORM:5:0:71780298064396493&time=%llu HTTP/1.0' + 'Host: apresolve.spotify.com' (HTTP/1.0 GET with TSP client token + timestamp)
 
 - **name:** AP (access point) connection layer
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd7bc8; AP layer
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `areas`
 
@@ -5094,19 +5094,19 @@ endpoints {apresolve.spotify.com,ap.spotify.com,local apresolve,fallback}; hands
 
 The household-areas machinery: the internal model of multi-room 'areas' that newer app versions organize by, matching the areas API surface documented on the modern-API page.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 areas.json persistence + atomic-write cycle {accepted file load,rename accepted→store,rename failed paths,saving failed,setup load/save}; schema versioning 'Loaded areas schema version (%d) differs from local version (%d)'; builtin 'Everywhere' + GUID 7055133f-81e7-45e6-ba70-8803966c7185; constraints {'Area IDs must be distinct','Maximum area limit (%d) reached','Cannot update read-only area','Set of players in area (array playerIds)'}; vars {areaId,areasMgr,artfetch}
 
 - **name:** Areas manager
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ead0bc; areas block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `async_stream`
 
@@ -5114,20 +5114,20 @@ areas.json persistence + atomic-write cycle {accepted file load,rename accepted�
 
 An asynchronous streaming helper: plumbing for data that arrives or is consumed in chunks rather than all at once. Streaming sources, downloads, and event channels all move data incrementally, and this shared machinery lets the rest of the code work in chunks without each subsystem re-inventing the buffering.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 init 'buffersize=%zu; multiThread=%u; ratelimit=%zu us'; segment model {'Data segment follows segment with EOF!','Tried to delete segment with I/O in progress','SegmentTable reallocated to %zu entries','Unexpected: I/O to block %zu; not last block in segment'}; positions {'Pause; framed to stream pos %zu; resume at pos at %zu; reaped to pos %zu','Played to stream pos %zu. Reaped %zu blocks of played data in track %5.5s','Started reaping played data. Lose fast scrubbing backwards'}; alloc {'Alloc satisfied by track transition','Alloc satisfied by deleting played data','Alloc not satisified, returning anyway','Unable to satisfy allocation request! Played to pos','Satisfed allocation request but should not have required this!'}; CDN fallback {'File is in memory!','>>>Start reading at offset %zu ; streamPos %zu','>>>Sync read from CDN at offset %zu','Opportunistic sync read from CDN','readSync unable to allocate a buffer; transport error will ensue','>>>>readSync: read %zu blocks in %lld ms'}; rates {'Playing at ~%zu KB/sec. Blocks read this series: %zu','Avg read rate: %zuKB/sec; min read rate','download time %zu ms','Stop async reading. Filled %zu buffers; %zu bytes in %zu ms. (%zu KB/sec)'}; tracking {'Socket has: %zu bytes (%zu blocks and %zu bytes). CHSRC ms ahead: %ld','new seek based PB session','Restart current track','start streaming track %d \[%5.5s\]. Filesize=%zu, startPos=%zu'}; actors {asyncstrm,asyncstrmio,asyncstreamiomgr,asyncBufferedStream,mrrkbs,arrkbs}; 'Atom Table Full'
 
 - **name:** RAsyncBufferedStream internals
 - **atom_table:** stream buffer atoms tracked in a fixed table (logger asyncstrmio/asyncstreamiomgr): errors {Internal error - Atom Overflow, Internal error - Invalid Atom, Atom Table Full} @0x110919c4/0x110919e4/0x10eade14 - the atom table is a bounded allocation pool that can exhaust under load. distinct from MP4 atoms - these are the async_stream segment-buffer units
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ead488; asyncstrm block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `audio_in`
 
@@ -5135,11 +5135,11 @@ init 'buffersize=%zu; multiThread=%u; ratelimit=%zu us'; segment model {'Data se
 
 The line-in input path: the machinery for audio arriving on the physical input jack. On this build the network-facing service is a reject-everything stub, but the lower capture machinery exists in the shared codebase, which is why the service advertises commands at all.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **ai_impl:** group model {addGroup coord,demoMode; "no room available for coordinator"; StopTransmissionToGroup by coord; "number of groups %zu remote %zu"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + "Running demo mode forcing uncompressed"; artfetch thread
 
-</details>
+:::
 
 ## `autoplay`
 
@@ -5147,11 +5147,11 @@ The line-in input path: the machinery for audio arriving on the physical input j
 
 The autoplay feature: the machinery that makes a speaker resume or follow a source automatically, which is the 'start playing when this room does' behavior configured through the autoplay settings.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **engine:** MpAutoPlay_: airplay {include zones,vol,useVol,includeZones}; AirplayIncludeGroupedEvt; AutoStop on unhandled URI; linein URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth}; "lonely local line-in autoplay %s"; failure modes "no autoplay target"/"couldn't determine coordinator"/"couldn't determine AVT control URI of coordinator"/"couldn't determine control URI of zone"; skip "invisible/node proto incompatible ZP"; "for controlURI \[%s\] for coordinator \[%s\]. programURI \[%s\]. %d - %d"; vliType-driven
 
-</details>
+:::
 
 ## `av_transport`
 
@@ -5159,14 +5159,14 @@ The autoplay feature: the machinery that makes a speaker resume or follow a sour
 
 The transport engine's core: the state machine that actually runs playback, covering source selection, play, pause, stop, skip, seek, and the mode-specific behavior per source type. The transport commands on the service page are just the network-facing edge of this engine.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **avt_jobs:** `ChangeTransportSettings`, `avt_play`, `onEvent`, `alarmDurationTimer`, `backupQueueCleanup`, `pollRadioShowMD`, `preemptiveAmp`
 - **secondary_guards:** improper-call guards on secondary ZPs {"AVTransportURI cannot be set to non-group URI on secondary ZPs","BecomeCoordinatorOfStandaloneGroup improperly called on secondary ZP","BecomeGroupCoordinator improperly called","BecomeGroupCoordinatorAndSource improperly called"}
 - **uris_ht:** x-sonos-htastream:%s HT audio stream + demo line-in uri + "Demo mode update available (%s)" + x-rincon-buzzer:1 custom alarm + x-rincon-stream:%s; spdif source
 - **internal_ops:** CQ/playback ops {internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning/Stopped,queueCompletionRoutine,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}
 
-</details>
+:::
 
 ## `avt_impl`
 
@@ -5174,7 +5174,7 @@ The transport engine's core: the state machine that actually runs playback, cove
 
 The implementation object behind the transport service: where the command routines' real work happens once the network layer has unpacked a request. The service page's commands all funnel into this object, which is the bridge between 'a network request arrived' and 'the transport engine did something'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 TX selection {'Using HTAudio TV TX for GM %s','Using CHSRC TX for GM %s','Why are we telling HTAP to play %s','setting tvInputFormat %08x',iSCS removeClock/installClock}; persistence avt.txt + avt-backup-restore + locks {rwlW_avt,rwlR_avt} + actor RAVTMediaRenderer/scopeAvt; VLI ops {ChangeTransportSettings playing/stopping/deactivating local VLI (txs),endVLISession,onTXSettingsWillChange→VLI::StopTransmission}; session eviction 'sessionError MUSE_ERROR_SESSION_EVICTED for %s: %s' + evict; sleep timer {'sleep timer fired (r:%ld)','sleep timer set (d:%d r:%d p:%d c:%d)','sleep timer reached (p:%d)','Failed to configure the sleep timer','Invalid duration provided'}; amp preempt {'amp already on','prem-amp turn on at %d.%06d; start up time: %dms','could not preemptively turn on the amp'}; queue events {tracksAdded,qLength,trackIndex,enqueueEvent,'Add to queue %u; URI/MD'}; playmode warnings {'vli play modes ignored (enable/disable flags)','play modes ignored (current/desired)'}; operational override {'changing Operational Override mask from 0x%x to 0x%x','setAVT aborted because operation is overridden'}; seek units {TRACK_NR seek track,REL_TIME %lld.%06lld seek time,TIME_DELTA %lld.%06lld,00:00:00,previous}; settings {change crossfade,change play mode,capChange,groupSize,curCaps,requiredCaps,musicPausedMS}; ret codes {stopRet,seekToTrackRet,seekToTimeRet,playRet,pauseRet,endpointSwitch,episode}
 
@@ -5183,14 +5183,14 @@ TX selection {'Using HTAudio TV TX for GM %s','Using CHSRC TX for GM %s','Why ar
 - **coordinator:** BGC FSM {BecomeCoordinatorOfStandaloneGroup,"Attempting to become standalone based on VLI state",BecomeGroupCoordinator,"group member becoming group coordinator",BecomeGroupCoordinatorAndSource{bCloningGCState,bSourceGCClearedContent},"not restoring source state","resetting sinks","stop CHSNK to avoid seamless delegation for adaptive bitrate stream","contacting remote chsnks","configuring local chsnk","Became Group Coordinator and Source","Refreshing expired content during delegation","Resetting programmed radio station during clone","failed (%d), now becoming standalone","asked to become coordinator of non-member group. Clone (%d)"}; VLI snapshot {"using local VLI txs","using VLI State Snapshot","cannot use VLISS for VLI type \[%u\]"}; origin-time {"converted remote time origin, %d.%06d, to local time, %d.%06d","unable to convert remote time origin"}; member moves {"Attempting to move player %s to group coordinated by %s","failed with error %d, rejoin status %d","Attempting to move local player","Attempting move group ... based on VLI state"}; unlink {"secondary clearing avt: %s, gone uuid: %s, primary uuid: %s","unlink from gc (sec)","unlink from gc","failed to copy local GC state to remote GC"}; delegation {"delegation target %s not primary","will try to delegate to %s","DelegateGroupCoordinationTo failed %d","cannot delegate to oneself"}; HT src {"Requested home theater audio source not valid","UUID %s not part of group","remote UUID %s does not support ht audio","UUID %s does not support ht audio","Not playing TV proxy VLI","%s is not capable of home theater playback"}; line-in {"line in disconnected","Clearing AudioInput session on line-in disconnect","player not found","player does not have line-in","BGC line-in: could not resolve source UUID from txs or uri","source %s would not start xmission","transitioning back to playing"}; queue URIs {x-rincon-queue:%s#%u,x-rincon-queue:%s#%s,x-rincon-queue:%s#0,x-rincon-buzzer:%u:o,x-rincon-stream:%s:%s}; errors {"set AVT transport failed","streamUrl has unsupported scheme","Internal error setting URI","Internal error activating shared queue","Unrecognized action value","Internal Error committing media to queue","No tracks added to queue","Internal Error adding media to queue","Tracks added to queue are non-playable tracks","Track object is missing","Internal error setting URI"}; CQ ops {"activate cloud queue %s","loadCloudQueue stop","Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow"}; restart policy {"Playback halt must be respected. NOT attempting to restart.","Fatal playback error. NOT attempting to restart.","Nothing played. NOT attempting to restart.","Multiple restart attempts have failed. NOT attempting to restart again.","Playback stopped unexpectedly. Attempting to restart."}; "AVT Context ID mismatch in play end event"; autoplay {"using VLI to autoplay Spotify SMAPI URI: %s (%d)","autoplay Spotify using VLI","ProgramURI changed to: %s","autoplaying %d %s","autoplay failed to get the avtc URI","autoplay failed to start playback","Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)... not playing."}; playEnd "playEnd: ar=%d sr=%d bee=%d avt=%s" + "Business schedule (i.e. alarm) ended" + "restoring after end chime: wrca=%d pavt=%d"
 - **restore:** /avt.txt + "Restoring AVT" + "AVT restore timeout" + "AVT modified, unable to reset to prior setting" + "Didn't Restore AVT because it's a group coordinated by a member of our bond" + "Restored AVT from file" + "Issue restoring AVT" + "Restored/Issue restoring play mode %s" + "Restored/Issue restoring crossfade" + "Restored/Issue restoring shared TQ play mode %s" + "bad policy input"; op-override {"preventing autoplay because operation is overridden","preventing alarm because operation is overridden"}; linked rooms {"Found %zu linked rooms during StartAutoplay%s","Found %zu linked rooms during RunAlarm%s",linked,zpAlarm,fb_buzz}; forwarding "forwarded %s to %s, rc=%d" + ": BCOSG"; createSession {"invalid app ID","Invalid account id","Could not find accountId","sum of appId/appContext is too large","createSession stop","deleted uri",create}
 - **actions:** extended actions {AddMultipleURIsToQueue,AddURIToQueue,AddURIToSavedQueue,BackupQueue,BecomeGroupCoordinatorAndSource,ChangeCoordinator,ChangeTransportSettings,ConfigureSleepTimer,CreateSavedQueue,DelegateGroupCoordinationTo,EndDirectControlSession,GetCrossfadeMode,GetCurrentTransportActions,GetDeviceCapabilities,GetMediaInfo,GetPositionInfo,GetRemainingSleepTimerDuration,GetRunningAlarmProperties,GetTransportInfo,GetTransportSettings,NotifyDeletedURI,Previous,RemoveAllTracksFromQueue,RemoveTrackFromQueue,RemoveTrackRangeFromQueue,ReorderTracksInQueue,ReorderTracksInSavedQueue,RunAlarm,SaveQueue,SetCrossfadeMode,SetNextAVTransportURI,SetPlayMode,SnoozeAlarm,StartAutoplay,X_DLNA_SeekTrackNr}; args {DelegatedGroupCoordinatorID,NewGroupID,StartingIndex,InsertBefore,DeletedURI,NewPlayMode,NewTransportSettings,CurrentAVTransportURI,AssignedObjectID,NewSleepTimerDuration,CurrentCoordinator,CurrentGroupID,OtherMembers,SleepTimerState,AlarmState,StreamRestartState,SharedQueueTrackList,PrivateQueueTrackList,CurrentVLIState,CurrentAVTTrackList,CurrentSourceState,ResumePlayback,NewCoordinator,RejoinGroup,ClearSource,RestartSink,NrTracks,MediaDuration,EnqueuedURI,EnqueuedURIMetaData,DesiredFirstTrackNumberEnqueued,EnqueueAsNext,FirstTrackNumberEnqueued,NumTracksAdded,NewQueueLength,NewUpdateID,AddAtIndex,RemainingSleepTimerDuration,CurrentSleepTimerGeneration,AlarmID,GroupID,LoggedStartTime,NumberOfURIs,EnqueuedURIs,EnqueuedURIsMetaData,ContainerURI,ContainerMetaData,CurrentTransportState,CurrentTransportStatus,CurrentSpeed,TrackDuration,TrackMetaData,TrackURI,RelTime,AbsTime,RelCount,AbsCount,NewPositionList,QueueLengthChange,ResetVolumeAfter,RecQualityMode(s),PlayMedia,RecMedia}; clone params {x-sonos-clone-gc,x-sonos-gc-cleared-content}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb0028; avt_impl block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `avt_lastchange`
 
@@ -5198,19 +5198,19 @@ TX selection {'Using HTAudio TV TX for GM %s','Using CHSRC TX for GM %s','Why ar
 
 The machinery that builds the transport service's bundled change reports: it collects which playback variables moved and serializes them into one notification. Subscribers get a single message covering track change, state change, and mode change rather than a storm of individual events.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 <Event xmlns=upnp-org:metadata-1-0/AVT/ xmlns:r=rinconnetworks-com:metadata-1-0/>; standard {TransportState,CurrentPlayMode,CurrentCrossfadeMode,NumberOfTracks,CurrentTrack,CurrentSection,CurrentTrackURI,CurrentTrackDuration,CurrentTrackMetaData,PlaybackStorageMedium,AVTransportURI,AVTransportURIMetaData,NextAVTransportURI,NextAVTransportURIMetaData,CurrentTransportActions,TransportStatus,TransportErrorDescription,TransportErrorURI,TransportErrorHttpCode,TransportErrorHttpHeaders}; rincon-ext {r:EnqueuedTransportURI,r:EnqueuedTransportURIMetaData,r:CurrentValidPlayModes,r:DirectControlClientID,r:DirectControlIsSuspended,r:DirectControlAccountID,r:SleepTimerGeneration,r:RestartPending,r:NextTrackURI,r:NextTrackMetaData,r:AlarmRunning,r:SnoozeRunning}; static NOT_IMPLEMENTED {TransportPlaySpeed,CurrentMediaDuration,RecordStorageMedium,PossibleRecordStorageMedia,RecordMediumWriteStatus,CurrentRecordQualityMode}; PossiblePlaybackStorageMedia=NONE, NETWORK; x-sonos-unknown: scheme
 
 - **name:** AVT LastChange event schema
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb29e8; avt lastchange
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `browse_ids`
 
@@ -5218,19 +5218,19 @@ The machinery that builds the transport service's bundled change reports: it col
 
 The identifier scheme for the music library: how containers and items get their browse IDs, so 'artist X' or 'playlist Y' has a stable address in the library tree.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 library {ALBARTIST,LIBARTIST,LIBALBUM,LIBGENRE,LIBTRACKS,LIBPLAYLISTS,LIBSTATIONS,LIBMUSIC}; genre {GNRSUBGNR,GNRTOPARTIST,GNRTOPALBUM,GNRTOPTRACKS,GNRSTATIONS,GNRCHARTS,NEWRELEASES,RHAPRECOMMEND,SUBGNRALLARTISTS,SUBGNRKEYARTISTS,SUBGNRKEYALBUMS,SUBGNRSAMPLER}; global {GLBARTIST,GLBALBUM,GLBGENRE,GLBLEAFGENRE,GLBTRACK,GLBPLAYLIST,GLBSTATION}; artist {ARTTOPTRACKS,ARTALBUM,ARTSINGLESEPS,ARTCOMPILATIONS,ARTOTHERRELS,ARTSTATION}; discovery {GUIDE,ALBUMSFORYOU,FEATPLAYLISTS,STAFFPICKS,PSTATIONS}; search {SEARCHARTISTS,SEARCHKEYWORDS,SEARCHTRACKS,SEARCHALBUMS,SEARCHCOMPOSERS,SSTATIONS,SONOSSEARCH}; radio {STARTSTA,STARTTAGSTA,BROWSETAGPOP,BROWSETAGALPHA,MYRADIO,PERSONALRADIO,LOVEDRADIO,NEIGHBORHOOD,RECOMMENDED,SEARCHTAGS,TAGRADIO,TOPTAGSPOP,TOPTAGSALPHA,RECENT}; genres {Adult and Easy Listening,Eighties,"Public, Talk, and Sports Radio",Pop and Top 40,Country and Folk,Jazz and Blues,"Classic, Hard and Alt. Rock","Soul, Hip Hop and R&B",Dance and Electronic,"New Age, Ambient, Chill-Down"}; locales {France,Germany,Italy,Netherlands,Spain,International-Other}; misc {ZPSTR_BUFFERING,Favorite Stations,Unnamed Room,Media Server}
 
 - **name:** SMAPI browse container IDs
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee7638; browse ids
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `catalog_translation`
 
@@ -5238,19 +5238,19 @@ library {ALBARTIST,LIBARTIST,LIBALBUM,LIBGENRE,LIBTRACKS,LIBPLAYLISTS,LIBSTATION
 
 The same catalog-translation facility as catalog_translate: cloud-backed ID mapping with a local cache ('retrieved translation from cache' vs 'connecting to translation service'). Useful for cross-service matching features like 'also available on'. It's what lets the app show a uniform browse tree no matter which of the dozens of services the catalog came from.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 GET /content/api/catalog/id/%s?destinationServiceId=%s; translateId(objectId,serviceId,targetObjectId); cache {"retrieved translation from cache","translation not cached; connecting to translation service","saved translation to cache","translateId response: %d %s"}; errors {"objectId missing","serviceId missing","targetObjectId missing","cannot perform translateId request; one or more parameters missing"}; actors {zpCatalogTranslation,catalogSvcMgr,targetSid}
 
 - **name:** catalog ID translation (/content/api)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb3c38; translate block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cdn_fetcher`
 
@@ -5258,19 +5258,19 @@ GET /content/api/catalog/id/%s?destinationServiceId=%s; translateId(objectId,ser
 
 The embedded Spotify component's content-delivery downloader: it pulls track data from Spotify's servers with explicit offset and size requests, follows redirects, retries on timeouts, and fails over to the next host when one stalls. This is why Connect playback survives a mid-track download hiccup, because retry and failover are built into the fetcher.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; requests {"downloading '%s' from offset:%i size:%i","requesting stream '%s' offset:%ukb (size:%ukb)","GET %s"}; errors {"httpio get failed (result = %i, status code = %i, total code length = %i)","Redirect #%d to %s","httpio unexpected eof/read failed","reading/got chunk (%ukB -> %ukB) / %ukB (%ukB)","unexpectedly not enough space in destination","This is probably not recoverable","Failed to write to destination buffer","retry on timeout/read error, attempts=%d","failed to download chunk from cdn","switched to a new cdn: cdn_index=%d"}; "Download complete, read %u B in %u ms"; req engine {"%s Request for %s %s (channel_id:%d, fail_count:%d)","%s request failed: %d, fail_count:%d (retry_count:%d)","%s retries exhausted, count:%d, limit:%d","Will retry %s in:%llums at:%llu",dbg_ctx,request_function}; params {cdn_info->num_urls,dest}; stream/key acquisition errors 'Failed to get stream or key (stream_error:%d, key_error:%d)','Failed to get stream key, error_code:%d','Failed to get stream (stream_error:%d)','CDN download failed%s'
 
 - **name:** eSDK CDN fetcher (MOD-CDN)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fde1a8; CDN
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cert`
 
@@ -5278,11 +5278,11 @@ fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; requests {"downloading '%s' 
 
 Device identity certificate handling: the Sonos-issued certificate plus encrypted private key used for secure connections and signing. When the player connects to Sonos's cloud or to other players, this machinery picks and presents the right credential so the other side knows it's talking to a genuine device.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **metadata_errors:** devcertmgrprovider cert validation codes: BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present; headers X-Sonos-UserId,X-Sonos-Muse-Household-Id,X-Sonos-Denylisted; response {requestTimeMS,downloadStatusCode,httpResultCode,previousETag,download,reasonCode,certError}; states downloaded/unchanged/generating; "Unknown cert metadata state: %s. Scheduling cert refresh job"; "Retrieved manufacturing data: %s"; refresh "%s: refresh check in %ld seconds"/"certificate expired"/"utc time not set"
 
-</details>
+:::
 
 ## `cert_layer`
 
@@ -5290,11 +5290,11 @@ Device identity certificate handling: the Sonos-issued certificate plus encrypte
 
 The X.509 validation internals: issuer/env/household/user match rules, issue-date checks, and the MISMATCH_* error taxonomy behind every mTLS or signed-request failure. Other components ask this layer for 'the right credential' rather than reading certificate files themselves.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **files:** cert.xml + metadata.txt; "Buffer not sufficient to store entire certificate"; "loading %s (0x%x) took %ums"; tmpfile-rename atomic swap; "failed to load replacement (0x%x)"
 
-</details>
+:::
 
 ## `chirp_sdk`
 
@@ -5302,7 +5302,7 @@ The X.509 validation internals: issuer/env/household/user match rules, issue-dat
 
 The SDK layer of the chirp feature: the internal interface other components call to start and stop the speaker-identification tone, so the room-detection commands don't each reimplement tone control.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 version chirp-sdk 4.2.3; libvorbis {Xiph.Org libVorbis I 20200704 (Reducing Environment),1.3.7}; API {new_chirp_sdk,del_chirp_sdk,chirp_sdk_free,chirp_sdk_random_payload,chirp_sdk_get_info,chirp_sdk_process_shorts_input/output,chirp_sdk_send,new_chirp,del_chirp,chirp_encode,chirp_decode,chirp_get_symbols,new/del_chirp_payload,chirp_payload_randomise,new_chirp_builtin_profile,new/del_chirp_profile,new/del_chirp_protocol,new_chirp_protocol_from_json_value,chirp_protocol_corrupt_random_symbols,new/del_chirp_acoustic,new/del_chirp_encoding,new_chirp_config,new_chirp_default_config,del_chirp_config,new_chirp_decoder_config_from_json_value,new_chirp_default_voter_configs,new/del_chirp_voter_config,new/del_gf,del_gf_poly,gf_calc_syndromes,gf_poly_concatenate,chirp_levenshtein,chirp_logger_init_with_callback/deinit}; types {chirp_sdk_t,chirp_t,chirp_symbol_t,chirp_payload_t,chirp_profile_t,chirp_protocol_t,chirp_acoustic_t,chirp_encoding_t,chirp_config_t,chirp_voter_config_t,chirp_decode_metrics_t,chirp_logger_t,sample_t,uint8_t,uint32_t,float}; info "Chirp SDK with \"%s\" profile v%u \[max %u bytes in %.2fs\], supporting %u channel(s), using %s modulation."; logger fmt "\[%s:%d\] \[%s\] %s" levels {Print,Debug}
 
@@ -5311,14 +5311,14 @@ version chirp-sdk 4.2.3; libvorbis {Xiph.Org libVorbis I 20200704 (Reducing Envi
 - **acoustic_params:** {base_frequency,channel_count,channel_interval,envelope_attack,envelope_release,preamble,header_note_duration,header_silence_duration,frequency_interval,body_note_duration,body_silence_duration,portamento,template}; encoding {alphabet_bits,crc_length,message_length_max,message_length_min,polyphony,rs_length_max,rs_length_min}; decoder {fft_size,hop_size,sample_rate_min,payload_metrics_enabled,buffer_metrics_enabled,voters,amplitude_threshold,frame_offset,preamble_threshold,reverb_cancellation_exponent,reverb_cancellation_magnitude,spectral_weighting}
 - **errors:** {"hasn't been initialised. Did you forget to set the profile?","internal error prevented the SDK from initialising","Some memory hasn't been freed","Receiving mode has been disabled","profile creation could not be completed","not running"/"already running"/"already stopped"/"already sending","sample rate is invalid, or is too low for this profile","NULL buffer/pointer/empty string","channel requested is not supported by this profile","Invalid frequency correction value","internal issue occurred when processing","profile was generated for a different version. Please upgrade","Logging has been enabled but the corresponding callback has not been set","callback not supported with the selected modulation scheme","not intended to be used with the actual modulation scheme","payload is empty/invalid/contains unknown symbols","Couldn't decode the payload","payload length longer/shorter than max/min","gain level specified is invalid","SDK has reported an unknown error","Audio I/O error","Unknown error code","Send/Receive mode hasn't been enabled","The device is muted. Cannot send data","Chirp message/parity payload has already been allocated","Requested length exceeds maximum/smaller than minimum payload length","Payload does not support symbol sizes beyond 64-bit","Preamble payload has too few symbols (TODO: #741)","Protocol for chirp creation is null","Failed to set meta data","Checksum has been corrupted: %#x","Seeking beyond the end of the array","Bandwidth cannot be measured for equal-tempered settings","Protocol acoustic/encoding is NULL","Preamble must be at least 1 byte long/some length","Preamble code is outside of symbol range","Base frequency is below 20","Channel count is not within acceptable range","Header note length invalid","Body note duration invalid","Attack/Release time invalid","Attack/release combination is invalid","Portamento is invalid","Preamble/Body silence duration invalid","Alphabet bits is not within acceptable range","Min/Max message length cannot be less than 1 byte","Max message length cannot be less than min","Polyphony is outside valid range","Total frame length cannot be more than 256 bytes","Strings have different lengths","Chirp: Runtime assertion failed: "}
 - **internals:** chirp-core 4.2.1_7265; GF/RS {new/del_gf,new/del_gf_poly,gf_calc_syndromes,gf_correct_errata,gf_forney_syndromes,gf_find_error_evaluator,gf_poly_{concatenate,mul,div,add,append,scale,zero_pad,strip_leadingzero},trim_gf_poly,new/del_chirp_rs,new/del_chirp_rs_result,copy_chirp_rs}; decoder {new/del_chirp_decoder,chirp_decoder_flush,new/del_chirp_cdma_decoder,new/del_chirp_peaks,new/del_chirp_scorer,new/del_chirp_voter,chirp_voter_set_state,new/del_chirp_weighting,new/del_chirp_template,new/del_chirp_block_buffer,new/del_chirp_fft,new/del_chirp_reverb,new/del_chirp_bitstring,new/del_chirp_biquad_filter,new/del_chirp_multitone,new/del_chirp_codebook,new/del_chirp_rms,new/del_chirp_decorator,chirp_maths_fft_init/deinit}; encoder {new/del_chirp_encoder,chirp_encoder_chirp,chirp_encoder_chirp_array_raw,chirp_encoder_test_signal_init/stop,new/del_chirp_wavetable,new/del_chirp_cdma_encoder}; SDK internals {_chirp_sdk_configure_core,_chirp_sdk_from_string,_chirp_sdk_as_string,_chirp_to_bytes,_new/_del_chirp_sdk_buffer_processed_metrics,chirp_sdk_buffer_metrics_t,chirp_sdk_payload_metrics_t,_chirp_on_received_cdma,_chirp_sdk_allocate/free_decoders_fsk,_chirp_on_sending_fsk,_chirp_on_received_fsk,_chirp_on_sent_fsk}; types {chirp_rs_t,chirp_rs_result_t,chirp_template_t,chirp_decoder_t,chirp_cdma_decoder_t,chirp_note_estimate_t,chirp_note_metric_t,chirp_cdma_match_t,chirp_peaks_t,chirp_peak_t,chirp_scorer_t,chirp_voter_t,chirp_weighting_t,chirp_encoder_t,chirp_wavetable_t,chirp_test_signal_t,chirp_cdma_encoder_t,chirp_block_buffer_t,chirp_fft_t,chirp_reverb_t,chirp_bitstring_t,chirp_biquad_filter_t,chirp_multitone_t,chirp_codebook_t,chirp_rms_t,chirp_decorator_t,chirp_u16_t}; errors {"Wrong len value","field_charac = 0","Value of symbol_bits will overflow a cast","Sum of message and parity lengths out of range","Length should not be negative","Erase count value negative","No frames selected to decode (is sustain period too short?)","chirp_encoder: cannot process an empty block","Invalid note index","FFT block_size must be greater than 1","Bitstring length exceeds maximum supported limit","Resolved \[ %d","Polyphony required is outside allowed range","combinatoric result out of range","event_index maximum value reached"}; alt JSON parser {comment support,"Invalid character value","Unexpected EOF in block comment","Comment not allowed here","Trailing garbage","Expected ,/:/digit before/after","Unknown value","Too long (caught overflow)"}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fcec70; chirp SDK
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `chsnk`
 
@@ -5326,12 +5326,12 @@ version chirp-sdk 4.2.3; libvorbis {Xiph.Org libVorbis I 20200704 (Reducing Envi
 
 The group-audio channel sink: the receiving end of a framed, time-synchronized audio stream from the group's source. It validates packets, tracks the source's clock offset, and drives the local audio timing so all members play the same sample at the same wall-clock instant. When you group rooms, every follower runs this to receive the leader's stream in sample-accurate step.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **crossfade:** sample-level xfade: "attempting to crossfade with underflowed stream"/"recovered crossfade stream underflow"; int16 crossfade; "xfade corked stream: replace buffered data via non-xfade overlap"; "xfade timestamp too far in past, nst %d.%06d"; "xfadeable timestamp"; "set xfade lfnf"; volume-norm ramp insert "%d @time %d.%06d"; "xfade for %zu samples, %f seconds"; gap tracking "xfade gap, samples %zd"
 - **metrics:** gauges {chsnkFillLevel="Amount of audio in stream buffer",largeSyncErrors="Playback (see sync) and downstream errors","Maximum sync mismatch with group coordinator","Amount of output committed to driver"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {"header magic mismatch","md block loc","md header len mismatch","si pos mismatch","si read failed",fsAvail}
 
-</details>
+:::
 
 ## `chsnk_detail`
 
@@ -5339,19 +5339,19 @@ The group-audio channel sink: the receiving end of a framed, time-synchronized a
 
 The internals of the channel-sink implementation: the detailed machinery of how a group member receives, buffers, and stays in sync with the leader's audio feed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 seamless handoff {remote: 'starting seamless transition to remote source','txs can't be parsed','handoff wait loop','timed out','sdbt receive packet failed','Old/New packet mismatch (no full frame/id:%u class:%u/%u offset:%u/%u/%u)','Delayed handoff success, offset:%f','Quick handoff success','Completed in %dms','incompatible protocol version'; local: 'itdbt receive packet failed','failed due to END_TX','no packets from old source?','Completed seamless transition to local src (id=%u)',skipped,'seamless source change %s (local)/failed (remote)'}; SNTP {'Starting SNTP server switch.','Completed SNTP server switch in %dms.','SNTP waiting for valid at %d.%06d','SNTP valid %d continue to play %d','noderx I/O error while waiting for SNTP'}; sync math {'local device time went backwards!','prevLT/prevNT diff %06dus overall %+f','Should play at %d.%06d playable %d.%06d offset %f','sample time offset range %.3f-%.3fms; DAC clock abs offset range','max consec large sync errs','small offset error %f','large sync error triggered resync offset %f','error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'}; LSE {skipAheadLocked,'Adjusted tvLocalPlay by %.0f usec','Resync after LSE','waiting for stream reset to recover','stream underflow, uf %u od %u','Play time %d.%06d too far in the future','setOutputToBeginAt(%d.%06d); diff %i ms','Initial sync -- notify samples'}; req frames {'request frame pbe %X','stop detected','control frame type %u','audio type changed','underflow detected','group coordinator uuid: %s, network I/O error 0x%x','logical track boundary at %u','unplayable frame: type %u','pbe %X; %f usec in buffer','hard stop; state %d','noderx pause request','track boundary','scheduled resync frame @ pkt %d'}; sources {local chsrc,local AI,local VLI,remote chsrc,stopped}; notify {'notify frame: stop detected','unflagging stream for drain; %zums buffered','Local time/remote time','lrp:%u, fppc: %u','notifyframe ret %d play time %d.%06d delta %dms'}; events {chsnk refreshing multicast join (NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent),RemoteIpChangedEvent,chsrc_state_events,CoordChangeAutoStart,newgc}; ASRC {'Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs','ASRC will be reset. Sample Rate changed','illegal sample frequency/channels for Hi-Res music','WARNING! This model shouldn't support Hi-Res Music: %s (%s)'}; volnorm {'inserting volume norm: %d @time %d.%06d','found normalization change','requested w/o applying previous'}; streams {as-srcin-chsnk,as-srcin,as-srcout-chsnk,as-srcout,chsnk%d-as,chsnk%d-proc-as,CHSNK,chsnk-pause,chsnk_framed}; decoder {<MusicDecoder><LastActiveDecoder>,m_bCompressed,'starting %s audio decoder at %d.%06d (dc:%d.%06d)','requested stop %d or shutting down %d'}; ducking {Ducking,Unducking,voice2,google,extaudio,'%s playback stream (%s)'}; underflow acct {'boundary, xfade %d','max below stream %u od %u xfs %zu xlvl %zu now ... corked %d','inserting volume norm','stream reset on write','channelization data full'}; service denylist {'Added listener for service %u','stream limit exceeded for service %u','too many failures, denylisted service %u','clearing all denylists and stream limits','resetting all denylist error counters',denylist}; DAC monitor {'Starting to monitor DAC tvLocalPlay:%d.%06d, tvFirstPlayTime:%d.%06d','unable to fire start playback event','Channel Sink in stopped state (dc)'}; chsnk_processor skip machinery: resyncStreamLocked('%d.%06d'), skipAheadLocked buffer accounting 'postSrc:%u=(local:%u+inFlight:%u+src:%u), input:%u, sat:%u dm:%u' with four skip scopes {'tiny skip in local streams only','skipping in CHSNK processor buffer','skipping in all buffers including input','couldn't skip %u usec, resetting','local stream skip failed?'}; drain FSM {'INPUT STREAM IDLE. OUTPUT ACTIVE %d','SKIPPING READ, %zu SAMPLES, DRAIN %d','INPUT STREAM DRAINED','SET OUTPUT TO DRAIN','RESET CHPROCESSING',clearInternalBuffer}; first-frame guard ''%s' is NOT empty when writing the first frame - amount of samples: %zu - inputPT %d.%06d'; notify 'Notify %s of %s underflow'/'reset'; 'Failed to write %zu samples to %s, rtn %zd'; playback-time monitor 'monitorPlaybackTime', source/sink bookkeeping 'm_musicSource = %d/%u' + 'm_sinkState = %d'
 
 - **name:** channel sink internals
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb4860; chsnk block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `chsrc_chsnk`
 
@@ -5359,7 +5359,7 @@ seamless handoff {remote: 'starting seamless transition to remote source','txs c
 
 The channel source-and-sink pair: Sonos's internal protocol for distributing audio between players. The leader is the source, followers are sinks, and this subsystem is the transport that keeps them sample-synchronized across the network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producing framed audio for the group. chsnk.cxx (0x10eb5400-0x10eb6148) = channel SINK: the receiving player decoder path.
 
@@ -5402,15 +5402,15 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
   - **summary:** RX bookkeeping fields decoded: pid=packet id, ob=oldest buffered, lr=last read, lcg=last good consecutive, lrx=last received. Traces: 'Replacing mismatch data at pid:%u ob:%u lr:%u lcg:%u lrx:%u','Mismatch data count=%u, good at pid:%u ob:%u lr:%u lcg:%u lrx:%u','Received oob packet pid:%u lcg:%u lrx:%u','RX buffer full; ob: %u; lr: %u; lcg: %u; lrx: %u; id: %u','RX discontig; ...','bFinalStartPacket, slrx:%u','resynchronization message pid:%u at:%u ob:%u lr:%u lcg:%u lrx:%u','receiveAudioFrame: readNextDataBlock timed out','wBytesOfDataLeftToRead=%u'.
   - **skip_ahead:** 'skipAheadAddEntry: immed at:%u pid:%u','shifted %u entries','\[%u\] at:%u pid:%u','released %u blocks','too many skip entries'.
   - **rx_histogram:** 'Histogram of received packet info' bucket labels: 'Number of times there was a DataBlock to put data into','Number of times there was no DataBlock available','Number of times an expired packet was received','Number of times a duplicate packet ID was received','Number of times a packet too far into the future was received','Number of times a NACK request was transmitted','Number of times a packet was ignored on startup','Oldest buffered packet ID number','Last read packet ID number','Last good consecutive packet ID number','Last received packet ID number' (key lastReceivedPkt); guards 'histogram callback not defined','histogram labels not defined','index is out of bounds','number of labels not equal to number of buckets','invalid file size'.
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - @ 0x10ea8620; chsrc.cxx literal block: ops, work-req, tx-fanout, segment retry, PRIV/oob metadata
 - @ 0x10eb5400; chsnk.cxx literal block: frame types, synchronizedPlay, seamless transition, denylist, frame pool
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `circuit_breaker`
 
@@ -5418,19 +5418,19 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 A circuit breaker: the reliability pattern that stops the player hammering a dead dependency. After enough consecutive failures to a service or endpoint, calls short-circuit for a cooldown period instead of stacking up timeouts, so the whole system stays responsive even when something it needs is down.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "%s CB state transition to \[CLOSED\]"/\[OPEN\]/\[SEMI_OPEN\]; musecommand; history.h
 
 - **name:** circuit breaker FSM
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f94550; CB FSM
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cloud`
 
@@ -5438,7 +5438,7 @@ A circuit breaker: the reliability pattern that stops the player hammering a dea
 
 The cloud-integration umbrella: API path construction, service hostnames, registration, and the persistent event channel, covering the parts of the device that are useless without internet. It carries everything from remote app commands to telemetry, and it's the channel that lets Sonos's servers reach your speaker even when you're away from home.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **get_api:** callCloudGetAPI errors {openStream failed,HTTP not OK (%d),HTTP not OK response\[%s\],unexpected timeout rSz/cL,JSON parse failure \[sz,off\]}; SecureRegistrationChangeEvent + cloud_registration/CloudRegistration tags
 - **headers:** outbound {X-Sonos-MS-Sig,X-Sonos-DeviceCert,X-Sonos-Context-TimeZone,X-Sonos-MAID,X-Sonos-Accept-Language,AUTHORIZATION,Bearer,X-Updated-Authorization,X-Goog-Updated-Authorization,Retry-After}; completeRefreshTxForAccount/waitForRefreshTxForAccount; "HTTP Header did not fit in char array"
@@ -5447,7 +5447,7 @@ The cloud-integration umbrella: API path construction, service hostnames, regist
 - **cache_file_format:** On-disk SSL session cache: file {magic number, format version, header {name, entry count}} then entries with per-field bounds-checked parsing {port, hostname len+data, access time, expire time, sdxf flags, sdxf id, sdxf hhid, sdxf sonosId, session length, session blob}: 'sdxf' tags identify the owning household/device (Sonos device-exchange format). Errors: 'bad magic number','incompatible format version','too many entries','invalid {port,hostname length,hostname,access time,expire time,sdxf flags,sdxf id,sdxf hhid,sdxf sonosId,session length,session} field'; ops 'Parsed SSL cache entry for %s:%u','loaded %zu entries','Wrote SSL cache entry for %s:%u', write guarded 'not initialized'; resumption 'Handshake to %s using %s successful'. Client identity: device-cert URNs urn:sonos:{device,udn,hhid,user}, 'loaded client credentials \[%d\]'/'using client cert \[%d\]'/'initiating SSL connection to %s with local port %u'/'Stored local address'.
 - **cache_ops_detail:** Two on-disk caches: sys/run/standard_ssl_client_cache.dat + sys/run/hh_ssl_client_cache.dat (household-shared). Ops vocabulary: '%s:%u cache load'/'cache hit (%s)'/'cache hit (%s): ticket match'/'%s%u cache store hit (%s): id match'/'not cached'/'cached session expired (%s)'/'cache evicted'/'cache stored'/'cache deleted (%s)'/'%s does not cache'/'get session failed'/'set session failed'/'cache insert failed'/'entry deserialize failed: -0x%04x'. HH refresh job gated by enableSslClientCacheRefresh + remote-idle check ('Skipping HH SSL cache refresh for %s:%u - remote device is not idle','Refreshed %zu HH SSL client cache entr%s','SSL session for %s:%u has been refreshed'). Status: PlayerSSLCache page with <SSLClientCache><Name/><CurrentEntries/><MaxEntries/></SSLClientCache> + per-entry <HostName/><Port/><LastAccessTime/><ExpireTime/><TimeSinceLastAccess/><TimeToExpire/><TimeSinceLastRefresh/>; stats 'standard: %zu hits, %zu misses; hh: %zu hits, %zu misses; refresh enabled: %s'; settings key RSSLClientCache; save guards 'cache empty, not saving','all entries expired, not saving','serialization error: expected %u entries, but stored %zu'. SOAP diagnostics: soapERAssert/soapEWAssert macros, ' - param %s = %s' param dump, '%s faultcode: %s, faultstring: %s', error element URNs urn:schemas-upnp-org:control-1-0\|{errorCode,UPnPError}, soap envelope URNs \|Body\|Envelope\|Fault, 'error parsing XML returned from SOAP request (utf8 issue?)', 'parentIsSearch'/'developerKey' keys.
 
-</details>
+:::
 
 ## `cloud_queue`
 
@@ -5455,7 +5455,7 @@ The cloud-integration umbrella: API path construction, service hostnames, regist
 
 Sonos's cloud-side queue: a track list that lives in your Sonos account rather than inside one speaker's memory. Voice assistants and direct-control sessions schedule tracks here, which is how a queue can persist beyond a player and be shared or restored through your account. The windowed protocol the player uses to pull tracks from it has been fully mapped, and the remaining undecoded pieces are noted in the technical section.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId}; truncation {item window,context,version}; outbound request template also stamps X-Sonos-SWGen: %u (software-gen) and X-Sonos-Playback-Id: %.*s alongside X-Sonos-GroupAttribute:/X-Sonos-GroupCapability: on GET+POST forms (CONNECTION: close, ACCEPT-ENCODING: gzip, USER-AGENT, POST adds CONTENT-TYPE: application/json + CONTENT-LENGTH: %zu); response guards 'Truncated context resource: %s','Truncated version resource: %s','Truncated item rating resource: %s','Cloud queue response handler error for %s%s','Connected to cloud queue but failed to get a complete response from %s%s'
 
@@ -5475,14 +5475,14 @@ resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isE
   - **headers:** `X-Updated-Authorization:`, `X-Goog-Updated-Authorization:`, `Retry-After:`, `X-Sonos-MS-Sig:`, `Bearer`, `AUTHORIZATION:`, `X-Sonos-DeviceCert:`, `X-Sonos-Context-TimeZone:`, `X-Sonos-MAID:`, `X-Sonos-Accept-Language:`, `X-Sonos-GroupAttribute:`, `X-Sonos-GroupCapability:`
   - **error_taxonomy:** `Client error`, `Server error`, `Unexpected response`, `Server aborted connection`, `ERROR_LSE`
   - **provenance:** literal cluster .rodata 0x10ec1e64-0x10ec2288: the CQ HTTP request builder + item/report field names
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ec1f8c; cq window block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `cloud_registration`
 
@@ -5490,11 +5490,11 @@ resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isE
 
 The cloud registration state machine: it binds the player to a household online, exposes progress, and retries failures with backoff while leaving local playback working. Without it the speaker is local-only, and it's the enrollment step that ties your hardware to your Sonos account.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **fsm:** cloudregistration.cxx: required fields {sonosId,householdLocationId,dhcpMac,ipAddr,museHHName}: "Missing required information: DHCP Server MAC (%s), Location ID (%s)" defers registration; triggers "Updating cloud registration due to '%s'"/MuseSessionId change/explicit request; "Caching muse cloud registration event %s"; "Network Hash \[%s\], Muse Household Id \[%s\]"; cloudRegPollWifiStation monitor job; R_HouseholdLocationID key
 
-</details>
+:::
 
 ## `cloud_services`
 
@@ -5502,19 +5502,19 @@ The cloud registration state machine: it binds the player to a household online,
 
 The registry of which cloud hostnames serve what: authenticated calls, event endpoints, crash upload, feature config, music history, registration, and recommendations each have their own backend. Knowing this map tells you which outage explains which symptom, because lost household settings and lost voice services are different backends.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 host patterns {sslauth.sonos.com,https://%s-%s.lower-sslauth.sonos.com%s,https://%s.%s%s,lechmere.%s.ws.sonos.com,/firmware/swgen/%u/latest/}; service names {clientdata,crash-upload,feature-config,music-history,lechmere-v1,music-accounts,myaccount,oauth,player-device-files-ab,product-settings,recommendation,registration,service-catalog,sonos-nonprod,apigee.net,smart-play,system-api,system-api-diagnostics,transfer,translate,universal-search,msmetrics}; CSRFToken var; universalCatalogService metadata client (ucsTelemetry): GET '/api/v1/households/%s/services/%u/accounts/%u/catalog/%ss/%s' with X-Sonos-User-Role + User-Agent headers; response JSON fields {durationMs,releaseDate,artists,images}; guards 'Failed to extract serial from Muse account ID','Failed to get muse::TargetIdProvider','\[%s\] is not a valid UC type','Object ID \[%s\], service ID \[%s\], serial number \[%s\] cannot be empty','Failed to parse metadata from JSON string','Metadata has fault or error code','Request type \[%s\] != response type \[%s\]'
 
 - **name:** cloud service host registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee7118; cloud service registry
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `content_directory`
 
@@ -5522,19 +5522,19 @@ host patterns {sslauth.sonos.com,https://%s-%s.lower-sslauth.sonos.com%s,https:/
 
 The music-library engine: it builds and holds the index of your shared music folders so 'browse by artist, album, genre' works without re-walking the shares every time. The library commands are its network face.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:service:ContentDirectory:1}; locales {zh-CN,ja-JP}; event vars {SystemUpdateID,ContainerUpdateIDs,ShareIndexInProgress,ShareIndexLastError,FavoritesUpdateID,RadioFavoritesUpdateID,RadioLocationUpdateID,SavedQueuesUpdateID,ShareListUpdateID,cdMediaServer}; actions {Browse,CreateObject,DestroyObject,FindPrefix,GetAlbumArtistDisplayOption,GetAllPrefixLocations,GetBrowseable,GetLastIndexChange,GetSearchCapabilities,GetShareIndexInProgress,UpdateObject,SCHED}; args {BrowseDirectChildren,BrowseMetadata,BrowseFlag,RequestedCount,SortCriteria,NumberReturned,TotalMatches,ContainerID,Elements,CurrentTagValue,NewTagValue,SortOrder,TotalPrefixes,PrefixAndIndexCSV,Browseable,IsBrowseable,IsIndexing,SortCaps,SearchCaps}; logs {"UpdateObject returned %d; ObjectID: %s; Elements: %s","notifyUpdateID('%s', %u)","Bad Browse flag %s","Bad Object ID %s","Browse %s ObjectID: %s;","MetaData failed %d"}; DIDL URNs {upnp/|class,upnp/|albumArtURI,rinconnetworks/|http,rinconnetworks/|albumArtist,rinconnetworks/|description}; DIDL/MSMR attrs: WMP registrar IsValidated/IsAuthorized, hchildCount, |policies element, @SearchCriteria, @MemberID, @GetTreble
 
 - **name:** ContentDirectory implementation (cd_impl)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb3aac; cd_impl block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `customsd`
 
@@ -5542,19 +5542,19 @@ dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:
 
 A custom service-discovery block: internal lookup machinery used where the standard discovery protocols don't fit, named by the web endpoint that exposes it. It's part of the player's 'how do I reach this service' toolkit alongside the normal discovery paths.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name (blank erases),secureUri,pollInterval}; authType radio {UserId=Session ID,Anonymous,DeviceLink=Device Link,AppLink=Application Link}; optional {stringsVersion+stringsUri,presentationMapVersion+presentationMapUri,manifestVersion+manifestUri}; containerType {MService=Music Service,SoundLab=Sonos Sound Lab}; caps checkboxes {search,trFavorites,alFavorites,arFavorites(commented out),ucPlaylists,logging,playbackLogging,accountLogging,extendedMD(+radioExtendedMD,playlistExtendedMD gated),disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}; /customsd form fields: 'SID (240-253 or 255):<br/><input type="text" size="4" name="sid" value="255" />','Service Name' name=name size=32,'Secure Endpoint URL:' name=secureUri size=64,'pollInterval' size=12,'Authentication SOAP header policy:' input; csrfToken hidden input
 
 - **name:** /customsd custom service descriptor form
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eba2d4; customsd form
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `datatap`
 
@@ -5562,11 +5562,11 @@ POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name
 
 Internal data taps for diagnostics: structured capture hooks into subsystems that don't publish state otherwise. It lets diagnostics observe data as it flows rather than reconstructing it afterward, which is the difference between watching a stream and guessing at it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **detail:** "Datatap snapshot failed after %zu" (snapshot bound); ZoneDevDiscThread
 
-</details>
+:::
 
 ## `device_props`
 
@@ -5574,13 +5574,13 @@ Internal data taps for diagnostics: structured capture hooks into subsystems tha
 
 The device-properties internals: device-level attributes covering serial number, hardware address, display settings, button and light behavior, and infrared handling, plus the account-management commands. It's the 'who am I and how do I behave' layer of the speaker.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **idle_shutdown:** idle events LineInStateChangedEvent/ReplicatedSettingsChangedEvent; vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName}; reasons {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown}; dpimpl/dpUpdateIdleState "idle state is %sidle, changing to %sidle"
 - **enetport_schemas:** <EnetPorts><Port port="%d"><Link>%d</Link><Speed>%d%s</Speed></Port>; EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u
 - **fields2:** {oldAddr,newAddr,playingAudio,zoneRole,lineInBusy,ipAddrChange,network,PrimarySupportsFlexSurrounds}; soapaction + text/xml; charset="utf-8"
 
-</details>
+:::
 
 ## `devmode`
 
@@ -5588,11 +5588,11 @@ The device-properties internals: device-level attributes covering serial number,
 
 Developer mode: a gated diagnostic mode with its own web page, statement files, and an unlock challenge. These hooks are how Sonos's own engineers exercise the device during development, present in production firmware but switched off.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **internals:** statement files {debug/devmode.bin,/devmode.bin,/tmp/devmode.tmp.bin} format "0x%s %d.%d-%d.%d" (id+version range); x-rincon-enc3 encryption; R_ALLOW_SSH_PUBKEY_INSTALL "may not be persisted" gate + "Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL" + "Loaded persistent statement"; notify {processes,listeners} on change
 
-</details>
+:::
 
 ## `diag_build_artifact`
 
@@ -5600,21 +5600,21 @@ Developer mode: a gated diagnostic mode with its own web page, statement files, 
 
 There's a separate factory and retail test firmware, the 'diag' build, that isn't the normal product. It exists to run production-line audio tests, to offer a retail-display mode, and to scrub credentials out of settings files before a diagnostic upload leaves the device. You never see it in normal use, but when a support bundle reaches Sonos this is how they know exactly which build produced it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 separate 4.4MB diag image (fenway-public, S1-era lineage, GNU/Linux 2.0.0 tag). Exposes production endpoints {/audiotest{line,spkr4,spkr4_14v,spkr4-NA,spkr4snr,spkr8,spkr8_14v,spkr8-NA,spkr8snr,subw,subw-NA,subwsnr},/synctest,/testpoint,/wifictrl}; drives /jffs/audio_analyze with modes {line,spkr4,spkr8,subw}x{nomfgdata,no-aweight,nolimitsfile,snr} + "TEST HARNESS: Perform test... frames %u; every %u; repeat %u; skipBy %u"; serial capture files {audioSerial,cpuSerial,sonosSerial}.txt; /jffs/system/{dsp_disable,play3loudness} toggles; lockup dumps /jffs/lockup.{anacapa.trace,dmesg}; libwifi.so.1 (pre-netstartd WiFi); Pandora xmlrpc endpoints tuner.pandora.com + tuner-beta.savagebeast.com; test.checkLicensing op.
 
 - **name:** anacapad-diag-jffs: the factory/retail diagnostic firmware build
 - **rdm_form:** /rdm POST form (full HTML in binary): Retail Display Mode (enable checkbox; "Disable Wifi radio when RDM is enabled"; inactivity timeout minutes (0=disable); tosl checkbox (revert to TOSLink after timeout on PLAYBAR); per-model idle volumes vol:{ZP100,ZP80,ZP90=CONNECT,ZP120=CONNECT:AMP,S5=PLAY:5,S3=PLAY:3,S1=PLAY:1,S9=PLAYBAR}); the historical model-name map is preserved in the form field names.
 - **diag_scrub:** credential-redaction sed recipes embedded verbatim: for /jffs/settings/syssettings.xml + securesettings.xml: drop X_* and R_ThirdPartyCredentials settings lines entirely; in SvcAccounts rows, match records with flag pattern \[0-9\]*,\[^,\]*,1\[^,\]*,\[^,\]* and rewrite field-3 to XXXX (password-position masking), preserving backslash-escapes via _DOUBLEBACKSLASH_/_BACKSLASHCOMMA_ staging tokens. This is the privacy filter applied to settings before diagnostic upload.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ sonos-research/fenway-public/anacapad-diag-jffs; diag image strings
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dolby_decoder`
 
@@ -5622,19 +5622,19 @@ separate 4.4MB diag image (fenway-public, S1-era lineage, GNU/Linux 2.0.0 tag). 
 
 The Dolby decoder front-end plus the Dolby Audio Processing configuration model: the machinery that decodes the surround format TVs and discs send, with its tuning stored in a config file on the device. It's what lets the Playbar turn a TV bitstream into sound.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"override dolby config with jffs",/opt/dsp/dolby_config.json,"loaded player dolby json config","unable to load player dolby json config, loading defaults","Config %s not found, loading default"}; decoder {dlbdec,"dolby decoder unable to decode","<DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount>"}; parse errors {mode state,bass extraction mode,dap profile mode}; staticparams {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; dynamicparams {oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal}; modes {/default,movie,disable,night,sonosdolbyconfig,"drc config is invalid"}; DRC cutoffs 100HZ-200HZ in 10Hz steps; LRR EQ {lrrse,lrrs1,lrrs2}; PCM decoder {decoder_pcm,"Invalid frame size detected %zu","Unsupported input rate detected %zu","Invalid number of input samples detected %zu","<DEC_SampleRate>%zu</DEC_SampleRate>"}
 
 - **name:** Dolby decoder + DAP config
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe686c; dolby
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `download_status`
 
@@ -5642,19 +5642,19 @@ config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"ov
 
 The file-download result codes: the shared vocabulary covering not-called, write error, truncation, size error, connection error, succeeded, unchanged, and in-progress. It gives features a uniform answer to 'how is that download going' rather than each fetch tracking its own progress.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {ERROR_NOT_CALLED,WRITE_ERROR,TRUNCATION_ERROR,SIZE_ERROR,FILE_ERROR,CONNECTION_ERROR,DOWNLOAD_SUCCEEDED,FILE_UNCHANGED,DOWNLOAD_IN_PROGRESS}
 
 - **name:** file download result enum
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee9a88; download enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `dsp_config`
 
@@ -5662,19 +5662,19 @@ The file-download result codes: the shared vocabulary covering not-called, write
 
 The signal-processing configuration blob: the device's audio config files decoded as structured records, holding per-model bonded gains and volume breakpoint tables. Missing entries are per-model absences rather than crashes, so a model without a breakpoint table just lacks the curve.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully decoded DSPConfig","Decoding error %s","DSPConfig file is empty","Unable to open DSP config file %s"}; per-model {"Bonded gain for '%s' not found in DSPConfig","Volume breakpoints for '%s' not found"}; breakpoints {"no default volume breakpoints specified","no bonded volume breakpoints specified, using default instead","volume (%i) and gain (%i) lengths differ in default volume breakpoints","... in bonded volume breakpoints","default (%i) and bonded (%i) volume breakpoint lengths differ","... breakpoints differ","Too many volume breakpoints ... `.nanopb_options` ... MAX_VOLUME_BREAKPOINT_LENGTH","DSPConfigParams conversion successful"}; gravity param; trueplay_version x.x.x.x fmt + range {"base version isnt valid","Start or end of range isnt a valid version","Unable to parse version from end/start string"}; "setNumChannels(%d) greater than max (%d)"; fileio {"DSP file path is longer than buffer","unable to open file","fread","file %s does not exist","Could not get size of file"}
 
 - **name:** DSPConfig nanopb + volume breakpoints
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f249f4; dspconfig block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `error_codes`
 
@@ -5682,11 +5682,11 @@ files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully dec
 
 The error-code machinery: the tables and translation logic that turn internal failures into the numeric fault codes commands return. It's the numeric vocabulary for failures inside the program, mapped to the error codes sent over the wire.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **rze:** RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}
 
-</details>
+:::
 
 ## `esdk_api`
 
@@ -5694,19 +5694,19 @@ The error-code machinery: the tables and translation logic that turn internal fa
 
 The embedded component's API surface: the public interface of the Spotify embedded SDK inside the firmware, meaning the calls the player side makes into the Spotify component.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 registration {SpRegisterConnectionCallbacks,SpRegisterDeviceAliasCallbacks,SpRegisterPlaybackCallbacks,SpRegisterStreamCallbacks,SpRegisterDebugCallbacks,SpFree}; playback {SpPlaybackPlay,SpPlaybackPause,SpPlaybackSkipToNext,SpPlaybackSkipToPrev,SpPlaybackSeek,SpPlaybackSeekRelative,SpPlaybackUpdateVolume,SpPlaybackEnableShuffle,SpPlaybackEnableRepeat,SpPlaybackCycleRepeatMode,SpPlaybackSetAvailableToPlay,SpPlaybackSetDeviceInactive,SpPlaybackSetDeviceControllable,SpPlaybackIncreaseUnderrunCount,SpPlaybackSetBitrate,SpPlaybackSetRedeliveryMode,SpPlaybackIsRedeliveryModeActivated}; connection {SpConnectionLoginBlob,SpConnectionLoginOauthToken,SpConnectionSetConnectivity,SpConnectionLogout,SpGetCanonicalUsername,SpGetLoginUsername}; device {SpSetDisplayName,SpSetVolumeSteps,SpSetDeviceIsGroup,SpEnableConnect,SpDisableConnect,SpSetDeviceAliases} + {SpSetAdUserAgent,SpPumpEvents,SpZeroConfAnnouncePause/Resume,SpConnectionLoginZeroConf,SpPlayUriWithOptions,SpPlayUri,SpPlayContextUri,SpQueueUri,SpPlaybackBecomeActiveDevice,SpRegisterDnsHALCallbacks,SpGetDefaultDnsHALCallbacks,SpRegisterSocketHALCallbacks,SpGetDefaultSocketHALCallbacks,SpRegisterTLSCallbacks,SpPlaybackSetBandwidthLimit,SpNotifyTrackLength,SpNotifyTrackError,SpNotifyStreamPlaybackStarted/Continued/FinishedNaturally,SpNotifySeekComplete,SpSetDownloadPosition,SpLogRegisterTraceObject,SpRestrictDrmMediaFormats,SpRestoreDrmMediaFormats}
 
 - **name:** Spotify eSDK API table
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd3920; Sp API
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `esdk_callbacks`
 
@@ -5714,19 +5714,19 @@ registration {SpRegisterConnectionCallbacks,SpRegisterDeviceAliasCallbacks,SpReg
 
 The embedded component's callback wiring: the hooks where the Spotify library calls back into the player for events, audio requests, and state changes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 playback cb {on_notify,on_seek,on_apply_volume} "Successfully registered playback callbacks: %s, %s, %s"+removed; stream cb {on_data,on_start,on_end,on_flush,on_pos} "Successfully registered delivery callbacks: %s, %s, %s, %s, %s, %s"+removed; signatures {cb_stream_on_start(id=%u, size=%u),cb_stream_on_end(id=%u),cb_stream_get_position(id=%u) = %u,cb_stream_on_seek_position(id=%u, pos=%u),cb_stream_on_flush() = (id=%u, pos=%u)} + connection {on_message,on_new_credentials} registered×3; aliases {on_selected_device_alias_changed,on_device_aliases_update_done}×2; dns {dns_lookup_callback}; socket {set_opt,rd_from,wr_to,readable,writable,local_addresses,...}×17; TLS/debug/error registered; base64 alphabet; registration audit strings: connection callbacks x3, device alias callbacks x2, dns_lookup_callback, socket callbacks x17, TLS callbacks, debug callback, error callback; source path esdk/src/ap_send.c (TeamCity workdir e48167fe44483028); play-end telemetry 'no track ID: played:%zu, ms:%zu' / 'no file ID for internal track: played:%zu, ms:%zu'
 
 - **name:** eSDK callback signatures
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe21f0; callbacks
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `esdk_crypto`
 
@@ -5734,19 +5734,19 @@ playback cb {on_notify,on_seek,on_apply_volume} "Successfully registered playbac
 
 The embedded component's cryptography: the cryptographic routines inside the Spotify library covering key handling and the secure channel Connect uses.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 bignum asserts {mod\[mod\[0\]\] != 0,mod\[mod\[0\]\] & BIGNUM_TOP_BIT,mlen <= 2048 / BIGNUM_INT_BITS} = RSA-2048; login asserts {gen/genctx/s/send_buf/send_buf_size != NULL,send_buf_size >= sizeof(s->ctx.hello.data),work_buf_size >= MODPOW_WORK_RAM_SIZE,resp/respsz/buf/bufsz/failed != NULL,bufsz >= SHA1_DIGEST_SIZE + SIG_SIZE + SIG_SIZE + MODPOW_WORK_RAM_SIZE} = SHA1+dual-signature+modpow; "login failed (error code %d)"; "no memory to check signature"; "Platform identifier: '%s'"; "logging in with client ID %s"; "!"hal_get_random_bytes() failed""; circular buffer {cb->used <= cb->size,n <= cb->used,cb->used + data_size <= cb->size,dest != source,circular_buffer_available_space}; module src/login4.c (login4 SRP implementation)
 
 - **name:** eSDK login crypto
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe2824; login crypto
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `esdk_internals`
 
@@ -5754,7 +5754,7 @@ bignum asserts {mod\[mod\[0\]\] != 0,mod\[mod\[0\]\] & BIGNUM_TOP_BIT,mlen <= 20
 
 The embedded Spotify component's internals: the recovered map of its module structure, state, and how Sonos integrated it. Sonos bundles Spotify's official component rather than reimplementing Connect, and these are its internal parts.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 build "HEAD-v3.205.205-gd0f06121-dirty" for Sonos_PPC_e500v2s; notify enum {kSpConnectionNotifyReconnect,LoggedIn,Disconnect,TemporaryError("underlying Spotify error = %d, underlying OS error = %d, reconnect attempt in %u seconds"),kSpPlaybackNotifyBecameInactive/BecameActive,Pause,Play,AudioDeliveryDone,Next,Prev,MetadataChanged,ContextChanged,TrackChanged,Shuffle,Repeat}; errors {SpCallbackError "underlying Spotify/OS error","Track playback logging failed. Logout forced.","Connection state changed: %d -> %d","STREAM_CAPPED: underlying error","SP_EVENT_NOTIFY_TRACK_FAILED: underlying error",kSpErrorContextFailed,kSpErrorDuringLogout,"Still logged in. Logging out first.","RelativeSeek %i: current_position:%u -> new_position:%u","No connection available for login","Parsing ZeroConf blob failed with code %d","password is too long","Spotify server did not send image URL","Event overflow:",tsv_lost}; init validation {"api_version provided does not match expected (%d != %d)","Invalid device_type: %d","No memory block (%p) or invalid size (%u)","No unique_id set","display_name or device_aliases not set","Not allowed to fill both display_name and device_aliases","Either display_name or device_aliases must be set and not both","host_name not set with zeroconf_serve:%d","brand_name, model_name, client_id, os_version and/or scopes not set correctly (%d%d%d%d%d)","invalid max_bitrate:%d"}; config rules {scope/os_version/client_id must not be NULL,printable chars,length limits}; credential blob {"Can't invoke SpCallbackConnectionNewCredentials because no blob has been received","received blob has an invalid type","encryption failed","base64-encoding failed","Unable to create reusable login token"}; aliases {"Received alias index when aliases are not in use","Selected alias index out of bounds","No alias at selected index"}; image spotify:image:; trace levels {TPAPI,PLAY,DELIVERY,API_TRACE,VERBOSE,ANL}; trace fmts {"%s(%p, API v%d)","%s \[returned value: %d/%s\]"}; ~60 binary-resident sp_<md5-hex> identifiers (hashed config/credential slots); mod_media_out.c track pipeline: per-track records {pbid,uri,start_pos,paused,file.id} for current/next; pipeline-diff line 'p_diff=%d u_diff=%d n_valid=%d adv=%d skip_n=%d skip_p=%d stop_str=%d stop_deliv=%d stop_seek=%d keep_ms=%d fl=%d s..l=%d cl_u=%d del_dl=%d reenum=%d'; events SP_EVENT_FILE_SIZE/SP_EVENT_SET_DOWNLOAD_POSITION/SP_EVENT_MEDIA_SEEK with stale-ID guards ('Received stale event ... with track pipeline ID %d!','Stale download_id=%u for %d'); 'Clearing track pipeline due to pull playback','Restarting playback position sync timer','Position report (track: %u reason: %s) current: %u last: %u delta: %i','Updated playback pos: %u','Asking integration to seek: %u','Seeking playing track which is not yet delivering, setting pending start position: %u','No playing track. Can not seek.','Track %d duration %u ms','Integration reported invalid track playing/to playback started %u expected %u','Integration notified track %d finished at position %u ms','Integration asked to download with offset for an invalid track','No track to call cb_stream_on_start','stop_audio_out setting pos to %u','current_play_position_ms=%u'; Connect layer: hwptp verbs {replace_state,set_volume,log_out,observe_state,stop_and_observe,product_state_change}, PUT-state engine with jitter + correcting-PUT policy + state-conflict buffer, track_pipeline DELIVERY/DOWNLOAD dual-axis FSM (UPCOMING->PLAYING), TSV/playback_id_v3 telemetry, per-channel volume pending, DRM-format bitmask, CDN-fallback; hwptp observe commands {stop_and_observe,STOP_OBSERVE,'stop observe'} + 'Capabilities updated'; track events INTERNAL_TRACK_STARTED suppresses SP_EVENT_TRACK_STARTED when current_state==NULL; 'Error encoding PlayCommand request!','TL Current position: %u value: %d'; apio.c request-retry layer
 
@@ -5763,15 +5763,15 @@ build "HEAD-v3.205.205-gd0f06121-dirty" for Sonos_PPC_e500v2s; notify enum {kSpC
 - **session:** desc fmt "%.*s;%.*s;%.*s;%.*s;tpapi"; device_id assert "result == device_id + SHA1_HASH_LENGTH * 2 && *result == '\0'"; {sonos_ppc,"socket init failed","Failed to initialize module subsystem! Error %d","Failed to initialize tls with %d","Failed to get entropy for PRNG","No data to play, will pause playback if network is not reconnected within %dms","Notifying kSpConnectionNotifyLoggedOut","reinit_session failed with error %d",kSpErrorFailed,validate_no_api_reentry_status,"3.205.205-gd0f06121",accesstoken,GROUP,"Decrypting ZeroConf blob failed","Login with username '%s', blob '%s', tokentype '%s'"}; track notify {"Notify: track %d length: %u ms","track %d error at position: %u ms is '%s'","track %u playback started at timestamp %llu ms","Integration reported invalid track to start/finish","Invalid track %u, expected %u","DLBUFFER CLEAR"}
 - **connect_layer:** mod_track_playback.c Connect state machine: inbound hwptp command verbs {replace_state,set_volume,log_out,observe_state/OBSERVE,stop_and_observe/STOP_OBSERVE,product_state_change} + 'Got unknown command from HWPTP: %s'; observe gated 'Device is the Active device, Accepting Observe Command', 'eSDK is inactive. Ignoring state response.', stale-ref guard 'Got previous state reference that doesn't match our current local state reference, ignoring state response'; protobuf request/response pairs {StateRequest/StateResponse+tp_StateResponse,ReplaceStateCommand,AddToQueueCommand,DevicesRequest/DevicesResponse,StateConflictRequest/StateConflictResponse,SetVolumeCommand,PlayCommand,ConnectShuffleRequest,ConnectRepeatRequest,ConnectPullPlaybackRequest,TSV} each with encode ('Error encoding %s!') and decode-failure ('Failed to decode %s: %s', '!"%s failed"') ladders; per-request send errors 'Failed to send %s request (error %d)'; PUT-state engine {'put state request','Schedule additional PUT state. state_id=%s, timestamp=%llu, reason=%d','state_refresh_timer set to %u (received %u, jitter %u)', assert jitter_ms < timeout_ms, 'State update, position: %lu previous position: %lu, empty: %d counter: %lu source: %d'}; correcting-PUT policy {'Ignore correcting PUT state. Missing current_state/Already sent or not required/state_id mismatch %s vs %s','Playback started progressing after %llums. Send/Don't send correcting PUT state for state_id %s'}; state-conflict buffer {'Sending state conflict: machine: %s state: %s paused: %d available: %d position: %u','Conflict cache full, trying to send again','Conflict response pending and %d/%d in buffer. Waiting','State conflict response changed the state_id. Restarting track.'}; device registration {'RE-REGISTERING','Failed to send register request (registered:%d)','Will try again to register in HWPTP in %lu ms','stop_device_registration_timer'}; backend-driven update cadence {'time_to_first_update_requested: %u ms, next_push_ms_played set to: %u ms, periodic_update_time_ms requested: %u ms','Sending a per-track periodic update to track-playback. current-position %u periodic_update_counter %u','Setting next_push_ms_played to UINT_MAX - no periodic updates'}
 - **pipeline_detail:** track_pipeline.c: states {NOT_STARTED,IN_PROGRESS,DONE} on two axes DELIVERY_/DOWNLOAD_ plus slot states ->UPCOMING->PLAYING; invariants '!(delivery_state == DONE && download_state != DONE)', '!(delivery_state != NOT_STARTED && download_state == NOT_STARTED)', 'memory_size >= get_required_memory_bytes()'; lifecycle {track_pipeline_initialized,'Clearing track data pipeline','Shifting track pipeline','id: %u: %s ->','id: %u: UPCOMING -> PLAYING',start_track_delivery,end_track_delivery,restart_playing_track_download,end_track_download}; guards {'No PLAYING track when delivery started','No track with DELIVERY:NOT_STARTED/IN_PROGRESS','No track with DOWNLOAD:IN_PROGRESS'}; per-track dump fmt '%s: id: %u, DELIVERY:%s, DOWNLOAD:%s, length_ms: %u file.size: %d file.has_key: %d playback_id: %s uri: %s drm_format: %d media_format: %d error: %d'; latency accounting 'Latency: local=%llu, remote=%llu, playing=%llu, delivered=%llu, played=%llu, resume=%llu' + 'latencies are set to 0 on track transitions'; track-shifting {'shifting to paused state state_id=%s','Shifting state, operation: %d, initial_playback_position: %lu','no advance state returning!','stopping due to too many track errors (%d)!','Next track has no file. Advance!','State has track_idx -1','Reference to non-existing track/state: %d >= %d', index>=0 && index<MAX_NUM_TRACKS / index<MAX_NUM_STATES}; play {'Playing item %d: %s from pos %u','PLAY_FILE %d: %s (seek to %d) bitrate: %u','Tried to play an empty item!','Current state_id changed from '%s' to '%s'. Restarting track.','Play new state machine position: %lu'}; format fallback {TW_FORMAT_CHANGE {fall_back_to_ingested_track,SP_EVENT_REQUEST_BITRATE},'increase bitrate','External URL=%s, num_files=%d\[, state_id=%s\]','No next file in supported format','No ingested file in supported format for upcoming'}; volume path {per-channel pending 'Pending volume %u, %u/%d ongoing','Volume cb error %d channel_id %d, ongoing %u','Sent volume request, volume %u, ongoing %u, ch %d','rate limited'}; device_alias.c list fmt '%d:%s,' + 'Skipping empty alias at index %d' + 'Connectivity: %d Connected: %d Error: %d'; TSV {'TSV: play_track: %s ** ms_played: %llu ** playback_id_v3: %s ** next_playback_id: %s','Storage full, TSV lost!','tsv response error %d'}; version string 'esdk:3.205.205-gd0f06121'; DRM capabilities 'DRM %d media formats: %llu'/'Number of DRM formats: %d capabilities bitmask: %llu'; CDN fallback 'No CDN information provided, falling back to AP immediately' + 'Using %zu kB for %s buffer'; X-Spotify-Connect-Disabled header literal; '\]%c\|Partner %.*s %s' partner tag fmt
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - @ 0x10fd4c24; eSDK internals
 - @ 0x10fdb154; mod_track_playback.c + track_pipeline.c + device_alias.c literal pool
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `evo_decoder`
 
@@ -5779,19 +5779,19 @@ build "HEAD-v3.205.205-gd0f06121-dirty" for Sonos_PPC_e500v2s; notify enum {kSpC
 
 The Dolby Evolution decoder: the path used for newer Dolby bitstreams, including the Atmos-era formats. It reserves decoder memory up front and processes frames with its own status reporting, sitting alongside the classic Dolby path for newer content.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"Failed to query static params! %d","unable to close evo decoder error: %d","Failed to extract MD Evolution! ERROR %d","Unable to get evolution metadata","Failed to query Evolution decoder memory! Evolution err: %d","Failed initial query","Failed to allocate enough memory","Failed to allocate %llu static/dynamic byte for Evolution decoder!","Failed To Init Evo Decoder"}; UDC {udcMutex,"ERROR: %d getting frame metadata","Malformed input signal detected %d","ddpi_udc_timeslicecomplete returned %d","ERROR: %d Processing timeslice","ERROR: %d getting timeslice metadata"}
 
 - **name:** Dolby Evolution decoder (DDPI UDC)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe6f40; evo decoder
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `expat`
 
@@ -5799,19 +5799,19 @@ The Dolby Evolution decoder: the path used for newer Dolby bitstreams, including
 
 The bundled Expat XML parser: includes accounting against amplification attacks, debug environment variables, and the versioned parser core every document-reading component shares. The single XML engine underneath all the metadata parsing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f" + debug env {EXPAT_ACCOUNTING_DEBUG,EXPAT_ENTITY_DEBUG,EXPAT_ENTROPY_DEBUG}; entropy /dev/urandom + fallback(4); attr types {CDATA,IDREF,IDREFS,ENTITY,ENTITIES,NMTOKEN,NMTOKENS}; xml namespace; errors {no element found,not well-formed (invalid token),unclosed token,partial character,mismatched tag,duplicate attribute,junk after document element,illegal parameter entity reference,undefined entity,recursive entity reference,asynchronous entity,reference to invalid character number/binary entity/external entity in attribute,"XML or text declaration not at start of entity",unknown encoding,"encoding specified in XML declaration is incorrect",unclosed CDATA section} + errors {error in processing external entity reference,document is not standalone,unexpected parser state,entity declared in parameter entity,"requested feature requires XML_DTD support",cannot change setting once parsing has begun,unbound prefix,must not undeclare prefix,incomplete markup in parameter entity,XML/text declaration not well-formed,illegal char in public id,parser suspended/not suspended/parsing aborted/parsing finished,cannot suspend in external parameter entity,reserved prefix xml/xmlns rules,"limit on input amplification factor (from DTD and entities) breached"}; config {XML_DTD,XML_CONTEXT_BYTES,XML_NS,XML_BLAP_MAX_AMP,XML_BLAP_ACT_THRES,XML_GE}; DTD keywords {SYSTEM,PUBLIC,ENTITY,ATTLIST,ELEMENT,NOTATION,CDATA,REQUIRED,FIXED,EMPTY,PCDATA,NDATA,INCLUDE,IGNORE}; decl {version,encoding,standalone}; encodings {UTF-16LE,UTF-16BE,UTF-8,US-ASCII}
 
 - **name:** expat 2.5.0 XML parser
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fb2548; expat
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `feature_config`
 
@@ -5819,19 +5819,19 @@ version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %1
 
 The complete cloud-pushed feature document: flags for adaptive streaming, Connect availability, metrics config, voice data collection, partner integrations, low-power mode, tuning data collection, and more. These stored toggles feed the capability gates and explain behavior differences between households on identical firmware.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {disableWebSocketPerMessageDeflate,metricsConfigURL,metricsConfigV2URL,preferredRPContainer,spotifyAdaptiveBitrate,enableSpotifyConnectForAllAccts,enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,thorTimeout,enableChsrcPerfOptimizations,enableUPnPEventingGNDOptimization,enableSecureAlbumArt,enableCEP20ThreadTweaks,smartPlayConfig,debounceWindowMilliseconds,debounceWindowMillisecondsCEP20,useLegacySpotifySmapiPlayback,quickbondingConfig,ssdpAdvertiseConfig,enablePitchfork,enableSslClientCacheRefresh,plink,enableDhcpProxyFailureTelemetry,homeTheaterWifiPerfTelemetry,enableOnDeviceSoundGeneration,enableRadioSocTemperatureTelemetry,enableHomeTheaterWifi6GHzFronthaul,reportHtSurrounds,reportHtSwap,reportPortableSurrounds,wifiTxRateThreshold,wifiLatencyThresholdMillis,requests,frequencyMins,delayRandPct,enableQuickbonding,enabledHT,thresholdDC,dropoutSensitiveDC,ssdpBroadcastOnlyZonePlayer1,ssdpAdvertiseOnlyEssentialServices,numLFEChannels,numHeightChannels,streamDescription,groupingLatency,enableTrueRoom,enableFlexibleSurroundsTuning,enableVirtualHeight,systemResult,numDevices,numUpdatedDevices}
 
 - **name:** featureConfig complete schema
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9bef8; featureConfig fields
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `group_mgmt`
 
@@ -5839,11 +5839,11 @@ The complete cloud-pushed feature document: flags for adaptive streaming, Connec
 
 The group-management engine: the internal machinery of group membership covering who's in a group, who leads it, and joining and leaving, behind the group commands. One member typically coordinates the group while others follow, and this machinery elects that leader and keeps the shared state.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **ops:** {SetSourceAreaIds,pause,play,copyMusic(%s to %s),becomeStandalone(retry),joinGroup(%s to %s,retry),groupsCommand} + upnpError; topology guards {invalid topology state empty pid/gid,inconsistent topology state invalid gc or pid count}; music context {cannot be copied,cannot be swapped}; faults {Grouping action failed,Invalid grouping action,Invalid args,Action not authorized,Grouping action failed (default)} + groupId; cloning {clone music from %s to ungroupable %s,create new group and cloning from ungroupable player}; params {Effective set of players to group,Creating group with undefined future coordinator hint,playerIdsToRemove array,playerIdsToAdd array,Effective set of new group members}; retry FSM: 'becomeStandalone(%s) failed with error %d, attempting retry'/'without retry','joinGroup(%s to %s) failed with error %d, attempting retry'/'final'; topology consistency: 'invalid topology state, empty field(s): pid: %s, gid: %s','inconsistent topology state, invalid gc or pid count: pid: %s, gid: %s, pid count: %d, gc count: %d'
 
-</details>
+:::
 
 ## `hermes`
 
@@ -5851,20 +5851,20 @@ The group-management engine: the internal machinery of group membership covering
 
 The control channel layer for Spotify, internally named for its 'hermes' URIs: it carries device state like volume, play, shuffle, and queue between the cloud and the Connect session, plus content-key and offline-restriction channels. It's the internal bridge that lets the Spotify app see and drive your speaker as a Connect device.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 roots {hm://hwptp/v1/devices,hm://hwptp/v1/tsv,hm://hwptp/v1,hm://hwptp/v2/resolve/%s/%d/%s}; device subs {%s/devices/%s/state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue}; media {%s/content_encryption_key/%s,%s/cache_key,%s/offline/restrictions}; fields {random,checksum}; "!"Action not handled""
 
 - **name:** hermes/hwptp channels
 - **rate_limiting:** {"Spotify-Unavailable-For" header,"Request to %s failed with %d Too many requests","%d Service unavailable (%d)","Rate limiting active, and set to %llu ms","Message not sent: rate limited for %llums more.","Rate limiting deactivated"}; {"Failed to decode HermesHeader: %s","Got hermes push from %s","Got hermes uri %s status_code %d"}; defrag {"Defragmentation buffer size %d, cannot fit extra %d bytes (max size: %d)","Could not fit packet to defragmentation buffer, clearing the buffer"}; req "id %u method %d uri %s %d bytes"; mime vnd.spotify/mercury-mget-request; Mercury method vocab {SEND,UNSUB,GETX} (GETX = the multi-get riding mercury-mget-request); "id %u method %d uri %s %d bytes" is the wire tuple {req_id,method_id,uri,payload_len}; UNSUB; "timeout >= 0 && timeout <= 255"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd6244; hermes
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ht_telemetry`
 
@@ -5872,19 +5872,19 @@ roots {hm://hwptp/v1/devices,hm://hwptp/v1/tsv,hm://hwptp/v1,hm://hwptp/v2/resol
 
 The TV input-session report: per-session records covering connection type, coordinator identity, durations, input rate, and content type, tagged for TV-usage analytics. Input-session data, lip-sync values, and rig health all get packaged here for the diagnostics that debug theater problems.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 schema {corrId,cid set/clr,sessionLength,sessionPlayTime,connectionType,GCUUID,GCBootSeq,GCTimeStart,GCTimeEnd,inputRate,dataBurstType,contentType,playSeconds,forced,topoType}; tags {tv_usage,zpHTInputSession}; reset timing telemetry 'ht swap stream reset time %llu us','downmix stream reset time %llu us','CSB reset time %llu us','SPDIF reset time %llu us','ASRC reset time %llu us','NSD reset time %llu us','decoder reset time %llu us','input flush time %llu us','Dialog Extractor reset time %llu us'; injection commands 'Inducing stream error','Inducing signal lost','Inducing rate change','Inducing signal discontinuity','Inducing decoder error','monitoring input','Mode change %s --> %s'
 
 - **name:** TV input-session report (zpHTInputSession)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea7b44; tv_usage fields
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `htaudio`
 
@@ -5892,7 +5892,7 @@ schema {corrId,cid set/clr,sessionLength,sessionPlayTime,connectionType,GCUUID,G
 
 The home-theater audio subsystem: the overall audio path for a soundbar product from TV input to speaker output, including the surround and processing stage. This is what makes a soundbar-and-surrounds rig behave like one instrument rather than independent speakers.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; satellite channel-id strings {satLF,satRF,satSUB,satLS,satRS,satLR,satRR} + downmix channels {downmixL,downmixR}
 
@@ -5908,7 +5908,7 @@ The home-theater audio subsystem: the overall audio path for a soundbar product 
 - **latency:** delays {"HT audio base latency %uus","Invalid dialog delay value %u > %u","Dialog delay %ums","Front sat delay %uus","HT audio group latency %uus","Invalid surround delay %d for %s","%s surround delay %u gain %f"}; origin-time formula "New origin time: %u.%u, read time: %u.%u, delay: %uus (startup: %u + lipsync: %u + frontSat: %u), tvp delay: %lluus"; "Satellite origin time %d.%d"; "Group member origin time: %i.%i was extended by %uus"; tweaks "HT tweaks updated %08x"; sat pkt "%zu channels, %zu samples ea."
 - **name:** ; dsp_mixer block params: WeightedSum_%zu mixing node, Alpha_/Alpha_%d gain params, Tap_%d_ch%d FIR taps, NumChans, NumTaps, WarpedFIR; invariant 'nOutputs %zu != nScratch %zu'; bed naming {main_bed,asso_bed,bed_d0} + generic_float32 sample class (Atmos bed/side-render objects)
 
-</details>
+:::
 
 ## `http_cache`
 
@@ -5916,19 +5916,19 @@ The home-theater audio subsystem: the overall audio path for a soundbar product 
 
 The web cache semantics: the freshness directives mapped to internal states so cached artwork and catalog data stay correct. It's the memory behind fast repeat loads, keeping fetched web content so repeat requests don't hit the network again.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 directives {stale-while-revalidate,stale-if-error,no-store,private,public}; statuses {get_status_not_found,get_status_fresh,get_status_stale,get_status_stale_revalidate,get_status_stale_use_if_server_error,set_status_populated,set_status_refreshed,set_status_rejected}; "%s for key <%s> in cache <%s>"; "invalid cache key or record on set: \[keylen=%zu\] \[bodylen=%zu\] \[etaglen=%zu\] \[cclen=%zu\]"; "cache not updated due to no-store directive"; 'performInvalidationViaCacheSettingsData() bad cacheSettings recieved \[%s\] \[%s\]'
 
 - **name:** HTTP cache semantics
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f96794; httpcache
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `http_engine`
 
@@ -5936,7 +5936,7 @@ directives {stale-while-revalidate,stale-if-error,no-store,private,public}; stat
 
 The device's embedded web engine: route tables for both the main and status-site registry, static and executable page handling, request forgery protection, and the auth plumbing guarding sensitive endpoints. Everything the built-in web server runs on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **auth_challenge:** two-step: "First Response: \[%s\] \[%s\] \[%08x\] \[%d\]"/"Second Response: ..."; headers X-Sonos-Mac/X-Sonos-Serial; cred body {"credentials":"%s","nonce":"%s","keyType":%d}; HTTP/1.{0,1} 401 retry; sonoscloudstatus endpoint; httpcaches.json + "\[%s\] Force-cleared cache"
 - **hhsettings_api:** category REST paths public/{key}, restricted/{key}, restricted-admin/{key}; errors {Key not found,Failed to delete setting,invalid value size or type,HHSettingsMgr reported invalid value,Failed to store setting,"Deleting all settings in a category is not allowed. Provide a key.",Unsupported Request}; /overrideconfig POST form-urlenc → commit override file → <meta refresh url=/fcs>; JSON parser errors {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}
@@ -5948,7 +5948,7 @@ The device's embedded web engine: route tables for both the main and status-site
   - **lifecycle:** 'anacapa is starting on port %d','%s (port %d)','server stopped(%d) %s','Shutting down','hardstop wanted','%,ServerNetInit','zone ID generation failed for base port \[%u\]','server sockets','Demo mode 0x%04x voltype 0x%04x'; TServer records: 'Found TServer\[%s\] config for %s','No localsettings.txt found for TServer \[%s\]','%s - TServer \[%zu\] already NetInit, ignoring server-change event','TServer \[%zu\] not started, ignoring shutdown event','%s - TServer \[%zu\] already started','TServer\[%zu\] stopping...','Error raising event: %s','%s: SSL failure','Could not create SSL Context.'; logs to /opt/log/anacapa.log; CLI 'Usage: %s \[-h\] \[-c configuration file\] \[-u username\] \[-C caps\]'.
   - **threads_and_faults:** Thread layer: 'can't set stack size to %zu','Error: Attempting to join detached thread (%lu)!','Aborting thread','Couldnt Create thread %lld','anacapa threads:' diagnostics with ' %5lu %20s(%3d,%3d): ' rows, 'waiting on %s %s,','running or not instrumented,','Totals: %d threads, %d mutexes'. Fault handlers: segv/abrt/ill install failures; reason strings {Segmentation Fault, Floating point exception, Illegal instruction, Unknown Fault, Address not mapped, Invalid permissions}. Watchdog: 'app/debug/prevent_wdog_sigkill' killswitch + 'Unable to start watchdog helper on port %hu'. TPool allocator: 'Cannot dump: TPool *p argument is NULL.','first=\[%p\] current=\[%p\]','Zone \[%p\]: data=\[%p\] pos=\[%p\] max=\[%p\]'. VLI synth UDN 'RINCON_000E58VLIDID01400'.
 
-</details>
+:::
 
 ## `http_headers`
 
@@ -5956,11 +5956,11 @@ The device's embedded web engine: route tables for both the main and status-site
 
 The HTTP header vocabulary the device emits and parses: auth challenges, Sonos's own X-Sonos extensions, eventing headers, and the standard set. The shared dictionary for every web exchange the player makes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **X-Sonos-Latency:** proprietary header carried on the audio-stream/WAV path (audio_stream_local.cxx region); latency advertisement for stream sync
 
-</details>
+:::
 
 ## `ibt_planner`
 
@@ -5968,19 +5968,19 @@ The HTTP header vocabulary the device emits and parses: auth challenges, Sonos's
 
 The planner half of intended-target execution: when a cloud command names its players, this generates the target list and parses whether targets were explicit or implied. It's the routing brain that turns 'command X for the household' into 'command X for these specific speakers'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"already generated ibt plan, no action taken","executing ibt plan for command (%s)","failed to generate target list for command (%s)","failed to generate ibt plan for command (%s)","implicit target parsed \[%s\]","explicit target parsed \[%s\]","invalid intendedTargets parameter","command does not support intendedTargets parameter","invalid muse command body format"}; JWT cert chain {"Unable to parse JWT token","Unable to load root bundle","Can't get client device certs","JWT cert validation finished: %s"}
 
 - **name:** IBT (intended-target) command planner
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fac5a4; ibt planner
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ibt_plans`
 
@@ -5988,7 +5988,7 @@ The planner half of intended-target execution: when a cloud command names its pl
 
 IBT ('intended targets') is how cloud-issued household commands fan out to specific players: a command arriving over the cloud channel is compiled into a 'plan' naming which players execute it. This entry covers the plan format and how plans get built and run.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list: 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('\[dispatch\] dispatched (%s) to target (%s), result \[%s\]'); gated by the enablePitchfork feature flag checked at init
 
@@ -6003,7 +6003,7 @@ a remote-management command executor: commands named in log domain 'ibt' are com
   - **transport_headers:** `bearer`, `X-Sonos-Type`
   - **provenance:** literal block .rodata 0x10ec78a8-0x10ec79dc
 - **zone_command_namespace:** The '{verb,namespace}' registry tail at .data 0x11094380-0x110943f4 binds these verbs to namespace 'zones': subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone, unjoinZone: terminated {0xffffffff,0xffffffff}. Same record format as the main muse_verb_ns_registry @0x110941d8.
-<details markdown="1"><summary>Evidence (7)</summary>
+::: details Evidence (7)
 
 - @ 0x10fac64c; executing ibt plan for command
 - @ 0x10ec7903; unsupported IBT command
@@ -6013,10 +6013,10 @@ a remote-management command executor: commands named in log domain 'ibt' are com
 - @ 0x10ec78c0; \[dispatch\] dispatched (%s) to target (%s), result \[%s\]
 - @ 0x10a581b0; enablePitchfork gate checked twice in init fn
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `ir_decoder`
 
@@ -6024,20 +6024,20 @@ a remote-management command executor: commands named in log domain 'ibt' are com
 
 The infrared receiver subsystem: learned code lists for volume up, down, mute, and input, with bounded storage and config on the device. On home-theater products this is how a TV remote's volume keys reach the speaker, turning raw remote pulses into button events.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,input_codes} with "Cannot add X: list full." bounds; config /opt/ir/irconfig.txt + ":vol_up_codes:" keys + "IR not configured"; device {"Failed to open IR device!","Could not get IR file descriptor!","Loading active codes...","IR Controls %s"}; learn FSM {Capturing short code,"Short code is first of a series. Ignored!",Storing short code,"short so far %d and max: %d",Successful short code learn,First short long code learned}; shipped codes: /opt/ir/irconfig.txt = NEC-family {repeat:4f 13 05, vol_up:2,25 01, vol_down:2,27 01, vol_mute:2,29 01}; algorithm {"Pass %d length %d learn count: %d",hex dumps,"first and third passes have different sizes!","don't match!","Insufficient redundancy in alternate code.","Successfully recognized code as Alternating.","Successfully recognized repeat code.","Mismatched short messages in suspected repeat code.","Successfully recognized a non - repeating code.","Learn summary: Success/Repeat style/Alt style %c","Over ten codes received... not a repeat style code","Ignoring excessively long code"}; one-button {"Entered one button learn",waiting/"no longer waiting",UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND,"One button code not found in DB due to timeout","Timeout during IR code learn for target %s"}; embedded remote DB {Sharp,LG / Haier TV L32D1120,Samsung,Panasonic,Toshiba,Mitsubishi,Philips,Pioneer,Dynex,RCA TV 46LA45RQ,Orion TV SLED3280-HDLCD3250,Mitsubishi WD-65638 & WD-60738,JVC TV JLC42BC3000 & LT-19E610,Seiki TV LC-32B56,SuperSonicSC-240 & 491,ViewSonic VT4210LED & VT3205LED,Loewe}; targets {VolUp,VolDown,VolMute}; DB ops {"attempting to add null remote","add remote to full db","too long a controller name","excessively long main/alt/repeat code",Uninstalled all codes}; cloud: submit POST http://ir.ws.sonos.com/IRCode/ XML <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> (guid via /dev/urandom); lookup "Requesting: %s" → "Code found for remote id \[%s\]!" / "Requested code not found in IR database"; "Outstanding codes yet to be learned: Lengths are: %d, %d, %d"; "Denylisted pyle!"
 
 - **name:** IR decoder + learn + cloud DB
 - **mechanics:** debounce FSM {"debouncer: recent becomes true","debouncer: bIsRepeat = true","currently playing/not playing","handling debounced mute/input/volume up/volume Down","will try auto play","handling raw generic repeat/volume up/volume down/volume mute/input code","Handling IR decoder testpoint press action"}; cmds {vol_up,vol_down,IR Volume Up,IR Volume Down,IR Mute,IR Input}; histogram decode {"Histogram contains no peaks at all. decode fails","Histogram contains no second peak.",avgA/avgB,threshold,"biphase pulse too long %d","too many raw bits!","pulse width coding with threshold of \[%f\]","pulse distance coding with threshold of \[%f\]"}; {"*****  unrecognized/recognized %d  *****"}; "Could not read IR data. (%d, read: %zd)" + "IR Event read: %zd, msgcount: %u"; select events selthrd.RIRDecoder.{reset,data,except,timeout}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea6550; irdecoder block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `jwt_auth`
 
@@ -6045,19 +6045,19 @@ encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,in
 
 The token layer for modern-API and device credentials: it parses and verifies the signed tokens used in auth flows, which is how the player knows a presented credential is genuine and unexpired. Every authenticated modern-API command passes its token through this layer first.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; alg HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,"Failed to get the real/relative time","Failed to stringify JWT","Device failed to generate device/guest token","Invalid Base64 encoded JSON object","Device unavailable due to other requests","Player not securely registered","An unexpected grant type was provided","An invalid JWT was provided. Reason:","A malformed JWT header/payload was provided","Player not in the assertion's aud field","POST /authorizeDevice request failed"}; claims exp+rexp {"exp is missing","Invalid exp value","Expired exp value",same for rexp}; token validation {"Device token not minted in this HH","Token is expired, security settings have changed since the token was issued","Device token expired","missing/invalid expiration time","not minted by this device","Device token is valid"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; validation failure names {JWT_FAILED_TO_B64_DECODE,INPUT_JWT_HEADER_INVALID,INPUT_JWT_PAYLOAD_INVALID,INPUT_JWT_SIGNATURE_INVALID,INPUT_JWT_ALG_UNSUPPORTED,INPUT_JWT_ALG_MISSING,INPUT_JWT_X5C_MISSING,INPUT_JWT_X5C_INVALID,INPUT_JWT_X5C_UNTRUSTED,INPUT_JWT_PRIVATE_KEY_MISSING,INPUT_JWT_PRIVATE_KEY_INVALID}
 
 - **name:** muse JWT/device-token auth
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f988e4; JWT block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `korn_events`
 
@@ -6065,19 +6065,19 @@ JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,P
 
 The embedded-Spotify component's event vocabulary, roughly seventy lifecycle events covering initialization, shutdown, web-server state, and the zero-config discovery events for credential transfer and auth tokens. It's how the Spotify integration reports its internal state.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {KORN_INITIALIZED,KORN_SHUTDOWN,WEBSERVER_START,WEBSERVER_STARTED,WEBSERVER_UPDATED,ZEROCONF_START,ZEROCONF_DEVICE_ADDED,ZEROCONF_TRANSFER_CRED,ZEROCONF_TRANSFER_STATUS,ZEROCONF_AUTH_TOKEN,ZEROCONF_AUTH_CODE,MDNS_START,MDNS_PAUSE,MDNS_RESUME,MDNS_DEVICES,MDNS_DEVICE_DISCOVERED,MDNS_DEVICE_EVICTED,MDNS_RETRIGGER_DISCOVERED_DEVICES,HOSTNAME,PLAYBACK_RESUME,PLAYBACK_RESUMED,TRACK_RESUME,OBSERVE_PLAY,SKIP_NEXT,SKIP_PREV,PLAYBACK_SEEK,PLAY_URI,QUEUE_URI,QUEUE_FINISHED,TRACK_STARTED,SET_SHUFFLE,SET_REPEAT,INTERNAL_SHUFFLE,INTERNAL_REPEAT,CONNECT_SET_VOLUME,AUDIO_DELIVERY_DONE,CONTEXT_FAILED,TW_UPDATED,PLAY_FALLBACK_FILE,QUEUE_FILE,TRACK_FINISHED,TRACK_FAILED,NOTIFY_TRACK_FAILED,INTERNAL_TRACK_STARTED,MEDIA_SEEK,PLAYBACK_INITIATED,PREVIOUS_POSITION,PLAYBACK_PROGRESS_STARTED,SET_DOWNLOAD_POSITION,NOTIFY_INTEGRATION_PLAYBACK_STARTED,NOTIFY_INTEGRATION_FINISHED_TRACK,NOTIFY_INTEGRATION_HAS_TRACK_LENGTH,NOTIFY_TRACK_ERROR,SEEK_COMPLETE,EXTERNAL_UNDERRUN_COUNT_POINTER,NOTIFY_STREAM_DELIVERED,STREAM_START,STREAM_START2,STREAM_STOP,STREAM_STARTED,STREAM_FINISHED,STREAM_FAILED,STREAM_CAPPED,FILE_SIZE,DATA_DOWNLOAD_LATENCY,CONNECTIVITY,DBG_DECODER_STARTED,DBG_DISCONNECT,DBG_UNDERRUN_TIMEOUT,DBG_DOWNLOAD_UNDERRUN,DBG_MDNS_ANNOUNCE,DBG_RESOLVE,DBG_PERIODIC_STATE_UPDATE,DBG_SET_KEY_RATE_LIMIT_ERROR,DBG_FORCE_STATE_UPDATE,DBG_INTERNAL_CDN_FINISHED,HWP_VERSION,ITEM_LIST_CHANGED,LOGOUT_REQUESTED,AP_CREATED,AP_CONNECT_ERROR,AP_DISCONNECTED,CONNECTION_STATE_CHANGED,AP_LOGIN,AP_SET_SESSION,NEW_PRODUCT_STATE,AP_LOGIN_OFFLINE,LOGIN_OFFLINE_ERROR,TPAPI_STATE_CHANGE,TPAPI_SHARED_STATE_POINTER,CACHE_ID,CACHE_KEY} + {OFFLINE_RESTRICTIONS,CACHE_RESTRICTIONS,OFFLINE_WAS_REQUESTED,API_RATE_LIMIT,AD_STREAM_TIME_POINTER,INIT_DONE,UPDATE_PLAYBACK_POS,SEEK_COMPLETED,MEDIA_SEEK_COMPLETED,ENDSONG,ENDSONG_FAILED,ACCESS_POINT_HOST,CONNECT_NAME,VOLUME_STEPS,GROUP_STATE,DISABLE_CONNECT,UPDATE_AD_USERAGENT,UPDATE_ALIASES,SELECTED_DEVICE_ALIAS_INDEX,CAN_PLAY,LOCAL_APRESOLVE,LOCAL_AP_PING_TIMEOUT,CONTEXT_STATE_POINTER,CONTEXT_OFFSET_OFFLINE,IMAGE_BASE_URL,STORAGE_MANAGER,SM_CACHE_CLEARED,PULL_PLAYBACK,PULL_PLAYBACK_NO_PLAYBACK_INTERRUPTION,UPDATE_CAPABILITIES,LOGGED_OUT,RELOGIN,DOWNLOAD_BITRATE_LOW,DOWNLOAD_BITRATE_HIGH,REQUEST_BITRATE,LOCK_BITRATE,NETLOG_START,NETLOG_CALLBACK,BANDWIDTH_LIMIT,STREAMER_TRACK_PERCENTAGE,OFFLINE_GET_ITEMS_IN_CONTAINER,REDELIVER_AUDIO_AT_RESUME,ACTIVATE_OFFLINE_PLAYER,ACTIVATE_ONLINE_PLAYER,NOTIFY_OFFLINE,CONNECTIVITY_CHANGE_REQUEST,RESOLVE_OFFLINE,OFFLINE_RESOLVE_FINISHED,CURRENT_OFFLINE_ITEM_POINTER,SHUFFLE_SEED}; modules {MediaOut,APConn,Streamer,TrackPlayback}
 
 - **name:** korn event enum (~70)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd6ce8; korn events
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `korn_kernel`
 
@@ -6085,19 +6085,19 @@ The embedded-Spotify component's event vocabulary, roughly seventy lifecycle eve
 
 The embedded Spotify component's module kernel: a temporary-RAM allocator with strict accounting, an event-count guard, and the pump loop that delivers events to modules. This memory discipline is why Connect survives long sessions without leaking.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 asserts {korn_ptr->_temp_ram_num_allocs == 0,korn_ptr->_temp_ram_free == (char *)korn_ptr->_temp_ram,aligned_size <= available_ram,korn_ptr->_temp_ram_num_allocs - 1 < MAX_KORN_TEMP_RAM_ALLOCS,ptr == korn_ptr->_temp_ram,sp_korn_event_count() < SP_MAX_EVENTS}; {"module %s pump returned error","%d is more than free space %td","!!! Too many requests/returns of temp ram!","Module requested %zu bytes","Ignoring recursive calls","event_loop_counter--","Initializing module %s","Module %d (%s) failed to initialize.","Event %d discarded, queue full","Module %d failed to shutdown. Possible memory leak."}; timers {"Timer scheduled for now+%lums. #timers=%lu","No free timer slots","Attempting to access unavailable timer. id=%d","Stopping unavailable timer. id=%d"}; korn_ptr/module_manager
 
 - **name:** eSDK korn module kernel
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd690c; korn
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `lechmere`
 
@@ -6105,11 +6105,11 @@ asserts {korn_ptr->_temp_ram_num_allocs == 0,korn_ptr->_temp_ram_free == (char *
 
 The persistent cloud pipe, internally named 'lechmere': the always-on channel carrying modern-API commands in and device events out, with route templates defining its addressing. It's the link between your speaker and Sonos's servers that works even when you're away from home.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **cloudrequest:** cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg ("per msg deflate change %d -> %d") w/ local-run-state override; "Player IP changed. Bouncing connection"; backoff "Following backoff schedule, retry in %lld"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT ("Unexpected TYPE EVENT"), "support for HTTP message dropped", "Unrecognized message type"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/"player request failed: %s"; SwitchingRadiosEvent; museCloudEvtHandler
 
-</details>
+:::
 
 ## `leds_zp`
 
@@ -6117,19 +6117,19 @@ The persistent cloud pipe, internally named 'lechmere': the always-on channel ca
 
 The zone-player LED logic: hardware feature flags, mode flags for states like upgrading and broken-device, brightness control, and the state vocabulary covering join-household, setup, factory-reset, warning, playing, muted, and booting. It maps player states to light patterns, which is the zone-player-specific half of the LED system.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 HW features "setHwFeatures bHasMicrophone=%s, bHasMuteLED=%s, bHasStatusLED=%s, bHasOnlyStatusLED=%s, bHasHardwareLedSwap=%s, bCanSetWhiteBrightness=%s"; mode flags {R_LED_UPGRADE,R_LED_BROKEN_DEVICE,audiodev_flag,LED_MANAGER_HAS_AUDIODEV}; state "applyLEDModeLocked m_fLedBrightness=%5.2f, m_nextLedPatternPriorityLevel=%u m_lastClr=%d m_fade_effect=%d m_lLEDFlags=0x%llx m_bIsInExclusiveBTMode=%d m_bIsBTConnected=%d m_bHasStatusLED=%d m_bHasMuteLED=%d useOnlyStatusLED=%d"; ops {applyLEDMode,setWhiteBrightness,feedbackFlash,feedbackIrFlash,resumeDefaultLEDPattern\[Flash\],demoModeErrorFlash,executeDiagMode,updateCaptouchBrightness,setLEDBrightness,led_set_turnOffLocked,led_set_updateCaptouchBrightness,led_set_feedbackFlash}; "ignoring apply LED mode. m_bReady=%d"/"due to suspend bypass flag"; pattern fmt "ledWrite pattern: led_ids %08x repeat %d" + "rgb %d %d %d, hold %d, fade %d" + "cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x" + "step\[%d\]= r=%02x, g=%02x b=%02x hold_time=%u fade=%u"; HAL {led_get_hal_token,hal_led_diag,hal_led_flash,hal_led_write,hal_led_close,hal_led_brightness,hal_led_ir,led_util_open/close}; saved pattern {"ERROR allocating saved led pattern struct","enqueue restore pattern for LED state:0x%llx","has bFlashMode set. Returning saved pattern","no saved led pattern to flash"}; colors {white,"set default captouch feedback color to %s"}; mutexes {leds_zp mutex,leds_zp_internal}; R_LED flags {UPGRADE,BROKEN_DEVICE,JOIN_HH_OPEN,JOIN_HH,BEGIN_SETUP_MODE,IN_SETUP_MODE,WAC,WAC_TIMEOUT,BREAK_POP,SHUTDOWN,HHID,TRANSFER_REGISTRATION,CONTROL_FEEDBACK,IDENTIFY_PLAYER,AUDIO_OFF,MUTED,FAULT,WAITING_TO_PLAY,WAITING_TO_PAUSE,PLAYING,WARN,DEMO_MODE,DEMO_CONFIGURE_IR}; LED_MODE {FACTORY_RESET,BOOTING,JOIN_HH,JOIN_HH_OPEN,BYPASS_BLOCKED,BYPASS,CLONE_CHECK_FAIL}; "ERROR: bad set_pattern_for_mode(%d)"; "unknown restore pattern for LED state:0x%llx"; setByeByeReason: %s; 'Device has no ethernet ports','Device has more ethernet ports than can be reported, max report size: %zu, num actual ports: %d'; Sonos Radio reauth 'reauthenticated Sonos Radio','failed to reauthenticate Sonos Radio (rc %u)','could not reauthenticate Sonos Radio (no RSvcAccount found)'; 'updating boot sequence due to cert update event'; 'unexpected inbound UPnP %s req from %s: uri=%.256s' gate; additional engine fields {patternRepeatCount,diagMode,m_bHasMicrophone}
 
 - **name:** LED engine (leds_zp)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fba544; leds_zp
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `libflac`
 
@@ -6137,19 +6137,19 @@ HW features "setHwFeatures bHasMicrophone=%s, bHasMuteLED=%s, bHasStatusLED=%s, 
 
 The bundled FLAC lossless decoder, version 1.3.4: it carries the decoder error vocabulary and the I/O callback set that FLAC streams play through. This handles lossless audio from your music library and services that offer it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 "reference libFLAC 1.3.4 20220220"; errors {BAD_HEADER,FRAME_CRC_MISMATCH,UNPARSEABLE_STREAM,OGG_ERROR,SEEK_ERROR}; I/O statuses {WRITE CONTINUE/ABORT,LENGTH/TELL/SEEK OK/ERROR/UNSUPPORTED,READ CONTINUE/END_OF_STREAM/ABORT,INIT OK/UNSUPPORTED_CONTAINER/INVALID_CALLBACKS/MEMORY_ALLOCATION_ERROR/ERROR_OPENING_FILE/ALREADY_INITIALIZED}; states {SEARCH_FOR_METADATA,READ_METADATA,SEARCH_FOR_FRAME_SYNC,READ_FRAME,END_OF_STREAM,ABORTED,MEMORY_ALLOCATION_ERROR,UNINITIALIZED}; metadata blocks {STREAMINFO,PADDING,APPLICATION,SEEKTABLE,VORBIS_COMMENT,CUESHEET,PICTURE}; frame nums {FRAME_NUMBER_TYPE_FRAME_NUMBER,FRAME_NUMBER_TYPE_SAMPLE_NUMBER}; channels {INDEPENDENT,LEFT_SIDE,RIGHT_SIDE,MID_SIDE}; subframes {CONSTANT,VERBATIM,PARTITIONED_RICE,PARTITIONED_RICE2}; cue validation {lead-in div by 588,"at least one track (the lead-out)","lead-out track number 170 (0xAA)","may not have track number 0","track number 1-99 or 170","offsets evenly divisible by 588 samples","at least one index point","first index 0 or 1","index numbers increase by 1"}; PICTURE types {32x32 file icon PNG,Other file icon,Cover front/back,Leaflet page,Media,Lead artist,Artist/performer,Conductor,Band/Orchestra,Lyricist,Recording Location,During recording/performance,Movie/video screen capture,Bright coloured fish,Illustration,Band/artist logotype,Publisher/Studio logotype}; "MIME type printable ASCII 0x20-0x7e","description valid UTF-8"
 
 - **name:** libFLAC 1.3.4 decoder
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fbb920; libFLAC
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `lla`
 
@@ -6157,20 +6157,20 @@ The bundled FLAC lossless decoder, version 1.3.4: it carries the decoder error v
 
 The low-level audio interface between this program and the kernel's audio driver: it opens output and input devices, negotiates buffer limits, sets latency, and does sample-clock math to compute when a write will actually sound. Its status codes are the vocabulary the rest of the audio stack uses for hardware faults.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 status codes {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; out {lla_hdmi,"device open failed, unsupported device type %d","opening lla output device","could not get device rc %s lrc %s fd %d","Setting tx latency %u - rc %d","could not get output limits","could not set tx latency rc %d try %u got %u","could not get combined time and output delay"}; timing {"underflow count not cached, returning 0",lla-select,"play time in the past","adjusted play time in the past","%s %s current time %d.%06d play time %d.%06d write at %d.%06d","could not get sample unit time ticks","could not get time","could not get output delay","time requested %d.%06d current time %d.%06d diff %dus devPlayTime: %llu devCurrentTime: %llu diff in sample unit time %llu"}; IO {"fd not set fd=%d","timed out fd=%d","select failed fd=%d errno=%d %s","no output fd %d","low level interface could not fulfill request. error %d uf %u","callback failed, playing zeros %d","commit error (%d) before caching underflow count","could not get buffer information"}; input {"Device is not open","Failed to open the input device:%d, status:%s","id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu","Failed to get fd","closed input device fd:%d","lla.in.poll","Select returned but LLA fd not set","Failed to get rx time in ticks/rx time","Could not get input delay/input time and delay","Failed to flush the input",liblla_input,lla_in_%s,"Failed to set pipe to nonblocking","Failed to create pipe","pTmpFrame buffer is NULL","Failed to copy buffer contents","Trying to copy more bytes than expected. attempted %d maxbytes %d","could not release buffer after read","Buffer Passed in is NULL","No readable data available. Previous ret:%s fd:%d","read failed status: (%s) fd: %d"}; event objects {"Failed to add event object %s","Invalid object index","Add fd for object %s","Wait for input failed: %d","Spurious Input Event 0x%x","Remove object %s","Failed to find object for releasing","Object %s was not formally released"}; liblla; LLA consistency guards 'LLA number of DACs inconsistent. (%zu != %zu)','LLA total number of DACs inconsistent. (%u != %zu)','LLA sample width inconsistent. (%u != %zu)'; 'failed to set SRC coefficients','start of playback: %d s: (%d: %s) underflows %u'
 
 - **name:** LLA (low-level audio) interface
 - **errors_enum:** {EFAULT,EUNDERFLOW,EOVERFLOW,EPARAM,ENODEV,DEVFAULT,NOBUFFER,OUTOFORDER,NOCSB}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fe5ad4; LLA
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `local_settings_mgr`
 
@@ -6178,19 +6178,19 @@ status codes {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; out
 
 The local settings manager: the device's own settings files, each wrapped in a magic header with length, checksum, and counter, plus migration data and subversion detection. It's where this speaker's own config lives, distinct from household-shared values.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 files {_attrdata.json,_exclude.json,_settings.json,_effective.json,settings_targettypes.json,__location_summation,__migration_data}; models key; magic header "{\"magic\":\"`|_(:/)_|`\",\"length\":%u,\"checksum\":\"0x%08X\",\"counter\":%u}" + trailer "{\"magic\":\"(=^+^=)\",\"version\":11}"; ops \[Mg\] {setLocationSettings("did not advance i:%llu \[c:%llu\]",write failure,"!= locationId","dropping unfamiliar group"),performSingleGroupWriteOperation("validation failure","performing write"),performMultiGroupWriteOperation,setupLocalSettingsManagerImpl("readJsonFile failed","ingestSettingsTargetTypesData failed","ingestLocationFromStorage failed"),getEffectiveSettings("bad groupId"),updateMultipleSettings("ingestPatchAttribute failure"),updateSettings("bad keyId"),readSettingsFromMultipleSettingsGroups,internalReadSettings,internalReadEffectiveValuesLocked("bad keyId","hetType mismatch"),updateGroupSettings}; migration \[Mm\] {persistMigratedDataLocked,"unexpected twoLetterStr","unbalanced collectionStr","missing","not an object"}; patch \[Pc\] {completePatchAttributeIngest "type mismatch vT/aT"}; request auth \[Rq\] {permBits,calculateUserPermissionsJSON,"attempt to subvert read authorization","attempt to update location only settings","attempt to subvert write authorization",setupUpdateAllRequest/setupUpdateRequest/setupGetRequest "not found"/"excluded"/"invalid target type"}; storage \[Gp\] {writeMetaDataToStorage,writeSettingsToStorage,setupSettingsContainerFromStorage "success from old schema"/"settingsStorage not found",setupMetaDataFromStorage}; location \[lo\] {ingestLocationFromStorage "dropping unfamiliar group",ingestLocationSettingsFromCloud,ingestGroupForLocation "attribute not found","dropping unfamiliar setting"}; metadata {effectiveMetaData,locationMetaData}; eventing {LocalSettingsEventing::waitUntilEventNotificationCompletes,notifyOnChange notifySubscribers}; errors {INCORRECT code:%08X,FATAL code:%08X,DATA_CORRUPTION\[%08X\] settings group}
 
 - **name:** local settings manager (locSetMgr)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10faf68c; locSetMgr
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mdns`
 
@@ -6198,11 +6198,11 @@ files {_attrdata.json,_exclude.json,_settings.json,_effective.json,settings_targ
 
 The multicast-DNS discovery implementation: how devices announce and find each other on the local network without any server. It's the same discovery system Apple devices use, and speakers broadcast what they are while listening for each other.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **controller:** MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}
 
-</details>
+:::
 
 ## `mdns_device`
 
@@ -6210,19 +6210,19 @@ The multicast-DNS discovery implementation: how devices announce and find each o
 
 The device's own discovery record schema: the fields it advertises covering protocol versions, household ID, port info, variant, and sequence. It's what your phone sees when it spots the player on the network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnssequence,locationid}; "Truncation in formatting service name"
 
 - **name:** mDNS device TXT record
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ef7a80; mdns device txt
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `mod_zp`
 
@@ -6230,11 +6230,11 @@ TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnsseque
 
 A zone-player module identified by build-tree naming: part of the player-facing internals recovered structurally, inventoried as part of the complete component map.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **detail:** mod_zp + mod_zp_aa album-art queue "queueing album art request %s %u %u %u"; timeout states {timeoutplaying,timeoutpaused}; headers {x-rincon-last-update-device,x-rincon-content-version,x-rincon-range}; "%s.tmp" staging + "Unable To File %s"/"Unable To Rename Temp EQ File"; "Forced GTK rekey"; button-forward errors {no handler,invalid method,No button handler unable to forward buttons,Feature not supported.}; build props {build.date,build.scm.version,/build.properties,legacyanacapad,hhSwgenState}
 
-</details>
+:::
 
 ## `muse`
 
@@ -6242,14 +6242,14 @@ A zone-player module identified by build-tree naming: part of the player-facing 
 
 The 'muse' layer: Sonos's internal name for the modern API machinery as a whole, covering the route tables, router, operation objects, and pipeline documented on the modern-API page.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; explicitTargets guards 'explicitTargets: invalid target id in list','explicitTargets: too many targets'; validator 'when primitive type was expected','number of entries below minimum of'; log redaction '{"reason": "MESSAGE REDACTED"}' (muselogrsp); authz 'unauthenticated_control_disallowed'; enum names {INSECURE,PLAYER_WITHIN_GROUP,BATTERY_SAVER,LONG_PRESS,NOT_CHARGING,GROUP_STATUS_GONE,AUTO_HT_CONFIGURATION,SESSION_STATE_CONNECTED,SONOSNET_ENABLED,PLAY_REPEATED,MUSIC_ACCOUNTS,TAG_EXPLICIT,CONNECTED_UNALLOCATED}
 
 - **auth_errors:** auth helper errors {"Player is not securely registered","Access token's user does not match registered user","Access token does not have adequate permissions","Command scopes could not be determined","Invalid user","Scope is insufficient","Error reading scopes","Error matching scopes"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {"Response code: %d, Access token is invalid"/"Scope is insufficient"}
 - **service_bindings:** musezpactor UPnP service URIs {AlarmClock:1,AudioIn:1,ConnectionManager:1,MusicServices:1,SystemProperties:1,ZoneGroupTopology:1,HTControl:1,GroupManagement:1,GroupRenderingControl:1(urn:schemas-upnp-org) + Queue:1(urn:schemas-sonos-com),VirtualLineIn:1}; "zp already set"/"zp not set"
 
-</details>
+:::
 
 ## `muse_engine`
 
@@ -6257,7 +6257,7 @@ The 'muse' layer: Sonos's internal name for the modern API machinery as a whole,
 
 The modern-API engine: the namespace registry, request validation, fan-out to target players, authorization, and execution, mounted on the API routes and the cloud pipe. It's the counterpart of the classic command machinery for the app's REST-style world.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **dispatch:** "Dispatching command (ns=v%u/%s, cmd=%s)"; actor errors {"Namespace may be missing actor (%s). See RZPMuseActor","Namespace has no actor (%s). See RZPMuseActor::setupWholeDevicePointers()"," has no actor","Failed to create command (%s)"," command is not supported"}; target ids {"invalid implicit target id \[%s\]","invalid explicit target id \[%s\]","Invalid targetId for unsubscribe (%d)"}; events {RMuseEventing,"Failed to send muse message %s(%s)"}
 - **upnp_bridge:**
@@ -6274,7 +6274,7 @@ The modern-API engine: the namespace registry, request validation, fan-out to ta
 - **namespaces:** {audioClip,householdUpdate,management,musicServiceAccounts,pinewood,platformInternal,positioning,roomDetection,soundSwap,systemReporting,systemTime,virtualRemoteControl} + settings:{accessorySettings,business,frontierLlms,global,playback,playerBasic,playerLineIn,playerUI,positioning,preferences,prodashboard,security,video} + upnp:{AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology}
 - **http_auth:** challenge {private,public,realm,error_description,nonce,Basic}; OAuth errors {invalid_request,invalid_token,insufficient_scope,service_unavailable}; results {denied/403,denied/503,no token}; log "Muse auth result: \[%s\] \[%s\] \[%s\] \[%s\] \[%s\] \[%.8s\] \[%s/%s::%s\]"
 
-</details>
+:::
 
 ## `muse_enums`
 
@@ -6282,19 +6282,19 @@ The modern-API engine: the namespace registry, request validation, fan-out to ta
 
 The named-constant tables shared by modern-API fields: actor roles, authorization resources, permissions, content types, and credential types. They're the enumerated vocabulary the modern API uses internally for operation types, scopes, and status values.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}; SFB perms {SRADIO_HD_CONTENT,SRADIO_SPECIAL_CONTENT,SRADIO_ONDEMAND_ARCHIVE,SRADIO_CAN_SKIP,SFB_BASIC_UI,SFB_COMMERCIAL_MSP,SFB_ESSENTIALS_MSP,SFB_PREMIUM_MSP,SFB_DASHBOARD_ACCESS,SFB_CNTRL_MEDIA_SRCS,SFB_CNTRL_THIRD_PARTY,SFB_RSTC_CONTENT_ACS,SFB_RSTC_SAVE_CONTENT_ACS,SFB_RSTC_SETTINGS_ACS,SFB_RSTC_ALARMS_ACS,SFB_RSTC_MESSAGING_ACS,SFB_RSTC_SAVE_GROUPS_ACS,SFB_SCHEDULES_ACCESS,SFB_MVP}; playback states {BUFFERING,PAUSED,PLAYING}; queue ops {APPEND,INSERT,INSERT_NEXT,PLAY_NOW}; ratings {EXCELLENT,POSITIVE,NEGATIVE,RATED,THUMBSUP,THUMBSDOWN,SHELVED}; registration {LEGACY_REGISTERED,SECURE_REGISTERED,TRANSFER,PREP_TRANSFER}; netmode {NETMODE_SONOSNET_WIRELESS,NETMODE_WIRED,NETMODE_WIRED_NO_WIFI,NETMODE_STATION,NETMODE_SATELLITE_V1,NETMODE_SATELLITE_V1_WIRED,NETMODE_SATELLITE_V2,STATION_SATELLITE}; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; FORBIDDEN; USB_C; GOOGLE; recurrence + {alarm states: ALARM_PENDING,ALARM_SNOOZED,ALARM_FIRING,INTERRUPTED; buttons: PLAY_PAUSE,MUSIC,DPAD_UP/DOWN/LEFT/RIGHT/SELECT; sources: CLOUD,HT_PLAYBACK,HT_POWER_STATE,AIRPLAY,AUDIO_CLIP,SPEAKER_DETECTION,FIXED_VOLUME,ROOM_DETECTION,IR_CONTROL,ALEXA_CBL; errors: CHARGER_NOT_COMPATIBLE,CONFIGURING,NO_LOGICAL_ADDRESS,EXTRALOCAL; abort: ABORT_INCORRECT_MODE,ABORT_NO_SOURCE,ABORT_INVALID_OP,ABORT_REFUSED,ABORT_UNDETERMINED,REPLY_TIMEOUT,ROOT_INDIRECT,BROADCAST_BLOCKED; groups: MUSICOBJECTID,GROUP_STATUS_MOVED,GROUP_STATUS_UPDATED; update: UPDATE_COMPLETE,INFO_FILE_WRITE_FAILED,BSU_FAILED,UPGRADE_MGR_SPAWN_FAILED,MANIFEST_DOWNLOAD_FAILED,MANIFEST_PARSE_FAILED,UPDATE_NEVER_RUN,FINAL_RESULT_UNKNOWN; surrounds: VERTICAL_WALL_BELOW,FLEXIBLE_SURROUNDS,PORTABLE_SURROUNDS; sec: SECURE,SECURE_REG,UPNP_OVER_TLS; indexer: ADD_IN_PROGRESS,ADD_COMPLETE,PENDING_REINDEXING,REINDEXING_IN_PROGRESS,REINDEXING_COMPLETE,REPLICATION_IN_PROGRESS,REPLICATION_COMPLETE,PENDING_DELETE,DELETE_COMPLETE; sonosnet: SONOSNET_DISABLED,SONOSNET_DISABLE_TEST; conn: ONLINE,TERMINATING; chirp: INAUDIBLE_WIDE,MULTI_INAUDIBLE_WIDE,MULTI_AUDIBLE; timers: TIMER_PAUSED,TIMER_RINGING; power: TO_STANDBY,POWERING_DOWN,POWERING_UP,SMART_DOCKED,PRIMARY_PLAYBACK_STARTED,POWERING_UP_UPDATED,WAKING_UP_FROM_USER,PRIMARY_NETWORK_STATUS_CHANGE; volume: FIXED,PASS_THROUGH; wifi: ACK_AWAIT,WIFI_DISABLING,WIFI_DISABLED,ACK_NOT_RECEIVED; positioning: APPLE_MOBILE_DEVICE,ANDROID_MOBILE_DEVICE,STIMULUS_PLAYBACK_COMPLETE,BEARING,DISTANCE,ACOUSTIC_SPACE_MAP,MEASUREMENT_RESULTS,MEASUREMENT_RAW_AUDIO,IMPULSE_RESPONSE_AND_AUDIO; HEY_SONOS; RADIOLIST}
 
 - **name:** muse enum tables
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9949c; enum tables
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_errors`
 
@@ -6302,19 +6302,19 @@ actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVI
 
 The error registry every modern-API command can return, around eighty entries covering generic failures, playback failures, session failures, and infrastructure failures. These named errors are the contract clients should branch on rather than on free-text messages.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ERROR_PLAYBACK_FAILED,NO_CONTENT,NO_PLAYABLE_CONTENT,EXPLICIT_NOT_ALLOWED,EXPIRED_TOKEN,NOT_PLAYABLE,SPOTIFY_CONNECT,FAILURE_TO_ENQUEUE,CLOUD_QUEUE_SERVER,SKIP_LIMIT_REACHED,PLAYBACK_STREAM_LIMIT,PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE}; session {SESSION_IN_PROGRESS,JOIN_FAILED,EVICTED,INVALID_SESSION_ID,NOT_DESIGNATED_DEVICE}; accounts {PREFERRED_ACCOUNT_NOT_SET/NOT_FOUND,ACCOUNT_FULL,INVALID_ID,NO_DEFAULT_FOUND,REAUTH_REQUIRED,UPGRADE_REQUIRED,WRONG_SERVICE}; update {NO_UPDATE_AVAILABLE,INVALID_UPM_FORMAT,INSUFFICIENT_POWER_FOR_UPDATE,UPDATE_IN_PROGRESS}; misc {ALARM_NO_SPACE,ALARM_BAD_TIME_SERVER,AREAS_READ_ONLY,AUDIO_CLIP_ID_NOT_FOUND/_MEDIA_ERROR/_PAUSE_CONTENT_FAILED/_VOICE_ASSISTANT_PLAYING,CACHE_NOT_FOUND/_RECORD_NOT_FOUND,CANT_CONNECT\[_REMOTE\],DEVICE_ALREADY_REGISTERED/UNAVAILABLE,INVALID_ACTION,DOWNSTREAM_CONNECT_FAILED,SHARES_CONFLICT/NO_SUCH_SHARE/NO_SPACE/REQUEST_FAILED,STIMULUS_ALREADY_PLAYING,MICROPHONE_NOT_ENABLED,NO_POSITIONING_RESULTS,UNSUPPORTED_POSITIONING_REQUEST,SVC_DISABLED,TIMER_NOT_FOUND,UNSUPPORTED_VOLUME_MODE,INVALID_RESOURCE,ROOM_DETECTION_SIGNALLING_FAILED/BUSY,GROUP_CHANGED}; generic {COMMAND_FAILED/TIMEOUT,CONTENT_TYPE_NOT_SUPPORTED,DISALLOWED_BY_POLICY,INTERNAL,INVALID_AUTH_HEADER/CERT/OBJECT_ID/PARAMETER/SYNTAX/HEADER/LENGTH/TRANSPORT,TARGET_ID_NOT_FOUND,LOAD_COMMAND_FAILED,MISSING_PARAMETERS,NO_PERMISSION,NOT_AUTHORIZED,NOT_CAPABLE,PRECONDITION_FAILED,EXPECTATION_FAILED,QUEUE_FULL,RESOURCE_GONE/CONFLICT,REQUIRES_GROUP_COORDINATOR,SERVICE_NOT_AVAILABLE/CONFIGURED/SUPPORTED/UNAVAILABLE,UNSUPPORTED_NAMESPACE/COMMAND/REQUEST/REQUEST_METHOD,API_KEY_VALIDATION_FAILED,NYI,CMD_FUTURE,CMD_REMOVED,INSUFFICIENT_RESOURCES,INCORRECT_STATE,INCOMPATIBLE_API_VERSION,INCOMPATIBLE_CLIENT_VERSION}; param validation {MISSING_VALUE,UNEXPECTED_TYPE,"Parameter failed timestamp validation","not a valid Muse error code","out of range: at or below minimum of/above maximum of","Found unexpected array/object","Missing required field","Unable to coerce string to number/boolean","number of entries below/above minimum/maximum"}
 
 - **name:** muse error-code registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f9508c; muse ERROR enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_events`
 
@@ -6322,19 +6322,19 @@ results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ER
 
 The event types a modern-API client can subscribe to, around sixty-five of them covering playback status, volume, group topology, sleep timer, tuning status, battery, and more. Subscriptions work per-namespace, and this is how the modern API delivers state changes instead of polling.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent}
 
 - **name:** muse event-type registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f960df; muse event types
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_types`
 
@@ -6342,7 +6342,7 @@ The event types a modern-API client can subscribe to, around sixty-five of them 
 
 The 203 object-type names the cloud API's schema can use, stored as one contiguous list: every field name, event name, and object shape the modern protocol speaks. Together with the field schema it's the complete vocabulary of the API's data model.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 203 contiguous alphabetical type names @0x10f975c0-0x10f98568 - the TYPE-NAME space used in spec {field,type} pairs (semantic spec idx -> table\[3+idx\]). Followed by muse_target_validator + errors {guest_access_disallowed,forbidden,not_authorized,not_found}. Types are object-schema names; 'upnpEvent' (11 identical entries, one per bridge namespace) is the universal value/event wrapper appearing as the type of nearly every status field.
 
@@ -6354,14 +6354,14 @@ The 203 object-type names the cloud API's schema can use, stored as one contiguo
   ```
 - **consumer_evidence:** live PIC-formed refs: settings-group handlers→settingsGroupMetadata (f_10aa1e80..f_10aa2854); zone ops→zoneDefinition/zoneDefinitionList/zoneMemberSettingsMap (f_10b8c5bc,f_10b8d72c); VLI→virtualLineInSource/wifiDisable (f_10a77630..f_10abdd54); geo→geoLocation (f_10b3670c..); shares→shareStatus (f_10afa388); deeplink/deviceInfo (f_10b061c8,f_10a50920); activeZoneMember/actuator (f_10a11634..); playMode (f_10a11284..); timeVal/timeZoneInfo (f_10b38910..); manufacturingData (f_10a0996c..); usageContextSetting (f_106c55c4..); idResponse (f_10ab3874..); replicatedAreas (f_10733fb4,f_1077fe2c); post-name region 0x10f98578-0x10f986e8 (muse_target_validator+errors) consumers f_10692d10,f_10698074..,f_109ed0a8,f_109ed6e0,f_109ee960..,f_109efc88
 - **type_names:** {accessorySwap,accessoryWifiPsk,accessPolicyControl,accessPolicySetting,accountError,acousticMeasurement,acousticMetrics,activeZoneList,activeZoneMember,actuator,alarmDescription,alarmList,alarmRunningState,versionChanged,allowAirplaySetting,allowDirectControlSetting,allowLineInSetting,amazonAlexaAccount,amazonAlexaSetup,asyncRequestAck,audioConnectorStatus,authorizationGrantHeader/Payload/Response,authzModifier/Permission(s)/PolicyKey/PolicyKeyLechmere/TokenStatus/User,batteryCells,microphoneSwitch,waterState,bluetoothPairing,poeState,wiredSubStatus,bleMeasurement,bluetoothDevice,bluetoothPolicySettings,channelMapPair,chirpRequest,cloudDevice,cloudRegistrationStatus,commandHeader,contentMetadataBlob,contentPagedResources,contentPageInfo,contentResource,createInviteResponse,deeplink,deviceInfo,deviceSoftwareUpdateStatus,diagnosticInfo,diagnosticSubmissionMetadata,diagnosticSubmissionResult,directControl,discoveryInfo,edidStatus,settingsChanged,enableContentAccessSetting,entitlement,entitlementsList,eqSettings,ethernetPorts,ethernetPortStatus,externalId,favoritesList,feature,featureConfig,featureConfigDropoutContext,featureConfigHomeTheaterWifiPerfTelemetry,featureConfigMetricsService,featureConfigPlink,featureConfigQuickbonding,featureConfigSemiSleep,featureConfigSmartPlay,featureConfigSpotABR,featureConfigSsdpAdvertiseConfig,featureConfigZoneExperiment,geoLocation,getUsersResponse,globalError,globalSettings,groupInfo,homeTheaterInputFormat,homeTheaterOptions,householdSoftwareUpdateStatus,idResponse,irControlStatus,lineInSettings/Group/StatusInfo/StatusList,localVoiceSettings,loopbackTimeoutControl,manufacturingData,metadataStatus,musicServiceAccount,networksList,networkTestResult,patchEffectiveAllSettingsGroups,patchEffectiveAnyOneSettingsGroup,patchPlayerAllSettingsGroups,patchPlayerAnyOneSettingsGroup,playbackPolicy,playbackSettings,playerAllSettingsGroups,playerAnyOneSettingsGroup,...} + {playerSettings,playerSettingsEvent,playerSetError,playlistsList,playlistTrack,playMode,portableSurrounds,positioningDevice/DeviceMeasurementList/DeviceStatusInfo/Map/Measurement/MeasurementCapability(List)/SessionErrorInfo/SessionRequest/SessionStatusInfo/SpatialData/Telemetry,postHistoryConfig,preferredLanguageSetting,protectedAdminSettings,protectedSettings,publicSettings,queueItem,queueItemWindow,radioShow,rateStatus,recurrenceRule,redeemInviteResponse,RegistrationToken,registry,registryCollection,relativeTimeStamp,replicatedAreas,reportOptions,restrictedAdminSettings,sdkVersions,secureRegCert,secureRegCertMetadata,sessionStatus,settingsGroupMetadata,share,sharesList,shareListStatus,shareStatus,smartplayContentResource,softwareUpdate,softwareUpdateOptions,sonosDeviceNonce,soundSwapRequestResponse,speakerDetectionStatus,speakerPresenceEffectiveRate,speakerPresenceResult(List),stimulusTuningEnabled,swapModelInfo,systemNameSetting,timer,timeVal,timeZoneInfo,tokenStatus,trackQuality,transitionToShipModeStatus,translatedObjectId(s),translation,transportSetting,trueplayConfiguration,trueroomAdaptationStatus,trueroomStatus,trueroomEstimatorConfig,trustedAccessories,uniqueSetTestData,uniqueSetTestItem,universalMusicObjectId,updateItem,upnpParameter,upnpResponse,usageContextSetting,videoContent,virtualLineInSource,voiceAccount,voiceAccountsList,voiceAccountProfile,voiceWakeWord,weatherConfig,wifiDisable,zoneDefinition,zoneDefinitionList,zoneMember,zoneMemberSettings,zoneMemberSettingsMap,zoneMemberState}
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f975c0; type-name block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_verb_ns_registry`
 
@@ -6369,19 +6369,19 @@ The 203 object-type names the cloud API's schema can use, stored as one contiguo
 
 The complete menu of commands the cloud protocol supports, organised as namespace/verb pairs: 'authorization.resolveToken' means the resolveToken command inside the authorization group. It's the two-part naming system behind every modern-API operation.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Pair table @.data 0x110941d8: {namespace_name_ptr, verb_name_ptr} x~320 entries, terminated ffffffff. Binds every verb to its namespace (authorization/resolveToken, catalog/translate, entitlements/*, groups/*, history/*, playback/*, zones/*, systemReporting/*, smartplay/getContent...). Preceded by 2-char event-code table (AA..AK @0x110941a4) and hash seeds h1/h2.
 
 - **name:** muse verb<->namespace registry (.data)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x110941d8; ns->verb pair table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `muse_verbs`
 
@@ -6389,19 +6389,19 @@ Pair table @.data 0x110941d8: {namespace_name_ptr, verb_name_ptr} x~320 entries,
 
 The verb-name table: every operation callable per namespace, hundreds of them across all the resource groups. This is effectively the full modern-API method list, the operation vocabulary the route table can invoke.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,cancelAudioClip,clipMetadata}; authz {getPolicyKey,getPermissions,grantType,assertion,objectType}; cloudRegistration {getRegistrationStatus,setRegistrationState,transferDeviceRegistration,vanishedDevices,quarantinedDevices}; diagnostics {submitDiagnostics,results}; settings {getSettingsGroup,updateAllSettings,updateSettingsGroup,targetSettingsOnly,namespaces,delayMillis,subscribe/unsubscribePlayerSettings,get/setPlayerSettings,setAllowMicrophone,setSelfTruePlay,setEnablePositioningMeasurement,setSonosNetChannel,get/setRestrictedAdminSettings,setUserMetricsTracking,getPublicSettings,getProtectedSettings,getProtectedAdminSettings,"v1/players/%s/settings/player"}; entitlements {subscribeUser,unsubscribeUser,getEntitlements}; history {removeHistoryItem}; deviceProperties {setName}; householdUpdate {getHouseholdUpdateStatus,isRunning,designatedDeviceId}; irControl {getIRControl}; indexerStatus {getIndexerStatus,updating}; musicServiceAccounts {getPreferredMusicServiceAccount,endDirectControl,__provisioned__,availableServicesVersion,registeredServicesVersion}; networks {temporarilyDisableNetwork,startNetworkTests,getNetworkTestResults}; playback {togglePlay,menuType,dpadDirection}; cache {cacheSettings,cacheKey,invalidateCache}; playlists {getPlaylists,getPlaylist,postPlaylist,loadPlaylist}; positioning {playStimulus,set/getStimulusTuning,startSession,cancelSession,applyAction,getSessionMap,getDeviceMeasurements,sendMeasurements,notifySessionError/Status/DeviceStatus,getMeasurementCapabilities,setTelemetryLevel,measurements}; roomDetection {stopSignalling}; sleepTimer {getSleepTimer,remainingTimeDuration}; smartplay {getContent}; soundSwap {requestSwap}; svc {getWeatherConfig,voiceCommand}; systemTime {get/setTimeZoneInfo}; timers {setRelativeDuration,pauseTimer,resumeTimer,abortTimer}; trueplay {detectSpeakerPresence,resetDetectedSpeaker,setSpeakerPresenceRate,get/setConfiguration,getTrueplayStatus}; trueroom {playSuccessTone,setSwapInputMute,trueroomEstimatedParams}; virtualRemoteControl {sendButtonCommand}; voice {wakeword,amazon,getVoiceAccounts,updateVoiceAccount,removeVoiceAccount,createAmazonChallenge,notifyInitiateOnboarding,timeoutSeconds}; zones {backhaulChannel,getActiveZoneList,getZoneDefinition(List),addZoneDefinition,addMissingZoneDefinition,updateZoneDefinition,updateActiveZone,updateZoneMemberSettings,removeZoneDefinition,activateZone,deactivateZone,joinZone,unjoinZone}; renew
 
 - **name:** muse verb-name table
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fa0188; verb table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `music_accounts`
 
@@ -6409,7 +6409,7 @@ areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,can
 
 Music-service accounts as embedded in the household map: per-account nickname, serial, flags, tier, and credential fields that every member sees, replicated across players. It's where saved service logins live inside the shared state.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **accountsmgr:**
   - **guest:** guest accounts: link-code required; sn_%d serials; "guest upgrade not allowed via reauth"; matched by {g,sn,h(ash)}; nickname update; tombstone migration "Migrated tombstoned %s replication account"
@@ -6429,7 +6429,7 @@ Music-service accounts as embedded in the household map: per-account nickname, s
   - **states:** `retry`, `conflicted`, `updated`, `added`, `deleted`, `invalidCloud`, `invalidCloudSerial`, `invalidCloudReason`
   - **validation:** cloud record requirements {service ID,service uuid,account type,metadata,cloud vector clock,serial number,account ID,household vector clock}: "Discarding invalid cloud record: %s \[uuid=%s, hh=%s, cloud=%s\]"; accounts.xml + vcCloud vector clock; zpam log fmt
 
-</details>
+:::
 
 ## `netconfig_fsm`
 
@@ -6437,21 +6437,21 @@ Music-service accounts as embedded in the household map: per-account nickname, s
 
 The network bring-up state machine, driven by a shell script: each call takes a mode, covering join the mesh, join a home WiFi, run the open setup hotspot, check credentials without committing, or run as an island with no uplink. This script is why the player can move between Sonos's mesh and plain WiFi without a rewrite, because the whole reconfigure is one mode switch.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** /usr/sbin/netconfig.sh: the network-mode FSM driver
 - **modes:** argv1 {sonosnet, station, satellite, sta_and_sat, open, credcheck, deauth, wacexit, island, up} + WAC family {wacstart, wacapclose, wactimeout, waccredcheck->credcheck, wacapopen->open, wacstation->station} + argv2 STP {stp_disable, stp_enable} + PARAM1-4 payload
 - **decoded_semantics:** `open = the setup SoftAP: athconfig setopenmode+setchannel (default 2412MHz, /jffs/debug/openchannel override), setmac -L, ifconfig ath0 10.69.69.1: the 10.69.69.x bootstrap AP confirmed`, `credcheck = credential validation WITHOUT join: stasetenable ath0 2 + wpa_supplicant -B, then exits: used by waccredcheck to test new WiFi creds against /ramdisk/tmp/netsettings_check.txt before committing`, `deauth = bridge+MAC only teardown (no supplicant)`, `island = SonosNet with NO ethernet uplink (eth0/eth1 down, br0 uplink=0)`, `sonosnet = mesh member: eth0+eth1 bridged uplink=0 + netmanager_extender_flags=0 sentinel`, `station/satellite/sta_and_sat = wpa_supplicant -D sonos -i ath0 -b br0; satellite/sta_and_sat with PARAM1=atheros ALSO write /var/run/htapsatwpa.conf {ssid=PARAM2, psk=PARAM3, bssid=PARAM4?, priority=4, scan_ssid=1, eapol_version=1, ap_scan=1} and stassidlistadd the SonosNet-5G backhaul AP: the bonded-satellite joins the primary's ath1 network as a station`, `PrimaryUUID netsettings key present => ISHTSATELLITE=1: setprimaryuuid ath0 + satenable 1 + ath1 down. Otherwise IS_HT_WIRELESS_PRIMARY arch attr => ath1 becomes the HT 5G AP: setuuid/acs/acslmenable/wepkey/hhid`, `UUID construction proven at shell level: RINCON_<eth0 MAC>0<Port> where Port = keyval ^Port /opt/conf/anacapa.conf`, `netsettings keys read: {WEPKey, HouseholdID, Channel, PriorityBridge(->br0 prio 28672/0x7000 else 38912/0x9800), BonjourName(->DHCP hostname else SonosZB if IS_BRIDGE else SonosZP), PrimaryUUID, ForceMeshDisable(->blockadvertisedpath)}; file /jffs/netsettings.txt or /ramdisk/tmp/netsettings_check.txt (credcheck/station)`, `bridge tuning: sethello 1.0 setfd 4.0 setmaxage 6.0; uplink br0 1 for routed modes, 0 for mesh`, `DHCP: udhcpc -f -s /etc/dhcp.script -i br0 -w ath0 -h HOST -d access.bestbuy.com: domain arg literally 'access.bestbuy.com' (legacy retail-demo remnant); island uses -fF -W 20; station modes add -z flag; SIGKILL stale udhcpc after 5s`, `waitforip lifecycle: touched for non-WAC non-open modes; cleared by dhcp.script bound/renew or /jffs/debug/static_ipaddr path`
 - **debug_hooks:** `/jffs/debug/testpoints.sh sourced when /proc/sonos-lock/exec_enable==1: arbitrary shell injection point gated on device unlock`, `/jffs/debug/wpa_supplicant.conf overrides generated config (output -> /dev/null)`, `/jffs/debug/supplicant -> wpa_supplicant -dd -t -K verbose`, `/jffs/debug/wpa_supplicant + exec_enable -> replaces the wpa_supplicant BINARY itself`, `/jffs/debug/static_ipaddr -> static br0 IP, skips DHCP, clears waitforip`, `/jffs/debug/openchannel -> open-AP channel override`, `SSID_FILE=1 /wifi/wpaconfig /jffs/net/settings/ssidlist.txt (or /var/run/softapssidlist.txt for recovery): the UseSSIDList provisioning path`, `wacd spawn: wacstart/wactimeout -> /wifi/wacd \[-timeout\]; non-WAC modes kill wacd`
 - **shutdown:** etc/init.d/rcK: touch 10 /var/run/stop* sentinels {stopupgrade,stopledmgrd,stopdiagapp,stopsonospowercoordinator,stopmdns,stopdiagprocessd,stopanacapa,stopchrony,stopsddp,stopnetstartd} -> TERM {sonosledmgrd,sonosdiagd,sonospowercoordinator,anacapad,chronyd,sddpd,dropbear,netstartd,mdnsd,udhcpc,rngd} -> sync -> KILL -> ampmcu-down.sh -> umount /jffs. Srandom/Krandom carry /jffs/random-seed across reboots.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ /usr/sbin/netconfig.sh + /etc/init.d/{rcK,Srandom,Krandom}; shipped shell
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `network`
 
@@ -6459,14 +6459,14 @@ The network bring-up state machine, driven by a shell script: each call takes a 
 
 The network layer as a whole: the player's general networking machinery beneath the specific protocols, covering sockets, interfaces, and the shared plumbing. It's the collective term for everything from interface monitoring to the proprietary mesh to the startup coordinator.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; config keys HTPrimarySupportsAPOnly, UseSSIDList
 
 - **netsettings_mgr:** file netsettings.json + HHSettings + schema upgrade; 4 PSK classes {HhPsk,ControlPsk,RoomEncPsk(room name encrypt),LanSwapPsk} each + Backup variant, rotation "PSK rotation successful (HH/Control/RoomEnc/LanSwap)" + version bump; encoding {SonosNet key,DTLS HH PSK}; netstartd push {netsettings,PSK,channel change "Pushed SonosNet channel change to %u for %u ms"}; SonosNet-disable test-mode auto-revert FSM {sn_en,sn_dis,sn_dis_test}: "schedule automatic revert in %d seconds"/"SonosNet was re-enabled"/"Disable succeeded (probably)"/"automatic revert failed!"; SSID protection "Registering for next topology update to protect SSID"; "Pending netsettings.json update discarded after replicating"
 - **network_test:** networkTestMgr: nettestresult.txt; cycle {"waiting %d sec before disabling wifi","disabling wifi for %d sec","enabling wifi",connect-open,complete:%s} + abort paths
 
-</details>
+:::
 
 ## `network_tools`
 
@@ -6474,19 +6474,19 @@ The network layer as a whole: the player's general networking machinery beneath 
 
 The /tools diagnostic page: HTML forms that run ping, traceroute, nslookup, and a discovery announcement against a host you enter, plus a packet-capture endpoint. A built-in network troubleshooting toolkit served by the speaker itself.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 forms {"Tools for debugging network issues"}; /bin/ping -c 3 + /usr/bin/traceroute + nslookup + /mdnsannounce; POST params {host,csrfToken}; /pcap streams trace.pcap (Content-Disposition attachment) via /bin/pcap - not (host %s and port %d) exclusion filter
 
 - **name:** network diagnostic tools page
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e86814; tools page
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `nodetx`
 
@@ -6494,13 +6494,13 @@ forms {"Tools for debugging network issues"}; /bin/ping -c 3 + /usr/bin/tracerou
 
 The inter-player transmit transport: packet-range tracking, resync operations, and the resend machinery the source side uses to serve late joiners and packet loss. Together with the receive side it forms the reliable-ish audio multicast layer, and it's how this player's status goes out to the household.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; control-frame type names {boundaryX,schedResyncX,immedResync,schedResync,endTX} + debug line '// %3u %d.%06d %u:%s'; ITBTT_UNKNOWN
 
 - **ops_counters:** ops {schedResyncX,immedResync,schedResync,endTX}; ITBTT types {ITBTT_UNKNOWN,ITBTT_CHSRC,ITBTT_LINEIN,ITBTT_VLI}; crossfade state for packetId {lPacketNum-1/lPacketNum-2 fallback,no frames,crossfade on/off}; "checkAndMarkFrameDiscontinuity: %lldus"; "getLocationAtTime earlier than oldest valid packet"; NACK {"nack from %s count=%u, min=%u, max=%u","not transmitting %u stale packets","ignore NACK packet with incompatible protocol version"}; perf-counters {rsend=DataBlock sends,nackr=resync NACK,nackd=data NACK,nacku=unsendable NACK} + "Histogram of transmitted packet info"; params {transmit port,dstaddr unicast/multicast,lastpktid}
 
-</details>
+:::
 
 ## `player_settings`
 
@@ -6508,19 +6508,19 @@ The inter-player transmit transport: packet-range tracking, resync operations, a
 
 The player-settings manager: the per-player configuration keys covering volume mode, mono mode, wireless and power-save toggles, network mode, line-in, EQ, gain trim, and zone attributes. These are the per-device keys the settings surfaces map onto.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePolicy,bluetoothPolicy,networkingMode,lineIn,eq (treble),eq (bass),eq (loudness),gainTrimDB,zone attributes}; volume modes incl PASS_THROUGH ("EQ cannot be adjusted in PASS_THROUGH volume mode") + "Device does not support fixed output"; "Satellites not supported; configure primary device"; "monoMode (not supported in setup)"; wifiDisable reasons {reason unknown,netstart refused,no Ethernet carrier,meshDisable (netstart refused)}; "Netstart failed to modify meshDisable setting"; "Unable to set setting(s): ... (unsupported)"; actors {PlayerSettings,PlayerSettingsManager,playersettingsmgr,gmSat,ukwnt}
 
 - **name:** PlayerSettingsManager (settingsv2)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee5144; playersettings block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `product_models`
 
@@ -6528,19 +6528,19 @@ keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePoli
 
 The product codename table: the development names like Playbar, Bravo, and Play1 mapped to numeric model IDs. Use it when a log or config names a codename you need to map to a product, and it's how the firmware knows which hardware it's running on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 codenames {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-T,TitanWOW-P,TitanWOW-G,Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Optimo2,Optimo1}; ZPS ids {ZPS11,ZPS12,ZPS13,ZPS14,ZPS15,ZPS16,ZPS17,ZPS18,ZPS19,ZPS20,ZPS21,ZPS22,ZPS23,ZPS24,ZPS26,ZPS27,ZPS31,ZPS35,ZPS37,ZPS38,ZPS43,ZPS54,ZPS55,ZP120,ANVIL}; dspconfigparam + "ConfigParam lookup from player model %d failed"
 
 - **name:** product codename + ZPS model table
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f24808; model table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `protocol_info`
 
@@ -6548,19 +6548,19 @@ codenames {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWO
 
 The format-capability strings: the address-scheme whitelist each paired with a content-type filter, exchanged when devices negotiate what they can send or play. Acceptance of a 'play this' command is gated by this list, so an unsupported scheme never reaches the engine.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotify,sonos.com-rtrecent,x-rincon,x-rincon-mp3radio,x-rincon-playlist,x-rincon-queue,x-rincon-stream,x-sonosapi-stream,x-sonosapi-hls,x-sonosapi-hls-static,x-sonosapi-radio,x-rincon-cpcontainer}; mime types {audio/mp3,audio/mp4,audio/x-m4a,audio/mpeg,audio/mpegurl,audio/x-mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/dash+xml,audio/mpeg3,audio/wav,audio/x-wav,audio/wma,audio/x-ms-wma,audio/aiff,audio/x-aiff,audio/flac,application/ogg,audio/ogg,audio/x-spotify,audio/x-sonos-recent,audio/x-sonosapi-radio}; vars {SourceProtocolInfo,SinkProtocolInfo,CurrentConnectionIDs}; actors {ConnectionManagerServer,ConnectionManagerRenderer}
 
 - **name:** SourceProtocolInfo/SinkProtocolInfo CSV
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb87e4; protocolInfo CSV
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `queue_schema`
 
@@ -6568,19 +6568,19 @@ schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotif
 
 The track-queue status document: the fields describing a queue's capacity, usage, version stamp, owner, and policy. The capacity statistics are diagnostic gold for support, and the update counter is what event subscribers watch for queue edits.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 <Queue Name='%s'><EntriesMax>%d</EntriesMax><EntriesUsed>%d</EntriesUsed><EntriesHighWater>%d</EntriesHighWater><StringTableSize>%d</StringTableSize><StringTableUsed>%d</StringTableUsed><StringTableHighWater>%d</StringTableHighWater><UpdateID>%u</UpdateID><ObjectID>%s</ObjectID><OwnerID>%s</OwnerID><Policy>%d</Policy><CloudQueueHost>%s</CloudQueueHost></Queue>; <TrackQueueSummary>Shared/Private</TrackQueueSummary>; GPM {com.google.RemoteSonosReceiver,Google Play Music}; metadata pipeline ladder: 'Md incomplete. Getting cached metadata' -> 'Md still incomplete. Loading from CSV extra md' -> 'Md is now complete from cache. Calling pmd.initFromTrackMd'; 'Updated duration for track %s at index %d to %lld','Updated extra MD for track %s at index %d','metadata cache unable to load %s','metadata load timed out for %s','Fetching metadata for tracks %u - %u. Fetch type %d'; stream open ladder 'Unable to open stream %s: max redirects(%d)','Failed to open %s (%d)','Failed to open %s (%d) Trying MMS,RTSP next'; trueroom tone injection 'x-rincon-configmode:speaker-detect{.mp3}','Adding Trueroom tone track URI to the queue','trueroom_config_mode'; browse 'browse aborted (r:%d c:%d l:%u nr:%u nxt:%u tot:%u)','could not find service for SID=%d'; muse post errors 'failed to set HTTP headers for trackQueueAdditions','sending %s to %s','MUSE POST error: %s','MUSE POST: unable to parse response','unable to base64 decode response'
 
 - **name:** track-queue status XML
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea9620; queue schema
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `radiolog`
 
@@ -6588,13 +6588,13 @@ The track-queue status document: the fields describing a queue's capacity, usage
 
 The radio diagnostic surface: radio-related event logging exposed through the status pages, covering station tuning, stream errors, and metadata events. It's useful when a stream plays but metadata or tuning behaves oddly.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; compact per-station settings telemetry 'GtAMV%hd LV%hd RV%hd B%hd T%hd L%c F%c SS%hd LEV%hd SW%c SC%hd SP%hd DL%hd SL%hd AD%hd' (radioStationLog): one line per station change packing AM volume/left/right/bass/treble/loudness/fixed/stereo/line-in-level/sub/surround/channel/delay/sub-level/dialog fields
 
 - **detail:** flags {recurse,redir,unsupported}; rc_impl settingsWriteback
 
-</details>
+:::
 
 ## `rc_impl`
 
@@ -6602,19 +6602,19 @@ The radio diagnostic surface: radio-related event logging exposed through the st
 
 The rendering-control engine's event vocabulary: volume-changed, ducking, stereo-pair-state, and tuning-changed notifications the sound-control service publishes internally. It's the source of the updates apps see when the room's sound settings move.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,StereoPairStateEvent,TrueplayCalibrationChangedEvent,TrueplayStateEvent,RcNotifyGrcEvent,FeatureConfigChangedEvent,LocalPlayerChangeEvent,UpdateSonarEvent}; "Delivery of %s(%u) event cancelled"; RStringTRequestManCB; settingsWriteback; roles {HT_BONDED_MASTER,HT_BONDED_SATELLITE,UNBONDED_DEVICE,Master}; HT params {SubGain,SubCrossover,SubPolarity,SubEnable,VolumeScalingFactor,HeightChannelLevel,DialogLevel,SpeechEnhanceEnabled,SupportsMaxDialogLevel,SurroundLevel,MusicSurroundLevel,SurroundEnable,SurroundMode,AudioDelay,AudioDelayLeftRear}
 
 - **name:** RenderingControl implementation (rc_impl)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e87630; rc_impl block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `registration`
 
@@ -6622,11 +6622,11 @@ events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,St
 
 Local device registration: the on-network enrollment half that precedes cloud registration, tracking each device's registration state inside the household. It's the flow that makes a device known to the account and to the other players.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **secreg_fsm:** endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {"Invalid registration signing key in IPC payload","Registration signing key set/cleared"}; "Household customer ID \[%s\] in conflict with local device \[%s\]"; "regState changed %d -> %d"; "Transfer mode old (e:%d) new (e:%d)" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; "removed invalid cert"; "Unexpected 401 response"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}
 
-</details>
+:::
 
 ## `registration_machine`
 
@@ -6634,7 +6634,7 @@ Local device registration: the on-network enrollment half that precedes cloud re
 
 The state machine driving the secure-registration protocol: sequential state transitions with timeout and retry handling, plus error capture for the secure channel. It orchestrates the two-phase enroll from unregistered to enrolled.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** regdevicecert.cxx registration/secure-reg FSM
 - **cloud_api:** `/product/v2/households/%s/players?action=refresh`, `/product/v2/households/%s/players?action=complete&token=%s`
@@ -6642,7 +6642,7 @@ The state machine driving the secure-registration protocol: sequential state tra
 - **signing:** Registration signing key set/cleared via IPC payload ("Invalid registration signing key in IPC payload")
 - **events:** NewCertRegistrationEvent inprocess-event {SonosID}; newRegisteredCertSonosIDLocked; RegisteredCertSonosID/RegisteredCustomerID keys; Household customer ID conflict/changed detection
 
-</details>
+:::
 
 ## `rendering_control`
 
@@ -6650,13 +6650,13 @@ The state machine driving the secure-registration protocol: sequential state tra
 
 The rendering-control engine: the internal model of volume, mute, and tone per channel that the volume and tone commands manipulate. The per-speaker sound controls are all handled through this subsystem.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **volume_engine:** per-zone FSM: {override\|normal} volume + deferred volume/mute + ducking; math "DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)" + "Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl; LastChange also carries SonarEnabled/SonarCalibrationAvailable; fast-volume path 'sonosAsyncFastStateCond'+'Unknown fast volume directive (%d)'+'type:%s, value:%d'; per-ch trace 'ch:%s, adj:%d, vol:%u','ch:%s, loudness:%d','ch:%s, type:%s','fixed:%d, level:%u','Ramp to %u, interval %u ms','Scaling factor set to %d'; event loop 'Queued %s(%u) from "%s": { %s }','Attempt to queue event %s(%u) from "%s" with no eventloop configured'; sonar calibration 'sonar consistency: %s','primary=%d enabled=%d, consistent=%d all_present=%d','Available Sonar Calibration ID changing: "%s" -> "%s"','Device has never been room_calibration-calibrated','AudioCore Sonar calibration load error'; safe-listening clamp restore: 'system volume being restored to safe listening level (%u)' / 'failed to restore system volume to safe listening level'; playback relay 'Error sending skipToNextTrack command to local: %s' + 'playback#skipToNextTrack response: %s' + 'executing play' + 'playback started (cid: %s)'
 - **rc_impl_stp:** SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate "This command is allowed only on primary" + "Muse command forwarding failed"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber
 - **led_feedback:** button feedback {"in start music play feedback from 0x%x","led feedback for timeout waiting to start play/pause","waiting-to-play-music feedback:%d","waiting-to-pause-music feedback","unsupported/unhandled play feedback action:%d","cleared fast volume zero after %s","pause confirmed by PlaybackStateChangedEvent"}; LocalPlayURI errors {RC control URI,mute+volume state,restore default volume,set AVTransportURI,start playback,coordinator transport state}; PLAYING/TRANSITIONING states
 
-</details>
+:::
 
 ## `reporting`
 
@@ -6664,12 +6664,12 @@ The rendering-control engine: the internal model of volume, mute, and tone per c
 
 The reporting and telemetry umbrella: usage metrics, dropout events, TV sessions, Spotify stats, and the uploader that ships them. Each subsystem's report schema is documented separately, and this is the shared submission plumbing.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **crashdump:** sentry uploader: dump-proc-anacapa w/ build.version, sentry\[release\], sentry\[tags\]\[%s\], %s\[sonosID\]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; "Failed to write attachment %s to sentry upload"; htsnk dump
 - **play_report:** RPlayReportSubmitter: submitPlayReport/playReport/nowplaying endpoints; fields {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId,codec,originDelay,outputDelay,endReason,skippedTrack}; "final report" notify; "periodic report interval set to %lld seconds"; spotify-connect serviceType
 
-</details>
+:::
 
 ## `rootfs_boot_chain`
 
@@ -6677,7 +6677,7 @@ The reporting and telemetry umbrella: usage metrics, dropout events, TV sessions
 
 The boot chain is layered and safe-by-default: mount the virtual filesystems, lay down the RAM disk, pull in the kernel drivers, check whether a factory reset is being asked for, then bring up networking and the daemons, with a developer override file that can take over on unlocked units. Every boot decision you'd want to trace runs through this one script.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {run_sshd.sh,runledmgrd,runnetstartd,runmdns,rundiagprocessd,runanacapa,runchrony,runsddp} + secure_console_login.sh ttyS0; ctrlaltdel=reboot; shutdown=init.d/rcK. All daemon logs go to /dev/kmsg.
 
@@ -6685,14 +6685,14 @@ inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {ru
 - **configure_steps:** `mount proc+sysfs, ifconfig lo up, mount ramfs /ramdisk (var/,var/run,var/log,tmp/,tmp/pub,optlog,smb live on RAM)`, `mtd links: /dev/mtd/0->mtd0, /dev/nandjffs->mtdblock4, /dev/jffsmtd->mtd4; sonos_mount_jffs mounts /dev/nandjffs at /jffs (noatime)`, `insmod sonos_device.ko, chk.ko, hwevent_queue.ko, audiodev.ko, ir_rcvr.ko (conditional)`, `touch /var/run/sonosledmgrd.flash_booting_led; /sbin/frcheck -> factory-reset check: rc!=1 -> sonosledmgrd --fr (FR LED flash); rc==0 -> netstartd --hard-reset; rc==2 -> netstartd --soft-reset`, `create jffs trees: app/{run,log,debug,debug/dsp,settings}, sys/{run,log,debug,settings}, net/{run,log,debug,settings}, persist`, `optional /etc/dsmf_setup; /bin/mdputil -B (mfg data init); hostname=Sonos-<SERIAL\[:12\]> via mdputil\|keyval ^SERIAL\|cut`, `if /jffs/Configure exists -> exec it INSTEAD of remaining steps (whole-boot override hook)`, `rmem_max=262143, icmp_echo_ignore_broadcasts=0`, `wifiType=N; insmod /wifi/N/{adf,asf,ath_hal,dfs?,ath_driver}.ko + /wifi/bridge.ko: Atheros N stack`, `setmac; ifconfig eth0 0.0.0.0; touch /var/run/waitforip`, `UNLOCK PATH: /etc/unlocked_build_flag OR /jffs/system/Configure.dev -> ln -s /opt/htdocs_locked /tmp/htdocs_locked + touch /tmp/device_unlocked_flag; Configure.dev then executed every boot (dev hook)`, `seed /jffs/hosts from /etc/hosts.orig; Krandom`
 - **notes:** dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init).
 - **security_files:** etc/fstab: rootfs mounted from /dev/mapper/crroot (device-mapper 'crroot' (dm-verity/dm-crypt read-only root; the shipped squashfs is integrity-protected at the block layer). /dev/shm tmpfs noexec,nodev,nosuid mode=600. etc/passwd: dedicated users {chrony(19),anacapa(20)} locked with '!' in shadow; root has a shipped MD5crypt hash ($1$AugXR3h8$...)) a fixed factory root credential, reachable only after unlock (dropbear getty are gated on device_unlocked_flag). chrony.conf: pools 0-3.sonostime.pool.ntp.org iburst maxsources 1, driftfile /jffs/chrony/chrony.drift, makestep 60 1, port 0 (no NTP serving). dhcp.script (udhcpc): bound/renew writes /etc/resolv.conf + ifconfig + default-route + multicast route, then removes /var/run/waitforip: the boot handshake anacapad waits on.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ /etc/Configure + inittab + scripts/; shipped shell files
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `rootfs_data_files`
 
@@ -6700,19 +6700,19 @@ inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {ru
 
 The firmware ships with a handful of data files that do real work: the speaker's audio-tuning coefficients, the factory IR codes for TV remotes, a seed music-service list that gets replaced by the cloud, the button-click sounds, and the web pages the status server serves. Small files, but they define a lot of the out-of-box behavior.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 \["opt/dsp/S9_array.xml: Playbar woofer-array beamforming definition: <arrayDefinition> with 3 <config> variants per hardware rev {Production_H_design123, Production_VA_design123, Production_VB_design123}; each is a 'woofer' driverset of numChan=6 x numTaps=16 with 3 arrayDefs {ArrayLeftLows,ArrayRightLows,ArrayCenterLows}: 96 hex-float weights + 16 alphas (L/R=-0.7775, C=-0.9303) + 6 per-channel delays {44,33,8,14,0,0} / mirrored R / {0,19,63,54,49,19} C. L/R weight lists are palindromic mirrors (steered dipole pair). Confirms 6-channel woofer array with stereo beamforming.", 'opt/ir/irconfig.txt (shipped NEC-family code map: repeat=4f 13 05; vol_up=2,25 01; vol_down=2,27 01; vol_mute=2,29 01) the factory-default TV remote codes.', 'opt/musicservices/musicservices.xml: bootstrap seed contains ONLY TuneIn: <Service Id=254 Name=TuneIn Uri=http://legato.radiotime.com/Radio.asmx SecureUri=https://... Capabilities=0><Policy Auth=Anonymous PollInterval=0>; the real catalog is fetched at runtime.', 'opt/htdocs: serving root: /xml/*.xml (16 advertised SCPDs + device/group descriptions + factory_reset.xsl + review.xsl), review.js, perfcounters.js, img/icon-S9.png; pub -> /tmp/pub symlink (ramdisk; Configure creates /ramdisk/tmp/pub) so web-uploaded artifacts live in volatile RAM.', 'opt/localsettings/*.json: all 6 attrdata files (global/playback/playerBasic/playerUI/security/settings_targettypes) ship as EMPTY 0-byte placeholders; the attribute schemas are compiled into the binary, files are runtime-populated.', 'opt/buzzers: button-feedback audio {0,1,100,101}.mp3 + speaker-detect.mp3 (x-rincon-buzzer:// URIs).', 'opt/timezones/timezones.xml: fallback tz table (cloud feed overrides via update-timezone.sonos.com).'\]
 
 - **name:** shipped rootfs data files: DSP array, IR codes, musicservices seed, web UI assets
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ opt/; shipped files
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `saved_queues`
 
@@ -6720,20 +6720,20 @@ The firmware ships with a handful of data files that do real work: the speaker's
 
 The saved-queue file format: Sonos playlists stored as a compressed XML document on the device, written atomically and validated on load. 'Sonos playlists' are exactly these files, and this is the machinery that stores, edits, and retrieves them.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, application/gzip accepted); XML <SavedQueues LastUpdateDevice="%s" Version="%u" Next="%s"><SavedQueue Id= Curated= NumTracks=%u><Track URI= MD=></SavedQueue></SavedQueues>; validation: corrupted track count, invalid queue-id/next-id/mismatch, invalid version/numtracks, boot file invalid; migration "Migrating ObjID=%s SN=%u from SID: %u to %u"; SQ:%s objid prefix; <res protocolInfo="file:*:audio/mpegurl:*">; album-art: "No num tracks found, so emitting the first four artworks found"; mobile- playlist prefix; "Add Track Move range: %u-%u to %u"; replication push on save | export writer f_10478f28(obj,dest,gzipFlag): serializes SavedQueues to a .tmp path then selects MIME application/gzip vs text/xml - the queue-backup/export path feeding the .rsq/gzip artifacts
 
 - **name:** SavedQueues .rsq format
-<details markdown="1"><summary>Evidence (2)</summary>
+::: details Evidence (2)
 
 - @ 0x10ed329c; .rsq schema literals
 - @ 0x10478f28; export fn: builds .tmp filename, fopen64 w, writes </SavedQueues>, r5 flag selects application/gzip vs text/xml
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sentry_upload`
 
@@ -6741,19 +6741,19 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
 
 The crash-dump pipeline: upload endpoints plus the daemon proxies, collecting dump files for each daemon and shipping them to the crash-upload service. It's how crash reports reach Sonos's error tracking after a failure.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; dumps {anacapad.core,anacapad.dmp,sonospowercoordinator.dmp,btmanager.dmp,netstartd.dmp,/jffs/app/debug/sonosledmgrd.dmp}; sidecars {.properties per daemon,sonospowercoordinatorCrashCount,netstartd.count}; attachments {watchdog.log,watchdog.dmesg,/opt/log/anacapa.hdmi.log,/opt/log/anacapa.tv.log,/tmp/AirPlay.log,/opt/log/btmanager.log,/opt/log/btservice.log,/tmp/backtrace}; opt-out flag prevent_crashdump_upload + /tmp/anacapa_prevent_crashdump_upload; sentry schema {sentry\[release\]=build.version,sentry\[tags\]\[%s\],sentry\[user\]\[id\],%s\[sonosID\],%s\[hhid\],%s\[serial\],%s\[upload_sw_version\],%s\[hardware_version\],%s\[model\],%s\[upload_spotifyesdk_version\],%s\[play_state\],%s\[watchdog_crash\]}; form-data + text/plain; charset=UTF-8/us-ascii + application/octet-stream; gzip stream "writeStream failed - Bytes compressed: %d/%d"; play-state file /tmp/crashed_play_state + htsnk; results {"Minidump \[%s\] uploaded to sentry.io. UUID: %s","Coredump \[%s\] successfully uploaded","didn't finish upload; http resp: \[%d\]; last error: \[%s\]","did not return a UUID","No URL found"}; dump file %s-anacapa_dump.gz + originator + Version:
 
 - **name:** crash-dump/sentry pipeline
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea7c14; sentry block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `settings`
 
@@ -6767,7 +6767,7 @@ The settings umbrella: household settings, player settings, replicated settings,
 
 The music-library share indexer: the engine that walks your music folders to build the searchable index, handles re-sort and re-index requests, and reports its progress through the library events. It's the worker behind 'update music library'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,"Turning resort request into full reindex"}; reindex "request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)"; schema <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange><Share Path UserName Password VerifiedValidProtocol Id>; errors {"Unable to find share with given ID","Failed to remove/add share","The share path provided already exists","need to recover ix=%d ver=%d","indexing reported err=%d for %s","Mounting failed.","Local index storage error.","Remote file share error.","Indexing canceled.","connection failure","Cannot exceed the maximum number of allowed shares","The path provided is subsumed by an existing share","Path is malformed","Access to share is denied","Unsupported share protocol."}; lifecycle {"replication failed","replication skipped: local fmt %u, remote fmt %u","initial scan for new files failed","Would have performed scheduled reindex but shares unchanged","reindexing failed","reverting desired state: %d","processing index complete (c:%d i:%d f:%d lc:%s) - %u","skipping commit attempt: m_bCommitted/m_bWait/m_bTerminate","initialized index, scheduling advertise","commit %u","processing index: source (%s:%u)","recovered ix=%d with ver=%d"}; R_BrowseByFolderSort,Tracknum; cancellation taxonomy: 'Indexing cancelled (interrupted)'/'(file error)'/'(share error)'; recursion guards 'Exceeded recursion limit on share %s'/'Exceeded recursion limit (%d) at //%s'; file states 'Unplayable file: %s','Inaccessible file: %s'; itplist dedup 'Skipping itplist with duplicate size and mtime','More than %d itplists seen, skipping some'; title index emit "<Title track='%u'><File><Leaf><Album><Artist><Composer><Genre>"; stats 'Directories Reviewed: %d','Files Reviewed: %d','Unknown type files: %d','Unplayable files: %d','Inaccessible files: %d'; 'Track data too large!','Call made with NULL table','initialization of sorts failed','took %ldms to initialize indexes'; UPnP server-type matching: 'Rhapsody Media Server', 'Windows Media (%s)', 'Windows Media Player Sharing' matched via modelName/modelNumber; static pinyin syllable table (cheng..shang, quad-duplicated): CJK romanization/collation for search
 
@@ -6777,14 +6777,14 @@ ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,"Turnin
   - **summary:** iTunes library XML importer ('iTunes Music Library.xml'/'iTunes Library.xml'): ITP Parser validates the plist/dict stack: 'ITP Parser: Stack underrun','mismatched end tag atKey -- expected key, got %s','mismatched end tag atTrack -- expected dict','atPlaylistID-- expected integer','atPlaylistPersistentID -- expected string','atPlaylistExclude -- expected true','atPlaylistTrackID -- expected integer','atPlaylist -- expected dict','atTracks -- expected dict','atPlaylists -- expected array','atPlaylistName -- expected string','Stack depth exceeded','ITP parser exception','XML parse failed: %s (%s)'.
   - **persistence:** 'Out of space processing playlist "%s", track %d'/'Out of space processing playlist "%s"','Ignoring playlist "%s", m_bIgnorePlaylist = %s','Ignoring unnamed playlist, m_bIgnorePlaylist = %s','Error writing playlist "%s", m_bOutOfSpace = %s','Skipping playlist: (%s)','unmatched playlistsEnd ','duplicate playlistsEnd','Write error: %s%s%s','Could not fit any of the pendingplaylists. Available slots: (%d) for file (%s)','Out of space processing file (%s)','There are no playlists under (%u) tracks (%s)','Requested %u tracks. Enqueued %u tracks from position %u / %u'.
   - **abstract_file:** Abstract-file store for playlists: 'Error writing offsets to abstract file','Failed to seek abstract file (errno = %d)','Abstract file track offset out of bounds','Failed to write URI atoms to abstract file','lookup resulted in path w/o share: %s','lookup resulted in path w/o share %zu times in a row','ignoring non-local track %s','Out of space processing track (%d - %s) - could not atomize'/'could not write','Failed to open file (%s)','Out of space processing file (%s%s%s%s) (%s)','Write error or invalid processing file (%s)'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e8a004; share indexer
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sibling_daemons`
 
@@ -6792,19 +6792,19 @@ ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,"Turnin
 
 The sibling-daemon interface: how this program relates to the player's other system processes like the network daemon and updater, covering what's delegated to whom. The multi-process split means this program hands off whole feature areas, and knowing the sibling set explains why some work happens elsewhere.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 \["opt/bin/anacapactl (POSIX sh): the anacapad supervisor (launch line 'anacapad -c /opt/conf/anacapa.conf -u anacapa -C all=eip' (privilege drop to user anacapa, capability keep-set eip); pid file /opt/log/anacapa.pid; {start,restart} run under gdb ($SONOS_GDB_ARGS --args ... -d 10)) the debug launch path; {start-demo,restart-demo} exec directly; start-demo wraps exec with DropCaches (echo 3>drop_caches) on fenway/connectx only; stop=SIGTERM+wait, hup=SIGHUP; LD_LIBRARY_PATH=ANACAPA_LIBDIR=/opt/lib.", "wifi/netstartd (264KB PPC ELF): network-setup daemon with reset modes {--hard-reset,--soft-reset,--qareset,--qareset-lite,--preserve-system}: Configure dispatches frcheck rc here; full SonosNet FSM {NetManagerSonosNetBaseHandler,SonosNetHandler,SonosNetWithPathHandler,SonosNetNoWifiHandler,NetmanagerEventReconfigSonosNet\[Disabled\]}; IPC to anacapad: 'anacapa IPC: setting SonosNet frequency to %u' + 'frequency %u not supported' + SonosNet disable relay; persisted hint file %s/net/settings/sonosnet_hint; SoftAP accept-list /var/run/softapssidlist.txt; sonosFactoryResetFull + WIFI_RESET log tags.", 'wifi/wacd (67KB): wireless-audio-channel daemon (WiFi channel scan/score); wifi/wpa_supplicant + wpaconfig + sta-assoc; wifi/athconfig + wifi/N/{adf,asf,ath_hal,dfs,ath_driver}.ko + radartool: Atheros stack; wifi/bridge.ko for br0.', 'usr/sbin/keyval (67KB): the manufacturing-data KV CLI used by mdputil pipelines (^REGION,^SERIAL reads).', 'opt/bin/sonosledmgrd (1.2MB): LED manager: --fr factory-reset flash mode invoked by Configure.', 'lib/ inventory: 40 shared objects incl libsonosutils(IPC+reset+archinfo), libsonos-mdp(mfg data), libsonos-root-cert-bundle.so.2 + libsonos-certval(rcb), libsonoscrypto, libsonossbcpacket(satellite SBC), libsonoseventreporter, libsonosminiutils, libhwmessagelib, libflash, libtomlc99, libprotobuf-nanopb, libdcadec(DTS), libsmb2, libmbedtls/mbedx509, libavcodec+libmpg123(WMA decode), libnl-3/genl, libdns_sd, libpcap, libsqlite3', 'wacd decoded: Apple WAC (MFi provisioning) (builds a Base64-encoded WAC SSID, creates the Apple Device IE, reads MDP page1/page2 for model/variant, then "Setting up IE and bailing") it only programs the AP IE and exits; comms via /tmp/netstartd_wac.ipc sending {WAC AP Open,AP Close,Done,Error,Stop,Timeout} msgs; SIGUSR1 simulates timeout; -timeout flag.', 'sonosledmgrd decoded: R_LED_* mode-mask enum {HHID,AUDIO_OFF,BEGIN_SETUP_MODE,BREAK_POP,BROKEN_DEVICE,CONTROL_FEEDBACK,DEMO_CONFIGURE_IR,DEMO_MODE,FAULT,IDENTIFY_PLAYER,IN_SETUP_MODE,JOIN_HH\[_OPEN\],MUTED,PLAYING,SHUTDOWN,TRANSFER_REGISTRATION,UPGRADE,WAC,WAC_TIMEOUT,WAITING_TO_PAUSE,WAITING_TO_PLAY,WARN} + LED_MODE boot patterns {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH\[_OPEN\]}; pattern record {cksum,flags,repeats,num_steps,led_ids bitmask}; HAL ops hal_led_{open,close,write,flash,brightness,diag} + captouch brightness + feedbackFlash.', 'Tail findings: sbin/watchdog is a busybox alias (kernel watchdog ioctls); usr/sbin/setmac sources MACs from /tmp/wifi_card_mac_addr (-S bridge MAC, -L open-AP MAC); btmanager is ABSENT on the 86.10 m9 rootfs (S1-era daemon, gone in this build); sbin/{mdnsd,sddpd} present (Bonjour + Control4 SDDP discovery as documented); etc/default, etc/dhcpc, etc/rc.d/rc*.d, opt/lib, usr/share, jffs mountpoint all ship EMPTY: runtime-populated.'\]
 
 - **name:** sibling binaries: netstartd, wacd, anacapactl, keyval, sonosledmgrd
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ opt/bin + wifi/ + lib/; shipped binaries
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `smapi_client`
 
@@ -6812,20 +6812,20 @@ The sibling-daemon interface: how this program relates to the player's other sys
 
 The music-service client: the outbound side of service integration, covering session IDs, auth-token refresh, device auth tokens, and metadata fetching over each service's own interface. It's how the player logs into and talks to Spotify-style backends on your behalf.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 action namespace http://www.sonos.com/Services/1.1|{...}; actions {getSessionId,refreshAuthToken,getDeviceAuthToken,getStreamingMetadata,getUserInfo,getMediaURI,getMediaMetadata,getMetadata,search,reportAccountAction,reportPlayStatus,reportPlaySeconds,setPlayedSeconds,reportStatus,getAlbumArtURI}; session/key vocab {deviceSessionToken,deviceSessionKey,CK_deviceSessionKey,contentKey,CK_contentKey,MU_deviceSessionKey,MU_contentKey,authToken,privateKey,userInfo,algorithm,keySize,value,expiration,httpHeaders,mediaRequestInfo,uriTimeout,contentKeys,callbackPath}; mediaURI fields {positionInformation,privateDataFieldName,contentKeys}; browse params {recursive,count,index,total,mediaCollection,mediaMetadata}; report schema "reportPlayStatus: %s; context: %s; uri: %s; cid: %s; id: %s; seconds: %lld; offset: %lld" + contextId + interval; semantics enum {IMPLICIT,EXPLICIT:PLAY,EXPLICIT:SEEK,EXPLICIT:SKIP_FORWARD,EXPLICIT:SKIP_BACK,EXPLICIT:PAUSE}; metadata URNs http://purl.org/dc/elements/1.1/|{id,creatorId} + urn:schemas-rinconnetworks-com:metadata-1-0/|{narratorId,podcastId,summary,total,duration,authorId,bookId,producerId} + urn:schemas-upnp-org:metadata-1-0/upnp/|artistId; browse hierarchies {newrelease:album:genre:,staffpick:album:genre:,top:album:genre:,top:track:genre:,playlist:,%s.#%s,favorite:track,artist_tracks:}; skd://itunes.apple.com/P000000000/s1/e1 FairPlay; X-Sonos-Playback-Id header; "reauthorizing preinstalled service SID %u"; "mult-key decrypt params not found"; "WARNING! getDeviceAuthToken ... credentialType = %u (not OAuth)"; secondsSinceExplicit; "flushing on cert change"; media-sens cache {cont_prov_media_sens,content_prov_list,billboard,"cached/loaded/reset session %u:%u"}
 
 - **name:** SMAPI SOAP client (sonos_cprovider)
 - **protocol_info:** protocolInfo CSV {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:{audio/mpeg3,audio/wma,audio/wav,audio/aiff,audio/flac,application/ogg,application/dash+xml,application/octet-stream}:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*}; exts {.aiff,.flac,.unknown}; audio/vnd.radiotime; "Unsupported mime type (%s) for object id (%s)"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f0f4b0; sonos_cprovider block 1
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `smb`
 
@@ -6833,12 +6833,12 @@ action namespace http://www.sonos.com/Services/1.1|{...}; actions {getSessionId,
 
 The Windows-file-sharing client layer: UNC path parsing, dialect probing, credential handling, mount and unmount lifecycle, and the stream-open path library browsing uses. Guards include a share-count cap and per-share failure flags.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **iterator:** resilient dir walk: mount "Successfully mounted %s as %s"; reconnect "failed to connect to %s (error=%d); reattempt=%d"; resume "Reopened directory %s at start"/"iterating to %s"/"Found last known item %s"; fast-forward/stat errors reattempt-tagged; /tmp/smb/tmp_idx staging; connect failure ladder 'Connection failed, could not build URI from %s','Connection failed, could not parse SMB URL: %s','Connection failed, failed to connect to share %s with %s (error=%d)','Connection failed, cannot stat share %s: %s (error=%d)','Connection failed, cannot stat path %s: %s','cannot open directory %s','Connection failed, the provided path was not a directory %s','%s: failed to mount %s'; reconnect/iterate machinery: 'No remaining connection attempts to %s','Connecting to %s (remaining attempts: %zu)','Connection failed, could not allocate context.','Reconnection to SMB share %s','Metadata load failed with error code: %s (0x%x)','Attempting to reinitialize connection to directory %s (lastEntry=%s).','Reopened directory %s, iterating to %s' (fast-forward to last known entry),'Found last known item %s in %s','Reached end of %s while iterating to %s','Failed to read next entry while iterating to %s in %s','Failed to find last known item %s in %s','Fast-forward failed with error code: %s (0x%x) (reattempt=%d)','Entry retrieval failed with error code: %s (0x%x) (reattempt=%d)','Invalid path to stat.','Failed to stat entry, no open connection.','Failed to get next entry, no open directory context.'/'no open directory.'/'no open directory or connection.','Failed to read directory entry (%s)','Failed to open directory %s (%s)','Failed to mount %s (error=0x%x)','Metadata file open failed (error=%d).','Metadata load failed (error=0x%x).'
 - **mount_detail:** Kernel-cifs mount layer: option strings 'ver=1,directio,sec=ntlmssp,nounix,' and 'ver=1,directio,' (SMB1 only, NTLMSSP, direct I/O); mount lines 'unc=%s,ip=%d.%d.%d.%d,ro,%sdomain=%s,user=%s,pass=%s' / 'user=guest,pass=' (read-only, optional domain); dialect report 'connected to %s with SMB dialect %x'; failure 'Mounting %s failed, addr = %d.%d.%d.%d, ssp = %d, errno = %d, ret = 0x%08x'. Multi-address trial-mounting with strike counter ('Trial mount found unsupported protocol: %s (strike %d/%d)', 'flagging %s as failed', 'chose random %s from %s'). Credential churn: 'credentials for %s changed; unmounting'/'but share in use'. Idle GC: 'unmounting idle share %s', tryCloseAllUnusedShares job (skipped while shares busy). Mount dirs /tmp/smb/%d_%d + /tmp/smb/tmp%d_%u; 'too many shares mounted'/'mount dir already exists!'; refcounted contexts 'release %s -> num contexts: %zu refcount: %u'; '%s on temporary/unmounted share %d'. share_usage accounting + entry cache ('cache at max capacity', 'loaded %d share entries', 'unable to load cache from file'). 'not http mounting %s as %s' alternate transport.
 
-</details>
+:::
 
 ## `sntp`
 
@@ -6846,7 +6846,7 @@ The Windows-file-sharing client layer: UNC path parsing, dialect probing, creden
 
 The time-sync client: chrony-backed clock management, virtual-clock concepts for group timing, server switching when a source degrades, and the role that makes one player's clock the group reference. Sample-exact multiroom play depends on this being healthy.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **clock:**
   - **discipline:** "Clock pull hit the bottom/top rail" clamps; "Current Rate:%d, adjustment:%d, Target delta ppm:%g"; "Estimated offset(ms):%g, n:%llu"; "Slope change detected. bumping slope dispersion. ErrorMode/OffsetMode"; "clock quality suspect. Sdev: %f"; "Time went backward, discard SNTP offset"; transitions "Clock transition into PCM"/"into system time"; "clock audio sourced: %c"; "Excessive AudioSync %f total"
@@ -6855,7 +6855,7 @@ The time-sync client: chrony-backed clock management, virtual-clock concepts for
   - **stats_schema:** {Flags,NewServer,UpdateServer,TransitionValidOffset,NotUsed,Valid,Successes,OverThreshold,ErrMode(statistical mode of error values),AudioSync,Slope,vcxoRate,Doubling Ratio,Histogram,BigBin}
 - **detail:** "Clock transition into system time"; "SNTP success after %u failures"; "SNTP request to group coordinator failed, ret = %x, error = %f" (GC-requested); "SNTP request failed, will retry."; "complete sync reset"; "Offset set to %f for server %u.%u.%u.%u:%d"; "set SNTP server: %d.%d.%d.%d"; "Suspend and reset" op; sntp_ files + sys/debug + save_sntp
 
-</details>
+:::
 
 ## `spdif_burst`
 
@@ -6863,7 +6863,7 @@ The time-sync client: chrony-backed clock management, virtual-clock concepts for
 
 The optical-output burst-format machinery: a table of unsupported formats plus the Dolby and DTS burst types it does handle. When a TV sends an unrecognized stream the player refuses rather than emitting noise, which is the guard logic for the digital output.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3)}; unsupported enum {NULL Burst,Pause Burst,AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1,MPEG1 Layer 2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1/2/3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA} all prefixed "Unsupported "; this is the IEC 61937 data-type code map (NULL/PAUSE are IEC-61937 burst types; MAT = Dolby MAT container; DRA = DRA Chinese standard); per-type error counters tv_decoder_error_{dd,ddp,mat,pcm,dts1,dts2,dts3} + tv_decoder_dsp_error_dap; IEC 61937 data-type rejection names incl 'Unsupported AC-3', 'Unsupported DTS1' + 'No Signal'
 
@@ -6876,14 +6876,14 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
     - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: bl-target census: 0x10e5-0x10e6 fns' top calls = __stack_chk_fail/__printf_chk + pb_* (234/135/46/45); SPDIF literals resolved in f_10e6f32c; .data.rel.ro run census found the 163-slot table
   - **residual:** per-slot table semantics and the full burst-writer call graph unmapped; external entrypoints identified by inbound-call census (f_10e6e5ac mapper x17, f_10e5025c x8, f_10e57b2c x6)
 - **pic_call_model:** module is -fPIC: fns anchor PC via bc $+4;mflr r30 then lwz negative(r30) into .got2; the 164-slot table @0x1108b594-0x1108b824 (ends exactly at .got2 start) = the objects private GOT function block - 164 distinct fn ptrs spanning 0x10e53-0x10e62 (the modules complete internal fn set). Internal calls go lwz/mtctr/bctrl (63 bctrl sites), never bl - which is why the module had zero bl-anchored doc references despite being fully mapped.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ee650c; burst enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spec_descriptors`
 
@@ -6891,7 +6891,7 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
 
 The full type system behind the cloud API: 383 machine-readable descriptions of every request, response, event, and data structure the protocol uses. Each is a schema the engine can validate messages against, making it the API's complete grammar.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 383 object-spec descriptors in 2 contiguous tables: @.rodata 0x10e9ba80 (96 records) and 0x10f9f87c (287 records). Each 0x80-byte record = C++ descriptor object: ctor @+0x00 installs vtable; +0x20 accessor fn returns {classId 1-12, spec-list ptr}; +0x24 = ffffff88 marker; +0x2c/+0x30/+0x4c-0x54 = per-object ops; +0x58..+0x7c = shared thunk tail. Spec-lists decoded under the corrected index space (semantic idx -> table\[3+i\], via f_109ecb5c): {fieldName,typeName} pairs - see spec_pair_stream. First-field distribution (corrected): 'ok' leads 170 specs (status field first), 'upnpResponse' 60 (UPnP-bridge ops), object-typed roots (timer, zoneDefinition, alarm, playerAllSettingsGroups, accountError, groupInfo, musicServiceAccount...). classId correlation (corrected): cls3 = upnpResponse-led (UPnP-bridge RESPONSE objects, n=45) + ok-led; cls1/cls2 = ok-led request/response specs; cls4-7 = event/update shapes; 52 descriptors empty (no-param ops). Descriptor members are CHILD-OBJECT refs (the field's declared type), not wire param names - matching descriptor members against route op_params showed zero overlap (e.g. authzGrant spec refs authorizationGrant{Header,Payload,Response} which internally carry grantType/assertion). Verb binding via op-vtable +0x58 spec accessor -> {classId,blob} (558/603 routes bound).
 
@@ -8775,14 +8775,14 @@ The full type system behind the cloud API: 383 machine-readable descriptions of 
     - **class:** 4
     - **root:** networkTestId
     - **members:** `authzTokenStatus`, `featureConfigZoneExperiment`, `bluetooth`, `featureConfigZoneExperiment`, `book`, `featureConfigZoneExperiment`, `bluetoothPolicySettings`
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e9ba80/0x10f9f87c; 383 0x80-byte descriptor records; accessor+fffff88 signature; root names resolved via spec_object_table
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spec_object_table`
 
@@ -8790,7 +8790,7 @@ The full type system behind the cloud API: 383 machine-readable descriptions of 
 
 The master vocabulary for the whole cloud-API schema system: a table of 331 entries where every type name, field name, event name, and namespace label lives. Number codes inside each operation's spec index into this table to spell out that operation's fields, and both directions of the lookup were found in the binary, which is what proved the numbering scheme beyond doubt.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Slots 0-2 = function pointers (0x10809540, primitive formatters) - unreachable via the semantic index space. RUNTIME INDEXING RESOLVED: idx->name lookup f_109ecb5c uses base 0x10f97094 (=table+3) with bound 326, i.e. semantic index i maps to table slot i+3; name->idx f_109ecb90 strcmps from 'none' forward. Semantic idx0='none' (table slot 3). Semantic idx 1..325 = named objects: ~203 contiguous alphabetical type names @0x10f975c0-0x10f98568 (accessorySwap..zoneMemberState), 40 event-type names, 11x upnpEvent (per UPnP-bridge namespace), namespace/resource names. The 'entries' list below uses RAW table slot numbers (add -3 for the semantic spec index).
 
@@ -9127,14 +9127,14 @@ Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Slots 0-2 = functio
   - idx: 328, ptr: 10f98550, name: zoneMemberSettingsMap
   - idx: 329, ptr: 10f98568, name: zoneMemberState
   - idx: 330, ptr: 10ea6a2c, name: 
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f97088; 331-pointer table; all targets resolved
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spec_pair_stream`
 
@@ -9142,7 +9142,7 @@ Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Slots 0-2 = functio
 
 How every modern-API command's field list is stored: each operation's spec lives in a packed table of small numbers pointing into the master vocabulary table, recovered as a complete field-name dictionary. It's the compressed form of the API's argument lists.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Spec lists = packed pools of u32 indices into spec_object_table. INDEX SPACE RESOLVED via the idx->name lookup f_109ecb5c (cmplwi 0x146=326; slwi*4; lwzux base 0x10f97094) and name->idx f_109ecb90 (strcmp walk from 'none'): runtime index i resolves to table\[3+i\] - the 3 leading table slots are fnptrs, semantic idx0='none'. GRAMMAR RESOLVED ({fieldName,typeName} pairs): blob = (field,type)* - a flat sequence of pairs; even positions carry WIRE FIELD names (globalError 561x, ok 175x, upnpResponse 60x, upnpError 60x, groupCoordinatorChanged 53x, playbackError 44x, accountError, sessionError, playerSetError, transitionToShipModeStatus), odd positions carry the field's TYPE (upnpEvent 422x = the universal value/event wrapper, wiredSubStatus 202x, channelMapPair 92x, chirpRequest 79x, bluetoothDevice, deviceInfo, bluetooth, artist...). A repeated field name = the field's type is a UNION of the following types (e.g. globalError:{chirpRequest|accessoryId|none|wiredSubStatus} = five error-variant payloads). idx0 'none' = absent type / optional slot. Message roots: 'ok' leads 170 specs (status/ack field first), 'upnpResponse' 60x (UPnP-bridge envelope), plus object-typed roots (timer, zoneDefinition, alarm, area, groupInfo...). Outbound emitters call idx2name with constant type-ids (addi r3,0x31/0x2f/0x67...) then serialize - index space is an enum baked at build time. NOTE: earlier records decoded blobs against table\[i\] (off by 3); all route member lists + this grammar re-derived under table\[3+i\].
 
@@ -9154,14 +9154,14 @@ Spec lists = packed pools of u32 indices into spec_object_table. INDEX SPACE RES
   - **union:** repeated field name = type union of the listed types (error-variant payloads)
   - **none:** idx0 = absent/optional slot
   - **index_space:** semantic idx i -> table\[3+i\]; lookups f_109ecb5c (idx2name) / f_109ecb90 (name2idx); bound 326
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fa51b3; tag-word blob; format proven, tag semantics partial
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spotify`
 
@@ -9169,11 +9169,11 @@ Spec lists = packed pools of u32 indices into spec_object_table. INDEX SPACE RES
 
 The on-device Spotify stack as a whole: the embedded component's session, the transitions that let a Connect session take over an existing group, the queue and track pipeline, and the discovery pieces. Everything Spotify-specific in the player funnels through here.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **mdns:** _spotify-connect._tcp mDNS service; CPath sonos; "deregister skipped for empty SID"/"register skipped for non-empty SID: %s"
 
-</details>
+:::
 
 ## `spotify_connect`
 
@@ -9181,7 +9181,7 @@ The on-device Spotify stack as a whole: the embedded component's session, the tr
 
 The Spotify Connect path specifically: the control channel, credential handling, login state machine, playback session management, and the callbacks bridging component events to the Sonos transport. A Connect takeover is this subsystem asserting control over the group's transport.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **esdk_host:**
   - **summary:** spotify_playback_session/queue/smapi/vli/thread blocks 0x10ea32cc-0x10ea4c40: the host-side eSDK integration
@@ -9195,7 +9195,7 @@ The Spotify Connect path specifically: the control channel, credential handling,
   - **accounts:** auth-token expiry detection -> refresh via upnp; "Login failed with E_SONOS_BAD_ACCOUNT"; service descriptor lookup {sid,g,sn}; "Treating auth token as expired"
   - **telemetry:** ecode mapping "error: %s ecode=%d (%s), mapped to 0x%08x"; fatal-error report rate limit ("restricting excessive fatal error reporting"/"spotify telemetry rate limit exceeded!" spotrl); underrun counter; "Radio:" prefix stripped from restart token
 
-</details>
+:::
 
 ## `spotify_esdk`
 
@@ -9203,7 +9203,7 @@ The Spotify Connect path specifically: the control channel, credential handling,
 
 The embedded Spotify SDK, Sonos's bundled copy of Spotify's official client library: the same component third-party hardware licensees get, running inside this program. It carries the play/pause/seek/volume API surface, its module kernel, event set, and the session machinery that actually speaks the Spotify protocol.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}; NTS callbacks {ConnectionMessage,ConnectionNewCreds,StreamStart(id,fmt,drm,size,gain),PlaybackNotify,StreamFlush,StreamGetPosition(id),Error}; mDNS {"Registering Spotify Connect mDNS service \[%s\]","Unregistering","Updating ... event %d","new cert updating mDNS"}; seamless delegation {"Seeking to %ims in support of seamless delegation","Timed out waiting for AudioStart from eSDK during seamless delegation","%s failed to become active","set seek time to %u ms, byte offset: %zu"}; VLI transition matrix {"VLI source switch logout - async","Normal logout - blocking","VLI deselected, last id: %u, pos: %u, bLogout: %d","Detected VLI source switch","Connect mode toggled during transition - allowing login to proceed","Account matches ... skipping login","Already logged in with same user","username may have changed","mismatch ... regular logout","mismatch ... async logout","Already logged out"}; dual tracking "pos: %u (VLI: %d \[%d\], SMAPI: %d \[%d\])"; track FSM {AwaitingCurrentTrackAck,AwaitingNextTrackAck,CurrentTrackPlayed}; metadata {bitrate,track_uri,original_track_uri,playback id,audio_quality,hifi_status} New/Next Track Metadata; URIs spotify:track:/spotify:episode: "Bogus track URI"; media delivery {"unsupported DRM format: %d","stream start (id:%u, type:%s, size:%u)","stream data ... size: %u, offset: %u","stream end","stream flush ... pos: %u","getPosition (id=%u): result %u",performFlush}; events {GroupVolumeChangedEvent,SpotifyDelegationNotification,SpotifyMDNSRequest}; "Sent group volume change %u to eSDK (mute %d)"; TPM legacy "Spotify setPositionInfo ... uri=%s, playbackId=%s, position=%.3f, isFinalReport=%d"; init {SpInit supported media formats: %llu,devid,remoteName,deviceType,libraryVer,resolverVer,productId}; R_ServiceBitrate; playback-session layer: spotifyPlaybackSession/spotActionMutex/spotifyPlaybackSkipToTrack/spotifyConnectTransferLoggedIn; service-descriptor key triple 'Could not find service descriptor, sid=%d g=%d sn=%u' (service-id/group/serial-number); 'Could not load service descriptors'; account-info freshness 'Now time %ld.%06ld. Account info last update time %ld.%06ld' + '%s parsed into empty last updated time'; session lifecycle: 'session initialized for %s','Playback session for %s already exists','Playback sessions still exist; why?','force reset %s','%s client starting %s with result %d','bad deref %s (parse)'/'bad deref %s (size)'; seek paths 'Seek fast path: %u ms (matched %s)' vs 'Seek slow path' via SpPlayUri; queue-recovery branches {'Play & Queue Tracks (new playback session)','(recover from error)','No next or pending tracks. Queueing %s','(%s) Unknown... clearing queue and playing','Current and next tracks already queued','Same request and current track had previous error. Returning \'%s\' and resetting','(%s) Moving further failed queue pending track errors (due to eSDK being busy) to higher priority','(%s) Queued pending track after %u failures','Queueing track: %s','Add tracks: %s, %s'}
 
@@ -9211,14 +9211,14 @@ cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeA
 - **session_detail:** eSDK event enum {TrackChanged,ShuffleOn,ShuffleOff,RepeatOn,RepeatOff,BecameActive,BecameInactive,AudioDeliveryDone,ContextChanged,MetadataChanged,NetworkRequired,TrackDownloadStalled,QueuedTrackAccepted}; callbacks {setPositionInfo,notifyDownloadComplete,setTrackStreamId,setTrackSize,notifyTrackChanged,notifyMetadataChanged,addTracks}; NTS extra {ConnectionNotify,PlaybackApplyVolume,StreamEnd(id),StreamSeekToPosition(id,pos)}; HAL {spot_hal,Dns HAL Exit(status,err)}; token {"Treating auth token as expired","Login failed with E_SONOS_BAD_ACCOUNT","attempting refresh","Refresh token failed with upnp result: %hu","Now time %ld.%06ld. Account info last update time %ld.%06ld"}; pullContext(playing,seek .%06d,byte offset,bitrate,observable); SWPBL-259788 guard "Delegated VLI session is not playing; skipping pullContext()/become active device ... avoid re-initiating Direct Control"; SMAPI↔VLI {"SMAPI to VLI transition detected. Forcing loginZC","VLI selection with stored account but already in connect mode - likely resuming VLI (e.g., after AirPlay)","Already logged in with same account, skipping loginZC"}
 - **queue_fsm:** spotifyTrackQueue (spot_q): tracks {current,next,previous} matched by streamId; ack states {Current Acked,Queued Acked}; transitions {"Track change: (%s\|\|%s) -> (%s\|\|%s)","Unknown track change ... != upcoming","ERROR current/next track mismatch","!!!! \[BUG\] RESOLVING acked NEXT track mismatch"}; ops {Play track at %u ms,Next track,Queueing track,Add tracks}; pending FSM {Current Track Pending,Current Track Still Pending,Play & Queue Tracks,Now Pending,Still Pending,Waiting In-Flight Queueing,Max retries (%u) exceeded. Resetting,Queued pending track after %u failures}; seek paths {"Resume from pause fast path, offset: %zu","Seek fast path: %u ms","Forcing seek slow path","using SpPlayUri ... type/uri","adjusting initial Play position","Play from beginning"}; safeguards {"Suppressing phantom playback-start after end-of-queue","Playback finished at position=%lld ms","Resetting position ... download has not completed","position info request for previous track → cached"}; dump " \[%s\]: id: %u, %s\|\|%s, pos: %lld / %lldms, delivered: %d, rendered: %d"
 - **vli_control:** RSpotifyVLIControl: metadata {track,artist,album,playback_source_uri,bitrate}+Next Metadata; cookie-validated sessions "Ignoring stale stopSession due to cookie mismatch: %d != %d"; callbacks {onVirtualLineInSuspendSession,onVirtualLineInStartAudio,onVirtualLineInStopAudio,onVirtualLineInPlayModesChanged} cookie %d; delegation guards {"Ignoring pause while setting state / delegating. isPlaying set to %d","Ignoring became inactive","Ignoring volume change (%u)"}; actors {spotifyVliControl,spotify_vli,spotify_md,scopeSpotyVli}; R_SPOT_EVT_METADATA_CHANGE + SpotifyInternalEvent unhandled type
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea23a0; spotify esdk block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spotify_zeroconf`
 
@@ -9226,20 +9226,20 @@ cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeA
 
 Spotify's local discovery layer: the Connect advertisement, device-added events, credential transfer, and the local web server the Connect handoff uses. This is how the Spotify app discovers and pairs to the speaker on your network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 URIs x-spotify:// + x-spotify-file://; Content-Type application/json; charset=utf-8; ver 2.9.0; client types {Partner,Spotify}; results {SpotZc_Failure,SpotZc_Success}; GC gate "Non-GC returning 404 from getInfo" + "reject zc req %s"; getInfo schema {deviceID,publicKey,deviceType,libraryVersion,resolverVersion,groupStatus,authorization_code,tokenType,clientID,productID,scope,availability,supported_drm_media_formats,supported_capabilities,modelDisplayName,brandDisplayName,remoteName,deviceName,statusString,spotifyError,responseCode}; errors {ERROR-INVALID-ARGUMENTS,ERROR-LOGIN-FAILED,ERROR-SPOTIFY-ERROR,ERROR-UNKNOWN}; addUser/resetUsers/resetUser/userName; "addUser with userName %s; player uuid %s" fmt %s@%s; client GUID 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac + embedded key 9b377073ea334637b1406f329ce005de; DC enum {SONOS_DC_UNKNOWN,OK,NO_ACCOUNT,STALE_ACCOUNT,LOGIN_FAILED,UNSUPPORTED_SERVICE,UNEXPECTED}; account fields {isGuest,accountTier,loginMS,failedLoginMS,refreshAuthMS}; ops {spotifyTransferZeroConf,Using SID %d}
 
 - **name:** Spotify ZeroConf endpoint /spotifyzc
 - **mdns:** service _spotify-connect._tcp + CPath sonos; "deregister skipped for empty SID."; "register skipped for non-empty SID: %s"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10ea14c4; spotify.cxx zc block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `spotifyzc`
 
@@ -9247,11 +9247,11 @@ URIs x-spotify:// + x-spotify-file://; Content-Type application/json; charset=ut
 
 The zero-config discovery layer the Spotify Connect integration uses: events for device-added, credential transfer, and auth tokens that let a phone hand the speaker a Spotify session. How 'play on this speaker' works in the Spotify app.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **handler:** f_1020f8c4 (GC-gated getInfo; blob transfer encrypted per gap audit)
 
-</details>
+:::
 
 ## `store_commit_faults`
 
@@ -9259,12 +9259,12 @@ The zero-config discovery layer the Spotify Connect integration uses: events for
 
 The save-to-disk layer for every replicated store (favorites, saved queues, alarms, timezones, accounts): it writes a temp file, flushes it, then renames it into place. That's the crash-safe write pattern that keeps your settings from corrupting on power loss.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Every replicated XML store has an atomic-save function (open64 '.tmp' -> fwrite -> fflush -> fsync -> fclose -> rename -> unlink-on-fail) that emits a vendor-specific 800-series fault ladder surfaced verbatim through the directory-object vfunc chain into SOAP faults. Per-store ladders recovered: userradio/favorites f_10384490 {402,501,701,702,803,805,806,807} (805=count>=70 favorites cap, 806=serialized XML >128KiB via ftell, 807=late-phase guard, 803=early-phase, 702=flag byte); savedqueues f_1047ee0c {501,701,802-808,810-812} + f_1047db08 add-path {805,814} + f_10477fe8 reorder engine {600,812,813,850,899} + f_10476cb4 reorder guard {899}; alarmclock f_10283998 {501,800,801,802}; timezones f_1015aaf8 {801,802,803}; accounts accountsmgr {802,803,806,809,810}; groupmgmt AddMember f_10394d10 {402,800-804,806-808}; settings sp_impl f_1066a788 {402,501,800,811,812}; zone-attrs dp_zpimpl f_103619c8 {821,822,824}; f_100c960f {801,802,803,804} call-derived (fn carries no error literals itself - codes arrive via callee; identity unresolved). Census method: whole-.text scan of li-into-accumulator (r9/r10/r28-r31 or r3-before-blr) with transitive call-graph propagation; indirect vfunc edges (mtctr/bctrl) invisible - true reachable set is a superset. Complete .tmp-atomic-save writer census (16 fns): f_10384490 userradio.xml, f_1047ee0c+f_10478f28 (plain + 'application/gzip' variant) savedqueues.xml, f_10283998 alarmclock.xml, f_1015aaf8 timezones.xml, f_101121d0 shares.xml ('.bak'+'.version' sidecars, sharelist), f_1011ad40 svcmanifestfile.cxx, f_10173460 zonesstorage ('saving to file failed'), f_10296e40 areas.json ('Saving areas failed'), f_105a7dac eTag-based file fetcher ("%s: failed to fetch file (%d %d). Elapsed=%ums, current eTag='%s'"), f_105bf7cc featureconfig ('Error parsing feature config'), f_10627b14 netsettings ('Upgraded %s to file schema %d'), f_100c8900 musicservices catalog (returns {200,500}), f_100c8fdc catalog download (/catalog/services, application/sonos_service_catalog.v1.xml, {801,1025}), f_10109988 trackinfo.tmp shadow writer, f_10694308 dp_impl MetricsConfig download (.tmp staging). Writers without error-band accumulator literals return callee rc or store via stw - their fault contribution is the generic 500/501 domain.
 
 - **name:** store-commit fault layer (800-series vendor codes)
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10384490; userradio.xml commit fn - verified ladder
 - @ 0x1047ee0c; savedqueues.xml commit fn
@@ -9275,10 +9275,10 @@ Every replicated XML store has an atomic-save function (open64 '.tmp' -> fwrite 
 - @ 0x103619c8; dp_zpimpl 821-824
 - @ 0x10ec0af8; dirObjFavorites vtable into mutation fns
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `stream_metadata`
 
@@ -9286,11 +9286,11 @@ Every replicated XML store has an atomic-save function (open64 '.tmp' -> fwrite 
 
 The stream-metadata cache: internet-radio song titles, timed-ID3 tags, and per-stream info blocks, kept so repeated listeners don't re-parse. The memory behind 'now playing' text for radio.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **cache:** streamingMetadataCache: "Setting metadata reference time %s at %ld"/"Rejecting invalid stream metadata reference time"; framer selection "%d (%s) framer for: %s"; "%d(%s).sd:(%s,%lld)"; mswmext=.asx sniff; sonosapi tag; "unexpected text/html"; getMediaUri %d + "URI expires in %us" + "dereferenced to: %s"; "Disallow playback of Spotify Free content from Sonos queue": free-tier gate; "%d: StartTime: %s %dms - %ums %s"
 
-</details>
+:::
 
 ## `svc_manifest`
 
@@ -9298,19 +9298,19 @@ The stream-metadata cache: internet-radio song titles, timed-ID3 tags, and per-s
 
 The service-manifest store: files describing custom music services with version negotiation and cross-player replication. Manifests are how custom service capabilities like strings and presentation maps propagate to every player.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 svcmanifests.json text/json; versioning {"Invalid schema version format","Unsupported schema version: actual: %u.%u, supported: %u.%u","Could not extract API header"}; ops {deleteManifest(%u) b=%d,a=%d,removeManifest(%d):%s vb=%d,va=%d}; replication {"replicating manifest file from %s","%s downloading music service manifest from %s; ret=%u, lRet=0x%x",lastUpdateDevice}; json {", \"manifests\": \[","JSON parse error %d: %s","Failed to load manifests JSON file","Added trailing slash to: %s","Invalid Id: %s","Failure parsing URI %s","unsupported CQ REST version: %s"}; RCache; "%d hasLastestVersion %d? %d"; updatemgr manifest parser: 'manifest: searching for %d.%d', 'manifest: matched to %d.\[%d,%d\] \[%s,%s\] \[%s, app_baseline %s\]', 'manifest: Setting revision=%s'/'Setting system version=%s'/'System flags=0x%x'/'Setting descr=%s', '|manifest parse error (Error parsing: %d, Tag depth: %d, Signature seen: %d)', download states 'manifest download complete'/'manifest download error'; UpdateItem xmlns urn:schemas-rinconnetworks-com:update-1-0
 
 - **name:** SMAPI service manifest file
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e8a740; svcManifestFile
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `sync`
 
@@ -9324,19 +9324,19 @@ The synchronization machinery: locks and the coordination primitives the program
 
 The topology manager: it tracks every discovered player with its address and attributes, emits topology events for changes like update availability and group membership, and handles players vanishing or being quarantined. It's the core machinery of the household map that the topology service builds on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ops {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChange,informLocalSecureRegStateChange,informLocalIdleStateChange,updateLocalMoreInfo,getZPUUIDs,isLocalZPIdle}; events {AvailableSoftwareUpdate,MuseHouseholdId,ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup}; zp attrs {lastIp,moreInfo,spOrientation,htOrientation,newVanishedDevice}; ARP liveness {"received a valid arping from %s","arping successful for active device","arping ip address matched but not mac","arping successful for vanished device","arping unsuccessful"}; quarantine {"Discovery for player %s resulted in quarantine (%s); last network error: 0x%x",quarantinedCount,latestPlayerWithQuarantineEvent,stabilizationTime,latestDownloadErrorCode,latestDownloadErrorReason,quarantining}; missed-player "Report player missed by %s: %s" {missedBy,missedPlayer}; WoW {"\[%s\] %s WoW magic packet for MAC %02X*6","Attempted to wake %zu missing secondary ZP of primary %s (sent WoW to %zu)","Malformed UUID %s"}; "Faking device %s (%s) props to be %s gc"; "All devices idle for %ld s"; "lookup of control URI for %s failed: secure %d, service %s" + https://%s:%hu; NetsettingsUpdateID
 
 - **name:** topology manager internals
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f12054; topology_base block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `tp_enums`
 
@@ -9344,19 +9344,19 @@ ops {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChan
 
 The Trueplay vocabulary tables: the action and status codes, speaker masks, channel types, orientations, and product array codenames that every tuning message uses. It's the named-constant set the calibration machinery speaks.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_DOT_ONE,NINE_DOT_ONE_DOT_FOUR}; CHANNEL_DIRECTION {UNSPECIFIED,DIRECT,INDIRECT_ARRAY,INDIRECT_SINGLE_DRIVER}; CHANNEL_TYPE {UNSPECIFIED,L,R,C,SUB,LS,RS,LRS,RRS,LTM,RTM,LW,RW,MONO,LTR,RTR,INPUT,OUTPUT,SCRATCH}; VOLTAGE_GAIN_CALCULATOR {UNSPECIFIED,BULK_CAPACITORS,BOOSTED_BATTERY,BUCKED_CAPACITOR}; ARRAY_SUB_SYSTEM {UNSPECIFIED,BRAVO,FURY,OPTIMO2,OPTIMO2_SURROUND,LASSO,APOLLO}; TONE_HANDLER {UNSPECIFIED,STANDARD,SUB}; TUNING_MODE {UNSPECIFIED,INDIVIDUAL_CHANNELS,ALL_CHANNELS_AS_MONO}; SUB_POLARITY {UNSPECIFIED,POSITIVE,NEGATIVE}; MEASUREMENT_MODE {UNSPECIFIED,SPATIAL,SPECTRAL}; DEVICE_ORIENTATION {UNSPECIFIED,HORIZONTAL,VERTICAL,WALL_ABOVE,WALL_BELOW,INVERTED,FACEDOWN,HORIZONTAL_LEFT,HORIZONTAL_RIGHT}; protobuf enum names {TUNING_MODE_ALL_CHANNELS_AS_MONO,MEASUREMENT_MODE_{UNSPECIFIED,SPATIAL,SPECTRAL},DEVICE_ORIENTATION_{UNSPECIFIED,HORIZONTAL,VERTICAL,WALL_ABOVE,WALL_BELOW,INVERTED,FACEDOWN,HORIZONTAL_LEFT,HORIZONTAL_RIGHT}}
 
 - **name:** Trueplay SDK enum registry
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fbed60; tp enums
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `track_pipeline`
 
@@ -9364,19 +9364,19 @@ SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_
 
 The embedded Spotify component's track pipeline: track insertion, delivery accounting, position sync, underrun handling, redelivery on resume, and key loading. Each Connect track flows through these stages from source to speaker.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 {"Position report (track: %u reason: %s) integration reported invalid position value %u last: %u delta: %i","Not setting track info because of empty file id in case of internal file","Continuing track, last position: %u","Adding new track to the pipeline:","Flushed integration (%s). Got track %u playback position: %lu","Reset dirty_aubuffer because of '%s'","Integration reported invalid track playing","track_id %u, provided_to_integration %d, is_seeking %d","track_id=%d position from integration %u","Track %u last position: %u -> %u","Delivery latency was %u ms. Integration latency was %u ms","Sending EsdkPlaybackStats log failed","Synchronized current playback position %u ms with integration","Starting playback position sync timer for %u ms","Track fully delivered","Initializing track delivery","***TSB*** Loading new decryption key","***TSB*** Loading new decryption IV","Choosing DRM: %d media format: %d","Video Manifest(%d): %s","Asking integration to seek to the initial starting position %u","Underrun in download buffer! (0 / %d)","redeliver media at resume","Finishing playing track and advancing pipeline","Set track %u download offset %u","set_dl_pos outside seek",periodic,"!"No track to call cb_stream_on_start"","!"stopping unavailable timer in start_underrun_gp/stop_playback_pos_sync_timer""}
 
 - **name:** eSDK track pipeline
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10fd8ca0; track pipeline
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `trueplay_service`
 
@@ -9384,21 +9384,21 @@ The embedded Spotify component's track pipeline: track insertion, delivery accou
 
 The Trueplay room-tuning interface: eight methods covering setup, spatial and satellite tuning, clearing, and reading back tunings, plus its status codes. On this Playbar build the whole interface is present but inert: the service object and its method table are fully constructed, yet every method is a placeholder, because Playbar has no microphone and literally cannot tune itself even though the service shell exists.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 service sonos.coreaudio.trueplay.v1.TrueplayService; API v1alpha2; errors {Invalid API Version,Invalid Service Address}; status enum {MESSAGE_STATUS_UNSPECIFIED,MESSAGE_STATUS_SUCCESS,MESSAGE_STATUS_FAILURE}; methods {SetupDevice,ApplySpatialTuning,ApplySpectralTuning,ApplySatelliteTuning,ClearAllTunings,GetSpatialTuning,GetSpectralTuning,GetDeviceConfig} (req+resp names listed)
 
 - **name:** TrueplayService gRPC API
 - **rpc_dispatch_table:** vtable @0x1102a134 (10 slots, .rodata tail): slot0 f_10e691ac (embedded-object vptr installer -> f_10e684e4), slot1 f_10e691c8 (real: installs vptr, calls f_10e684e4 on this+4, tail f_108094fc), slots 2-9 = ALL EIGHT v1alpha2 methods GetDeviceConfig,SetupDevice,ApplySpatialTuning,ApplySpectralTuning,ApplySatelliteTuning,ClearAllTunings,GetSpatialTuning,GetSpectralTuning - each an identical 9-instr printf stub 'Unimplemented Method %s\n' carrying only its own name string @0x1102a15c-0x1102a1ec. CONFIRMED: on build 86.10-80260 (model 9 / Playbar, no mic) every TrueplayService verb is compile-time stubbed; the service object/vtable exists but no tuning method has a real body. Companion class vtable @0x10febc94: {f_10d94d5c,f_10d94e70,f_10d94f84,f_10d94b80,f_10e6915c,f_10e69184} = 4 real methods (eSDK/audio region 0x10d94xxx) + the same GetSpatialTuning/GetSpectralTuning stubs as tail slots; class-name string 'trueplay_message_handler' @0x10febca0. Message schemas live as nanopb msgdesc records @0x11029a24/0x11029a74 (3-field), 0x11029c38/0x11029c98/0x11029cf4/0x11029d50 (4/4/2/2-field), reached via the .sdata descriptor registry @0x11095ebc/0x11095ecc/0x11095efc/0x11095f04; AudioCoreRpcBuffer class name @0x110299a8; dispatcher f_10e69f48.
 - **desc_consumers:** descriptor->code binding map (lis/addi refs): f_10e69f48 (the RPC buffer builder) binds 5 descs {0x11029e18(1f),0x11029dd8(4f),0x11029d9c(5f),0x11029d50(2f),0x11029cf4(2f)}; f_10e685b0 binds pair {0x11029a24(3f),0x11029a74(4f)}; f_10e69220/f_10e692c8/f_10e69350 each bind {0x11029e18+0x11029dd8} (status+payload pattern); f_10e693c4/f_10e6946c bind 0x11029d9c; f_10e69568/f_10e69610 bind 0x11029d50; f_10e6970c/f_10e697b4 bind 0x11029cf4; f_10e70014/f_10e7013c bind {0x11029a74,0x11029a24}. DSP-layer consumers f_10dd83f0/f_10dd86f0/f_10dd8ac0/f_10dd8c38 (chproc region 0x10dd8xxx) bind the 4-field pair {0x11029c38,0x11029c98} - the tuning-parameter protos reaching the audio pipeline. CROSS-DOMAIN: trueplay descs embed muse-cluster messages - 0x11029cf4 aux->0x10fbef88, 0x11029d50 aux->0x10fbefc0, 0x11029d9c/0x11029dd8 aux->0x10fbefe8/0x1102a2a0 - the RPC protos compose shared wrapper/enum messages rather than defining their own.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x110299ec; trueplay gRPC
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `trueplay_tuning`
 
@@ -9406,7 +9406,7 @@ service sonos.coreaudio.trueplay.v1.TrueplayService; API v1alpha2; errors {Inval
 
 Trueplay room tuning is really two surfaces. The documented commands flip tuning on and off, while the real work happens over five cloud-routed modern-API operations on each speaker plus coordination calls, covering measuring, computing, and applying the correction. This entry maps which piece of the tuning pipeline lives where.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant
 
@@ -9461,7 +9461,7 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
   - **parse_detail:** 'Block ID exceeds max string len','Param Value found, but exceeds max length','ChannelID conversion to int failed','ChannelIndex not found in %s','GainName format not followed %s','spatial adding channel %s','gain spatial adding channel %s','adding gain %f, for %s','cannot apply negative delay for %s','delay conversion to int failed for %s','Unable to find channel type from name for %s in block %s','Param Name was not found','Not all required coeffs were present','invalid set and section values','section number conversion to int failed','set number conversion to int failed','set and section not found','Filter format not followed %s','Re-Indexing surround gain'; handler 'trueplay_channel_config_handler'.
 - **channel_config:** trueplay_channel_config_handler: channel-map assembly 'adding channel type: %zu, dir %zu, samplerate %u', 'num channels Device: %zu, Satellite: %zu', per-channel 'device channel: %i %s'/'satellite channel: %i %s'; direction enum {Direct,Indirect Array,Indirect Single Driver}; 'Populated Channel %s with direction %s'; guards 'unsupported paired multi channel device map channel', 'device setup in mono mode', clamp 'tuning_channel-count > max-channel-count, trueplay will operate with max-channel-count %zu'. trueplay_device_calibration/trueplay_device_properties (tpdpMutex) bounds: 'addGain: channel limit reached','addBiquadCoeffs: channel limit reached','addDelay: channel limit reached','calibration ID was truncated','Device UDN is larger than Trueplay Device Properties can store'
 - **apply_validation:** tuning-apply validation ladder (trueplay_tuning_handler + trueplay_manager): per-mode results '{Satellite ,}Spectral Tuning successfully applied','{Satellite ,}Spatial Tuning successfully applied','Spectral Tuning successfully applied'; per-mode failures '{Spatial\|Spectral\|Satellite Spatial\|Satellite Spectral} Tuning: {device has %s\|request has %s\|request exceeds max channels\|Not enough channels in sonar subsystem for channels on system\|all device channels not tuned}'; sonar spatial guards 'Sonar Spatial does not contain enough channels to support post crossover {gain,delay}'; per-channel 'failed/successfully set coeffs for channel type %zu', 'failed/successfully set gain for channel type %zu', 'satellite: failed/successfully set gain for channel type %s to %f', 'satellite: failed/successfully set delay for channel type %zu', 'setCoeffs: request exceeds max biquad sections'; trueplay_utils calibration-id parse 'error while parsing trueplay version from calibration ID %s' + 'Trueplay Version %d.%d.%d.%d' + fmt '%d.%d.%d.%d_%4d-%2d-%2d_%2d-%2d-%2d' + 'Calibration ID is not valid %s with length %zu'; trueplay_manager legacy path: 'sonarEQ.xml' legacy tuning file, {'found legacy tuning','found existing tunings, ignoring legacy tuning','did not find legacy tuning file','failed to parse legacy tuning','loading calibrations after legacy conversion','successfully loaded calibrations','no channels in spatial/spectral tuning','number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE','unknown channel type','happ/settings/'}; trueplay_calibration_manager write path: 'trueplay_spatial_tuning.bin','Adding channel %s with delay %u','failed to write to %s: wrote %zu bytes of %zu'
-<details markdown="1"><summary>Evidence (8)</summary>
+::: details Evidence (8)
 
 - @ 0x10ebda88; trueplay-node
 - @ 0x10e75f08; /trueplayinfo
@@ -9472,10 +9472,10 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
 - @ 0x10fea0b4; RoomCalDelay* per-driver delay params
 - @ 0x10e83590; trueroom route family + estimator/adaptation events
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `tv_processor`
 
@@ -9483,20 +9483,20 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
 
 The TV audio processor: input-session tracking, usage-report fields, the processor state machine, and the HDMI control-channel interplay. It's distinct from the audio path itself, since this is the control and session side of TV integration.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING,WAITING,INPUT_ERROR,RECORDING,MONITOR_IDLING,MONITORING} + tv_block_descriptor; <TVProc>{Input,Signal(active/inactive),Mode,HTSwap,SampleRate,FrameRate,DataBurst(%d: %s),NSDResult,StreamInfo,StreamChannels(%d.%d.%d),InputChannelCount}</TVProc>; <ChannelStatusBlock>{SampleRate,SampleWidth,Mode,Flags(\[Consumer\],\[Professional\],\[PCM\],\[Muted\]),Type,MultiChannel{Layout,Allocation},Raw}</ChannelStatusBlock>; <Decoder><ActiveDecoder>None/PCM/%s/DTS</ActiveDecoder></Decoder> + ESZNA DTS magic; MPCM layout; "Unknown Dolby Databurst Type; choosing UDC"; databurst errors {Unmapped decoder error,Unmapped decoder specific DSP error}; CSB lifecycle {"First CSB accumulated","First CSB not accumulated","CSB changed to: %s \[%s\]"}; PCM-vs-encoded parser {"Parser identified Encoded signal in disagreement with Source","Parser identified PCM signal in disagreement with Source","Bitstream validity re-established"}; format changes {"Sample rate changed from (%u: %u)","Input channel count change: %u -> %u","Read size in frames changed","Input Format change %s (%d.%d.%d) --> %s","frame buffer is not evenly divisible"}; streams {mixgm%d,mixgm,mixsat} + select.read; "Start sending stream, pt %d.%06d"; reset timings {ht swap,downmix,CSB,external,SPDIF,ASRC,NSD,decoder,input flush,Dialog Extractor} each "%llu us"; "Resetting (%s). Mode: %s"; "Fell behind by %ums while resetting. Input delay %ums - read size %ums. Flush."; "Delay capped at stream size"; "detectNoiseAndSilence: status=%s"; "Stream %s underflow"; "Hardware no longer providing invalid signal"/"Invalid signal provided by hardware"; "TV input sample rate mismatch with audio tap (tv:%u tap:%u)"; autoplay <AutoPlay><Mode>%s</Mode><SilentSeconds>%u</SilentSeconds></AutoPlay>; "tvprocessor states previous:%s current:%s"; per-stage reset telemetry ('{ht swap stream,downmix stream,CSB,SPDIF,ASRC,NSD,decoder,input flush,Dialog Extractor} reset time %llu us','external reset (%s)'); settings key tvp.inperr.timewait; 'Delay capped at stream size: %uus'; 'Monitoring mode failed to read - input overflow'; 'TV input read error during audio tap playback (%d:%s)'; 'unhandled state: %d:%s'; databurst decoder errors 'Unmapped decoder error for databurst (%d)','Unmapped decoder specific DSP error for databurst (%d)'; input guards 'Invalid sample rate (%u: %u)','Invalid input channel count (: %u)','Invalid read size %zu > %zu','Read size in frames changed from %zu to %zu','Error: asked to extract bitstream from 0 length frame buffer','Request Change %s --> %s'; stream names {tv_in_raw,tv_in_test,tv_spdif_16,tv_spdif_32,tv_stats}; swap states {LOCAL_PLAYING,SWAP_FADE_IN,SWAP_PLAYING}
 
 - **name:** TV processor (SPDIF/TOSLink decode pipeline)
 - **chaos_params:** fault injection {stream_underflow("Inducing stream underflow"/"Inducing %ums processing stall to trigger underflow"/"Invalid stall time. Valid range is 0-1000"),stream_error,signal_lost,rate_change,signal_discontinuity,decoder_error,sync_tap_playback,latency_change("Simulating latency change"),out_loud("HT swap out loud override %s"),set_timeout("Setting report timeout to %d secs"),perf2("Setting perf2 to %s")}; "Synchronize SPDIF tap playback with output tap (%s)"
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f25c3c; tv processor block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `upgrade`
 
@@ -9504,11 +9504,11 @@ state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING
 
 The firmware upgrade path: manifest fetch, compatibility checks, download-status handling, and the apply-and-reboot flow. Version gating uses a minimum-compatibility version from the household map. It's the apply-the-update half, installing a downloaded image and rebooting into it.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **check_layer:** update-check client: "Fetching %s"/"Failure fetching (0x%x) (%d)"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; "Redirect detected, final URI: %s"; "UPM Invalid"; "Check for updates %s (%u)"/"Check for online update (user)"/"Unknown upgrade server state"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; "Invalid swgen member detected, swgen: 1"
 
-</details>
+:::
 
 ## `upnp_eventing`
 
@@ -9516,7 +9516,7 @@ The firmware upgrade path: manifest fetch, compatibility checks, download-status
 
 The classic device-control eventing machinery: the subscribe, renew, and notify plumbing behind the older event channel documented on the events page. Each subscription gets its own channel and sequence numbers so listeners can tell when they've missed an update.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; subscription-record fields {subscriptionId,renew_failures,failure_reason,active_record,network_safe,subrenew_del,subrenew_sub} + deactivation fields {DeactivationState,DeactivationTTL,DeactivationDateTime,OpenPort} + transport 'upnpovertls'
 
@@ -9526,7 +9526,7 @@ The classic device-control eventing machinery: the subscribe, renew, and notify 
 - **event_routes:** Complete /X/Event route inventory (0x10e761b0-0x10e7636c): /AlarmClock/Event, /AudioIn/Event, /DeviceProperties/Event, /GroupManagement/Event, /HTControl/Event, /MusicServices/Event, /SystemProperties/Event, /ZoneGroupTopology/Event, /MediaServer/ConnectionManager/Event, /MediaServer/ContentDirectory/Event, /MediaRenderer/ConnectionManager/Event, /MediaRenderer/RenderingControl/Event, /MediaRenderer/AVTransport/Event, /MediaRenderer/GroupRenderingControl/Event, /MediaRenderer/Queue/Event, /MediaRenderer/VirtualLineIn/Event -- 16 endpoints; QPlay has Control only (see qplay_protocol). Cloud mirror: every service exposes muse subscribe on v1/players/{playerId}/upnp<Svc>/subscription and renew/unsubscribe on .../subscription/{logicalSID}.
 - **sender:** upnpeventing_sender.cxx: RNotificationSenderImpl/notificationSenderImpl, 'upnpeventing svc:%s', run loop 'runOnce starting'/'Notification Sender has been terminated', send-latency warn '\[warning\] wait time for %s of %lldms is greater than %lldms'
 
-</details>
+:::
 
 ## `virtual_linein`
 
@@ -9534,11 +9534,11 @@ The classic device-control eventing machinery: the subscribe, renew, and notify 
 
 The virtual line-in subsystem: the machinery for audio pushed at the player by an external source, covering session management behind the VLI commands and service.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **source_manager:** group hooks {\[groupAdded\] configureLocalTransport(VLI),\[groupRemoved\] configureLocalTransport(null),\[startLocalPBAsGM\]/\[stopLocalPBAsGM\] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; "Recording State Snapshot in state %d"; "Starting vli audio input subsystem (type=%d)"/"ending vli ai subsystem (cached type=%d; new=%d)"; cookie validation {"validate cookie failed for \[%d\], \[%d\]","no source to validate cookie"}; ai_vli thread
 
-</details>
+:::
 
 ## `vli`
 
@@ -9546,7 +9546,7 @@ The virtual line-in subsystem: the machinery for audio pushed at the player by a
 
 The virtual-line-in umbrella: the source manager, sink, playback tracker, and control interface together. A VLI session is how a 'non-Sonos' audio source rides the group-audio fabric, getting a session ID, a transport address, and member routing like a real line-in.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **sink:** vlintxsink "VLI NodeTX Blocks": "lTransmitOffBox is now %d \[uni=%c\]"; "NodeTx configured to handle %s audio (qos: %d)"; "delay sending new frames until resend finishes"; vli_source_manager: 'Error (0x%x) registering vli source (%d)','Failed to suspend source'/'Failed to resume source','Thread entering state %d (desired=%d)','deactivating current VLI source (type=%d)','%s - calling onSelect()','failure activating VLI source (type=%d)','deactivating current VLI source (type=%d) (sender=%d)','no source to validate cookie \[%d\]'; VliSessionProcessingCompleteEvent trace '%s:%d processing VliSessionProcessingCompleteEvent vli type %s action %s success %d flags %#x','%s:%d VliSessionProcessingCompleteEvent signaling completed rc: %d flags: %#x','%s:%d  %s:%d completion signal timed out %#x %#x!!!','%s:%d waiting for tx flags failed %#x'; protocolInfo "x-sonos-vli:*:audio:*"
 - **ctrl:**
@@ -9556,7 +9556,7 @@ The virtual-line-in umbrella: the source manager, sink, playback tracker, and co
   - **details:** cookie-based session tracking; waitOnTxBitFlagsClearedLocked; "StartSession for unusable/unknown type"; protocolInfo="x-sonos-vli:*:audio:*"; "VLIGroupIDs cannot contain commas"; completion-signal timeouts
 - **link:** "Link helper created with empty VLI group ID"; "Starting to Process %s Group Info"; "Found Suspended Rooms While Processing %s Group Info"; "Finished Processing %s Group Info in %llu us"; "Ignoring player %s (too many members)"; "Link player %s to %s group %s: (ret %d)"; URI x-sonos-vli:%s:%u,%s; sources {airplay:,bluetooth:}; 16-byte hex id fmt
 
-</details>
+:::
 
 ## `vli_transport`
 
@@ -9564,19 +9564,19 @@ The virtual-line-in umbrella: the source manager, sink, playback tracker, and co
 
 The VLI transport: the actual audio path a virtual line-in session uses once created, covering transport selection, buffering, and the seamless-handoff integration with the channel sink. It's how the pushed audio actually arrives and plays.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 setTransportToVLIStreamURI {URI,autoplay,become gc} + 'VLI type \[%u\] incompatible' + 'activating source with URI: %s, VliGroupID: %s' + 'StartTransmission (VLI) failed' + 'going to stopped / defer playing'; events {AV Transport URI cleared/changed,VliTransportActionEvent,VliSessionProcessingCompleteEvent}; remote line-in {'AI Stream URI: %s sourceUUID %s','set corr ctx for remote line-in: bootSeq %u gcUUID %s',ai_tracker,'StartTransmissionToGroup failed'}; rincon group {setTransportToRinconGroupURI,'Rejecting x-rincon URI: source or target is an ungroupable player','Node protocol version on %s is incompatible','Count of off box members for VLISrcMgr \[%u\] must be <= CHSRC \[%u\]! Aborting',localConfigureGroup}; X-Sonos-Api-Key header; pbstate field; protocolInfo x-sonos-vli:*:audio:*; sonos.com-hls-static origin; 'performFlush(VLI: %d \[%d\], SMAPI: %d \[%d\])'
 
 - **name:** VLI transport/session
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10eb08b0; vli transport
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `wifi`
 
@@ -9584,13 +9584,13 @@ setTransportToVLIStreamURI {URI,autoplay,become gc} + 'VLI type \[%u\] incompati
 
 The Wi-Fi subsystem: wireless modes including Sonos's own mesh versus ordinary infrastructure versus wired, the mode enumeration, association tracking, power save, and the settings keys that control them. The wireless-disable settings in player settings are its knobs.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **idle_mgr:** RZPWifiIdleMgr/idlemgr: "Device set to %08x with primary chan %d code 0x%x cnt %u retry %u"; Set WifiFuncsSetIdleScan fronthaul result; reasons {AUDIO_OUT,AUDIO_IN,LOCAL_SONOSNET,NO_SONOSNET_PEERS,NO_PRIMARY,UPGRADING,HT_SWAP,UNKNOWN_ID}; WiFiIdleScanUpdateRetry; "client %s is %s with primary chan %d"
 - **assoc_tracker:** CrAssoc report "Reporting CrAssoc event for %s"; metrics {mstime1/2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1/2,ddnum,zstime1/2,zsnum,zntime1/2,znnum,znscs,znstate}; ARP stuffing "Stuffing %s MAC to ARP table" + "ARP stuffing records are full" for associating controller; "ZGT Notification to %s is invalid event"
 - **netif_poll:** DeviceNetInterfaceStateEvent + "fire event: health %s rssi %d"/"status: health %s rssi %d"; subscribe/unsubscribe polling per %s; "timeout: %s polling"
 
-</details>
+:::
 
 ## `wireless_modes`
 
@@ -9598,19 +9598,19 @@ The Wi-Fi subsystem: wireless modes including Sonos's own mesh versus ordinary i
 
 The wireless-mode transitions: which radio mode the device runs, covering disabled, client, and mesh-node modes, with per-model validation. Status events reflect this state, and it governs whether the player joins your WiFi or Sonos's own mesh.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 enum {SONOSNET_MODE,INVALID_MODE,ETHERNET_MODE,STATION_SATELLITE_MODE,SONOSNET_SATELLITE_STATION_PRIMARY_MODE,STATION_MODE}; <Wireless><WirelessInfo Name='Wireless Info'>{WifiMode(%d),WifiModeString,IdleState(0x%08x),BusyClients,SonosNetDisabled(%d),ConnectionType(%d),ConnectionTypeString}</WirelessInfo></Wireless>; 'setup() in SonosNet disable test mode, schedule automatic revert in %d seconds' (test-mode auto-revert),'Invalid Muse SonosNet enabled state: %d','JWT parsing failed with error=%s.'
 
 - **name:** wireless mode enum + status XML
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f12a30; wireless enum
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zgs_mediaservers`
 
@@ -9618,19 +9618,19 @@ enum {SONOSNET_MODE,INVALID_MODE,ETHERNET_MODE,STATION_SATELLITE_MODE,SONOSNET_S
 
 The media-servers section of the household map: external media-server proxies plus the embedded music-service account table, where each service carries its per-account fields. This is how account credentials reach every member without a separate lookup.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 <MediaServers><Ex CURL="/msprox?uuid=…" EURL T EXT/><MediaServer Name UDN Location/><Service UDN NumAccounts Md%u Username%u Token%u Key%u/></MediaServers>: third-party media server proxies + SMAPI account creds embedded in ZGS; per-account {Nickname%u,SerialNum%u,Flags%u,Tier%u,Password%u}; AreasUpdateID+SourceAreasUpdateID; MS tracking {refreshing,"detected new",RINCON,"ignoring non-rincon MS %s","connect to MS %s %s",unauthorized}; media-player MS record "<MediaServer location uuid version canbedisplayed='%s' unavailable='%s' type='%u' ext='%s'>"; errors {empty id,invalid id count}
 
 - **name:** ZoneGroupState MediaServers fragment
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10e8c2a0; ZGS MediaServers
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zgt_schema`
 
@@ -9638,20 +9638,20 @@ The media-servers section of the household map: external media-server proxies pl
 
 The household-map document schema: the structure describing every group with its coordinator and member players, plus sections for vanished and quarantined devices. It's the grammar of the single document describing the entire household layout.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 <ZoneGroupState><ZoneGroups><ZoneGroup Coordinator=" ID=">...</ZoneGroup></ZoneGroups><VanishedDevices>+<QuarantinedDevices><Device {UUID,Reason,ModelInfo,Mac,LastKnownIP,LastSeenUTC}/></ZoneGroupState>; ZonePlayer attrs {QuarantineReason,UUID,ZoneName,Icon,Configuration,Invisible=1,IsZoneBridge=1,SoftwareVersion,SWGen,MinCompatibleVersion,LegacyCompatibleVersion,ChannelMapSet,HTSatChanMapSet,ActiveZoneID,BootSeq,TVConfigurationError,HdmiCecAvailable,WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,Orientation,RoomCalibrationState,SecureRegState,VoiceConfigState,MicEnabled,HeadphoneSwapActive,AirPlayEnabled,VirtualLineInSource,IdleState,MoreInfo,SSLPort,HHSSLPort}; orphan groups ":orphan"; separate <ZonePlayers><ZonePlayer {group,prevgroup,virtuallineingroupid,htsat='true',wirelessmode,connectiontype,channelfreq}> listing; additional member attrs: inbondedzone='%s', inhtconfig='%s', audiotxver='%u', htaudiotxver='%u', tpsdkver='%s', quarantinereason='%s', mincompatibleversion='%s', legacycompatibleversion='%s', compatible='%u', apiversions='%s'
 
 - **name:** ZoneGroupState event payload
 - **vanish_and_remove:** Vanished record attrs: curgroup/reasonforvanish/vanishbatterypercentage/vanishbatterytemperature/timesincevanish under </VanishedZonePlayer>, plus <Device UUID=... ModelInfo= LastKnownIP= LastSeenUTC=> entries inside </VanishedDevices> + </QuarantinedDevices>. Removal protocol: 'Local %s designated %s', "Received 'Remove' message pointing to local device from %s:%hu", 'Dropping UPNP "%s" message', 'Probing wrong device %s by action %s', VerifyThenRemoveSystemwide presence check, 'Removed %s device %s by action %s error %hu from %s:%hu', 'Guess that %s (%s) is gc of %s'/'Did not find %s gc': gc-guessing on orphan removal; 'numPlayingZPs', 'No valid UUID for Zone Group Attributes request', 'Failed to find player or group coordinator in getGroupProperties. UUID=%s, UUIDGroup=%s', 'Failed to read dhcp address', 'Error generating network hash'.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10f12ea0; zgt schema block
 
-</details>
+:::
 
 
-</details>
+:::
 
 ## `zone_topology`
 
@@ -9659,7 +9659,7 @@ The household-map document schema: the structure describing every group with its
 
 The zone-group topology layer: the household's shared map of groups, coordinators, members, and vanished devices, kept consistent across players. It maintains the map that tracks players, rooms, and groups as they change.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ; household lifecycle: discovery 'Begin discovery mode %d' + 'unexpected inbound UPnP action: uri=%.256s' reject + 'requestAllowed' gate; HHID tracking {'first household','No valid HHID','wrong household - mismatched HHID in localsetting and netsetting','Mismatch HHID','lost household - no HHID in netsetting','Lost Household','household ID changed to %s','newHHDebug','Can't report newHHDebug event', zpMetricsConfigV2.meta}
 
@@ -9686,4 +9686,4 @@ The zone-group topology layer: the household's shared map of groups, coordinator
 - **notes:**
   - **code_805_topology:** 805 in f_10747624 ("lookup of %s URIs for %s failed") = URI-lookup failure inside the topology monitor verify-then-remove probe f_10747b74 (TopologyMonitorProbe/VerifyThenRemoveSystemwide, "Removed %s device %s by action %s error %hu") - internal rc logged via error %hu, NOT the favorites-cap 805; same literal, unrelated domain
 
-</details>
+:::

@@ -4,11 +4,11 @@
 
 This service handles everything related to alarms and household time on a Sonos speaker. When you set an alarm in the Sonos app, say wake up to a radio station at 7am on weekdays, the app uses the commands in this service to create it, and the speaker stores it and fires it on its own even if your phone is nowhere nearby. It also owns the household clock: every Sonos speaker in a home shares one coordinated sense of what time it is and what timezone it lives in, and the commands here are how apps read or adjust that shared clock. Some commands are everyday ones the app calls when you open the alarms screen. Others, like the timezone and time-format ones, are plumbing that keeps every device in the house agreeing on wall-clock time.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.
 
-</details>
+:::
 
 ## Availability
 
@@ -50,11 +50,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a new alarm to this speaker. When you create an alarm in the Sonos app, this is the command that actually registers it. You send the start time, how long it should play, whether it repeats and on which days, which room it should sound in, what it should play (a playlist, a radio station, or a chime), how loud, and whether it should turn on grouped speakers too. The speaker replies with an ID number for the new alarm, which the app then uses to refer to it later, for example when you edit or delete it. Once created, the alarm lives inside the speaker itself and will go off without the app needing to be open.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -> impl->v\[+0x34\], returning AssignedID.
 
-</details>
+:::
 
 #### Inputs
 
@@ -111,36 +111,36 @@ Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI
 - **`AssignedID`**: Newly allocated alarm id
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734404; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×10, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734404; req-vfunc call map: {'0x1c': 10, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734404; member vfunc calls: \['*(r30+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -150,31 +150,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734404; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734404; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734404; commit/fault slot usage: {'0x1c': 10, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -203,9 +203,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734404`
 - dispatch entry `0x10f11580` (voff `56`)
@@ -217,7 +217,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f11580; action dispatch table entry
 - fn 0x1073505c; alarm impl = service vtable 0x10f11530 slot +0x34 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `DestroyAlarm`
 
@@ -225,11 +225,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes one alarm permanently. You give it the ID number of the alarm you want gone (the same number the speaker handed out when the alarm was created) and it removes it from its internal list. This is what the app sends when you swipe-to-delete an alarm. If the alarm was already ringing, deleting it does not silence it; it only removes the scheduled entry, so it will not fire again tomorrow.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Deletes alarm ID via impl->v\[+0x3c\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -241,36 +241,36 @@ Deletes alarm ID via impl->v\[+0x3c\].
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734954; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734954; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734954; member vfunc calls: \['*(r30+4) v\[+0x3c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -280,31 +280,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734954; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x3c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734954; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734954; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -333,9 +333,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734954`
 - dispatch entry `0x10f1158c` (voff `64`)
@@ -347,7 +347,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f1158c; action dispatch table entry
 - fn 0x107346ac; alarm impl = service vtable 0x10f11530 slot +0x3c (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetDailyIndexRefreshTime`
 
@@ -355,11 +355,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports what time of day the speaker is set to rebuild its music library index. Sonos systems that play from a shared music folder on your network periodically rescan that folder to pick up new albums, and the system does this once a day at a fixed quiet hour. This command simply reads back the configured hour. The app calls it when you look at the music-library settings screen.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -370,36 +370,36 @@ Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
 - **`CurrentDailyIndexRefreshTime`**: Configured daily index refresh time
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734d18; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x44\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734d18; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x44\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734d18; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x44\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -409,31 +409,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x44\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734d18; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x44\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734d18; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734d18; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -452,9 +452,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734d18`
 - dispatch entry `0x10f11598` (voff `76`)
@@ -468,7 +468,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f11598; action dispatch table entry
 - fn 0x10734b8c; alarm impl = service vtable 0x10f11530 slot +0x44 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetFormat`
 
@@ -476,11 +476,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports how times and dates are displayed, for example whether the speaker uses a 24-hour or 12-hour clock and which date layout it believes its region uses. It is a small settings read that the app calls when it needs to present times the same way the player will.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -494,36 +494,36 @@ Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
 - **`CurrentDateFormat`**: Configured date format
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734f28; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×2, raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734f28; req-vfunc call map: {'0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734f28; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -533,31 +533,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734f28; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734f28; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734f28; commit/fault slot usage: {'0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -576,9 +576,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734f28`
 - dispatch entry `0x10f115a4` (voff `16`)
@@ -593,7 +593,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115a4; action dispatch table entry
 - fn 0x10733c8c; alarm impl = service vtable 0x10f11530 slot +0x0c (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetHouseholdTimeAtStamp`
 
@@ -601,11 +601,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Translates a moment in time into the household's shared clock. Sonos speakers in one home keep a single synchronized time that may differ slightly from ordinary internet time, because speakers need millisecond agreement to play in sync. This command answers the question 'in the household's own timekeeping, what time is this particular timestamp?' It exists for features that need every room to schedule something at the exact same instant.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -626,36 +626,36 @@ Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
 - **`HouseholdUTCTime`**: Household-local time at the stamp
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10733fb4; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x2c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733fb4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x2c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733fb4; member vfunc calls: \['*(r30+4) v\[+0x2c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -665,31 +665,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x2c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x2c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733fb4; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x2c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733fb4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733fb4; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -708,9 +708,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10733fb4`
 - dispatch entry `0x10f115b0` (voff `48`)
@@ -723,7 +723,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115b0; action dispatch table entry
 - fn 0x10733e98; alarm impl = service vtable 0x10f11530 slot +0x2c (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetTimeNow`
 
@@ -731,11 +731,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports what time the speaker thinks it is right now, in four flavors at once: the household's synchronized clock, the local wall-clock time, the timezone it is configured with, and a generation counter that ticks up whenever the clock settings change. Apps use this when they need the player's own view of 'now' rather than trusting the phone's clock, because alarms and schedules depend on the speaker's clock and not yours.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -755,36 +755,36 @@ Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration vi
 - **`CurrentTimeGeneration`**: Time response field CurrentTimeGeneration
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073505c; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×3, raise-fault×1, out-arg write×4, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1073505c; req-vfunc call map: {'0x14': 1, '0x24': 4, '0x10': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1073505c; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -794,31 +794,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1073505c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1073505c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x1073505c; commit/fault slot usage: {'0x14': 1, '0x24': 4, '0x10': 3, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -841,9 +841,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073505c`
 - dispatch entry `0x10f115bc` (voff `52`)
@@ -859,7 +859,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115bc; action dispatch table entry
 - fn 0x10733fb4; alarm impl = service vtable 0x10f11530 slot +0x30 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetTimeServer`
 
@@ -867,11 +867,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports which network time source the speaker is configured to synchronize against. Sonos players keep their shared clock disciplined by regularly checking a time server (either one on the internet or one inside the household). This command just reads back the configured server's address, as used by the settings screens.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns CurrentTimeServer via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -882,36 +882,36 @@ Returns CurrentTimeServer via impl->v\[+0x8\].
 - **`CurrentTimeServer`**: Configured NTP time server
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734c1c; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734c1c; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734c1c; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -921,31 +921,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734c1c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734c1c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734c1c; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -964,9 +964,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734c1c`
 - dispatch entry `0x10f115c8` (voff `40`)
@@ -980,7 +980,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115c8; action dispatch table entry
 - fn 0x10733da8; alarm impl = service vtable 0x10f11530 slot +0x24 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetTimeZone`
 
@@ -988,11 +988,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports which timezone the speaker is currently set to, and whether it is allowed to adjust itself for daylight-saving changes automatically. The answer comes back as a numeric timezone index rather than a name like 'Europe/London'. Sonos keeps its own internal table of timezones, and this command returns the speaker's slot in that table.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns Index/AutoAdjustDst via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -1006,36 +1006,36 @@ Returns Index/AutoAdjustDst via impl->v\[+0x8\].
 - **`AutoAdjustDst`**: Timezone response field AutoAdjustDst
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734e14; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734e14; req-vfunc call map: {'0x14': 1, '0x24': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734e14; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1045,31 +1045,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734e14; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734e14; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734e14; commit/fault slot usage: {'0x14': 1, '0x24': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1088,9 +1088,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734e14`
 - dispatch entry `0x10f115d4` (voff `24`)
@@ -1103,7 +1103,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115d4; action dispatch table entry
 - fn 0x107342f0; alarm impl = service vtable 0x10f11530 slot +0x14 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetTimeZoneAndRule`
 
@@ -1111,11 +1111,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Same idea as GetTimeZone, but it also returns the actual daylight-saving rule attached to the timezone, meaning the dates and offsets that say when clocks spring forward and fall back. The app uses this when it needs to display not just which zone you are in but what will happen at the next clock change.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -1132,36 +1132,36 @@ Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
 - **`CurrentTimeZone`**: Timezone response field CurrentTimeZone
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734a40; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×3, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734a40; req-vfunc call map: {'0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734a40; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1171,31 +1171,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734a40; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734a40; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734a40; commit/fault slot usage: {'0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1214,9 +1214,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734a40`
 - dispatch entry `0x10f115e0` (voff `28`)
@@ -1230,7 +1230,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115e0; action dispatch table entry
 - fn 0x10734e14; alarm impl = service vtable 0x10f11530 slot +0x18 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `GetTimeZoneRule`
 
@@ -1238,11 +1238,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Looks up the daylight-saving rule for one specific timezone entry in the speaker's internal timezone table. You hand it a timezone index and it returns the rule that zone follows. This is reference plumbing rather than a user-facing feature: it lets an app reason about future clock changes without having its own timezone database.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns the TimeZone rule for Index via impl->v\[+0x1c\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1263,36 +1263,36 @@ Returns the TimeZone rule for Index via impl->v\[+0x1c\].
 - **`TimeZone`**: Timezone rule string at the requested index
   - validation: emitted via response vfuncs
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107341cc; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107341cc; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107341cc; member vfunc calls: \['*(r30+4) v\[+0x1c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1302,31 +1302,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x1c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107341cc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x1c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107341cc; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107341cc; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1345,9 +1345,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107341cc`
 - dispatch entry `0x10f115ec` (voff `32`)
@@ -1360,7 +1360,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115ec; action dispatch table entry
 - fn 0x10734a40; alarm impl = service vtable 0x10f11530 slot +0x1c (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `ListAlarms`
 
@@ -1368,11 +1368,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Returns every alarm the speaker currently has stored, which is the same list you see in the app's alarm screen including the disabled ones. Each entry comes with its ID, time, repeat pattern, target room, what it will play, volume, and whether grouped speakers join in. The app calls this whenever it needs to render or sync the alarm list, and the speaker is the source of truth.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Lists all alarms via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -1388,36 +1388,36 @@ Lists all alarms via impl->v\[+0x8\].
   - validation: arg-name string 'out' loaded at 0x102735e0 inside f_10273538
   - emitted via req->v\[+0x24\] at 0x102735e8 inside f_10273538
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10734b8c; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734b8c; req-vfunc call map: {'0x8': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734b8c; member vfunc calls: \['r4 v\[+0x3c\]', '*(r30+0xc) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1427,31 +1427,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734b8c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x3c\]', '*(r30+0xc) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734b8c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10734b8c; commit/fault slot usage: {'0x8': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1470,9 +1470,9 @@ Wrapper parse layer rejected an argument before the impl call.
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10734b8c`
 - dispatch entry `0x10f115f8` (voff `68`)
@@ -1484,7 +1484,7 @@ Wrapper parse layer rejected an argument before the impl call.
 - @ 0x10f115f8; action dispatch table entry
 - @ 0x10734c18; impl dispatch site: *(*(req+0xc))->v\[+0x08\]
 
-</details>
+:::
 
 ### `SetDailyIndexRefreshTime`
 
@@ -1492,11 +1492,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the time of day at which the speaker rebuilds its music library index. When you change 'update music library daily at 4am' in settings, this is the command that stores the new hour. It only schedules the rescan; the actual scanning work is done elsewhere.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the daily music-index refresh time via impl->v\[+0x40\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1508,36 +1508,36 @@ Sets the daily music-index refresh time via impl->v\[+0x40\].
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x9`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107340dc; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x40\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107340dc; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x40\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107340dc; member vfunc calls: \['*(r30+4) v\[+0x40\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1547,31 +1547,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x40\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x40\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107340dc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x40\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107340dc; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107340dc; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1600,9 +1600,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107340dc`
 - dispatch entry `0x10f11604` (voff `72`)
@@ -1614,7 +1614,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f11604; action dispatch table entry
 - fn 0x10734954; alarm impl = service vtable 0x10f11530 slot +0x40 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `SetFormat`
 
@@ -1622,11 +1622,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Changes the speaker's preferred time and date display formats, for example switching between 12-hour and 24-hour clock. It stores the new preference and other commands like GetFormat read it back.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1642,36 +1642,36 @@ Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x4`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10733c8c; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733c8c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733c8c; member vfunc calls: \['*(r30+4) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1681,31 +1681,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733c8c; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733c8c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733c8c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1740,9 +1740,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10733c8c`
 - dispatch entry `0x10f11610` (voff `12`)
@@ -1754,7 +1754,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f11610; action dispatch table entry
 - fn 0x10733b44; alarm impl = service vtable 0x10f11530 slot +0x08 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `SetTimeNow`
 
@@ -1762,11 +1762,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the household clock directly. You provide the time you want the system to consider 'now' plus the timezone that time is expressed in, and the speaker adopts it as the shared household time. Because this changes the clock for the whole system, it is the kind of command normally issued by setup tools or the app during initial configuration rather than something a user calls day to day.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x28\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1782,36 +1782,36 @@ Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x2
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x1d`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10733e98; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x28\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733e98; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733e98; member vfunc calls: \['*(r30+4) v\[+0x28\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1821,31 +1821,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x28\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733e98; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x28\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733e98; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733e98; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1870,9 +1870,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10733e98`
 - dispatch entry `0x10f1161c` (voff `44`)
@@ -1884,7 +1884,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f1161c; action dispatch table entry
 - fn 0x10734c1c; alarm impl = service vtable 0x10f11530 slot +0x28 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `SetTimeServer`
 
@@ -1892,11 +1892,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Points the speaker at a different network time source. You provide an address and the speaker will synchronize its shared clock against that server from then on. This is useful for keeping a household on an internal time source, or for working around an unreachable default.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the NTP time server via impl->v\[+0x20\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1908,36 +1908,36 @@ Sets the NTP time server via impl->v\[+0x20\].
   - validation: consumed by impl vfunc on the service vtable
   - buffer cap: `0x81`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10733da8; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733da8; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733da8; member vfunc calls: \['*(r30+4) v\[+0x20\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1947,31 +1947,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733da8; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x20\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733da8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10733da8; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -2000,9 +2000,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10733da8`
 - dispatch entry `0x10f11628` (voff `36`)
@@ -2014,7 +2014,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f11628; action dispatch table entry
 - fn 0x107341cc; alarm impl = service vtable 0x10f11530 slot +0x20 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `SetTimeZone`
 
@@ -2022,11 +2022,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Changes which timezone the speaker belongs to and whether daylight-saving adjustment should happen automatically. This is what the app sends when you tell the system you have moved or when timezone data changes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -2042,36 +2042,36 @@ Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
   - validation: stored in the timezone record
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107342f0; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107342f0; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107342f0; member vfunc calls: \['*(r30+4) v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -2081,31 +2081,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107342f0; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107342f0; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107342f0; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -2134,9 +2134,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107342f0`
 - dispatch entry `0x10f11634` (voff `20`)
@@ -2148,7 +2148,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f11634; action dispatch table entry
 - fn 0x10734f28; alarm impl = service vtable 0x10f11530 slot +0x10 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ### `UpdateAlarm`
 
@@ -2156,11 +2156,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Edits an existing alarm in place. You send the alarm's ID plus a complete new set of fields (new time, new repeat pattern, new room, new thing to play, new volume) and the speaker replaces the stored entry. This is what happens behind the scenes when you edit an alarm in the app: rather than delete and recreate, it updates the existing record.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -2212,36 +2212,36 @@ Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
   - validation: stored in the alarm record
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107346ac; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×11, validate×1, commit×1); member delegates: *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107346ac; req-vfunc call map: {'0x1c': 11, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107346ac; member vfunc calls: \['*(r30+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -2251,31 +2251,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107346ac; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107346ac; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107346ac; commit/fault slot usage: {'0x1c': 11, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -2304,9 +2304,9 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107346ac`
 - dispatch entry `0x10f11640` (voff `60`)
@@ -2318,7 +2318,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - @ 0x10f11640; action dispatch table entry
 - fn 0x10734404; alarm impl = service vtable 0x10f11530 slot +0x38 (ctor stores svc vptr at svc+4)
 
-</details>
+:::
 
 ## State variables
 
@@ -2353,7 +2353,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `alarmClock`, `alarmVersionChange`
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notify_path:** f_10277d6c initial-state e:property dump {TimeServer, AlarmListVersion, TimeFormat, TimeGeneration, DateFormat} -> f_10676a44 writer
 - **payload_model:** e:property doc via f_10676a44 writer family
@@ -2361,12 +2361,12 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
   - idx: 5, name: alarmClock, id: 20, tag: 64
   - idx: 6, name: alarmVersionChange, id: 24, tag: 1
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `strong`
 
@@ -2376,14 +2376,14 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 
 
-</details>
+:::
 
 Implementation sources (recovered): `zoneplayer/ac_impl.cxx`, `zoneplayer/areas.cxx`
 
-<details markdown="1"><summary>Service evidence (3)</summary>
+::: details Service evidence (3)
 
 - @ 0x101953c8; service router function
 - @ 0x10f11530; service vtable
 - @ 0x10733b44; service dispatcher
 
-</details>
+:::

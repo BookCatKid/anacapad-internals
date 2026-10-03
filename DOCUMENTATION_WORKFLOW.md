@@ -32,7 +32,10 @@ tools/gendocs.py               Markdown reference renderer (consumes the IR;
 tools/extract_artifacts.py     copies manifest files from an unpacked rootfs
                                into reference/files/ (ANACAPAD_ROOTFS env var),
                                refreshing size/sha256/kind in the manifest
-tools/gensite.py               static HTML renderer for reference/
+tools/gensite.py               VitePress site build wrapper
+reference/.vitepress/config.mts  site config (title, sidebar, search,
+                               markdown rules) — evaluated by VitePress
+                               at build time
 reference/                     generated Markdown reference tree
 site/                          generated static HTML site
 tests/                         unittest suite + synthetic fixture
@@ -187,17 +190,17 @@ they preserve real staleness rather than hiding it.
 
 ```
 python3 tools/gendocs.py            # regenerate reference/ + QA report
-python3 tools/gensite.py            # regenerate site/ (static HTML mirror)
-python3 -m http.server -d site      # serve the HTML site locally
+python3 tools/gensite.py            # regenerate site/ (VitePress build)
+npm run docs:preview                # serve the built site locally
 ```
 
-`gensite.py` renders `reference/` with Zensical (the modern MkDocs
-successor; MkDocs+Material is the fallback). It auto-writes `mkdocs.yml`
-(nav is derived from the reference tree, so new service pages are picked up
-automatically) and builds into `site/`. Requires a one-time venv setup:
+`gensite.py` wraps `npm run docs:build` (VitePress). The site config lives
+in `reference/.vitepress/config.mts`; the sidebar's service list is
+discovered from `reference/services/` at config-eval time, so new service
+pages are picked up automatically. Requires a one-time Node setup:
 
 ```
-python3 -m venv .venv && .venv/bin/pip install zensical
+npm install
 ```
 
 The site build is a second QA layer on the generated Markdown — broken

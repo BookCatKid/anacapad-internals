@@ -8,21 +8,22 @@ Every file below was extracted from the `rootfs-86.10-80260-1-9` firmware image 
 
 Sounds the speaker itself can play on demand: button chimes, setup prompts, and calibration tones. None of these are music files; they are short built-in sounds the firmware keeps on board so it can answer instantly without downloading anything.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Playback is triggered through x-rincon-buzzer:, x-rincon-configmode: and x-rincon-sonarcal: URIs resolved against /opt/buzzers and (for downloaded tones) an ETag-managed cache.
 
-</details>
+:::
 
 ### `0.mp3`
 
 The loudest of the four numbered button chimes. The player plays this through its own speaker when a physical button press needs a clear audible confirmation, such as the final step of a setup or pairing gesture.
 
-<audio controls preload="none" src="../files/opt/buzzers/0.mp3"></audio>
+::: audio /files/opt/buzzers/0.mp3
+:::
 
-[Download](files/opt/buzzers/0.mp3) · 85.9 KB
+[Download](/files/opt/buzzers/0.mp3) · 85.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/0.mp3`
 - **Category:** audio
@@ -32,17 +33,18 @@ The loudest of the four numbered button chimes. The player plays this through it
 Buzzer asset index 0, about 88 KB. Resolved by the x-rincon-buzzer:0 URI family and played through the mixer on the alert path rather than the music pipeline.
 
 
-</details>
+:::
 
 ### `1.mp3`
 
 A quieter numbered chime used for softer confirmations. It sits alongside the other numbered buzzers as part of the small vocabulary of sounds the player can make without involving a music service.
 
-<audio controls preload="none" src="../files/opt/buzzers/1.mp3"></audio>
+::: audio /files/opt/buzzers/1.mp3
+:::
 
-[Download](files/opt/buzzers/1.mp3) · 40.3 KB
+[Download](/files/opt/buzzers/1.mp3) · 40.3 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/1.mp3`
 - **Category:** audio
@@ -52,17 +54,18 @@ A quieter numbered chime used for softer confirmations. It sits alongside the ot
 Buzzer asset index 1, about 41 KB. Same alert-path playback as 0.mp3; the four numbered files form the graded confirmation set.
 
 
-</details>
+:::
 
 ### `100.mp3`
 
 Another of the numbered confirmation sounds, used for a different stage or type of action than the low-numbered chimes.
 
-<audio controls preload="none" src="../files/opt/buzzers/100.mp3"></audio>
+::: audio /files/opt/buzzers/100.mp3
+:::
 
-[Download](files/opt/buzzers/100.mp3) · 41.1 KB
+[Download](/files/opt/buzzers/100.mp3) · 41.1 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/100.mp3`
 - **Category:** audio
@@ -72,17 +75,18 @@ Another of the numbered confirmation sounds, used for a different stage or type 
 Buzzer asset index 100, about 42 KB. The jump in numbering suggests a second group of sounds for a distinct event class inside the same directory.
 
 
-</details>
+:::
 
 ### `101.mp3`
 
 The smallest buzzer file, a very short tick or blip used for the lightest possible confirmation.
 
-<audio controls preload="none" src="../files/opt/buzzers/101.mp3"></audio>
+::: audio /files/opt/buzzers/101.mp3
+:::
 
-[Download](files/opt/buzzers/101.mp3) · 4.9 KB
+[Download](/files/opt/buzzers/101.mp3) · 4.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/101.mp3`
 - **Category:** audio
@@ -92,17 +96,18 @@ The smallest buzzer file, a very short tick or blip used for the lightest possib
 Buzzer asset index 101, about 5 KB. Its size implies a sub-second clip, consistent with a minimal UI tick.
 
 
-</details>
+:::
 
 ### `speaker-detect.mp3`
 
 The loud chirp a speaker emits when the app asks 'which box is this?' During setup or diagnostics the player plays this tone so you can identify which physical speaker you are configuring.
 
-<audio controls preload="none" src="../files/opt/buzzers/speaker-detect.mp3"></audio>
+::: audio /files/opt/buzzers/speaker-detect.mp3
+:::
 
-[Download](files/opt/buzzers/speaker-detect.mp3) · 248.8 KB
+[Download](/files/opt/buzzers/speaker-detect.mp3) · 248.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/speaker-detect.mp3`
 - **Category:** audio
@@ -112,28 +117,28 @@ The loud chirp a speaker emits when the app asks 'which box is this?' During set
 About 255 KB, the largest buzzer by far because it is a longer identification tone. This is the file behind the 'chirp' feature and the x-rincon-configmode:speaker-detect URI documented in the URI formats page.
 
 
-</details>
+:::
 
 
 ## Images
 
 Picture files the speaker stores for its own use, mostly the small product icon shown to apps and other players so your speaker appears with the right picture in lists of devices.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Served from /opt/htdocs/img and referenced by the device description's iconList so controllers can render the model correctly.
 
-</details>
+:::
 
 ### `icon-S9.png`
 
 The little Playbar picture the speaker offers to apps and to other players. When a controller lists the devices in your home, this is the icon drawn next to the Playbar's name.
 
-<img src="../files/opt/htdocs/img/icon-S9.png" alt="icon-S9.png" style="max-width:120px">
+![icon-S9.png](/files/opt/htdocs/img/icon-S9.png)
 
-[Download](files/opt/htdocs/img/icon-S9.png) · 1.2 KB
+[Download](/files/opt/htdocs/img/icon-S9.png) · 1.2 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/img/icon-S9.png`
 - **Category:** image
@@ -143,26 +148,26 @@ The little Playbar picture the speaker offers to apps and to other players. When
 Product icon for model S9 (Playbar). Served over HTTP from the device itself; referenced by the iconList in device_description.xml. Sister models ship icon-S1.png, icon-S3.png and Sub.png instead, which is how the topology page distinguishes products.
 
 
-</details>
+:::
 
 
 ## Service specifications and device descriptions (XML)
 
 These XML files are the speaker's public contract. They describe, in a standard format, every service the player offers, every command each service accepts, and every value it reports. Apps and other software read these files straight off the speaker to learn what it can do before they ever send it a command.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 UPnP SCPD documents plus the #TOKEN#-templated device description, served verbatim from /opt/htdocs/xml over the device's embedded web server.
 
-</details>
+:::
 
 ### `zpMetricsConfigV2.xml`
 
 The telemetry rulebook: a 104-entry list of exactly which usage events the speaker is even capable of reporting to Sonos, with almost all of them switched off by default. It is the clearest evidence of what the player could measure about your usage, and proof that most of it is not collected unless enabled.
 
-[View](files/opt/conf/zpMetricsConfigV2.xml) · [Download](files/opt/conf/zpMetricsConfigV2.xml) · 7.8 KB
+[View](/files/opt/conf/zpMetricsConfigV2.xml) · [Download](/files/opt/conf/zpMetricsConfigV2.xml) · 7.8 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 109 lines:
 
@@ -229,9 +234,9 @@ First 60 of 109 lines:
     <Category name="upnp.getMetadata" uploader-ref="" level="OFF"/>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/zpMetricsConfigV2.xml`
 - **Category:** specs
@@ -241,15 +246,15 @@ First 60 of 109 lines:
 Metrics category table, revision 13. Positionally parsed for S1-era compatibility (the file carries a comment warning not to reorder it). Three categories default ON; the rest are opt-in. Referenced by telemetry_submission and the shipped_config record.
 
 
-</details>
+:::
 
 ### `S9_array.xml`
 
 The Playbar's speaker-array description: which physical drivers exist, where they sit, and how they are wired. The audio processing reads this to know what hardware it is mixing sound for.
 
-[View](files/opt/dsp/S9_array.xml) · [Download](files/opt/dsp/S9_array.xml) · 13.5 KB
+[View](/files/opt/dsp/S9_array.xml) · [Download](/files/opt/dsp/S9_array.xml) · 13.5 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 72 lines:
 
@@ -316,9 +321,9 @@ First 60 of 72 lines:
       <arrayDef name="ArrayRightLows">
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/dsp/S9_array.xml`
 - **Category:** specs
@@ -328,15 +333,15 @@ First 60 of 72 lines:
 Per-model driver/array map for model S9 consumed by the DSP configuration layer. Sister entries exist for other models (the S39/S41 variants referenced in dsp_files are not shipped here).
 
 
-</details>
+:::
 
 ### `AVTransport1.xml`
 
 The official contract for the AVTransport service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/AVTransport1.xml) · [Download](files/opt/htdocs/xml/AVTransport1.xml) · 51.3 KB
+[View](/files/opt/htdocs/xml/AVTransport1.xml) · [Download](/files/opt/htdocs/xml/AVTransport1.xml) · 51.3 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 1537 lines:
 
@@ -403,9 +408,9 @@ First 60 of 1537 lines:
     </stateVariable>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/AVTransport1.xml`
 - **Category:** specs
@@ -415,15 +420,15 @@ First 60 of 1537 lines:
 SCPD (Service Control Protocol Description) for AVTransport1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `AlarmClock1.xml`
 
 The official contract for the AlarmClock service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/AlarmClock1.xml) · [Download](files/opt/htdocs/xml/AlarmClock1.xml) · 14.5 KB
+[View](/files/opt/htdocs/xml/AlarmClock1.xml) · [Download](/files/opt/htdocs/xml/AlarmClock1.xml) · 14.5 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 447 lines:
 
@@ -490,9 +495,9 @@ First 60 of 447 lines:
     </stateVariable>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/AlarmClock1.xml`
 - **Category:** specs
@@ -502,15 +507,15 @@ First 60 of 447 lines:
 SCPD (Service Control Protocol Description) for AlarmClock1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `AudioIn1.xml`
 
 The official contract for the AudioIn service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/AudioIn1.xml) · [Download](files/opt/htdocs/xml/AudioIn1.xml) · 4.2 KB
+[View](/files/opt/htdocs/xml/AudioIn1.xml) · [Download](/files/opt/htdocs/xml/AudioIn1.xml) · 4.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 137 lines:
 
@@ -577,9 +582,9 @@ First 60 of 137 lines:
           <name>CurrentTransportSettings</name>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/AudioIn1.xml`
 - **Category:** specs
@@ -589,15 +594,15 @@ First 60 of 137 lines:
 SCPD (Service Control Protocol Description) for AudioIn1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `ConnectionManager1.xml`
 
 The official contract for the ConnectionManager service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/ConnectionManager1.xml) · [Download](files/opt/htdocs/xml/ConnectionManager1.xml) · 4.3 KB
+[View](/files/opt/htdocs/xml/ConnectionManager1.xml) · [Download](/files/opt/htdocs/xml/ConnectionManager1.xml) · 4.3 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 132 lines:
 
@@ -664,9 +669,9 @@ First 60 of 132 lines:
   <actionList>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/ConnectionManager1.xml`
 - **Category:** specs
@@ -676,15 +681,15 @@ First 60 of 132 lines:
 SCPD (Service Control Protocol Description) for ConnectionManager1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `ContentDirectory1.xml`
 
 The official contract for the ContentDirectory service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/ContentDirectory1.xml) · [Download](files/opt/htdocs/xml/ContentDirectory1.xml) · 12.1 KB
+[View](/files/opt/htdocs/xml/ContentDirectory1.xml) · [Download](/files/opt/htdocs/xml/ContentDirectory1.xml) · 12.1 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 387 lines:
 
@@ -751,9 +756,9 @@ First 60 of 387 lines:
     <stateVariable sendEvents="no">
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/ContentDirectory1.xml`
 - **Category:** specs
@@ -763,15 +768,15 @@ First 60 of 387 lines:
 SCPD (Service Control Protocol Description) for ContentDirectory1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `DeviceProperties1.xml`
 
 The official contract for the DeviceProperties service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/DeviceProperties1.xml) · [Download](files/opt/htdocs/xml/DeviceProperties1.xml) · 21.2 KB
+[View](/files/opt/htdocs/xml/DeviceProperties1.xml) · [Download](/files/opt/htdocs/xml/DeviceProperties1.xml) · 21.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 688 lines:
 
@@ -838,9 +843,9 @@ First 60 of 688 lines:
     <stateVariable sendEvents="yes">
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/DeviceProperties1.xml`
 - **Category:** specs
@@ -850,15 +855,15 @@ First 60 of 688 lines:
 SCPD (Service Control Protocol Description) for DeviceProperties1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `GroupManagement1.xml`
 
 The official contract for the GroupManagement service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/GroupManagement1.xml) · [Download](files/opt/htdocs/xml/GroupManagement1.xml) · 4.1 KB
+[View](/files/opt/htdocs/xml/GroupManagement1.xml) · [Download](/files/opt/htdocs/xml/GroupManagement1.xml) · 4.1 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 130 lines:
 
@@ -925,9 +930,9 @@ First 60 of 130 lines:
           <relatedStateVariable>A_ARG_TYPE_MemberID</relatedStateVariable>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/GroupManagement1.xml`
 - **Category:** specs
@@ -937,15 +942,15 @@ First 60 of 130 lines:
 SCPD (Service Control Protocol Description) for GroupManagement1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `GroupRenderingControl1.xml`
 
 The official contract for the GroupRenderingControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/GroupRenderingControl1.xml) · [Download](files/opt/htdocs/xml/GroupRenderingControl1.xml) · 3.8 KB
+[View](/files/opt/htdocs/xml/GroupRenderingControl1.xml) · [Download](/files/opt/htdocs/xml/GroupRenderingControl1.xml) · 3.8 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 126 lines:
 
@@ -1012,9 +1017,9 @@ First 60 of 126 lines:
           <direction>in</direction>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/GroupRenderingControl1.xml`
 - **Category:** specs
@@ -1024,15 +1029,15 @@ First 60 of 126 lines:
 SCPD (Service Control Protocol Description) for GroupRenderingControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `HTControl1.xml`
 
 The official contract for the HTControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/HTControl1.xml) · [Download](files/opt/htdocs/xml/HTControl1.xml) · 4.0 KB
+[View](/files/opt/htdocs/xml/HTControl1.xml) · [Download](/files/opt/htdocs/xml/HTControl1.xml) · 4.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 137 lines:
 
@@ -1099,9 +1104,9 @@ First 60 of 137 lines:
     </action>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/HTControl1.xml`
 - **Category:** specs
@@ -1111,15 +1116,15 @@ First 60 of 137 lines:
 SCPD (Service Control Protocol Description) for HTControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `MusicServices1.xml`
 
 The official contract for the MusicServices service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/MusicServices1.xml) · [Download](files/opt/htdocs/xml/MusicServices1.xml) · 2.4 KB
+[View](/files/opt/htdocs/xml/MusicServices1.xml) · [Download](/files/opt/htdocs/xml/MusicServices1.xml) · 2.4 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 78 lines:
 
@@ -1186,9 +1191,9 @@ First 60 of 78 lines:
           <relatedStateVariable>A_ARG_TYPE_ServiceDescriptorList</relatedStateVariable>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/MusicServices1.xml`
 - **Category:** specs
@@ -1198,15 +1203,15 @@ First 60 of 78 lines:
 SCPD (Service Control Protocol Description) for MusicServices1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `QPlay1.xml`
 
 The official contract for the QPlay service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/QPlay1.xml) · [Download](files/opt/htdocs/xml/QPlay1.xml) · 1.5 KB
+[View](/files/opt/htdocs/xml/QPlay1.xml) · [Download](/files/opt/htdocs/xml/QPlay1.xml) · 1.5 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 52 of 52 lines:
 
@@ -1265,9 +1270,9 @@ First 52 of 52 lines:
 </scpd>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/QPlay1.xml`
 - **Category:** specs
@@ -1277,15 +1282,15 @@ First 52 of 52 lines:
 SCPD (Service Control Protocol Description) for QPlay1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `Queue1.xml`
 
 The official contract for the Queue service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/Queue1.xml) · [Download](files/opt/htdocs/xml/Queue1.xml) · 15.8 KB
+[View](/files/opt/htdocs/xml/Queue1.xml) · [Download](/files/opt/htdocs/xml/Queue1.xml) · 15.8 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 474 lines:
 
@@ -1352,9 +1357,9 @@ First 60 of 474 lines:
     <stateVariable sendEvents="no">
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/Queue1.xml`
 - **Category:** specs
@@ -1364,15 +1369,15 @@ First 60 of 474 lines:
 SCPD (Service Control Protocol Description) for Queue1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `RenderingControl1.xml`
 
 The official contract for the RenderingControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/RenderingControl1.xml) · [Download](files/opt/htdocs/xml/RenderingControl1.xml) · 23.6 KB
+[View](/files/opt/htdocs/xml/RenderingControl1.xml) · [Download](/files/opt/htdocs/xml/RenderingControl1.xml) · 23.6 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 756 lines:
 
@@ -1439,9 +1444,9 @@ First 60 of 756 lines:
         <minimum>-10</minimum>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/RenderingControl1.xml`
 - **Category:** specs
@@ -1451,15 +1456,15 @@ First 60 of 756 lines:
 SCPD (Service Control Protocol Description) for RenderingControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `SystemProperties1.xml`
 
 The official contract for the SystemProperties service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/SystemProperties1.xml) · [Download](files/opt/htdocs/xml/SystemProperties1.xml) · 13.9 KB
+[View](/files/opt/htdocs/xml/SystemProperties1.xml) · [Download](/files/opt/htdocs/xml/SystemProperties1.xml) · 13.9 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 429 lines:
 
@@ -1526,9 +1531,9 @@ First 60 of 429 lines:
     <stateVariable sendEvents="no">
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/SystemProperties1.xml`
 - **Category:** specs
@@ -1538,15 +1543,15 @@ First 60 of 429 lines:
 SCPD (Service Control Protocol Description) for SystemProperties1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `VirtualLineIn1.xml`
 
 The official contract for the VirtualLineIn service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/VirtualLineIn1.xml) · [Download](files/opt/htdocs/xml/VirtualLineIn1.xml) · 4.6 KB
+[View](/files/opt/htdocs/xml/VirtualLineIn1.xml) · [Download](/files/opt/htdocs/xml/VirtualLineIn1.xml) · 4.6 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 152 lines:
 
@@ -1613,9 +1618,9 @@ First 60 of 152 lines:
           <name>CurrentTransportSettings</name>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/VirtualLineIn1.xml`
 - **Category:** specs
@@ -1625,15 +1630,15 @@ First 60 of 152 lines:
 SCPD (Service Control Protocol Description) for VirtualLineIn1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `ZoneGroupTopology1.xml`
 
 The official contract for the ZoneGroupTopology service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.
 
-[View](files/opt/htdocs/xml/ZoneGroupTopology1.xml) · [Download](files/opt/htdocs/xml/ZoneGroupTopology1.xml) · 8.5 KB
+[View](/files/opt/htdocs/xml/ZoneGroupTopology1.xml) · [Download](/files/opt/htdocs/xml/ZoneGroupTopology1.xml) · 8.5 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 262 lines:
 
@@ -1700,9 +1705,9 @@ First 60 of 262 lines:
     <stateVariable sendEvents="no">
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/ZoneGroupTopology1.xml`
 - **Category:** specs
@@ -1712,15 +1717,15 @@ First 60 of 262 lines:
 SCPD (Service Control Protocol Description) for ZoneGroupTopology1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.
 
 
-</details>
+:::
 
 ### `device_description.xml`
 
 The speaker's self-description document: the first file any controller downloads. It announces the model, the serial number, the icon, and the list of services the device offers, so everything else in the conversation starts from here.
 
-[View](files/opt/htdocs/xml/device_description.xml) · [Download](files/opt/htdocs/xml/device_description.xml) · 9.7 KB
+[View](/files/opt/htdocs/xml/device_description.xml) · [Download](/files/opt/htdocs/xml/device_description.xml) · 9.7 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 220 lines:
 
@@ -1787,9 +1792,9 @@ First 60 of 220 lines:
     <securehhSSLPort>#HHSSL_PORT#</securehhSSLPort>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/device_description.xml`
 - **Category:** specs
@@ -1799,15 +1804,15 @@ First 60 of 220 lines:
 The #TOKEN#-templated root UPnP device description. 35 substitution tokens (#UUID#, #HOST#, #MODEL#, #SW_VERSION#...) are filled in per-unit before serving. This is the file that makes the box discoverable and describable.
 
 
-</details>
+:::
 
 ### `factory_reset.xsl`
 
 A stylesheet used to render a simple page during the factory-reset flow: the tiny bit of presentation logic behind the reset web screen.
 
-[View](files/opt/htdocs/xml/factory_reset.xsl) · [Download](files/opt/htdocs/xml/factory_reset.xsl) · 647 B
+[View](/files/opt/htdocs/xml/factory_reset.xsl) · [Download](/files/opt/htdocs/xml/factory_reset.xsl) · 647 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 15 of 15 lines:
 
@@ -1829,9 +1834,9 @@ First 15 of 15 lines:
 </xsl:template></xsl:stylesheet>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/factory_reset.xsl`
 - **Category:** specs
@@ -1841,15 +1846,15 @@ First 15 of 15 lines:
 XSL transform shipped alongside the XML specs; used when rendering reset-related status content in the embedded web UI.
 
 
-</details>
+:::
 
 ### `group_description.xml`
 
 The same kind of self-description, but for a grouped room rather than a single speaker. When a group of players acts as one, this document describes that combined identity to the outside world.
 
-[View](files/opt/htdocs/xml/group_description.xml) · [Download](files/opt/htdocs/xml/group_description.xml) · 825 B
+[View](/files/opt/htdocs/xml/group_description.xml) · [Download](/files/opt/htdocs/xml/group_description.xml) · 825 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 24 of 24 lines:
 
@@ -1880,9 +1885,9 @@ First 24 of 24 lines:
 </root>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/group_description.xml`
 - **Category:** specs
@@ -1892,15 +1897,15 @@ First 24 of 24 lines:
 The group-level device description variant. Distinct from satellite_device.xml on smaller models; here it presents the zone group's virtual device surface.
 
 
-</details>
+:::
 
 ### `review.xsl`
 
 A companion stylesheet for rendering a review-style status page in the speaker's built-in web interface.
 
-[View](files/opt/htdocs/xml/review.xsl) · [Download](files/opt/htdocs/xml/review.xsl) · 90.1 KB
+[View](/files/opt/htdocs/xml/review.xsl) · [Download](/files/opt/htdocs/xml/review.xsl) · 90.1 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 2014 lines:
 
@@ -1967,9 +1972,9 @@ padding-right:20px;
     display: none;
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/xml/review.xsl`
 - **Category:** specs
@@ -1979,15 +1984,15 @@ padding-right:20px;
 XSL transform under /opt/htdocs/xml; pairs with review.js in the web assets.
 
 
-</details>
+:::
 
 ### `musicservices.xml`
 
 The seed list of music services the player knows about before the cloud supplies an updated catalog. On first boot this is how the speaker already knows names like Spotify before your account adds anything.
 
-[View](files/opt/musicservices/musicservices.xml) · [Download](files/opt/musicservices/musicservices.xml) · 293 B
+[View](/files/opt/musicservices/musicservices.xml) · [Download](/files/opt/musicservices/musicservices.xml) · 293 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 6 of 6 lines:
 
@@ -2000,9 +2005,9 @@ First 6 of 6 lines:
 </Services>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/musicservices/musicservices.xml`
 - **Category:** specs
@@ -2012,15 +2017,15 @@ First 6 of 6 lines:
 Seed service catalog under /opt/musicservices. Replaced by the cloud-delivered service list at registration; replicated household-wide afterwards via the settings-replication machinery.
 
 
-</details>
+:::
 
 ### `timezones.xml`
 
 The timezone table the speaker keeps on board: the complete list of named time zones it understands, so when you set your location the player can convert it to the right clock offset and daylight-saving rules.
 
-[View](files/opt/timezones/timezones.xml) · [Download](files/opt/timezones/timezones.xml) · 7.1 KB
+[View](/files/opt/timezones/timezones.xml) · [Download](/files/opt/timezones/timezones.xml) · 7.1 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 157 lines:
 
@@ -2087,9 +2092,9 @@ First 60 of 157 lines:
       <StandardTime Month="10" DayOfWeek="0" Day="5" Hour="1" Bias="0" />
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/timezones/timezones.xml`
 - **Category:** specs
@@ -2099,26 +2104,26 @@ First 60 of 157 lines:
 Zone index used by GetTimeZone/SetTimeZoneAndRule; the firmware's static mapping from index to POSIX timezone rule. Referenced by the timezone_table primitive entry.
 
 
-</details>
+:::
 
 
 ## Configuration files
 
 Settings files that ship inside the firmware image itself. They set defaults and behaviors before anything personal is added: how the web server listens, how logs are recorded, which radio setups are allowed, and which background measurements are on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Static defaults under /opt/conf, /opt/ir, /opt/dsp, /opt/localsettings and /etc; runtime state that changes later lives separately under the writable /jffs partition.
 
-</details>
+:::
 
 ### `LEGACYCOMPATVER`
 
 The legacy-compatibility marker: how far back this firmware can interoperate with very old players still in a household.
 
-[View](files/LEGACYCOMPATVER) · [Download](files/LEGACYCOMPATVER) · 11 B
+[View](/files/LEGACYCOMPATVER) · [Download](/files/LEGACYCOMPATVER) · 11 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2126,9 +2131,9 @@ First 1 of 1 lines:
 58.0-00000
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/LEGACYCOMPATVER`
 - **Category:** config
@@ -2138,15 +2143,15 @@ First 1 of 1 lines:
 Compatibility marker for mixed-era households; checked during update rollout decisions alongside MINCOMPATVER.
 
 
-</details>
+:::
 
 ### `MINCOMPATVER`
 
 The minimum compatible version marker: the oldest software version this image is willing to coexist with. It is one of the numbers that decides whether an update is allowed to proceed.
 
-[View](files/MINCOMPATVER) · [Download](files/MINCOMPATVER) · 11 B
+[View](/files/MINCOMPATVER) · [Download](/files/MINCOMPATVER) · 11 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2154,9 +2159,9 @@ First 1 of 1 lines:
 85.0-00000
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/MINCOMPATVER`
 - **Category:** config
@@ -2166,15 +2171,15 @@ First 1 of 1 lines:
 Compatibility floor consumed by the update machinery (the 'minimum auto-update version' logic in update_machinery).
 
 
-</details>
+:::
 
 ### `VERSION`
 
 The plain version stamp of the firmware image, the file the update machinery and the system read to know what release is installed.
 
-[View](files/VERSION) · [Download](files/VERSION) · 12 B
+[View](/files/VERSION) · [Download](/files/VERSION) · 12 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2182,9 +2187,9 @@ First 1 of 1 lines:
 86.10-80260
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/VERSION`
 - **Category:** config
@@ -2194,15 +2199,15 @@ First 1 of 1 lines:
 Top-level version marker for the squashfs image; pairs with MINCOMPATVER and LEGACYCOMPATVER in update compatibility checks.
 
 
-</details>
+:::
 
 ### `build.properties`
 
 The birth certificate of this exact firmware build: when it was compiled, on which machine, from which source revision, in release mode. It answers 'exactly which build is this' better than any version number alone.
 
-[View](files/build.properties) · [Download](files/build.properties) · 806 B
+[View](/files/build.properties) · [Download](/files/build.properties) · 806 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 20 of 20 lines:
 
@@ -2229,9 +2234,9 @@ build.strings.branch = SWPBL-250456
 build.strings.version = SWPBL-250456
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/build.properties`
 - **Category:** config
@@ -2241,15 +2246,15 @@ build.strings.version = SWPBL-250456
 Build metadata recorded at compile time: build 86.10-80260 dated 2026-08-26, limelight (Playbar) target, release type, git revision a78cd9a393d on branch release/main_alt_release of the Sonos-internal player repo.
 
 
-</details>
+:::
 
 ### `chrony.conf`
 
 The time-sync configuration: which time servers the speaker asks for the correct clock. Accurate shared time is what keeps rooms playing in perfect sync, so this file quietly matters a lot.
 
-[View](files/etc/chrony.conf) · [Download](files/etc/chrony.conf) · 915 B
+[View](/files/etc/chrony.conf) · [Download](/files/etc/chrony.conf) · 915 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 24 of 24 lines:
 
@@ -2280,9 +2285,9 @@ maxchange 60 1 0
 port 0
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/chrony.conf`
 - **Category:** config
@@ -2292,15 +2297,15 @@ port 0
 chronyd client config pointing at Sonos's *.sonostime.pool.ntp.org pool; drift state lands in /jffs/chrony/chrony.drift.
 
 
-</details>
+:::
 
 ### `host.conf`
 
 A small resolver rulebook: the order in which the speaker tries to turn names into addresses, such as checking its local hosts file before asking the network's name service.
 
-[View](files/etc/host.conf) · [Download](files/etc/host.conf) · 26 B
+[View](/files/etc/host.conf) · [Download](/files/etc/host.conf) · 26 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 2 of 2 lines:
 
@@ -2309,9 +2314,9 @@ order hosts,bind
 multi on
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/host.conf`
 - **Category:** config
@@ -2321,15 +2326,15 @@ multi on
 Standard glibc resolver order file (hosts before DNS).
 
 
-</details>
+:::
 
 ### `nsswitch.conf`
 
 The name-service switch table: the classic Unix file deciding where the system looks up things like user names, hosts, and networks, and in what order.
 
-[View](files/etc/nsswitch.conf) · [Download](files/etc/nsswitch.conf) · 452 B
+[View](/files/etc/nsswitch.conf) · [Download](/files/etc/nsswitch.conf) · 452 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 19 of 19 lines:
 
@@ -2355,9 +2360,9 @@ rpc:            files
 netgroup:       files
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/nsswitch.conf`
 - **Category:** config
@@ -2367,15 +2372,15 @@ netgroup:       files
 Standard NSS configuration; controls which sources answer name lookups.
 
 
-</details>
+:::
 
 ### `sddpd.conf`
 
 Configuration for the device-announcement daemon, the component that keeps re-broadcasting 'here I am' so your speakers and apps keep finding each other on the network.
 
-[View](files/etc/sddpd.conf) · [Download](files/etc/sddpd.conf) · 644 B
+[View](/files/etc/sddpd.conf) · [Download](/files/etc/sddpd.conf) · 644 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 14 of 14 lines:
 
@@ -2396,9 +2401,9 @@ Driver = sonos.c4z
 MaxAge = 1800
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/sddpd.conf`
 - **Category:** config
@@ -2408,15 +2413,15 @@ MaxAge = 1800
 Config for the sddpd sibling daemon (Sonos's device-announcement layer); a development override exists at /jffs/dev_sddp.conf.
 
 
-</details>
+:::
 
 ### `syslog.conf`
 
 The routing table for system log messages: which kind of message goes to which log file, used by the classic system logger outside the main program.
 
-[View](files/etc/syslog.conf) · [Download](files/etc/syslog.conf) · 1.6 KB
+[View](/files/etc/syslog.conf) · [Download](/files/etc/syslog.conf) · 1.6 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 71 lines:
 
@@ -2483,9 +2488,9 @@ mail.err			/var/log/mail.err
 # you must invoke `xconsole' with the `-file' option:
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/syslog.conf`
 - **Category:** config
@@ -2495,15 +2500,15 @@ mail.err			/var/log/mail.err
 syslogd routing rules for kernel/daemon messages outside anacapad's own logger framework.
 
 
-</details>
+:::
 
 ### `anacapa.conf`
 
 The main configuration file for the player software itself: which ports the web server listens on, which features and directories it uses, and the base settings the program reads at launch. Port 1400 for the status website is defined here.
 
-[View](files/opt/conf/anacapa.conf) · [Download](files/opt/conf/anacapa.conf) · 2.7 KB
+[View](/files/opt/conf/anacapa.conf) · [Download](/files/opt/conf/anacapa.conf) · 2.7 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 84 lines:
 
@@ -2570,9 +2575,9 @@ DiagMin 16384
 DiagMax 32768
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/anacapa.conf`
 - **Category:** config
@@ -2582,15 +2587,15 @@ DiagMax 32768
 Central config consumed at anacapad startup: web listener ports (1400 HTTP / 1443 HTTPS / 1843 household TLS), paths, and feature flags. Some values get overridden by files in the writable /jffs/conf directory.
 
 
-</details>
+:::
 
 ### `anacapa_logger.toml`
 
 The logging configuration for the main player software: which subsystem writes which log file, how chatty each one is allowed to be, and where the logs land on disk. The 21 log channels described in the subsystems page map onto the rules in this file.
 
-[View](files/opt/conf/anacapa_logger.toml) · [Download](files/opt/conf/anacapa_logger.toml) · 4.9 KB
+[View](/files/opt/conf/anacapa_logger.toml) · [Download](/files/opt/conf/anacapa_logger.toml) · 4.9 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 188 lines:
 
@@ -2657,9 +2662,9 @@ name = "anacapa.museevt.log"
 fileSize = 16384
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/anacapa_logger.toml`
 - **Category:** config
@@ -2669,15 +2674,15 @@ fileSize = 16384
 TOML logger config for anacapad; defines per-domain sinks and severities. The domain list inside is effectively a module map of the program.
 
 
-</details>
+:::
 
 ### `mime.types`
 
 The web server's file-type table: it lets the built-in web server label each file it serves with the right content type so browsers handle them correctly.
 
-[View](files/opt/conf/mime.types) · [Download](files/opt/conf/mime.types) · 140 B
+[View](/files/opt/conf/mime.types) · [Download](/files/opt/conf/mime.types) · 140 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 8 of 8 lines:
 
@@ -2692,9 +2697,9 @@ text/javascript			js
 image/png			png 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/mime.types`
 - **Category:** config
@@ -2704,15 +2709,15 @@ image/png			png
 Standard MIME map read by the embedded HTTP server when serving static files and status pages.
 
 
-</details>
+:::
 
 ### `sonosledmgrd_logger.toml`
 
 The logging configuration for the LED manager daemon, the small helper program that owns the speaker's status light. Same idea as the main logger config, but for the light show.
 
-[View](files/opt/conf/sonosledmgrd_logger.toml) · [Download](files/opt/conf/sonosledmgrd_logger.toml) · 1.0 KB
+[View](/files/opt/conf/sonosledmgrd_logger.toml) · [Download](/files/opt/conf/sonosledmgrd_logger.toml) · 1.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 27 of 27 lines:
 
@@ -2746,9 +2751,9 @@ defaultLevel = 4
 filter = {ledmgrd=6,LEDManager=6,ledmgr-server=6,leds_zp=6}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/sonosledmgrd_logger.toml`
 - **Category:** config
@@ -2758,15 +2763,15 @@ filter = {ledmgrd=6,LEDManager=6,ledmgr-server=6,leds_zp=6}
 TOML logger config for the sonosledmgrd sibling daemon; controls its /opt/log output.
 
 
-</details>
+:::
 
 ### `v1_auth_offline_policy_guest.json`
 
 The offline permission list for the guest role: the rules for what a guest or unauthenticated visitor on your network may call when the speaker cannot reach Sonos's servers to ask. Even with no internet, the player still enforces who is allowed to do what.
 
-[View](files/opt/conf/v1_auth_offline_policy_guest.json) · [Download](files/opt/conf/v1_auth_offline_policy_guest.json) · 2.0 KB
+[View](/files/opt/conf/v1_auth_offline_policy_guest.json) · [Download](/files/opt/conf/v1_auth_offline_policy_guest.json) · 2.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2774,9 +2779,9 @@ First 1 of 1 lines:
 {"name":"GUEST","version":1,"permissions":[{"ns":"alarms","perm":5},{"ns":"areas","perm":1},{"ns":"audioClip","perm":3},{"ns":"authorization","perm":5},{"ns":"clientStatus","perm":3},{"ns":"devices","perm":1},{"ns":"devicesExtended","perm":1},{"ns":"diagnostics","perm":7},{"ns":"effectiveSettings","perm":97},{"ns":"entitlements","perm":1},{"ns":"favorites","perm":5},{"ns":"groups","perm":3},{"ns":"groupVolume","perm":3},{"ns":"hardwareStatus","perm":37},{"ns":"hdmi","perm":1},{"ns":"history","perm":3},{"ns":"homeTheater","perm":3},{"ns":"households","perm":1},{"ns":"info","perm":1},{"ns":"ircontrol","perm":1},{"ns":"localContentLibrary","perm":1},{"ns":"musicServiceAccounts","perm":3},{"ns":"pinewood","perm":3},{"ns":"playback","perm":3},{"ns":"playbackExtended","perm":1},{"ns":"playbackMetadata","perm":3},{"ns":"playbackSession","perm":15},{"ns":"playerVolume","perm":3},{"ns":"playlists","perm":5},{"ns":"power","perm":3},{"ns":"roomDetection","perm":3},{"ns":"settings","perm":97},{"ns":"settings:playerBasic","perm":4},{"ns":"settings:playerLineIn","perm":4},{"ns":"settings:playerUI","perm":13},{"ns":"settings:security","perm":1},{"ns":"sleepTimer","perm":3},{"ns":"smartplay","perm":3},{"ns":"soundSwap","perm":2},{"ns":"systemReporting","perm":1},{"ns":"systemTime","perm":1},{"ns":"time","perm":1},{"ns":"timers","perm":3},{"ns":"trueplay","perm":3},{"ns":"trueroom","perm":1},{"ns":"update","perm":1},{"ns":"upnpAlarmClock","perm":3},{"ns":"upnpAudioIn","perm":3},{"ns":"upnpAVTransport","perm":3},{"ns":"upnpConnectionManager","perm":3},{"ns":"upnpContentDirectory","perm":3},{"ns":"upnpDeviceProperties","perm":3},{"ns":"upnpGroupManagement","perm":3},{"ns":"upnpGroupRenderingControl","perm":3},{"ns":"upnpHTControl","perm":3},{"ns":"upnpMusicServices","perm":3},{"ns":"upnpQueue","perm":3},{"ns":"upnpRenderingControl","perm":3},{"ns":"upnpSystemProperties","perm":3},{"ns":"upnpVirtualLineIn","perm":3},{"ns":"upnpZoneGroupTopology","perm":3},{"ns":"virtualLineIn","perm":3},{"ns":"virtualRemoteControl","perm":3},{"ns":"voice","perm":1},{"ns":"zones","perm":7}]}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/v1_auth_offline_policy_guest.json`
 - **Category:** config
@@ -2786,15 +2791,15 @@ First 1 of 1 lines:
 v1 API authorization policy for the guest role, applied when the authz backend is unreachable (offline fallback). Defines the resource/verb whitelist enforced by the authz stage.
 
 
-</details>
+:::
 
 ### `v1_auth_offline_policy_owner.json`
 
 The offline permission list for the owner role: the rules for what the household owner's apps and controllers may call when the speaker cannot reach Sonos's servers to ask. Even with no internet, the player still enforces who is allowed to do what.
 
-[View](files/opt/conf/v1_auth_offline_policy_owner.json) · [Download](files/opt/conf/v1_auth_offline_policy_owner.json) · 2.5 KB
+[View](/files/opt/conf/v1_auth_offline_policy_owner.json) · [Download](/files/opt/conf/v1_auth_offline_policy_owner.json) · 2.5 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2802,9 +2807,9 @@ First 1 of 1 lines:
 {"name":"OWNER","version":1,"permissions":[{"ns":"alarms","perm":7},{"ns":"areas","perm":3},{"ns":"audioClip","perm":3},{"ns":"authorization","perm":15},{"ns":"catalog","perm":1},{"ns":"clientStatus","perm":3},{"ns":"devices","perm":15},{"ns":"devicesExtended","perm":3},{"ns":"diagnostics","perm":7},{"ns":"effectiveSettings","perm":99},{"ns":"entitlements","perm":3},{"ns":"favorites","perm":7},{"ns":"global","perm":3},{"ns":"groups","perm":3},{"ns":"groupVolume","perm":3},{"ns":"hardwareStatus","perm":127},{"ns":"hdmi","perm":3},{"ns":"history","perm":3},{"ns":"homeTheater","perm":7},{"ns":"households","perm":3},{"ns":"householdUpdate","perm":3},{"ns":"info","perm":3},{"ns":"ircontrol","perm":3},{"ns":"liveActivities","perm":3},{"ns":"localContentLibrary","perm":7},{"ns":"management","perm":7},{"ns":"musicServiceAccounts","perm":7},{"ns":"networkTest","perm":6},{"ns":"pinewood","perm":3},{"ns":"platformInternal","perm":7},{"ns":"playback","perm":7},{"ns":"playbackExtended","perm":3},{"ns":"playbackMetadata","perm":3},{"ns":"playbackSession","perm":31},{"ns":"playerVolume","perm":3},{"ns":"playlists","perm":7},{"ns":"positioning","perm":3},{"ns":"power","perm":3},{"ns":"roomDetection","perm":3},{"ns":"settings","perm":127},{"ns":"settings:business","perm":3},{"ns":"settings:frontierLlms","perm":7},{"ns":"settings:global","perm":3},{"ns":"settings:playback","perm":7},{"ns":"settings:playerBasic","perm":15},{"ns":"settings:playerLineIn","perm":15},{"ns":"settings:playerUI","perm":15},{"ns":"settings:preferences","perm":3},{"ns":"settings:proDashboard","perm":3},{"ns":"settings:security","perm":7},{"ns":"sleepTimer","perm":3},{"ns":"smartplay","perm":3},{"ns":"soundSwap","perm":3},{"ns":"svc","perm":3},{"ns":"systemReporting","perm":1},{"ns":"systemTime","perm":3},{"ns":"timers","perm":3},{"ns":"topology","perm":3},{"ns":"trueplay","perm":3},{"ns":"trueroom","perm":3},{"ns":"update","perm":3},{"ns":"upnpAlarmClock","perm":3},{"ns":"upnpAudioIn","perm":3},{"ns":"upnpAVTransport","perm":3},{"ns":"upnpConnectionManager","perm":3},{"ns":"upnpContentDirectory","perm":3},{"ns":"upnpDeviceProperties","perm":3},{"ns":"upnpGroupManagement","perm":3},{"ns":"upnpGroupRenderingControl","perm":3},{"ns":"upnpHTControl","perm":3},{"ns":"upnpMusicServices","perm":3},{"ns":"upnpQueue","perm":3},{"ns":"upnpRenderingControl","perm":3},{"ns":"upnpSystemProperties","perm":3},{"ns":"upnpVirtualLineIn","perm":3},{"ns":"upnpZoneGroupTopology","perm":3},{"ns":"virtualLineIn","perm":3},{"ns":"virtualRemoteControl","perm":3},{"ns":"voice","perm":15},{"ns":"zones","perm":15}]}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/v1_auth_offline_policy_owner.json`
 - **Category:** config
@@ -2814,15 +2819,15 @@ First 1 of 1 lines:
 v1 API authorization policy for the owner role, applied when the authz backend is unreachable (offline fallback). Defines the resource/verb whitelist enforced by the authz stage.
 
 
-</details>
+:::
 
 ### `v1_auth_offline_policy_p2p.json`
 
 The offline permission list for the peer-to-peer role: the rules for what other players in your household may call on each other when the speaker cannot reach Sonos's servers to ask. Even with no internet, the player still enforces who is allowed to do what.
 
-[View](files/opt/conf/v1_auth_offline_policy_p2p.json) · [Download](files/opt/conf/v1_auth_offline_policy_p2p.json) · 2.0 KB
+[View](/files/opt/conf/v1_auth_offline_policy_p2p.json) · [Download](/files/opt/conf/v1_auth_offline_policy_p2p.json) · 2.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2830,9 +2835,9 @@ First 1 of 1 lines:
 {"name":"P2P","version":1,"permissions":[{"ns":"areas","perm":1},{"ns":"audioClip","perm":3},{"ns":"authorization","perm":3},{"ns":"clientStatus","perm":3},{"ns":"devices","perm":1},{"ns":"diagnostics","perm":7},{"ns":"effectiveSettings","perm":99},{"ns":"entitlements","perm":1},{"ns":"favorites","perm":5},{"ns":"groups","perm":3},{"ns":"groupVolume","perm":3},{"ns":"hardwareStatus","perm":5},{"ns":"hdmi","perm":1},{"ns":"history","perm":3},{"ns":"homeTheater","perm":3},{"ns":"households","perm":1},{"ns":"info","perm":1},{"ns":"ircontrol","perm":1},{"ns":"localContentLibrary","perm":7},{"ns":"musicServiceAccounts","perm":4},{"ns":"playback","perm":3},{"ns":"playbackExtended","perm":1},{"ns":"playbackMetadata","perm":1},{"ns":"playbackSession","perm":15},{"ns":"playerVolume","perm":3},{"ns":"playlists","perm":5},{"ns":"positioning","perm":3},{"ns":"roomDetection","perm":2},{"ns":"settings","perm":103},{"ns":"settings:playerBasic","perm":15},{"ns":"settings:playerLineIn","perm":15},{"ns":"settings:playerUI","perm":15},{"ns":"settings:security","perm":1},{"ns":"sleepTimer","perm":1},{"ns":"smartplay","perm":3},{"ns":"soundSwap","perm":2},{"ns":"svc","perm":7},{"ns":"systemTime","perm":3},{"ns":"time","perm":1},{"ns":"timers","perm":3},{"ns":"trueplay","perm":3},{"ns":"trueroom","perm":3},{"ns":"update","perm":1},{"ns":"upnpAlarmClock","perm":3},{"ns":"upnpAudioIn","perm":3},{"ns":"upnpAVTransport","perm":3},{"ns":"upnpConnectionManager","perm":3},{"ns":"upnpContentDirectory","perm":3},{"ns":"upnpDeviceProperties","perm":3},{"ns":"upnpGroupManagement","perm":3},{"ns":"upnpGroupRenderingControl","perm":3},{"ns":"upnpHTControl","perm":3},{"ns":"upnpMusicServices","perm":3},{"ns":"upnpQueue","perm":3},{"ns":"upnpRenderingControl","perm":3},{"ns":"upnpSystemProperties","perm":3},{"ns":"upnpVirtualLineIn","perm":3},{"ns":"upnpZoneGroupTopology","perm":3},{"ns":"virtualLineIn","perm":3},{"ns":"virtualRemoteControl","perm":3},{"ns":"voice","perm":13},{"ns":"zones","perm":15}]}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/conf/v1_auth_offline_policy_p2p.json`
 - **Category:** config
@@ -2842,15 +2847,15 @@ First 1 of 1 lines:
 v1 API authorization policy for the p2p role, applied when the authz backend is unreachable (offline fallback). Defines the resource/verb whitelist enforced by the authz stage.
 
 
-</details>
+:::
 
 ### `irconfig.txt`
 
 The remote-control configuration: the learned infrared codes and receiver settings the soundbar uses to understand a TV remote's volume keys.
 
-[View](files/opt/ir/irconfig.txt) · [Download](files/opt/ir/irconfig.txt) · 98 B
+[View](/files/opt/ir/irconfig.txt) · [Download](/files/opt/ir/irconfig.txt) · 98 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 9 of 9 lines:
 
@@ -2866,9 +2871,9 @@ First 9 of 9 lines:
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/ir/irconfig.txt`
 - **Category:** config
@@ -2878,15 +2883,15 @@ First 9 of 9 lines:
 IR decoder config consumed by ir_decoder/ir_learn; holds the learned code list for volume up/down/mute/input. A per-device copy also lives at /jffs/irconfig.txt once learning has run.
 
 
-</details>
+:::
 
 ### `global_attrdata.json`
 
 The settings-schema records describing the household-wide settings surface: which keys exist, their types, and who may write them. These ship as templates; the live values you change are stored separately in the writable partition.
 
-[View](files/opt/localsettings/global_attrdata.json) · [Download](files/opt/localsettings/global_attrdata.json) · 547 B
+[View](/files/opt/localsettings/global_attrdata.json) · [Download](/files/opt/localsettings/global_attrdata.json) · 547 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2894,9 +2899,9 @@ First 1 of 1 lines:
 {"global": {"attributes": {"enableContentAccess": {"default": false}, "overrideRemoveMSPCredentials": {"default": true}}, "schemaValidator": {"type": "object", "properties": {"attributes": {"properties": {"enableContentAccess": {"type": "boolean"}, "overrideRemoveMSPCredentials": {"type": "boolean"}}, "additionalProperties": false}, "schemaVersion": {"type": "integer", "minimum": 1}, "eTag": {"allOf": [{"type": "string"}]}, "timestamp": {"allOf": [{"type": "string", "pattern": "^[0-9]+$", "maxLength": 20}]}}, "required": ["schemaVersion"]}}}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/localsettings/global_attrdata.json`
 - **Category:** config
@@ -2906,15 +2911,15 @@ First 1 of 1 lines:
 Attribute-data schema for the global settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.
 
 
-</details>
+:::
 
 ### `playback_attrdata.json`
 
 The settings-schema records for playback-related settings: the typed keys the playback surface accepts. These ship as templates; the live values you change are stored separately in the writable partition.
 
-[View](files/opt/localsettings/playback_attrdata.json) · [Download](files/opt/localsettings/playback_attrdata.json) · 584 B
+[View](/files/opt/localsettings/playback_attrdata.json) · [Download](/files/opt/localsettings/playback_attrdata.json) · 584 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2922,9 +2927,9 @@ First 1 of 1 lines:
 {"playback": {"attributes": {"allowDirectControl": {"default": true}, "allowLineIn": {"default": true}, "allowAirplay": {"default": true}}, "schemaValidator": {"type": "object", "properties": {"attributes": {"properties": {"allowDirectControl": {"type": "boolean"}, "allowLineIn": {"type": "boolean"}, "allowAirplay": {"type": "boolean"}}, "additionalProperties": false}, "schemaVersion": {"type": "integer", "minimum": 1}, "eTag": {"allOf": [{"type": "string"}]}, "timestamp": {"allOf": [{"type": "string", "pattern": "^[0-9]+$", "maxLength": 20}]}}, "required": ["schemaVersion"]}}}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/localsettings/playback_attrdata.json`
 - **Category:** config
@@ -2934,15 +2939,15 @@ First 1 of 1 lines:
 Attribute-data schema for the playback settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.
 
 
-</details>
+:::
 
 ### `playerBasic_attrdata.json`
 
 The settings-schema records for basic per-player settings like name, icon, and core behavior toggles. These ship as templates; the live values you change are stored separately in the writable partition.
 
-[View](files/opt/localsettings/playerBasic_attrdata.json) · [Download](files/opt/localsettings/playerBasic_attrdata.json) · 1.6 KB
+[View](/files/opt/localsettings/playerBasic_attrdata.json) · [Download](/files/opt/localsettings/playerBasic_attrdata.json) · 1.6 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2950,9 +2955,9 @@ First 1 of 1 lines:
 {"playerBasic": {"attributes": {"zoneName": {"default": "Unnamed Room"}, "icon": {"default": ""}, "configuration": {"default": 0}, "targetRoomName": {"default": ""}, "unpairedZoneName": {"default": "Unnamed Room", "readPerm": "0x00000000", "writePerm": "0x00000000"}, "unpairedIcon": {"default": "", "readPerm": "0x00000000", "writePerm": "0x00000000"}, "unpairedConfiguration": {"default": 0, "readPerm": "0x00000000", "writePerm": "0x00000000"}, "unpairedStatusLight": {"default": true, "readPerm": "0x00000000", "writePerm": "0x00000000"}, "unpairedButtonLockState": {"default": false, "readPerm": "0x00000000", "writePerm": "0x00000000"}}, "schemaValidator": {"type": "object", "properties": {"attributes": {"properties": {"zoneName": {"type": "string", "maxLength": 64, "minLength": 1, "pattern": "^(([^ \\n\\t].*[^ \\n\\t])|([^ \\n\\t]))$"}, "icon": {"type": "string", "maxLength": 128}, "configuration": {"type": "integer", "format": "int32"}, "targetRoomName": {"type": "string", "maxLength": 64}, "unpairedZoneName": {"type": "string", "maxLength": 64, "minLength": 1, "pattern": "^(([^ \\n\\t].*[^ \\n\\t])|([^ \\n\\t]))$"}, "unpairedIcon": {"type": "string", "maxLength": 128}, "unpairedConfiguration": {"type": "integer", "format": "int32"}, "unpairedStatusLight": {"type": "boolean"}, "unpairedButtonLockState": {"type": "boolean"}}, "additionalProperties": false}, "schemaVersion": {"type": "integer", "minimum": 1}, "eTag": {"allOf": [{"type": "string"}]}, "timestamp": {"allOf": [{"type": "string", "pattern": "^[0-9]+$", "maxLength": 20}]}}, "required": ["schemaVersion"]}}}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/localsettings/playerBasic_attrdata.json`
 - **Category:** config
@@ -2962,15 +2967,15 @@ First 1 of 1 lines:
 Attribute-data schema for the playerBasic settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.
 
 
-</details>
+:::
 
 ### `playerUI_attrdata.json`
 
 The settings-schema records for the player-facing interface options. These ship as templates; the live values you change are stored separately in the writable partition.
 
-[View](files/opt/localsettings/playerUI_attrdata.json) · [Download](files/opt/localsettings/playerUI_attrdata.json) · 560 B
+[View](/files/opt/localsettings/playerUI_attrdata.json) · [Download](/files/opt/localsettings/playerUI_attrdata.json) · 560 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -2978,9 +2983,9 @@ First 1 of 1 lines:
 {"playerUI": {"attributes": {"statusLight": {"default": true, "readPerm": "0x00000004", "writePerm": "0x00000008"}, "buttonLockState": {"default": false}}, "schemaValidator": {"type": "object", "properties": {"attributes": {"properties": {"statusLight": {"type": "boolean"}, "buttonLockState": {"type": "boolean"}}, "additionalProperties": false}, "schemaVersion": {"type": "integer", "minimum": 1}, "eTag": {"allOf": [{"type": "string"}]}, "timestamp": {"allOf": [{"type": "string", "pattern": "^[0-9]+$", "maxLength": 20}]}}, "required": ["schemaVersion"]}}}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/localsettings/playerUI_attrdata.json`
 - **Category:** config
@@ -2990,15 +2995,15 @@ First 1 of 1 lines:
 Attribute-data schema for the playerUI settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.
 
 
-</details>
+:::
 
 ### `security_attrdata.json`
 
 The settings-schema records for security-relevant settings like credential and access-related keys. These ship as templates; the live values you change are stored separately in the writable partition.
 
-[View](files/opt/localsettings/security_attrdata.json) · [Download](files/opt/localsettings/security_attrdata.json) · 751 B
+[View](/files/opt/localsettings/security_attrdata.json) · [Download](/files/opt/localsettings/security_attrdata.json) · 751 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -3006,9 +3011,9 @@ First 1 of 1 lines:
 {"security": {"attributes": {"allowGuestAccess": {"default": true}, "allowInsecureUPnP": {"default": true}, "allowUnauthenticatedControl": {"default": true}, "authPin": {"default": "", "readPerm": "0x00000004", "writePerm": "0x00000004"}}, "schemaValidator": {"type": "object", "properties": {"attributes": {"properties": {"allowGuestAccess": {"type": "boolean"}, "allowInsecureUPnP": {"type": "boolean"}, "allowUnauthenticatedControl": {"type": "boolean"}, "authPin": {"type": "string", "maxLength": 64}}, "additionalProperties": false}, "schemaVersion": {"type": "integer", "minimum": 1}, "eTag": {"allOf": [{"type": "string"}]}, "timestamp": {"allOf": [{"type": "string", "pattern": "^[0-9]+$", "maxLength": 20}]}}, "required": ["schemaVersion"]}}}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/localsettings/security_attrdata.json`
 - **Category:** config
@@ -3018,15 +3023,15 @@ First 1 of 1 lines:
 Attribute-data schema for the security settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.
 
 
-</details>
+:::
 
 ### `settings_targettypes.json`
 
 The master list of setting scopes: which settings apply to a whole household, which to a room, and which to a single speaker. The settings machinery uses it to decide where a change should be stored.
 
-[View](files/opt/localsettings/settings_targettypes.json) · [Download](files/opt/localsettings/settings_targettypes.json) · 128 B
+[View](/files/opt/localsettings/settings_targettypes.json) · [Download](/files/opt/localsettings/settings_targettypes.json) · 128 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -3034,9 +3039,9 @@ First 1 of 1 lines:
 {"fileFormatVersion": 1, "targetTypes": {"playerUI": "LP", "playerBasic": "P", "security": "L", "global": "L", "playback": "L"}}
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/localsettings/settings_targettypes.json`
 - **Category:** config
@@ -3046,26 +3051,26 @@ First 1 of 1 lines:
 Target-type registry for the settings schema; defines the scope classes the settings validator routes keys into.
 
 
-</details>
+:::
 
 
 ## Base system files
 
 Standard Unix-era system files that every Linux-style appliance carries: the account list, the startup table, filesystem mounts, and network name resolution. They are unglamorous but they define the basic shape of the device as a small computer.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Busybox-era /etc plumbing from the limelight buildroot: user database, init table, mount table, resolver config, and protocol/service name databases.
 
-</details>
+:::
 
 ### `Configure`
 
 The legacy configuration entry point name used by older Sonos utilities: a small script-era file the toolchain still ships for compatibility.
 
-[View](files/etc/Configure) · [Download](files/etc/Configure) · 2.4 KB
+[View](/files/etc/Configure) · [Download](/files/etc/Configure) · 2.4 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 126 lines:
 
@@ -3132,9 +3137,9 @@ mkdir -p /jffs/app/run \
   /jffs/sys/log \
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/Configure`
 - **Category:** system
@@ -3144,15 +3149,15 @@ mkdir -p /jffs/app/run \
 Historic configuration hook referenced by sibling tooling (Configure/Configure.dev naming appears in the jffs config layout too).
 
 
-</details>
+:::
 
 ### `arch`
 
 A small marker file naming the hardware architecture family the image was built for.
 
-[View](files/etc/arch) · [Download](files/etc/arch) · 10 B
+[View](/files/etc/arch) · [Download](/files/etc/arch) · 10 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -3160,9 +3165,9 @@ First 1 of 1 lines:
 limelight
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/arch`
 - **Category:** system
@@ -3172,15 +3177,15 @@ limelight
 Records the limelight architecture identifier used by scripts and tooling.
 
 
-</details>
+:::
 
 ### `arch_attrs`
 
 Architecture attributes: a small data file describing the board family's properties for scripts that need to branch on hardware type.
 
-[View](files/etc/arch_attrs) · [Download](files/etc/arch_attrs) · 1020 B
+[View](/files/etc/arch_attrs) · [Download](/files/etc/arch_attrs) · 1020 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 54 of 54 lines:
 
@@ -3241,9 +3246,9 @@ USES_LLA
 USES_LONG_AMP_POWER_TIMEOUT
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/arch_attrs`
 - **Category:** system
@@ -3253,15 +3258,15 @@ USES_LONG_AMP_POWER_TIMEOUT
 Architecture attribute table consumed by board-level scripts (see Configure and soc_arch).
 
 
-</details>
+:::
 
 ### `dhcp.script`
 
 The DHCP handler script: what the device does each time it receives an address from your router, including updating its name resolution and recording the lease details.
 
-[View](files/etc/dhcp.script) · [Download](files/etc/dhcp.script) · 1.2 KB
+[View](/files/etc/dhcp.script) · [Download](/files/etc/dhcp.script) · 1.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 54 of 54 lines:
 
@@ -3322,9 +3327,9 @@ esac
 exit 0
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/dhcp.script`
 - **Category:** system
@@ -3334,15 +3339,15 @@ exit 0
 udhcpc hook script; writes lease info and refreshes resolv.conf/hosts on the writable side.
 
 
-</details>
+:::
 
 ### `diagprocessd`
 
 The diagnostic coprocessor helper: a tiny FIFO-driven menu the factory uses to run production-line commands over a pipe interface.
 
-[View](files/etc/diagprocessd) · [Download](files/etc/diagprocessd) · 2.2 KB
+[View](/files/etc/diagprocessd) · [Download](/files/etc/diagprocessd) · 2.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 86 lines:
 
@@ -3409,9 +3414,9 @@ do
             12)
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/diagprocessd`
 - **Category:** system
@@ -3421,15 +3426,15 @@ do
 mkfifo-based command loop (diagstdin/diagstdout) dispatching numbered commands; generated from configs/arch/limelight.toml per the build system.
 
 
-</details>
+:::
 
 ### `fallback_trusted_roots.rcb`
 
 The backup set of root certificates: the trust anchors the player uses to check secure connections when its primary bundle is unavailable or being updated. It is the device's emergency list of who to trust.
 
-[Download](files/etc/fallback_trusted_roots.rcb) · 26.6 KB
+[Download](/files/etc/fallback_trusted_roots.rcb) · 26.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/fallback_trusted_roots.rcb`
 - **Category:** system
@@ -3439,15 +3444,15 @@ The backup set of root certificates: the trust anchors the player uses to check 
 RCB-format certificate bundle under /etc; managed by libsonos-certval with runtime bundle updates watched for (documented under libsonos_certval).
 
 
-</details>
+:::
 
 ### `fstab`
 
 The filesystem mount table: which storage areas exist (system files, the writable settings partition, temporary memory disks) and where they attach. It explains why settings survive reboots while scratch space does not.
 
-[View](files/etc/fstab) · [Download](files/etc/fstab) · 501 B
+[View](/files/etc/fstab) · [Download](/files/etc/fstab) · 501 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 8 of 8 lines:
 
@@ -3462,9 +3467,9 @@ none            /dev/pts        devpts  gid=5,mode=620                  0 0
 tmpfs           /dev/shm        tmpfs   defaults,noexec,nodev,nosuid,mode=600  0 0
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/fstab`
 - **Category:** system
@@ -3474,15 +3479,15 @@ tmpfs           /dev/shm        tmpfs   defaults,noexec,nodev,nosuid,mode=600  0
 Mounts jffs2 (persistent) alongside tmpfs runtime dirs; the rootfs itself is read-only squashfs.
 
 
-</details>
+:::
 
 ### `group`
 
 The group list matching the account file: which user groups exist on the device.
 
-[View](files/etc/group) · [Download](files/etc/group) · 504 B
+[View](/files/etc/group) · [Download](/files/etc/group) · 504 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 44 of 44 lines:
 
@@ -3533,9 +3538,9 @@ users:x:100:
 nogroup:x:65534:
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/group`
 - **Category:** system
@@ -3545,15 +3550,15 @@ nogroup:x:65534:
 Standard group file; mostly stock groups plus the anacapa service account.
 
 
-</details>
+:::
 
 ### `hosts.orig`
 
 The original hosts file: a few built-in name shortcuts the firmware ships with before the system generates its working copy at boot.
 
-[View](files/etc/hosts.orig) · [Download](files/etc/hosts.orig) · 100 B
+[View](/files/etc/hosts.orig) · [Download](/files/etc/hosts.orig) · 100 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 3 of 3 lines:
 
@@ -3563,9 +3568,9 @@ First 3 of 3 lines:
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/hosts.orig`
 - **Category:** system
@@ -3575,15 +3580,15 @@ First 3 of 3 lines:
 Template copied to /jffs/hosts during bring-up (the generated live file sits on the writable side).
 
 
-</details>
+:::
 
 ### `inittab`
 
 The startup table: the ordered list of what the device runs when it boots, including which console and service launchers come up and in what order. It is the first page of the boot story.
 
-[View](files/etc/inittab) · [Download](files/etc/inittab) · 679 B
+[View](/files/etc/inittab) · [Download](/files/etc/inittab) · 679 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 14 of 14 lines:
 
@@ -3604,9 +3609,9 @@ null::respawn:/usr/sbin/secure_console_login.sh /dev/ttyS0 0 -n -l /usr/sbin/sec
 ::restart:/sbin/init
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/inittab`
 - **Category:** system
@@ -3616,15 +3621,15 @@ null::respawn:/usr/sbin/secure_console_login.sh /dev/ttyS0 0 -n -l /usr/sbin/sec
 SysV-style inittab for busybox init; wires getty, the rc.d runlevels, and the rcK shutdown sequence.
 
 
-</details>
+:::
 
 ### `inputrc`
 
 Readline keybinding configuration: how command-line editing behaves in an interactive shell session.
 
-[View](files/etc/inputrc) · [Download](files/etc/inputrc) · 421 B
+[View](/files/etc/inputrc) · [Download](/files/etc/inputrc) · 421 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 12 of 12 lines:
 
@@ -3643,9 +3648,9 @@ set output-meta on
 # set convert-meta off
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/inputrc`
 - **Category:** system
@@ -3655,15 +3660,15 @@ set output-meta on
 Standard inputrc for readline-based shells.
 
 
-</details>
+:::
 
 ### `issue`
 
 The login banner text shown before a login prompt on a console. On most appliances it is leftover decoration, but it is part of the image.
 
-[View](files/etc/issue) · [Download](files/etc/issue) · 29 B
+[View](/files/etc/issue) · [Download](/files/etc/issue) · 29 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 3 of 3 lines:
 
@@ -3673,9 +3678,9 @@ Welcome to Rincon Networks
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/issue`
 - **Category:** system
@@ -3685,15 +3690,15 @@ Welcome to Rincon Networks
 Stock /etc/issue banner.
 
 
-</details>
+:::
 
 ### `issue.net`
 
 The network variant of the login banner, shown by remote login services such as the SSH daemon when a session opens.
 
-[View](files/etc/issue.net) · [Download](files/etc/issue.net) · 38 B
+[View](/files/etc/issue.net) · [Download](/files/etc/issue.net) · 38 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 4 of 4 lines:
 
@@ -3704,9 +3709,9 @@ Welcome to Rincon Networks
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/issue.net`
 - **Category:** system
@@ -3716,15 +3721,15 @@ Welcome to Rincon Networks
 Banner presented by dropbear/ssh on connect.
 
 
-</details>
+:::
 
 ### `motd`
 
 The 'message of the day' text shown after login. On a shipping appliance it is usually a placeholder.
 
-[View](files/etc/motd) · [Download](files/etc/motd) · 29 B
+[View](/files/etc/motd) · [Download](/files/etc/motd) · 29 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 3 of 3 lines:
 
@@ -3734,9 +3739,9 @@ Welcome to Rincon Networks
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/motd`
 - **Category:** system
@@ -3746,15 +3751,15 @@ Welcome to Rincon Networks
 Standard motd file.
 
 
-</details>
+:::
 
 ### `mtab`
 
 The file reporting which filesystems are currently mounted. On this build it is a link into the kernel's live mount list rather than a static file.
 
-[View](files/etc/mtab) · [Download](files/etc/mtab) · 193 B
+[View](/files/etc/mtab) · [Download](/files/etc/mtab) · 193 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 7 of 7 lines:
 
@@ -3768,9 +3773,9 @@ none /dev/pts devpts rw 0 0
 none /dev/shm tmpfs rw 0 0
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/mtab`
 - **Category:** system
@@ -3780,15 +3785,15 @@ none /dev/shm tmpfs rw 0 0
 Symlink to /proc/mounts (live kernel view), standard on embedded systems.
 
 
-</details>
+:::
 
 ### `passwd`
 
 The device's account list: which usernames exist on the box (root, the web user, the player software's own user, and the usual service accounts). This is the classic Unix roster, present on almost every Linux appliance.
 
-[View](files/etc/passwd) · [Download](files/etc/passwd) · 868 B
+[View](/files/etc/passwd) · [Download](/files/etc/passwd) · 868 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 20 of 20 lines:
 
@@ -3815,9 +3820,9 @@ gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/sbin/nologin
 nobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/passwd`
 - **Category:** system
@@ -3827,15 +3832,15 @@ nobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin
 Standard passwd file. No password hashes here (those live in shadow); notable entries: root, chrony, anacapa (uid 20), www-data.
 
 
-</details>
+:::
 
 ### `pointercal`
 
 Touchscreen calibration parameters. The Playbar has no touchscreen; this file is inherited from the shared base image that also serves products that do.
 
-[View](files/etc/pointercal) · [Download](files/etc/pointercal) · 14 B
+[View](/files/etc/pointercal) · [Download](/files/etc/pointercal) · 14 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -3843,9 +3848,9 @@ First 1 of 1 lines:
 1 0 0 0 1 0 1
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/pointercal`
 - **Category:** system
@@ -3855,15 +3860,15 @@ First 1 of 1 lines:
 Calibrate-touchscreen constants retained from the common buildroot; vestigial on this model.
 
 
-</details>
+:::
 
 ### `profile`
 
 The shell profile: environment defaults applied when a login shell starts, such as search paths for commands.
 
-[View](files/etc/profile) · [Download](files/etc/profile) · 375 B
+[View](/files/etc/profile) · [Download](/files/etc/profile) · 375 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 18 of 18 lines:
 
@@ -3888,9 +3893,9 @@ umask 022
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/profile`
 - **Category:** system
@@ -3900,15 +3905,15 @@ umask 022
 System-wide shell profile for the busybox environment.
 
 
-</details>
+:::
 
 ### `protocols`
 
 The protocol-name database: the table mapping names like 'tcp' and 'udp' to their protocol numbers, a classic Unix leftover that networking tools still consult.
 
-[View](files/etc/protocols) · [Download](files/etc/protocols) · 5.7 KB
+[View](/files/etc/protocols) · [Download](/files/etc/protocols) · 5.7 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 149 lines:
 
@@ -3975,9 +3980,9 @@ rsvp	46	RSVP		# Resource ReSerVation Protocol
 gre	47	GRE		# Generic Routing Encapsulation
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/protocols`
 - **Category:** system
@@ -3987,15 +3992,15 @@ gre	47	GRE		# Generic Routing Encapsulation
 Standard protocols database.
 
 
-</details>
+:::
 
 ### `rpc`
 
 The RPC program-number table, another standard Unix database file mapping remote-procedure names to numbers.
 
-[View](files/etc/rpc) · [Download](files/etc/rpc) · 1.6 KB
+[View](/files/etc/rpc) · [Download](/files/etc/rpc) · 1.6 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 68 lines:
 
@@ -4062,9 +4067,9 @@ traffic		100123	na.traffic
 nfs_acl		100227
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/rpc`
 - **Category:** system
@@ -4074,15 +4079,15 @@ nfs_acl		100227
 Standard RPC database; part of the buildroot base image.
 
 
-</details>
+:::
 
 ### `services`
 
 The service-name database: which named services correspond to which port numbers (http = 80 and so on). Networking code consults it when translating names.
 
-[View](files/etc/services) · [Download](files/etc/services) · 15.0 KB
+[View](/files/etc/services) · [Download](/files/etc/services) · 15.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 407 lines:
 
@@ -4149,9 +4154,9 @@ supdup		95/tcp
 # 100 - reserved
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/services`
 - **Category:** system
@@ -4161,7 +4166,7 @@ supdup		95/tcp
 Standard services database.
 
 
-</details>
+:::
 
 ### `shadow`
 
@@ -4169,9 +4174,9 @@ The account password table. It shows a factory-set root password hash plus locke
 
 *Security-sensitive file: it is published firmware data and stays downloadable, but its contents are not previewed inline.*
 
-[Download](files/etc/shadow) · 565 B
+[Download](/files/etc/shadow) · 565 B
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/shadow`
 - **Category:** system
@@ -4181,15 +4186,15 @@ The account password table. It shows a factory-set root password hash plus locke
 MD5-crypt ($1$) root hash as shipped. This is a published firmware default, not a per-device secret; the diag build history around SSH access is documented under ssh_authorized_keys and the secure_console scripts.
 
 
-</details>
+:::
 
 ### `shells`
 
 The list of shells the system considers legal login shells. Mostly boilerplate on an appliance.
 
-[View](files/etc/shells) · [Download](files/etc/shells) · 53 B
+[View](/files/etc/shells) · [Download](/files/etc/shells) · 53 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 5 of 5 lines:
 
@@ -4201,9 +4206,9 @@ First 5 of 5 lines:
 /bin/sash
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/shells`
 - **Category:** system
@@ -4213,15 +4218,15 @@ First 5 of 5 lines:
 Standard shells file.
 
 
-</details>
+:::
 
 ### `soc_arch`
 
 The system-on-chip identifier: which processor family this firmware targets.
 
-[View](files/etc/soc_arch) · [Download](files/etc/soc_arch) · 10 B
+[View](/files/etc/soc_arch) · [Download](/files/etc/soc_arch) · 10 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 1 of 1 lines:
 
@@ -4229,9 +4234,9 @@ First 1 of 1 lines:
 limelight
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/soc_arch`
 - **Category:** system
@@ -4241,26 +4246,26 @@ limelight
 SoC family marker used by the launch and diagnostic scripts.
 
 
-</details>
+:::
 
 
 ## Boot and service scripts
 
 Small shell scripts that start and stop the device's programs in the right order, bring the network up, and recover when something crashes. Reading them is the clearest way to see how the player actually boots.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 POSIX shell launchers and lifecycle scripts under /etc; they glue the kernel, the sibling daemons, and anacapad together during boot, shutdown, and reset.
 
-</details>
+:::
 
 ### `Krandom`
 
 The shutdown-time entropy script: preserves randomness state across reboots so the device's cryptographic operations do not restart from a predictable seed.
 
-[View](files/etc/init.d/Krandom) · [Download](files/etc/init.d/Krandom) · 499 B
+[View](/files/etc/init.d/Krandom) · [Download](/files/etc/init.d/Krandom) · 499 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 17 of 17 lines:
 
@@ -4284,9 +4289,9 @@ esac
 dd if=/dev/urandom "of=$random_seed" count=1 "bs=$bytes" 2> /dev/null
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/init.d/Krandom`
 - **Category:** scripts
@@ -4296,15 +4301,15 @@ dd if=/dev/urandom "of=$random_seed" count=1 "bs=$bytes" 2> /dev/null
 Saves/restores the random seed (cf. /jffs/random-seed) in the K-order shutdown sequence.
 
 
-</details>
+:::
 
 ### `Srandom`
 
 The boot-time entropy script: seeds the random number generator early so keys, tokens, and nonces are unpredictable from the very first connection.
 
-[View](files/etc/init.d/Srandom) · [Download](files/etc/init.d/Srandom) · 246 B
+[View](/files/etc/init.d/Srandom) · [Download](/files/etc/init.d/Srandom) · 246 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 8 of 8 lines:
 
@@ -4319,9 +4324,9 @@ if [ -f $random_seed ]; then
 fi
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/init.d/Srandom`
 - **Category:** scripts
@@ -4331,15 +4336,15 @@ fi
 Restores /jffs/random-seed into urandom at boot (S-order init step).
 
 
-</details>
+:::
 
 ### `rcK`
 
 The kill script: the ordered teardown list run at shutdown or reboot, stopping services in the right sequence before power-off.
 
-[View](files/etc/init.d/rcK) · [Download](files/etc/init.d/rcK) · 719 B
+[View](/files/etc/init.d/rcK) · [Download](/files/etc/init.d/rcK) · 719 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 35 of 35 lines:
 
@@ -4381,9 +4386,9 @@ echo Unmounting /jffs
 grep -q /jffs /proc/mounts && umount /jffs
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/init.d/rcK`
 - **Category:** scripts
@@ -4393,15 +4398,15 @@ grep -q /jffs /proc/mounts && umount /jffs
 Init runlevel-K aggregation; pairs with the inittab shutdown entries.
 
 
-</details>
+:::
 
 ### `runanacapa`
 
 The launcher for the main player software: the script that starts anacapad with its config file, drops privileges to its own user, and sets up its environment. The player's whole life starts here at every boot.
 
-[View](files/etc/runanacapa) · [Download](files/etc/runanacapa) · 568 B
+[View](/files/etc/runanacapa) · [Download](/files/etc/runanacapa) · 568 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 28 of 28 lines:
 
@@ -4436,9 +4441,9 @@ waitwhiletrue "[ -f /var/run/stopanacapa ]"
 exec /opt/bin/anacapactl start-demo
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/runanacapa`
 - **Category:** scripts
@@ -4448,15 +4453,15 @@ exec /opt/bin/anacapactl start-demo
 Launches 'anacapad -c /opt/conf/anacapa.conf -u anacapa -C all=eip' with the pid file at /opt/log/anacapa.pid; supports gdb-wrapped debug starts and the demo-mode direct exec (documented on the rootfs_boot_chain entry).
 
 
-</details>
+:::
 
 ### `runchrony`
 
 The launcher for the time-sync daemon: starts the component that keeps the speaker's clock correct, which everything from multi-room sync to alarm timing depends on.
 
-[View](files/etc/runchrony) · [Download](files/etc/runchrony) · 2.8 KB
+[View](/files/etc/runchrony) · [Download](/files/etc/runchrony) · 2.8 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 70 lines:
 
@@ -4523,9 +4528,9 @@ if [ -f /var/lib/chrony/sync_failure_count ]; then
   fi
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/runchrony`
 - **Category:** scripts
@@ -4535,15 +4540,15 @@ if [ -f /var/lib/chrony/sync_failure_count ]; then
 Starts chronyd against /etc/chrony.conf; drift persisted to /jffs/chrony.
 
 
-</details>
+:::
 
 ### `rundaemon.sh`
 
 A shared daemon-runner script: a generic wrapper used to start background services with the right bookkeeping instead of each launcher reinventing it.
 
-[View](files/etc/rundaemon.sh) · [Download](files/etc/rundaemon.sh) · 847 B
+[View](/files/etc/rundaemon.sh) · [Download](/files/etc/rundaemon.sh) · 847 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 35 of 35 lines:
 
@@ -4585,9 +4590,9 @@ waitwhilestopped() {
 }
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/rundaemon.sh`
 - **Category:** scripts
@@ -4597,15 +4602,15 @@ waitwhilestopped() {
 Generic daemon launcher shared by the run* scripts; also referenced by the sibling-daemon IPC work (see multi_daemon_boundary).
 
 
-</details>
+:::
 
 ### `rundiagprocessd`
 
 The launcher for the diagnostic coprocessor menu: brings up the FIFO command interface used for factory and service diagnostics.
 
-[View](files/etc/rundiagprocessd) · [Download](files/etc/rundiagprocessd) · 160 B
+[View](/files/etc/rundiagprocessd) · [Download](/files/etc/rundiagprocessd) · 160 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 9 of 9 lines:
 
@@ -4621,9 +4626,9 @@ waitwhiletrue "[ -f /var/run/stopdiagprocessd ]"
 exec /etc/diagprocessd
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/rundiagprocessd`
 - **Category:** scripts
@@ -4633,15 +4638,15 @@ exec /etc/diagprocessd
 Starts the /etc/diagprocessd FIFO loop.
 
 
-</details>
+:::
 
 ### `runledmgrd`
 
 The launcher for the LED manager daemon: starts the little program that owns the speaker's lights and runs the animated patterns.
 
-[View](files/etc/runledmgrd) · [Download](files/etc/runledmgrd) · 995 B
+[View](/files/etc/runledmgrd) · [Download](/files/etc/runledmgrd) · 995 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 27 of 27 lines:
 
@@ -4675,9 +4680,9 @@ echo "Starting LED Manager"
 exec /opt/bin/sonosledmgrd
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/runledmgrd`
 - **Category:** scripts
@@ -4687,15 +4692,15 @@ exec /opt/bin/sonosledmgrd
 Starts sonosledmgrd; the daemon owns /dev/ledctl and the LED scripting engine documented in led_engine.
 
 
-</details>
+:::
 
 ### `runmdns`
 
 The launcher for the discovery daemon: starts the service that announces the speaker on the network and finds its siblings.
 
-[View](files/etc/runmdns) · [Download](files/etc/runmdns) · 94 B
+[View](/files/etc/runmdns) · [Download](/files/etc/runmdns) · 94 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 7 of 7 lines:
 
@@ -4709,9 +4714,9 @@ waitwhiletrue "[ -f /var/run/stopmdns ]"
 exec /sbin/mdnsd -f
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/runmdns`
 - **Category:** scripts
@@ -4721,15 +4726,15 @@ exec /sbin/mdnsd -f
 Starts mdnsd for multicast-DNS announce/browse; feeds the discovery_layer machinery.
 
 
-</details>
+:::
 
 ### `runnetstartd`
 
 The launcher for the network-startup daemon: starts the component that brings up WiFi and Ethernet in the right order during boot and setup.
 
-[View](files/etc/runnetstartd) · [Download](files/etc/runnetstartd) · 134 B
+[View](/files/etc/runnetstartd) · [Download](/files/etc/runnetstartd) · 134 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 9 of 9 lines:
 
@@ -4745,9 +4750,9 @@ waitwhilestopped stopnetstartd
 exec /wifi/netstartd
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/runnetstartd`
 - **Category:** scripts
@@ -4757,15 +4762,15 @@ exec /wifi/netstartd
 Starts netstartd, the process anacapad talks to over /tmp/netstartd.ipc for network state and setup transitions.
 
 
-</details>
+:::
 
 ### `runsddp`
 
 The launcher for the device-announcement daemon: starts the broadcaster that keeps the household map populated.
 
-[View](files/etc/runsddp) · [Download](files/etc/runsddp) · 651 B
+[View](/files/etc/runsddp) · [Download](/files/etc/runsddp) · 651 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 26 of 26 lines:
 
@@ -4798,9 +4803,9 @@ fi
 exec /sbin/sddpd $sddpd_opts
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/runsddp`
 - **Category:** scripts
@@ -4810,15 +4815,15 @@ exec /sbin/sddpd $sddpd_opts
 Starts sddpd with /etc/sddpd.conf.
 
 
-</details>
+:::
 
 ### `mount_jffs.sh`
 
 The script that mounts the writable partition: the step during boot that makes the speaker's saved settings, logs, and queues available. Until this runs, the device only has its read-only image.
 
-[View](files/etc/scripts/mount_jffs.sh) · [Download](files/etc/scripts/mount_jffs.sh) · 389 B
+[View](/files/etc/scripts/mount_jffs.sh) · [Download](/files/etc/scripts/mount_jffs.sh) · 389 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 21 of 21 lines:
 
@@ -4846,9 +4851,9 @@ sonos_unmount_jffs()
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/scripts/mount_jffs.sh`
 - **Category:** scripts
@@ -4858,15 +4863,15 @@ sonos_unmount_jffs()
 Mounts the jffs2 flash partition at /jffs; ordering matters because nearly every subsystem reads persisted state from it.
 
 
-</details>
+:::
 
 ### `run_sshd.sh`
 
 The script that conditionally starts the SSH daemon: SSH exists on the box but is gated, and this is the gatekeeper deciding whether remote shell access is allowed at all.
 
-[View](files/etc/scripts/run_sshd.sh) · [Download](files/etc/scripts/run_sshd.sh) · 499 B
+[View](/files/etc/scripts/run_sshd.sh) · [Download](/files/etc/scripts/run_sshd.sh) · 499 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 18 of 18 lines:
 
@@ -4891,9 +4896,9 @@ fi
 exec /usr/bin/dropbear -R -F
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/etc/scripts/run_sshd.sh`
 - **Category:** scripts
@@ -4903,15 +4908,15 @@ exec /usr/bin/dropbear -R -F
 Starts dropbear only when the device is in a permitted state (engineering/unlock path); installs host keys under /jffs/persist/ssh on first run.
 
 
-</details>
+:::
 
 ### `netconfig.sh`
 
 The network reconfiguration state machine in a single shell script: one call with a mode argument moves the player between Sonos's mesh, normal home WiFi, the open setup hotspot, credential-checking, or a standalone island mode. It is why the speaker can hop between network setups without reflashing.
 
-[View](files/usr/sbin/netconfig.sh) · [Download](files/usr/sbin/netconfig.sh) · 10.7 KB
+[View](/files/usr/sbin/netconfig.sh) · [Download](/files/usr/sbin/netconfig.sh) · 10.7 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 449 lines:
 
@@ -4978,9 +4983,9 @@ if [ "${WAC}" = "0" ]; then
         rm -f /tmp/wacd.pid
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/sbin/netconfig.sh`
 - **Category:** scripts
@@ -4990,15 +4995,15 @@ if [ "${WAC}" = "0" ]; then
 The netconfig FSM documented under netconfig_fsm: modes include SonosNet join, infrastructure join, open-AP setup, check-only, and island; touches wpa_supplicant, ssidlist, and the flag files under /var/run.
 
 
-</details>
+:::
 
 ### `secure_console.sh`
 
 The secure console gate: the script that decides whether the device will expose a debug console, checking the unlock state before offering a shell.
 
-[View](files/usr/sbin/secure_console.sh) · [Download](files/usr/sbin/secure_console.sh) · 236 B
+[View](/files/usr/sbin/secure_console.sh) · [Download](/files/usr/sbin/secure_console.sh) · 236 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 7 of 7 lines:
 
@@ -5012,9 +5017,9 @@ echo "Starting console..."
 exec /bin/login -f root
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/sbin/secure_console.sh`
 - **Category:** scripts
@@ -5024,15 +5029,15 @@ exec /bin/login -f root
 Gates console access on the device-unlock flag (/tmp/device_unlocked_flag family); part of the engineering surfaces documented under dev_unlock.
 
 
-</details>
+:::
 
 ### `secure_console_login.sh`
 
 The login half of the secure console: how a permitted console session is actually opened once the gate allows it.
 
-[View](files/usr/sbin/secure_console_login.sh) · [Download](files/usr/sbin/secure_console_login.sh) · 1.0 KB
+[View](/files/usr/sbin/secure_console_login.sh) · [Download](/files/usr/sbin/secure_console_login.sh) · 1.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 33 of 33 lines:
 
@@ -5072,9 +5077,9 @@ waitwhiletrue "[ ! -c /dev/$tty ]"
 exec getty -L -w $extra $tty $baud linux < /dev/$tty > /dev/$tty 2>&1
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/sbin/secure_console_login.sh`
 - **Category:** scripts
@@ -5084,26 +5089,26 @@ exec getty -L -w $extra $tty $baud linux < /dev/$tty > /dev/$tty 2>&1
 Companion to secure_console.sh; performs the session setup after the gate check.
 
 
-</details>
+:::
 
 
 ## Programs
 
 The runnable programs shipped on the speaker: the main player software itself, the daemons that manage networking and LEDs, and the utility tools used for upgrades, diagnostics, and factory procedures. These are compiled machine code, so you can download them but not read them like a text file.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 ELF executables for the limelight (ARM) target. anacapad is the analysis subject of this site; the rest are sibling daemons and vendor/board utilities.
 
-</details>
+:::
 
 ### `busybox`
 
 The Swiss Army knife of the system: one small program providing all the everyday Unix commands (ls, cp, ping, ps, and dozens more). Most of the other tools in /bin are just shortcuts to this one file.
 
-[Download](files/bin/busybox) · 513.8 KB
+[Download](/files/bin/busybox) · 513.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/busybox`
 - **Category:** binaries
@@ -5113,15 +5118,15 @@ The Swiss Army knife of the system: one small program providing all the everyday
 busybox multi-call binary; the /bin utilities (cat, ls, mount, netstat, ping, ps, ...) are symlinks into it.
 
 
-</details>
+:::
 
 ### `chronyc`
 
 The command-line client for the time daemon: the tool scripts and diagnostics use to ask 'what does the clock think right now?'.
 
-[Download](files/bin/chronyc) · 129.7 KB
+[Download](/files/bin/chronyc) · 129.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/chronyc`
 - **Category:** binaries
@@ -5131,15 +5136,15 @@ The command-line client for the time daemon: the tool scripts and diagnostics us
 chrony control client; referenced by the exec-page diagnostics (chronyc source tracking).
 
 
-</details>
+:::
 
 ### `dropbearmulti`
 
 The SSH server toolkit in one binary: provides the secure shell access the device can open for engineering, plus the key tools that go with it.
 
-[Download](files/bin/dropbearmulti) · 258.4 KB
+[Download](/files/bin/dropbearmulti) · 258.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/dropbearmulti`
 - **Category:** binaries
@@ -5149,15 +5154,15 @@ The SSH server toolkit in one binary: provides the secure shell access the devic
 Dropbear multi-call binary (sshd/dropbearkey in one); gated by run_sshd.sh and the unlock flags; host keys persist under /jffs/persist/ssh.
 
 
-</details>
+:::
 
 ### `mdputil`
 
 The device-data utility: reads and writes the small factory data block that carries this unit's identity like its serial number and calibration slots, programmed at manufacturing.
 
-[Download](files/bin/mdputil) · 66.0 KB
+[Download](/files/bin/mdputil) · 66.0 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/mdputil`
 - **Category:** binaries
@@ -5167,15 +5172,15 @@ The device-data utility: reads and writes the small factory data block that carr
 MDP (manufacturing data payload) tool; initializes the device-payload.bin template documented in firmware-differences; source of serial/MAC/calibration fields.
 
 
-</details>
+:::
 
 ### `pcap`
 
 The packet-capture tool: records network traffic for diagnostics, used when Sonos needs to see what the speaker is actually receiving.
 
-[Download](files/bin/pcap) · 65.4 KB
+[Download](/files/bin/pcap) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/pcap`
 - **Category:** binaries
@@ -5185,15 +5190,15 @@ The packet-capture tool: records network traffic for diagnostics, used when Sono
 pcap capture utility invoked from the diagnostics surface.
 
 
-</details>
+:::
 
 ### `upgrade`
 
 The low-level updater: the program that actually writes a downloaded firmware image to flash during an update.
 
-[Download](files/bin/upgrade) · 195.3 KB
+[Download](/files/bin/upgrade) · 195.3 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/upgrade`
 - **Category:** binaries
@@ -5203,15 +5208,15 @@ The low-level updater: the program that actually writes a downloaded firmware im
 Update applier invoked by upgrade_mgr; the recovery path runs it in a loop (documented in update_machinery's sibling-binaries record).
 
 
-</details>
+:::
 
 ### `upgrade_mgr`
 
 The update manager: orchestrates a downloaded update, verifies it, and schedules the reboot into the new firmware.
 
-[Download](files/bin/upgrade_mgr) · 65.6 KB
+[Download](/files/bin/upgrade_mgr) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/bin/upgrade_mgr`
 - **Category:** binaries
@@ -5221,15 +5226,15 @@ The update manager: orchestrates a downloaded update, verifies it, and schedules
 Upgrade orchestrator; its status and report files land under /tmp/upgrade_mgr_* and /jffs/upgrade*.
 
 
-</details>
+:::
 
 ### `anacapactl`
 
 The supervisor script for the main player: a shell wrapper that starts anacapad with the right privileges, watches it, and can launch it under a debugger for development. It is the little harness around the big program.
 
-[View](files/opt/bin/anacapactl) · [Download](files/opt/bin/anacapactl) · 2.0 KB
+[View](/files/opt/bin/anacapactl) · [Download](/files/opt/bin/anacapactl) · 2.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 128 lines:
 
@@ -5296,9 +5301,9 @@ Hup() {
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/bin/anacapactl`
 - **Category:** binaries
@@ -5308,15 +5313,15 @@ Hup() {
 POSIX sh supervisor (fully readable text): handles start/stop/restart, demo-mode exec, cache-drop on certain boards, and gdb wrapping via $SONOS_GDB_ARGS.
 
 
-</details>
+:::
 
 ### `anacapad`
 
 The main event: the Sonos player daemon itself. This single program implements nearly everything this site documents, from the classic remote-control commands to the modern app API to the media pipeline. If you download one file, this is the one.
 
-[Download](files/opt/bin/anacapad) · 16.5 MB
+[Download](/files/opt/bin/anacapad) · 16.5 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/bin/anacapad`
 - **Category:** binaries
@@ -5326,15 +5331,15 @@ The main event: the Sonos player daemon itself. This single program implements n
 The analysis subject: ~4 MB ARM ELF (limelight). Every dispatch table, URI grammar, and subsystem entry on this site was recovered from this binary. Build 86.10-80260 per build.properties.
 
 
-</details>
+:::
 
 ### `sonosledmgrd`
 
 The LED manager daemon: the small program that owns the speaker's status light and plays the animation patterns for states like setup, playing, and muted.
 
-[Download](files/opt/bin/sonosledmgrd) · 1.2 MB
+[Download](/files/opt/bin/sonosledmgrd) · 1.2 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/bin/sonosledmgrd`
 - **Category:** binaries
@@ -5344,15 +5349,15 @@ The LED manager daemon: the small program that owns the speaker's status light a
 ELF daemon; owns /dev/ledctl. Its animated pattern engine and per-model feature map are documented under led_engine/leds_zp/led_hw.
 
 
-</details>
+:::
 
 ### `capsh`
 
 A capability-inspection utility from the libcap package, used for checking process privileges.
 
-[Download](files/sbin/capsh) · 66.8 KB
+[Download](/files/sbin/capsh) · 66.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/sbin/capsh`
 - **Category:** binaries
@@ -5362,15 +5367,15 @@ A capability-inspection utility from the libcap package, used for checking proce
 Standard libcap tool; ships with the capability-aware launch path (anacapactl's -C keep-set).
 
 
-</details>
+:::
 
 ### `chronyd`
 
 The time-sync daemon: the program that keeps the speaker's clock disciplined against internet time servers, which is the quiet foundation of sample-accurate multi-room playback.
 
-[Download](files/sbin/chronyd) · 258.0 KB
+[Download](/files/sbin/chronyd) · 258.0 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/sbin/chronyd`
 - **Category:** binaries
@@ -5380,15 +5385,15 @@ The time-sync daemon: the program that keeps the speaker's clock disciplined aga
 chrony daemon build; Sonos's sntp layer plus chrony is documented under sntp/sntp_server.
 
 
-</details>
+:::
 
 ### `frcheck`
 
 The factory-reset checker: looks at the button/reset state at boot and reports whether the device should wipe itself clean before anything else starts.
 
-[Download](files/sbin/frcheck) · 65.5 KB
+[Download](/files/sbin/frcheck) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/sbin/frcheck`
 - **Category:** binaries
@@ -5398,15 +5403,15 @@ The factory-reset checker: looks at the button/reset state at boot and reports w
 Its return code feeds the rootfs boot chain: on m8 it maps to netstartd --soft-reset, on m9 to --hard-reset (a real per-model behavioral difference).
 
 
-</details>
+:::
 
 ### `mdnsd`
 
 The discovery daemon: the standalone program that handles announcing and finding devices on the local network, shared across the system.
 
-[Download](files/sbin/mdnsd) · 513.8 KB
+[Download](/files/sbin/mdnsd) · 513.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/sbin/mdnsd`
 - **Category:** binaries
@@ -5416,15 +5421,15 @@ The discovery daemon: the standalone program that handles announcing and finding
 Multicast-DNS daemon; the mdns/mdnsd log and the discovery layer on this site trace back to it.
 
 
-</details>
+:::
 
 ### `sddpd`
 
 The device-announcement daemon: the sibling process running Sonos's own broadcast protocol that keeps players aware of each other.
 
-[Download](files/sbin/sddpd) · 65.9 KB
+[Download](/files/sbin/sddpd) · 65.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/sbin/sddpd`
 - **Category:** binaries
@@ -5434,15 +5439,15 @@ The device-announcement daemon: the sibling process running Sonos's own broadcas
 Sonos Discovery Protocol daemon configured by /etc/sddpd.conf; complements multicast DNS with Sonos's proprietary announce layer.
 
 
-</details>
+:::
 
 ### `udhcpc`
 
 The DHCP client: the tiny program that asks your router for an address when the speaker boots on a normal network.
 
-[Download](files/sbin/udhcpc) · 66.3 KB
+[Download](/files/sbin/udhcpc) · 66.3 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/sbin/udhcpc`
 - **Category:** binaries
@@ -5452,15 +5457,15 @@ The DHCP client: the tiny program that asks your router for an address when the 
 busybox-style udhcp client driving /etc/dhcp.script on lease events.
 
 
-</details>
+:::
 
 ### `brctl`
 
 The bridge control tool: manages the network bridge interface the speaker uses to share its connection in SonosNet setups.
 
-[Download](files/usr/sbin/brctl) · 66.0 KB
+[Download](/files/usr/sbin/brctl) · 66.0 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/sbin/brctl`
 - **Category:** binaries
@@ -5470,15 +5475,15 @@ The bridge control tool: manages the network bridge interface the speaker uses t
 Ethernet-bridging utility for the bridged-wireless topology SonosNet requires.
 
 
-</details>
+:::
 
 ### `keyval`
 
 The key-value store tool: reads and writes small system-level settings keys used by the lower-level services.
 
-[Download](files/usr/sbin/keyval) · 65.6 KB
+[Download](/files/usr/sbin/keyval) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/sbin/keyval`
 - **Category:** binaries
@@ -5488,15 +5493,15 @@ The key-value store tool: reads and writes small system-level settings keys used
 Keyval utility referenced by updater and network scripts; one of the persistent-state primitives below anacapad.
 
 
-</details>
+:::
 
 ### `setmac`
 
 The MAC-address assignment tool: programs the unit's network hardware address during manufacturing or recovery.
 
-[Download](files/usr/sbin/setmac) · 65.7 KB
+[Download](/files/usr/sbin/setmac) · 65.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/sbin/setmac`
 - **Category:** binaries
@@ -5506,15 +5511,15 @@ The MAC-address assignment tool: programs the unit's network hardware address du
 Writes the device MAC; paired with mdputil's factory provisioning.
 
 
-</details>
+:::
 
 ### `radartool`
 
 The radar-detection tool: on 5 GHz bands the radio must listen for radar before transmitting, and this utility performs those checks. It exists on this build because the Playbar can master SonosNet on radar-controlled channels.
 
-[Download](files/wifi/N/radartool) · 65.5 KB
+[Download](/files/wifi/N/radartool) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/N/radartool`
 - **Category:** binaries
@@ -5524,15 +5529,15 @@ The radar-detection tool: on 5 GHz bands the radio must listen for radar before 
 DFS (radar) utility for the wifi/N modules; the dfs.ko module + this tool satisfy regulatory radar-detection requirements.
 
 
-</details>
+:::
 
 ### `athconfig`
 
 The Atheros radio configuration utility: low-level control of the WiFi chipset for modes like SonosNet mesh that the normal client stack does not handle.
 
-[Download](files/wifi/athconfig) · 65.6 KB
+[Download](/files/wifi/athconfig) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/athconfig`
 - **Category:** binaries
@@ -5542,15 +5547,15 @@ The Atheros radio configuration utility: low-level control of the WiFi chipset f
 Atheros-specific tool for the radio's mesh/AP modes (SonosNet operates through this layer).
 
 
-</details>
+:::
 
 ### `netstartd`
 
 The network-startup daemon: the sibling process that actually brings the network up, manages setup mode, and hands connection status back to the main program. When the speaker joins WiFi, this is the program doing the joining.
 
-[Download](files/wifi/netstartd) · 257.9 KB
+[Download](/files/wifi/netstartd) · 257.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/netstartd`
 - **Category:** binaries
@@ -5560,15 +5565,15 @@ The network-startup daemon: the sibling process that actually brings the network
 ELF daemon; anacapad reaches it over /tmp/netstartd.ipc (the multi_daemon_boundary contract). It drives netconfig.sh and the flag files under /var/run.
 
 
-</details>
+:::
 
 ### `sta-assoc`
 
 A small association-status helper: used to check or report the radio's link state.
 
-[View](files/wifi/sta-assoc) · [Download](files/wifi/sta-assoc) · 1.1 KB
+[View](/files/wifi/sta-assoc) · [Download](/files/wifi/sta-assoc) · 1.1 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 64 lines:
 
@@ -5635,9 +5640,9 @@ get_supp_conf "$1" "$2" "$3" > /tmp/supplicant_conf.tmp
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/sta-assoc`
 - **Category:** binaries
@@ -5647,15 +5652,15 @@ get_supp_conf "$1" "$2" "$3" > /tmp/supplicant_conf.tmp
 Station-association utility tied to the Atheros stack and the assoctracker monitoring.
 
 
-</details>
+:::
 
 ### `wacd`
 
 The setup-mode daemon: the program that runs the temporary open network your phone joins during initial setup, where the player receives its first WiFi credentials.
 
-[Download](files/wifi/wacd) · 65.6 KB
+[Download](/files/wifi/wacd) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/wacd`
 - **Category:** binaries
@@ -5665,15 +5670,15 @@ The setup-mode daemon: the program that runs the temporary open network your pho
 Wireless-accessory-configuration daemon; the /var/run/wac_mode flag and WAC timeout are documented under wac_mode.
 
 
-</details>
+:::
 
 ### `wpa_supplicant`
 
 The WiFi client program: the standard open-source component that handles the actual handshake joining your home network. Practically every Linux WiFi device carries this.
 
-[Download](files/wifi/wpa_supplicant) · 322.0 KB
+[Download](/files/wifi/wpa_supplicant) · 322.0 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/wpa_supplicant`
 - **Category:** binaries
@@ -5683,15 +5688,15 @@ The WiFi client program: the standard open-source component that handles the act
 wpa_supplicant build for the Atheros radio; driven by configs like /var/run/htapsatwpa.conf and the jffs debug overrides.
 
 
-</details>
+:::
 
 ### `wpaconfig`
 
 A small helper used to generate or adjust WiFi client configuration for the supplicant.
 
-[View](files/wifi/wpaconfig) · [Download](files/wifi/wpaconfig) · 2.2 KB
+[View](/files/wifi/wpaconfig) · [Download](/files/wifi/wpaconfig) · 2.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 85 lines:
 
@@ -5758,9 +5763,9 @@ print_entry()
 /wifi/athconfig wossidclr ath0
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/wpaconfig`
 - **Category:** binaries
@@ -5770,26 +5775,26 @@ print_entry()
 WPA config utility invoked by the netconfig script family.
 
 
-</details>
+:::
 
 
 ## Shared libraries
 
 Reusable code bundles the programs load at runtime. Each one provides a specialty, like playing a music format, encrypting a connection, or talking to a database, so the main program does not have to carry everything itself.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Dynamically linked ELF shared objects under /lib and /usr/lib; includes Sonos-internal libsonos-* components plus bundled third-party libraries.
 
-</details>
+:::
 
 ### `ld.so.1`
 
 The dynamic loader itself: the very first piece of code that runs when any program starts, responsible for finding and linking all the shared libraries below.
 
-[Download](files/lib/ld.so.1) · 197.3 KB
+[Download](/files/lib/ld.so.1) · 197.3 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/ld.so.1`
 - **Category:** libs
@@ -5799,15 +5804,15 @@ The dynamic loader itself: the very first piece of code that runs when any progr
 Runtime linker/loader (glibc ld.so); resolves every .so dependency at process start.
 
 
-</details>
+:::
 
 ### `libanl.so.1`
 
 A resolver helper for asynchronous name lookups, part of the standard C library family.
 
-[Download](files/lib/libanl.so.1) · 65.6 KB
+[Download](/files/lib/libanl.so.1) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libanl.so.1`
 - **Category:** libs
@@ -5817,15 +5822,15 @@ A resolver helper for asynchronous name lookups, part of the standard C library 
 glibc async DNS stub resolver library.
 
 
-</details>
+:::
 
 ### `libatomic.so.1`
 
 Provides atomic operations for code that needs to update shared values safely across threads.
 
-[Download](files/lib/libatomic.so.1) · 65.3 KB
+[Download](/files/lib/libatomic.so.1) · 65.3 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libatomic.so.1`
 - **Category:** libs
@@ -5835,15 +5840,15 @@ Provides atomic operations for code that needs to update shared values safely ac
 GCC runtime for atomic builtins used by the C++ concurrency primitives.
 
 
-</details>
+:::
 
 ### `libavcodec.so.59`
 
 One of the FFmpeg libraries: provides the codecs that decode compressed audio formats the speaker receives.
 
-[Download](files/lib/libavcodec.so.59) · 513.8 KB
+[Download](/files/lib/libavcodec.so.59) · 513.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libavcodec.so.59`
 - **Category:** libs
@@ -5853,15 +5858,15 @@ One of the FFmpeg libraries: provides the codecs that decode compressed audio fo
 FFmpeg codec library (avcodec 59); backs part of the decode layer alongside the dedicated decoders.
 
 
-</details>
+:::
 
 ### `libavformat.so.59`
 
 The FFmpeg container-format library: understands the file and stream wrappers that audio arrives in, like MP4 or streaming containers.
 
-[Download](files/lib/libavformat.so.59) · 321.7 KB
+[Download](/files/lib/libavformat.so.59) · 321.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libavformat.so.59`
 - **Category:** libs
@@ -5871,15 +5876,15 @@ The FFmpeg container-format library: understands the file and stream wrappers th
 FFmpeg demuxer library; parses container formats for the audio pipeline.
 
 
-</details>
+:::
 
 ### `libavutil.so.57`
 
 The FFmpeg utility foundation: shared helpers the other FFmpeg libraries use for buffers, math, and data structures.
 
-[Download](files/lib/libavutil.so.57) · 770.2 KB
+[Download](/files/lib/libavutil.so.57) · 770.2 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libavutil.so.57`
 - **Category:** libs
@@ -5889,15 +5894,15 @@ The FFmpeg utility foundation: shared helpers the other FFmpeg libraries use for
 FFmpeg utility library (libavutil 57).
 
 
-</details>
+:::
 
 ### `libc.so.6`
 
 The core C library: the basic building blocks every program uses, from memory and strings to files and sockets. The single most fundamental library on the device.
 
-[Download](files/lib/libc.so.6) · 1.5 MB
+[Download](/files/lib/libc.so.6) · 1.5 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libc.so.6`
 - **Category:** libs
@@ -5907,15 +5912,15 @@ The core C library: the basic building blocks every program uses, from memory an
 glibc 6; the platform C runtime.
 
 
-</details>
+:::
 
 ### `libcrypt.so.1`
 
 The password-hashing library: implements the cryptographic hashing used for account passwords in the shadow file.
 
-[Download](files/lib/libcrypt.so.1) · 65.6 KB
+[Download](/files/lib/libcrypt.so.1) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libcrypt.so.1`
 - **Category:** libs
@@ -5925,15 +5930,15 @@ The password-hashing library: implements the cryptographic hashing used for acco
 libcrypt with MD5-crypt ($1$) and friends; the format etc/shadow uses.
 
 
-</details>
+:::
 
 ### `libdcadec.so.0`
 
 The DTS decoder: handles the DTS surround format that some TVs and discs send instead of Dolby. Its presence is a Playbar-specific feature; smaller speakers do not ship it.
 
-[Download](files/lib/libdcadec.so.0) · 385.6 KB
+[Download](/files/lib/libdcadec.so.0) · 385.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libdcadec.so.0`
 - **Category:** libs
@@ -5943,15 +5948,15 @@ The DTS decoder: handles the DTS surround format that some TVs and discs send in
 DTS decode library (dcadec); an m9-only component flagged in the firmware-differences page.
 
 
-</details>
+:::
 
 ### `libdl.so.2`
 
 The dynamic-loading helper: lets programs open extra shared libraries on demand after they have already started.
 
-[Download](files/lib/libdl.so.2) · 65.7 KB
+[Download](/files/lib/libdl.so.2) · 65.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libdl.so.2`
 - **Category:** libs
@@ -5961,15 +5966,15 @@ The dynamic-loading helper: lets programs open extra shared libraries on demand 
 glibc dlopen/dlsym stubs.
 
 
-</details>
+:::
 
 ### `libdns_sd.so.1`
 
 The service-discovery client library: the piece programs use to announce and find services on the local network.
 
-[Download](files/lib/libdns_sd.so.1) · 65.4 KB
+[Download](/files/lib/libdns_sd.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libdns_sd.so.1`
 - **Category:** libs
@@ -5979,15 +5984,15 @@ The service-discovery client library: the piece programs use to announce and fin
 DNS-SD client library backing the mDNS/discovery layer.
 
 
-</details>
+:::
 
 ### `libflash.so.1`
 
 The flash-memory library: safe read/write access to the device's flash storage, used by the updater and the factory-data tooling.
 
-[Download](files/lib/libflash.so.1) · 65.4 KB
+[Download](/files/lib/libflash.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libflash.so.1`
 - **Category:** libs
@@ -5997,15 +6002,15 @@ The flash-memory library: safe read/write access to the device's flash storage, 
 Sonos flash/NCD access library; backs mdputil and the device-payload handling.
 
 
-</details>
+:::
 
 ### `libgcc_s.so.1`
 
 A small GCC support runtime providing helpers the compiler emits calls into, like long-division on hardware that lacks the instruction.
 
-[Download](files/lib/libgcc_s.so.1) · 129.5 KB
+[Download](/files/lib/libgcc_s.so.1) · 129.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libgcc_s.so.1`
 - **Category:** libs
@@ -6015,15 +6020,15 @@ A small GCC support runtime providing helpers the compiler emits calls into, lik
 GCC shared runtime support library.
 
 
-</details>
+:::
 
 ### `libhwmessagelib.so.1`
 
 Sonos's hardware-message library: the shared code for sending events between the kernel drivers and the programs, covering things like button presses and jacks.
 
-[Download](files/lib/libhwmessagelib.so.1) · 65.5 KB
+[Download](/files/lib/libhwmessagelib.so.1) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libhwmessagelib.so.1`
 - **Category:** libs
@@ -6033,15 +6038,15 @@ Sonos's hardware-message library: the shared code for sending events between the
 Sonos-internal lib; backs hwmessagelib/hw_input_events.
 
 
-</details>
+:::
 
 ### `libm.so.6`
 
 The math library: floating-point and transcendental functions used by audio processing and anything else that computes.
 
-[Download](files/lib/libm.so.6) · 1.1 MB
+[Download](/files/lib/libm.so.6) · 1.1 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libm.so.6`
 - **Category:** libs
@@ -6051,15 +6056,15 @@ The math library: floating-point and transcendental functions used by audio proc
 glibc math library.
 
 
-</details>
+:::
 
 ### `libmbedcrypto.so.16`
 
 The cryptographic primitives library: the raw math for encryption, hashing, and signing that the TLS layer builds on.
 
-[Download](files/lib/libmbedcrypto.so.16) · 385.7 KB
+[Download](/files/lib/libmbedcrypto.so.16) · 385.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libmbedcrypto.so.16`
 - **Category:** libs
@@ -6069,15 +6074,15 @@ The cryptographic primitives library: the raw math for encryption, hashing, and 
 mbedTLS crypto core; underpins the secure channels (lechmere, TLS to music services, cert verification).
 
 
-</details>
+:::
 
 ### `libmbedtls.so.21`
 
 The secure-connection library: implements the encrypted protocol behind every https and secure-socket conversation the speaker has, from cloud calls to music services.
 
-[Download](files/lib/libmbedtls.so.21) · 129.5 KB
+[Download](/files/lib/libmbedtls.so.21) · 129.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libmbedtls.so.21`
 - **Category:** libs
@@ -6087,15 +6092,15 @@ The secure-connection library: implements the encrypted protocol behind every ht
 mbedTLS TLS implementation; the tls_stack entry documents the layer built on it.
 
 
-</details>
+:::
 
 ### `libmbedx509.so.7`
 
 The certificate-parsing library: understands the format of digital certificates so the device can verify who it is talking to.
 
-[Download](files/lib/libmbedx509.so.7) · 65.4 KB
+[Download](/files/lib/libmbedx509.so.7) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libmbedx509.so.7`
 - **Category:** libs
@@ -6105,15 +6110,15 @@ The certificate-parsing library: understands the format of digital certificates 
 mbedTLS X.509 parser; used with libsonos-certval for device identity.
 
 
-</details>
+:::
 
 ### `libmpg123.so.0`
 
 The MP3 decoder library: fast, mature MPEG-audio decoding for one of the oldest formats the player accepts.
 
-[Download](files/lib/libmpg123.so.0) · 194.0 KB
+[Download](/files/lib/libmpg123.so.0) · 194.0 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libmpg123.so.0`
 - **Category:** libs
@@ -6123,15 +6128,15 @@ The MP3 decoder library: fast, mature MPEG-audio decoding for one of the oldest 
 mpg123 decode library.
 
 
-</details>
+:::
 
 ### `libnl-3.so.200`
 
 The netlink library: how userspace programs talk to the kernel's networking subsystem for things like interface and route events.
 
-[Download](files/lib/libnl-3.so.200) · 129.9 KB
+[Download](/files/lib/libnl-3.so.200) · 129.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libnl-3.so.200`
 - **Category:** libs
@@ -6141,15 +6146,15 @@ The netlink library: how userspace programs talk to the kernel's networking subs
 netlink-3 core library.
 
 
-</details>
+:::
 
 ### `libnl-genl-3.so.200`
 
 The generic-netlink extension: the modern netlink flavor used for wireless and other kernel subsystems.
 
-[Download](files/lib/libnl-genl-3.so.200) · 66.0 KB
+[Download](/files/lib/libnl-genl-3.so.200) · 66.0 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libnl-genl-3.so.200`
 - **Category:** libs
@@ -6159,15 +6164,15 @@ The generic-netlink extension: the modern netlink flavor used for wireless and o
 netlink-3 generic library; consumed by WiFi tooling.
 
 
-</details>
+:::
 
 ### `libnss_dns.so.2`
 
 The DNS name-service module: the piece that actually performs name lookups when a program asks for a hostname's address.
 
-[Download](files/lib/libnss_dns.so.2) · 65.5 KB
+[Download](/files/lib/libnss_dns.so.2) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libnss_dns.so.2`
 - **Category:** libs
@@ -6177,15 +6182,15 @@ The DNS name-service module: the piece that actually performs name lookups when 
 glibc NSS DNS plugin loaded per nsswitch.conf.
 
 
-</details>
+:::
 
 ### `libnss_files.so.2`
 
 The file-based name-service module: answers lookups from flat files like hosts and passwd before the network is consulted.
 
-[Download](files/lib/libnss_files.so.2) · 65.7 KB
+[Download](/files/lib/libnss_files.so.2) · 65.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libnss_files.so.2`
 - **Category:** libs
@@ -6195,15 +6200,15 @@ The file-based name-service module: answers lookups from flat files like hosts a
 glibc NSS files plugin.
 
 
-</details>
+:::
 
 ### `libpcap.so.1`
 
 The packet-capture library: the standard API for sniffing network traffic, backing the pcap diagnostic tool.
 
-[Download](files/lib/libpcap.so.1) · 260.5 KB
+[Download](/files/lib/libpcap.so.1) · 260.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libpcap.so.1`
 - **Category:** libs
@@ -6213,15 +6218,15 @@ The packet-capture library: the standard API for sniffing network traffic, backi
 libpcap; used by bin/pcap for diagnostic captures.
 
 
-</details>
+:::
 
 ### `libprotobuf-nanopb.so.0`
 
 A small protocol-buffers implementation for structured data: the lightweight serialization used in the embedded plumbing.
 
-[Download](files/lib/libprotobuf-nanopb.so.0) · 65.4 KB
+[Download](/files/lib/libprotobuf-nanopb.so.0) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libprotobuf-nanopb.so.0`
 - **Category:** libs
@@ -6231,15 +6236,15 @@ A small protocol-buffers implementation for structured data: the lightweight ser
 nanopb protobuf runtime; pairs with the decoded protobuf descriptor set documented under protobuf_descriptors.
 
 
-</details>
+:::
 
 ### `libpthread.so.0`
 
 The threading library: lets programs run many things at once, which a speaker needs constantly for playback, networking, and control at the same time.
 
-[Download](files/lib/libpthread.so.0) · 131.1 KB
+[Download](/files/lib/libpthread.so.0) · 131.1 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libpthread.so.0`
 - **Category:** libs
@@ -6249,15 +6254,15 @@ The threading library: lets programs run many things at once, which a speaker ne
 glibc POSIX threads.
 
 
-</details>
+:::
 
 ### `libresolv.so.2`
 
 The resolver library: full DNS query machinery beyond the simple name lookups.
 
-[Download](files/lib/libresolv.so.2) · 130.2 KB
+[Download](/files/lib/libresolv.so.2) · 130.2 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libresolv.so.2`
 - **Category:** libs
@@ -6267,15 +6272,15 @@ The resolver library: full DNS query machinery beyond the simple name lookups.
 glibc resolver library.
 
 
-</details>
+:::
 
 ### `libsbc.so.1`
 
 The Bluetooth audio codec library: decodes the standard Bluetooth audio format on products that ship a Bluetooth radio. It is present here because the codebase is shared across models.
 
-[Download](files/lib/libsbc.so.1) · 129.5 KB
+[Download](/files/lib/libsbc.so.1) · 129.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsbc.so.1`
 - **Category:** libs
@@ -6285,15 +6290,15 @@ The Bluetooth audio codec library: decodes the standard Bluetooth audio format o
 SBC codec library; dormant on this wired-only Playbar (documented under bt_sbc).
 
 
-</details>
+:::
 
 ### `libsmb2.so.1`
 
 The Windows file-sharing client library: the component that lets the speaker mount and read music stored on computers and NAS drives.
 
-[Download](files/lib/libsmb2.so.1) · 193.9 KB
+[Download](/files/lib/libsmb2.so.1) · 193.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsmb2.so.1`
 - **Category:** libs
@@ -6303,15 +6308,15 @@ The Windows file-sharing client library: the component that lets the speaker mou
 SMB2 client library backing the smb/mntmgr music-share machinery.
 
 
-</details>
+:::
 
 ### `libsonos-certval.so.2`
 
 The device-certificate verifier: Sonos's own library for checking that a presented certificate chains back to a trusted Sonos root. It is what 'a genuine Sonos device' means in code.
 
-[Download](files/lib/libsonos-certval.so.2) · 1.6 MB
+[Download](/files/lib/libsonos-certval.so.2) · 1.6 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonos-certval.so.2`
 - **Category:** libs
@@ -6321,15 +6326,15 @@ The device-certificate verifier: Sonos's own library for checking that a present
 Sonos-internal cert validation library; manages the RCB bundles including /etc/fallback_trusted_roots.rcb (see libsonos_certval).
 
 
-</details>
+:::
 
 ### `libsonos-mdp.so.1`
 
 The manufacturing-data library: reads and writes the factory data block carrying serial number, MAC, and per-unit calibration values.
 
-[Download](files/lib/libsonos-mdp.so.1) · 65.3 KB
+[Download](/files/lib/libsonos-mdp.so.1) · 65.3 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonos-mdp.so.1`
 - **Category:** libs
@@ -6339,15 +6344,15 @@ The manufacturing-data library: reads and writes the factory data block carrying
 Sonos-internal MDP library behind mdputil and the device-payload.bin template.
 
 
-</details>
+:::
 
 ### `libsonos-root-cert-bundle.so.2`
 
 The packaged root-cert bundle: the primary set of trust anchors for secure connections, shipped as its own updatable library.
 
-[Download](files/lib/libsonos-root-cert-bundle.so.2) · 65.4 KB
+[Download](/files/lib/libsonos-root-cert-bundle.so.2) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonos-root-cert-bundle.so.2`
 - **Category:** libs
@@ -6357,15 +6362,15 @@ The packaged root-cert bundle: the primary set of trust anchors for secure conne
 Sonos cert-bundle carrier; its runtime-update path is documented under libsonos_certval/rcb_bundle_format.
 
 
-</details>
+:::
 
 ### `libsonos-time-c.so.1`
 
 Sonos's own time library: the company's shared clock code that the sync machinery builds on.
 
-[Download](files/lib/libsonos-time-c.so.1) · 65.5 KB
+[Download](/files/lib/libsonos-time-c.so.1) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonos-time-c.so.1`
 - **Category:** libs
@@ -6375,15 +6380,15 @@ Sonos's own time library: the company's shared clock code that the sync machiner
 Sonos-internal time library feeding the sntp/time-sync layer.
 
 
-</details>
+:::
 
 ### `libsonoscrypto.so.3`
 
 Sonos's cryptographic wrapper: the company's own layer on top of the base crypto, used for signing and key handling across the household protocols.
 
-[Download](files/lib/libsonoscrypto.so.3) · 65.7 KB
+[Download](/files/lib/libsonoscrypto.so.3) · 65.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonoscrypto.so.3`
 - **Category:** libs
@@ -6393,15 +6398,15 @@ Sonos's cryptographic wrapper: the company's own layer on top of the base crypto
 Sonos-internal crypto utility library; the PSK hierarchy entries describe what it protects.
 
 
-</details>
+:::
 
 ### `libsonoseventreporter.so.1`
 
 The event-reporting library: the shared machinery for packaging and shipping telemetry and diagnostic events up to Sonos.
 
-[Download](files/lib/libsonoseventreporter.so.1) · 65.4 KB
+[Download](/files/lib/libsonoseventreporter.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonoseventreporter.so.1`
 - **Category:** libs
@@ -6411,15 +6416,15 @@ The event-reporting library: the shared machinery for packaging and shipping tel
 Sonos-internal reporter library; part of the telemetry/reporting pipeline.
 
 
-</details>
+:::
 
 ### `libsonosminiutils.so.1`
 
 A grab-bag Sonos utility library: small shared helpers the daemons and tools reuse.
 
-[Download](files/lib/libsonosminiutils.so.1) · 65.9 KB
+[Download](/files/lib/libsonosminiutils.so.1) · 65.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonosminiutils.so.1`
 - **Category:** libs
@@ -6429,15 +6434,15 @@ A grab-bag Sonos utility library: small shared helpers the daemons and tools reu
 Sonos-internal utility library.
 
 
-</details>
+:::
 
 ### `libsonossbcpacket.so.1`
 
 The Sonos channel-protocol packet library: framing for the proprietary audio-distribution protocol that keeps grouped players in sync.
 
-[Download](files/lib/libsonossbcpacket.so.1) · 65.4 KB
+[Download](/files/lib/libsonossbcpacket.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonossbcpacket.so.1`
 - **Category:** libs
@@ -6447,15 +6452,15 @@ The Sonos channel-protocol packet library: framing for the proprietary audio-dis
 Sonos-internal packet library for the chsrc/chsnk group-audio channel (see native_protocols).
 
 
-</details>
+:::
 
 ### `libsonossyslog.so.1`
 
 Sonos's logging glue: the internal library that routes messages into the per-subsystem log files.
 
-[Download](files/lib/libsonossyslog.so.1) · 65.5 KB
+[Download](/files/lib/libsonossyslog.so.1) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonossyslog.so.1`
 - **Category:** libs
@@ -6465,15 +6470,15 @@ Sonos's logging glue: the internal library that routes messages into the per-sub
 Sonos-internal syslog/log plumbing tied to the log_domains machinery.
 
 
-</details>
+:::
 
 ### `libsonosutils.so.1`
 
 Sonos's general utility library: the shared toolbox of helpers used across the daemons, from containers to string handling.
 
-[Download](files/lib/libsonosutils.so.1) · 65.8 KB
+[Download](/files/lib/libsonosutils.so.1) · 65.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsonosutils.so.1`
 - **Category:** libs
@@ -6483,15 +6488,15 @@ Sonos's general utility library: the shared toolbox of helpers used across the d
 Sonos-internal general-purpose library.
 
 
-</details>
+:::
 
 ### `libsqlite3.so.0`
 
 The embedded database library: a whole SQL database engine in one file, used for structured stores like the timer and alarm records.
 
-[Download](files/lib/libsqlite3.so.0) · 904.9 KB
+[Download](/files/lib/libsqlite3.so.0) · 904.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsqlite3.so.0`
 - **Category:** libs
@@ -6501,15 +6506,15 @@ The embedded database library: a whole SQL database engine in one file, used for
 SQLite3; the embedded_sqlite entry documents its use (timer.db prepared statements and friends).
 
 
-</details>
+:::
 
 ### `libsyslib_hal.so.1`
 
 The hardware-abstraction library: gives programs a uniform way to talk to the board's LEDs, buttons, and sensors without caring about the exact chips.
 
-[Download](files/lib/libsyslib_hal.so.1) · 65.4 KB
+[Download](/files/lib/libsyslib_hal.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libsyslib_hal.so.1`
 - **Category:** libs
@@ -6519,15 +6524,15 @@ The hardware-abstraction library: gives programs a uniform way to talk to the bo
 Sonos hardware-abstraction library sitting above the kernel modules.
 
 
-</details>
+:::
 
 ### `libthread_db.so.1`
 
 A debugger-support library: helps tools like gdb understand a program's threads. Harmless plumbing that ships with the toolchain.
 
-[Download](files/lib/libthread_db.so.1) · 66.1 KB
+[Download](/files/lib/libthread_db.so.1) · 66.1 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libthread_db.so.1`
 - **Category:** libs
@@ -6537,15 +6542,15 @@ A debugger-support library: helps tools like gdb understand a program's threads.
 glibc thread-debug helper (gdb support).
 
 
-</details>
+:::
 
 ### `libtomlc99.so.1`
 
 The config-file parser library: reads the TOML format used by the logger configs and other modern config files in the image.
 
-[Download](files/lib/libtomlc99.so.1) · 65.5 KB
+[Download](/files/lib/libtomlc99.so.1) · 65.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libtomlc99.so.1`
 - **Category:** libs
@@ -6555,15 +6560,15 @@ The config-file parser library: reads the TOML format used by the logger configs
 tomlc99 parser; backs the *_logger.toml files and limelight.toml-style configs (see toml_config).
 
 
-</details>
+:::
 
 ### `libutil.so.1`
 
 A small utility library with terminal and process helpers from the C library family.
 
-[Download](files/lib/libutil.so.1) · 65.4 KB
+[Download](/files/lib/libutil.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libutil.so.1`
 - **Category:** libs
@@ -6573,15 +6578,15 @@ A small utility library with terminal and process helpers from the C library fam
 glibc libutil (pty/login helpers).
 
 
-</details>
+:::
 
 ### `libuuid.so.1`
 
 The unique-ID library: generates and parses the long identifier strings the system uses everywhere for devices, groups, and accounts.
 
-[Download](files/lib/libuuid.so.1) · 65.6 KB
+[Download](/files/lib/libuuid.so.1) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libuuid.so.1`
 - **Category:** libs
@@ -6591,15 +6596,15 @@ The unique-ID library: generates and parses the long identifier strings the syst
 libuuid; produces the RINCON_-style UUIDs documented under rincon_uuid.
 
 
-</details>
+:::
 
 ### `libwifi.so.1`
 
 The wireless support library: a shared layer for controlling and querying the WiFi hardware, used by the network daemons.
 
-[Download](files/lib/libwifi.so.1) · 65.4 KB
+[Download](/files/lib/libwifi.so.1) · 65.4 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libwifi.so.1`
 - **Category:** libs
@@ -6609,15 +6614,15 @@ The wireless support library: a shared layer for controlling and querying the Wi
 WiFi utility library for the Atheros stack (wifi_hal).
 
 
-</details>
+:::
 
 ### `libz.so.1`
 
 The compression library: the classic zlib, used anywhere data gets squeezed or unpacked, from saved files to network payloads.
 
-[Download](files/lib/libz.so.1) · 129.6 KB
+[Download](/files/lib/libz.so.1) · 129.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/lib/libz.so.1`
 - **Category:** libs
@@ -6627,15 +6632,15 @@ The compression library: the classic zlib, used anywhere data gets squeezed or u
 zlib; the iocompress queue/state compression wraps it.
 
 
-</details>
+:::
 
 ### `libcap.so.2`
 
 The capabilities library: manages the fine-grained Linux privilege bits that let a program keep only the powers it needs instead of running fully as root.
 
-[Download](files/usr/lib/libcap.so.2) · 65.6 KB
+[Download](/files/usr/lib/libcap.so.2) · 65.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/usr/lib/libcap.so.2`
 - **Category:** libs
@@ -6645,26 +6650,26 @@ The capabilities library: manages the fine-grained Linux privilege bits that let
 libcap; supports the capability keep-set on the anacapad launch line.
 
 
-</details>
+:::
 
 
 ## Kernel modules
 
 Drivers that plug into the Linux kernel at boot: the audio hardware driver, the infrared receiver, the watchdog, and the WiFi chipset modules. They are the lowest software layer, sitting between the operating system and the physical chips.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Loadable kernel objects under /modules and /wifi (Atheros driver family for the SonosNet-capable radio stack).
 
-</details>
+:::
 
 ### `audiodev.ko`
 
 The audio device driver: the kernel module that exposes the sound hardware to the programs above, carrying the actual digital audio to the amplifiers.
 
-[Download](files/modules/audiodev.ko) · 142.9 KB
+[Download](/files/modules/audiodev.ko) · 142.9 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/modules/audiodev.ko`
 - **Category:** modules
@@ -6674,15 +6679,15 @@ The audio device driver: the kernel module that exposes the sound hardware to th
 Core audio driver; the lla and tdm_driver entries document the interface layered on it.
 
 
-</details>
+:::
 
 ### `chk.ko`
 
 The hardware-check module: a small kernel piece the system uses to verify board identity and hardware health.
 
-[Download](files/modules/chk.ko) · 4.6 KB
+[Download](/files/modules/chk.ko) · 4.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/modules/chk.ko`
 - **Category:** modules
@@ -6692,15 +6697,15 @@ The hardware-check module: a small kernel piece the system uses to verify board 
 Board-check module; its device node (/dev/chk) appears in the updater's sibling-binary inventory.
 
 
-</details>
+:::
 
 ### `hwevent_queue.ko`
 
 The hardware-event queue: delivers physical events like button presses and jack insertions from the kernel up to the programs that handle them.
 
-[Download](files/modules/hwevent_queue.ko) · 17.2 KB
+[Download](/files/modules/hwevent_queue.ko) · 17.2 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/modules/hwevent_queue.ko`
 - **Category:** modules
@@ -6710,15 +6715,15 @@ The hardware-event queue: delivers physical events like button presses and jack 
 Kernel queue feeding hw_input_events / hwmessagelib, the layer that turns physical presses into internal messages.
 
 
-</details>
+:::
 
 ### `ir_rcvr.ko`
 
 The infrared receiver driver: the kernel piece that captures remote-control signals from the IR sensor on models that have one, like the Playbar.
 
-[Download](files/modules/ir_rcvr.ko) · 7.8 KB
+[Download](/files/modules/ir_rcvr.ko) · 7.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/modules/ir_rcvr.ko`
 - **Category:** modules
@@ -6728,15 +6733,15 @@ The infrared receiver driver: the kernel piece that captures remote-control sign
 IR receiver driver feeding /opt/ir config and the ir_decoder/ir_learn machinery. Absent on models without an IR sensor (a documented m8-vs-m9 difference).
 
 
-</details>
+:::
 
 ### `sonos_device.ko`
 
 The Sonos board-support module: kernel glue for the custom hardware bits specific to the player.
 
-[Download](files/modules/sonos_device.ko) · 3.6 KB
+[Download](/files/modules/sonos_device.ko) · 3.6 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/modules/sonos_device.ko`
 - **Category:** modules
@@ -6746,15 +6751,15 @@ The Sonos board-support module: kernel glue for the custom hardware bits specifi
 Board-support kernel module for the limelight platform.
 
 
-</details>
+:::
 
 ### `adf.ko`
 
 A lower-level Atheros driver framework module the WiFi stack loads beneath the main radio driver.
 
-[Download](files/wifi/N/adf.ko) · 24.2 KB
+[Download](/files/wifi/N/adf.ko) · 24.2 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/N/adf.ko`
 - **Category:** modules
@@ -6764,15 +6769,15 @@ A lower-level Atheros driver framework module the WiFi stack loads beneath the m
 Atheros Driver Framework layer for the wifi/N radio build.
 
 
-</details>
+:::
 
 ### `asf.ko`
 
 Another Atheros support layer in the WiFi stack, handling shared services the radio driver relies on.
 
-[Download](files/wifi/N/asf.ko) · 12.8 KB
+[Download](/files/wifi/N/asf.ko) · 12.8 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/N/asf.ko`
 - **Category:** modules
@@ -6782,15 +6787,15 @@ Another Atheros support layer in the WiFi stack, handling shared services the ra
 Atheros Service Framework layer for the wifi/N radio build.
 
 
-</details>
+:::
 
 ### `ath_driver.ko`
 
 The main WiFi radio driver: the kernel module that actually talks to the Atheros wireless chip and does the work of joining networks and carrying traffic.
 
-[Download](files/wifi/N/ath_driver.ko) · 353.5 KB
+[Download](/files/wifi/N/ath_driver.ko) · 353.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/N/ath_driver.ko`
 - **Category:** modules
@@ -6800,15 +6805,15 @@ The main WiFi radio driver: the kernel module that actually talks to the Atheros
 Primary ath driver for the Atheros-based radio in this generation of hardware.
 
 
-</details>
+:::
 
 ### `ath_hal.ko`
 
 The radio's hardware-abstraction module: the closed-off layer between the open driver and the actual radio silicon.
 
-[Download](files/wifi/N/ath_hal.ko) · 341.5 KB
+[Download](/files/wifi/N/ath_hal.ko) · 341.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/N/ath_hal.ko`
 - **Category:** modules
@@ -6818,15 +6823,15 @@ The radio's hardware-abstraction module: the closed-off layer between the open d
 Atheros HAL (hardware abstraction layer), the proprietary core of the driver stack.
 
 
-</details>
+:::
 
 ### `dfs.ko`
 
 The radar-detection module: watches for radar on restricted WiFi channels so the speaker can legally operate on them, part of the 5 GHz regulatory machinery.
 
-[Download](files/wifi/N/dfs.ko) · 56.7 KB
+[Download](/files/wifi/N/dfs.ko) · 56.7 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/N/dfs.ko`
 - **Category:** modules
@@ -6836,15 +6841,15 @@ The radar-detection module: watches for radar on restricted WiFi channels so the
 DFS (Dynamic Frequency Selection) module; pairs with the radartool utility.
 
 
-</details>
+:::
 
 ### `bridge.ko`
 
 The network-bridge module: lets the speaker bridge wired and wireless interfaces so SonosNet members can share a connection.
 
-[Download](files/wifi/bridge.ko) · 76.2 KB
+[Download](/files/wifi/bridge.ko) · 76.2 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/wifi/bridge.ko`
 - **Category:** modules
@@ -6854,26 +6859,26 @@ The network-bridge module: lets the speaker bridge wired and wireless interfaces
 Kernel bridge support used by brctl in the SonosNet topology.
 
 
-</details>
+:::
 
 
 ## Diagnostics web pages
 
 The raw ingredients of the speaker's hidden status website: JavaScript and HTML pages you can reach in a browser at the player's address. Sonos support and engineers use these pages to inspect a player; this is what the site actually is under the hood.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Static assets served by the embedded web server from /opt/htdocs and the locked variant /opt/htdocs_locked (gated DSP console pages).
 
-</details>
+:::
 
 ### `perfcounters.js`
 
 The JavaScript behind the performance-counters status page: it fetches the counter data from the speaker and draws it in your browser when you visit the diagnostics site.
 
-[View](files/opt/htdocs/perfcounters.js) · [Download](files/opt/htdocs/perfcounters.js) · 9.0 KB
+[View](/files/opt/htdocs/perfcounters.js) · [Download](/files/opt/htdocs/perfcounters.js) · 9.0 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 218 lines:
 
@@ -6940,9 +6945,9 @@ let perfcounter = {
     },
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/perfcounters.js`
 - **Category:** webui
@@ -6952,15 +6957,15 @@ let perfcounter = {
 Client-side script for the perf-counter status page; pairs with the perf_counters schema documented on the subsystems page.
 
 
-</details>
+:::
 
 ### `review.js`
 
 The script for a review-style page in the built-in web UI, working with the matching stylesheet file.
 
-[View](files/opt/htdocs/review.js) · [Download](files/opt/htdocs/review.js) · 15.5 KB
+[View](/files/opt/htdocs/review.js) · [Download](/files/opt/htdocs/review.js) · 15.5 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 448 lines:
 
@@ -7027,9 +7032,9 @@ function finishDrawTable(tbodyID) {
 
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/review.js`
 - **Category:** webui
@@ -7039,15 +7044,15 @@ function finishDrawTable(tbodyID) {
 Companion to xml/review.xsl for the status site's review page.
 
 
-</details>
+:::
 
 ### `configDSP.css`
 
 The stylesheet for the DSP console page.
 
-[View](files/opt/htdocs_locked/dsp/configDSP.css) · [Download](files/opt/htdocs_locked/dsp/configDSP.css) · 5.8 KB
+[View](/files/opt/htdocs_locked/dsp/configDSP.css) · [Download](/files/opt/htdocs_locked/dsp/configDSP.css) · 5.8 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 282 lines:
 
@@ -7114,9 +7119,9 @@ h1 {
 	position: fixed;
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs_locked/dsp/configDSP.css`
 - **Category:** webui
@@ -7126,15 +7131,15 @@ h1 {
 Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).
 
 
-</details>
+:::
 
 ### `configDSP.htm`
 
 The HTML shell of the hidden DSP console: a gated page in the diagnostics site that exposes the audio-processing knobs, meant for engineering rather than daily use.
 
-[View](files/opt/htdocs_locked/dsp/configDSP.htm) · [Download](files/opt/htdocs_locked/dsp/configDSP.htm) · 1.7 KB
+[View](/files/opt/htdocs_locked/dsp/configDSP.htm) · [Download](/files/opt/htdocs_locked/dsp/configDSP.htm) · 1.7 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 46 of 46 lines:
 
@@ -7187,9 +7192,9 @@ First 46 of 46 lines:
 </html>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs_locked/dsp/configDSP.htm`
 - **Category:** webui
@@ -7199,15 +7204,15 @@ First 46 of 46 lines:
 Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).
 
 
-</details>
+:::
 
 ### `configDSP.js`
 
 The JavaScript driving the DSP console page: it reads and writes the audio-processing parameters behind the gated interface.
 
-[View](files/opt/htdocs_locked/dsp/configDSP.js) · [Download](files/opt/htdocs_locked/dsp/configDSP.js) · 94.2 KB
+[View](/files/opt/htdocs_locked/dsp/configDSP.js) · [Download](/files/opt/htdocs_locked/dsp/configDSP.js) · 94.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 1650 lines:
 
@@ -7274,9 +7279,9 @@ function onPageLoad ()
     }
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs_locked/dsp/configDSP.js`
 - **Category:** webui
@@ -7286,15 +7291,15 @@ function onPageLoad ()
 Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).
 
 
-</details>
+:::
 
 ### `meters.css`
 
 The stylesheet for the meters page.
 
-[View](files/opt/htdocs_locked/dsp/meters.css) · [Download](files/opt/htdocs_locked/dsp/meters.css) · 240 B
+[View](/files/opt/htdocs_locked/dsp/meters.css) · [Download](/files/opt/htdocs_locked/dsp/meters.css) · 240 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 15 of 15 lines:
 
@@ -7316,9 +7321,9 @@ meter {
 }
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs_locked/dsp/meters.css`
 - **Category:** webui
@@ -7328,15 +7333,15 @@ meter {
 Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).
 
 
-</details>
+:::
 
 ### `meters.htm`
 
 The HTML shell of the input-level meters page: shows live signal levels per channel, used for audio debugging.
 
-[View](files/opt/htdocs_locked/dsp/meters.htm) · [Download](files/opt/htdocs_locked/dsp/meters.htm) · 587 B
+[View](/files/opt/htdocs_locked/dsp/meters.htm) · [Download](/files/opt/htdocs_locked/dsp/meters.htm) · 587 B
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 16 of 16 lines:
 
@@ -7359,9 +7364,9 @@ First 16 of 16 lines:
 </html>
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs_locked/dsp/meters.htm`
 - **Category:** webui
@@ -7371,15 +7376,15 @@ First 16 of 16 lines:
 Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).
 
 
-</details>
+:::
 
 ### `meters.js`
 
 The JavaScript that polls the meter data and draws the live channel levels on the meters page.
 
-[View](files/opt/htdocs_locked/dsp/meters.js) · [Download](files/opt/htdocs_locked/dsp/meters.js) · 12.2 KB
+[View](/files/opt/htdocs_locked/dsp/meters.js) · [Download](/files/opt/htdocs_locked/dsp/meters.js) · 12.2 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 60 of 402 lines:
 
@@ -7446,9 +7451,9 @@ function onDropdownUpdate(elem)
     addToForm(createMeterTable());
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs_locked/dsp/meters.js`
 - **Category:** webui
@@ -7458,26 +7463,26 @@ function onDropdownUpdate(elem)
 Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).
 
 
-</details>
+:::
 
 
 ## Firmware package pieces
 
 The parts of the actual update file Sonos ships: the kernel image, the compressed filesystem that contains everything else on this page, the installer script, and the factory data block written per-device. Together these are what a firmware update physically delivers to the speaker.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sections extracted from the signed .upd update package: uImage kernel, squashfs rootfs, preinstall script, and the per-device NCD payload template.
 
-</details>
+:::
 
 ### `86.10-80260-1-9-device-payload.bin`
 
 The factory data template: a small binary block carrying the per-unit identity slots (serial, MAC, calibration) that get filled in when the device is manufactured. Amusingly, its embedded template still carries a 2012-era factory timestamp from the original Playbar.
 
-[Download](files/package/86.10-80260-1-9-device-payload.bin) · 53.5 KB
+[Download](/files/package/86.10-80260-1-9-device-payload.bin) · 53.5 KB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/package/86.10-80260-1-9-device-payload.bin`
 - **Category:** package
@@ -7487,15 +7492,15 @@ The factory data template: a small binary block carrying the per-unit identity s
 Section-13 payload from the .upd, about 55 KB. Its tagged-record layout (board ID '3s50avq100', the '2012/06/14' template date, empty serial/MAC slots) is fully decoded on the firmware-differences page; mdputil -B initializes it.
 
 
-</details>
+:::
 
 ### `86.10-80260-1-9-kernel.uImage`
 
 The Linux kernel image for this firmware: the actual operating-system core the speaker boots. Everything else on this page runs on top of it.
 
-[Download](files/package/86.10-80260-1-9-kernel.uImage) · 1.7 MB
+[Download](/files/package/86.10-80260-1-9-kernel.uImage) · 1.7 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/package/86.10-80260-1-9-kernel.uImage`
 - **Category:** package
@@ -7505,15 +7510,15 @@ The Linux kernel image for this firmware: the actual operating-system core the s
 uImage-wrapped ARM kernel from the update package, about 1.8 MB. The modules/ and wifi/ kernel objects above load into this kernel at boot.
 
 
-</details>
+:::
 
 ### `86.10-80260-1-9-preinstall.sh`
 
 The installer script inside the update package: the small program that runs on the device when a firmware update lands, preparing the new image for installation.
 
-[View](files/package/86.10-80260-1-9-preinstall.sh) · [Download](files/package/86.10-80260-1-9-preinstall.sh) · 1.6 KB
+[View](/files/package/86.10-80260-1-9-preinstall.sh) · [Download](/files/package/86.10-80260-1-9-preinstall.sh) · 1.6 KB
 
-<details markdown="1"><summary><b>Preview</b></summary>
+::: details Preview
 
 First 58 of 58 lines:
 
@@ -7578,9 +7583,9 @@ if [ -d /dev/mtd ]; then
 fi
 ```
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/package/86.10-80260-1-9-preinstall.sh`
 - **Category:** package
@@ -7590,15 +7595,15 @@ fi
 Pre-install script from the .upd; runs ahead of the squashfs/rootfs swap during upgrade.
 
 
-</details>
+:::
 
 ### `86.10-80260-1-9-rootfs.squashfs`
 
 The compressed filesystem image: the single block that contains the entire root filesystem, all the files on this page included. This is what the device actually writes during an update.
 
-[Download](files/package/86.10-80260-1-9-rootfs.squashfs) · 13.3 MB
+[Download](/files/package/86.10-80260-1-9-rootfs.squashfs) · 13.3 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/package/86.10-80260-1-9-rootfs.squashfs`
 - **Category:** package
@@ -7608,15 +7613,15 @@ The compressed filesystem image: the single block that contains the entire root 
 Squashfs image (~14 MB) extracted from the .upd; the rootfs-86.10-80260-1-9 directory on this site was unpacked from this file.
 
 
-</details>
+:::
 
 ### `86.10-80260-1-9.upd`
 
 The complete update package itself: the signed bundle Sonos's servers deliver when this model updates, containing the kernel, the filesystem, and the installer all in one signed file.
 
-[Download](files/package/86.10-80260-1-9.upd) · 15.2 MB
+[Download](/files/package/86.10-80260-1-9.upd) · 15.2 MB
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/package/86.10-80260-1-9.upd`
 - **Category:** package
@@ -7626,18 +7631,18 @@ The complete update package itself: the signed bundle Sonos's servers deliver wh
 The signed .upd for build 86.10-80260-1-9 (~16 MB). Everything under the other categories on this page ultimately comes from inside this file.
 
 
-</details>
+:::
 
 
 ## Referenced but not shipped on this model
 
 Files the software knows about and can use, but which are not present in this model's firmware image. Some are downloaded on demand when a feature runs (like calibration tones), some belong to other models, and some are created at runtime rather than shipped. Documented here because the code references them by name.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Path and filename literals recovered from the binary that resolve to CDN downloads, other-model firmware trees, or runtime-created state rather than files in this squashfs.
 
-</details>
+:::
 
 ### `complete.ogg`
 
@@ -7645,7 +7650,7 @@ The 'finished' jingle played at the end of a calibration pass so you know the me
 
 *Not shipped in this build; documented because other firmware versions and binary string evidence reference it.*
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/complete.ogg`
 - **Category:** referenced
@@ -7653,7 +7658,7 @@ The 'finished' jingle played at the end of a calibration pass so you know the me
 x-rincon-configmode:sonar-calibrate-complete / sonarcal complete.ogg family.
 
 
-</details>
+:::
 
 ### `complete_ht.ogg`
 
@@ -7661,7 +7666,7 @@ The completion tone for home-theater calibration specifically, the variant used 
 
 *Not shipped in this build; documented because other firmware versions and binary string evidence reference it.*
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/complete_ht.ogg`
 - **Category:** referenced
@@ -7669,7 +7674,7 @@ The completion tone for home-theater calibration specifically, the variant used 
 x-rincon-sonarcal:complete_ht.ogg; home-theater variant of the calibration-complete asset.
 
 
-</details>
+:::
 
 ### `leader.ogg`
 
@@ -7677,7 +7682,7 @@ The tone a group leader plays during the older Sonar room-calibration flow. The 
 
 *Not shipped in this build; documented because other firmware versions and binary string evidence reference it.*
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/leader.ogg`
 - **Category:** referenced
@@ -7685,7 +7690,7 @@ The tone a group leader plays during the older Sonar room-calibration flow. The 
 Referenced by the x-rincon-sonarcal:leader.ogg URI and the trueplay/sonarcal tone-download machinery; delivered on demand via the ETag-cached tone download path rather than shipped in /opt/buzzers.
 
 
-</details>
+:::
 
 ### `testtone.ogg`
 
@@ -7693,7 +7698,7 @@ The measurement tone used while calibrating a speaker's sound for the room. Refe
 
 *Not shipped in this build; documented because other firmware versions and binary string evidence reference it.*
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/testtone.ogg`
 - **Category:** referenced
@@ -7701,7 +7706,7 @@ The measurement tone used while calibrating a speaker's sound for the room. Refe
 x-rincon-sonarcal:testtone.ogg; pulled through the tone_download machinery (etags.txt cache) at calibration time.
 
 
-</details>
+:::
 
 ### `trueroom_tone.ogg`
 
@@ -7709,7 +7714,7 @@ The tone for the trueroom tuning pass, a second-generation room measurement the 
 
 *Not shipped in this build; documented because other firmware versions and binary string evidence reference it.*
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/buzzers/trueroom_tone.ogg`
 - **Category:** referenced
@@ -7717,7 +7722,7 @@ The tone for the trueroom tuning pass, a second-generation room measurement the 
 x-rincon-sonarcal:trueroom family; downloaded per-session like the other sonarcal assets.
 
 
-</details>
+:::
 
 ### `level.mp3`
 
@@ -7725,7 +7730,7 @@ A test tone that the smaller Play:1 model ships for audio level checks. On the P
 
 *Not shipped in this build; documented because other firmware versions and binary string evidence reference it.*
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **Path in image:** `/opt/htdocs/audio/level.mp3`
 - **Category:** referenced
@@ -7733,5 +7738,5 @@ A test tone that the smaller Play:1 model ships for audio level checks. On the P
 271 KB in the m8/fenway rootfs (documented in the firmware-differences page); absent from the m9 image.
 
 
-</details>
+:::
 

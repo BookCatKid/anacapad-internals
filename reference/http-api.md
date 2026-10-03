@@ -2,17 +2,17 @@
 
 Beyond the documented control surface, the player answers ordinary HTTP requests: a built-in diagnostic and maintenance web surface most users never see. Some of it is famous. The /status page gives a rich snapshot of what the player is doing, and the support tools lean on it heavily. But there are also endpoints for rebooting, managing logs, checking network state, and a few surprising extras. This page inventories every HTTP path the firmware registers: what's served, what it accepts, and which of them are genuinely useful versus internal.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP control path. All are static-analysis records.
 
-</details>
+:::
 
 ## `http_status_endpoints`
 
 The /status route table: the full registration map of the diagnostics website, covering every status page, what produces it, and its access flags. It's the complete inventory of the built-in support site.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** /status diagnostic web-handler vocabulary
 - **role:** embedded HTTP diagnostics/status UI (htdocs at /opt/htdocs); sub-handler names recovered as literal path strings clustered at 0x10e75c5c-0x10e75f80 + ZPInfo field names at 0x10e73e21-0x10e743ad + shell/proc passthrough at 0x10e74f50-0x10e75b00
@@ -959,66 +959,66 @@ The /status route table: the full registration map of the diagnostics website, c
 - **bundle_file_manifest:** support-bundle table at 0x1109013c+ interleaves {name_ptr, flags_u32, cmd_or_path_ptr} records: shell-command sections {/date:/bin/date, /debugfiles:'ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug', /df:/bin/df, /du-jffs, /free, /ifconfig, /lsmod, /mount, /netstat, /ntpsources, /ps, /route, /scanresults, /showmacs, /showports, /showstats, /showstp, /uptime} (flags 0x1/0x2/0x6/0xa/0xb/0xe gate conditional inclusion); file sections: /etc/resolv.conf, /VERSION, /jffs/{irconfig.txt,netstartd_prev.log,recovery.log,settings/{alarmclock.xml,areas.json,householdsettings.json,zones.json},shadow/stats,sys/log/{setup,setup_ok}/setup.{dmesg,log},upgrade_prev.log,upgrade_tmp_prev.log,watchdog.log,app/log/upgrade_mgr.log}, /opt/log/{anacapa.{alarm.job,chsrc.state,dc,ext.audio.action,gm.events,ht,hw.events,lechmere.event,log,musedebug,museevt,rc.upnp,snf,spotify.debug,spotify,sps,trueplay,vl},chronyd,dropbear,mdnsd,netstartd,sddpd,sonosledmgrd,udhcpc,wacd,wpa_supplicant}.log, /proc/ath_rincon{,_ath1}/{device,dfs,fullstatus,mibcc,nf,phyerr,primary,station,status}, /proc/driver/{accel,fpga/{circ,data},gravity-vector,ledctl/status,tdm/{regs,rxring,txring},temp-sensor}, /proc/{interrupts,net/{arp,snmp,sockstat,udp},slabinfo}, /tmp/memorylog{,.old}/log.*, /tmp/udhcpc_resp_mac_addr, /tmp/upgrade.log, /var/lib/chrony/sysclock_state
 - **handler_table:** 56-entry {handler_fn, name, flags_u32} dispatch at 0x110908c4: /accounts, /activeZones, /ai_speech_enhance, /alarm, /analoglinein, /api(0x82), /audiocore, /backtrace, /button_triggered.xml, /cloud, /cloudqueue(0x82), /cpumon(0xe), /decoder, /device, /dmesg(0xa), /dnscache, /dropout_triggered.xml, /enetports(0xb), /ethportstatistics(0xa), /experiments, /hardwareevents, /hls, /htconfig, /leds(0x82), /libraries, /location_settings_update, /musicservices, /netsettings.json, /netsettings.txt, /opt/log/mdnsd.log, /perfcounters(0xe), /playmode, /policy, /radiolog, /regcert, /registration, /renderingcontrol, /root_cert_bundles, /rss, /settings/{effective,location,player}, /shares, /spdiftap, /ssidlist.txt, /ssl_client_cache, /syssettings, /temperature, /topology(0xa), /track_queue_summary, /tracks_summary, /trueplayinfo, /tvprocessor, /update, /upnp(0xa), /wireless(0xb), /zp(0x1); flag byte gates conditional visibility
 
-</details>
+:::
 
 
 ## `device_account_endpoint`
 
 The device-account endpoint: the web surface for the account-registration flow, where a speaker registers itself against a Sonos account.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **handler:** f_1065bd70
 - **flow:** path claim '/device_account' (f_10655ea4) -> f_106570bc validate -> f_1065b730('int_setTransferMode') transfer-mode int; serialize device-account via f_1065a8dc(strlen+encode)/f_109cd7a4/f_1065e99c; state word *(r30+8) in {3,4} selects account variant; constant block 0x110b9044 (6 bytes) feeds the blob; f_10807034 XML append; stack-canary guarded
 - **semantics:** device-account provisioning/read endpoint; response is an encoded account blob whose variant depends on registration state (3 vs 4)
 - **status:** strong
 
-</details>
+:::
 
 
 ## `http_chunked_strictness`
 
 How strictly the HTTP layer enforces chunked-transfer rules: the parsing strictness the player's web code applies to streamed request bodies.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **rules:** `Reject response when 'chunked' is not the last Transfer-Encoding`, `Ignore duplicate 'chunked' decoder`, `Suppress chunked TE on HTTP version >= 2`, `'Chunky upload is not supported by HTTP 1.0'`, `Missing chunk/close/size -> assume close signals end`, `chunk hex-length max bound + hex-digit validation`, `'Chunk callback failed' / 'cf_body_send last CHUNK'`, `trailers accepted: 'added last chunk with trailers from client'`
 
-</details>
+:::
 
 
 ## `httpcache_manager`
 
 The HTTP cache manager: the component owning the web-content cache, covering what's stored, eviction, and freshness policies.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **file:** httpcachemgr/httpcaches.json: httpcache_manager.cxx
 - **protocol:** {cacheHashes, hashLocal, hashRemote} + Force-cleared cache + Invalidated local cache + Invalidating remote caches: distributed HTTP-cache invalidation across zones w/ hash comparison
 
-</details>
+:::
 
 
 ## `http_range`
 
 HTTP range support: byte-range request handling for serving and requesting partial content, which is the machinery behind seeking inside remote files.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **grammar:** Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu}: 64-bit
 - **status_line:** 0x10ee6bcc 'HTTP/1.0 206' - range responses are emitted on the HTTP/1.0 status line (HTTP/1.1 variant not separately templated)
 
-</details>
+:::
 
 
 ## `muse_authhelper`
 
 The modern-API auth helper: the shared credential-checking machinery the API's auth stage calls whenever a request needs its credentials checked.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **impl:** museclient_authhelper.cxx
@@ -1037,26 +1037,26 @@ The modern-API auth helper: the shared credential-checking machinery the API's a
     - **strings:** `UserAuthorization`, `ThorOperations`, `PolicyKeyTableMutex`
     - **note:** muse authorization is evaluated by the Thor policy subsystem: op calls carry credType through the <Command> envelope and Thor checks the caller against UserAuthorization policy keys
 
-</details>
+:::
 
 
 ## `muse_common`
 
 The modern-API common layer: shared machinery all modern-API operations use beneath their route logic, covering the common request handling every verb relies on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** `muse/src/sonos/muse/common/circuitbreaker.cxx`, `muse/src/sonos/muse/common/context.cxx`, `muse/src/sonos/muse/common/eventing.cxx`, `muse/src/sonos/muse/common/noncehandler.cxx`
 
-</details>
+:::
 
 
 ## `diagnostic_manifest`
 
 The diagnostics manifest: the packing list of what a diagnostics bundle contains, covering which logs, states, and files go into a support submission.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **table:** 0x11090034..0x110908c8 (~100 entries) - ordered manifest feeding /support/aggregate diagnostics
@@ -1082,26 +1082,26 @@ The diagnostics manifest: the packing list of what a diagnostics bundle contains
 - **jobs_endpoint:** /jobs?job=<JobName> triggers any manifest task handler directly over HTTP (port 1400)
 - **exec_backend:** etc/diagprocessd (generated from configs/arch/limelight.toml): FIFO menu (mkfifo /tmp/diagstdin + /tmp/diagstdout, read loop dispatching numeric commands: 0=date, 1=ls -l debug dirs, 2=df, 3=du jffs top100, 4=free, 5=ifconfig, 6=lsmod, 7=mount, 8=netstat -an, 9=ps, 10=route -n, 11-14=brctl showmacs/showports/showstats/showstp br0, 15=uptime, 16=dmesg -s 32768, 17=/wifi/athconfig scangetresults ath0, 18=chronyc -n sources -v, *=NA. The support-bundle shell_cmds (/df,/free,/ps,/lsmod,/netstat,/ntpsources,/showmacs,...) resolve THROUGH this daemon) anacapad sends the command index over the FIFO rather than exec'ing directly (privilege separation: diagprocessd runs as root).
 
-</details>
+:::
 
 
 ## `diagnostics`
 
 The diagnostics machinery: the overall system for gathering health data, covering the /status pages, log collection, and support-bundle assembly. It's what's behind 'submit diagnostics' and the built-in status website.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** `/oc/zone/common/diag_progress.cxx`, `/oc/zone/common/diagnostics.cxx`
 
-</details>
+:::
 
 
 ## `proprietary_headers`
 
 The proprietary HTTP headers: the Sonos-specific request and response headers the firmware recognizes, which are private extensions riding on ordinary HTTP.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **outbound:** `X-Sonos-Playback-Id: %.*s`, `X-Sonos-SWGen: %u`, `X-RINCON-BOOTSEQ: %s`, `X-RINCON-VARIANT: %u`, `X-Sonos-Household-Id`, `X-Sonos-Corr-Id`, `x-sonos-target-udn`, `x-sonos-upnp-loopback-token`, `x-rincon-content-format (repset)`, `x-rincon-roomicon:generic`
@@ -1155,14 +1155,14 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
   - **status:** confirmed
   - **notes:** Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.
 
-</details>
+:::
 
 
 ## `discovery_layer`
 
 The discovery layer: how the player finds other devices and is found, covering the announcements and searches behind 'speakers see each other on the network'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **mdns:** mDNS controller on RZonePlayer (m_spMdnsController); '%s.local' hostname construct ('Failed construct mdns hostname'); refreshMdnsRegistration; log /opt/log/mdnsd.log; 'new cert updating mDNS service \[%s\]'
@@ -1170,14 +1170,14 @@ The discovery layer: how the player finds other devices and is found, covering t
 - **ssdp:** RMSearchNotifyHandler select-thread handles SSDP M-SEARCH/NOTIFY; dedup vs mDNS: 'handleDefunctZP %s reason %s IGNORED from MDNS - discovered by SSDP' and inverse
 - **dedup_policy:** a zone-player defunct signal is ignored when the same ZP is discovered via the other discovery channel (mDNS-primary if SSDP-unseen, SSDP-primary if mDNS-unseen)
 
-</details>
+:::
 
 
 ## `ssdp_discovery`
 
 Device-discovery announcements and searches: the classic find-each-other protocol where speakers announce presence, search for peers, and log who answered. It's the older discovery layer alongside the Sonos-specific mechanisms.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1 + HOST:239.255.255.250 + USN: + ssdp:alive/ssdp:byebye; 'Sent MSEARCH reply to %s:%u'; '%s unicast MSEARCH from %s'
@@ -1193,55 +1193,55 @@ Device-discovery announcements and searches: the classic find-each-other protoco
   - **outbound_msearch:** 0x10eea4f4 = ssdp_signed_msearch template (MAN: "ssdp:discover", MX:%d, ST:%s, USER-AGENT:%s + signature trailer)
   - **notes:** alive/byebye/response trailer %s is the signature block (signed SSDP); all four are format literals confirmed at the listed .rodata addresses
 
-</details>
+:::
 
 
 ## `ssdp_signed_msearch`
 
 Signed M-search: the authenticated form of discovery search, a signed variant protecting the exchange.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)
 - **signature:** HMAC over request -> base64 ('M-SEARCH signature HMAC init failed','Failed to add M-SEARCH signature'); inbound verify: 'hmac sig verify error'; keys hmacDigest/hmac
 - **response_headers:** `BOOTID.UPNP.ORG: %s`, `CONFIGID.UPNP.ORG: %d`, `CACHE-CONTROL: max-age = %u`
 
-</details>
+:::
 
 
 ## `upnp_cloud_tunnel`
 
 The classic-protocol cloud tunnel: the channel carrying classic-protocol traffic over the cloud connection, which is how remote commands reach the player from off-network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **surface:** every service's upnp<Service> cloud resource exposes {subscribe, renew(logicalSID), unsubscribe(logicalSID)}: GENA subscription management relayed cloud->local
 - **semantics:** renewSubs op; local SUBSCRIBE/UNSUBSCRIBE handled by f_105e8290 GENA handler; cloud mirror proxies event subscription state (logicalSID keys)
 
-</details>
+:::
 
 
 ## `soap_client`
 
 The classic command-protocol client: the machinery for outbound classic-API calls, used when the player itself calls another device's commands like group fan-out to members.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"': urn#action forms
 - **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant: SOAP relayed over the cloud tunnel shares the dispatcher
 - **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx: outbound control-point stack
 
-</details>
+:::
 
 
 ## `websocket_impl`
 
 The websocket implementation: the persistent-channel plumbing the modern event layer uses, which is the machinery behind websocket connections.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** websocketserver.cxx + websocketclient.cxx + lechmere.cxx
@@ -1249,14 +1249,14 @@ The websocket implementation: the persistent-channel plumbing the modern event l
 - **frames:** opcode set {data,ping,pong,close,cont}; 'Illegal opcode'/'Privileged opcode'/'Websocket protocol error'; write fail logs opcode+len
 - **state:** <WebSocketHistory> + <TruncatedConnectionList maxwebsockets=%zu connections=%zu>; <WebsocketRegistration>{%s (%s),/} reg element; WebSocketReceiveCB close handling
 
-</details>
+:::
 
 
 ## `cert_identity`
 
 The certificate identity: the player's own digital credential, which is what it presents to prove it's a genuine Sonos device rather than an impersonator.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **crypto:** mbedTLS; sonos::certval::validate(sonos_device_x509_fields*, mbedtls_x509_crt* cert, crt, crl, x509_crt_profile, name, flags, cb, RootCACertBundle*): custom device-x509 field validation
@@ -1271,14 +1271,14 @@ The certificate identity: the player's own digital credential, which is what it 
   - **docs:** /root_cert_bundles status route; <RootCertBundleInfo><Bundles> + <DeviceCertInfo> docs
   - **status:** confirmed
 
-</details>
+:::
 
 
 ## `device_auth`
 
 Device authentication: how the player proves itself to other devices and services, which is the credential-checking machinery guarding device-level trust.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **headers:** `X-Sonos-DeviceCert: <cert>`, `X-Sonos-Device-Id`, `X-Sonos-Api-Key`, `X-Sonos-Corr-Id`
@@ -1288,64 +1288,64 @@ Device authentication: how the player proves itself to other devices and service
 - **oauth:** int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken: OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs
 - **ssl:** /ssl_client_cache status endpoint: TLS session cache
 
-</details>
+:::
 
 
 ## `noncehandler`
 
 The nonce routine: it generates and validates one-time values used to prevent replay in authentication flows.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **semantics:** auth-nonce tracking for cloud requests
 
-</details>
+:::
 
 
 ## `circuitbreaker`
 
 The circuit-breaker implementation: after enough failures to an endpoint, calls fail fast for a while instead of queueing up timeouts. It's why one dead service can't drag the whole player down.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **semantics:** circuitBreakerTelemetry: breaker pattern on outbound paths w/ telemetry
 
-</details>
+:::
 
 
 ## `hls_radio`
 
 The HLS radio path: playing Apple's segmented-stream format for radio, covering playlist parsing and segment fetching for continuous audio.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **schemes:** x-sonosapi-hls:%s?sid=%u&flags=288 + x-sonosapi-hls-static: + x-sonosapi-hls{,-static}:*:*:* + hls-static:// + sonos.com-hls-{static,radio,aac}
 - **ops:** hls-{live,static,???} + hlsradio + hlsmeta/hlsplaylist/hlsrenditions + 'hls-%s said: %u (%g) %d %d' telemetry
 - **routes:** /hls local route
 
-</details>
+:::
 
 
 ## `cloud_request`
 
 The cloud request machinery: how the player forms and sends requests to Sonos's servers, which is the outbound half of the cloud connection.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **files:** `/oc/zone/common/cloudrequest.cxx`
 
-</details>
+:::
 
 
 ## `cloud_registration`
 
 Cloud registration: the flow enrolling this player under a Sonos account. Without it the speaker is local-only, and it's the enrollment that ties hardware to your account.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **tls:** secure reg over SSL ('Invalid secure reg SSL port','Could not create secure reg SSL Context'); 'Curl - using R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE for %s': client-cert identity
@@ -1355,14 +1355,14 @@ Cloud registration: the flow enrolling this player under a Sonos account. Withou
 - **local_route:** /registration status endpoint
 - **errors:** `REGISTRATION_CHIME_UNAVAILABLE`, `'updating boot sequence due to registration event'`, `'Account registration for service %u res %hu'`
 
-</details>
+:::
 
 
 ## `service_accounts`
 
 The service accounts machinery: the saved-login store where music-service credentials live and how they're retrieved when a service authenticates.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **impl:** zpserviceaccounts.cxx -> RZPServiceAccounts
@@ -1371,14 +1371,14 @@ The service accounts machinery: the saved-login store where music-service creden
 - **manifests:** per-account manifest download 'failed to download manifest file for account sid:%u, sn:%u'
 - **events:** NewMuseHHIDEvent/NewLocationIdEvent -> RZPServiceAccounts; userInfo updates 'updating userInfo for account SN: %u' + user-hash cleanup
 
-</details>
+:::
 
 
 ## `device_registration`
 
 Device registration: the machinery enrolling the player with Sonos's services, which turns 'a box on the network' into 'your registered product'.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **impl:** register.cxx + regdevicecert.cxx + cloudregistration.cxx
@@ -1389,39 +1389,39 @@ Device registration: the machinery enrolling the player with Sonos's services, w
 - **gating:** 'not securely registered' blocks config fetch; 'should be quarantined (secure reg required)'; 'Removing settings denylists after registration': registration lifts settings restrictions
 - **cloud:** makeMuseCloudRegistrationStatus; 'Updating cloud registration due to %s. MuseSessionId %s->%s'; 'defer due to missing required field(s)'; cached event; wifi-monitor jobs; SET_CONFIG sends registration
 
-</details>
+:::
 
 
 ## `assoctracker`
 
 The association tracker: it watches which network devices the player is associated with, feeding the connectivity-state data diagnostics use.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **semantics:** Wi-Fi station-association tracking
 
-</details>
+:::
 
 
 ## `target_udn_routing`
 
 Target-UDN routing: how requests addressed to a specific device ID get routed, which is the mechanism directing commands to the right unit.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **header:** X-SONOS-TARGET-UDN: uuid:%s + targetUDN param: directs a SOAP action to a specific bonded-zone member UDN
 - **semantics:** multi-device action routing: the coordinator/group proxy forwards actions to the target member identified by UDN; pairs w/ MobileDeviceUDN/playerUDN/HTPrimaryUDN identity fields
 
-</details>
+:::
 
 
 ## `http_extra_endpoints`
 
 Extra HTTP endpoints: the second sweep of web paths found in the binary beyond the main registration table, giving the fuller picture of the web surface.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** HTTP paths outside the /status route-table cluster
@@ -1571,14 +1571,14 @@ Extra HTTP endpoints: the second sweep of web paths found in the binary beyond t
   - **/device_account_note:** aux 0x100 = POST-ish routes (unlock family, rdm*, device_account); 0x200 = websocket; 0x400 = internal; 0x30000/0x30002 = support-submit variants; 0x10000000 = raw/streaming.
 - **csrf_note:** All mutating form endpoints carry a csrfToken form field (setstring/removestring/mdnsannounce + the form posts) - the HTTP layer enforces CSRF on writes while reads are open.
 
-</details>
+:::
 
 
 ## `csrf_protection`
 
 The CSRF protection on the web forms: every browser-facing POST endpoint embeds a hidden token the request must echo back, which stops a malicious web page from driving your speaker while you browse.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **name:** CSRF tokens on browser-facing POST endpoints
@@ -1588,26 +1588,26 @@ The CSRF protection on the web forms: every browser-facing POST endpoint embeds 
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e730f0, notes: csrfToken
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efee26, notes: action="/ssh/authorized_keys"
 
-</details>
+:::
 
 
 ## `device_description_variants`
 
 The device-description variants: the different self-description documents the player can serve, covering the normal player, a group-level variant, and a satellite variant, each presenting the unit's role differently to the outside.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **description:** \["/xml/device_description.xml", "/xml/group_description.xml", "/xml/satellite_device.xml", "/xml/device_description_no_ai.xml"\]
 
-</details>
+:::
 
 
 ## `gena_internals`
 
 The internals of classic eventing: how subscriptions are installed and validated (including pre-installed IDs and URL forms), how notifications are sequenced, and how the subscription list is kept clean.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** GENA internals + per-service LastChange schemas
@@ -1626,14 +1626,14 @@ The internals of classic eventing: how subscriptions are installed and validated
   - **Queue:** proprietary Sonos namespace urn:schemas-sonos-com:metadata-1-0/Queue/ (NOT a UPnP standard schema. Elements: <QueueID val="%.20s"> (20-char truncated), <QueueOwnerID val="%s"/>, <UpdateID val="%u"/>, <Curated val="...">) the Curated flag matches the SavedQueue store schema
 - **notes:** AVT envelopes carry the r: extension namespace for Sonos fields; Queue events live in a Sonos-private namespace (schemas-sonos-com, not rinconnetworks): clients parsing LastChange must handle all three namespaces; val="" attribute form used throughout
 
-</details>
+:::
 
 
 ## `didl_classes_ext`
 
 The extended metadata classes: the object types beyond plain songs in the metadata vocabulary, covering audiobooks, podcasts, episodes, and their containers, so catalogs can distinguish them.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** Extended DIDL object classes
@@ -1644,14 +1644,14 @@ The extended metadata classes: the object types beyond plain songs in the metada
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f08788, notes: object.container.podcast
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed693c, notes: mswmext=.asx
 
-</details>
+:::
 
 
 ## `protocol_info_full`
 
 The full protocol-info string: the verbatim capability declaration the player returns, listing every format it claims to handle in its own words.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **name:** Complete GetProtocolInfo Source CSV
@@ -1660,14 +1660,14 @@ The full protocol-info string: the verbatim capability declaration the player re
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eb87e4, notes: http-get:*:audio/mp3
 
-</details>
+:::
 
 
 ## `icy_metadata`
 
 ICY stream metadata: the in-band 'now playing' info inside MP3 radio streams, which is how the player reads the song titles stations embed in the audio feed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** ICY/Shoutcast inline metadata
@@ -1675,14 +1675,14 @@ ICY stream metadata: the in-band 'now playing' info inside MP3 radio streams, wh
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed461b, notes: @icy-metaint
 
-</details>
+:::
 
 
 ## `alert_engine`
 
 The alert and notification audio player: it plays short sounds like chimes, prompts, and doorbells with priority rules that decide whether an alert may interrupt whatever's playing. This is why a doorbell chime can be heard over music without stopping the song, because priorities decide who wins the speaker at any moment.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** alert/chime interrupt engine
@@ -1692,14 +1692,14 @@ The alert and notification audio player: it plays short sounds like chimes, prom
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ec76ac, notes: JOIN_CHIME_UNAVAILABLE
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ec0814, notes: ALEXA_ALERT
 
-</details>
+:::
 
 
 ## `household_psk_vocabulary`
 
 The household key vocabulary: the named shared secrets the system uses, with separate keys guarding the household channel, the control channel, the LAN swap, and room encryption.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** household encryption key elements
@@ -1709,14 +1709,14 @@ The household key vocabulary: the named shared secrets the system uses, with sep
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efae10, notes: <HhPsk
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efae70, notes: <RoomEncPsk
 
-</details>
+:::
 
 
 ## `replication_elements`
 
 Replication protocol elements: the message types household members exchange to stay synchronized, which is the vocabulary of the state-replication protocol.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** replication-engine wire elements
@@ -1726,14 +1726,14 @@ Replication protocol elements: the message types household members exchange to s
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eacbb0, notes: <ReplicationOperation
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f131f4, notes: <QuarantinedDevices
 
-</details>
+:::
 
 
 ## `token_refresh_state_machine`
 
 The token-refresh state machine: the per-account logic renewing expiring credentials, covering the states and transitions that keep logins alive automatically.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** music-account OAuth token refresh lifecycle
@@ -1743,14 +1743,14 @@ The token-refresh state machine: the per-account logic renewing expiring credent
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed7a78, notes: tokencache
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ec2567, notes: transition token refresh action
 
-</details>
+:::
 
 
 ## `xml_schema_clusters`
 
 The XML schema clusters: element vocabularies across status dumps and persisted files that haven't been individually decomposed, collected so the full document grammar is inventoried.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** uncatalogued XML schema clusters
@@ -1761,14 +1761,14 @@ The XML schema clusters: element vocabularies across status dumps and persisted 
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fee998, notes: <SelfTrueplayEQ
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fe7710, notes: <DTSProfile
 
-</details>
+:::
 
 
 ## `internal_error_families`
 
 The internal error families: error-code vocabularies outside the standard set, such as per-feature error namespaces like the last.fm set that surface through their own channels.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** non-UPnP fault-code families
@@ -1777,14 +1777,14 @@ The internal error families: error-code vocabularies outside the standard set, s
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee504, notes: ERROR_LASTFM_STREAM_LIMIT
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee550, notes: ERROR_DOCK_INTERRUPT
 
-</details>
+:::
 
 
 ## `system_property_keys`
 
 The system-property key space: the real set of named configuration keys the settings store accepts, which is what actually exists to get and set.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **provenance:** 28 NUL-bounded standalone R_* literals; 27 have live code consumers found by addis/addi computed-address scan (R_AvailableSvcTypes only via .data ptr table). f_104b1e48 is the onSettingChanged dispatcher: strcmp(key) chain -> per-key side-effect (e.g. R_TrialZPSerial->f_10121518, R_RadioLocation->f_1037e40c). R_PLAY_OP_ERROR excluded: enum-name log literal, not a settings key
 - **kind:** settings key vocabulary
@@ -1820,14 +1820,14 @@ The system-property key space: the real set of named configuration keys the sett
 - **side_effect_dispatcher:** f_104b1e48 (strcmp chain on changed key name)
 - **note:** key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary: other SystemProperties keys may exist under different prefixes
 
-</details>
+:::
 
 
 ## `internal_result_namespace`
 
 The internal result-code namespace: the program's own error vocabulary (the R_* codes) in literal form, showing what internal functions return and how those map to network errors.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** strong
 - **name:** internal ERROR_*/R_* name vocabularies
@@ -1869,14 +1869,14 @@ The internal result-code namespace: the program's own error vocabulary (the R_* 
 - **notes:**
   - **outbound_client_codes:** The 1001/1002-class constants appearing in nearly every propagated reach set are the OUTBOUND SOAP-client result namespace, not per-action wire faults: emitted by f_10181eb8 (outbound SOAP POST emitter, "POST %s HTTP/1.1 ... SOAPACTION"), f_10716614 (sonoscp proxy ("SOAP fault '%s', returning %d" + DeviceCertInvalid/DeviceCertExpired), and f_1038e82c (cloudqueue client) "Client error"/"Connection failed"). Reachable-from-action ≠ emittable-by-action; these codes ride the client-side result path only.
 
-</details>
+:::
 
 
 ## `smapi_capability_vocabulary`
 
 The SMAPI capability vocabulary: the authoritative list of feature flags a music-service descriptor can declare, meaning what a service may say it supports.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **name:** SMAPI capability/auth/container vocabulary
@@ -1896,14 +1896,14 @@ The SMAPI capability vocabulary: the authoritative list of feature flags a music
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e773d4, notes: playlistExtendedMD
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eba94c, notes: SoundLab
 
-</details>
+:::
 
 
 ## `albumart_proxy`
 
 The album-art proxy: it serves artwork through the player's own web server so apps load covers from the speaker rather than fetching them remotely each time. This is why artwork in the app loads fast and keeps working offline.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** /getaa album-art proxy
 - **role:** local HTTP album-art endpoint: serves cached/proxied art to controllers; URI forms /getaa?u=<url>&v=<ver>, /getaa?m=1&u=<url> and /getaa?s=1&u=<url> (m=/s= size variants), plus upstream '?albumArt=true' fetches; art cached as <dir>/AlbumArt_{GUID}_Large.jpg
@@ -1927,14 +1927,14 @@ The album-art proxy: it serves artwork through the player's own web server so ap
 - **param_semantics:** m/s/vli select the image path BEFORE the request object is built: no flags -> default fetch (u URL streamed direct); m -> f_100c2f94 variant; s -> f_100c31c8 variant; vli -> direct vli-image fetch f_100be6ec. The three u16 fields carried on the request (+0x180/+0x182/+0x184) ride through to the vliStreamImage call - request dimensions/ids, not user params
 - **arturi_cap:** albumArtURI emission capped at 1024 bytes (buffer obj+0x54, len at +0x458, f_10381528); overflow logs 'AlbumArtURI longer than expected.' in the favorites log domain
 
-</details>
+:::
 
 
 ## `muse_route_verbs`
 
 The modern-API route verbs: the operation-name vocabulary bound to routes, covering every verb the API can invoke.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **name:** muse route registration verbs: complete table
 - **role:** every muse route registers as a (param,resource,verb) triple; this is the decoded verb inventory per resource: the muse API's real operation surface, 70+ resources
@@ -2013,14 +2013,14 @@ The modern-API route verbs: the operation-name vocabulary bound to routes, cover
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e7f660, notes: playerId,pinewood,toggleMute: pinewood verb form
 - **status:** confirmed
 
-</details>
+:::
 
 
 ## `enum_tables`
 
 The enumeration tables: the named-constant vocabularies recovered across the firmware, covering the states, modes, and codes internal machinery speaks.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **status:** confirmed
 - **name:** Static enum name->integer registration tables
@@ -4069,5 +4069,5 @@ The enumeration tables: the named-constant vocabularies recovered across the fir
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
 - **r_star_status:** ALL genuine R_* namespaces now resolved or accounted: R_LED_* (proven mask), R_PLAY_OP_*/R_STREAM_OP_* (proven jump-table), R_CLIENT_KEYCERT_ID_* (proven selector returns 0-3), ~29 R_* settings keys (separate key vocabulary, no integer semantics). Earlier catalogued "R_*" families were substring artifacts of ERROR_*/FLAC__*/SPEAKER_MASK_* strings: those belong to the media_service_errors and muse_result_codes enums instead
 
-</details>
+:::
 

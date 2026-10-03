@@ -2,11 +2,11 @@
 
 The complete command surface in one table: every action the firmware can route to real code, alongside whether it actually works. For each command you can see whether it's advertised to apps, whether calling it does anything, and how confident we are in that verdict.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Every canonical action record. `advertised` services are in the served device-description `serviceList` (all except AudioIn); every canonical action is declared in its service's shipped SCPD. `stub` = dispatched to a reject-all fault (removed surface).
 
-</details>
+:::
 
 In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/soft removed): `SystemProperties.ProvisionCredentialedTrialAccountX`, `SystemProperties.ResetThirdPartyCredentials`
 

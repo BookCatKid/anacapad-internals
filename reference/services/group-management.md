@@ -4,11 +4,11 @@
 
 This service is how grouped Sonos speakers coordinate behind the scenes. When you group rooms together in the app, one speaker becomes the coordinator, the leader that picks the music and relays it to the others. The commands in this service are mostly the members talking to that leader: joining a group, leaving it, reporting how well their audio buffering is coping, and receiving updates about which 'area' of the system is the current music source. You will never see most of this on an app screen. It is the internal glue that makes group playback stay in sync and recover gracefully when a member drops off the network.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Coordinator-internal group membership service: members join/leave and report buffering state through these impl vfuncs.
 
-</details>
+:::
 
 ## Availability
 
@@ -37,11 +37,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a speaker to the group as a follower. The new member announces itself to the coordinator (its ID and a boot counter that lets the leader tell a fresh join from a stale reconnect), and the leader replies with everything the member needs to fall into line: the address of the stream it should listen to, the group's identity, whether it should reset its volume, and which settings it should adopt. This is the handshake that turns 'Bedroom selected Living Room' into actual synchronized playback.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x8\] -> CurrentTransportSettings + out fields via req->v\[+0x24\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -81,36 +81,36 @@ Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAft
 - **`CurrentTransportSettings`**: serialized group transport settings blob returned on success
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10738654; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×2, out-arg write×5, validate×1, commit×1); member delegates: r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738654; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738654; member vfunc calls: \['r29 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -120,31 +120,31 @@ service-internal state reached through member delegate(s): r29 v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738654; no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738654; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738654; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -193,9 +193,9 @@ impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,8
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10738654`
 - dispatch entry `0x10f11a64`
@@ -214,7 +214,7 @@ impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,8
 - fn 0x10738654 @ 0x10738654; action wrapper handler
 - @ 0x10f11a64; action dispatch table entry
 
-</details>
+:::
 
 ### `RemoveMember`
 
@@ -222,11 +222,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes a speaker from the group. This is what happens when you uncheck a room in the grouping screen, or when the app decides a member should leave. The coordinator drops that member's entry from its list and stops feeding it group audio.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0xc\] -> empty commit via req->v\[+0x0c\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -238,36 +238,36 @@ Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully deco
   - validation: required; req->v\[+0x1c\] lookup + f_1056157c conversion; validate fail -> 402
   - buffer cap: `0x19`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10738460; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738460; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738460; member vfunc calls: \['r30 v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -277,31 +277,31 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738460; no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738460; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738460; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -327,9 +327,9 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10738460`
 - dispatch entry `0x10f11a70`
@@ -340,7 +340,7 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 - fn 0x10738460 @ 0x10738460; action wrapper handler
 - @ 0x10f11a70; action dispatch table entry
 
-</details>
+:::
 
 ### `ReportTrackBufferingResult`
 
@@ -348,11 +348,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 A feedback channel from member to coordinator. A follower speaker reports how successfully it managed to buffer the audio stream it was given, essentially saying 'I got the track data fine' or 'I had trouble keeping up'. The coordinator uses these reports to judge group health, and a member that keeps reporting failures can be handled differently from one playing happily.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v\[+0x10\] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x10\] -> empty commit. Impl f_105c53d0 unconditionally returns 402: the action is a non-functional stub in this build.
 
-</details>
+:::
 
 #### Inputs
 
@@ -368,36 +368,36 @@ Member feedback path: reports MemberID's buffering ResultCode to the coordinator
   - validation: required; req->v\[+0x1c\] lookup + f_10561514 conversion; validate fail -> 402
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107388a4; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107388a4; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107388a4; member vfunc calls: \['r30 v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -407,31 +407,31 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107388a4; no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107388a4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107388a4; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -445,9 +445,9 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107388a4`
 - dispatch entry `0x10f11a7c`
@@ -458,7 +458,7 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 - fn 0x107388a4 @ 0x107388a4; action wrapper handler
 - @ 0x10f11a7c; action dispatch table entry
 
-</details>
+:::
 
 ### `SetSourceAreaIds`
 
@@ -466,11 +466,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Tells group members which area of the system the music is coming from. Sonos organizes a household into logical 'areas' (the multi-room spaces newer app versions use), and this command propagates the coordinator's current source-area choice to the followers so everyone agrees where the sound originates.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v\[+0x08\] validate (fail -> 402) -> impl->v\[+0x14\] -> empty commit.
 
-</details>
+:::
 
 #### Inputs
 
@@ -482,36 +482,36 @@ Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler 
   - validation: required; req->v\[+0x1c\] lookup + f_1056157c conversion; validate fail -> 402
   - buffer cap: `0x4c5`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10738550; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r29 v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738550; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r29 v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738550; member vfunc calls: \['r29 v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -521,31 +521,31 @@ service-internal state reached through member delegate(s): r29 v\[+0x14\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738550; no transition-literal/store pattern; member delegates: \['r29 v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738550; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10738550; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -558,9 +558,9 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10738550`
 - dispatch entry `0x10f11a88`
@@ -571,7 +571,7 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 - fn 0x10738550 @ 0x10738550; action wrapper handler
 - @ 0x10f11a88; action dispatch table entry
 
-</details>
+:::
 
 ## State variables
 
@@ -595,19 +595,19 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `groupManagement`, `groupCoordinatorChanged`
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notify_path:** group-coordination event pool: 'DelegatedGroupCoordinatorID','LocalGroupUUID','VirtualLineInGroupID','ZoneNameChangedEvent' names recovered; delivered via internal bus + GENA/WSS
 - **wss_registry:**
   - idx: 34, name: groupManagement, id: 136, tag: 70
   - idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `strong`
 
@@ -617,35 +617,35 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 
 
-</details>
+:::
 
 ## Notes
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Dispatcher 0x10738308 decodes fully: binary-search over action table 0x10f11a64; *(svc+4) impl NULL -> 401; handler args {svc-adj, req, impl=*(svc+4)}; impl vfuncs +0x08 AddMember / +0x0c RemoveMember / +0x10 ReportTrackBufferingResult / +0x14 SetSourceAreaIds; svc object embedded at ctx+0x3fa44 (ctor f_107389bc); px bound at runtime (group-init path), impl class unproven.
 
-</details>
+:::
 
 ## Additional records
 
 ### `implementation_notes`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **source:** gm_impl.cxx + grc_zpimpl.cxx literals 0x10ec300c-0x10ec45cc; scopeGm/scopeGrc; gm_events log fmt "(%2d) add\|rem %s / grp %s %s"
 - **addmember_validation:** `ungroupable player rejected (gcUUID+memberID logged)`, `invalid argument`, `satellite cannot accept members`, `incompatible member`, `invisibility/node-proto compat check`, `bootseq out-of-sync GM`, `duplicate member`
 - **config:** configure group %d: {fd,bgc,dgc,c,oc} tuple; ChangeCoordinator + DelegateGC ("delaying delegation by %d ms","delegating with member list %s new gc %s"); topology monitor starts on GC change
 - **vli_session:** vli session end evt -> VliSessionProcessingCompleteEvent (async task)
 
-</details>
+:::
 
 Implementation sources (recovered): `zoneplayer/gm_impl.cxx`
 
-<details markdown="1"><summary>Service evidence (3)</summary>
+::: details Service evidence (3)
 
 - @ 0x1068bc0c; service router function
 - @ 0x10f11a58; service vtable
 - @ 0x10738308; service dispatcher
 
-</details>
+:::

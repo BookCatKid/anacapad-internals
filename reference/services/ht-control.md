@@ -4,11 +4,11 @@
 
 This service manages the remote-control features of a home-theater product, meaning a soundbar like the Playbar that sits under your TV. It covers the infrared repeater (the feature that passes your TV remote's volume commands through to the speaker), the little light-up feedback the unit gives when it receives a remote command, and the remote-learning wizard, which is the part of setup where you point your TV remote at the soundbar and press volume-up so it learns the signal. Everything here exists because a soundbar's job is to cooperate with the remote you already own.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.
 
-</details>
+:::
 
 ## Availability
 
@@ -41,11 +41,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Saves a set of infrared codes the speaker just learned. During remote setup the unit listens for your TV remote's signals and captures them. This command stores those captured codes under a name so the association persists, since otherwise the learning session would be forgotten.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Commits learned codes under Name via impl->v\[+0x18\] on the svc+4 member.
 
-</details>
+:::
 
 #### Inputs
 
@@ -57,36 +57,36 @@ Commits learned codes under Name via impl->v\[+0x18\] on the svc+4 member.
   - validation: non-empty value always faults 501; empty faults 402
   - buffer cap: `0x20`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10739968; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739968; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739968; member vfunc calls: \['*(r30+4) v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -96,31 +96,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x18\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739968; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739968; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739968; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -138,9 +138,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10739968`
 - dispatch entry `0x10f11b90` (voff `28`)
@@ -151,7 +151,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - fn 0x10739968 @ 0x10739968; action wrapper handler
 - @ 0x10f11b90; action dispatch table entry
 
-</details>
+:::
 
 ### `GetIRRepeaterState`
 
@@ -159,11 +159,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports whether the infrared repeater is currently on. In other words, whether the speaker is passing your TV remote's volume and mute commands through to itself or ignoring them.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns the IR-repeater enabled state via impl->v\[+0x8\] on r4-in.
 
-</details>
+:::
 
 #### Outputs
 
@@ -174,36 +174,36 @@ Returns the IR-repeater enabled state via impl->v\[+0x8\] on r4-in.
 - **`CurrentIRRepeaterState`**: state string copied from impl member this+0x1ec under lock this+0x150
   - validation: impl copies member string verbatim; no output validation layer
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10739d30; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739d30; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739d30; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -213,31 +213,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739d30; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739d30; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739d30; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -251,9 +251,9 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10739d30`
 - dispatch entry `0x10f11b9c` (voff `12`)
@@ -266,7 +266,7 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 - fn 0x10739d30 @ 0x10739d30; action wrapper handler
 - @ 0x10f11b9c; action dispatch table entry
 
-</details>
+:::
 
 ### `GetLEDFeedbackState`
 
@@ -274,11 +274,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports whether the speaker is set to flash its indicator light when it receives an infrared remote command. This is the visual 'yes, I heard you' that some people disable because they find the blink distracting.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns the LED-feedback state via impl->v\[+0x8\] on r4-in.
 
-</details>
+:::
 
 #### Outputs
 
@@ -289,36 +289,36 @@ Returns the LED-feedback state via impl->v\[+0x8\] on r4-in.
 - **`LEDFeedbackState`**: member LED state emitted under lock this+0x200; NULL out or len==0 -> 402
   - validation: impl emits member state verbatim
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10739c34; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739c34; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739c34; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -328,31 +328,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739c34; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739c34; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739c34; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -370,9 +370,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10739c34`
 - dispatch entry `0x10f11ba8` (voff `40`)
@@ -385,7 +385,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - fn 0x10739c34 @ 0x10739c34; action wrapper handler
 - @ 0x10f11ba8; action dispatch table entry
 
-</details>
+:::
 
 ### `IdentifyIRRemote`
 
@@ -393,11 +393,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Runs the part of remote setup where the speaker tries to figure out what brand or family of remote is being pointed at it. You aim your remote and press a button within a time limit, and the speaker classifies the signal so it can respond to that remote's command set going forward.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Identifies an IR remote with a Timeout via impl->v\[+0xc\] on the sp+0x2c member.
 
-</details>
+:::
 
 #### Inputs
 
@@ -409,36 +409,36 @@ Identifies an IR remote with a Timeout via impl->v\[+0xc\] on the sp+0x2c member
   - validation: cmplwi vs 0xffffea60 else 402
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10241f24; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10241f24; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): none - impl works on req/inline members only
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10241f24; member vfunc calls: \[\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -448,31 +448,31 @@ service-internal state reached through member delegate(s): none - impl works on 
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): none
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10241f24; no transition-literal/store pattern; member delegates: \[\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10241f24; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10241f24; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -490,9 +490,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10241f24`
 - dispatch entry `0x10f11bb4` (voff `20`)
@@ -502,7 +502,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - fn 0x10241f24 @ 0x10241f24; action wrapper handler
 - @ 0x10f11bb4; action dispatch table entry
 
-</details>
+:::
 
 ### `IsRemoteConfigured`
 
@@ -510,11 +510,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports whether the speaker has already been taught a remote, meaning whether the remote-learning setup has been done. The app uses this to decide whether to offer the setup wizard or go straight to settings.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns whether an IR remote is configured via impl->v\[+0x8\] on r4-in.
 
-</details>
+:::
 
 #### Outputs
 
@@ -525,36 +525,36 @@ Returns whether an IR remote is configured via impl->v\[+0x8\] on r4-in.
 - **`RemoteConfigured`**: flag byte read from impl member this+0x218
   - validation: single byte 0/1 written to out
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10739b48; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739b48; req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739b48; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x1c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -564,31 +564,31 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x1c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739b48; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x1c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739b48; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739b48; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -602,9 +602,9 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10739b48`
 - dispatch entry `0x10f11bc0` (voff `32`)
@@ -616,7 +616,7 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 - fn 0x10739b48 @ 0x10739b48; action wrapper handler
 - @ 0x10f11bc0; action dispatch table entry
 
-</details>
+:::
 
 ### `LearnIRCode`
 
@@ -624,11 +624,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Captures a single infrared code: you point your remote at the speaker and press a button within a time limit, and it records the raw signal. Individual learned codes are then stored permanently by CommitLearnedIRCodes.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Captures an IRCode within Timeout via impl->v\[+0xc\] on the sp+0x4c member.
 
-</details>
+:::
 
 #### Inputs
 
@@ -644,36 +644,36 @@ Captures an IRCode within Timeout via impl->v\[+0xc\] on the sp+0x4c member.
   - validation: cmplwi vs 0xffffea60; >= bound -> 402
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10242008; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10242008; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): none - impl works on req/inline members only
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10242008; member vfunc calls: \[\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -683,31 +683,31 @@ service-internal state reached through member delegate(s): none - impl works on 
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): none
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10242008; no transition-literal/store pattern; member delegates: \[\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10242008; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10242008; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -725,9 +725,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10242008`
 - dispatch entry `0x10f11bcc` (voff `24`)
@@ -737,7 +737,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - fn 0x10242008 @ 0x10242008; action wrapper handler
 - @ 0x10f11bcc; action dispatch table entry
 
-</details>
+:::
 
 ### `SetIRRepeaterState`
 
@@ -745,11 +745,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Turns the infrared repeater on or off, which controls whether TV remote volume commands should control the soundbar at all. With it off, the soundbar ignores your TV remote's volume commands entirely.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v\[+0xc\] on the svc+4 member.
 
-</details>
+:::
 
 #### Inputs
 
@@ -761,36 +761,36 @@ Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v\[+0xc\] on the s
   - validation: impl strcmp vs 'On'/'Off' else 402
   - buffer cap: `0x9`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10739878; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739878; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739878; member vfunc calls: \['*(r30+4) v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -800,31 +800,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739878; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739878; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739878; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -854,9 +854,9 @@ IR repeater not implemented on this hardware (cntlzw flag from member)
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10739878`
 - dispatch entry `0x10f11bd8` (voff `16`)
@@ -867,7 +867,7 @@ IR repeater not implemented on this hardware (cntlzw flag from member)
 - fn 0x10739878 @ 0x10739878; action wrapper handler
 - @ 0x10f11bd8; action dispatch table entry
 
-</details>
+:::
 
 ### `SetLEDFeedbackState`
 
@@ -875,11 +875,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Turns the remote-received light flash on or off. This is the visual acknowledgement toggle: switching it off stops the flash when you use the remote.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets LED feedback (LEDFeedbackState) via impl->v\[+0x20\] on the svc+4 member.
 
-</details>
+:::
 
 #### Inputs
 
@@ -891,36 +891,36 @@ Sets LED feedback (LEDFeedbackState) via impl->v\[+0x20\] on the svc+4 member.
   - validation: impl strcmp vs 'On'/'Off' else 402
   - buffer cap: `0x4`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10739a58; wrapper decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739a58; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739a58; member vfunc calls: \['*(r30+4) v\[+0x20\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -930,31 +930,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739a58; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x20\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739a58; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10739a58; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -972,9 +972,9 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10739a58`
 - dispatch entry `0x10f11be4` (voff `36`)
@@ -985,7 +985,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - fn 0x10739a58 @ 0x10739a58; action wrapper handler
 - @ 0x10f11be4; action dispatch table entry
 
-</details>
+:::
 
 ## State variables
 
@@ -1005,18 +1005,18 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `htControl`
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notify_path:** f_10739c34/f_10782194 emit {LEDFeedbackState, RemoteConfigured}
 - **wss_registry:**
   - idx: 41, name: htControl, id: 149, tag: 72
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `strong`
 
@@ -1026,14 +1026,14 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 
 
-</details>
+:::
 
 Implementation sources (recovered): `zoneplayer/htaudio.cxx`, `zoneplayer/htaudio_satellite_tx.cxx`, `audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx`
 
-<details markdown="1"><summary>Service evidence (3)</summary>
+::: details Service evidence (3)
 
 - @ 0x101953c8; service router function
 - @ 0x10ea61d0; service vtable
 - @ 0x10739730; service dispatcher
 
-</details>
+:::

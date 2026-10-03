@@ -4,11 +4,11 @@
 
 On paper this service is the control point for line-in audio, the physical input jack that lets you plug a turntable or another source into a Sonos player. The product specification still advertises commands for configuring that input and for broadcasting line-in audio to other rooms. But in this particular firmware build none of it actually works: every single command in this service is routed to a 'reject everything' routine that refuses each request with an error before doing anything. Think of it as a door that was left in the spec sheet after the feature behind it was removed. The menu entries are all there, and all of them are dead.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 AudioIn service on the zone player: registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.
 
-</details>
+:::
 
 ## Availability
 
@@ -37,11 +37,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Supposed to begin broadcasting whatever is plugged into the line-in jack to a group of speakers, which is the command that turns one player's turntable into house-wide audio. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
-</details>
+:::
 
 #### Inputs
 
@@ -67,36 +67,36 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
   - validation: never fetched: the reject-all dispatcher emits 401 before reading request args
   - A_ARG_TYPE_TransportSettings (string): advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 n/a: fault precedes any arg validation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 none: the stub touches no service state; it only emits a fault
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Side effects
@@ -106,31 +106,31 @@ none: the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none: no state machine touched
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 none: the stub emits no events
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Errors
@@ -143,9 +143,9 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -157,7 +157,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 - @ 0x10f11f70; AudioIn vtable slot +0x08 -> reject-all dispatcher
 
-</details>
+:::
 
 ### `StopTransmissionToGroup`
 
@@ -165,11 +165,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Supposed to stop a line-in broadcast that StartTransmissionToGroup had started. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
-</details>
+:::
 
 #### Inputs
 
@@ -181,36 +181,36 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
   - validation: never fetched: the reject-all dispatcher emits 401 before reading request args
   - A_ARG_TYPE_MemberID (string): advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 n/a: fault precedes any arg validation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 none: the stub touches no service state; it only emits a fault
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Side effects
@@ -220,31 +220,31 @@ none: the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none: no state machine touched
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 none: the stub emits no events
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Errors
@@ -257,9 +257,9 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -271,7 +271,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 - @ 0x10f11f70; AudioIn vtable slot +0x08 -> reject-all dispatcher
 
-</details>
+:::
 
 ### `SetAudioInputAttributes`
 
@@ -279,11 +279,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Supposed to configure the line-in jack, for example giving the source a friendly name so 'Turntable' shows up as an input choice in the app. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
-</details>
+:::
 
 #### Inputs
 
@@ -299,36 +299,36 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
   - validation: never fetched: the reject-all dispatcher emits 401 before reading request args
   - Icon (string): advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 n/a: fault precedes any arg validation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 none: the stub touches no service state; it only emits a fault
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Side effects
@@ -338,31 +338,31 @@ none: the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none: no state machine touched
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 none: the stub emits no events
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Errors
@@ -375,9 +375,9 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -389,7 +389,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 - @ 0x10f11f70; AudioIn vtable slot +0x08 -> reject-all dispatcher
 
-</details>
+:::
 
 ### `GetAudioInputAttributes`
 
@@ -397,11 +397,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Supposed to report how the player's line-in jack is configured, including things like the name it shows in the app and the audio format it accepts. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
-</details>
+:::
 
 #### Outputs
 
@@ -417,36 +417,36 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
   - validation: never fetched: the reject-all dispatcher emits 401 before reading request args
   - Icon (string): advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 n/a: fault precedes any arg validation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 none: the stub touches no service state; it only emits a fault
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Side effects
@@ -456,31 +456,31 @@ none: the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none: no state machine touched
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 none: the stub emits no events
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Errors
@@ -493,9 +493,9 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -507,7 +507,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 - @ 0x10f11f70; AudioIn vtable slot +0x08 -> reject-all dispatcher
 
-</details>
+:::
 
 ### `SetLineInLevel`
 
@@ -515,11 +515,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Supposed to set the line-in gain, meaning how much the player amplifies the signal coming in on the jack before it plays or is sent to other rooms. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
-</details>
+:::
 
 #### Inputs
 
@@ -535,36 +535,36 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
   - validation: never fetched: the reject-all dispatcher emits 401 before reading request args
   - RightLineInLevel (i4): advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 n/a: fault precedes any arg validation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 none: the stub touches no service state; it only emits a fault
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Side effects
@@ -574,31 +574,31 @@ none: the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none: no state machine touched
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 none: the stub emits no events
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Errors
@@ -611,9 +611,9 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -625,7 +625,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 - @ 0x10f11f70; AudioIn vtable slot +0x08 -> reject-all dispatcher
 
-</details>
+:::
 
 ### `GetLineInLevel`
 
@@ -633,11 +633,11 @@ visibility `advertised` · reachability `callable` · confidence `confirmed` · 
 
 Supposed to report the current line-in signal level or the gain configured for it, the software equivalent of looking at the input meter. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70\[+0x08\])
 
-</details>
+:::
 
 #### Outputs
 
@@ -653,36 +653,36 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
   - validation: never fetched: the reject-all dispatcher emits 401 before reading request args
   - RightLineInLevel (i4): advertised in AudioIn1.xml but never consumed; AudioIn is not implemented in this build
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 n/a: fault precedes any arg validation
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Requirements / preconditions `confirmed`
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### State dependencies `confirmed`
 
 none: the stub touches no service state; it only emits a fault
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Side effects
@@ -692,31 +692,31 @@ none: the stub touches no service state; it only emits a fault
 #### State transitions `confirmed`
 
 none: no state machine touched
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Events `confirmed`
 
 none: the stub emits no events
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Return behavior `confirmed`
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 
-</details>
+:::
 
 
 #### Errors
@@ -729,9 +729,9 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
@@ -743,7 +743,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - @ 0x1073d8f8; reject-all dispatcher: req->v\[+0x14\](req,0x191)
 - @ 0x10f11f70; AudioIn vtable slot +0x08 -> reject-all dispatcher
 
-</details>
+:::
 
 ## State variables
 
@@ -765,7 +765,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `audioInput`, `lineInStatus`
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notify_path:** f_10243170 e:property dump {TOSLinkConnected, IRRepeaterState} -> f_10676a44
 - **payload_model:** e:property doc via f_10676a44 writer family
@@ -773,12 +773,12 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
   - idx: 9, name: audioInput, id: 40, tag: 65
   - idx: 19, name: lineInStatus, id: 62, tag: 15
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `confirmed`
 
@@ -788,35 +788,35 @@ reject-all dispatcher: every action name faults 401 including the documented Aud
 
 
 
-</details>
+:::
 
 ## Additional records
 
 ### `advertised_actions_not_implemented`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **description:** AudioIn1.xml SCPD advertises 6 actions {StartTransmissionToGroup,StopTransmissionToGroup,SetAudioInputAttributes,GetAudioInputAttributes,SetLineInLevel,GetLineInLevel} but the service is NOT in device_description's serviceList and its dispatcher 0x1073d8f8 rejects every action with 401: a registered stub (control surface present, impl removed/gated).
 - **status:** confirmed
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8
 
-</details>
+:::
 
 ### `crossbuild`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 AudioIn actions dispatched to REAL handlers in 34.16 & 57.10 (name-literals referenced); in 86.8 & 86.10 the same names are str-only (present, no dispatch ref) -> the AudioIn implementation was REPLACED by the reject-all 401 stub (FUN_1073d8f8 -> req->v\[+0x14\](req,0x191)) in 86.x. Line-in audio in was deprecated for model-9; SCPD still shipped + service omitted from active serviceList.
 
-</details>
+:::
 
 Implementation sources (recovered): `zoneplayer/ai_impl_base.cxx`, `zoneplayer/spotify/ai_spotify.cxx`, `zoneplayer/extaudiosrc.cxx`
 
-<details markdown="1"><summary>Service evidence (3)</summary>
+::: details Service evidence (3)
 
 - @ 0x101953c8; service router function
 - @ 0x1019c22c; svc store into *(r3-in+0xaa6c)
 - @ 0x1073d930; ctor installs reject-all vtable
 
-</details>
+:::

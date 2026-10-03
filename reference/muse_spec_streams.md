@@ -2,13 +2,13 @@
 
 Behind the modern REST API there is a catalog that spells out, for every operation, exactly which fields a request or response may carry and what type each field is. This page is that catalog, listed raw. Each section is one cluster of related operations (the verb names printed beside it), and each row inside is a field name paired with the type the firmware expects for it. Rows marked 'globalError' name the error shapes an operation can hand back, and rows marked 'upnpEvent' describe payloads the speaker pushes out to subscribers on its own rather than returning when asked. It is dense reading, but it is the ground truth for anyone building or studying a client for the API.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Each row is `{member_name_idx, type_name_idx}` decoded through the 331-entry name table at 0x10f97094.
 `ffffffff`/`ffffffff` terminates a stream. `globalError` rows enumerate the error/variant payload types an op may produce;
 `ok`/named members with `upnpEvent` are event-delivered payloads.
 
-</details>
+:::
 
 ## stream @ 0x10f9fc74 (n=22)
 adjacent verb/param pool: `getAlarms`, `fetchAlarm`, `createAlarm`, `updateAlarm`, `snoozeAlarm`, `removeAlarm`

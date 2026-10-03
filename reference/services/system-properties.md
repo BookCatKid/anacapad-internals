@@ -4,11 +4,11 @@
 
 This service is two things bolted together. First, it's the player's generic settings store: a key/value cupboard where the system keeps configuration strings that other features read, with commands to get, set, and delete named settings. Second, it holds the entire account-management family: every command for adding, editing, replacing, and removing the service-account credentials stored on the speaker, which are the saved logins that let it reach Spotify and friends without your phone. It also carries a remote-diagnostics flag Sonos support uses, a web-code command for account linking, a post-update housekeeping hook, and two ghost entries that are still advertised but dead in this build.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit*/Remove*/Replace*/Refresh*/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.
 
-</details>
+:::
 
 ## Availability
 
@@ -53,11 +53,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a new service account to the speaker, the classic username-and-password path for attaching a music service. You supply the service type plus the login ID and password, and the account is stored so the player can reach the service on its own.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -86,36 +86,36 @@ Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18
 - **`AccountUDN`**: issued service-account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10731f28; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, optional-arg fetch×2, 0x28×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731f28; req-vfunc call map: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0x28': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731f28; member vfunc calls: \['*(r30+4) v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -125,31 +125,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x18\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x18\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731f28; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x18\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731f28; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731f28; commit/fault slot usage: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0x28': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -179,9 +179,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1c\], \['AccountID', 'AccountPassword'\] via optional-lookup v\[+0x20\].
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10731f28`
 - dispatch entry `0x10f110f0` (voff `28`)
@@ -195,7 +195,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 - @ 0x10f110f0; action dispatch table entry
 - fn 0x1068f8cc; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x18
 
-</details>
+:::
 
 ### `AddOAuthAccountX`
 
@@ -203,11 +203,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Adds a service account using OAuth-style credentials instead of a raw password. This is the modern login flow where the app hands the player a token and key obtained from the service's sign-in page. It takes a full bundle of credential fields and registers the account.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -259,36 +259,36 @@ Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
 - **`AccountNickname`**: issued account nickname
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10732454; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (none)
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732454; req-vfunc call map: {}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): none - impl works on req/inline members only
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732454; member vfunc calls: \[\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -298,31 +298,31 @@ service-internal state reached through member delegate(s): none - impl works on 
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): none
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732454; no transition-literal/store pattern; member delegates: \[\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732454; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732454; commit/fault slot usage: {}
 
-</details>
+:::
 
 
 #### Errors
@@ -351,9 +351,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required-lookup v\[+0x1c\], \['AccountToken', 'AccountKey', 'OAuthDeviceID', 'AuthorizationCode', 'RedirectURI', 'UserIdHashCode'\] via optional-lookup v\[+0x20\].
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10732454`
 - dispatch entry `0x10f110fc` (voff `32`)
@@ -369,7 +369,7 @@ None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required
 - @ 0x10f110fc; action dispatch table entry
 - fn 0x1068b7d0; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x1c
 
-</details>
+:::
 
 ### `DoPostUpdateTasks`
 
@@ -377,42 +377,42 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Runs the housekeeping jobs that should happen after a firmware update, meaning the migration and cleanup steps the system wants performed once the new software is up. It is invoked by the update flow rather than by users.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Runs post-update migration/cleanup tasks via impl->v\[+0x14\].
 
-</details>
+:::
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10732e24; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v\[+0x38\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732e24; req-vfunc call map: {'0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r3+4) v\[+0x38\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732e24; member vfunc calls: \['*(r3+4) v\[+0x38\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -422,31 +422,31 @@ service-internal state reached through member delegate(s): *(r3+4) v\[+0x38\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x38\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732e24; no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x38\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732e24; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732e24; commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -466,9 +466,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10732e24`
 - dispatch entry `0x10f11108` (voff `60`)
@@ -480,7 +480,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - @ 0x10f11108; action dispatch table entry
 - @ 0x10732e24; handler body: impl call + fault/commit only; no parse or emit arg sites
 
-</details>
+:::
 
 ### `EditAccountMd`
 
@@ -488,11 +488,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Edits the metadata attached to a stored service account, which is the extra descriptive data the service keeps about a login, distinct from the password itself.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -512,36 +512,36 @@ Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10732310; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: *(r30+4) v\[+0x30\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732310; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x30\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732310; member vfunc calls: \['*(r30+4) v\[+0x30\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -551,31 +551,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x30\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x30\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732310; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x30\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732310; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732310; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -597,9 +597,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10732310`
 - dispatch entry `0x10f11114` (voff `52`)
@@ -611,7 +611,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - @ 0x10f11114; action dispatch table entry
 - fn 0x101953c0; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x30
 
-</details>
+:::
 
 ### `EditAccountPasswordX`
 
@@ -619,11 +619,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Supposed to change the password on a stored service account, but in this firmware build it is a documented no-op: the routine behind it is an empty routine that accepts the request, returns success, and updates nothing. The command remains advertised in the spec, but the actual password-edit feature was removed. Account credentials now change through the replace and refresh commands instead.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.
 
-</details>
+:::
 
 #### Inputs
 
@@ -643,36 +643,36 @@ Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the 
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107321cc; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, optional-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107321cc; req-vfunc call map: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107321cc; member vfunc calls: \['*(r30+4) v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -682,31 +682,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x24\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x24\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107321cc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x24\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107321cc; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107321cc; commit/fault slot usage: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -730,9 +730,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1c\], \['AccountID', 'NewAccountPassword'\] via optional-lookup v\[+0x20\].
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107321cc`
 - dispatch entry `0x10f11120` (voff `40`)
@@ -745,7 +745,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 - fn 0x1019d288; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x24
 - fn 0x1019d288; impl vfunc +0x24 -> null stub
 
-</details>
+:::
 
 ### `EnableRDM`
 
@@ -753,11 +753,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Turns the remote-diagnostics feature on or off, the flag that controls whether Sonos's support tooling is allowed deeper access to the player for troubleshooting. Support sessions that need more than the normal logs get it by enabling RDM through this command.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -769,36 +769,36 @@ Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10732c80; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732c80; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732c80; member vfunc calls: \['*(r30+4) v\[+0x3c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -808,31 +808,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x3c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732c80; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x3c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732c80; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732c80; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -848,9 +848,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10732c80`
 - dispatch entry `0x10f1112c` (voff `64`)
@@ -862,7 +862,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - @ 0x10f1112c; action dispatch table entry
 - fn 0x10188180; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x3c
 
-</details>
+:::
 
 ### `GetRDM`
 
@@ -870,11 +870,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reports whether remote diagnostics are currently enabled. It reads back the flag set by EnableRDM, so an app or support tool can see whether deeper diagnostic access is switched on.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Reads the RDM flag via impl->v\[+0x40\].
 
-</details>
+:::
 
 #### Outputs
 
@@ -885,36 +885,36 @@ Reads the RDM flag via impl->v\[+0x40\].
 - **`RDMValue`**: RDM flag/value emitted by handler 0x10732d6c
   - validation: arg-name string loaded at 0x10732df0 inside impl 0x1019db98; emitted via the response writer
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10732d6c; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: *(r3+4) v\[+0x40\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732d6c; req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r3+4) v\[+0x40\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732d6c; member vfunc calls: \['*(r3+4) v\[+0x40\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -924,31 +924,31 @@ service-internal state reached through member delegate(s): *(r3+4) v\[+0x40\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x40\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732d6c; no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x40\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732d6c; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10732d6c; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -968,9 +968,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10732d6c`
 - dispatch entry `0x10f11138` (voff `68`)
@@ -983,7 +983,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - @ 0x10f11138; action dispatch table entry
 - fn 0x10195810; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x40
 
-</details>
+:::
 
 ### `GetString`
 
@@ -991,11 +991,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Reads one named setting from the player's generic settings store, answering 'what is the value of this configuration key'. Other features stash strings here and fetch them back through this command.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Reads config VariableName -> StringValue via impl->v\[+0xc\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1016,36 +1016,36 @@ Reads config VariableName -> StringValue via impl->v\[+0xc\].
 - **`StringValue`**: property string value
   - validation: consumed by impl vfunc on the shared manager object
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107319b4; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107319b4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107319b4; member vfunc calls: \['*(r30+4) v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1055,31 +1055,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0xc\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107319b4; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0xc\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107319b4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107319b4; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1099,9 +1099,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107319b4`
 - dispatch entry `0x10f11144` (voff `12`)
@@ -1114,7 +1114,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - @ 0x10f11144; action dispatch table entry
 - fn 0x10537870; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x0c; NULL STUB impl (2-insn no-op)
 
-</details>
+:::
 
 ### `GetWebCode`
 
@@ -1122,11 +1122,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Requests a short web code for a service account type. This is the short-lived code used in link-your-account flows, where the speaker produces a code you enter on a website to connect a service without typing a password on the player.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Returns a WebCode for AccountType via impl->v\[+0x14\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1147,36 +1147,36 @@ Returns a WebCode for AccountType via impl->v\[+0x14\].
 - **`WebCode`**: web-pairing code produced by impl
   - validation: consumed by impl vfunc on the shared manager object
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10731e04; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731e04; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731e04; member vfunc calls: \['*(r30+4) v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1186,31 +1186,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x14\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x14\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731e04; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x14\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731e04; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731e04; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1226,9 +1226,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10731e04`
 - dispatch entry `0x10f11150` (voff `24`)
@@ -1241,7 +1241,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - @ 0x10f11150; action dispatch table entry
 - fn 0x10690b78; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x14
 
-</details>
+:::
 
 ### `RefreshAccountCredentialsX`
 
@@ -1249,11 +1249,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Refreshes the stored credentials for a music-service account, the token-renewal path. Modern services rotate credentials, and when a session token nears expiry the app calls this with the fresh token/key/ID bundle so the speaker replaces the old ones, keeping the account logged in without a full re-login.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl->v\[+0x14\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1277,36 +1277,36 @@ Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via im
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107327d4; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×2, required-arg fetch×2, optional-arg fetch×2, validate×1, commit×1); member delegates: *(r28+4) v\[+0x2c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107327d4; req-vfunc call map: {'0x1c': 2, '0x20': 2, '0x8': 1, '0x14': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r28+4) v\[+0x2c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107327d4; member vfunc calls: \['*(r28+4) v\[+0x2c\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1316,31 +1316,31 @@ service-internal state reached through member delegate(s): *(r28+4) v\[+0x2c\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v\[+0x2c\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107327d4; no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+0x2c\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107327d4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107327d4; commit/fault slot usage: {'0x1c': 2, '0x20': 2, '0x8': 1, '0x14': 2, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1370,9 +1370,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1c\], \['AccountToken', 'AccountKey'\] via optional-lookup v\[+0x20\].
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107327d4`
 - dispatch entry `0x10f1115c` (voff `48`)
@@ -1385,7 +1385,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 - @ 0x10f1115c; action dispatch table entry
 - fn 0x1019399c; shared manager secondary-base impl, slot +0x2c (thunk)
 
-</details>
+:::
 
 ### `Remove`
 
@@ -1393,11 +1393,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Deletes one named setting from the generic settings store. It is the counterpart of GetString and SetString for keys that should no longer exist.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Deletes config VariableName via impl->v\[+0x10\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1409,36 +1409,36 @@ Deletes config VariableName via impl->v\[+0x10\].
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x400`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10731bf8; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731bf8; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731bf8; member vfunc calls: \['*(r30+4) v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1448,31 +1448,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x10\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731bf8; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x10\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731bf8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731bf8; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1498,9 +1498,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10731bf8`
 - dispatch entry `0x10f11168` (voff `20`)
@@ -1512,7 +1512,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - @ 0x10f11168; action dispatch table entry
 - fn 0x10537870; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x10; NULL STUB impl (2-insn no-op)
 
-</details>
+:::
 
 ### `RemoveAccount`
 
@@ -1520,11 +1520,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Removes a stored service account by deleting the saved login for a music service, given its type and account ID. This is what happens when you remove a service from Sonos in the app.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Removes AccountType/AccountID via impl->v\[+0x20\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1540,36 +1540,36 @@ Removes AccountType/AccountID via impl->v\[+0x20\].
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107320b4; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107320b4; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107320b4; member vfunc calls: \['*(r30+4) v\[+0x20\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1579,31 +1579,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x20\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107320b4; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x20\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107320b4; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107320b4; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1629,9 +1629,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107320b4`
 - dispatch entry `0x10f11174` (voff `36`)
@@ -1643,7 +1643,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - @ 0x10f11174; action dispatch table entry
 - fn 0x1069039c; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x20
 
-</details>
+:::
 
 ### `ReplaceAccountX`
 
@@ -1651,11 +1651,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Replaces one stored account's credentials wholesale, which is the command for switching a service slot from one login to another. You identify the existing account and supply the full new credential set (ID, password, token, key, and the OAuth device marker), and the speaker swaps them, returning the new account's identifier. This is the working path for account credential changes on this build, since EditAccountPasswordX is a no-op.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[+0x34\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1696,36 +1696,36 @@ Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[
 - **`NewAccountUDN`**: replacement account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x107329ac; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×2, optional-arg fetch×6, 0x28×1, validate×1, commit×1); member delegates: *(r28+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107329ac; req-vfunc call map: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r28+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107329ac; member vfunc calls: \['*(r28+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1735,31 +1735,31 @@ service-internal state reached through member delegate(s): *(r28+4) v\[+?\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v\[+?\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107329ac; no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+?\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107329ac; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x107329ac; commit/fault slot usage: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1785,9 +1785,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['AccountUDN', 'NewAccountID', 'NewAccountPassword', 'AccountToken', 'AccountKey', 'OAuthDeviceID'\] via optional-lookup v\[+0x20\].
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x107329ac`
 - dispatch entry `0x10f11180` (voff `56`)
@@ -1802,7 +1802,7 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 - @ 0x10f11180; action dispatch table entry
 - fn 0x1017fbe0; shared manager secondary-base impl, slot +0x34 (thunk)
 
-</details>
+:::
 
 ### `SetAccountNicknameX`
 
@@ -1810,11 +1810,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Sets the friendly name on a stored account, the label like 'Home Spotify' that shows in the app's service list when several accounts for the same service exist.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1830,36 +1830,36 @@ Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10731ce8; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, optional-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x28\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731ce8; req-vfunc call map: {'0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731ce8; member vfunc calls: \['*(r30+4) v\[+0x28\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -1869,31 +1869,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x28\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731ce8; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x28\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731ce8; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731ce8; commit/fault slot usage: {'0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -1923,9 +1923,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['AccountUDN', 'AccountNickname'\] via optional-lookup v\[+0x20\].
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10731ce8`
 - dispatch entry `0x10f1118c` (voff `44`)
@@ -1937,7 +1937,7 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 - @ 0x10f1118c; action dispatch table entry
 - fn 0x1019d06c; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x28
 
-</details>
+:::
 
 ### `SetString`
 
@@ -1945,11 +1945,11 @@ visibility `advertised` · reachability `callable` · confidence `strong` · dis
 
 Writes one named setting into the player's generic settings store: 'save this configuration key with this value'. It is the generic write that the settings store accepts.
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Writes VariableName=StringValue via impl->v\[+0x8\].
 
-</details>
+:::
 
 #### Inputs
 
@@ -1965,36 +1965,36 @@ Writes VariableName=StringValue via impl->v\[+0x8\].
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x800`
 
-<details markdown="1"><summary><b>Technical analysis</b></summary>
+::: details Technical analysis
 
 #### Validation `confirmed`
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - @ 0x10731adc; wrapper family decode
 
-</details>
+:::
 
 
 #### Requirements / preconditions `strong`
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731adc; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### State dependencies `strong`
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731adc; member vfunc calls: \['*(r30+4) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Side effects
@@ -2004,31 +2004,31 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
 #### State transitions `strong`
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x8\]
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731adc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x8\]'\]
 
-</details>
+:::
 
 
 #### Events `strong`
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731adc; bl call scan: notify-family sites = \[\]
 
-</details>
+:::
 
 
 #### Return behavior `strong`
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
-<details markdown="1"><summary>Evidence (1)</summary>
+::: details Evidence (1)
 
 - fn 0x10731adc; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
-</details>
+:::
 
 
 #### Errors
@@ -2050,9 +2050,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 
 
-</details>
+:::
 
-<details markdown="1"><summary>Implementation & reverse-engineering evidence</summary>
+::: details Implementation & reverse-engineering evidence
 
 - handler `0x10731adc`
 - dispatch entry `0x10f11198` (voff `16`)
@@ -2064,7 +2064,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - @ 0x10f11198; action dispatch table entry
 - fn 0x101935f0; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x08
 
-</details>
+:::
 
 ## State variables
 
@@ -2100,7 +2100,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload
 - Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure
 - **WSS event names:** `systemProperties`, `settingsVersionChanged`, `settingsDataChanged`, `effectiveSettingsDataChanged`, `settingsPlayerSettingsChanged`, `entitlementsVersionChanged`, `voiceAccountsVersionChange`
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **notify_path:** settings-key event path: impl setters append key\0value\0 pairs via f_10557d70 -> member->v\[+0x10\] notify -> internal event bus (SettingsNeedsUpdateEvent pool) -> GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list
 - **payload_model:** settings-key notifications (Desired*/Current* key changes) delivered via bus; GENA initial-notify serializes current keys
@@ -2113,12 +2113,12 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
   - idx: 28, name: entitlementsVersionChanged, id: 106, tag: 10
   - idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81
 
-</details>
+:::
 
 
 ## Dispatcher-level errors
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 **`401`** `strong`
 
@@ -2128,21 +2128,21 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 
 
-</details>
+:::
 
 ## Notes
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 Impl object is the SAME secondary-base manager subobject (vtable 0x10e98278, manager+0x3a8) used by DeviceProperties; SP and DP actions dispatch onto the same impl functions. GetString and Remove map to a 2-insn null stub (confirmed no-ops). Shares the DeviceProperties impl object (vtable 0x10e98278, mgr+0x3a8 secondary base). Slots +0x08..+0x40 alias with DP actions; +0x0c/+0x10/+0x24 are proven null stubs (GetString/Remove/EditAccountPasswordX are no-ops).
 
-</details>
+:::
 
 ## Additional records
 
 ### `dispatch`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 - **kind:** name-table
 - **table_addr:** 0x10f110f0
@@ -2154,22 +2154,22 @@ Impl object is the SAME secondary-base manager subobject (vtable 0x10e98278, man
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f110f0, notes: name-table
 
-</details>
+:::
 
 ### `dispatch note`
 
-<details markdown="1"><summary><b>Technical details</b></summary>
+::: details Technical details
 
 name->action_id map at 0x10f110f0 (stride 0xc {name_ptr,id,0}); EXACTLY 15 dispatched actions (AddAccountX,AddOAuthAccountX,DoPostUpdateTasks,EditAccountMd,EditAccountPasswordX,EnableRDM,GetRDM,GetString,GetWebCode,RefreshAccountCredentialsX,Remove,RemoveAccount,ReplaceAccountX,SetAccountNicknameX,SetString) matching the DB table. 2 advertised-but-undispatched: ProvisionCredentialedTrialAccountX (string absent -> removed after 34.16, dispatched in 34.16) and ResetThirdPartyCredentials (dead string 0x10f184cc, zero ptr/code refs -> never wired; present in both 86.8 & 86.10 binaries as a leftover).
 
-</details>
+:::
 
 Implementation sources (recovered): `common/netsettings_mgr.cxx`, `oc/common/src/devmode.cxx`, `zoneplayer/sharelist.cxx`
 
-<details markdown="1"><summary>Service evidence (3)</summary>
+::: details Service evidence (3)
 
 - @ 0x1068bc0c; service router function
 - @ 0x10f110a8; service vtable
 - @ 0x1073186c; service dispatcher
 
-</details>
+:::

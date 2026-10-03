@@ -79,13 +79,13 @@ def _generic_lines(obj, depth=0):
 
 
 def _details(out, lines, summary="Technical details"):
-    """Wrap technical content in a collapsible block (md_in_html)."""
-    out.append('<details markdown="1"><summary><b>%s</b></summary>'
-               % summary)
+    """Wrap technical content in a collapsible block (VitePress :::
+    details container renders markdown inside)."""
+    out.append("::: details %s" % summary)
     out.append("")
     out.extend(lines)
     out.append("")
-    out.append("</details>")
+    out.append(":::")
     out.append("")
 
 
@@ -123,11 +123,11 @@ def _ev_list(ev, out, indent=""):
 def _ev_details(ev, out, title="Evidence"):
     if not ev:
         return
-    out.append("<details markdown=\"1\"><summary>%s (%d)</summary>" % (title, len(ev)))
+    out.append("::: details %s (%d)" % (title, len(ev)))
     out.append("")
     _ev_list(ev, out)
     out.append("")
-    out.append("</details>")
+    out.append(":::")
     out.append("")
 
 
@@ -680,15 +680,15 @@ def render_action(a):
     if a.implementation_notes:
         det.append("- %s" % _e(a.implementation_notes))
     if det or a.evidence:
-        out.append("<details markdown=\"1\"><summary>Implementation & "
-                   "reverse-engineering evidence</summary>")
+        out.append("::: details Implementation & "
+                   "reverse-engineering evidence")
         out.append("")
         if det:
             out.extend(det)
             out.append("")
         _ev_list(a.evidence, out)
         out.append("")
-        out.append("</details>")
+        out.append(":::")
         out.append("")
     return "\n".join(out)
 
@@ -1173,8 +1173,7 @@ def render_muse(m):
         _details(out, rec_lines, "Route record internals")
     out += ["## How operations are built", ""]
     _pt_add(m, out, "muse", "op_spine")
-    out += ["<details markdown=\"1\"><summary><b>Technical details"
-            "</b></summary>", "",
+    out += ["::: details Technical details", "",
             "Every op is a C++ object sharing one vtable skeleton: "
             "`+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate "
             "(`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op "
@@ -1193,10 +1192,9 @@ def render_muse(m):
             "`v1/groups/{id}/groupVolume`). Each verb registers two op "
             "classes: a player-channel variant and a fatter "
             "household-channel variant.", "",
-            "</details>", ""]
+            ":::", ""]
     _pt_add(m, out, "muse", "validation_lib")
-    out += ["<details markdown=\"1\"><summary><b>Technical details"
-            "</b></summary>", "",
+    out += ["::: details Technical details", "",
             "**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
             "validators keyed by field name; `f_109ca3b4` emits "
             "'Missing required field: ', `f_109c9cc0` 'Unexpected type "
@@ -1210,7 +1208,7 @@ def render_muse(m):
             "out of range: ', `f_109c74b0` timestamps (' failed "
             "timestamp validation'), `f_109c7740` ' not a valid Muse "
             "error code'.", "",
-            "</details>", ""]
+            ":::", ""]
     pipe = mu.get("pipeline") or {}
     if pipe:
         out += ["## Request pipeline", ""]
@@ -1490,10 +1488,12 @@ def render_artifacts(m):
                 out.append(_para(e["friendly"]))
                 out.append("")
 
-            fs_path = os.path.join(ROOT, "reference", "files", rel)
-            link = "files/" + rel
-            # raw HTML embeds need to step out of the page's directory URL
-            raw_link = "../files/" + rel
+            fs_path = os.path.join(ROOT, "reference", "public",
+                                   "files", rel)
+            # public/files/ is served at the site root; root-absolute
+            # links get the VitePress base prepended automatically
+            link = "/files/" + rel
+            raw_link = link
             if status == "absent":
                 out.append("*Not shipped in this build; documented because "
                            "other firmware versions and binary string "
@@ -1506,13 +1506,14 @@ def render_artifacts(m):
             else:
                 kind = e.get("kind") or "binary"
                 if kind == "audio":
-                    out.append('<audio controls preload="none" '
-                               'src="%s"></audio>' % raw_link)
+                    # custom container defined in .vitepress/config.mts;
+                    # emits the <audio> element at render time so no raw
+                    # HTML ever sits in the markdown (html rules are off)
+                    out.append("::: audio %s" % raw_link)
+                    out.append(":::")
                     out.append("")
                 elif kind == "image":
-                    out.append('<img src="%s" alt="%s" '
-                               'style="max-width:120px">' % (raw_link,
-                                                             _e(name)))
+                    out.append('![%s](%s)' % (_e(name), raw_link))
                     out.append("")
                 if e.get("sensitive"):
                     out.append("*Security-sensitive file: it is published "

@@ -18,7 +18,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST = os.path.join(ROOT, "docs", "artifacts.json")
-OUTDIR = os.path.join(ROOT, "reference", "files")
+OUTDIR = os.path.join(ROOT, "reference", "public", "files")
 
 DEFAULT_ROOTFS = os.path.join(ROOT, os.pardir, os.pardir, "artifacts",
                               "downloads", "rootfs-86.10-80260-1-9")
