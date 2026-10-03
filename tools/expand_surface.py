@@ -139,7 +139,7 @@ def main():
         "status": "strong",
         "name": "R_* internal result/status code namespace",
         "description": (
-            "Complete internal status enum recovered from rodata — "
+            "Complete internal status enum recovered from rodata: "
             "%d codes. These are the unified result codes the UPnP "
             "layer maps into 4xx/7xx/8xx faults and the muse/log layers "
             "report verbatim. The value->code integer mapping is NOT "
@@ -235,7 +235,7 @@ def main():
         "description": (
             "Three device descriptions exist: device_description.xml "
             "(served, 16 services), device_description_no_ai.xml "
-            "(alternate without AudioIn — proves the omission is a "
+            "(alternate without AudioIn; proves the omission is a "
             "switchable variant, not conditional assembly), and "
             "group_description.xml (SpeakerGroup:1 satellite doc). "
             "satellite_device.xml also exists for bonded "
@@ -300,7 +300,7 @@ def main():
         "name": "Complete GetProtocolInfo Source CSV",
         "description": (
             "Verbatim protocol-info CSV returned by "
-            "ConnectionManager.GetProtocolInfo — captures the "
+            "ConnectionManager.GetProtocolInfo: captures the "
             "sonos.com-{http,mms,spotify,rtrecent} transport prefixes, "
             "x-file-cifs local-share scheme, DASH and every MIME type "
             "the renderer claims."),
@@ -313,7 +313,7 @@ def main():
         "status": "strong",
         "name": "ICY/Shoutcast inline metadata",
         "description": (
-            "mp3radio streams carry ICY metadata — '@icy-metaint:' "
+            "mp3radio streams carry ICY metadata; '@icy-metaint:' "
             "interval header parsed for in-band track metadata."),
         "evidence": [x for x in (ev("@icy-metaint"),) if x],
     }
@@ -340,7 +340,7 @@ def main():
         "description": (
             "Replicated-state PSK identifiers: HhPsk (household), "
             "ControlPsk (control channel), LanSwapPsk, RoomEncPsk "
-            "(room encryption), each with a Backup* mirror — the key "
+            "(room encryption), each with a Backup* mirror; the key "
             "hierarchy for household crypto. Distribution/rotation "
             "mechanics undocumented."),
         "elements": ["HhPsk", "ControlPsk", "LanSwapPsk", "RoomEncPsk",
@@ -375,7 +375,7 @@ def main():
             "acct. sn. %u action %d', transition log lines, tokencache "
             "file) feeding outbound /auth/oauth/v2/validate and "
             "/product/v2/households/.../players?action=complete&token= "
-            "calls — the layer SystemProperties account actions write "
+            "calls; the layer SystemProperties account actions write "
             "into."),
         "evidence": [x for x in (ev("/auth/oauth/v2/validate"),
                                  ev("tokencache"),
@@ -413,7 +413,7 @@ def main():
             "ERROR_* fault vocabularies outside the UPnP code table: "
             "ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,"
             "NO_CONTENT,BAD_ACCOUNT}, ERROR_PAND_* (Pandora), "
-            "ERROR_DOCK_INTERRUPT, ERROR_WMP_* — reported via R_* "
+            "ERROR_DOCK_INTERRUPT, ERROR_WMP_*, reported via R_* "
             "codes and service-layer logs, not SOAP faults."),
         "evidence": [x for x in (ev("ERROR_LASTFM_STREAM_LIMIT"),
                                  ev("ERROR_DOCK_INTERRUPT")) if x],
@@ -426,7 +426,7 @@ def main():
             "URI schemes missed by the main sweep: pndrradioad:// "
             "(Pandora ad-insertion transport), pndrradio-http://, "
             "hls-radio://, hls-aac://, last.fm-radio-http, skd://, "
-            "stub://, hm://, file://, rtsp://, mms:// — plus the "
+            "stub://, hm://, file://, rtsp://, mms://, plus the "
             "urn:dev:ops:44974-zp- UDN prefix, "
             "urn:ietf:params:oauth:grant-type:jwt-bearer grant, "
             "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1 "
@@ -452,7 +452,7 @@ def main():
         "scrobbler": {
             "status": "absent",
             "summary": "audioscrobbler/Last.fm submission client in the "
-                       "streamer layer — handshake, submission format "
+                       "streamer layer: handshake, submission format "
                        "and trigger policy undocumented",
             "anchors": ["http://post.audioscrobbler.com/",
                         "https://ws.audioscrobbler.com/2.0/",

@@ -1,10 +1,10 @@
 # Architecture
 
-How a network command reaches real code. When a control message arrives at the player it doesn't land on one dedicated function — it passes through a layered routing system: parsed, looked up by name, validated, and finally handed to the code that does the work. This page maps that journey and the machinery on each step.
+How a network command reaches real code. When a control message arrives at the player it doesn't land on one dedicated function. Instead it passes through a layered routing system where it is parsed, looked up by name, validated, and finally handed to the code that does the work. This page maps that journey and the machinery on each step.
 
 ## Routing
 
-The tables below are the player's URL map for control traffic. Each row is one service address — the path part of the URL the command is sent to, like a postal code for which department should open the letter. When a request arrives, the player matches its destination against this map to find the right service object, and from there the per-service command table takes over. Seeing all the addresses in one place is the clearest proof of which services genuinely exist on this firmware — anything missing here can't be reached no matter what the spec documents say.
+The tables below are the player's URL map for control traffic. Each row is one service address, meaning the path part of the URL the command is sent to, like a postal code for which department should open the letter. When a request arrives, the player matches its destination against this map to find the right service object, and from there the per-service command table takes over. Seeing all the addresses in one place is the clearest proof of which services genuinely exist on this firmware: anything missing here can't be reached no matter what the spec documents say.
 
 | Router | Kind | Records |
 |---|---|---|
@@ -47,7 +47,7 @@ The tables below are the player's URL map for control traffic. Each row is one s
 
 ## Request object vtable
 
-Every command receives its arguments through the same generic 'request' object — think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free — missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list with confidence: the form's slots are visible in the code.
+Every command receives its arguments through the same generic 'request' object. Think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free: missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list with confidence, since the form's slots are visible in the code.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -69,7 +69,7 @@ Every action wrapper interacts with the request through these vfunc slots (confi
 
 ## Capability fields
 
-The player keeps internal switches that decide which features exist on this particular hardware or in this mode — a capabilities checklist consulted at runtime. Some commands read these switches before doing anything: a feature may be compiled into the firmware but disabled on this model, or enabled only while a certain mode is active. This is why 'the command exists' doesn't always mean 'the command works' — a switch can make an otherwise-live command refuse to run.
+The player keeps internal switches that decide which features exist on this particular hardware or in this mode: a capabilities checklist consulted at runtime. Some commands read these switches before doing anything. A feature may be compiled into the firmware but disabled on this model, or enabled only while a certain mode is active. This is why 'the command exists' doesn't always mean 'the command works', because a switch can make an otherwise-live command refuse to run.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -97,22 +97,22 @@ Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/A
 
 ## Internal functions
 
-Named helper routines the command handlers share — the common toolbox: argument parsers that turn text fields into numbers, validators that enforce ranges and required values, and error translators that turn internal result codes into proper network error replies. Listing them matters because they're the vocabulary every routine speaks; once you know these helpers, you can predict how any command will react to malformed input.
+Named helper routines the command routines share, which form the common toolbox: argument parsers that turn text fields into numbers, validators that enforce ranges and required values, and error translators that turn internal result codes into proper network error replies. Listing them matters because they're the vocabulary every routine speaks. Once you know these helpers, you can predict how any command will react to malformed input.
 
 | Address | Role | Description |
 |---|---|---|
 | `0x1056157c` | input_arg_parser | String input-argument record initializer/parser (type tag 7, caller-supplied capacity 0x400); produces the C string consumed by the impl for Unit and Target. |
 | `0x10561444` | input_arg_parser | Byte-width numeric argument parser used for DesiredMute. |
 | `0x10561478` | input_arg_parser | u16-width numeric argument parser used for DesiredVolume. |
-| `0x1055fcbc` | output_formatter | Response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610' — a TV-model device-name edge case (XML-escap |
+| `0x1055fcbc` | output_formatter | Response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case (XML-escape |
 | `0x105614e0` | input_arg_parser | Numeric input-argument record initializer/parser (type tag 4, 24-byte record); produces the integer value the wrapper forwards as InstanceID. |
 | `0x1055fcf4` | output_formatter | Signed integer (%d/%lld) response-format variant |
-| `0x1055fc08` | output_formatter | Boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d — the boolean-as-int wire encoding |
-| `0x10561514` | input_arg_parser | Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0 — used by scalar/enum  |
+| `0x1055fc08` | output_formatter | Boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d: the boolean-as-int wire encoding |
+| `0x10561514` | input_arg_parser | Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0: used by scalar/enum a |
 | `0x1055fc4c` | output_formatter | Unsigned (%u)/signed (%d) numeric response formatter |
 | `0x105615a8` | input_arg_parser | Arg-descriptor ctor, type-8 optional-ptr: embedded-buffer descriptor for nullable/ptr args |
 | `0x1055fc84` | output_formatter | Numeric response formatter: %d/%u/%lld variant |
-| `0x105614ac` | input_arg_parser | Arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3 — EQ/range int16 args (Bass,Treble,Volume) |
+| `0x105614ac` | input_arg_parser | Arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3: EQ/range int16 args (Bass,Treble,Volume) |
 | `0x102b95a8` | seek_dispatch | AVTransport impl vfunc +0x34 entry: locks engine mutex +0x458, rejects nonzero InstanceID with 718, calls seek engine f_102b9088(engine,Unit,Target), stores Ins |
 | `0x102b9088` | seek_engine | Seek engine: branches on source-mode field engine+0x4654; indexed mode (==2) enforces capability mask from f_10258ab0 (0x400000 track-seek, 0x200000 time-seek), |
 | `0x102ab830` | time_parser | Target time parser for REL_TIME/TIME_DELTA: consumes at most one leading '-' manually (sign flag byte -> *arg2, cr4 captured before sscanf); sscanf(str,'%hhu:%h |
@@ -142,7 +142,7 @@ Named helper routines the command handlers share — the common toolbox: argumen
 | `0x1067c6ec` | notify-all-subscribers thunk: tails f_1067c46c(obj,0,0); that fn iterates subscriber list at obj+0xa0 calling f_10686048 per entry | Notification call on impl+8 with r10=0x1f5 following state writes. |
 | `0x100d993c` | release/free helper: calls 0x11098b08 (free) + f_10572ab0 | rc_impl Master-channel volume worker |
 | `0x100d9b4c` | locked apply helper: f_10988268 lock -> f_100d8568 worker | rc_impl 'FocusMode' setter |
-| `0x100da1e0` | locked apply helper: f_10988268 lock -> f_100d8784 worker | Locked rc_impl worker — acquires impl+0x938 lock (0x10988268) + inner 0x100d8784 |
+| `0x100da1e0` | locked apply helper: f_10988268 lock -> f_100d8784 worker | Locked rc_impl worker: acquires impl+0x938 lock (0x10988268) + inner 0x100d8784 |
 | `0x1046dff0` | grouped-op coordinator (327i): orchestrates member calls f_1053ce34/f_1053db38/f_10759984 + XML append f_10807034 + notify; multi-phase op | Derived-class prelude: builds an operation object at sp+0xa0 from impl+0xbc8 and impl+0x9c8, readiness-checks it (f_1053ce34), returns a handle consumed by f_10 |
 | `0x1046c3cc` | refcount/resume gate: *(r3+0xc54)++; <=2 returns, else tails f_1046c148 | Derived-class prelude companion to f_1046dff0, invoked before tail-calling the base impl. |
 | `0x10988564` | sync | Lock-guard constructor on impl+0x938 (recursive mutex); paired with f_10988990 destructor/unlock. |
@@ -183,10 +183,10 @@ Named helper routines the command handlers share — the common toolbox: argumen
 | `0x106a7a34` |  | Streamer-session next-track vfunc invoked on *(impl+0x5a0); nonzero = accepted. |
 | `0x106a9e88` |  | Streamer-session mode-set call f(streamer,1,mode_enum,0,0) used to forward play-mode changes to the streamer. |
 | `0x102d0ac8` |  | Mode-agnostic transport-command fallback: f(impl,1,1,-1,-1) used by Pause when the direct streamer path fails; -1,-1 sentinels = current track/pos. |
-| `0x102cfa50` |  | Capability-gated worker — queries impl+0x5dc caps (0x10148308) before proceeding |
+| `0x102cfa50` |  | Capability-gated worker: queries impl+0x5dc caps (0x10148308) before proceeding |
 | `0x102b0058` |  | Pre-play check called by Play; when it returns 0 the impl proceeds to f_102cfa50 submission. |
 | `0x102d39ac` |  | Source-classification call f(impl,'upnp') in Play; result==1 selects the non-muse-source rebuild path. |
-| `0x102c350c` |  | State-mutating worker — scoped-context (0x102ab4dc) + notify impl+8 r10=0x1f5 (0x1067c6ec) + guard dtor (0x10807034); queue/avt family |
+| `0x102c350c` |  | State-mutating worker: scoped-context (0x102ab4dc) + notify impl+8 r10=0x1f5 (0x1067c6ec) + guard dtor (0x10807034); queue/avt family |
 | `0x102b2ee4` |  | Source-state query used by the Play non-muse path to decide whether a rebuild is needed. |
 | `0x102b1c5c` |  | avt_impl queue/transport worker |
 | `0x102b4b48` |  | Post-advance activation call f(impl,1) used after successful indexed Next (and mirrored in Stop). |
@@ -262,7 +262,7 @@ Named helper routines the command handlers share — the common toolbox: argumen
 | `0x10462c80` |  | M3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates |
 | `0x10545064` |  | Stream open helper used by playlist parsers to fetch the playlist document (URI -> stream object). |
 | `0x10546520` |  | Stream line-reader: yields successive playlist lines until exhausted (nonzero = line read). |
-| `0x1054103c` |  | Stream-close helper for playlist sources — closes via 0x10551300 + 0x10540b4c |
+| `0x1054103c` |  | Stream-close helper for playlist sources: closes via 0x10551300 + 0x10540b4c |
 | `0x10460764` |  | Per-line URI parse/normalize helper applied to each playlist entry before job submission. |
 | `0x104614b4` |  | Playlist-entry record builder used per parsed line (writes into the 0x5474 entry record). |
 | `0x1010a2c0` |  | Delegate-object initializer invoked by the per-entry job ctors (0x10ed1750/0x10ed1770 vtables). |
@@ -286,7 +286,7 @@ Named helper routines the command handlers share — the common toolbox: argumen
 
 ## Dispatch candidates
 
-Functions we investigated because they looked like command routers — the routines that might have been the switchboard steering incoming commands to their implementations. Most turned out to be something else; the survivors are documented here with the evidence for and against.
+Functions we investigated because they looked like command routers: the routines that might have been the switchboard steering incoming commands to the code that runs them. Most turned out to be something else. The survivors are documented here with the evidence for and against.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -317,7 +317,7 @@ RESOLVED: RINCON repset/content-format endpoint. 'x-rincon-content-format' hdr -
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-NOT a SOAP dispatcher — native binary protocol handler. Parses a TLV-ish record via f_109dd184, reads tag byte at buf+2 and u16 at buf+0, f_109e10d8 maps to a command id (compared 0x4a), calls f_1067c700 worker; result stored at r31+0x30 with a 0x34-length path. Same TLV helper family as 0x1068e904/0x1068ec54 — a non-SOAP native protocol surface (SCI/netstart/zone-bus candidate). Body literals identify the surface: Invalid transport: WSS is required / Invalid namespace: UPnP renew not supported / Invalid namespace: UPnP unsubscribe not supported -> websocket (WSS) eventing handler carrying a binary/TLV-framed command set (cmd 0x4a seen); UPnP-style SUBSCRIBE/RENEW/UNSUBSCRIBE namespaces rejected by name.
+NOT a SOAP dispatcher: native binary protocol handler. Parses a TLV-ish record via f_109dd184, reads tag byte at buf+2 and u16 at buf+0, f_109e10d8 maps to a command id (compared 0x4a), calls f_1067c700 worker; result stored at r31+0x30 with a 0x34-length path. Same TLV helper family as 0x1068e904/0x1068ec54. A non-SOAP native protocol surface (SCI/netstart/zone-bus candidate). Body literals identify the surface: Invalid transport: WSS is required / Invalid namespace: UPnP renew not supported / Invalid namespace: UPnP unsubscribe not supported -> websocket (WSS) eventing handler carrying a binary/TLV-framed command set (cmd 0x4a seen); UPnP-style SUBSCRIBE/RENEW/UNSUBSCRIBE namespaces rejected by name.
 
 
 </details>
@@ -354,18 +354,18 @@ Compares: `explicitContentFiltering`, `explicitContentFiltering`
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f11f70 at svc+0, installed by ctor f_1073d930 into *(r3-in+0xaa6c)). Reject-all: emits 401 for every action — the service is a registered stub in this build. Evidence is definitive: unconditional 401 emit (li r4,0x191) + vtable 0x10f11f70 at svc+0 installed by ctor f_1073d930.
+RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f11f70 at svc+0, installed by ctor f_1073d930 into *(r3-in+0xaa6c)). Reject-all: emits 401 for every action: the service is a registered stub in this build. Evidence is definitive: unconditional 401 emit (li r4,0x191) + vtable 0x10f11f70 at svc+0 installed by ctor f_1073d930.
 
 
 </details>
 
 ## Shared subsystems
 
-Building blocks reused across many commands — URI grammars for the address formats the player accepts, metadata parsers for the XML-ish documents that describe tracks, and error helpers that format failures consistently. Documenting them once, here, keeps the service pages from repeating the same machinery dozens of times — when a command 'parses a track URI', this is what that means.
+Building blocks reused across many commands: URI grammars for the address formats the player accepts, metadata parsers for the XML-ish documents that describe tracks, and error helpers that format failures consistently. Documenting them once, here, keeps the service pages from repeating the same machinery dozens of times. When a command 'parses a track URI', this is what that means.
 
 ### `soap_fault_wire_format`
 
-The fault wire format — the exact document shape of a returned error: what a failure looks like on the network.  What a failure looks like on the network — the exact document shape of a returned error.
+The fault wire format: the exact document shape of a returned error, which is what a failure looks like on the network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -382,7 +382,7 @@ The fault wire format — the exact document shape of a returned error: what a f
 
 ### `soap_fault_code_vocabulary`
 
-The fault-code vocabulary — the full set of numeric error codes the command layer can emit, in their own terms.  The full set of numeric error codes the command layer can emit, in their own terms.
+The fault-code vocabulary: the full set of numeric error codes the command layer can emit, in their own terms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -405,21 +405,21 @@ The fault-code vocabulary — the full set of numeric error codes the command la
 
 ### `soap_client`
 
-The the classic command protocol client — the machinery for outbound classic-API calls: when the player itself calls another device's commands (like group fan-out to members).  When the player calls another device's commands (like group fan-out to members), this is the outbound machinery it uses.
+The classic command-protocol client: the machinery for outbound classic-API calls, used when the player itself calls another device's commands like group fan-out to members.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"' — urn#action forms
-- **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant — SOAP relayed over the cloud tunnel shares the dispatcher
-- **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx — outbound control-point stack
+- **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"': urn#action forms
+- **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant: SOAP relayed over the cloud tunnel shares the dispatcher
+- **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx: outbound control-point stack
 
 </details>
 
 
 ### `soap_param_redaction`
 
-Parameter redaction — which argument values get scrubbed before logging: the privacy machinery keeping credentials out of the logs.  The privacy machinery keeping credentials out of logs — which argument values get scrubbed before recording.
+Parameter redaction: which argument values get scrubbed before logging, which is the privacy machinery keeping credentials out of the logs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -432,7 +432,7 @@ Parameter redaction — which argument values get scrubbed before logging: the p
 
 ### `upnp_client_stack`
 
-The the classic device-control protocol client stack — the machinery for acting as a client to other the classic device-control protocol devices: the outbound classic-protocol layer.  The outbound classic-protocol layer — acting as a client to other devices.
+The classic-protocol client stack: the outbound layer for acting as a client toward other devices.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -447,13 +447,13 @@ The the classic device-control protocol client stack — the machinery for actin
 
 ### `upnp_eventing_impl`
 
-The the classic device-control protocol eventing implementation — the concrete machinery behind the classic subscribe/notify channel.  The concrete machinery behind the classic subscribe/notify channel. Covers subscription install, renewal, expiry cleanup, and the per-subscriber notify sequence.
+The classic eventing implementation: the concrete machinery behind the subscribe-and-notify channel, covering subscription install, renewal, expiry cleanup, and the per-subscriber notify sequence.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **files:** upnpeventing_{sender,source}.cxx + cprovider/sonos_cprovider.cxx
-- **opt:** enableUPnPEventingGNDOptimization flag — GENA notify-dedup/batching
+- **opt:** enableUPnPEventingGNDOptimization flag: GENA notify-dedup/batching
 - **semantics:** upnpeventing module w/ 'svc:%s' service tagging
 
 </details>
@@ -461,7 +461,7 @@ The the classic device-control protocol eventing implementation — the concrete
 
 ### `upnp_genaclient`
 
-The the classic device-control protocol the classic event protocol client — the client side of the classic event protocol: when the player subscribes to other devices' events.  When the player subscribes to other devices' events — the client side of the classic event protocol.
+The classic event-protocol client: the client side of subscribe-and-notify, used when the player subscribes to other devices' events.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -473,7 +473,7 @@ The the classic device-control protocol the classic event protocol client — th
 
 ### `gena_eventing`
 
-The classic the classic device-control protocol eventing implementation — subscribe, renew, notify: the machinery behind the older event channel. The classic subscribe/notify protocol implemented in full — listeners subscribe per service and get every state change pushed.
+The classic subscribe-and-notify protocol implemented in full: listeners subscribe per service and get every state change pushed, which is the machinery behind the older event channel.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -495,7 +495,7 @@ The classic the classic device-control protocol eventing implementation — subs
 
 ### `subscription_manager`
 
-The subscription manager — owns event subscriptions: who subscribed, renewal tracking, expiry cleanup.  Owns event subscriptions — who subscribed, renewals, expiry cleanup. Owns the registry of active subscribers so a lapsed client stops receiving traffic.
+The subscription manager: it owns the registry of active event subscribers, covering who subscribed, renewals, and expiry cleanup, so a lapsed client stops receiving traffic.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -510,7 +510,7 @@ The subscription manager — owns event subscriptions: who subscribed, renewal t
 
 ### `wss_event_vocabulary`
 
-The websocket event vocabulary — the named events the modern channel carries: the subscription terms the app uses.  The named events the modern channel carries — the subscription terms the app uses.
+The websocket event vocabulary: the named events the modern channel carries, which are the subscription terms the app uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -631,14 +631,14 @@ The websocket event vocabulary — the named events the modern channel carries: 
   - idx: 70, name: virtualLineIn, id: 309, tag: 77
   - idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81
   - idx: 72, name: zoneGroupTopology, id: 322, tag: 78
-- **entry_semantics:** {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind} — idx==registry slot, id==internal event enum, tag==on-wire TLV tag
+- **entry_semantics:** {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind}: idx==registry slot, id==internal event enum, tag==on-wire TLV tag
 
 </details>
 
 
 ### `internal_event_bus`
 
-The internal event bus — the spine connecting in-process events: the backbone the publish/subscribe machinery runs on.  The backbone the publish/subscribe machinery runs on — the spine connecting in-process events.
+The internal event bus: the spine connecting in-process events, which is the backbone the publish-and-subscribe machinery runs on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -660,14 +660,14 @@ The internal event bus — the spine connecting in-process events: the backbone 
     PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEvent, ZoneMemberSettingsChangedEvt, ZonesDefinitionsChangedEvent, MusicAccountChangedEvent, AVTBecomeStandaloneEvent, BootSequenceEvent, SpotifyInternalEvent, RequestTVTransitionEvent, TVSignalDetectedEvent, TVInputSelectedEvent, PlaybackCorrelationEvt, ChsrcEvent, ChsrcSysSettingsEvt, UTCTimeAvailableEvent, AlarmClockTimeZoneChangedEvent, AreasVersionChangedEvent, OrientationChangeEvent, VliTransportActionEvent, DuckingEvent, RecordDuckingActionEvent, CloudConnectionChangedEvent, ExtAudioPlayStateChangedEvent, HouseholdSettingsChangeEvent, MissingBondedZoneMemberDetectedEvent, DefunctDeviceRemovedEvent, FeatureConfigChangedEvent, GroupAdvertiseRequestEvent, LineInStateChangedEvent, NetworkIfaceBouncedEvt, LocalIpChangedEvent, NewCertRegistrationEvent, SatConfigEvent, WakeOnLANRequestEvent, AvtHaltActionEvent, AutoPlaySettingsEvent, AirplayIncludeGroupedEvt, AVTStateLastChangedEvent, RemoteIpChangedEvent, AdvertisementUrlChangedEvent, DeferredSettingsChangeEvent, PortableWifiReconnectEvent, RegCertUpdateEvent, ReplicatedSettingsNeedsUpdateEvent, ReplicatedSettingsChangedEvent, SystemPropertiesChangeEvent, TrustDevCertChangedEvent, NewZPEvent, UpdatedZPExpirationEvent, TopologyZpListChangedEvent, InfoUpdatedEvent, PlaybackStateChangedEvent, VliVolumeProcessingCompleteEvt, VolumeSetActionEvent, RcSetEqActionEvt, AudioClipEvent, AmplifierPowerStateChangedEvent, CdNotifyShareIx
     ```
 - **bus_name:** inprocess-events
-- **observer_api:** Registering "%s" observer "%s". Total observers: %zu — events are named *Event objects; observers register by event name; delivery logs "Queued %s(%u) from \"%s\" : { %s }" and "Beginning delivery of %s(%u) event on thread %zu" — each event has a name, numeric id and a {json} payload string.
+- **observer_api:** Registering "%s" observer "%s". Total observers: %zu (events are named *Event objects; observers register by event name; delivery logs "Queued %s(%u) from \"%s\": { %s }" and "Beginning delivery of %s(%u) event on thread %zu") each event has a name, numeric id and a {json} payload string.
 
 </details>
 
 
 ### `device_description_template`
 
-The device-description template — the skeleton document that becomes the player's self-description once filled with this unit's values: the file every client fetches first.  Filled with this unit's values it becomes the self-description file every client fetches first.
+The device-description template: the skeleton document that becomes the player's self-description once filled with this unit's values. It's the file every client fetches first.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -682,14 +682,14 @@ The device-description template — the skeleton document that becomes the playe
 - **proprietary_extensions:** `<qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> @0x10ef8cc6`
 - **adjacent_surfaces:**
   - **muse_async_command:** muse_async_command_handler_impl.cxx; '%s/api/v%d/%s'+'%s/v%d/%s' route formats; Bearer auth; cmdId dedup ('Duplicate cmdId','Invalid cmdId','Command was preempted by a newer command'); queue 'muse-async-cmdq-'; scopeAsyncMuse
-- **scpd_present:** SCPDURL elements present in served device_description.xml — 16 /xml/<Svc>1.xml service descriptions advertised (CORRECTED: earlier 'no SCPDURL' claim was wrong — it checked the binary's generated-doc path, but the served doc is the htdocs template which has SCPDURL)
+- **scpd_present:** SCPDURL elements present in served device_description.xml (16 /xml/<Svc>1.xml service descriptions advertised (CORRECTED: earlier 'no SCPDURL' claim was wrong) it checked the binary's generated-doc path, but the served doc is the htdocs template which has SCPDURL)
 - **name:** device_description.xml token template
 - **tokens** (40):
 
   ```
   UUID, HOST, DISPLAY_VERSION, SW_VERSION, SW_GENERATION, NODE_PROTO_VERSIONS, HTA_FRAME_VERSIONS, MUSE_API_VERSIONS, TRUEPLAY_SDK_VERSIONS, HW_VERSION, EXTRA_VERSION, SERIAL_NUM, MAC_ADDRESS, SW_MINCOMPATVER, SW_LEGACYCOMPATVER, API_VERSION, MIN_API_VERSION, MODEL, ZONETYPE, NAME, DISPLAY_NAME, VENDOR_NAME, FEATURE1, FEATURE2, FEATURE3, FEATURE4, SERIESID, VARIANT, INT_SPEAKER_SIZE, QPLAY_SUPPORT, AMP_ONTIME, MEMORY, FLASH, FLASH_REPARTITIONED, RETAIL_MODE, SSL_PORT, HHSSL_PORT, MEDIASERVER_NAMESPACE, CD_NAMESPACE, NS_VERSION
   ```
-- **qplay:** <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</qq:X_QPlay_SoftwareCapability> — QPlay v2 advertised in description
+- **qplay:** <qq:X_QPlay_SoftwareCapability xmlns:qq="http://www.tencent.com">QPlay:2</qq:X_QPlay_SoftwareCapability>: QPlay v2 advertised in description
 - **note:** Confirmed absence: no 'scpd','stateVariable','serviceStateTable','sendEvents','allowedValue','dataType' literal exists anywhere in the image - this build never emits SCPD/service-description XML; the state-variable registry lives only inside the eventing engine.
 
 </details>
@@ -697,12 +697,12 @@ The device-description template — the skeleton document that becomes the playe
 
 ### `svcmanifest`
 
-The service manifest — the build's service inventory: the list behind what the device description advertises.  The build's service inventory — the list behind what the device description advertises.
+The service manifest: the build's service inventory, which is the list behind what the device description advertises.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **file:** svcmanifests.json per-account manifest; downloaded per sid/sn; 'replicating manifest file from %s' — manifests household-replicated via nodetx
+- **file:** svcmanifests.json per-account manifest; downloaded per sid/sn; 'replicating manifest file from %s': manifests household-replicated via nodetx
 - **impl:** svcmanifestfile.cxx
 
 </details>
@@ -710,7 +710,7 @@ The service manifest — the build's service inventory: the list behind what the
 
 ### `xml_parser`
 
-The XML parser — the bundled parser every XML-speaking component uses: metadata, specs, settings all decode through it.  Every XML-speaking component decodes through this bundled parser — metadata, specs, settings.
+The XML parser: the bundled parser every XML-speaking component decodes through, covering metadata, specs, and settings.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -725,7 +725,7 @@ The XML parser — the bundled parser every XML-speaking component uses: metadat
 
 ### `mega_impl_object`
 
-The mega implementation object — the large composite object at the heart of the player, assembled from dozens of sub-interfaces: the single structure most services reach into for their real work.  Most services reach into this single structure for their real work — the composite object at the player's heart.
+The mega implementation object: the large composite structure at the heart of the player, assembled from dozens of sub-interfaces. Most services reach into this single structure for their real work.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -735,16 +735,16 @@ The mega implementation object — the large composite object at the heart of th
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x101a22c4, notes: impl ctor: ~30 sub-vptr installs
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1018fd14, notes: f_101b08a0 arg-pack build
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1018fd48, notes: px=r19 store + control-block bind
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: topology +0x124 slice vptr is 0x10e8b1bc (stw at f_10125b54:0x10126250); its slots +0x08..+0x14 = 0x1073e8f0/0x1073e980/0x10752ad4/0x1074d568, all r4(-0x124)-adjustor thunks to f_1073e7c8/f_1073e8f8/f_10752780/f_1074d02c — a member-serializer interface with convention f(r3=out-struct, r4=member-arg+0x124, r5=emit-buf): f_1073e7c8 emits arg+8 via tag-writers f_109dadb8/f_109dad10, f_1073e8f8 via f_109daf48, f_10753110 reads arg+0x438/+0x4c8/+0x4cc; a second vtable 0x10f123dc (installed by sub-ctor f_1074043c inside the same mega-ctor chain) exposes the same run shifted by one slot (+0x08..+0x14 = 0x1073e980/0x10752ad4/0x1074d568/0x107533fc)
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: GroupManagement impl hunt (final negative result): AddMember's impl call at 0x1073874c has an 8-arg out-fill signature — f(r3=impl, r4=&MemberIDbuf(sp+0x30), r5=BootSeq byte, r6=&out(sp+0x70), stack args 0x24/&sp+0x2b/&sp+0x4f8/0x401). Neither serializer-interface vtable matches: their vfuncs take (out, argobj, emitbuf) and would consume r5 as an emit target, not the BootSeq byte. Vtable-signature, thunk-signature, direct-store, indexed-store, registration-table, and px-address-compute searches all exhausted — GM px (ctx+0x3fa48) is bound by a shared_ptr copy-assign helper (f_101a20d0, dst=new/getter-returned ptr, src=ptr-to-{px,pn}) inside the master impl factory f_103fa434, where the dst address is produced by callees and resists static recovery
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: RESOLVED: GroupManagement impl = dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0 registers name 'gm_impl' via f_10391210, ~0xda8-byte multi-base object), NOT a topology-mega-impl slice. Bound via f_101a20d0 shared_ptr copy-assign at f_103fa434:0x103fbfe8. All four action impls verified: AddMember f_10394d10, RemoveMember f_10395b0c->f_10395854, ReportTrackBufferingResult f_105c53d0 (unconditional-402 stub), SetSourceAreaIds f_10395564 — resolved via the 'gm_impl' debug-tag string inside the ctor
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: topology +0x124 slice vptr is 0x10e8b1bc (stw at f_10125b54:0x10126250); its slots +0x08..+0x14 = 0x1073e8f0/0x1073e980/0x10752ad4/0x1074d568, all r4(-0x124)-adjustor thunks to f_1073e7c8/f_1073e8f8/f_10752780/f_1074d02c: a member-serializer interface with convention f(r3=out-struct, r4=member-arg+0x124, r5=emit-buf): f_1073e7c8 emits arg+8 via tag-writers f_109dadb8/f_109dad10, f_1073e8f8 via f_109daf48, f_10753110 reads arg+0x438/+0x4c8/+0x4cc; a second vtable 0x10f123dc (installed by sub-ctor f_1074043c inside the same mega-ctor chain) exposes the same run shifted by one slot (+0x08..+0x14 = 0x1073e980/0x10752ad4/0x1074d568/0x107533fc)
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: GroupManagement impl hunt (final negative result): AddMember's impl call at 0x1073874c has an 8-arg out-fill signature (f(r3=impl, r4=&MemberIDbuf(sp+0x30), r5=BootSeq byte, r6=&out(sp+0x70), stack args 0x24/&sp+0x2b/&sp+0x4f8/0x401). Neither serializer-interface vtable matches: their vfuncs take (out, argobj, emitbuf) and would consume r5 as an emit target, not the BootSeq byte. Vtable-signature, thunk-signature, direct-store, indexed-store, registration-table, and px-address-compute searches all exhausted) GM px (ctx+0x3fa48) is bound by a shared_ptr copy-assign helper (f_101a20d0, dst=new/getter-returned ptr, src=ptr-to-{px,pn}) inside the master impl factory f_103fa434, where the dst address is produced by callees and resists static recovery
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: RESOLVED: GroupManagement impl = dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0 registers name 'gm_impl' via f_10391210, ~0xda8-byte multi-base object), NOT a topology-mega-impl slice. Bound via f_101a20d0 shared_ptr copy-assign at f_103fa434:0x103fbfe8. All four action impls verified: AddMember f_10394d10, RemoveMember f_10395b0c->f_10395854, ReportTrackBufferingResult f_105c53d0 (unconditional-402 stub), SetSourceAreaIds f_10395564: resolved via the 'gm_impl' debug-tag string inside the ctor
 
 </details>
 
 
 ### `svc_array`
 
-The service array — the registry of service objects embedded in the program: the table behind which services exist.  The table behind which services exist — the registry of service objects embedded in the program.
+The service array: the registry of service objects embedded in the program, which is the table behind which services exist.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -759,7 +759,7 @@ The service array — the registry of service objects embedded in the program: t
 
 ### `composite_subobject_interfaces`
 
-How the big implementation objects are assembled — a single service object is built from many sub-objects each providing one interface, and this maps which sub-objects exist and what each contributes.  It maps which sub-objects exist and what each provides — how the big service objects are actually assembled.
+How the big implementation objects are assembled: a single service object is built from many sub-objects each providing one interface, and this maps which sub-objects exist and what each contributes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -773,7 +773,7 @@ How the big implementation objects are assembled — a single service object is 
 
 ### `native_protocols`
 
-The native protocol set — Sonos's own internal protocols recovered as a group: the channel-source/sink audio distribution, node messaging, and related private wire formats.  Sonos's own internal protocols as a group — the audio-distribution, node-messaging, and private wire formats recovered together.
+The native protocol set: Sonos's own internal protocols recovered as a group, covering the channel-source/sink audio distribution, node messaging, and related private wire formats.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -795,7 +795,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **log_tags:** `sp_a5335660d494963ab7b783a270417bb8`, `sp_60e43b6e629920e455e243bab25b488a`, `sp_e943d8e115bd54bd41443240074a6853`
   - **frame_detail:** per-packet: 7B TLV header {type-byte, size} + payload + proprietary rotate-xor 4B trailing MAC verified via memcmp; 'ap os error code: %d' oserr path
   - **status:** confirmed
-  - **sp_id_note:** ~330 'sp_<md5>' literals exist — esdk per-module log-channel identifiers (hash of module name), NOT distinct protocols; sp_a5335660d494963ab7b783a270417bb8 is the mod_ap_conn packet tag
+  - **sp_id_note:** ~330 'sp_<md5>' literals exist: esdk per-module log-channel identifiers (hash of module name), NOT distinct protocols; sp_a5335660d494963ab7b783a270417bb8 is the mod_ap_conn packet tag
 - **wss_tlv:**
   - **name:** websocket UPnP event TLV (see wss_event_vocabulary.protocol)
   - **framing:** {u16 tag, s8 type} selector -> table lookup; 73 entries
@@ -807,7 +807,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **files:** /jffs/netstartd_prev.log, /opt/log/netstartd.log, netstartd.dmp, netstartd.properties, netstartd.count, /netstartd-external, /var/run/netstart_mode, /tmp/netstartd.pid
   - **messages:** settings push ('...settings update to netstartd'), PSK update ('...ushed PSK update to netstartd'), pull ('...ettings update from netstartd'), type update '\[%s\]', 'SSID, cannot notify netstartd', refusal handling 'netstart refused'/'meshDisable (netstart refused)'
   - **status:** confirmed
-  - **note:** CORRECTION: netstart2 DOES exist — the literal lives in wifi/netstartd (separate daemon binary); see native_protocols/netstart2 for the full decode
+  - **note:** CORRECTION: netstart2 DOES exist: the literal lives in wifi/netstartd (separate daemon binary); see native_protocols/netstart2 for the full decode
 - **mrpc:**
   - **name:** MRPC
   - **status:** ZERO literals in anacapad-86.10 - no 'mrpc' string anywhere. Either absent from this binary or unlabeled; honest negative result
@@ -830,7 +830,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **full_event_vocabulary:** `netstartd hello (handshake)`, `Netstart is idle`, `Netstart alive`, `Netstart open`, `Netstart SSID set`, `Netstart SSID clear`, `Netstart triggered upgrade (0x%x): %s`, `Got connection type update from netstartd: \[%s\]`, `refusals: 'netstart refused', 'meshDisable (netstart refused)', 'Netstart failed to modify {wifi settings,meshDisable,SonosNet disable}'`, `Pushed netsettings update / PSK update`, `Received netsettings update`
 - **websocket_lechmere:**
   - **status:** confirmed
-  - **name:** 'lechmere.%u' — RFC6455 Sec-WebSocket-Protocol subprotocol token (version-suffixed)
+  - **name:** 'lechmere.%u': RFC6455 Sec-WebSocket-Protocol subprotocol token (version-suffixed)
   - **handshake:** sec-websocket-key + sec-websocket-version headers -> Sec-WebSocket-Accept; ../anacapa-1.0/oc/zone/common/websocketserver.cxx (webSocketServer)
   - **endpoints:** `/websocket/api`, `/api/v1/websocket`
   - **ops:** `websocket_close`, `Websocket protocol error`, `Write to websocket failed. opcode: %u, len: %zu`, `'websocket(data)' frame tag`, `'crt.poll' ping (0x10ef1aa0) + 'failed to ping'`
@@ -839,7 +839,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **versioning:** subprotocol token 'lechmere.%u' offered, parsed via 'lechmere.%hhu%n'; 'lechmere-v1' version literal
   - **outbound:** client dials lechmere.%s.ws.sonos.com (cloud endpoint); 'Lechmere connection %s' lifecycle; SONOS_SERVER_LECHMERE_RECONNECT_LATER reconnect directive
   - **authorization:** authzPolicyKeyLechmere: policy key carries roles ('Could not parse role from lechmere policy key'); per-namespace check 'isAuthorizedForNamespace(0x%X) wA:%d \[%s\] isW:%d isA:%d'
-  - **upnp_namespace_policy:** 'Invalid namespace: UPnP renew/subscribe/unsubscribe not supported' — UPnP namespace accepts control ops but not subscription-family ops
+  - **upnp_namespace_policy:** 'Invalid namespace: UPnP renew/subscribe/unsubscribe not supported': UPnP namespace accepts control ops but not subscription-family ops
   - **logging:** /opt/log/anacapa.lechmere.event.log dedicated event log; 'failed to read lechmere header: %d'
   - **command_grammar:** <Command namespace="%s" cmd="%s" method="%s" credType="%s" />
   - **namespaces_versioned:** `v1.api.smartspeaker.audio`, `v2.api.smartspeaker.audio`, `(UPnP namespace: control-ops only, no subscribe/renew/unsubscribe)`
@@ -876,7 +876,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **sessions:** onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated}; action codes AHA_{END,SUSPEND,PAUSE}_VLI_SESSION; group actions JOIN_GROUP_BASED_ON_VLI_STATE / BECOME_STANDALONE_BASED_ON_VLI_STATE
   - **source_types:** `vli_airplay`, `vli_bt (Bluetooth)`, `vli_ot (optical?)`
   - **transport:** setTransportToVLIStreamURI URI:%s autoplay:%d become-gc:%d + installClock; vliStreamImage(%s %u %u %u %s); blocks over nodetx_vli
-  - **ops:** 6-op control surface: selectSource, startTransmission, stopTransmission, startAudio, stopAudio + sendBackChannelCmd — bidirectional back-channel (sink→source cmds for delay/volume negotiation)
+  - **ops:** 6-op control surface: selectSource, startTransmission, stopTransmission, startAudio, stopAudio + sendBackChannelCmd: bidirectional back-channel (sink→source cmds for delay/volume negotiation)
   - **model:** source-transmits model: startTransmission publishes nodetx_vli stream; sinks join; VliTransportActionEvent lifecycle; delegated sessions handoff via seamless-delegation
 - **airplay:**
   - **status:** confirmed
@@ -884,19 +884,19 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **gates:** `allowAirplay/allowAirplaySetting`, `AirPlayEnabled (settings+ZGT var)`, `informLocalAirPlay`
   - **didl:** object.item.audioItem.linein.airplay; linein.airplay; airplay:; com.sonos.airplay
   - **grouping:** R_AirplayIncludeLinked; AirplayIncludeGroupedEvt; 'airplay include zones: %d'
-  - **interactions:** SpZeroConfAnnounce{Pause,Resume} — Spotify Connect announce paused during AirPlay; log /tmp/AirPlay.log
+  - **interactions:** SpZeroConfAnnounce{Pause,Resume}: Spotify Connect announce paused during AirPlay; log /tmp/AirPlay.log
 - **bluetooth:**
   - **status:** strong
-  - **model:** no local BT stack in anacapad — cloud-managed only: v1/players/{playerId}/hardwareStatus/{bluetooth,bluetoothPairing,pairedBluetoothDevices/{bluetoothAddress}} routes + scope cmds getBluetoothStatus/setBluetoothPairing/activatePairedBluetoothDevice/removePairedBluetoothDevice; 'Supported only on devices with bluetooth' gate; vli_bt stream source; hal_detect_get_cable_states
+  - **model:** no local BT stack in anacapad: cloud-managed only: v1/players/{playerId}/hardwareStatus/{bluetooth,bluetoothPairing,pairedBluetoothDevices/{bluetoothAddress}} routes + scope cmds getBluetoothStatus/setBluetoothPairing/activatePairedBluetoothDevice/removePairedBluetoothDevice; 'Supported only on devices with bluetooth' gate; vli_bt stream source; hal_detect_get_cable_states
 - **netstart2:**
   - **status:** confirmed
-  - **location:** wifi/netstartd (separate binary — the netstart2 literal lives in netstartd, not anacapad; earlier absence claim was anacapad-only scope)
-  - **transport:** DTLS over UDP (mbedtls_net_* + ssl_*): full DTLS state names {DISCONNECTED,CONNECTING,HELLO_VERIFY,CONNECTED,WRITING,CLOSING,CLOSE_NOTIFY_SENT,CLOSE_NOTIFY_DISCONNECT,CLOSE_IMMEDIATELY,CLIENT_RECONNECT}; app-level ACKs (message received without ACK for last payload / received unexpected ACK / replay detected retransmitting); ECJPAKE password handshake (ssl_set_hs_ecjpake_password) — PAKE for PIN-less provisioning; DTLS PIN alternative; client ID set; PSK auth (Authenticating with PSK)
+  - **location:** wifi/netstartd (separate binary: the netstart2 literal lives in netstartd, not anacapad; earlier absence claim was anacapad-only scope)
+  - **transport:** DTLS over UDP (mbedtls_net_* + ssl_*): full DTLS state names {DISCONNECTED,CONNECTING,HELLO_VERIFY,CONNECTED,WRITING,CLOSING,CLOSE_NOTIFY_SENT,CLOSE_NOTIFY_DISCONNECT,CLOSE_IMMEDIATELY,CLIENT_RECONNECT}; app-level ACKs (message received without ACK for last payload / received unexpected ACK / replay detected retransmitting); ECJPAKE password handshake (ssl_set_hs_ecjpake_password): PAKE for PIN-less provisioning; DTLS PIN alternative; client ID set; PSK auth (Authenticating with PSK)
   - **messages:** NS2_MSG_* {SETUP_BEGIN(mode arg), SETUP_CANCEL(flags), SETUP_CLIENT_HELLO, SETUP_CONTINUE, SETUP_REAUTHORIZE(flags), SETUP_SERVER_HELLO, SETUP_SERVER_HELLO_LEGACY, SETUP_STATUS(0x%x), GET_PSK(type), PSK, REGISTRATION_KEY} + BEGIN_SETUP control
-  - **setup_modes:** NS2_SETUP_MODE_* {NONE, CHIRP, CHIRP_WITH_BUTTON, CLIENT_PIN, MANUAL_PIN, NFC, QR_CODE, QR_CODE_WITH_BUTTON, QR_CODE_WITH_REMOTE} — 9 provisioning mechanisms incl. audio chirp, QR+remote, NFC, client/manual PIN
-  - **state_fsm:** NS2_STATE_SETUP_* {START, DISCOVERY, DISCOVERY_INTERACTION, PIN_EXCHANGED, ACTIVE, WAITING, UPDATE, STANDBY, COMPLETE} — 9-state setup FSM
+  - **setup_modes:** NS2_SETUP_MODE_* {NONE, CHIRP, CHIRP_WITH_BUTTON, CLIENT_PIN, MANUAL_PIN, NFC, QR_CODE, QR_CODE_WITH_BUTTON, QR_CODE_WITH_REMOTE}: 9 provisioning mechanisms incl. audio chirp, QR+remote, NFC, client/manual PIN
+  - **state_fsm:** NS2_STATE_SETUP_* {START, DISCOVERY, DISCOVERY_INTERACTION, PIN_EXCHANGED, ACTIVE, WAITING, UPDATE, STANDBY, COMPLETE}: 9-state setup FSM
   - **psk_lifecycle:** device PSK: loaded with boot count (Netstart2 device PSK loaded, boot count %u), discarded on expiry OR max boot count; sends DTLS PSK to client; registration key set/clear (Netstart2 clearing registration signing key); unable to lock registration; no household configured
-  - **files:** /jffs/net/settings/netstart2.txt (+ .tmp atomic write) — persisted NS2 state; setup logs /jffs/setup.{log,dmesg} + /jffs/sys/log/setup/; chirp payload generation (Netstart2 failed to generate chirp payload); contactless setup attempt-limit + reauthorize (Contactless setup attempt limit reached)
+  - **files:** /jffs/net/settings/netstart2.txt (+ .tmp atomic write): persisted NS2 state; setup logs /jffs/setup.{log,dmesg} + /jffs/sys/log/setup/; chirp payload generation (Netstart2 failed to generate chirp payload); contactless setup attempt-limit + reauthorize (Contactless setup attempt limit reached)
   - **netmanager:** states {ST_CCRD,ST_CCRDA,ST_CON,ST_CON_CR,ST_R} via handlers {NetManagerSonosNet{Base,NoWifi,WithPath},NetManagerStation{Base,CheckCarrier}}Handler; events NM_EVT_SONOSNET_ENABLED + SonosNet Hint; anacapa IPC notifies state update 0x%x + mode %d %d + recovery AP state; LED modes {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH,JOIN_HH_OPEN,BEGIN_SETUP_MODE,IN_SETUP_MODE}; wacd spawned on wacstart/wactimeout via /tmp/netstartd_wac.ipc
 - **chsrc_chsnk:**
   - **status:** confirmed
@@ -910,7 +910,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **log:** /opt/log/anacapa.chsrc.state.log
   - **framing:** 'chsrc:framed'/'chsrc:te'/'chsnk_framed' block modes; block-buffered w/ ms-precision play-ahead: 'Socket has %zu bytes (%zu blocks). CHSRC ms ahead: %ld'
   - **control:** RCHSRCReq {Op,TransactionID} request/reply channel ('rchsrcreq','request retry loop timed out')
-  - **transport:** multicast — 'chsnk refreshing multicast join' re-joins on NetworkIfaceBounced/IpAddrAssigned; nodetx_chsrc channel; per-instance chsnk%d audio streams
+  - **transport:** multicast: 'chsnk refreshing multicast join' re-joins on NetworkIfaceBounced/IpAddrAssigned; nodetx_chsrc channel; per-instance chsnk%d audio streams
   - **modes:** chsnk playing local {chsrc,AI,VLI} / remote chsrc; count of off-box VLISrcMgr members <= CHSRC bound
   - **errors:** chsnk_lse, chsnk_ch_data_full, chsnk_w_err, chsrc_framer_uflw (framer underflow)
 - **seamless_delegation:**
@@ -920,7 +920,7 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **input_suppression:** during setting-state/delegating: ignores audio flush, track-changed, seeks, pause, became-inactive, volume change
   - **esdk_path:** 'Seeking to %ims in support of seamless delegation'; 'Timed out waiting for AudioStart from eSDK during seamless delegation'; SpotifyDelegationNotification
   - **vli_guard:** 'Delegated VLI session is not playing; skipping pullContext()/become active device ... to avoid re-initiating Direct Control (SWPBL-259788)'
-  - **transport:** 'sdbt' packet channel (seamless-delegation binary transport): 'sdbt receive packet failed', 'packet from remote src has incompatible protocol version' — versioned handoff packets
+  - **transport:** 'sdbt' packet channel (seamless-delegation binary transport): 'sdbt receive packet failed', 'packet from remote src has incompatible protocol version': versioned handoff packets
   - **handshake:** prepareToBeDelegationTarget -> 'Starting seamless handoff wait loop' -> 'Completed ... in %dms'; SpotifyDelegationNotification waits eSDK AudioStart (timeout)
   - **eligibility:** type-gated: HT audio + adaptive-bitrate streams unsupported (CHSNK stopped to avoid); 'delegation target not primary'/'cannot delegate to oneself'/'will try to delegate to'
   - **coordinator_ops:** BecomeGroupCoordinator{,AndSource} (Clone on non-member); 'change coordinator: old/new/ts/uri'; installClock + VLI-tx paths; 'seamless transition to {remote,local} src' w/ timeout
@@ -930,27 +930,27 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **api:** hwmessagelib_connection_{init,getReadFD,readNextMsg,destroy}; enumStr_hwmessage_multicastGroupAddFailure
   - **multicast_groups:** `AUDIO`, `BATTERY`, `BUTTON`, `CAPZONE`, `HT`, `LED`, `SENSOR`, `SWITCH`, `TEMP`
   - **consumer:** RHWEvtHandlerZP select-thread reads via getReadFD + readNextMsg -> feeds hardware-source enum events (SCI_BOARD entry #48 = the SCI carrier board)
-  - **other_protobuf:** 'Could not convert loaded satellite protobuf to HTChProcConfig' — HT satellite channel-processor config is protobuf too
+  - **other_protobuf:** 'Could not convert loaded satellite protobuf to HTChProcConfig': HT satellite channel-processor config is protobuf too
   - **rpath:** $ORIGIN/../../../cc/{sonos-utils,wifi/libwifi,hwmessagelib/lib}
 - **nts_stream_callbacks:**
   - **status:** confirmed
   - **description:** NTS (stream-delivery) callback interface between the transport layer and stream sources (esdk/SMAPI/VLI)
   - **callbacks:** `NTSCallbackStreamStart: id: %u, fmt: %u, drm: %u, size: %u, gain: %d`, `NTSCallbackStreamEnd`, `NTSCallbackStreamFlush`, `NTSCallbackStreamGetPosition`, `NTSCallbackStreamSeekToPosition`, `NTSCallbackPlaybackApplyVolume`, `NTSCallbackPlaybackNotify`, `NTSCallbackConnectionMessage`, `NTSCallbackConnectionNewCreds`, `NTSCallbackConnectionNotify`, `NTSCallbackError`
-  - **fields:** stream {id, fmt-index, drm-id, size, gain} — format/DRM are numeric indexes into codec/DRM tables
+  - **fields:** stream {id, fmt-index, drm-id, size, gain}: format/DRM are numeric indexes into codec/DRM tables
 - **smb_library:**
   - **status:** confirmed
-  - **library:** libsmb2.so.1 — smb2_{init_context,set_version,get_dialect,set_security_mode,set_user,set_password,parse_url,connect_share,open/read/lseek/fstat/close,lazy_opendir/lazy_readdir/closedir,stat,get_error,get_nterror,disconnect_share,destroy_url/context}
+  - **library:** libsmb2.so.1: smb2_{init_context,set_version,get_dialect,set_security_mode,set_user,set_password,parse_url,connect_share,open/read/lseek/fstat/close,lazy_opendir/lazy_readdir/closedir,stat,get_error,get_nterror,disconnect_share,destroy_url/context}
   - **sharelist:** sharelist.cxx: XML '<Share Path=...' list; proposeUpdatedShareList + ShareListUpdateID; 'Rejecting invalid sharelist'/'path already exists' validation; backs x-file-cifs:* playback + /shares status
 - **sntp_sync:**
   - **status:** confirmed
   - **role:** synchronizedPlay gates group playback on SNTP validity: 'SNTP waiting for valid at %d.%06d' -> 'SNTP valid %d continue to play %d at %d.%06d'; noderx I/O error while waiting
-  - **transport:** vli src tx has own 'sntp port: %u' — SNTP timebase rides the VLI distribution port; 'Starting/Completed SNTP server switch in %dms'; htsnk_invld_sntp error; {sntppoll config; error %.0f ms %s
+  - **transport:** vli src tx has own 'sntp port: %u': SNTP timebase rides the VLI distribution port; 'Starting/Completed SNTP server switch in %dms'; htsnk_invld_sntp error; {sntppoll config; error %.0f ms %s
 - **ir_decoder:**
   - **status:** confirmed
-  - **impl:** irdecoder.cxx -> selthrd.RIRDecoder thread {reset,data,except,timeout fds} reading 'IR Event read: %zd, msgcount: %u' — hardware IR remote events feed the player
+  - **impl:** irdecoder.cxx -> selthrd.RIRDecoder thread {reset,data,except,timeout fds} reading 'IR Event read: %zd, msgcount: %u': hardware IR remote events feed the player
 - **mntmgr:**
   - **status:** confirmed
-  - **impl:** mntmgr.cxx — share mount manager shells /bin/mount + umount
+  - **impl:** mntmgr.cxx: share mount manager shells /bin/mount + umount
   - **semantics:** mountShareDirectlyInternal/unmountShareDirectlyInternal; <Mount> XML doc; trial-mount across protocols w/ strike counter 'unsupported protocol %s (strike %d/%d)'; http-vs-fs mount distinction; credential-change→unmount; idle-share reaper; 'too many shares mounted' cap; mountID validation; temporary-share handling; mount-dir mkdir retry
   - **evidence:**
     - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: mntmgr.cxx log vocabulary, address: mntmgr.cxx
@@ -970,21 +970,21 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
 - **ht_audio:**
   - **status:** confirmed
   - **impl:** htaudio.cxx/htaudio_satellite_tx.cxx (+chprocessing/chsnk_processor*)
-  - **semantics:** <HTAudioInCode>%u var; 'Using HTAudio TV TX for GM %s' — TV-source TX selection for group; RHTAudioSatelliteTx feeds bonded satellites
+  - **semantics:** <HTAudioInCode>%u var; 'Using HTAudio TV TX for GM %s': TV-source TX selection for group; RHTAudioSatelliteTx feeds bonded satellites
 - **nodetx_channels:**
   - **status:** confirmed
   - **channels:** `nodetx_chsrc (group-audio source)`, `nodetx_vli (VirtualLineIn audio)`, `nodetx_ht%d (numbered home-theater channels)`, `settings-replication channel`
-  - **qos:** 'NodeTx configured to handle %s audio (qos: %d)' — per-channel QoS tags
+  - **qos:** 'NodeTx configured to handle %s audio (qos: %d)': per-channel QoS tags
   - **stats:** <NodeTXBuffer>%.3lf sec %s</NodeTXBuffer>; 'HT NodeTX Blocks'/'VLI NodeTX Blocks' block accounting
   - **impl:** nodetx.cxx
 - **secure_eventing:**
   - **status:** confirmed
-  - **flags:** UPNP_OVER_TLS + 'Secure Eventing: %d' in Subscribe; 'securehhSSLPort'/'securehhsslport' + kSecureHHHttpsPortDeltaFromBase — household secure HTTPS port (base+delta); 'secure HH SSL server creds updated/cleared (port %u)'; SecureRegistration{State,Change}UpdateEvent state machine
+  - **flags:** UPNP_OVER_TLS + 'Secure Eventing: %d' in Subscribe; 'securehhSSLPort'/'securehhsslport' + kSecureHHHttpsPortDeltaFromBase: household secure HTTPS port (base+delta); 'secure HH SSL server creds updated/cleared (port %u)'; SecureRegistration{State,Change}UpdateEvent state machine
 - **lechmere_detail:**
   - **status:** confirmed
   - **impl:** lechmere.cxx
-  - **subprotocols:** Sec-WebSocket-Protocol: lechmere.%u / lechmere-v1 / lechmere.%hhu%n — versioned ws subprotocol
-  - **wire:** <Command namespace="%s" cmd="%s" method="%s" credType="%s" /> — XML command envelope over ws
+  - **subprotocols:** Sec-WebSocket-Protocol: lechmere.%u / lechmere-v1 / lechmere.%hhu%n: versioned ws subprotocol
+  - **wire:** <Command namespace="%s" cmd="%s" method="%s" credType="%s" />: XML command envelope over ws
   - **outbound:** dials lechmere.%s.ws.sonos.com; /opt/log/anacapa.lechmere.event.log event log
   - **authz:** policy mapping per muse namespace + role from lechmere policy key; RMuseController 'activating namespace (apiVersion=%u, ns=%s, cmd=%s)'
   - **blocks:** 'Invalid namespace: UPnP subscribe/unsubscribe/renew not supported'; 'Namespace has no actor'; 'namespace is not supported'; SONOS_SERVER_LECHMERE_RECONNECT_LATER reconnect
@@ -1000,17 +1000,17 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
   - **status:** confirmed
   - **surface:** /QPlay/Control + QPlayAuth(Seed,MID,DID) action + updateSharedTQPlayMode mode op
   - **advertisement:** <qq:X_QPlay_SoftwareCapability xmlns:qq=http://www.tencent.com>QPlay:2</..> in device description via #QPLAY_SUPPORT# placeholder
-  - **note:** Tencent QPlay DLNA extension — seeded auth handshake
+  - **note:** Tencent QPlay DLNA extension: seeded auth handshake
 - **muse_async_commands:**
   - **status:** confirmed
   - **impl:** muse_async_command_handler_impl.cxx
   - **wire:** <muse_async_command ...> XML envelopes consumed off the cloud channel (lechmere)
   - **model:** thread-pool dispatch: queues muse-async-cmdq-* keyed by muse-async-cmd-id-*; scopeAsyncMuse + asyncMuseModZp scopes; modZPShutdown_AsyncMuseThreadPool shutdown; 'Cancelling all async Muse commands' on teardown; %s::%s async command execution failed
-  - **wsclient:** websocketclient.cxx — outbound ws client w/ permessage-deflate ('could not initialize per message deflate on ws client')
+  - **wsclient:** websocketclient.cxx: outbound ws client w/ permessage-deflate ('could not initialize per message deflate on ws client')
 - **http2_client:**
   - **status:** confirmed
   - **lib:** nghttp2
-  - **role:** cloud transport — REST/ws API sessions over HTTP/2
+  - **role:** cloud transport: REST/ws API sessions over HTTP/2
   - **surface:** nghttp2_session_{send,upgrade2}; nghttp2_submit_{request,ping,goaway,settings,window_update}; nghttp2_{set_,session_set_}local_window_size
   - **behavior:** h1->h2 upgrade ('(via h1 upgrade)','(upgraded to SSL)','session_upgrade2'); ping/goaway keepalive; per-stream window mgmt; 'send request NOT allowed (via nghttp2)' gating; 'PRIORITY: stream_id == 0' frame error; 'pack_settings_payload' path
   - **headers_frame_validation:** nghttp2 HEADERS-state literals: 'HEADERS: stream closed' / 'HEADERS: no HEADERS allowed from client in reserved state' / 'HEADERS: could not unpack' / 'HEADERS: insufficient padding space' / 'HEADERS: invalid padding' (@0x10f89708-0x10f89dbc) - frame-parser validation layer beyond the documented PRIORITY/RST_STREAM surface
@@ -1021,14 +1021,14 @@ The native protocol set — Sonos's own internal protocols recovered as a group:
 
 ### `hwmessagelib`
 
-The hardware-message library — the shared library for hardware-level messaging between components: the plumbing under button/LED/hardware events.  The shared library for hardware-level messaging — plumbing under button/LED/hardware events.
+The hardware-message library: the shared library for hardware-level messaging between components, which is the plumbing under button, LED, and hardware events.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **api:** hwmessagelib_connection_{init,destroy,getReadFD,readNextMsg} — fd-based protobuf connection; libhwmessagelib.so.1 + libprotobuf-nanopb.so.0
-- **multicast_groups:** 9 groups: {HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO} — multicast subscriptions by hardware-domain
-- **handler_thread:** selthrd.RHWEvtHandlerZP.{reset,data,except,timeout} — dedicated hw-event select thread
+- **api:** hwmessagelib_connection_{init,destroy,getReadFD,readNextMsg}: fd-based protobuf connection; libhwmessagelib.so.1 + libprotobuf-nanopb.so.0
+- **multicast_groups:** 9 groups: {HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO}: multicast subscriptions by hardware-domain
+- **handler_thread:** selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}: dedicated hw-event select thread
 - **features:** temperature_volume + ST_SCHEDULED_POST_WOW + IN_BUTTON_OBSERVATION_MODE + ENABLED_{,UN}AVAILABLE/DISABLED_{,UN}AVAILABLE state enum + hwmodel field
 - **semantics:** the protobuf hardware-message bus (functional 'SCI') carrying button/LED/temp/sensor/battery/capzone/switch/audio/HT events from hardware daemons into anacapad
 
@@ -1037,17 +1037,17 @@ The hardware-message library — the shared library for hardware-level messaging
 
 ### `wifi_sonosnet`
 
-SonosNet wireless — Sonos's own mesh network: the proprietary wireless linking speakers use instead of (or alongside) your WiFi.  Sonos's proprietary mesh — the dedicated wireless linking speakers use instead of (or alongside) your WiFi.
+SonosNet wireless: Sonos's own mesh network, which is the proprietary wireless linking that speakers use instead of (or alongside) your WiFi.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **mgmt:** wifictrl cmd channel (Ignoring wifictrl cmd=%d) + netstart daemon applies settings + wifi mode change/on change transitions
-- **breadcrumb:** 'Unable to leave breadcrumb, can't disable wifi' + 'No controller confirmation, re-enabling wifi' — persistent recovery breadcrumb: on a Wi-Fi config change the ZP leaves a known-good marker; absent controller confirmation it self-reverts
-- **state_desc:** dev-wifi-state/dev_wifi/wifi_dev — fields {mode, freq, ext, enabled, eth} via 'update wifi mode:%d freq:%u ext:%u enabled:%d eth:%d'
-- **channel:** SonosNet channel-change propagation ('Pushed SonosNet channel change to %u for %u ms from now') — coordinated mesh channel hop + channelization data + channelNumber
+- **breadcrumb:** 'Unable to leave breadcrumb, can't disable wifi' + 'No controller confirmation, re-enabling wifi': persistent recovery breadcrumb: on a Wi-Fi config change the ZP leaves a known-good marker; absent controller confirmation it self-reverts
+- **state_desc:** dev-wifi-state/dev_wifi/wifi_dev: fields {mode, freq, ext, enabled, eth} via 'update wifi mode:%d freq:%u ext:%u enabled:%d eth:%d'
+- **channel:** SonosNet channel-change propagation ('Pushed SonosNet channel change to %u for %u ms from now'): coordinated mesh channel hop + channelization data + channelNumber
 - **health:** assoctracker + fire event 'health %s rssi %d' + beaconLostEvent + O_SLOW_WIFI_REPORTING_INTERVAL
-- **netsettings:** wifi_pwd requires wifi_ssid + invalid wifi_pwd — credential grammar
+- **netsettings:** wifi_pwd requires wifi_ssid + invalid wifi_pwd: credential grammar
 - **power:** wifiDisable (reason) + wifiPowerSave
 - **files:** `/oc/zone/common/wifi_idle_mgr.cxx`
 
@@ -1056,13 +1056,13 @@ SonosNet wireless — Sonos's own mesh network: the proprietary wireless linking
 
 ### `bt_sbc`
 
-The Bluetooth SBC decoder path — Bluetooth audio handling present in the shared codebase for products that include it.  Part of the platform code on this build — present for products that carry Bluetooth, dormant here.
+The Bluetooth SBC decoder path: Bluetooth audio handling present in the shared codebase for products that include it, dormant on this wired-only hardware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **libs:** libsbc.so.1 + libsonossbcpacket.so.1
-- **codec:** sbc_{init,finish,parse,decode,encode,get_codesize,get_frame_length} — dual decode+encode (sink AND source)
+- **codec:** sbc_{init,finish,parse,decode,encode,get_codesize,get_frame_length}: dual decode+encode (sink AND source)
 - **packets:** 'invalid number of frames per sbc packet'; 'unexpected sbc {config,encode} result expected=%u->%u got=%zd->%zd'
 - **led:** BT-mode LED state: m_bIsInExclusiveBTMode + m_bIsBTConnected + bFlashMode
 
@@ -1071,7 +1071,7 @@ The Bluetooth SBC decoder path — Bluetooth audio handling present in the share
 
 ### `ssdp_discovery`
 
-Device-discovery announcements and searches — the classic find-each-other protocol: speakers announce presence, search for peers, and log who answered. The older discovery layer alongside the Sonos-specific mechanisms.
+Device-discovery announcements and searches: the classic find-each-other protocol where speakers announce presence, search for peers, and log who answered. It's the older discovery layer alongside the Sonos-specific mechanisms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1094,7 +1094,7 @@ Device-discovery announcements and searches — the classic find-each-other prot
 
 ### `ssdp_signed_msearch`
 
-Signed M-search — the authenticated form of discovery search: a signed variant protecting the discovery exchange.  The authenticated form of discovery search — a signed variant protecting the exchange.
+Signed M-search: the authenticated form of discovery search, a signed variant protecting the exchange.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1108,7 +1108,7 @@ Signed M-search — the authenticated form of discovery search: a signed variant
 
 ### `proprietary_headers`
 
-The proprietary HTTP headers — the Sonos-specific request/response headers the firmware recognizes: the private extensions riding on ordinary HTTP.  The Sonos-specific request/response headers the firmware recognizes — private extensions riding on ordinary HTTP.
+The proprietary HTTP headers: the Sonos-specific request and response headers the firmware recognizes, which are private extensions riding on ordinary HTTP.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1169,7 +1169,7 @@ The proprietary HTTP headers — the Sonos-specific request/response headers the
 
 ### `chirp_sdk`
 
-The chirp SDK interface — the internal API for the speaker-identification tone: start, stop, and configure the 'which box am I' chirp.  So the room-detection commands don't each reimplement tone control — one shared interface for identification sounds.
+The chirp SDK interface: the internal API for the speaker-identification tone, covering start, stop, and configure. It gives the room-detection commands one shared interface for identification sounds.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1177,7 +1177,7 @@ The chirp SDK interface — the internal API for the speaker-identification tone
 - **name:** Chirp ultrasonic SDK 4.2.3 (chirp-sdk, build 1898)
 - **evidence:**
   - type: firmware, address: 0x10fcf2d4, notes: chirp_sdk error-string table + /code/src/chirp-sdk/ paths + version literals
-- **note:** Asynchronous Inc's Chirp SDK v4.2.3 — ultrasonic data-over-audio for device setup (sonos-cdma profile). Error vocabulary recovered: profile/channel validation, modulation-scheme mismatches, payload decode failures ('payload contains unknown symbols', 'Couldn't decode the payload'), gain-level errors, muted-device guard. Source paths leak the SDK layout: /code/src/chirp-sdk/chirp_sdk_process.c, chirp_sdk_states.c, /code/chirp-core/source/utils/src/utils/helpers.c; internal funcs chirp_sdk_process_shorts_{input,output}, chirp_sdk_send, chirp_levenshtein.
+- **note:** Asynchronous Inc's Chirp SDK v4.2.3: ultrasonic data-over-audio for device setup (sonos-cdma profile). Error vocabulary recovered: profile/channel validation, modulation-scheme mismatches, payload decode failures ('payload contains unknown symbols', 'Couldn't decode the payload'), gain-level errors, muted-device guard. Source paths leak the SDK layout: /code/src/chirp-sdk/chirp_sdk_process.c, chirp_sdk_states.c, /code/chirp-core/source/utils/src/utils/helpers.c; internal funcs chirp_sdk_process_shorts_{input,output}, chirp_sdk_send, chirp_levenshtein.
 - **version:** 4.2.3
 - **build:** 1898
 - **internals:** `chirp_sdk_process_shorts_input`, `chirp_sdk_process_shorts_output`, `chirp_sdk_send`, `chirp_levenshtein`

@@ -1,8 +1,8 @@
-# `ConnectionManager` — `/MediaRenderer/ConnectionManager/Control`
+# `ConnectionManager` `/MediaRenderer/ConnectionManager/Control`
 
 **visibility** `advertised` · **status** `strong`
 
-This is a standard plumbing service that both Sonos devices and apps use to inventory live connections — the active sessions between a control point and this player. Almost everything it does is bookkeeping: which connections exist, what each one is for, and which media formats the player claims it can send or receive. You will never see its commands surfaced in an app; they exist because the classic device-control standard every networked media player implements requires them.
+This is a standard plumbing service that both Sonos devices and apps use to inventory live connections, meaning the active sessions between a control point and this player. Almost everything it does is bookkeeping: which connections exist, what each one is for, and which media formats the player claims it can send or receive. You will never see its commands surfaced in an app. They exist because the classic device-control standard that every networked media player implements requires them.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -34,11 +34,11 @@ Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/C
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the list of connections currently open against this player, as a comma-separated list of connection IDs. Each ID names one live control session — for instance an app actively steering playback. When nothing is connected, the list is empty.
+Returns the list of connections currently open against this player, as a comma-separated list of connection IDs. Each ID names one live control session, for instance an app actively steering playback. When nothing is connected, the list is empty.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.
+Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on the r4-in impl object; a NONZERO return means success (the emit helper f_10735918 then serializes the id list) while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.
 
 </details>
 
@@ -48,7 +48,7 @@ Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on 
 |---|---|---|
 | `CurrentConnectionIDs` | response field | impl-produced / per the response writer |
 
-- **`CurrentConnectionIDs`** — CSV of active connection IDs; impl 0x10735918 writes a NUL via the core stub f_1032e710, so it is always empty in this build
+- **`CurrentConnectionIDs`**: CSV of active connection IDs; impl 0x10735918 writes a NUL via the core stub f_1032e710, so it is always empty in this build
   - validation: arg-name string loaded at 0x10735968 inside impl 0x10735918; emitted via the response writer
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -58,7 +58,7 @@ Returns the CSV list of active connection ids. Wrapper calls impl->v\[+0x8\] on 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107359e0 — wrapper decode
+- @ 0x107359e0; wrapper decode
 
 </details>
 
@@ -68,7 +68,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107359e0 — req-vfunc call map: {'0x14': 1}
+- fn 0x107359e0; req-vfunc call map: {'0x14': 1}
 
 </details>
 
@@ -78,7 +78,7 @@ impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0
 service-internal state reached through member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107359e0 — member vfunc calls: \['r4 v\[+0x8\]'\]
+- fn 0x107359e0; member vfunc calls: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -92,7 +92,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107359e0 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
+- fn 0x107359e0; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -102,7 +102,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107359e0 — bl call scan: notify-family sites = \[\]
+- fn 0x107359e0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -112,7 +112,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107359e0 — commit/fault slot usage: {'0x14': 1}
+- fn 0x107359e0; commit/fault slot usage: {'0x14': 1}
 
 </details>
 
@@ -121,15 +121,15 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 **`402`** `strong`
 
-The impl->v\[+0x8\] call returned 0 — no usable connection list. | n/a — success/failure fully determined by the impl vfunc return
+The impl->v\[+0x8\] call returned 0 (no usable connection list. | n/a) success/failure fully determined by the impl vfunc return
 
 - impl vfunc r3==0
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
-- impl returned 0 — impl/parse rc path to shared fault emitter (see evidence)
+- impl returned 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** n/a — success/failure fully determined by the impl vfunc return
-**Bounded unknown — unresolved:** none
+**Bounded unknown (proven):** n/a: success/failure fully determined by the impl vfunc return
+**Bounded unknown (unresolved):** none
 
 
 
@@ -142,10 +142,10 @@ The impl->v\[+0x8\] call returned 0 — no usable connection list. | n/a — suc
 - impl call `0x10735a0c` obj `r4-in` slot `8` arg4 `r4-in`
 - Request-gate req->v\[+0x08\] (nonzero else 402). Calls core->v\[+0x0c\] = f_1032e710, a stub that stores a NUL byte into the out buffer and returns 0 unconditionally -- CurrentConnectionIDs is therefore always the empty string (no connection registry in this build). req->v\[+0x0c\] commits. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.
 
-- fn 0x107359e0 @ 0x107359e0 — action wrapper handler
-- @ 0x10f118d4 — action dispatch table entry
-- fn f_107359e0 — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
-- fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path
+- fn 0x107359e0 @ 0x107359e0; action wrapper handler
+- @ 0x10f118d4; action dispatch table entry
+- fn f_107359e0; handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
+- fn 0x1032e730; Sink/conn-info vfunc: only 402/706 returns, no success path
 
 </details>
 
@@ -167,7 +167,7 @@ Returns the seven connection-info fields for a given ConnectionID. Wrapper parse
 |---|---|---|---|---|
 | `ConnectionID` | SonosUintArg | yes | impl-side grammar applies / parser cap | none - required argument |
 
-- **`ConnectionID`** — connection identifier to query
+- **`ConnectionID`**: connection identifier to query
   - validation: consumed by the impl vfunc
   - buffer cap: `0x18`
 
@@ -190,7 +190,7 @@ Returns the seven connection-info fields for a given ConnectionID. Wrapper parse
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107356bc — wrapper decode
+- @ 0x107356bc; wrapper decode
 
 </details>
 
@@ -200,7 +200,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×1, out-arg write×7, validate×1, commit×1); member delegates: *(r30+4) v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107356bc — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}
+- fn 0x107356bc; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}
 
 </details>
 
@@ -210,7 +210,7 @@ impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-
 service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107356bc — member vfunc calls: \['*(r30+4) v\[+?\]'\]
+- fn 0x107356bc; member vfunc calls: \['*(r30+4) v\[+?\]'\]
 
 </details>
 
@@ -224,7 +224,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107356bc — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
+- fn 0x107356bc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
 
 </details>
 
@@ -234,7 +234,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107356bc — bl call scan: notify-family sites = \[\]
+- fn 0x107356bc; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -244,7 +244,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107356bc — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}
+- fn 0x107356bc; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}
 
 </details>
 
@@ -258,8 +258,8 @@ impl->v\[+0x1c\] rc surfaced
 - the impl vfunc produced a nonzero code
 
 
-**Bounded unknown — proven:** impl->v\[+0x1c\] rc surfaced
-**Bounded unknown — unresolved:** the specific code for an unknown/inactive ConnectionID
+**Bounded unknown (proven):** impl->v\[+0x1c\] rc surfaced
+**Bounded unknown (unresolved):** the specific code for an unknown/inactive ConnectionID
 
 **`402`** `confirmed`
 
@@ -286,10 +286,10 @@ Wrapper parse layer rejected an argument before the impl call.
 - req vcall `0x1073590c` slot `12` (commit)
 - Parses required ConnectionID via req->v\[+0x1c\]+f_10561514, then req->v\[+0x08\] gate (else 402). Calls core->v\[+0x10\] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v\[+0x14\]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists.
 
-- fn 0x107356bc @ 0x107356bc — action wrapper handler
-- @ 0x10f118e0 — action dispatch table entry
-- fn f_107356bc — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
-- fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path
+- fn 0x107356bc @ 0x107356bc; action wrapper handler
+- @ 0x10f118e0; action dispatch table entry
+- fn f_107356bc; handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
+- fn 0x1032e730; Sink/conn-info vfunc: only 402/706 returns, no success path
 
 </details>
 
@@ -297,7 +297,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reports which media formats this player advertises it can produce or consume — the protocol/capability string pair used by devices to decide whether they can hand each other a stream. In practice this is how a control point learns the speaker can play HTTP audio streams, the special Sonos-internal formats, and so on.
+Reports which media formats this player advertises it can produce or consume. This is the protocol and capability string pair that devices use to decide whether they can hand each other a stream. In practice it is how a control point learns the speaker can play HTTP audio streams, the special Sonos-internal formats, and so on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -312,9 +312,9 @@ Returns the supported protocol info strings (Source/Sink CSVs) via impl->v\[+0x8
 | `Source` | response field | impl-produced / per the response writer |
 | `Sink` | response field | impl-produced / per the response writer |
 
-- **`Source`** — source protocol-info CSV emitted by impl 0x10735a64 via core vfunc f_1032e84c
+- **`Source`**: source protocol-info CSV emitted by impl 0x10735a64 via core vfunc f_1032e84c
   - validation: arg-name string loaded at 0x10735abc inside impl 0x10735a64; emitted via the response writer
-- **`Sink`** — sink protocol-info CSV emitted by impl 0x10735a64
+- **`Sink`**: sink protocol-info CSV emitted by impl 0x10735a64
   - validation: arg-name string loaded at 0x10735ae8 inside impl 0x10735a64; emitted via the response writer
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -324,7 +324,7 @@ Returns the supported protocol info strings (Source/Sink CSVs) via impl->v\[+0x8
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10735b64 — wrapper decode
+- @ 0x10735b64; wrapper decode
 
 </details>
 
@@ -334,7 +334,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735b64 — req-vfunc call map: {'0x14': 1}
+- fn 0x10735b64; req-vfunc call map: {'0x14': 1}
 
 </details>
 
@@ -344,7 +344,7 @@ impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0
 service-internal state reached through member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735b64 — member vfunc calls: \['r4 v\[+0x8\]'\]
+- fn 0x10735b64; member vfunc calls: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -358,7 +358,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735b64 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
+- fn 0x10735b64; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -368,7 +368,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735b64 — bl call scan: notify-family sites = \[\]
+- fn 0x10735b64; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -378,7 +378,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735b64 — commit/fault slot usage: {'0x14': 1}
+- fn 0x10735b64; commit/fault slot usage: {'0x14': 1}
 
 </details>
 
@@ -393,8 +393,8 @@ impl->v\[+0x8\] rc gates emit | Wrapper parse layer rejected an argument before 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl->v\[+0x8\] rc gates emit
-**Bounded unknown — unresolved:** whether 0 faults with 402 like its sibling
+**Bounded unknown (proven):** impl->v\[+0x8\] rc gates emit
+**Bounded unknown (unresolved):** whether 0 faults with 402 like its sibling
 
 
 
@@ -407,10 +407,10 @@ impl->v\[+0x8\] rc gates emit | Wrapper parse layer rejected an argument before 
 - impl call `0x10735b90` obj `r4-in` slot `8` arg4 `r4-in`
 - Request-gate req->v\[+0x08\] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v\[+0x08\] = f_1032e84c, a strlcpy of the literal CSV "file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*" into a 0x400 stack buffer; emits Sink via core->v\[+0x10\] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v\[+0x0c\] commits the response. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.
 
-- fn 0x10735b64 @ 0x10735b64 — action wrapper handler
-- @ 0x10f118ec — action dispatch table entry
-- fn f_10735b64 — handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
-- fn 0x1032e730 — Sink/conn-info vfunc: only 402/706 returns, no success path
+- fn 0x10735b64 @ 0x10735b64; action wrapper handler
+- @ 0x10f118ec; action dispatch table entry
+- fn f_10735b64; handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8
+- fn 0x1032e730; Sink/conn-info vfunc: only 402/706 returns, no success path
 
 </details>
 
@@ -443,12 +443,12 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 </details>
 
-Implementation sources (recovered): `compiled lib — no path literal (same family as MediaServer CM)`
+Implementation sources (recovered): `compiled lib: no path literal (same family as MediaServer CM)`
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x101953c8 — service router function
-- @ 0x10f118bc — service vtable
-- @ 0x10735574 — service dispatcher
+- @ 0x101953c8; service router function
+- @ 0x10f118bc; service vtable
+- @ 0x10735574; service dispatcher
 
 </details>

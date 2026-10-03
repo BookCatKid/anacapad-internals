@@ -1,12 +1,12 @@
-# `QPlay` — `/QPlay/Control`
+# `QPlay` `/QPlay/Control`
 
 **visibility** `advertised` · **status** `confirmed`
 
-This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers — the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present — QPlay is a feature that shipped only on units sold for the Chinese market, which is why most users have never seen it.
+This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers, which is the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present, because QPlay shipped only on units sold for the Chinese market, which is why most users have never seen it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.
+QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth: likely registered but dispatch entry unresolved in this build.
 
 </details>
 
@@ -31,7 +31,7 @@ QPlay (QQ Music) authentication service stub; the extractor resolved no handler 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp-dispatched`
 
-The QPlay login handshake — the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration; meaningless to ordinary apps.
+The QPlay login handshake, the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration, so it is meaningless to ordinary apps.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -45,7 +45,7 @@ QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dis
 |---|---|---|---|---|
 | `Seed` | string argument | yes | seed string consumed verbatim by auth hash f_10906304 / max 127 chars | none; required input |
 
-- **`Seed`** — client seed string feeding the auth-code computation f_10906304; required
+- **`Seed`**: client seed string feeding the auth-code computation f_10906304; required
   - validation: required-arg parse precedes impl call; req->v\[+0x08\] gate emits 402 on failure
   - buffer cap: `0x80`
 
@@ -53,9 +53,9 @@ QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dis
 
 | Name | Type | Values / range |
 |---|---|---|
-| `Code` |  | — |
-| `MID` |  | — |
-| `DID` |  | — |
+| `Code` |  | none |
+| `MID` |  | none |
+| `DID` |  | none |
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
 
@@ -64,8 +64,8 @@ QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dis
 req->v\[+0x08\] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- @ 0x1073a5d0 — validate gate + 0x192 literal
-- @ 0x1073a6b8 — 0x192 -> req->v\[+0x14\]
+- @ 0x1073a5d0; validate gate + 0x192 literal
+- @ 0x1073a6b8; 0x192 -> req->v\[+0x14\]
 
 </details>
 
@@ -75,7 +75,7 @@ req->v\[+0x08\] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)
 Seed is required: parse via f_1056157c precedes the impl call and the req->v\[+0x08\] gate rejects missing/malformed args with 402
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073a5d0 — required-arg parse order + gate
+- @ 0x1073a5d0; required-arg parse order + gate
 
 </details>
 
@@ -85,8 +85,8 @@ Seed is required: parse via f_1056157c precedes the impl call and the req->v\[+0
 auth computation reads device-identity material via f_106453a8/f_1064548c lookups inside impl f_104666b4; impl object injected into svc+4 by ctor f_1073a768 (called at 0x1018f28c)
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- @ 0x104666b4 — device-material lookups
-- @ 0x1018f28c — impl ctor injection site
+- @ 0x104666b4; device-material lookups
+- @ 0x1018f28c; impl ctor injection site
 
 </details>
 
@@ -100,7 +100,7 @@ auth computation reads device-identity material via f_106453a8/f_1064548c lookup
 none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond the action-name/TLS stores
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x104666b4 — read-only auth computation + return 0
+- @ 0x104666b4; read-only auth computation + return 0
 
 </details>
 
@@ -110,7 +110,7 @@ none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond 
 none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify call; the only side effect is the action-name store into ctx+0x70 member +0xe0 and TLS+0x28
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x104666b4 — unconditional return 0, no event emitter calls
+- @ 0x104666b4; unconditional return 0, no event emitter calls
 
 </details>
 
@@ -120,8 +120,8 @@ none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify cal
 impl returns 0 unconditionally -> success response commits Code/MID/DID via req->v\[+0x24\] emitters then req->v\[+0x0c\]; nonzero would surface via the same fault/commit path
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- @ 0x104666b4 — return 0
-- @ 0x1073a5d0 — emit + commit tail
+- @ 0x104666b4; return 0
+- @ 0x1073a5d0; emit + commit tail
 
 </details>
 
@@ -155,9 +155,9 @@ action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 - handler `0x1073a4f0`
 - Dispatcher f_1073a4f0 strcmp-matches "QPlayAuth", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v\[+0x0c\] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v\[+0x08\] gate (else 402), then impl->v\[+0x08\] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v\[+0x24\] then commits via req->v\[+0x0c\].
 
-- @ 0x1073a528 — strcmp dispatch site
-- fn 0x1073a5d0 — svc vfunc +0x0c: Seed parse, 402 gate, impl call, Code/MID/DID emission
-- fn 0x104666b4 — impl: auth-code computation + %u format; unconditional return 0
+- @ 0x1073a528; strcmp dispatch site
+- fn 0x1073a5d0; svc vfunc +0x0c: Seed parse, 402 gate, impl call, Code/MID/DID emission
+- fn 0x104666b4; impl: auth-code computation + %u format; unconditional return 0
 
 </details>
 
@@ -196,12 +196,12 @@ unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid
 
 </details>
 
-Implementation sources (recovered): `compiled lib (qplay) — no path literal`
+Implementation sources (recovered): `compiled lib (qplay): no path literal`
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x101953c8 — service router function
-- @ 0x10f11d48 — service vtable
-- @ 0x1073a4f0 — service dispatcher
+- @ 0x101953c8; service router function
+- @ 0x10f11d48; service vtable
+- @ 0x1073a4f0; service dispatcher
 
 </details>

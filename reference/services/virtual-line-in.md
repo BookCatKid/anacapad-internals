@@ -1,8 +1,8 @@
-# `VirtualLineIn` — `/MediaRenderer/VirtualLineIn/Control`
+# `VirtualLineIn` `/MediaRenderer/VirtualLineIn/Control`
 
 **visibility** `advertised` · **status** `strong`
 
-This service is the control surface for a 'virtual line-in' session — Sonos's mechanism for piping audio into the player from a source that isn't a playlist or a radio stream. When an external feed is pushing audio at the player (for example, a music service's own direct-streaming feature or a compatible in-home source), the system wraps that feed in a virtual line-in session, and the commands here are how the source controls it: start and stop the transmission, and use play/pause/skip/volume on the session. It looks like a mini remote control for a live feed rather than for the queue.
+This service is the control surface for a 'virtual line-in' session, Sonos's mechanism for piping audio into the player from a source that isn't a playlist or a radio stream. When an external feed is pushing audio at the player (for example, a music service's own direct-streaming feature or a compatible in-home source), the system wraps that feed in a virtual line-in session, and the commands here are how the source controls it: start and stop the transmission, and use play/pause/skip/volume on the session. It looks like a mini remote control for a live feed rather than for the queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -39,7 +39,7 @@ Virtual Line-In sink service: a VLI playback session exposes transport-like cont
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Skips to the next item in a virtual line-in session — forwards the 'next' request to whatever external source is feeding the player, if that source supports skipping.
+Skips to the next item in a virtual line-in session. The request is forwarded to whatever external source is feeding the player, so it works only if that source supports skipping.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -53,7 +53,7 @@ Next-track in the VLI session via impl->v\[+0x1c\].
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
 
@@ -64,7 +64,7 @@ Next-track in the VLI session via impl->v\[+0x1c\].
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073ce18 — wrapper decode
+- @ 0x1073ce18; wrapper decode
 
 </details>
 
@@ -74,7 +74,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073ce18 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073ce18; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -84,7 +84,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073ce18 — member vfunc calls: \['r30 v\[+0x1c\]'\]
+- fn 0x1073ce18; member vfunc calls: \['r30 v\[+0x1c\]'\]
 
 </details>
 
@@ -98,7 +98,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073ce18 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
+- fn 0x1073ce18; no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
 
 </details>
 
@@ -108,7 +108,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073ce18 — bl call scan: notify-family sites = \[\]
+- fn 0x1073ce18; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -118,7 +118,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073ce18 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073ce18; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -144,8 +144,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073cef8` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x1073ce74` slot `8` (parse)
 
-- fn 0x1073ce18 @ 0x1073ce18 — action wrapper handler
-- @ 0x10f11ee0 — action dispatch table entry
+- fn 0x1073ce18 @ 0x1073ce18; action wrapper handler
+- @ 0x10f11ee0; action dispatch table entry
 
 </details>
 
@@ -153,7 +153,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Pauses the virtual line-in session — pauses the external feed on the source's side rather than just locally muting it. Pauses the external feed on the source's side rather than just locally muting it.
+Pauses the virtual line-in session by pausing the external feed on the source's side, rather than just locally muting it on this speaker.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -167,7 +167,7 @@ Pauses VLI playback via impl->v\[+0x18\].
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
 
@@ -178,7 +178,7 @@ Pauses VLI playback via impl->v\[+0x18\].
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073cf04 — wrapper decode
+- @ 0x1073cf04; wrapper decode
 
 </details>
 
@@ -188,7 +188,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cf04 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073cf04; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -198,7 +198,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cf04 — member vfunc calls: \['r30 v\[+0x18\]'\]
+- fn 0x1073cf04; member vfunc calls: \['r30 v\[+0x18\]'\]
 
 </details>
 
@@ -212,7 +212,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x18\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cf04 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
+- fn 0x1073cf04; no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
 
 </details>
 
@@ -222,7 +222,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cf04 — bl call scan: notify-family sites = \[\]
+- fn 0x1073cf04; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -232,7 +232,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cf04 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073cf04; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -258,8 +258,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073cfe4` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x1073cf60` slot `8` (parse)
 
-- fn 0x1073cf04 @ 0x1073cf04 — action wrapper handler
-- @ 0x10f11eec — action dispatch table entry
+- fn 0x1073cf04 @ 0x1073cf04; action wrapper handler
+- @ 0x10f11eec; action dispatch table entry
 
 </details>
 
@@ -267,7 +267,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts or resumes the virtual line-in session — tells the external feed to begin streaming and the player to present it as the current source. Speed handling mirrors the main transport's play command.
+Starts or resumes the virtual line-in session: it tells the external feed to begin streaming and the player to present it as the current source. Speed handling mirrors the main transport's play command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -282,10 +282,10 @@ Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 | `Speed` | SonosUintArg | yes | any string <=0x400 - impl entry does not enumerate it / max 1023 chars | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
-- **`Speed`** — string <=0x400 via f_1056157c; passed to impl worker
+- **`Speed`**: string <=0x400 via f_1056157c; passed to impl worker
   - validation: parse only at request layer
   - buffer cap: `0x400`
 
@@ -296,7 +296,7 @@ Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073d2dc — wrapper decode
+- @ 0x1073d2dc; wrapper decode
 
 </details>
 
@@ -306,7 +306,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d2dc — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d2dc; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -316,7 +316,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d2dc — member vfunc calls: \['r30 v\[+0x14\]'\]
+- fn 0x1073d2dc; member vfunc calls: \['r30 v\[+0x14\]'\]
 
 </details>
 
@@ -330,7 +330,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x14\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d2dc — no transition-literal/store pattern; member delegates: \['r30 v\[+0x14\]'\]
+- fn 0x1073d2dc; no transition-literal/store pattern; member delegates: \['r30 v\[+0x14\]'\]
 
 </details>
 
@@ -340,7 +340,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d2dc — bl call scan: notify-family sites = \[\]
+- fn 0x1073d2dc; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -350,7 +350,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d2dc — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d2dc; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -376,8 +376,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073d3e8` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x1073d360` slot `8` (parse)
 
-- fn 0x1073d2dc @ 0x1073d2dc — action wrapper handler
-- @ 0x10f11ef8 — action dispatch table entry
+- fn 0x1073d2dc @ 0x1073d2dc; action wrapper handler
+- @ 0x10f11ef8; action dispatch table entry
 
 </details>
 
@@ -385,7 +385,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Skips back to the previous item in a virtual line-in session — again, a request forwarded to the external source feeding the player. A request forwarded to the external source feeding the player — works only if that source supports going back.
+Skips back to the previous item in a virtual line-in session. The request is forwarded to the external source feeding the player, so it works only if that source supports going back.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -399,7 +399,7 @@ Previous-track via impl->v\[+0x20\].
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
 
@@ -410,7 +410,7 @@ Previous-track via impl->v\[+0x20\].
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073cff0 — wrapper decode
+- @ 0x1073cff0; wrapper decode
 
 </details>
 
@@ -420,7 +420,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cff0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073cff0; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -430,7 +430,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cff0 — member vfunc calls: \['r30 v\[+0x20\]'\]
+- fn 0x1073cff0; member vfunc calls: \['r30 v\[+0x20\]'\]
 
 </details>
 
@@ -444,7 +444,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x20\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cff0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x20\]'\]
+- fn 0x1073cff0; no transition-literal/store pattern; member delegates: \['r30 v\[+0x20\]'\]
 
 </details>
 
@@ -454,7 +454,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cff0 — bl call scan: notify-family sites = \[\]
+- fn 0x1073cff0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -464,7 +464,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073cff0 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073cff0; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -490,8 +490,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073d0d0` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x1073d04c` slot `8` (parse)
 
-- fn 0x1073cff0 @ 0x1073cff0 — action wrapper handler
-- @ 0x10f11f04 — action dispatch table entry
+- fn 0x1073cff0 @ 0x1073cff0; action wrapper handler
+- @ 0x10f11f04; action dispatch table entry
 
 </details>
 
@@ -499,7 +499,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the volume for the virtual line-in session — the level at which the incoming feed is played on this speaker. Sets how loud the incoming feed plays on this speaker, independent of its own source's level.
+Sets the volume for the virtual line-in session, meaning how loud the incoming feed plays on this speaker independently of the level at its own source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -514,10 +514,10 @@ Sets VLI-session volume (DesiredVolume) via impl->v\[+0x24\].
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 | `DesiredVolume` | SonosUintArg | yes | u32 volume; no range check at impl entry (member write path under mpvlictrl guard) / impl-validated | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
-- **`DesiredVolume`** — volume value passed to session impl 0x10412b78 -> this+0x130 member write
+- **`DesiredVolume`**: volume value passed to session impl 0x10412b78 -> this+0x130 member write
   - validation: impl-validated
   - buffer cap: `0x18`
 
@@ -528,7 +528,7 @@ Sets VLI-session volume (DesiredVolume) via impl->v\[+0x24\].
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073d0dc — wrapper decode
+- @ 0x1073d0dc; wrapper decode
 
 </details>
 
@@ -538,7 +538,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d0dc — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d0dc; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -548,7 +548,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d0dc — member vfunc calls: \['r30 v\[+0x24\]'\]
+- fn 0x1073d0dc; member vfunc calls: \['r30 v\[+0x24\]'\]
 
 </details>
 
@@ -562,7 +562,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x24\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d0dc — no transition-literal/store pattern; member delegates: \['r30 v\[+0x24\]'\]
+- fn 0x1073d0dc; no transition-literal/store pattern; member delegates: \['r30 v\[+0x24\]'\]
 
 </details>
 
@@ -572,7 +572,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d0dc — bl call scan: notify-family sites = \[\]
+- fn 0x1073d0dc; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -582,7 +582,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d0dc — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d0dc; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -608,8 +608,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073d1e4` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x1073d15c` slot `8` (parse)
 
-- fn 0x1073d0dc @ 0x1073d0dc — action wrapper handler
-- @ 0x10f11f10 — action dispatch table entry
+- fn 0x1073d0dc @ 0x1073d0dc; action wrapper handler
+- @ 0x10f11f10; action dispatch table entry
 
 </details>
 
@@ -632,10 +632,10 @@ Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings v
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 | `CoordinatorID` | SonosStringArg | yes | any non-empty string parseable by f_1056157c / max 1023 chars | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
-- **`CoordinatorID`** — coordinator zone UUID string via f_1056157c; parse failure -> 402
+- **`CoordinatorID`**: coordinator zone UUID string via f_1056157c; parse failure -> 402
   - validation: non-empty parse required
   - buffer cap: `0x400`
 
@@ -645,7 +645,7 @@ Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings v
 |---|---|---|
 | `CurrentTransportSettings` | SonosBoolArg | "0" or "1" via bool-style parse helper; literal semantics under action validation / {0,1} |
 
-- **`CurrentTransportSettings`** — emitted from session impl transport settings (this+0x130 family)
+- **`CurrentTransportSettings`**: emitted from session impl transport settings (this+0x130 family)
   - validation: impl-produced
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -655,7 +655,7 @@ Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings v
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073d3f4 — wrapper decode
+- @ 0x1073d3f4; wrapper decode
 
 </details>
 
@@ -665,7 +665,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d3f4 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x1073d3f4; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -675,7 +675,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d3f4 — member vfunc calls: \['r30 v\[+0x8\]'\]
+- fn 0x1073d3f4; member vfunc calls: \['r30 v\[+0x8\]'\]
 
 </details>
 
@@ -689,7 +689,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d3f4 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x8\]'\]
+- fn 0x1073d3f4; no transition-literal/store pattern; member delegates: \['r30 v\[+0x8\]'\]
 
 </details>
 
@@ -699,7 +699,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d3f4 — bl call scan: notify-family sites = \[\]
+- fn 0x1073d3f4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -709,7 +709,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d3f4 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x1073d3f4; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -736,8 +736,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073d538` obj `*(sp-0x4b0+0x4ac)` slot `12` arg4 `?`
 - req vcall `0x1073d478` slot `8` (parse)
 
-- fn 0x1073d3f4 @ 0x1073d3f4 — action wrapper handler
-- @ 0x10f11f1c — action dispatch table entry
+- fn 0x1073d3f4 @ 0x1073d3f4; action wrapper handler
+- @ 0x10f11f1c; action dispatch table entry
 
 </details>
 
@@ -745,7 +745,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops the virtual line-in session's playback — halts the current feed. Halts the current feed — the session can be resumed with Play afterward. Unlike the pause commands, stop ends the feed's position — a resume starts the session's content over rather than continuing.
+Stops the virtual line-in session's playback by halting the current feed. Unlike the pause commands, stop ends the feed's position, so resuming with Play starts the session's content over rather than continuing where it left off.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -759,7 +759,7 @@ Stops VLI playback via impl->v\[+0x10\].
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
 
@@ -770,7 +770,7 @@ Stops VLI playback via impl->v\[+0x10\].
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073d1f0 — wrapper decode
+- @ 0x1073d1f0; wrapper decode
 
 </details>
 
@@ -780,7 +780,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d1f0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d1f0; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -790,7 +790,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d1f0 — member vfunc calls: \['r30 v\[+0x10\]'\]
+- fn 0x1073d1f0; member vfunc calls: \['r30 v\[+0x10\]'\]
 
 </details>
 
@@ -804,7 +804,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d1f0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
+- fn 0x1073d1f0; no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
 
 </details>
 
@@ -814,7 +814,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d1f0 — bl call scan: notify-family sites = \[\]
+- fn 0x1073d1f0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -824,7 +824,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d1f0 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d1f0; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -839,8 +839,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl f_104164c4: flag-setter thunk (r4=0) tail-calling shared transport worker f_1041616c; residual = worker rc domain (call-derived)
-**Bounded unknown — unresolved:** codes for session-state rejections
+**Bounded unknown (proven):** impl f_104164c4: flag-setter thunk (r4=0) tail-calling shared transport worker f_1041616c; residual = worker rc domain (call-derived)
+**Bounded unknown (unresolved):** codes for session-state rejections
 
 
 
@@ -854,8 +854,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073d2d0` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x1073d24c` slot `8` (parse)
 
-- fn 0x1073d1f0 @ 0x1073d1f0 — action wrapper handler
-- @ 0x10f11f28 — action dispatch table entry
+- fn 0x1073d1f0 @ 0x1073d1f0; action wrapper handler
+- @ 0x10f11f28; action dispatch table entry
 
 </details>
 
@@ -863,7 +863,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Closes the virtual line-in session entirely — tears down the connection to the feeding coordinator, ending the push session. Tears down the connection to the feeding coordinator entirely — the push session ends rather than just pausing.
+Closes the virtual line-in session entirely by tearing down the connection to the feeding coordinator. The push session ends completely rather than just pausing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -878,10 +878,10 @@ Stops the VLI transmission to CoordinatorID via impl->v\[+0xc\].
 | `InstanceID` | SonosUintArg | yes | any u32 - impl entry does not range-check it in this build / u32 | none - required argument |
 | `CoordinatorID` | SonosStringArg | yes | any non-empty string parseable by f_1056157c / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`InstanceID`** — u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
+- **`InstanceID`**: u32 parsed via f_105614e0; passed to impl; no handler-side range check observed
   - validation: parse only at request layer
   - buffer cap: `0x18`
-- **`CoordinatorID`** — coordinator zone UUID string via f_1056157c; parse failure -> 402
+- **`CoordinatorID`**: coordinator zone UUID string via f_1056157c; parse failure -> 402
   - validation: non-empty parse required
   - buffer cap: `0x400`
 
@@ -892,7 +892,7 @@ Stops the VLI transmission to CoordinatorID via impl->v\[+0xc\].
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073d544 — wrapper decode
+- @ 0x1073d544; wrapper decode
 
 </details>
 
@@ -902,7 +902,7 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d544 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d544; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -912,7 +912,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d544 — member vfunc calls: \['r30 v\[+0xc\]'\]
+- fn 0x1073d544; member vfunc calls: \['r30 v\[+0xc\]'\]
 
 </details>
 
@@ -926,7 +926,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d544 — no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
+- fn 0x1073d544; no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
 </details>
 
@@ -936,7 +936,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d544 — bl call scan: notify-family sites = \[\]
+- fn 0x1073d544; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -946,7 +946,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073d544 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073d544; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -972,8 +972,8 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 - impl call `0x1073d650` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x1073d5c8` slot `8` (parse)
 
-- fn 0x1073d544 @ 0x1073d544 — action wrapper handler
-- @ 0x10f11f34 — action dispatch table entry
+- fn 0x1073d544 @ 0x1073d544; action wrapper handler
+- @ 0x10f11f34; action dispatch table entry
 
 </details>
 
@@ -986,10 +986,10 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 | `A_ARG_TYPE_Volume` | ui2 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_CurrentTransportSettings` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_Speed` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
-| `CurrentTrackMetaData` | string | yes | evented state variable — appears in VirtualLineIn LastChange/GENA event notifications |
-| `EnqueuedTransportURIMetaData` | string | no | non-evented VirtualLineIn state variable — read via action out-args, not pushed |
-| `AVTransportURIMetaData` | string | no | non-evented VirtualLineIn state variable — read via action out-args, not pushed |
-| `CurrentTransportActions` | string | no | non-evented VirtualLineIn state variable — read via action out-args, not pushed |
+| `CurrentTrackMetaData` | string | yes | evented state variable: appears in VirtualLineIn LastChange/GENA event notifications |
+| `EnqueuedTransportURIMetaData` | string | no | non-evented VirtualLineIn state variable: read via action out-args, not pushed |
+| `AVTransportURIMetaData` | string | no | non-evented VirtualLineIn state variable: read via action out-args, not pushed |
+| `CurrentTransportActions` | string | no | non-evented VirtualLineIn state variable: read via action out-args, not pushed |
 
 ## Events
 
@@ -1024,8 +1024,8 @@ Implementation sources (recovered): `common/vli_{sink,source_manager,playback_tr
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x101953c8 — service router function
-- @ 0x10f11ed4 — service vtable
-- @ 0x1073ccc0 — service dispatcher
+- @ 0x101953c8; service router function
+- @ 0x10f11ed4; service vtable
+- @ 0x1073ccc0; service dispatcher
 
 </details>

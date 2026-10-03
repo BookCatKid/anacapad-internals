@@ -1,8 +1,8 @@
-# `GroupRenderingControl` — `/MediaRenderer/GroupRenderingControl/Control`
+# `GroupRenderingControl` `/MediaRenderer/GroupRenderingControl/Control`
 
 **visibility** `advertised` · **status** `strong`
 
-This service controls volume and mute for a whole group at once. When several rooms are grouped and you drag the group volume slider, the app doesn't go and adjust each speaker itself — it sends one command here to the group's leader, and the leader does the fan-out: it sets its own speaker directly and relays the change to every member. It can also snapshot everyone's individual volumes — the mechanism behind 'group mute' that can later restore each room to its own previous level instead of unmuting to a flat value.
+This service controls volume and mute for a whole group at once. When several rooms are grouped and you drag the group volume slider, the app doesn't go and adjust each speaker itself. It sends one command here to the group's leader, and the leader does the fan-out: it sets its own speaker directly and relays the change to every member. It can also snapshot everyone's individual volumes, which is the mechanism behind 'group mute' that can later restore each room to its own previous level instead of unmuting to a flat value.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -38,7 +38,7 @@ Group-scoped rendering control service. Each action delegates to a shared group-
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the group's overall mute state — whether group audio is currently silenced. The coordinator computes a single answer from its members, so the app can show one mute button for the whole group.
+Reports the group's overall mute state, meaning whether group audio is currently silenced. The coordinator computes a single answer from its members, so the app can show one mute button for the whole group.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -52,7 +52,7 @@ Returns the group-level mute state as CurrentMute byte. The group impl computes 
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | decimal uint32 / unbounded u32 in wrapper | none - required argument |
 
-- **`InstanceID`** — Parsed by f_105614e0 (u32). Forwarded to impl; no range/instance check proven in the wrapper.
+- **`InstanceID`**: Parsed by f_105614e0 (u32). Forwarded to impl; no range/instance check proven in the wrapper.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -61,7 +61,7 @@ Returns the group-level mute state as CurrentMute byte. The group impl computes 
 |---|---|---|
 | `CurrentMute` | boolean ('0'/'1') | 0/1 expected; byte width proven only |
 
-- **`CurrentMute`** — Group mute byte produced by impl f_103a3f28 via the shared group-session state acquired by f_106ff3b8
+- **`CurrentMute`**: Group mute byte produced by impl f_103a3f28 via the shared group-session state acquired by f_106ff3b8
   - validation: impl-written out arg; no client-side validation
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -75,7 +75,7 @@ impl->v\[+0x08\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-c
 propagates the impl return code toward a SOAP fault.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_10738e9c @ 0x10738f1c — impl->v\[+0x08\](impl,InstanceID,&byte)
+- fn f_10738e9c @ 0x10738f1c; impl->v\[+0x08\](impl,InstanceID,&byte)
 
 </details>
 
@@ -85,7 +85,7 @@ propagates the impl return code toward a SOAP fault.
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738e9c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x10738e9c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -95,7 +95,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-
 service-internal state reached through member delegate(s): r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738e9c — member vfunc calls: \['r30 v\[+0x8\]'\]
+- fn 0x10738e9c; member vfunc calls: \['r30 v\[+0x8\]'\]
 
 </details>
 
@@ -109,7 +109,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x8\]
 None proven; read-only.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10738e9c — read-only path
+- @ 0x10738e9c; read-only path
 
 </details>
 
@@ -119,7 +119,7 @@ None proven; read-only.
 None proven in the SOAP path.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10738e9c — no event calls in wrapper
+- @ 0x10738e9c; no event calls in wrapper
 
 </details>
 
@@ -129,7 +129,7 @@ None proven in the SOAP path.
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_10738e9c @ 0x10738f1c — impl->v\[+0x08\](impl,InstanceID,&byte)
+- fn f_10738e9c @ 0x10738f1c; impl->v\[+0x08\](impl,InstanceID,&byte)
 
 </details>
 
@@ -144,7 +144,7 @@ nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 ra
 
 **`402`** `strong`
 
-SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
+SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
 
 - Required argument absent or its lookup through the request-object parse helper fails
 
@@ -152,7 +152,7 @@ SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state 
 
 nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
 
@@ -165,12 +165,12 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - impl call `0x10738f1c` obj `r5-in` slot `8` arg4 `*(sp-0x30+0x18)`
 - impl call `0x10738fa4` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
 - req vcall `0x10738ef8` slot `8` (parse)
-- Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8 — the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
+- Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8: the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
 
-- fn f_10738e9c @ 0x10738e9c — full wrapper decode
-- fn 0x103a3f28 — impl vfunc on vtable 0x10ec37b4 +0x08
-- fn 0x10738e9c @ 0x10738e9c — action wrapper handler
-- @ 0x10f11aa8 — action dispatch table entry
+- fn f_10738e9c @ 0x10738e9c; full wrapper decode
+- fn 0x103a3f28; impl vfunc on vtable 0x10ec37b4 +0x08
+- fn 0x10738e9c @ 0x10738e9c; action wrapper handler
+- @ 0x10f11aa8; action dispatch table entry
 
 </details>
 
@@ -178,7 +178,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the group's overall volume — a single number representing the group for the app's main slider. The coordinator derives it from member levels rather than just reporting its own, though exactly how it weighs the members is internal.
+Reports the group's overall volume, a single number representing the group for the app's main slider. The coordinator derives it from member levels rather than just reporting its own, though exactly how it weighs the members is internal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -192,7 +192,7 @@ Returns the group volume as CurrentVolume u16. Aggregation across members (avera
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | decimal uint32 / unbounded u32 in wrapper | none - required argument |
 
-- **`InstanceID`** — Parsed by f_105614e0 (u32); forwarded to impl.
+- **`InstanceID`**: Parsed by f_105614e0 (u32); forwarded to impl.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -201,7 +201,7 @@ Returns the group volume as CurrentVolume u16. Aggregation across members (avera
 |---|---|---|
 | `CurrentVolume` | unsigned int16 | 0..100 expected; width proven only |
 
-- **`CurrentVolume`** — Group volume u16 written by impl; group aggregation rule unresolved.
+- **`CurrentVolume`**: Group volume u16 written by impl; group aggregation rule unresolved.
   - unit: percent volume units (unproven)
   - validation: impl-written out arg; no client-side validation
 
@@ -216,7 +216,7 @@ impl->v\[+0x10\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-c
 propagates the impl return code toward a SOAP fault.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_107390c4 @ 0x10739144 — impl->v\[+0x10\](impl,InstanceID,&u16)
+- fn f_107390c4 @ 0x10739144; impl->v\[+0x10\](impl,InstanceID,&u16)
 
 </details>
 
@@ -226,7 +226,7 @@ propagates the impl return code toward a SOAP fault.
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107390c4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x107390c4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -236,7 +236,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107390c4 — member vfunc calls: \['r30 v\[+0x10\]'\]
+- fn 0x107390c4; member vfunc calls: \['r30 v\[+0x10\]'\]
 
 </details>
 
@@ -250,7 +250,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 None proven; read-only.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107390c4 — wrapper decode
+- @ 0x107390c4; wrapper decode
 
 </details>
 
@@ -260,7 +260,7 @@ None proven; read-only.
 None proven in the SOAP path.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107390c4 — wrapper decode
+- @ 0x107390c4; wrapper decode
 
 </details>
 
@@ -270,7 +270,7 @@ None proven in the SOAP path.
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_107390c4 @ 0x10739144 — impl->v\[+0x10\](impl,InstanceID,&u16)
+- fn f_107390c4 @ 0x10739144; impl->v\[+0x10\](impl,InstanceID,&u16)
 
 </details>
 
@@ -285,7 +285,7 @@ nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 ra
 
 **`402`** `strong`
 
-SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
+SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
 
 - Required argument absent or its lookup through the request-object parse helper fails
 
@@ -293,7 +293,7 @@ SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state 
 
 nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
 
@@ -306,12 +306,12 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - impl call `0x10739144` obj `r5-in` slot `16` arg4 `*(sp-0x30+0x18)`
 - impl call `0x107391cc` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
 - req vcall `0x10739120` slot `8` (parse)
-- Direct impl on the impl object: 4-insn predicate — loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
+- Direct impl on the impl object: 4-insn predicate: loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
 
-- fn f_107390c4 @ 0x107390c4 — full wrapper decode
-- fn 0x106fd104 — impl vfunc on vtable 0x10ec37b4 +0x10
-- fn 0x107390c4 @ 0x107390c4 — action wrapper handler
-- @ 0x10f11ab4 — action dispatch table entry
+- fn f_107390c4 @ 0x107390c4; full wrapper decode
+- fn 0x106fd104; impl vfunc on vtable 0x10ec37b4 +0x10
+- fn 0x107390c4 @ 0x107390c4; action wrapper handler
+- @ 0x10f11ab4; action dispatch table entry
 
 </details>
 
@@ -319,7 +319,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Mutes or unmutes the whole group at once. The coordinator applies the mute to itself and forwards the request to every member — which is what makes one tap silence all the grouped rooms together.
+Mutes or unmutes the whole group at once. The coordinator applies the mute to itself and forwards the request to every member, which is what makes one tap silence all the grouped rooms together.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -332,11 +332,11 @@ Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out
 | Name | Type | Required | Values / range | Default |
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | decimal uint32 / unbounded u32 in wrapper | none - required argument |
-| `DesiredMute` | Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved. | yes | byte numeric / boolean: parsed by f_10561444 byte-bool reader — nonzero literal -> 1; forwarded as the DesiredMute flag to impl f_103a3f40 | none - required argument |
+| `DesiredMute` | Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved. | yes | byte numeric / boolean: parsed by f_10561444 byte-bool reader: nonzero literal -> 1; forwarded as the DesiredMute flag to impl f_103a3f40 | none - required argument |
 
-- **`InstanceID`** — Parsed by f_105614e0 (u32); forwarded to impl.
+- **`InstanceID`**: Parsed by f_105614e0 (u32); forwarded to impl.
   - buffer cap: `0x18`
-- **`DesiredMute`** — Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.
+- **`DesiredMute`**: Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -350,10 +350,10 @@ impl->v\[+0x0c\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-c
 propagates the impl return code toward a SOAP fault.
 <details markdown="1"><summary>Evidence (4)</summary>
 
-- fn f_10738fb0 @ 0x10739054 — impl->v\[+0x0c\](impl,InstanceID,byte)
-- fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
-- fn f_103a1b8c @ 0x103a1fe8 — 'SetGroupMute: local set to %d rc=%d'
-- fn f_103a1b8c @ 0x103a1ea4 — 'SetGroupMute: %s set to %d rc=%d' remote member log
+- fn f_10738fb0 @ 0x10739054; impl->v\[+0x0c\](impl,InstanceID,byte)
+- fn f_103a1b8c @ 0x103a1c0c; 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
+- fn f_103a1b8c @ 0x103a1fe8; 'SetGroupMute: local set to %d rc=%d'
+- fn f_103a1b8c @ 0x103a1ea4; 'SetGroupMute: %s set to %d rc=%d' remote member log
 
 </details>
 
@@ -363,7 +363,7 @@ propagates the impl return code toward a SOAP fault.
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738fb0 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10738fb0; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -373,7 +373,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738fb0 — member vfunc calls: \['r30 v\[+0xc\]'\]
+- fn 0x10738fb0; member vfunc calls: \['r30 v\[+0xc\]'\]
 
 </details>
 
@@ -387,8 +387,8 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' names built in f_1039d11c are evented state variables.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- @ 0x10ec39fc — 'GroupMute' state-var name
-- @ 0x10ec3a08 — 'GroupVolumeChangeable'
+- @ 0x10ec39fc; 'GroupMute' state-var name
+- @ 0x10ec3a08; 'GroupVolumeChangeable'
 
 </details>
 
@@ -398,7 +398,7 @@ Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' n
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738fb0 — bl call scan: notify-family sites = \[\]
+- fn 0x10738fb0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -408,10 +408,10 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
 <details markdown="1"><summary>Evidence (4)</summary>
 
-- fn f_10738fb0 @ 0x10739054 — impl->v\[+0x0c\](impl,InstanceID,byte)
-- fn f_103a1b8c @ 0x103a1c0c — 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
-- fn f_103a1b8c @ 0x103a1fe8 — 'SetGroupMute: local set to %d rc=%d'
-- fn f_103a1b8c @ 0x103a1ea4 — 'SetGroupMute: %s set to %d rc=%d' remote member log
+- fn f_10738fb0 @ 0x10739054; impl->v\[+0x0c\](impl,InstanceID,byte)
+- fn f_103a1b8c @ 0x103a1c0c; 'urn:...:service:RenderingControl:1' + 'SetMute' request table built
+- fn f_103a1b8c @ 0x103a1fe8; 'SetGroupMute: local set to %d rc=%d'
+- fn f_103a1b8c @ 0x103a1ea4; 'SetGroupMute: %s set to %d rc=%d' remote member log
 
 </details>
 
@@ -426,7 +426,7 @@ nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 ra
 
 **`402`** `strong`
 
-SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
+SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
 
 - Required argument absent or its lookup through the request-object parse helper fails
 
@@ -434,7 +434,7 @@ SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state 
 
 nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`801`** `strong`
 
@@ -453,12 +453,12 @@ reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when alre
 - impl call `0x10739054` obj `r5-in` slot `12` arg4 `*(sp-0x30+0x18)`
 - impl call `0x107390b8` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x10739030` slot `8` (parse)
-- Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740) — posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
+- Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740): posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
 
-- fn f_10738fb0 @ 0x10738fb0 — full wrapper decode
-- fn 0x103a3f40 — impl vfunc on vtable 0x10ec37b4 +0x0c
-- fn 0x10738fb0 @ 0x10738fb0 — action wrapper handler
-- @ 0x10f11ac0 — action dispatch table entry
+- fn f_10738fb0 @ 0x10738fb0; full wrapper decode
+- fn 0x103a3f40; impl vfunc on vtable 0x10ec37b4 +0x0c
+- fn 0x10738fb0 @ 0x10738fb0; action wrapper handler
+- @ 0x10f11ac0; action dispatch table entry
 
 </details>
 
@@ -481,9 +481,9 @@ Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netop
 | `InstanceID` | SonosUintArg | yes | decimal uint32 / unbounded u32 in wrapper | none - required argument |
 | `DesiredVolume` | Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved. | yes | decimal / decimal integer parsed by f_10561478 (u16-width numeric reader); no wrapper bound check present | none - required argument |
 
-- **`InstanceID`** — Parsed by f_105614e0 (u32); forwarded to impl.
+- **`InstanceID`**: Parsed by f_105614e0 (u32); forwarded to impl.
   - buffer cap: `0x18`
-- **`DesiredVolume`** — Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.
+- **`DesiredVolume`**: Parsed by f_10561478 (u16-width numeric); passed as r5. No range clamp proven in the wrapper; impl-side bounds unresolved.
   - unit: percent volume units (Sonos convention, unproven for group path)
   - buffer cap: `0x18`
 
@@ -498,8 +498,8 @@ impl->v\[+0x14\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-c
 propagates the impl return code toward a SOAP fault.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_107391d8 @ 0x1073927c — impl->v\[+0x14\](impl,InstanceID,desired)
-- fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'
+- fn f_107391d8 @ 0x1073927c; impl->v\[+0x14\](impl,InstanceID,desired)
+- fn ~f_103a2430 @ 0x10ec3dc4; 'SetGroupVolume: local:%d netops:%u zones:%u'
 
 </details>
 
@@ -509,7 +509,7 @@ propagates the impl return code toward a SOAP fault.
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107391d8 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107391d8; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -519,7 +519,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107391d8 — member vfunc calls: \['r30 v\[+0x14\]'\]
+- fn 0x107391d8; member vfunc calls: \['r30 v\[+0x14\]'\]
 
 </details>
 
@@ -533,7 +533,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x14\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107391d8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x14\]'\]
+- fn 0x107391d8; no transition-literal/store pattern; member delegates: \['r30 v\[+0x14\]'\]
 
 </details>
 
@@ -543,7 +543,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107391d8 — bl call scan: notify-family sites = \[\]
+- fn 0x107391d8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -553,8 +553,8 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_107391d8 @ 0x1073927c — impl->v\[+0x14\](impl,InstanceID,desired)
-- fn ~f_103a2430 @ 0x10ec3dc4 — 'SetGroupVolume: local:%d netops:%u zones:%u'
+- fn f_107391d8 @ 0x1073927c; impl->v\[+0x14\](impl,InstanceID,desired)
+- fn ~f_103a2430 @ 0x10ec3dc4; 'SetGroupVolume: local:%d netops:%u zones:%u'
 
 </details>
 
@@ -568,24 +568,24 @@ nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 ra
 - zone-member list empty/invalid
 
 
-**Bounded unknown — proven:** impl rc propagated; member fan-out logged with per-member rc
-**Bounded unknown — unresolved:** worker f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
+**Bounded unknown (proven):** impl rc propagated; member fan-out logged with per-member rc
+**Bounded unknown (unresolved):** worker f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
 
 **`402`** `strong`
 
-SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
+SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
 
 - Required argument absent or its lookup through the request-object parse helper fails
 
 
-**Bounded unknown — proven:** the fault path is reached when the impl call reports failure
-**Bounded unknown — unresolved:** worker f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
+**Bounded unknown (proven):** the fault path is reached when the impl call reports failure
+**Bounded unknown (unresolved):** worker f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
 
 **`702`** `confirmed`
 
 nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
 
@@ -600,10 +600,10 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - req vcall `0x10739258` slot `8` (parse)
 - Direct impl: reads byte impl+0x22dd then enters the group volume set path on members +0x22c4..+0x22ff. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
 
-- fn f_107391d8 @ 0x107391d8 — full wrapper decode
-- fn 0x106fd5d4 — impl vfunc on vtable 0x10ec37b4 +0x14
-- fn 0x107391d8 @ 0x107391d8 — action wrapper handler
-- @ 0x10f11acc — action dispatch table entry
+- fn f_107391d8 @ 0x107391d8; full wrapper decode
+- fn 0x106fd5d4; impl vfunc on vtable 0x10ec37b4 +0x14
+- fn 0x107391d8 @ 0x107391d8; action wrapper handler
+- @ 0x10f11acc; action dispatch table entry
 
 </details>
 
@@ -611,7 +611,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adjusts the group volume by an amount rather than to an exact level — 'turn the group up by 5'. It applies the delta across the members and reports back the group's new volume.
+Adjusts the group volume by an amount rather than to an exact level, as in 'turn the group up by 5'. It applies the delta across the members and reports back the group's new volume.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -626,9 +626,9 @@ Adjusts group volume by a signed delta and returns the new group volume. impl->v
 | `InstanceID` | SonosUintArg | yes | decimal uint32 / unbounded u32 in wrapper | none - required argument |
 | `Adjustment` | Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved. | yes | signed decimal / i32-ish width via f_10561514 | none - required argument |
 
-- **`InstanceID`** — Parsed by f_105614e0 (u32); forwarded to impl.
+- **`InstanceID`**: Parsed by f_105614e0 (u32); forwarded to impl.
   - buffer cap: `0x18`
-- **`Adjustment`** — Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.
+- **`Adjustment`**: Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.
   - unit: percent volume units (signed delta, unproven)
   - buffer cap: `0x18`
 
@@ -638,7 +638,7 @@ Adjusts group volume by a signed delta and returns the new group volume. impl->v
 |---|---|---|
 | `NewVolume` | unsigned int16 | type width only |
 
-- **`NewVolume`** — Resulting group volume written as u16 at impl out-arg (sp+0x12); fan-out/aggregation unresolved.
+- **`NewVolume`**: Resulting group volume written as u16 at impl out-arg (sp+0x12); fan-out/aggregation unresolved.
   - unit: percent volume units (unproven)
   - validation: impl-written out arg; no client-side validation
 
@@ -653,7 +653,7 @@ impl->v\[+0x18\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-c
 propagates the impl return code toward a SOAP fault.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_107392ec @ 0x10739394 — impl->v\[+0x18\](impl,InstanceID,adj,&u16)
+- fn f_107392ec @ 0x10739394; impl->v\[+0x18\](impl,InstanceID,adj,&u16)
 
 </details>
 
@@ -663,7 +663,7 @@ propagates the impl return code toward a SOAP fault.
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107392ec — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x107392ec; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -673,7 +673,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-
 service-internal state reached through member delegate(s): r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107392ec — member vfunc calls: \['r30 v\[+0x18\]'\]
+- fn 0x107392ec; member vfunc calls: \['r30 v\[+0x18\]'\]
 
 </details>
 
@@ -687,7 +687,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x18\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107392ec — no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
+- fn 0x107392ec; no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
 
 </details>
 
@@ -697,7 +697,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107392ec — bl call scan: notify-family sites = \[\]
+- fn 0x107392ec; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -707,7 +707,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_107392ec @ 0x10739394 — impl->v\[+0x18\](impl,InstanceID,adj,&u16)
+- fn f_107392ec @ 0x10739394; impl->v\[+0x18\](impl,InstanceID,adj,&u16)
 
 </details>
 
@@ -721,24 +721,24 @@ nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 ra
 - zone-member list empty/invalid
 
 
-**Bounded unknown — proven:** impl rc propagated to fault vfunc
-**Bounded unknown — unresolved:** worker f_103a2d04->f_103a2c4c->f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
+**Bounded unknown (proven):** impl rc propagated to fault vfunc
+**Bounded unknown (unresolved):** worker f_103a2d04->f_103a2c4c->f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
 
 **`402`** `strong`
 
-SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
+SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
 
 - Required argument absent or its lookup through the request-object parse helper fails
 
 
-**Bounded unknown — proven:** the fault path is reached when the impl call reports failure
-**Bounded unknown — unresolved:** worker f_103a2d04->f_103a2c4c->f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
+**Bounded unknown (proven):** the fault path is reached when the impl call reports failure
+**Bounded unknown (unresolved):** worker f_103a2d04->f_103a2c4c->f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain
 
 **`702`** `confirmed`
 
 nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
 
@@ -753,10 +753,10 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - req vcall `0x1073936c` slot `8` (parse)
 - Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.
 
-- fn f_107392ec @ 0x107392ec — full wrapper decode
-- fn 0x106ff454 — impl vfunc on vtable 0x10ec37b4 +0x18
-- fn 0x107392ec @ 0x107392ec — action wrapper handler
-- @ 0x10f11ad8 — action dispatch table entry
+- fn f_107392ec @ 0x107392ec; full wrapper decode
+- fn 0x106ff454; impl vfunc on vtable 0x10ec37b4 +0x18
+- fn 0x107392ec @ 0x107392ec; action wrapper handler
+- @ 0x10f11ad8; action dispatch table entry
 
 </details>
 
@@ -764,7 +764,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Takes a snapshot of each member's current volume before a group-wide change — most importantly before a group mute. That way, when the group is unmuted, every room can return to its own previous level instead of all coming back at some uniform value.
+Takes a snapshot of each member's current volume before a group-wide change, most importantly before a group mute. That way, when the group is unmuted, every room can return to its own previous level instead of all coming back at some uniform value.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -778,7 +778,7 @@ Captures the group's current per-member volumes into a snapshot ('snapshot %s: %
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | decimal uint32 / unbounded u32 in wrapper | none - required argument |
 
-- **`InstanceID`** — Parsed by f_105614e0 (u32); forwarded to impl.
+- **`InstanceID`**: Parsed by f_105614e0 (u32); forwarded to impl.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -792,8 +792,8 @@ impl->v\[+0x1c\](impl, InstanceID, ...) runs the action; on non-success cr0.eq-c
 propagates the impl return code toward a SOAP fault.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_10738db0 @ 0x10738e2c — impl->v\[+0x1c\](impl,InstanceID)
-- fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker
+- fn f_10738db0 @ 0x10738e2c; impl->v\[+0x1c\](impl,InstanceID)
+- fn f_103a1b8c @ 0x103a1fc8; 'snapshot %s: %u (was %u)' log in group worker
 
 </details>
 
@@ -803,7 +803,7 @@ propagates the impl return code toward a SOAP fault.
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738db0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10738db0; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -813,7 +813,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738db0 — member vfunc calls: \['r30 v\[+0x1c\]'\]
+- fn 0x10738db0; member vfunc calls: \['r30 v\[+0x1c\]'\]
 
 </details>
 
@@ -827,7 +827,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10738db0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
+- fn 0x10738db0; no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
 
 </details>
 
@@ -837,7 +837,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 None proven.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10738db0 — no event calls in wrapper
+- @ 0x10738db0; no event calls in wrapper
 
 </details>
 
@@ -847,8 +847,8 @@ None proven.
 Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v\[+0x14\] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_10738db0 @ 0x10738e2c — impl->v\[+0x1c\](impl,InstanceID)
-- fn f_103a1b8c @ 0x103a1fc8 — 'snapshot %s: %u (was %u)' log in group worker
+- fn f_10738db0 @ 0x10738e2c; impl->v\[+0x1c\](impl,InstanceID)
+- fn f_103a1b8c @ 0x103a1fc8; 'snapshot %s: %u (was %u)' log in group worker
 
 </details>
 
@@ -863,7 +863,7 @@ nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 ra
 
 **`402`** `strong`
 
-SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
+SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails
 
 - Required argument absent or its lookup through the request-object parse helper fails
 
@@ -871,7 +871,7 @@ SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state 
 
 nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
 
@@ -886,10 +886,10 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 - req vcall `0x10738e0c` slot `8` (parse)
 - Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.
 
-- fn f_10738db0 @ 0x10738db0 — full wrapper decode
-- fn 0x106ff898 — impl vfunc on vtable 0x10ec37b4 +0x1c
-- fn 0x10738db0 @ 0x10738db0 — action wrapper handler
-- @ 0x10f11ae4 — action dispatch table entry
+- fn f_10738db0 @ 0x10738db0; full wrapper decode
+- fn 0x106ff898; impl vfunc on vtable 0x10ec37b4 +0x1c
+- fn 0x10738db0 @ 0x10738db0; action wrapper handler
+- @ 0x10f11ae4; action dispatch table entry
 
 </details>
 
@@ -897,9 +897,9 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 | Name | Type | Evented | Description |
 |---|---|---|---|
-| `GroupMute` | boolean | yes | evented state variable — appears in GroupRenderingControl LastChange/GENA event notifications |
-| `GroupVolume` | ui2 | yes | evented state variable — appears in GroupRenderingControl LastChange/GENA event notifications |
-| `GroupVolumeChangeable` | boolean | yes | evented state variable — appears in GroupRenderingControl LastChange/GENA event notifications |
+| `GroupMute` | boolean | yes | evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications |
+| `GroupVolume` | ui2 | yes | evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications |
+| `GroupVolumeChangeable` | boolean | yes | evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications |
 | `A_ARG_TYPE_InstanceID` | ui4 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_VolumeAdjustment` | i4 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 
@@ -948,8 +948,8 @@ Implementation sources (recovered): `zoneplayer/grc_zpimpl.cxx`
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x101953c8 — service router function
-- @ 0x10f11a9c — service vtable
-- @ 0x10738c58 — service dispatcher
+- @ 0x101953c8; service router function
+- @ 0x10f11a9c; service vtable
+- @ 0x10738c58; service dispatcher
 
 </details>

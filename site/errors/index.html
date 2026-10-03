@@ -797,8 +797,6 @@
       
         
       
-        
-      
     
     
     
@@ -993,33 +991,6 @@
     
   
   ContentDirectory
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../services/control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Control
 
     
   </span>
@@ -1619,14 +1590,14 @@
                   
 
 <h1 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h1>
-<p>What a failed command actually returns. When a request goes wrong — a missing argument, a value out of range, a command that doesn't exist — the player answers with a standardized fault message carrying a numeric error code. Some codes mean the same thing everywhere in the system (bad arguments are always the same number); others are service-specific or internal error codes leaking out. This page documents the fault format itself, every code the firmware is proven to emit, and for each command the specific set of errors it can produce — which is often the most useful part, since 'what can go wrong' is as much of an interface as 'what it does right'.</p>
+<p>What a failed command actually returns. When a request goes wrong, whether a missing argument, a value out of range, or a command that doesn't exist, the player answers with a standardized fault message carrying a numeric error code. Some codes mean the same thing everywhere in the system (bad arguments are always the same number), while others are service-specific or internal error codes leaking out. This page documents the fault format itself, every code the firmware is proven to emit, and for each command the specific set of errors it can produce. That last part is often the most useful, since 'what can go wrong' is as much of an interface as 'what it does right'.</p>
 <h2 id="soap-fault-wire-format">SOAP fault wire format<a class="headerlink" href="#soap-fault-wire-format" title="Permanent link">&para;</a></h2>
-<p>The exact structure of a failure reply — the envelope a fault travels in. One detail worth knowing: only the error number is machine-checked by the player; the human-readable message beside it is decorative, and some errors carry deliberately unhelpful text. So when you see a fault, trust the number, not the words.</p>
+<p>The exact structure of a failure reply, meaning the envelope a fault travels in. One detail worth knowing: only the error number is machine-checked by the player. The human-readable message beside it is decorative, and some errors carry deliberately unhelpful text. So when you see a fault, trust the number, not the words.</p>
 <pre><code class="language-xml">&lt;s:Fault&gt;&lt;faultcode&gt;s:Client&lt;/faultcode&gt;&lt;faultstring&gt;UPnPError&lt;/faultstring&gt;&lt;detail&gt;&lt;UPnPError xmlns=&quot;urn:schemas-upnp-org:control-1-0&quot;&gt;&lt;errorCode&gt;%d&lt;/errorCode&gt;&lt;/UPnPError&gt;&lt;/s:Fault&gt;
 </code></pre>
 <p>fault detail carries ONLY the numeric errorCode - no errorDescription element on the wire; literal detail strings (e.g. Update URL is malformed) travel via out-arg records, not this template</p>
 <h2 id="fault-code-vocabulary">Fault code vocabulary<a class="headerlink" href="#fault-code-vocabulary" title="Permanent link">&para;</a></h2>
-<p>Every numeric error code proven to be emittable by this firmware. The standard ranges cover common meanings — invalid action, missing argument, value out of range — while higher numbers encode Sonos-specific failures: wrong playback mode for this source, optimistic-concurrency clashes on queue edits, feature-not-implemented on this model. Where a code's meaning was recovered from the binary rather than the public spec, that's noted.</p>
+<p>Every numeric error code proven to be emittable by this firmware. The standard ranges cover common meanings like invalid action, missing argument, and value out of range, while higher numbers encode Sonos-specific failures: wrong playback mode for this source, optimistic-concurrency clashes on queue edits, and feature-not-implemented on this model. Where a code's meaning was recovered from the binary rather than the public spec, that's noted.</p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>extraction:</strong> original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.</li>
@@ -1640,7 +1611,7 @@
 - <strong>notes:</strong>
   - <strong>census_union:</strong> Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.</p>
 <h2 id="per-action-error-surface">Per-action error surface<a class="headerlink" href="#per-action-error-surface" title="Permanent link">&para;</a></h2>
-<p>For each command, the union of error codes it can actually produce — everything its routine, argument validation, and internal machinery can emit, not just the generic set. This is the practical section: 'what can this specific command fail with' is what a real client needs to handle.</p>
+<p>For each command, the union of error codes it can actually produce: everything its routine, argument validation, and internal machinery can emit, not just the generic set. This is the practical section, because 'what can this specific command fail with' is what a real client needs to handle.</p>
 <h3 id="avtransport"><code>AVTransport</code><a class="headerlink" href="#avtransport" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1716,7 +1687,7 @@
 <td><code>BackupQueue</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
-<td>Nonzero InstanceID — impl compares the parsed int against 0 before touching the session.</td>
+<td>Nonzero InstanceID: impl compares the parsed int against 0 before touching the session.</td>
 </tr>
 <tr>
 <td><code>BackupQueue</code></td>
@@ -1770,7 +1741,7 @@
 <td><code>BecomeGroupCoordinator</code></td>
 <td><code>vret(r5-in,+0xd0)</code></td>
 <td><code>strong</code></td>
-<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402 x6 sites, callee-fwd — producers at 0x102dea7c/0x102dea90/0x102deb</td>
+<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402 x6 sites, callee-fwd: producers at 0x102dea7c/0x102dea90/0x102deb2</td>
 </tr>
 <tr>
 <td><code>BecomeGroupCoordinator</code></td>
@@ -1800,7 +1771,7 @@
 <td><code>ChangeCoordinator</code></td>
 <td><code>vret(r5-in,+0x5c)</code></td>
 <td><code>strong</code></td>
-<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800 — producers at 0x102af538/0x102af678</td>
+<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800: producers at 0x102af538/0x102af678</td>
 </tr>
 <tr>
 <td><code>ChangeCoordinator</code></td>
@@ -1830,13 +1801,13 @@
 <td><code>ChangeTransportSettings</code></td>
 <td><code>800</code></td>
 <td><code>confirmed</code></td>
-<td>Transport mode impl+0x4654 is nonzero — settings changes require an idle engine.</td>
+<td>Transport mode impl+0x4654 is nonzero: settings changes require an idle engine.</td>
 </tr>
 <tr>
 <td><code>ChangeTransportSettings</code></td>
 <td><code>vret(r5-in,+0x60)</code></td>
 <td><code>strong</code></td>
-<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd — producers at 0x102b1dd8/0x102b1e2c</td>
+<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd: producers at 0x102b1dd8/0x102b1e2c</td>
 </tr>
 <tr>
 <td><code>ChangeTransportSettings</code></td>
@@ -1854,7 +1825,7 @@
 <td><code>ConfigureSleepTimer</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
-<td>Nonzero InstanceID — impl gate on the parsed int.</td>
+<td>Nonzero InstanceID: impl gate on the parsed int.</td>
 </tr>
 <tr>
 <td><code>ConfigureSleepTimer</code></td>
@@ -1866,7 +1837,7 @@
 <td><code>ConfigureSleepTimer</code></td>
 <td><code>800</code></td>
 <td><code>confirmed</code></td>
-<td>engine+0x4654 is neither 1 nor 2 — sleep timer requires a non-idle transport mode.</td>
+<td>engine+0x4654 is neither 1 nor 2: sleep timer requires a non-idle transport mode.</td>
 </tr>
 <tr>
 <td><code>ConfigureSleepTimer</code></td>
@@ -1920,13 +1891,13 @@
 <td><code>EndDirectControlSession</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
-<td>Nonzero InstanceID — impl gate on the parsed int before any session work.</td>
+<td>Nonzero InstanceID: impl gate on the parsed int before any session work.</td>
 </tr>
 <tr>
 <td><code>EndDirectControlSession</code></td>
 <td><code>vret(r5-in,+0x50)</code></td>
 <td><code>strong</code></td>
-<td>None known beyond 718 — the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could s</td>
+<td>None known beyond 718: the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could su</td>
 </tr>
 <tr>
 <td><code>EndDirectControlSession</code></td>
@@ -1968,7 +1939,7 @@
 <td><code>GetDeviceCapabilities</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
-<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+<td>Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> trans</td>
 </tr>
 <tr>
 <td><code>GetMediaInfo</code></td>
@@ -1980,7 +1951,7 @@
 <td><code>GetMediaInfo</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
-<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+<td>Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> trans</td>
 </tr>
 <tr>
 <td><code>GetPositionInfo</code></td>
@@ -1992,7 +1963,7 @@
 <td><code>GetPositionInfo</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
-<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+<td>Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> trans</td>
 </tr>
 <tr>
 <td><code>GetRemainingSleepTimerDuration</code></td>
@@ -2004,7 +1975,7 @@
 <td><code>GetRemainingSleepTimerDuration</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
-<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+<td>Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> trans</td>
 </tr>
 <tr>
 <td><code>GetRemainingSleepTimerDuration</code></td>
@@ -2040,7 +2011,7 @@
 <td><code>GetTransportSettings</code></td>
 <td><code>718</code></td>
 <td><code>strong</code></td>
-<td>Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> tran</td>
+<td>Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a<em>/f_102d</em> trans</td>
 </tr>
 <tr>
 <td><code>Next</code></td>
@@ -2220,7 +2191,7 @@
 <td><code>RemoveTrackFromQueue</code></td>
 <td><code>vret(r5-in,+0x70)</code></td>
 <td><code>strong</code></td>
-<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 0x404=1028, 800, 0 — producers at 0x102aa7bc/0x102aa830/0x102a</td>
+<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 0x404=1028, 800, 0: producers at 0x102aa7bc/0x102aa830/0x102aa</td>
 </tr>
 <tr>
 <td><code>RemoveTrackFromQueue</code></td>
@@ -2340,7 +2311,7 @@
 <td><code>SaveQueue</code></td>
 <td><code>vret(r5-in,+0x7c)</code></td>
 <td><code>strong</code></td>
-<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd — producers at 0x102aa910/0x102aa968/0x102aa984</td>
+<td>nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd: producers at 0x102aa910/0x102aa968/0x102aa984</td>
 </tr>
 <tr>
 <td><code>SaveQueue</code></td>
@@ -2442,7 +2413,7 @@
 <td><code>SetNextAVTransportURI</code></td>
 <td><code>800</code></td>
 <td><code>confirmed</code></td>
-<td>Transport mode impl+0x4654 is not 2 — next-URI requires indexed/queue playback.</td>
+<td>Transport mode impl+0x4654 is not 2: next-URI requires indexed/queue playback.</td>
 </tr>
 <tr>
 <td><code>SetNextAVTransportURI</code></td>
@@ -2484,7 +2455,7 @@
 <td><code>SnoozeAlarm</code></td>
 <td><code>718</code></td>
 <td><code>confirmed</code></td>
-<td>Nonzero InstanceID — worker gate on the parsed int.</td>
+<td>Nonzero InstanceID: worker gate on the parsed int.</td>
 </tr>
 <tr>
 <td><code>SnoozeAlarm</code></td>
@@ -2496,13 +2467,13 @@
 <td><code>SnoozeAlarm</code></td>
 <td><code>800</code></td>
 <td><code>confirmed</code></td>
-<td>engine+0x4654 is neither 1 nor 2 — snooze requires an active non-idle transport mode.</td>
+<td>engine+0x4654 is neither 1 nor 2: snooze requires an active non-idle transport mode.</td>
 </tr>
 <tr>
 <td><code>SnoozeAlarm</code></td>
 <td><code>701</code></td>
 <td><code>confirmed</code></td>
-<td>byte impl+0x5a86 is 0 — no alarm is ringing, nothing to snooze.</td>
+<td>byte impl+0x5a86 is 0: no alarm is ringing, nothing to snooze.</td>
 </tr>
 <tr>
 <td><code>SnoozeAlarm</code></td>
@@ -2870,43 +2841,43 @@
 <td><code>StartTransmissionToGroup</code></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
+<td>action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
 </tr>
 <tr>
 <td><code>StopTransmissionToGroup</code></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
+<td>action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
 </tr>
 <tr>
 <td><code>SetAudioInputAttributes</code></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
+<td>action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
 </tr>
 <tr>
 <td><code>GetAudioInputAttributes</code></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
+<td>action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
 </tr>
 <tr>
 <td><code>SetLineInLevel</code></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
+<td>action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
 </tr>
 <tr>
 <td><code>GetLineInLevel</code></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
+<td>action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments</td>
 </tr>
 <tr>
 <td><em>(dispatcher)</em></td>
 <td><code>401</code></td>
 <td><code>confirmed</code></td>
-<td>reject-all dispatcher — every action name faults 401 including the documented AudioIn action set</td>
+<td>reject-all dispatcher: every action name faults 401 including the documented AudioIn action set</td>
 </tr>
 </tbody>
 </table>
@@ -2925,7 +2896,7 @@
 <td><code>GetCurrentConnectionIDs</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>The impl-&gt;v[+0x8] call returned 0 — no usable connection list. | n/a — success/failure fully determined by the impl vfunc return</td>
+<td>The impl-&gt;v[+0x8] call returned 0 (no usable connection list. | n/a) success/failure fully determined by the impl vfunc return</td>
 </tr>
 <tr>
 <td><code>GetCurrentConnectionInfo</code></td>
@@ -2968,7 +2939,7 @@
 <td><code>GetCurrentConnectionIDs</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>The impl-&gt;v[+0x8] call returned 0 — no usable connection list. | n/a — success/failure fully determined by the impl vfunc return</td>
+<td>The impl-&gt;v[+0x8] call returned 0 (no usable connection list. | n/a) success/failure fully determined by the impl vfunc return</td>
 </tr>
 <tr>
 <td><code>GetCurrentConnectionInfo</code></td>
@@ -3469,7 +3440,7 @@
 <td><code>ReportTrackBufferingResult</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>request-validate failure; impl rc passthrough also reaches req-&gt;v[+0x14] | impl stub — unconditional 402 regardless of args</td>
+<td>request-validate failure; impl rc passthrough also reaches req-&gt;v[+0x14] | impl stub: unconditional 402 regardless of args</td>
 </tr>
 <tr>
 <td><code>SetSourceAreaIds</code></td>
@@ -3506,7 +3477,7 @@
 <td><code>GetGroupMute</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>SOAP 402 Invalid Args — raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
+<td>SOAP 402 Invalid Args: raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
 </tr>
 <tr>
 <td><code>GetGroupMute</code></td>
@@ -3524,7 +3495,7 @@
 <td><code>GetGroupVolume</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>SOAP 402 Invalid Args — raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
+<td>SOAP 402 Invalid Args: raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
 </tr>
 <tr>
 <td><code>GetGroupVolume</code></td>
@@ -3542,7 +3513,7 @@
 <td><code>SetGroupMute</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>SOAP 402 Invalid Args — raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
+<td>SOAP 402 Invalid Args: raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
 </tr>
 <tr>
 <td><code>SetGroupMute</code></td>
@@ -3566,7 +3537,7 @@
 <td><code>SetGroupVolume</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>SOAP 402 Invalid Args — raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
+<td>SOAP 402 Invalid Args: raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
 </tr>
 <tr>
 <td><code>SetGroupVolume</code></td>
@@ -3584,7 +3555,7 @@
 <td><code>SetRelativeGroupVolume</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>SOAP 402 Invalid Args — raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
+<td>SOAP 402 Invalid Args: raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
 </tr>
 <tr>
 <td><code>SetRelativeGroupVolume</code></td>
@@ -3602,7 +3573,7 @@
 <td><code>SnapshotGroupVolume</code></td>
 <td><code>402</code></td>
 <td><code>strong</code></td>
-<td>SOAP 402 Invalid Args — raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
+<td>SOAP 402 Invalid Args: raised when req-&gt;v[+0x08] rejects the request state or the required-arg lookup through req-&gt;v[+0x1c] fails</td>
 </tr>
 <tr>
 <td><code>SnapshotGroupVolume</code></td>

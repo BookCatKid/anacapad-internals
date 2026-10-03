@@ -116,7 +116,7 @@ def _req(v):
 
 def _ev_list(ev, out, indent=""):
     for e in ev or []:
-        note = (" — " + _e(e.notes)) if e.notes else ""
+        note = ("; " + _e(e.notes)) if e.notes else ""
         out.append("%s- %s%s" % (indent, _e(e.ref()), note))
 
 
@@ -252,7 +252,7 @@ def _generic(out, obj, depth=0):
 def render_index(m):
     out = ["# anacapad SOAP/UPnP reference", ""]
     _pt_add(m, out, "index", "intro")
-    out += ["Binary `%s`, build `%s` — model-9 (Playbar/limelight). "
+    out += ["Binary `%s`, build `%s`, model-9 (Playbar/limelight). "
             "Generated from the frozen canonical static-analysis dataset "
             "(`docs/documentation.json`); no runtime verification was "
             "performed. The binary implementation is the ground truth "
@@ -303,7 +303,7 @@ def render_index(m):
     term = m.meta.get("terminology") or {}
     if term:
         for k, v in term.items():
-            out.append("- **%s** — %s" % (_e(k), _e(v)))
+            out.append("- **%s**: %s" % (_e(k), _e(v)))
         out.append("")
     out += ["## Services", ""]
     rows = []
@@ -319,25 +319,25 @@ def render_index(m):
     _table(out, ["Service", "Control path", "Visibility", "Actions",
                  "Status"], rows)
     out += ["## Sections", "",
-            "- [Architecture](architecture.md) — routing, dispatch, request "
+            "- [Architecture](architecture.md): routing, dispatch, request "
             "lifecycle, shared subsystems",
-            "- [Availability matrix](availability-matrix.md) — the full "
+            "- [Availability matrix](availability-matrix.md): the full "
             "action-by-action surface",
-            "- [State variables](state-variables.md) — evented and argument "
+            "- [State variables](state-variables.md): evented and argument "
             "type variables",
-            "- [Events](events.md) — GENA/LastChange and WSS eventing",
-            "- [Errors](errors.md) — SOAP fault wire format and code "
+            "- [Events](events.md): GENA/LastChange and WSS eventing",
+            "- [Errors](errors.md): SOAP fault wire format and code "
             "vocabulary",
-            "- [URI formats](uri-formats.md) — URI scheme grammars",
-            "- [Payload formats](payload-formats.md) — opaque field/payload "
+            "- [URI formats](uri-formats.md): URI scheme grammars",
+            "- [Payload formats](payload-formats.md): opaque field/payload "
             "grammars",
-            "- [HTTP API](http-api.md) — non-SOAP HTTP endpoints and "
+            "- [HTTP API](http-api.md): non-SOAP HTTP endpoints and "
             "diagnostics",
-            "- [muse API](muse-api.md) — the v1 REST surface (route table, "
+            "- [muse API](muse-api.md): the v1 REST surface (route table, "
             "methods, op names)",
-            "- [Subsystems](subsystems.md) — non-SOAP protocols and "
+            "- [Subsystems](subsystems.md): non-SOAP protocols and "
             "engines with coverage levels",
-            "- [Firmware differences](firmware-differences.md) — "
+            "- [Firmware differences](firmware-differences.md): "
             "cross-build/cross-model deltas",
             ""]
     return "\n".join(out)
@@ -514,14 +514,14 @@ def _arg_rows(args):
         for x in parts:
             if x not in uniq:
                 uniq.append(x)
-        rng = " / ".join(uniq) or _e(vals) or _e(rng) or "—"
+        rng = " / ".join(uniq) or _e(vals) or _e(rng) or "none"
         rows.append(["`%s`" % n, st, _req(a.required), rng,
-                     _e(a.default) or "—"])
+                     _e(a.default) or "none"])
     return rows
 
 
 def _arg_details(out, args):
-    """Per-arg notes — only where they add information beyond the table."""
+    """Per-arg notes; only where they add information beyond the table."""
     wrote = False
     for n, a in args.items():
         extras = []
@@ -542,7 +542,7 @@ def _arg_details(out, args):
         if not extras:
             continue
         wrote = True
-        out.append("- **`%s`** — %s" % (n, _e(a.description)
+        out.append("- **`%s`**: %s" % (n, _e(a.description)
                                         or "(no description)"))
         for x in extras:
             out.append("  - %s" % x)
@@ -570,10 +570,10 @@ def _render_errors(out, errors, level=4, heading="Errors"):
             out.append("")
             u = e.unresolved
             if u.get("proven"):
-                out.append("**Bounded unknown — proven:** %s"
+                out.append("**Bounded unknown (proven):** %s"
                            % _para(u["proven"]))
             if u.get("unknown"):
-                out.append("**Bounded unknown — unresolved:** %s"
+                out.append("**Bounded unknown (unresolved):** %s"
                            % _para(u["unknown"]))
             out.append("")
         if e.notes:
@@ -589,7 +589,7 @@ def render_action(a):
               "confidence %s" % _status(a.status),
               "dispatch `%s`" % a.dispatch_kind]
     if a.is_stub:
-        badges.append("**removed/stub — faults 401**")
+        badges.append("**removed/stub, faults 401**")
     out.append(" · ".join(badges))
     out.append("")
     if a.summary:
@@ -690,7 +690,7 @@ def render_action(a):
 
 
 def render_service(s):
-    out = ["# `%s` — `%s`" % (s.name, s.control_path), ""]
+    out = ["# `%s` `%s`" % (s.name, s.control_path), ""]
     out.append("**visibility** `%s` · **status** %s"
                % (s.visibility, _status(s.status)))
     out.append("")
@@ -736,7 +736,7 @@ def render_service(s):
         out += ["## Removed / stale advertisements", ""]
         for r in s.removed_actions:
             if isinstance(r, dict):
-                out.append("- `%s` — %s" % (_e(r.get("name")),
+                out.append("- `%s`: %s" % (_e(r.get("name")),
                                             _e(r.get("reason"))))
             else:
                 out.append("- `%s`" % _e(r))
@@ -1148,7 +1148,7 @@ def render_muse(m):
         rec_lines += ["**dispatch:** %s" % _e(mu["dispatch"]), ""]
     if mu.get("tables"):
         rec_lines += ["Registration arrays: "
-                      + "; ".join("`%s` — %s" % (k, _e(v))
+                      + "; ".join("`%s`: %s" % (k, _e(v))
                                   for k, v in mu["tables"].items())]
     if rec_lines:
         _details(out, rec_lines, "Route record internals")
@@ -1159,27 +1159,27 @@ def render_muse(m):
             "Every op is a C++ object sharing one vtable skeleton: "
             "`+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate "
             "(`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op "
-            "**execute** (unique per op class — shown as Exec in the "
+            "**execute** (unique per op class, shown as Exec in the "
             "tables below), `+0x10` shared default, and `+0x14`..`+0x60` "
             "a fixed hook ladder whose base defaults live at "
             "`0x101c0638..0x101c06ac`. Ops override subsets of the hooks: "
-            "the low hooks read body params — each overridden hook is one "
+            "the low hooks read body params; each overridden hook is one "
             "**declared parameter**, reading exactly one named JSON member "
             "through `f_108337b0` (e.g. setVolume: `+0x1c`→`muted`, "
             "`+0x20`→`volume`; seek: `+0x1c`→`playOnCompletion`, "
             "`+0x20`→`positionMillis`, `+0x28`→`itemId`, `+0x2c`→`window`) "
-            "— the Params column lists them — and higher hooks build "
+            "(the Params column lists them) and higher hooks build "
             "forwarded requests (e.g. `setVolume` overrides `+0x60` to emit "
             "`v1/players/{id}/playerVolume/mute` and "
             "`v1/groups/{id}/groupVolume`). Each verb registers two op "
-            "classes — a player-channel variant and a fatter "
+            "classes: a player-channel variant and a fatter "
             "household-channel variant.", "",
             "</details>", ""]
     _pt_add(m, out, "muse", "validation_lib")
     out += ["<details markdown=\"1\"><summary><b>Technical details"
             "</b></summary>", "",
             "**Body validation library** (`0x109c74b0..0x109ca92c`): typed "
-            "validators keyed by field name — `f_109ca3b4` emits "
+            "validators keyed by field name; `f_109ca3b4` emits "
             "'Missing required field: ', `f_109c9cc0` 'Unexpected type "
             "given for key: ', `f_109c8c60` 'Found unexpected array for '/"
             "'Unable to parse array for ', `f_109c90ec` 'Found object "
@@ -1218,7 +1218,7 @@ def render_muse(m):
             if spec.get("query"):
                 bits.append("query " + ", ".join("`%s=`" % _e(q)
                                                 for q in spec["query"]))
-            rows.append(["`%s`" % name, " ".join(bits) or "—"])
+            rows.append(["`%s`" % name, " ".join(bits) or "none"])
         _table(out, ["Outbound op", "Wire shape"], rows)
         out.append("")
         fv = ob.get("field_vocab") or {}
@@ -1227,7 +1227,7 @@ def render_muse(m):
             if ob.get("field_vocab_note"):
                 _details(out, [_para(ob["field_vocab_note"])])
             rows = [["`%s`" % n,
-                     ", ".join("`%s`" % _e(f) for f in fs) or "—"]
+                     ", ".join("`%s`" % _e(f) for f in fs) or "none"]
                     for n, fs in sorted(fv.items())]
             _table(out, ["Namespace", "Request fields"], rows)
             out.append("")
@@ -1273,7 +1273,7 @@ def render_muse(m):
             elif impl.get("kind") == "resource_block":
                 execs = "resource-block"
             else:
-                execs = "—"
+                execs = "none"
             if op.get("desc_execs"):
                 execs += " desc:`%s`" % "` `".join(
                     x[2:] for x in op["desc_execs"])
@@ -1287,7 +1287,7 @@ def render_muse(m):
                 if p_ not in paths_seen:
                     paths_seen.append(p_)
             prm = op.get("op_params") or []
-            prm_txt = ", ".join("`%s`" % _e(n) for _, n in prm) if prm else "—"
+            prm_txt = ", ".join("`%s`" % _e(n) for _, n in prm) if prm else "none"
             specs = []
             for s_ in op.get("spec") or []:
                 for a_ in s_.get("accessors") or []:
@@ -1300,7 +1300,7 @@ def render_muse(m):
                     if it < len(mem):
                         pairs.append("`%s`" % _e(mem[it]))
                     specs.append("c%d:%s" % (a_.get("class"), " ".join(pairs)))
-            spec_txt = "<br>".join(specs) if specs else "—"
+            spec_txt = "<br>".join(specs) if specs else "none"
             rows.append(["`%s`" % _e(op["method"]),
                          "`%s`" % _e(op["path"]),
                          "`%s`" % _e(op["verb"]),
@@ -1329,7 +1329,7 @@ def render_muse(m):
         ens = r.get("enums") or {}
         if ens:
             tech += ["Related enum registrations (proven integer "
-                     "values — see `enum_tables`):", ""]
+                     "values, see `enum_tables`):", ""]
             tech += ["- **%s**: %s"
                      % (_e(enm), ", ".join(
                          "`%s`=%s" % (_e(s), v)
@@ -1353,7 +1353,7 @@ def render_muse(m):
         fv = r.get("field_vocab") or []
         if fv:
             tech += ["Field vocabulary (request/response keys seen in "
-                     "the resource's client tables — not yet bound to "
+                     "the resource's client tables, not yet bound to "
                      "individual ops): %s"
                      % ", ".join("`%s`" % _e(x) for x in fv), ""]
         if tech:
@@ -1385,7 +1385,7 @@ def render_availability(m):
                    % (len(undisp), ", ".join("`%s`" % x for x in undisp)))
         out.append("")
     for s in m.services:
-        out.append("## `%s` — `%s` (%s)" % (s.name, s.control_path,
+        out.append("## `%s` `%s` (%s)" % (s.name, s.control_path,
                                             s.visibility))
         out.append("")
         rows = []

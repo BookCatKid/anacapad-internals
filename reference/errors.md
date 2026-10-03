@@ -1,10 +1,10 @@
 # Errors
 
-What a failed command actually returns. When a request goes wrong — a missing argument, a value out of range, a command that doesn't exist — the player answers with a standardized fault message carrying a numeric error code. Some codes mean the same thing everywhere in the system (bad arguments are always the same number); others are service-specific or internal error codes leaking out. This page documents the fault format itself, every code the firmware is proven to emit, and for each command the specific set of errors it can produce — which is often the most useful part, since 'what can go wrong' is as much of an interface as 'what it does right'.
+What a failed command actually returns. When a request goes wrong, whether a missing argument, a value out of range, or a command that doesn't exist, the player answers with a standardized fault message carrying a numeric error code. Some codes mean the same thing everywhere in the system (bad arguments are always the same number), while others are service-specific or internal error codes leaking out. This page documents the fault format itself, every code the firmware is proven to emit, and for each command the specific set of errors it can produce. That last part is often the most useful, since 'what can go wrong' is as much of an interface as 'what it does right'.
 
 ## SOAP fault wire format
 
-The exact structure of a failure reply — the envelope a fault travels in. One detail worth knowing: only the error number is machine-checked by the player; the human-readable message beside it is decorative, and some errors carry deliberately unhelpful text. So when you see a fault, trust the number, not the words.
+The exact structure of a failure reply, meaning the envelope a fault travels in. One detail worth knowing: only the error number is machine-checked by the player. The human-readable message beside it is decorative, and some errors carry deliberately unhelpful text. So when you see a fault, trust the number, not the words.
 
 ```xml
 <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>%d</errorCode></UPnPError></s:Fault>
@@ -14,7 +14,7 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
 
 ## Fault code vocabulary
 
-Every numeric error code proven to be emittable by this firmware. The standard ranges cover common meanings — invalid action, missing argument, value out of range — while higher numbers encode Sonos-specific failures: wrong playback mode for this source, optimistic-concurrency clashes on queue edits, feature-not-implemented on this model. Where a code's meaning was recovered from the binary rather than the public spec, that's noted.
+Every numeric error code proven to be emittable by this firmware. The standard ranges cover common meanings like invalid action, missing argument, and value out of range, while higher numbers encode Sonos-specific failures: wrong playback mode for this source, optimistic-concurrency clashes on queue edits, and feature-not-implemented on this model. Where a code's meaning was recovered from the binary rather than the public spec, that's noted.
 
 - **status:** strong
 - **extraction:** original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.
@@ -32,7 +32,7 @@ Every numeric error code proven to be emittable by this firmware. The standard r
 
 ## Per-action error surface
 
-For each command, the union of error codes it can actually produce — everything its routine, argument validation, and internal machinery can emit, not just the generic set. This is the practical section: 'what can this specific command fail with' is what a real client needs to handle.
+For each command, the union of error codes it can actually produce: everything its routine, argument validation, and internal machinery can emit, not just the generic set. This is the practical section, because 'what can this specific command fail with' is what a real client needs to handle.
 
 ### `AVTransport`
 
@@ -48,7 +48,7 @@ For each command, the union of error codes it can actually produce — everythin
 | `AddURIToSavedQueue` | `vret(r5-in,+0x88)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (gate), saved-queue worker rc fwd |
 | `AddURIToSavedQueue` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `AddURIToSavedQueue` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8 |
-| `BackupQueue` | `718` | `confirmed` | Nonzero InstanceID — impl compares the parsed int against 0 before touching the session. |
+| `BackupQueue` | `718` | `confirmed` | Nonzero InstanceID: impl compares the parsed int against 0 before touching the session. |
 | `BackupQueue` | `vret(r5-in,+0x80)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: path-builder domain {718, 0x322=802} |
 | `BackupQueue` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `BackupQueue` | `802` | `strong` | worker-call rejection path |
@@ -57,23 +57,23 @@ For each command, the union of error codes it can actually produce — everythin
 | `BecomeCoordinatorOfStandaloneGroup` | `const` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: promotion-path domain {718, r29 callee-fwd} |
 | `BecomeCoordinatorOfStandaloneGroup` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `BecomeCoordinatorOfStandaloneGroup` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a |
-| `BecomeGroupCoordinator` | `vret(r5-in,+0xd0)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402 x6 sites, callee-fwd — producers at 0x102dea7c/0x102dea90/0x102deb |
+| `BecomeGroupCoordinator` | `vret(r5-in,+0xd0)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402 x6 sites, callee-fwd: producers at 0x102dea7c/0x102dea90/0x102deb2 |
 | `BecomeGroupCoordinator` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `BecomeGroupCoordinatorAndSource` | `vret(r5-in,+0xd4)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: promotion worker domain {0x401=1025} |
 | `BecomeGroupCoordinatorAndSource` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `ChangeCoordinator` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
-| `ChangeCoordinator` | `vret(r5-in,+0x5c)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800 — producers at 0x102af538/0x102af678 |
+| `ChangeCoordinator` | `vret(r5-in,+0x5c)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800: producers at 0x102af538/0x102af678 |
 | `ChangeCoordinator` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `ChangeCoordinator` | `800` | `strong` | worker-call rejection path |
 | `ChangeCoordinator` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a |
 | `ChangeTransportSettings` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
-| `ChangeTransportSettings` | `800` | `confirmed` | Transport mode impl+0x4654 is nonzero — settings changes require an idle engine. |
-| `ChangeTransportSettings` | `vret(r5-in,+0x60)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd — producers at 0x102b1dd8/0x102b1e2c |
+| `ChangeTransportSettings` | `800` | `confirmed` | Transport mode impl+0x4654 is nonzero: settings changes require an idle engine. |
+| `ChangeTransportSettings` | `vret(r5-in,+0x60)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd: producers at 0x102b1dd8/0x102b1e2c |
 | `ChangeTransportSettings` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `ChangeTransportSettings` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a |
-| `ConfigureSleepTimer` | `718` | `confirmed` | Nonzero InstanceID — impl gate on the parsed int. |
+| `ConfigureSleepTimer` | `718` | `confirmed` | Nonzero InstanceID: impl gate on the parsed int. |
 | `ConfigureSleepTimer` | `402` | `confirmed` | Non-empty NewSleepTimerDuration fails the f_10c3d2c4 duration parse. |
-| `ConfigureSleepTimer` | `800` | `confirmed` | engine+0x4654 is neither 1 nor 2 — sleep timer requires a non-idle transport mode. |
+| `ConfigureSleepTimer` | `800` | `confirmed` | engine+0x4654 is neither 1 nor 2: sleep timer requires a non-idle transport mode. |
 | `ConfigureSleepTimer` | `vret(r5-in,+0x90)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_102b4c1c exit returns 0; internal constants {0x320=800,0x192= |
 | `CreateSavedQueue` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
 | `CreateSavedQueue` | `vret(r5-in,+0x84)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (gate), saved-queue worker rc fwd |
@@ -82,27 +82,27 @@ For each command, the union of error codes it can actually produce — everythin
 | `DelegateGroupCoordinationTo` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
 | `DelegateGroupCoordinationTo` | `402` | `confirmed` | NewCoordinator was NULL or an empty string. |
 | `DelegateGroupCoordinationTo` | `vret(r5-in,+0x58)` | `strong` | worker rc returned verbatim except 803->0 |
-| `EndDirectControlSession` | `718` | `confirmed` | Nonzero InstanceID — impl gate on the parsed int before any session work. |
-| `EndDirectControlSession` | `vret(r5-in,+0x50)` | `strong` | None known beyond 718 — the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could s |
+| `EndDirectControlSession` | `718` | `confirmed` | Nonzero InstanceID: impl gate on the parsed int before any session work. |
+| `EndDirectControlSession` | `vret(r5-in,+0x50)` | `strong` | None known beyond 718: the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could su |
 | `EndDirectControlSession` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `EndDirectControlSession` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a |
 | `GetCrossfadeMode` | `718` | `strong` | nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head) |
 | `GetCrossfadeMode` | `402` | `confirmed` | Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs. |
 | `GetCurrentTransportActions` | `718` | `strong` | nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head) |
 | `GetDeviceCapabilities` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
-| `GetDeviceCapabilities` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetDeviceCapabilities` | `718` | `strong` | Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* trans |
 | `GetMediaInfo` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
-| `GetMediaInfo` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetMediaInfo` | `718` | `strong` | Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* trans |
 | `GetPositionInfo` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
-| `GetPositionInfo` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetPositionInfo` | `718` | `strong` | Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* trans |
 | `GetRemainingSleepTimerDuration` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
-| `GetRemainingSleepTimerDuration` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetRemainingSleepTimerDuration` | `718` | `strong` | Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* trans |
 | `GetRemainingSleepTimerDuration` | `800` | `strong` | 800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified |
 | `GetRunningAlarmProperties` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
 | `GetRunningAlarmProperties` | `800` | `strong` | 800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified |
 | `GetTransportInfo` | `718` | `strong` | nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head) |
 | `GetTransportSettings` | `402` | `strong` | request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot |
-| `GetTransportSettings` | `718` | `strong` | Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* tran |
+| `GetTransportSettings` | `718` | `strong` | Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* trans |
 | `Next` | `718` | `strong` | apply worker f_102b60b0 exit accumulator r30: literal {701 x2, 0, 800} plus call-derived; impl-side 718 on InstanceID!=0 stands; rc forwarde |
 | `Next` | `701` | `confirmed` | Operation not currently possible - streamer vfunc returned 0 (no session/rejected) or indexed submit returned an unmapped rc. |
 | `Next` | `711` | `confirmed` | Indexed submit rc==3 - request rejected by impl+0x580 (queue end / illegal target). |
@@ -132,7 +132,7 @@ For each command, the union of error codes it can actually produce — everythin
 | `RemoveTrackFromQueue` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
 | `RemoveTrackFromQueue` | `1028` | `confirmed` | UpdateID argument was nonzero and did not equal the current queue update-id. |
 | `RemoveTrackFromQueue` | `800` | `confirmed` | Transport mode is not 1 or 2, OR the session submission f_10255f64 returned 0 (failure). |
-| `RemoveTrackFromQueue` | `vret(r5-in,+0x70)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 0x404=1028, 800, 0 — producers at 0x102aa7bc/0x102aa830/0x102a |
+| `RemoveTrackFromQueue` | `vret(r5-in,+0x70)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 0x404=1028, 800, 0: producers at 0x102aa7bc/0x102aa830/0x102aa |
 | `RemoveTrackFromQueue` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `RemoveTrackRangeFromQueue` | `718` | `confirmed` | Nonzero InstanceID, or the "%u"-formatted selector fails the session queue-id strcmp. |
 | `RemoveTrackRangeFromQueue` | `1028` | `confirmed` | UpdateID argument was nonzero and did not equal the current queue update-id. |
@@ -152,7 +152,7 @@ For each command, the union of error codes it can actually produce — everythin
 | `SaveQueue` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
 | `SaveQueue` | `800` | `confirmed` | Transport mode impl+0x4654 is not 1 or 2. |
 | `SaveQueue` | `402` | `confirmed` | Title was empty after whitespace trimming, or contained a CR/LF character. |
-| `SaveQueue` | `vret(r5-in,+0x7c)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd — producers at 0x102aa910/0x102aa968/0x102aa984 |
+| `SaveQueue` | `vret(r5-in,+0x7c)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd: producers at 0x102aa910/0x102aa968/0x102aa984 |
 | `SaveQueue` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,8 |
 | `Seek` | `402` | `confirmed` | SOAP-level invalid-args fault when request argument parsing/validation fails. |
 | `Seek` | `401` | `confirmed` | Action unreachable: the AVTransport service object has no bound implementation pointer. |
@@ -169,17 +169,17 @@ For each command, the union of error codes it can actually produce — everythin
 | `SetCrossfadeMode` | `712` | `confirmed` | Crossfade rejected: transport mode !=2 (not indexed), source not crossfade-capable, HLS stream, nonzero arg on incapable source, or submit f |
 | `SetCrossfadeMode` | `402` | `confirmed` | Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs. |
 | `SetNextAVTransportURI` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
-| `SetNextAVTransportURI` | `800` | `confirmed` | Transport mode impl+0x4654 is not 2 — next-URI requires indexed/queue playback. |
+| `SetNextAVTransportURI` | `800` | `confirmed` | Transport mode impl+0x4654 is not 2: next-URI requires indexed/queue playback. |
 | `SetNextAVTransportURI` | `vret(r5-in,+0xc)` | `strong` | nonzero impl/worker rc surfaced verbatim; recovered domain: worker f_102af1c8 domain {0x2bd=701}; exit rc=701 |
 | `SetNextAVTransportURI` | `402` | `confirmed` | Request parse layer rejected an argument before the impl was invoked. |
 | `SetNextAVTransportURI` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a |
 | `SetPlayMode` | `718` | `strong` | impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1 |
 | `SetPlayMode` | `712` | `confirmed` | Play-mode rejected: unrecognized string, no eligible source for non-NORMAL modes, capability byte impl+0x1a03 blocks it, or the streamer mod |
 | `SetPlayMode` | `402` | `confirmed` | Request-layer parse/validation failure surfaced through the request fault vfunc before the impl runs. |
-| `SnoozeAlarm` | `718` | `confirmed` | Nonzero InstanceID — worker gate on the parsed int. |
+| `SnoozeAlarm` | `718` | `confirmed` | Nonzero InstanceID: worker gate on the parsed int. |
 | `SnoozeAlarm` | `402` | `confirmed` | Duration fails the shared f_10c3d2c4 parse. |
-| `SnoozeAlarm` | `800` | `confirmed` | engine+0x4654 is neither 1 nor 2 — snooze requires an active non-idle transport mode. |
-| `SnoozeAlarm` | `701` | `confirmed` | byte impl+0x5a86 is 0 — no alarm is ringing, nothing to snooze. |
+| `SnoozeAlarm` | `800` | `confirmed` | engine+0x4654 is neither 1 nor 2: snooze requires an active non-idle transport mode. |
+| `SnoozeAlarm` | `701` | `confirmed` | byte impl+0x5a86 is 0: no alarm is ringing, nothing to snooze. |
 | `SnoozeAlarm` | `vret(r5-in,+0xa4)` | `strong` | rec+4 u16 is returned; codes 718/402/800/701 enumerated. |
 | `SnoozeAlarm` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in a |
 | `StartAutoplay` | `718` | `confirmed` | InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine |
@@ -246,19 +246,19 @@ For each command, the union of error codes it can actually produce — everythin
 
 | Action | Code | Status | Meaning |
 |---|---|---|---|
-| `StartTransmissionToGroup` | `401` | `confirmed` | action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
-| `StopTransmissionToGroup` | `401` | `confirmed` | action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
-| `SetAudioInputAttributes` | `401` | `confirmed` | action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
-| `GetAudioInputAttributes` | `401` | `confirmed` | action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
-| `SetLineInLevel` | `401` | `confirmed` | action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
-| `GetLineInLevel` | `401` | `confirmed` | action_not_authorized — AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
-| _(dispatcher)_ | `401` | `confirmed` | reject-all dispatcher — every action name faults 401 including the documented AudioIn action set |
+| `StartTransmissionToGroup` | `401` | `confirmed` | action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
+| `StopTransmissionToGroup` | `401` | `confirmed` | action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
+| `SetAudioInputAttributes` | `401` | `confirmed` | action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
+| `GetAudioInputAttributes` | `401` | `confirmed` | action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
+| `SetLineInLevel` | `401` | `confirmed` | action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
+| `GetLineInLevel` | `401` | `confirmed` | action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments |
+| _(dispatcher)_ | `401` | `confirmed` | reject-all dispatcher: every action name faults 401 including the documented AudioIn action set |
 
 ### `ConnectionManager`
 
 | Action | Code | Status | Meaning |
 |---|---|---|---|
-| `GetCurrentConnectionIDs` | `402` | `strong` | The impl->v\[+0x8\] call returned 0 — no usable connection list. \| n/a — success/failure fully determined by the impl vfunc return |
+| `GetCurrentConnectionIDs` | `402` | `strong` | The impl->v\[+0x8\] call returned 0 (no usable connection list. \| n/a) success/failure fully determined by the impl vfunc return |
 | `GetCurrentConnectionInfo` | `706` | `strong` | impl->v\[+0x1c\] rc surfaced |
 | `GetCurrentConnectionInfo` | `402` | `confirmed` | Wrapper parse layer rejected an argument before the impl call. |
 | `GetProtocolInfo` | `402` | `strong` | impl->v\[+0x8\] rc gates emit \| Wrapper parse layer rejected an argument before the impl call. |
@@ -268,7 +268,7 @@ For each command, the union of error codes it can actually produce — everythin
 
 | Action | Code | Status | Meaning |
 |---|---|---|---|
-| `GetCurrentConnectionIDs` | `402` | `strong` | The impl->v\[+0x8\] call returned 0 — no usable connection list. \| n/a — success/failure fully determined by the impl vfunc return |
+| `GetCurrentConnectionIDs` | `402` | `strong` | The impl->v\[+0x8\] call returned 0 (no usable connection list. \| n/a) success/failure fully determined by the impl vfunc return |
 | `GetCurrentConnectionInfo` | `706` | `strong` | impl->v\[+0x1c\] rc surfaced |
 | `GetCurrentConnectionInfo` | `402` | `confirmed` | Wrapper parse layer rejected an argument before the impl call. |
 | `GetProtocolInfo` | `402` | `strong` | impl->v\[+0x8\] rc gates emit \| Wrapper parse layer rejected an argument before the impl call. |
@@ -360,7 +360,7 @@ For each command, the union of error codes it can actually produce — everythin
 | `RemoveMember` | `402` | `strong` | request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] \| empty MemberID ('Removing member failed - invalid argument') |
 | `RemoveMember` | `800` | `confirmed` | MemberID not in member list ('failed (not a member before?)') |
 | `RemoveMember` | `store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])` | `inferred` | group-membership rc domain reachable {800} plus internal codes via gm_impl chain |
-| `ReportTrackBufferingResult` | `402` | `strong` | request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] \| impl stub — unconditional 402 regardless of args |
+| `ReportTrackBufferingResult` | `402` | `strong` | request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] \| impl stub: unconditional 402 regardless of args |
 | `SetSourceAreaIds` | `402` | `strong` | request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] |
 | _(dispatcher)_ | `401` | `strong` | unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler |
 
@@ -369,23 +369,23 @@ For each command, the union of error codes it can actually produce — everythin
 | Action | Code | Status | Meaning |
 |---|---|---|---|
 | `GetGroupMute` | `701` | `confirmed` | nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc} |
-| `GetGroupMute` | `402` | `strong` | SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
+| `GetGroupMute` | `402` | `strong` | SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
 | `GetGroupMute` | `702` | `confirmed` | nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] - |
 | `GetGroupVolume` | `701` | `confirmed` | nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc} |
-| `GetGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
+| `GetGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
 | `GetGroupVolume` | `702` | `confirmed` | nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] - |
 | `SetGroupMute` | `701` | `strong` | nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc} |
-| `SetGroupMute` | `402` | `strong` | SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
+| `SetGroupMute` | `402` | `strong` | SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
 | `SetGroupMute` | `702` | `confirmed` | nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] - |
 | `SetGroupMute` | `801` | `strong` | reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when already set it returns 0x321 (801) without performing the mutati |
 | `SetGroupVolume` | `701` | `strong` | nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc} |
-| `SetGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
+| `SetGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
 | `SetGroupVolume` | `702` | `confirmed` | nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] - |
 | `SetRelativeGroupVolume` | `701` | `strong` | nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc} |
-| `SetRelativeGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
+| `SetRelativeGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
 | `SetRelativeGroupVolume` | `702` | `confirmed` | nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] - |
 | `SnapshotGroupVolume` | `701` | `confirmed` | nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc} |
-| `SnapshotGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args — raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
+| `SnapshotGroupVolume` | `402` | `strong` | SOAP 402 Invalid Args: raised when req->v\[+0x08\] rejects the request state or the required-arg lookup through req->v\[+0x1c\] fails |
 | `SnapshotGroupVolume` | `702` | `confirmed` | nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v\[+0x1c\] - |
 | _(dispatcher)_ | `401` | `strong` | unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler |
 

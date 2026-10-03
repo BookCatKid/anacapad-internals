@@ -1,8 +1,8 @@
-# `AVTransport` — `/MediaRenderer/AVTransport/Control`
+# `AVTransport` `/MediaRenderer/AVTransport/Control`
 
 **visibility** `advertised` · **status** `strong`
 
-This is the biggest and most important service on the player — the remote control for playback itself. Transport commands live here: play, pause, stop, skip, seek, and setting what to play. The queue lives here too: adding tracks, removing them, reordering them, saving the queue as a Sonos playlist. So do play modes like shuffle and repeat, crossfade, the sleep timer, and the alarm run/snooze commands used when an alarm actually fires. Finally, the whole group-coordination family is in this service: becoming the leader of a group, handing leadership to another speaker, and joining or leaving the coordinated-playback roles. If you think of the Sonos app as a remote control, this service is the buttons that matter most.
+This is the biggest and most important service on the player: the remote control for playback itself. The transport commands live here, meaning play, pause, stop, skip, seek, and setting what to play. The queue lives here too: adding tracks, removing them, reordering them, and saving the queue as a Sonos playlist. So do the play modes like shuffle and repeat, plus crossfade, the sleep timer, and the alarm run and snooze commands used when an alarm actually fires. Finally, the whole group-coordination family is in this service: becoming the leader of a group, handing leadership to another speaker, and joining or leaving the coordinated-playback roles. If you think of the Sonos app as a remote control, this service is the buttons that matter most.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -80,7 +80,7 @@ UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds a batch of tracks to the play queue in one shot — what happens when you tap 'play album' or 'add all to queue' rather than dropping songs in one at a time. You send a list of track addresses (with optional metadata about each), where to insert them, and whether to drop them at the end or next-up, and the speaker reports back how many were added and the queue's new length.
+Adds a batch of tracks to the play queue in one shot, which is what happens when you tap 'play album' or 'add all to queue' rather than dropping songs in one at a time. You send a list of track addresses (with optional metadata about each), where to insert them, and whether to drop them at the end or next-up, and the speaker reports back how many were added and the queue's new length.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -102,23 +102,23 @@ Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-cal
 | `ContainerURI` | SonosUriArg | yes | Any string / max 1024 chars | none - required argument |
 | `ContainerMetaData` | SonosMetaDataArg | yes | Any string / max 4096 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`UpdateID`** — Queue update-id token consumed by the worker (optimistic concurrency family).
+- **`UpdateID`**: Queue update-id token consumed by the worker (optimistic concurrency family).
   - buffer cap: `0x18`
-- **`NumberOfURIs`** — Count of URIs in the EnqueuedURIs list — bounds the worker's iteration.
+- **`NumberOfURIs`**: Count of URIs in the EnqueuedURIs list: bounds the worker's iteration.
   - buffer cap: `0x18`
-- **`EnqueuedURIs`** — Semicolon/list-separated URIs consumed by the worker per the parser convention.
+- **`EnqueuedURIs`**: Semicolon/list-separated URIs consumed by the worker per the parser convention.
   - buffer cap: `0x280a`
-- **`EnqueuedURIsMetaData`** — Parallel DIDL metadata list for the URIs.
+- **`EnqueuedURIsMetaData`**: Parallel DIDL metadata list for the URIs.
   - buffer cap: `0xa00a`
-- **`DesiredFirstTrackNumberEnqueued`** — Requested insertion position for the batch.
+- **`DesiredFirstTrackNumberEnqueued`**: Requested insertion position for the batch.
   - buffer cap: `0x18`
-- **`EnqueueAsNext`** — Flag forwarded to the worker.
+- **`EnqueueAsNext`**: Flag forwarded to the worker.
   - buffer cap: `0x18`
-- **`ContainerURI`** — Container context for the enqueue, forwarded to the worker.
+- **`ContainerURI`**: Container context for the enqueue, forwarded to the worker.
   - buffer cap: `0x401`
-- **`ContainerMetaData`** — Metadata for the container, forwarded to the worker.
+- **`ContainerMetaData`**: Metadata for the container, forwarded to the worker.
   - buffer cap: `0x1001`
 
 #### Outputs
@@ -130,13 +130,13 @@ Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-cal
 | `NewQueueLength` | unsigned int32 | "0" or "1" via bool-style parse helper; literal semantics under action validation / {0,1} |
 | `NewUpdateID` | unsigned int32 | post-mutation queue UpdateID / length-bounded by parse-helper buffer cap |
 
-- **`FirstTrackNumberEnqueued`** — Written by the enqueue worker on success.
+- **`FirstTrackNumberEnqueued`**: Written by the enqueue worker on success.
   - validation: copied from the worker insert result
-- **`NumTracksAdded`** — Written by the enqueue worker on success.
+- **`NumTracksAdded`**: Written by the enqueue worker on success.
   - validation: worker-written count record
-- **`NewQueueLength`** — Written by the enqueue worker on success.
+- **`NewQueueLength`**: Written by the enqueue worker on success.
   - validation: written from the queue record length after the mutation
-- **`NewUpdateID`** — Written by the enqueue worker on success.
+- **`NewUpdateID`**: Written by the enqueue worker on success.
   - validation: copied from the queue-record update counter
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -146,7 +146,7 @@ Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-cal
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fb7e8 — wrapper + impl decode
+- @ 0x102fb7e8; wrapper + impl decode
 
 </details>
 
@@ -156,7 +156,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, out-arg write×4, validate×1, commit×1); member delegates: r28 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb7e8 — req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
+- fn 0x102fb7e8; req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
 </details>
 
@@ -166,7 +166,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, out-
 service-internal state reached through member delegate(s): r28 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb7e8 — member vfunc calls: \['r28 v\[+?\]'\]
+- fn 0x102fb7e8; member vfunc calls: \['r28 v\[+?\]'\]
 
 </details>
 
@@ -180,7 +180,7 @@ service-internal state reached through member delegate(s): r28 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb7e8 — no transition-literal/store pattern; member delegates: \['r28 v\[+?\]'\]
+- fn 0x102fb7e8; no transition-literal/store pattern; member delegates: \['r28 v\[+?\]'\]
 
 </details>
 
@@ -190,7 +190,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb7e8 — bl call scan: notify-family sites = \[\]
+- fn 0x102fb7e8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -200,7 +200,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb7e8 — commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
+- fn 0x102fb7e8; commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}
 
 </details>
 
@@ -241,9 +241,9 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 - impl call `0x102fbb54` obj `*(*(sp+0x0)+0xfffffffc)` slot `12` arg4 `?`
 - req vcall `0x102fb9d4` slot `8` (parse)
 
-- fn 0x102fb7e8 @ 0x102fb7e8 — action wrapper handler
-- @ 0x10eb3018 — action dispatch table entry
-- fn 0x102b7170 — AVT impl vtable 0x10eaf2ec slot +0x68 entry
+- fn 0x102fb7e8 @ 0x102fb7e8; action wrapper handler
+- @ 0x10eb3018; action dispatch table entry
+- fn 0x102b7170; AVT impl vtable 0x10eaf2ec slot +0x68 entry
 
 </details>
 
@@ -251,7 +251,7 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds a single track or stream to the play queue. You give it the item's address (its URI — the URL-like locator Sonos uses for songs, streams, and service items) plus metadata describing it, and optionally where in the queue to put it and whether it should be queued to play right after the current song. This is the most basic queue-edit command the app issues.
+Adds a single track or stream to the play queue. You give it the item's address (its URI, the URL-like locator Sonos uses for songs, streams, and service items) plus metadata describing it, and optionally where in the queue to put it and whether it should be queued to play right after the current song. This is the most basic queue-edit command the app issues.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -269,15 +269,15 @@ Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls share
 | `DesiredFirstTrackNumberEnqueued` | SonosUintArg | yes | u32 queue position; 0 = append at end (engine worker inserts relative to UpdateID track list) / parsed u32; worker clamps/validates against the queue record | none - required argument |
 | `EnqueueAsNext` | SonosBoolArg | yes | Boolean-ish integer / {0,1} | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`EnqueuedURI`** — URI to enqueue; logged verbatim into the avt_impl channel by the worker.
+- **`EnqueuedURI`**: URI to enqueue; logged verbatim into the avt_impl channel by the worker.
   - buffer cap: `0x401`
-- **`EnqueuedURIMetaData`** — DIDL metadata for the track; logged verbatim alongside the URI.
+- **`EnqueuedURIMetaData`**: DIDL metadata for the track; logged verbatim alongside the URI.
   - buffer cap: `0x1001`
-- **`DesiredFirstTrackNumberEnqueued`** — Requested 1-based insertion position; actual result reported via FirstTrackNumberEnqueued.
+- **`DesiredFirstTrackNumberEnqueued`**: Requested 1-based insertion position; actual result reported via FirstTrackNumberEnqueued.
   - buffer cap: `0x18`
-- **`EnqueueAsNext`** — Flag forwarded to the worker requesting next-track insertion.
+- **`EnqueueAsNext`**: Flag forwarded to the worker requesting next-track insertion.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -288,11 +288,11 @@ Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls share
 | `NumTracksAdded` | unsigned int32 | count of entries actually enqueued by the worker/expansion / 0..N |
 | `NewQueueLength` | unsigned int32 | "0" or "1" via bool-style parse helper; literal semantics under action validation / {0,1} |
 
-- **`FirstTrackNumberEnqueued`** — Written by the enqueue worker on success.
+- **`FirstTrackNumberEnqueued`**: Written by the enqueue worker on success.
   - validation: copied from the worker insert result
-- **`NumTracksAdded`** — Written by the enqueue worker on success.
+- **`NumTracksAdded`**: Written by the enqueue worker on success.
   - validation: worker-written count record
-- **`NewQueueLength`** — Written by the enqueue worker on success.
+- **`NewQueueLength`**: Written by the enqueue worker on success.
   - validation: written from the queue record length after the mutation
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -302,7 +302,7 @@ Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls share
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102facf8 — wrapper + impl decode
+- @ 0x102facf8; wrapper + impl decode
 
 </details>
 
@@ -312,7 +312,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r29 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102facf8 — req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
+- fn 0x102facf8; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
 </details>
 
@@ -322,7 +322,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-
 service-internal state reached through member delegate(s): r29 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102facf8 — member vfunc calls: \['r29 v\[+?\]'\]
+- fn 0x102facf8; member vfunc calls: \['r29 v\[+?\]'\]
 
 </details>
 
@@ -336,7 +336,7 @@ service-internal state reached through member delegate(s): r29 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102facf8 — no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
+- fn 0x102facf8; no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
 
 </details>
 
@@ -346,7 +346,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102facf8 — bl call scan: notify-family sites = \[\]
+- fn 0x102facf8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -356,7 +356,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102facf8 — commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
+- fn 0x102facf8; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
 </details>
 
@@ -367,7 +367,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`vret(r5-in,+0x64)`** `strong`
 
@@ -376,8 +376,8 @@ nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0
 - the enqueue worker produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** enqueue worker f_102b6948 rc returned
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b6a9c entry); remaining paths call-derived
+**Bounded unknown (proven):** enqueue worker f_102b6948 rc returned
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b6a9c entry); remaining paths call-derived
 
 **`402`** `confirmed`
 
@@ -401,9 +401,9 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 - impl call `0x102faf18` obj `*(sp-0x1450+0x144c)` slot `12` arg4 `?`
 - req vcall `0x102fadf8` slot `8` (parse)
 
-- fn 0x102facf8 @ 0x102facf8 — action wrapper handler
-- @ 0x10eb3024 — action dispatch table entry
-- fn 0x102b6a9c — AVT impl vtable 0x10eaf2ec slot +0x64 entry
+- fn 0x102facf8 @ 0x102facf8; action wrapper handler
+- @ 0x10eb3024; action dispatch table entry
+- fn 0x102b6a9c; AVT impl vtable 0x10eaf2ec slot +0x64 entry
 
 </details>
 
@@ -411,7 +411,7 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Appends a track to an existing saved queue — a Sonos playlist. Rather than the live queue, this edits a stored list: you identify which playlist by its object ID, pass the track and its metadata plus a position, and the item lands inside that stored list for later recall.
+Appends a track to an existing saved queue, meaning a Sonos playlist. Rather than touching the live queue, this edits a stored list: you identify which playlist by its object ID, pass the track and its metadata plus a position, and the item lands inside that stored list for later recall.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -430,17 +430,17 @@ Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718
 | `EnqueuedURIMetaData` | SonosMetaDataArg | yes | DIDL-Lite XML string <= parse cap; empty permitted / max 4096 chars | none - required argument |
 | `AddAtIndex` | SonosUintArg | yes | u32 insert index into the saved queue; 0/omitted = append / parsed u32; worker-clamped against the saved-queue length | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`ObjectID`** — Forwarded positionally to the f_10479fb8 subsystem worker.
+- **`ObjectID`**: Forwarded positionally to the f_10479fb8 subsystem worker.
   - buffer cap: `0x400`
-- **`UpdateID`** — Forwarded positionally to the f_10479fb8 subsystem worker.
+- **`UpdateID`**: Forwarded positionally to the f_10479fb8 subsystem worker.
   - buffer cap: `0x18`
-- **`EnqueuedURI`** — Forwarded positionally to the f_10479fb8 subsystem worker.
+- **`EnqueuedURI`**: Forwarded positionally to the f_10479fb8 subsystem worker.
   - buffer cap: `0x401`
-- **`EnqueuedURIMetaData`** — Forwarded positionally to the f_10479fb8 subsystem worker.
+- **`EnqueuedURIMetaData`**: Forwarded positionally to the f_10479fb8 subsystem worker.
   - buffer cap: `0x1001`
-- **`AddAtIndex`** — Forwarded positionally to the f_10479fb8 subsystem worker.
+- **`AddAtIndex`**: Forwarded positionally to the f_10479fb8 subsystem worker.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -451,11 +451,11 @@ Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718
 | `NewQueueLength` | unsigned int32 | "0" or "1" via bool-style parse helper; literal semantics under action validation / {0,1} |
 | `NewUpdateID` | unsigned int32 | post-mutation queue UpdateID / length-bounded by parse-helper buffer cap |
 
-- **`NumTracksAdded`** — Written by the f_10479fb8 worker on success.
+- **`NumTracksAdded`**: Written by the f_10479fb8 worker on success.
   - validation: worker-written count record
-- **`NewQueueLength`** — Written by the f_10479fb8 worker on success.
+- **`NewQueueLength`**: Written by the f_10479fb8 worker on success.
   - validation: written from the queue record length after the mutation
-- **`NewUpdateID`** — Written by the f_10479fb8 worker on success.
+- **`NewUpdateID`**: Written by the f_10479fb8 worker on success.
   - validation: copied from the queue-record update counter
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -465,7 +465,7 @@ Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fb2d8 — wrapper + impl decode
+- @ 0x102fb2d8; wrapper + impl decode
 
 </details>
 
@@ -475,7 +475,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×3, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb2d8 — req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
+- fn 0x102fb2d8; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
 </details>
 
@@ -485,7 +485,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb2d8 — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102fb2d8; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -499,7 +499,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb2d8 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102fb2d8; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -509,7 +509,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb2d8 — bl call scan: notify-family sites = \[\]
+- fn 0x102fb2d8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -519,7 +519,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb2d8 — commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
+- fn 0x102fb2d8; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
 </details>
 
@@ -539,8 +539,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (gate), saved-qu
 - the subsystem worker produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** saved-queue worker rc returned
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd140 entry); remaining paths call-derived
+**Bounded unknown (proven):** saved-queue worker rc returned
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd140 entry); remaining paths call-derived
 
 **`402`** `confirmed`
 
@@ -552,7 +552,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -570,9 +570,9 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 - impl call `0x102fb50c` obj `*(sp-0x1850+0x184c)` slot `12` arg4 `?`
 - req vcall `0x102fb3f4` slot `8` (parse)
 
-- fn 0x102fb2d8 @ 0x102fb2d8 — action wrapper handler
-- @ 0x10eb3030 — action dispatch table entry
-- fn 0x102bd140 — AVT impl vtable 0x10eaf2ec slot +0x88 entry
+- fn 0x102fb2d8 @ 0x102fb2d8; action wrapper handler
+- @ 0x10eb3030; action dispatch table entry
+- fn 0x102bd140; AVT impl vtable 0x10eaf2ec slot +0x88 entry
 
 </details>
 
@@ -580,11 +580,11 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Writes the current play queue to storage so it survives a reboot or a crash. Ordinarily the queue lives in memory; this command snapshots it to the player's flash so the same 'now playing' list can be restored after a power cut or update. Backing up an empty queue is a silent success — there is simply nothing to write.
+Writes the current play queue to storage so it survives a reboot or a crash. Ordinarily the queue lives in memory, and this command snapshots it to the player's flash so the same 'now playing' list can be restored after a power cut or update. Backing up an empty queue is a silent success since there is simply nothing to write.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0 — backing up an empty queue is a silent success no-op. Otherwise it builds the "trackqueue"/"trackqueue.rsq" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.
+Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0: backing up an empty queue is a silent success no-op. Otherwise it builds the "trackqueue"/"trackqueue.rsq" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.
 
 </details>
 
@@ -594,7 +594,7 @@ Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads 
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x80 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -604,7 +604,7 @@ Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads 
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f8db0 — wrapper + impl decode
+- @ 0x102f8db0; wrapper + impl decode
 
 </details>
 
@@ -614,7 +614,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x80\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8db0 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8db0; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -624,7 +624,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x80\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8db0 — member vfunc calls: \['r30 v\[+0x80\]'\]
+- fn 0x102f8db0; member vfunc calls: \['r30 v\[+0x80\]'\]
 
 </details>
 
@@ -638,7 +638,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x80\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x80\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8db0 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x80\]'\]
+- fn 0x102f8db0; no transition-literal/store pattern; member delegates: \['r30 v\[+0x80\]'\]
 
 </details>
 
@@ -648,7 +648,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8db0 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8db0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -658,7 +658,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8db0 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8db0; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -667,7 +667,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 **`718`** `confirmed`
 
-Nonzero InstanceID — impl compares the parsed int against 0 before touching the session.
+Nonzero InstanceID: impl compares the parsed int against 0 before touching the session.
 
 - InstanceID argument is nonzero
 
@@ -693,7 +693,7 @@ worker-call rejection path
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -711,9 +711,9 @@ None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the sa
 - impl call `0x102f8e90` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f8e0c` slot `8` (parse)
 
-- fn 0x102f8db0 @ 0x102f8db0 — action wrapper handler
-- @ 0x10eb303c — action dispatch table entry
-- fn 0x102ab62c — AVT impl vtable 0x10eaf2ec slot +0x80 entry
+- fn 0x102f8db0 @ 0x102f8db0; action wrapper handler
+- @ 0x10eb303c; action dispatch table entry
+- fn 0x102ab62c; AVT impl vtable 0x10eaf2ec slot +0x80 entry
 
 </details>
 
@@ -721,11 +721,11 @@ None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the sa
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Promotes this speaker into the coordinator role of its own group. 'Coordinator' is Sonos's name for the speaker in a group that owns the music: it picks the source, drives playback, and streams audio to the followers. This command is used when a speaker that was playing on its own (a 'standalone group' of one) needs to formally take the leadership seat — for example when other rooms are about to join it.
+Promotes this speaker into the coordinator role of its own group. 'Coordinator' is Sonos's name for the speaker in a group that owns the music: it picks the source, drives playback, and streams audio to the followers. This command is used when a speaker that was playing on its own (a 'standalone group' of one) needs to formally take the leadership seat, for example when other rooms are about to join it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs "avt_impl" "BecomeCoordinatorOfStandaloneGroup", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs "avt_impl" "BecomeCoordinatorOfStandaloneGroup", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
 </details>
 
@@ -735,7 +735,7 @@ Promotes this player to coordinator of its standalone group. Impl f_102d5524 log
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x54 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -745,9 +745,9 @@ Promotes this player to coordinator of its standalone group. Impl f_102d5524 log
 | `DelegatedGroupCoordinatorID` | SonosStringArg | zone UUID string of the promoted member / length-bounded by parse-helper buffer cap |
 | `NewGroupID` | SonosStringArg | group UUID assigned by the promotion path / length-bounded by parse-helper buffer cap |
 
-- **`DelegatedGroupCoordinatorID`** — Group/coordinator identity written by the promotion path on success.
+- **`DelegatedGroupCoordinatorID`**: Group/coordinator identity written by the promotion path on success.
   - validation: output written by the promotion path when it selects a member
-- **`NewGroupID`** — Group/coordinator identity written by the promotion path on success.
+- **`NewGroupID`**: Group/coordinator identity written by the promotion path on success.
   - validation: written from the group record on success
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -757,7 +757,7 @@ Promotes this player to coordinator of its standalone group. Impl f_102d5524 log
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f8b04 — wrapper + impl decode
+- @ 0x102f8b04; wrapper + impl decode
 
 </details>
 
@@ -767,7 +767,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8b04 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
+- fn 0x102f8b04; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
 
 </details>
 
@@ -777,7 +777,7 @@ impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8b04 — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102f8b04; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -791,7 +791,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8b04 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102f8b04; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -801,7 +801,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8b04 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8b04; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -811,7 +811,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8b04 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
+- fn 0x102f8b04; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}
 
 </details>
 
@@ -831,8 +831,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: promotion-path domai
 - the promotion path produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** promotion-path rc surfaced
-**Bounded unknown — unresolved:** concrete codes from the coordinator promotion tail
+**Bounded unknown (proven):** promotion-path rc surfaced
+**Bounded unknown (unresolved):** concrete codes from the coordinator promotion tail
 
 **`402`** `confirmed`
 
@@ -844,7 +844,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -865,9 +865,9 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - req vcall `0x102f8b60` slot `8` (parse)
 - req vcall `0x102f8c5c` slot `12` (commit)
 
-- fn 0x102f8b04 @ 0x102f8b04 — action wrapper handler
-- @ 0x10eb3048 — action dispatch table entry
-- fn 0x102d5524 — AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513244 slot +0x54 entry
+- fn 0x102f8b04 @ 0x102f8b04; action wrapper handler
+- @ 0x10eb3048; action dispatch table entry
+- fn 0x102d5524; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513244 slot +0x54 entry
 
 </details>
 
@@ -875,11 +875,11 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Makes this speaker take over as the leader of an existing group, adopting whatever the group is already playing. Used when group leadership is being reassigned — the app (or the system) decides a different speaker should carry the session, and this command performs the takeover while keeping the group's music going.
+Makes this speaker take over as the leader of an existing group, adopting whatever the group is already playing. It is used when group leadership is being reassigned: the app (or the system) decides a different speaker should carry the session, and this command performs the takeover while keeping the group's music going.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs "avt_impl" "BecomeGroupCoordinator", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs "avt_impl" "BecomeGroupCoordinator", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
 </details>
 
@@ -900,42 +900,42 @@ Makes this player the coordinator of an existing group, adopting the group sourc
 | `CurrentQueueTrackList` | string argument | yes | A_ARG_TYPE_Queue-domain value / impl-bounded (req-slot arg) | none |
 | `CurrentVLIState` | string argument | yes | A_ARG_TYPE_VLIState-domain value / impl-bounded (req-slot arg) | none |
 
-- **`InstanceID`** — renderer instance id (always 0)
+- **`InstanceID`**: renderer instance id (always 0)
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentCoordinator`** — UDN of the current group coordinator
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentCoordinator`**: UDN of the current group coordinator
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentGroupID`** — group UUID of the zone group being handed off
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentGroupID`**: group UUID of the zone group being handed off
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`OtherMembers`** — member-list blob of the other zone-group members
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`OtherMembers`**: member-list blob of the other zone-group members
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`TransportSettings`** — serialized transport settings blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`TransportSettings`**: serialized transport settings blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentURI`** — the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentURI`**: the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentURIMetaData`** — DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentURIMetaData`**: DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`SleepTimerState`** — serialized sleep-timer state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`SleepTimerState`**: serialized sleep-timer state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`AlarmState`** — serialized alarm state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`AlarmState`**: serialized alarm state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`StreamRestartState`** — serialized stream-restart state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`StreamRestartState`**: serialized stream-restart state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentQueueTrackList`** — serialized queue track-list blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentQueueTrackList`**: serialized queue track-list blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentVLIState`** — serialized virtual-line-in state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentVLIState`**: serialized virtual-line-in state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
 
@@ -944,7 +944,7 @@ Makes this player the coordinator of an existing group, adopting the group sourc
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fc8b0 — wrapper + impl decode
+- @ 0x102fc8b0; wrapper + impl decode
 
 </details>
 
@@ -954,7 +954,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v\[+?\], r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc8b0 — req-vfunc call map: {'0x14': 1, '0xc': 1}
+- fn 0x102fc8b0; req-vfunc call map: {'0x14': 1, '0xc': 1}
 
 </details>
 
@@ -964,7 +964,7 @@ impl consumes in-args via req slots (raise-fault×1, commit×1); member delegate
 service-internal state reached through member delegate(s): r4 v\[+?\], r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc8b0 — member vfunc calls: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
+- fn 0x102fc8b0; member vfunc calls: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
 
 </details>
 
@@ -978,7 +978,7 @@ service-internal state reached through member delegate(s): r4 v\[+?\], r30 v\[+?
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+?\], r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc8b0 — no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
+- fn 0x102fc8b0; no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r30 v\[+?\]'\]
 
 </details>
 
@@ -988,7 +988,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc8b0 — bl call scan: notify-family sites = \[\]
+- fn 0x102fc8b0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -998,7 +998,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc8b0 — commit/fault slot usage: {'0x14': 1, '0xc': 1}
+- fn 0x102fc8b0; commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1007,7 +1007,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 **`vret(r5-in,+0xd0)`** `strong`
 
-nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402 x6 sites, callee-fwd — producers at 0x102dea7c/0x102dea90/0x102deb20+
+nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402 x6 sites, callee-fwd: producers at 0x102dea7c/0x102dea90/0x102deb20+
 
 - the worker produced a code not covered by the gates
 
@@ -1034,10 +1034,10 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - req vcall `0x102fc8f8` slot `52` (other)
 - Handler 0x102fc8b0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).
 
-- fn 0x102fc8b0 @ 0x102fc8b0 — action wrapper handler
-- @ 0x10eb3054 — action dispatch table entry
-- fn 0x102de740 — AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x105133e4 slot +0xd0 entry
-- @ 0x102fc8b0 — handler body: gate + impl call + commit only; no parse/emit arg sites
+- fn 0x102fc8b0 @ 0x102fc8b0; action wrapper handler
+- @ 0x10eb3054; action dispatch table entry
+- fn 0x102de740; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x105133e4 slot +0xd0 entry
+- @ 0x102fc8b0; handler body: gate + impl call + commit only; no parse/emit arg sites
 
 </details>
 
@@ -1045,11 +1045,11 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Makes this speaker both the leader of a group and the origin of the group's music — the combined version of the takeover: 'I become coordinator AND everyone plays what I am playing'. Used when you effectively want the system to follow this room's selection rather than the previous leader's.
+Makes this speaker both the leader of a group and the origin of the group's music. It is the combined version of the takeover, effectively saying 'I become coordinator and everyone plays what I am playing'. It is used when you want the system to follow this room's selection rather than the previous leader's.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
 </details>
 
@@ -1071,45 +1071,45 @@ Makes this player group coordinator AND selects this player's source for the gro
 | `CurrentSourceState` | string argument | yes | A_ARG_TYPE_SourceState-domain value / impl-bounded (req-slot arg) | none |
 | `ResumePlayback` | boolean argument | yes | A_ARG_TYPE_ResumePlayback-domain value / impl-bounded (req-slot arg) | none |
 
-- **`InstanceID`** — renderer instance id (always 0)
+- **`InstanceID`**: renderer instance id (always 0)
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentCoordinator`** — UDN of the current group coordinator
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentCoordinator`**: UDN of the current group coordinator
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentGroupID`** — group UUID of the zone group being handed off
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentGroupID`**: group UUID of the zone group being handed off
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`OtherMembers`** — member-list blob of the other zone-group members
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`OtherMembers`**: member-list blob of the other zone-group members
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentURI`** — the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentURI`**: the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentURIMetaData`** — DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentURIMetaData`**: DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`SleepTimerState`** — serialized sleep-timer state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`SleepTimerState`**: serialized sleep-timer state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`AlarmState`** — serialized alarm state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`AlarmState`**: serialized alarm state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`StreamRestartState`** — serialized stream-restart state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`StreamRestartState`**: serialized stream-restart state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentAVTTrackList`** — serialized AVT track-list blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentAVTTrackList`**: serialized AVT track-list blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentQueueTrackList`** — serialized queue track-list blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentQueueTrackList`**: serialized queue track-list blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`CurrentSourceState`** — serialized source state blob
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`CurrentSourceState`**: serialized source state blob
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
-- **`ResumePlayback`** — whether to resume playback after the handoff
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
+- **`ResumePlayback`**: whether to resume playback after the handoff
   - validation: fetched via request-object slot; impl validates internally
-  - populated from SCPD — arg read as raw value via request slot, not a typed parse-descriptor
+  - populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
 
@@ -1118,7 +1118,7 @@ Makes this player group coordinator AND selects this player's source for the gro
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fc3a0 — wrapper + impl decode
+- @ 0x102fc3a0; wrapper + impl decode
 
 </details>
 
@@ -1128,7 +1128,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, 0x34×1, commit×1); member delegates: r4 v\[+?\], r29 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc3a0 — req-vfunc call map: {'0x34': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fc3a0; req-vfunc call map: {'0x34': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1138,7 +1138,7 @@ impl consumes in-args via req slots (raise-fault×1, 0x34×1, commit×1); member
 service-internal state reached through member delegate(s): r4 v\[+?\], r29 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc3a0 — member vfunc calls: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
+- fn 0x102fc3a0; member vfunc calls: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
 
 </details>
 
@@ -1152,7 +1152,7 @@ service-internal state reached through member delegate(s): r4 v\[+?\], r29 v\[+?
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+?\], r29 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc3a0 — no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
+- fn 0x102fc3a0; no transition-literal/store pattern; member delegates: \['r4 v\[+?\]', 'r29 v\[+?\]'\]
 
 </details>
 
@@ -1162,7 +1162,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc3a0 — bl call scan: notify-family sites = \[\]
+- fn 0x102fc3a0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1172,7 +1172,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc3a0 — commit/fault slot usage: {'0x34': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fc3a0; commit/fault slot usage: {'0x34': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1209,10 +1209,10 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - req vcall `0x102fc410` slot `52` (other)
 - Handler 0x102fc3a0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).
 
-- fn 0x102fc3a0 @ 0x102fc3a0 — action wrapper handler
-- @ 0x10eb3060 — action dispatch table entry
-- fn 0x102df410 — AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x105134a8 slot +0xd4 entry
-- @ 0x102fc3a0 — handler body: gate + impl call + commit only; no parse/emit arg sites
+- fn 0x102fc3a0 @ 0x102fc3a0; action wrapper handler
+- @ 0x10eb3060; action dispatch table entry
+- fn 0x102df410; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x105134a8 slot +0xd4 entry
+- @ 0x102fc3a0; handler body: gate + impl call + commit only; no parse/emit arg sites
 
 </details>
 
@@ -1220,7 +1220,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Moves group leadership from one member to another in a controlled hand-off — the old leader passes its transport settings to the new one so playback continues seamlessly. Unlike the 'Become*' commands where a speaker claims leadership itself, this one is the system's way of directing a swap between named members, with the play state carried across.
+Moves group leadership from one member to another in a controlled hand-off. The old leader passes its transport settings to the new one so playback continues seamlessly. Unlike the 'Become*' commands where a speaker claims leadership itself, this one is the system's way of directing a swap between named members, with the play state carried across.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1239,17 +1239,17 @@ Reassigns group coordination from one member to another with transport-settings 
 | `CurrentAVTransportURI` | SonosUriArg | yes | zone-UUID / URI string <= parse cap; consumed by the coordinator-change worker / max 1024 chars | none - required argument |
 | `RestartSink` | SonosStringArg | yes | boolean flag parsed as u32; nonzero restarts the sink during the handoff / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`CurrentCoordinator`** — Identifier of the member currently holding coordination.
+- **`CurrentCoordinator`**: Identifier of the member currently holding coordination.
   - buffer cap: `0x19`
-- **`NewCoordinator`** — Identifier of the member to receive coordination.
+- **`NewCoordinator`**: Identifier of the member to receive coordination.
   - buffer cap: `0x19`
-- **`NewTransportSettings`** — Settings handed to the new coordinator (same family as ChangeTransportSettings).
+- **`NewTransportSettings`**: Settings handed to the new coordinator (same family as ChangeTransportSettings).
   - buffer cap: `0x81`
-- **`CurrentAVTransportURI`** — Source URI carried through the handover.
+- **`CurrentAVTransportURI`**: Source URI carried through the handover.
   - buffer cap: `0x401`
-- **`RestartSink`** — Flag requesting a sink restart on the new coordinator.
+- **`RestartSink`**: Flag requesting a sink restart on the new coordinator.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1259,7 +1259,7 @@ Reassigns group coordination from one member to another with transport-settings 
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fa3ec — wrapper + impl decode
+- @ 0x102fa3ec; wrapper + impl decode
 
 </details>
 
@@ -1269,7 +1269,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa3ec — req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa3ec; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1279,7 +1279,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, vali
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa3ec — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102fa3ec; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -1293,7 +1293,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa3ec — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102fa3ec; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -1303,7 +1303,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa3ec — bl call scan: notify-family sites = \[\]
+- fn 0x102fa3ec; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1313,7 +1313,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa3ec — commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa3ec; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1328,13 +1328,13 @@ InstanceID is nonzero; the impl gate rejects any instance other than 0 for this 
 
 **`vret(r5-in,+0x5c)`** `strong`
 
-nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800 — producers at 0x102af538/0x102af678
+nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800: producers at 0x102af538/0x102af678
 
 - the worker produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** coordinator-change worker rc surfaced
-**Bounded unknown — unresolved:** concrete codes for member validation / handover refusal
+**Bounded unknown (proven):** coordinator-change worker rc surfaced
+**Bounded unknown (unresolved):** concrete codes for member validation / handover refusal
 
 **`402`** `confirmed`
 
@@ -1352,7 +1352,7 @@ worker-call rejection path
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -1366,9 +1366,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102fa5b8` obj `*(sp-0x4f0+0x4ec)` slot `12` arg4 `402`
 - req vcall `0x102fa51c` slot `8` (parse)
 
-- fn 0x102fa3ec @ 0x102fa3ec — action wrapper handler
-- @ 0x10eb306c — action dispatch table entry
-- fn 0x102af490 — AVT impl vtable 0x10eaf2ec slot +0x5c entry
+- fn 0x102fa3ec @ 0x102fa3ec; action wrapper handler
+- @ 0x10eb306c; action dispatch table entry
+- fn 0x102af490; AVT impl vtable 0x10eaf2ec slot +0x5c entry
 
 </details>
 
@@ -1376,11 +1376,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Installs a new set of playback settings — the command external sources use when they want to take over the player's audio pipeline directly. Sonos calls this family of sessions 'direct control': an outside system (like a music service's own connect protocol or a line-in style feed) tells the player what to stream and how, rather than the player pulling from its queue. Because it replaces the player's normal source, it only works while the player is idle — sending it during active playback is rejected.
+Installs a new set of playback settings. This is the command external sources use when they want to take over the player's audio pipeline directly. Sonos calls this family of sessions 'direct control': an outside system (like a music service's own connect protocol or a line-in style feed) tells the player what to stream and how, rather than the player pulling from its queue. Because it replaces the player's normal source, it only works while the player is idle, and sending it during active playback is rejected.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Installs new transport settings — the VLI/direct-control path. Impl f_102b1d40 logs "avt_impl" "%s: ts = %s \[%s\]" then locks impl+0x458: InstanceID!=0 -> 718 and impl+0x4654 must be 0 — this action is IDLE-ONLY, the inverse of the mode-1|2 actions; any active transport returns 800. It memcpy's a 0x38-byte settings record, parses NewTransportSettings via f_103917b4, checks source state via f_102b0a48, logs "ChangeTransportSettings(): stopping local VLI (txs=%s)" on the vli channel and stops the local VLI via f_106aa3b0, manipulates bit-flags at impl+0x5b4, logs "vli src tx settings sntp port: %u", then "ChangeTransportSettings installClock" -> f_109876d8 + f_106aa13c + a vfunc bctrl installs a clock, finishing with f_1030f7f8(0,0).
+Installs new transport settings (the VLI/direct-control path. Impl f_102b1d40 logs "avt_impl" "%s: ts = %s \[%s\]" then locks impl+0x458: InstanceID!=0 -> 718 and impl+0x4654 must be 0) this action is IDLE-ONLY, the inverse of the mode-1|2 actions; any active transport returns 800. It memcpy's a 0x38-byte settings record, parses NewTransportSettings via f_103917b4, checks source state via f_102b0a48, logs "ChangeTransportSettings(): stopping local VLI (txs=%s)" on the vli channel and stops the local VLI via f_106aa3b0, manipulates bit-flags at impl+0x5b4, logs "vli src tx settings sntp port: %u", then "ChangeTransportSettings installClock" -> f_109876d8 + f_106aa13c + a vfunc bctrl installs a clock, finishing with f_1030f7f8(0,0).
 
 </details>
 
@@ -1392,11 +1392,11 @@ Installs new transport settings — the VLI/direct-control path. Impl f_102b1d40
 | `NewTransportSettings` | SonosBoolArg | yes | Worker-parsed settings string / max 128 chars | none - required argument |
 | `CurrentAVTransportURI` | SonosUriArg | yes | Any URI string / max 1024 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`NewTransportSettings`** — Opaque transport-settings descriptor parsed by f_103917b4 into the 0x38-byte record.
+- **`NewTransportSettings`**: Opaque transport-settings descriptor parsed by f_103917b4 into the 0x38-byte record.
   - buffer cap: `0x81`
-- **`CurrentAVTransportURI`** — Source URI forwarded into the settings application path.
+- **`CurrentAVTransportURI`**: Source URI forwarded into the settings application path.
   - buffer cap: `0x401`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1406,7 +1406,7 @@ Installs new transport settings — the VLI/direct-control path. Impl f_102b1d40
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f95b8 — wrapper + impl decode
+- @ 0x102f95b8; wrapper + impl decode
 
 </details>
 
@@ -1416,7 +1416,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x60\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f95b8 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f95b8; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1426,7 +1426,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 service-internal state reached through member delegate(s): r30 v\[+0x60\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f95b8 — member vfunc calls: \['r30 v\[+0x60\]'\]
+- fn 0x102f95b8; member vfunc calls: \['r30 v\[+0x60\]'\]
 
 </details>
 
@@ -1440,7 +1440,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x60\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x60\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f95b8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x60\]'\]
+- fn 0x102f95b8; no transition-literal/store pattern; member delegates: \['r30 v\[+0x60\]'\]
 
 </details>
 
@@ -1450,7 +1450,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f95b8 — bl call scan: notify-family sites = \[\]
+- fn 0x102f95b8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1460,7 +1460,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f95b8 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f95b8; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1475,19 +1475,19 @@ InstanceID is nonzero; the impl gate rejects any instance other than 0 for this 
 
 **`800`** `confirmed`
 
-Transport mode impl+0x4654 is nonzero — settings changes require an idle engine.
+Transport mode impl+0x4654 is nonzero: settings changes require an idle engine.
 
-- impl+0x4654 != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- impl+0x4654 != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`vret(r5-in,+0x60)`** `strong`
 
-nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd — producers at 0x102b1dd8/0x102b1e2c
+nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd: producers at 0x102b1dd8/0x102b1e2c
 
 - the settings path produced a code not covered by the gates
 
 
-**Bounded unknown — proven:** settings-application rc surfaced
-**Bounded unknown — unresolved:** codes from f_103917b4 parse, VLI stop and clock-install paths
+**Bounded unknown (proven):** settings-application rc surfaced
+**Bounded unknown (unresolved):** codes from f_103917b4 parse, VLI stop and clock-install paths
 
 **`402`** `confirmed`
 
@@ -1499,7 +1499,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -1513,9 +1513,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f96f0` obj `*(sp-0x4b0+0x4ac)` slot `12` arg4 `402`
 - req vcall `0x102f9664` slot `8` (parse)
 
-- fn 0x102f95b8 @ 0x102f95b8 — action wrapper handler
-- @ 0x10eb3078 — action dispatch table entry
-- fn 0x102b1d40 — AVT impl vtable 0x10eaf2ec slot +0x60 entry
+- fn 0x102f95b8 @ 0x102f95b8; action wrapper handler
+- @ 0x10eb3078; action dispatch table entry
+- fn 0x102b1d40; AVT impl vtable 0x10eaf2ec slot +0x60 entry
 
 </details>
 
@@ -1523,11 +1523,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets or cancels the sleep timer — the 'stop playing after N minutes' feature. You pass a duration and the speaker schedules itself to stop (or fade out) at that point; passing an empty value cancels a running timer. This is what the app's sleep-timer picker ultimately sends.
+Sets or cancels the sleep timer, the 'stop playing after N minutes' feature. You pass a duration and the speaker schedules itself to stop (or fade out) at that point, while passing an empty value cancels a running timer. This is what the app's sleep-timer picker ultimately sends.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration — an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2} — any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.
+Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration (an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2}) any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.
 
 </details>
 
@@ -1536,11 +1536,11 @@ Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks t
 | Name | Type | Required | Values / range | Default |
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x90 with 718 | none - required argument |
-| `NewSleepTimerDuration` | SonosDurationArg | yes | Empty string (cancel) or a duration that f_10c3d2c4 parses — non-empty unparseable text faults 402 / max 63 chars | none - required argument |
+| `NewSleepTimerDuration` | SonosDurationArg | yes | Empty string (cancel) or a duration that f_10c3d2c4 parses: non-empty unparseable text faults 402 / max 63 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`NewSleepTimerDuration`** — Duration string parsed by shared parser f_10c3d2c4 (same routine SnoozeAlarm uses); empty string bypasses parsing and cancels the timer.
+- **`NewSleepTimerDuration`**: Duration string parsed by shared parser f_10c3d2c4 (same routine SnoozeAlarm uses); empty string bypasses parsing and cancels the timer.
   - buffer cap: `0x40`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1550,7 +1550,7 @@ Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks t
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f9878 — wrapper + impl decode
+- @ 0x102f9878; wrapper + impl decode
 
 </details>
 
@@ -1560,7 +1560,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x90\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9878 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f9878; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1570,7 +1570,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0x90\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9878 — member vfunc calls: \['r30 v\[+0x90\]'\]
+- fn 0x102f9878; member vfunc calls: \['r30 v\[+0x90\]'\]
 
 </details>
 
@@ -1584,7 +1584,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x90\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x90\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9878 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x90\]'\]
+- fn 0x102f9878; no transition-literal/store pattern; member delegates: \['r30 v\[+0x90\]'\]
 
 </details>
 
@@ -1594,7 +1594,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9878 — bl call scan: notify-family sites = \[\]
+- fn 0x102f9878; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1604,7 +1604,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9878 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f9878; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1613,7 +1613,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 **`718`** `confirmed`
 
-Nonzero InstanceID — impl gate on the parsed int.
+Nonzero InstanceID: impl gate on the parsed int.
 
 - InstanceID argument is nonzero
 
@@ -1626,7 +1626,7 @@ Non-empty NewSleepTimerDuration fails the f_10c3d2c4 duration parse.
 
 **`800`** `confirmed`
 
-engine+0x4654 is neither 1 nor 2 — sleep timer requires a non-idle transport mode.
+engine+0x4654 is neither 1 nor 2: sleep timer requires a non-idle transport mode.
 
 - (impl+0x4654 - 1) unsigned > 1
 
@@ -1637,8 +1637,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 - f_102b4c1c returned nonzero
 
 
-**Bounded unknown — proven:** f_102b4c1c timer-set rc is returned.
-**Bounded unknown — unresolved:** concrete nonzero codes f_102b4c1c can produce for a valid mode/seconds pair
+**Bounded unknown (proven):** f_102b4c1c timer-set rc is returned.
+**Bounded unknown (unresolved):** concrete nonzero codes f_102b4c1c can produce for a valid mode/seconds pair
 
 
 
@@ -1652,9 +1652,9 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 - impl call `0x102f9984` obj `*(sp-0x70+0x6c)` slot `12` arg4 `402`
 - req vcall `0x102f98fc` slot `8` (parse)
 
-- fn 0x102f9878 @ 0x102f9878 — action wrapper handler
-- @ 0x10eb3084 — action dispatch table entry
-- fn 0x102b4de8 — AVT impl vtable 0x10eaf2ec slot +0x90 entry
+- fn 0x102f9878 @ 0x102f9878; action wrapper handler
+- @ 0x10eb3084; action dispatch table entry
+- fn 0x102b4de8; AVT impl vtable 0x10eaf2ec slot +0x90 entry
 
 </details>
 
@@ -1662,7 +1662,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Creates a new saved queue — a Sonos playlist — from a title plus an optional first track. The speaker registers the list, gives it an object ID, and later commands can add more tracks to it. This is behind the 'Save as Sonos playlist' action in the app.
+Creates a new saved queue (a Sonos playlist) from a title plus an optional first track. The speaker registers the list, gives it an object ID, and later commands can add more tracks to it. This is behind the 'Save as Sonos playlist' action in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1679,13 +1679,13 @@ Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 7
 | `EnqueuedURI` | SonosUriArg | yes | any URI string <= parse cap; playlist extensions auto-expanded via f_104634c4 / max 1024 chars | none - required argument |
 | `EnqueuedURIMetaData` | SonosMetaDataArg | yes | DIDL-Lite XML string <= parse cap; empty permitted / max 4096 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`Title`** — Forwarded positionally to the f_10479bb4 subsystem worker.
+- **`Title`**: Forwarded positionally to the f_10479bb4 subsystem worker.
   - buffer cap: `0x400`
-- **`EnqueuedURI`** — Forwarded positionally to the f_10479bb4 subsystem worker.
+- **`EnqueuedURI`**: Forwarded positionally to the f_10479bb4 subsystem worker.
   - buffer cap: `0x401`
-- **`EnqueuedURIMetaData`** — Forwarded positionally to the f_10479bb4 subsystem worker.
+- **`EnqueuedURIMetaData`**: Forwarded positionally to the f_10479bb4 subsystem worker.
   - buffer cap: `0x1001`
 
 #### Outputs
@@ -1697,13 +1697,13 @@ Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 7
 | `NewUpdateID` | unsigned int32 | post-create saved-queue UpdateID / length-bounded by parse-helper buffer cap |
 | `AssignedObjectID` | SonosStringArg | sq:-family object id assigned by the saved-queue store / length-bounded by parse-helper buffer cap |
 
-- **`NumTracksAdded`** — Written by the f_10479bb4 worker on success.
+- **`NumTracksAdded`**: Written by the f_10479bb4 worker on success.
   - validation: worker-written count record
-- **`NewQueueLength`** — Written by the f_10479bb4 worker on success.
+- **`NewQueueLength`**: Written by the f_10479bb4 worker on success.
   - validation: written from the saved-queue record track count
-- **`NewUpdateID`** — Written by the f_10479bb4 worker on success.
+- **`NewUpdateID`**: Written by the f_10479bb4 worker on success.
   - validation: copied from the queue record update counter state+0xec
-- **`AssignedObjectID`** — Written by the f_10479bb4 worker on success.
+- **`AssignedObjectID`**: Written by the f_10479bb4 worker on success.
   - validation: output of the create path
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1713,7 +1713,7 @@ Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 7
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fb0b0 — wrapper + impl decode
+- @ 0x102fb0b0; wrapper + impl decode
 
 </details>
 
@@ -1723,7 +1723,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×4, out-arg write×4, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb0b0 — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
+- fn 0x102fb0b0; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1733,7 +1733,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb0b0 — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102fb0b0; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -1747,7 +1747,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb0b0 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102fb0b0; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -1757,7 +1757,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb0b0 — bl call scan: notify-family sites = \[\]
+- fn 0x102fb0b0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1767,7 +1767,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fb0b0 — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
+- fn 0x102fb0b0; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 4, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1787,8 +1787,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (gate), saved-qu
 - the subsystem worker produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** saved-queue worker rc returned
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd048 entry); remaining paths call-derived
+**Bounded unknown (proven):** saved-queue worker rc returned
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd048 entry); remaining paths call-derived
 
 **`402`** `confirmed`
 
@@ -1800,7 +1800,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -1819,9 +1819,9 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 - impl call `0x102fb2cc` obj `*(sp-0x1c40+0x1c3c)` slot `12` arg4 `?`
 - req vcall `0x102fb184` slot `8` (parse)
 
-- fn 0x102fb0b0 @ 0x102fb0b0 — action wrapper handler
-- @ 0x10eb3090 — action dispatch table entry
-- fn 0x102bd048 — AVT impl vtable 0x10eaf2ec slot +0x84 entry
+- fn 0x102fb0b0 @ 0x102fb0b0; action wrapper handler
+- @ 0x10eb3090; action dispatch table entry
+- fn 0x102bd048; AVT impl vtable 0x10eaf2ec slot +0x84 entry
 
 </details>
 
@@ -1829,11 +1829,11 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Hands group leadership to another member without the new leader asking for it — the current coordinator names its successor and can additionally tell the old member to rejoin the group as a follower and/or clear the music source. It is the orderly version of a takeover: the leader resigns in favor of a chosen member rather than the member seizing the role.
+Hands group leadership to another member without the new leader asking for it. The current coordinator names its successor and can additionally tell the old member to rejoin the group as a follower and/or clear the music source. It is the orderly version of a takeover: the leader resigns in favor of a chosen member rather than the member seizing the role.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 — that specific code is treated as success — while every other code passes through verbatim.
+Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -> 718; NewCoordinator must be a non-NULL, non-empty string (either fault -> 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 (that specific code is treated as success) while every other code passes through verbatim.
 
 </details>
 
@@ -1846,13 +1846,13 @@ Hands group-coordinator responsibility to another member. Impl f_102de180: Insta
 | `RejoinGroup` | SonosUintArg | yes | Boolean-ish integer forwarded uninterpreted / length-bounded by parse-helper buffer cap | none - required argument |
 | `ClearSource` | SonosUintArg | yes | Boolean-ish integer forwarded uninterpreted / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`NewCoordinator`** — Identity of the member to receive coordination; must be a non-empty string — NULL pointer or empty text faults 402 before the worker runs.
+- **`NewCoordinator`**: Identity of the member to receive coordination; must be a non-empty string: NULL pointer or empty text faults 402 before the worker runs.
   - buffer cap: `0x19`
-- **`RejoinGroup`** — Flag forwarded verbatim to f_102ddae8 — requests rejoining the group under the new coordinator.
+- **`RejoinGroup`**: Flag forwarded verbatim to f_102ddae8: requests rejoining the group under the new coordinator.
   - buffer cap: `0x18`
-- **`ClearSource`** — Flag forwarded verbatim to f_102ddae8 — requests clearing the current source during delegation.
+- **`ClearSource`**: Flag forwarded verbatim to f_102ddae8: requests clearing the current source during delegation.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1862,7 +1862,7 @@ Hands group-coordinator responsibility to another member. Impl f_102de180: Insta
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fa26c — wrapper + impl decode
+- @ 0x102fa26c; wrapper + impl decode
 
 </details>
 
@@ -1872,7 +1872,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r30 v\[+0x58\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa26c — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa26c; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1882,7 +1882,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, vali
 service-internal state reached through member delegate(s): r30 v\[+0x58\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa26c — member vfunc calls: \['r30 v\[+0x58\]'\]
+- fn 0x102fa26c; member vfunc calls: \['r30 v\[+0x58\]'\]
 
 </details>
 
@@ -1896,7 +1896,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x58\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x58\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa26c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x58\]'\]
+- fn 0x102fa26c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x58\]'\]
 
 </details>
 
@@ -1906,7 +1906,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa26c — bl call scan: notify-family sites = \[\]
+- fn 0x102fa26c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1916,7 +1916,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa26c — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa26c; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1943,8 +1943,8 @@ worker rc returned verbatim except 803->0
 - f_102ddae8 returned a nonzero code other than 803
 
 
-**Bounded unknown — proven:** worker rc returned verbatim except 803->0
-**Bounded unknown — unresolved:** the full rc vocabulary of f_102ddae8 (delegation refusal reasons)
+**Bounded unknown (proven):** worker rc returned verbatim except 803->0
+**Bounded unknown (unresolved):** the full rc vocabulary of f_102ddae8 (delegation refusal reasons)
 
 
 
@@ -1958,9 +1958,9 @@ worker rc returned verbatim except 803->0
 - impl call `0x102fa3e0` obj `*(sp-0x50+0x4c)` slot `12` arg4 `402`
 - req vcall `0x102fa34c` slot `8` (parse)
 
-- fn 0x102fa26c @ 0x102fa26c — action wrapper handler
-- @ 0x10eb309c — action dispatch table entry
-- fn 0x102de180 — AVT impl vtable 0x10eaf2ec slot +0x58 entry
+- fn 0x102fa26c @ 0x102fa26c; action wrapper handler
+- @ 0x10eb309c; action dispatch table entry
+- fn 0x102de180; AVT impl vtable 0x10eaf2ec slot +0x58 entry
 
 </details>
 
@@ -1968,11 +1968,11 @@ worker rc returned verbatim except 803->0
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Closes an external direct-control session — the counterpart of ChangeTransportSettings. When an outside system that was feeding the player directly (a connected music service, a virtual line-in session) is finished, this tears the session down so the player returns to its normal queue and sources.
+Closes an external direct-control session, which is the counterpart of ChangeTransportSettings. When an outside system that was feeding the player directly (a connected music service, a virtual line-in session) is finished, this tears the session down so the player returns to its normal queue and sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags "end VLI" and "end direct control". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) — the same cleanup Play/Stop use — then returns 0 unconditionally.
+Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags "end VLI" and "end direct control". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) (the same cleanup Play/Stop use) then returns 0 unconditionally.
 
 </details>
 
@@ -1982,7 +1982,7 @@ Tears down an external direct-control or VLI playback session. Impl f_102d3824 r
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x50 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1992,7 +1992,7 @@ Tears down an external direct-control or VLI playback session. Impl f_102d3824 r
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f8e9c — wrapper + impl decode
+- @ 0x102f8e9c; wrapper + impl decode
 
 </details>
 
@@ -2002,7 +2002,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x50\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8e9c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8e9c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2012,7 +2012,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x50\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8e9c — member vfunc calls: \['r30 v\[+0x50\]'\]
+- fn 0x102f8e9c; member vfunc calls: \['r30 v\[+0x50\]'\]
 
 </details>
 
@@ -2026,7 +2026,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x50\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x50\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8e9c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x50\]'\]
+- fn 0x102f8e9c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x50\]'\]
 
 </details>
 
@@ -2036,7 +2036,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8e9c — bl call scan: notify-family sites = \[\]
+- fn 0x102f8e9c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2046,7 +2046,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8e9c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8e9c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2055,13 +2055,13 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 **`718`** `confirmed`
 
-Nonzero InstanceID — impl gate on the parsed int before any session work.
+Nonzero InstanceID: impl gate on the parsed int before any session work.
 
 - InstanceID argument is nonzero
 
 **`vret(r5-in,+0x50)`** `strong`
 
-None known beyond 718 — the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could surface.
+None known beyond 718: the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could surface.
 
 - shared teardown f_102d094c surfaced a nonzero code
 
@@ -2075,7 +2075,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -2089,9 +2089,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f8f7c` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f8ef8` slot `8` (parse)
 
-- fn 0x102f8e9c @ 0x102f8e9c — action wrapper handler
-- @ 0x10eb30a8 — action dispatch table entry
-- fn 0x102d3824 — AVT impl vtable 0x10eaf2ec slot +0x50 entry
+- fn 0x102f8e9c @ 0x102f8e9c; action wrapper handler
+- @ 0x10eb30a8; action dispatch table entry
+- fn 0x102d3824; AVT impl vtable 0x10eaf2ec slot +0x50 entry
 
 </details>
 
@@ -2099,7 +2099,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports whether crossfade is currently on — whether the speaker blends the end of one track into the start of the next for a few seconds instead of a hard cut.
+Reports whether crossfade is currently on: whether the speaker blends the end of one track into the start of the next for a few seconds instead of a hard cut.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2113,7 +2113,7 @@ Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplat
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x24 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -2122,7 +2122,7 @@ Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplat
 |---|---|---|
 | `CrossfadeMode` | boolean ('0'/'1') | impl-defined |
 
-- **`CrossfadeMode`** — Current crossfade flag as a byte; which engine field feeds it is unresolved.
+- **`CrossfadeMode`**: Current crossfade flag as a byte; which engine field feeds it is unresolved.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2132,7 +2132,7 @@ Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplat
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad370 @ 0x102ad370 — getter decode
+- fn f_102ad370 @ 0x102ad370; getter decode
 
 </details>
 
@@ -2142,7 +2142,7 @@ See inputs/impl notes
 InstanceID==0 only.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad370 @ 0x102ad424 — cmpwi r29,0 gate
+- fn f_102ad370 @ 0x102ad424; cmpwi r29,0 gate
 
 </details>
 
@@ -2152,7 +2152,7 @@ InstanceID==0 only.
 service-internal state reached through member delegate(s): r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc28c — member vfunc calls: \['r30 v\[+0x24\]'\]
+- fn 0x102fc28c; member vfunc calls: \['r30 v\[+0x24\]'\]
 
 </details>
 
@@ -2166,7 +2166,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x24\]
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad370 @ 0x102ad370 — read-only
+- fn f_102ad370 @ 0x102ad370; read-only
 
 </details>
 
@@ -2176,7 +2176,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad370 @ 0x102ad370 — no emit calls
+- fn f_102ad370 @ 0x102ad370; no emit calls
 
 </details>
 
@@ -2186,7 +2186,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad370 @ 0x102ad428 — r30=0x2ce
+- fn f_102ad370 @ 0x102ad428; r30=0x2ce
 
 </details>
 
@@ -2217,10 +2217,10 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - impl call `0x102fc394` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
 - req vcall `0x102fc2e8` slot `8` (parse)
 
-- fn f_102ad370 @ 0x102ad370 — getter decode
-- fn 0x102ad370 — AVT impl vtable 0x10eaf2ec slot +0x24 entry
-- fn 0x102fc28c @ 0x102fc28c — action wrapper handler
-- @ 0x10eb30b4 — action dispatch table entry
+- fn f_102ad370 @ 0x102ad370; getter decode
+- fn 0x102ad370; AVT impl vtable 0x10eaf2ec slot +0x24 entry
+- fn 0x102fc28c @ 0x102fc28c; action wrapper handler
+- @ 0x10eb30b4; action dispatch table entry
 
 </details>
 
@@ -2228,7 +2228,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports which transport commands are currently legal on this player — the list behind which buttons the app greys out. For example, 'Next' only appears when there is actually a next track, and 'Seek' only appears when the current source supports scrubbing. The answer is computed live from what is playing right now, so it changes as you move through a queue or switch sources.
+Reports which transport commands are currently legal on this player, which is the list behind which buttons the app greys out. For example, 'Next' only appears when there is actually a next track, and 'Seek' only appears when the current source supports scrubbing. The answer is computed live from what is playing right now, so it changes as you move through a queue or switch sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2242,7 +2242,7 @@ Returns the comma-separated list of currently-allowed transport actions. Impl f_
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x4c with 718 | none - required argument |
 
-- **`InstanceID`** — Instance index; impl returns 718 on nonzero.
+- **`InstanceID`**: Instance index; impl returns 718 on nonzero.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -2251,7 +2251,7 @@ Returns the comma-separated list of currently-allowed transport actions. Impl f_
 |---|---|---|
 | `Actions` | string | impl-defined engine state |
 
-- **`Actions`** — Comma-separated transport action names currently legal for the active source.
+- **`Actions`**: Comma-separated transport action names currently legal for the active source.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2261,9 +2261,9 @@ Returns the comma-separated list of currently-allowed transport actions. Impl f_
 See inputs.
 <details markdown="1"><summary>Evidence (3)</summary>
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
 </details>
 
@@ -2273,9 +2273,9 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (3)</summary>
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
 </details>
 
@@ -2285,9 +2285,9 @@ InstanceID==0 only (where present).
 Action list computed from current source capabilities via f_102b29d0/f_102fcbf4; the per-capability action mapping is unresolved.
 <details markdown="1"><summary>Evidence (3)</summary>
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
 </details>
 
@@ -2301,9 +2301,9 @@ Action list computed from current source capabilities via f_102b29d0/f_102fcbf4;
 None.
 <details markdown="1"><summary>Evidence (3)</summary>
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
 </details>
 
@@ -2313,9 +2313,9 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (3)</summary>
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
 </details>
 
@@ -2325,9 +2325,9 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (3)</summary>
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
 
 </details>
 
@@ -2353,12 +2353,12 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - impl call `0x102f8964` obj `*(sp-0x430+0x42c)` slot `12` arg4 `?`
 - req vcall `0x102f88a8` slot `8` (parse)
 
-- fn f_102b2a8c @ f_102b2a8c — impl decode
-- fn f_102b2a8c @ 0x102b2b94 — f_102b29d0 action-list builder
-- fn f_102b2a8c @ 0x102b2ba0 — f_102fcbf4
-- fn 0x102b2a8c — AVT impl vtable 0x10eaf2ec slot +0x4c entry
-- fn 0x102f884c @ 0x102f884c — action wrapper handler
-- @ 0x10eb30c0 — action dispatch table entry
+- fn f_102b2a8c @ f_102b2a8c; impl decode
+- fn f_102b2a8c @ 0x102b2b94; f_102b29d0 action-list builder
+- fn f_102b2a8c @ 0x102b2ba0; f_102fcbf4
+- fn 0x102b2a8c; AVT impl vtable 0x10eaf2ec slot +0x4c entry
+- fn 0x102f884c @ 0x102f884c; action wrapper handler
+- @ 0x10eb30c0; action dispatch table entry
 
 </details>
 
@@ -2366,7 +2366,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports what categories of media this player can play and record — a fixed description of the hardware's talents (the kinds of sources it accepts, and which recording media/qualities it advertises, which for a speaker is essentially none). Apps use it to know what a given box can do before offering it sources.
+Reports what categories of media this player can play and record, which is a fixed description of the hardware's talents: the kinds of sources it accepts, and which recording media and qualities it advertises (for a speaker, essentially none). Apps use it to know what a given box can do before offering it sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2380,7 +2380,7 @@ Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -2392,11 +2392,11 @@ Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4
 | `RecMedia` | string | impl-defined engine state |
 | `RecQualityModes` | string | impl-defined engine state |
 
-- **`PlayMedia`** — Comma-separated playable media types.
+- **`PlayMedia`**: Comma-separated playable media types.
   - validation: impl-written out arg
-- **`RecMedia`** — Recordable media types (empty typical).
+- **`RecMedia`**: Recordable media types (empty typical).
   - validation: impl-written out arg
-- **`RecQualityModes`** — Supported record quality modes.
+- **`RecQualityModes`**: Supported record quality modes.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2406,7 +2406,7 @@ Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4
 See inputs.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
 
 </details>
 
@@ -2416,7 +2416,7 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
 
 </details>
 
@@ -2426,7 +2426,7 @@ InstanceID==0 only (where present).
 Device capability strings read from static engine config; provenance unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
 
 </details>
 
@@ -2440,7 +2440,7 @@ Device capability strings read from static engine config; provenance unresolved.
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
 
 </details>
 
@@ -2450,7 +2450,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
 
 </details>
 
@@ -2460,7 +2460,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
 
 </details>
 
@@ -2475,7 +2475,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 **`718`** `strong`
 
-Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
 
 - InstanceID parses to nonzero / session object fails to resolve
 
@@ -2496,10 +2496,10 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl call `0x102f8ae4` obj `vret(*(sp-0xc30+0xc2c),+0x24)` slot `16` arg4 `sp+0x81c`
 - req vcall `0x102f8af8` slot `12` (commit)
 
-- fn f_102ad4a4 @ f_102ad4a4 — impl decode
-- fn 0x102ad4a4 — AVT impl vtable 0x10eaf2ec slot +0x1c entry
-- fn 0x102f8970 @ 0x102f8970 — action wrapper handler
-- @ 0x10eb30cc — action dispatch table entry
+- fn f_102ad4a4 @ f_102ad4a4; impl decode
+- fn 0x102ad4a4; AVT impl vtable 0x10eaf2ec slot +0x1c entry
+- fn 0x102f8970 @ 0x102f8970; action wrapper handler
+- @ 0x10eb30cc; action dispatch table entry
 
 </details>
 
@@ -2507,7 +2507,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the big-picture state of what is loaded in the player — how many tracks are in the current program, the total duration, what is playing now and what comes next (with metadata for each), and which 'medium' is in use (queue, stream, line-in, etc). It is the summary an app calls when it wants the full session context rather than just 'what song is this'.
+Reports the big-picture state of what is loaded in the player: how many tracks are in the current program, the total duration, what is playing now and what comes next (with metadata for each), and which 'medium' is in use (queue, stream, line-in, and so on). It is the summary an app calls when it wants the full session context rather than just 'what song is this'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2521,7 +2521,7 @@ Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIM
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -2539,23 +2539,23 @@ Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIM
 | `RecordMedium` | string | impl-defined engine state |
 | `WriteStatus` | string | impl-defined engine state |
 
-- **`NrTracks`** — Track count of the current queue/media.
+- **`NrTracks`**: Track count of the current queue/media.
   - validation: impl-written out arg
-- **`MediaDuration`** — Total media duration string.
+- **`MediaDuration`**: Total media duration string.
   - validation: impl-written out arg
-- **`CurrentURI`** — URI of current media.
+- **`CurrentURI`**: URI of current media.
   - validation: impl-written out arg
-- **`CurrentURIMetaData`** — DIDL metadata for current media.
+- **`CurrentURIMetaData`**: DIDL metadata for current media.
   - validation: impl-written out arg
-- **`NextURI`** — URI of the queued next track/stream.
+- **`NextURI`**: URI of the queued next track/stream.
   - validation: impl-written out arg
-- **`NextURIMetaData`** — Metadata for next media.
+- **`NextURIMetaData`**: Metadata for next media.
   - validation: impl-written out arg
-- **`PlayMedium`** — Medium type being played (e.g. TRACK-N/NETWORK family).
+- **`PlayMedium`**: Medium type being played (e.g. TRACK-N/NETWORK family).
   - validation: impl-written out arg
-- **`RecordMedium`** — Recording medium (NONE typical).
+- **`RecordMedium`**: Recording medium (NONE typical).
   - validation: impl-written out arg
-- **`WriteStatus`** — Write-protect status string.
+- **`WriteStatus`**: Write-protect status string.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2565,7 +2565,7 @@ Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIM
 See inputs.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
+- fn f_102adcb4 @ f_102adcb4; impl decode
 
 </details>
 
@@ -2575,7 +2575,7 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
+- fn f_102adcb4 @ f_102adcb4; impl decode
 
 </details>
 
@@ -2585,7 +2585,7 @@ InstanceID==0 only (where present).
 Media descriptor fields read from engine session state; per-field provenance unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
+- fn f_102adcb4 @ f_102adcb4; impl decode
 
 </details>
 
@@ -2599,7 +2599,7 @@ Media descriptor fields read from engine session state; per-field provenance unr
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
+- fn f_102adcb4 @ f_102adcb4; impl decode
 
 </details>
 
@@ -2609,7 +2609,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
+- fn f_102adcb4 @ f_102adcb4; impl decode
 
 </details>
 
@@ -2619,7 +2619,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
+- fn f_102adcb4 @ f_102adcb4; impl decode
 
 </details>
 
@@ -2634,7 +2634,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 **`718`** `strong`
 
-Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
 
 - InstanceID parses to nonzero / session object fails to resolve
 
@@ -2660,10 +2660,10 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl call `0x102facd8` obj `vret(*(sp-0x3870+0x386c),+0x24)` slot `16` arg4 `*(sp-0x3870+0x3864)`
 - req vcall `0x102facec` slot `12` (commit)
 
-- fn f_102adcb4 @ f_102adcb4 — impl decode
-- fn 0x102adcb4 — AVT impl vtable 0x10eaf2ec slot +0x10 entry
-- fn 0x102fa9e4 @ 0x102fa9e4 — action wrapper handler
-- @ 0x10eb30d8 — action dispatch table entry
+- fn f_102adcb4 @ f_102adcb4; impl decode
+- fn 0x102adcb4; AVT impl vtable 0x10eaf2ec slot +0x10 entry
+- fn 0x102fa9e4 @ 0x102fa9e4; action wrapper handler
+- @ 0x10eb30d8; action dispatch table entry
 
 </details>
 
@@ -2671,7 +2671,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports exactly where playback is within the current track — the data behind the app's progress bar: which track number is playing, how long it is, title/artist/album metadata, the track's address, and the elapsed position (in time and as counts for stream-type sources). Apps poll this regularly while a song plays to keep the scrubber moving.
+Reports exactly where playback is within the current track, which is the data behind the app's progress bar: which track number is playing, how long it is, title/artist/album metadata, the track's address, and the elapsed position (in time, and as counts for stream-type sources). Apps poll this regularly while a song plays to keep the scrubber moving.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2685,7 +2685,7 @@ Returns position metadata for the current track: Track number, TrackDuration, Tr
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -2702,21 +2702,21 @@ Returns position metadata for the current track: Track number, TrackDuration, Tr
 | `RelCount` | signed int32 | impl-defined engine state |
 | `AbsCount` | signed int32 | impl-defined engine state |
 
-- **`Track`** — Current track ordinal (queue position for indexed sources).
+- **`Track`**: Current track ordinal (queue position for indexed sources).
   - validation: impl-written out arg
-- **`TrackDuration`** — Duration string of current track.
+- **`TrackDuration`**: Duration string of current track.
   - validation: impl-written out arg
-- **`TrackMetaData`** — DIDL metadata XML for the current track.
+- **`TrackMetaData`**: DIDL metadata XML for the current track.
   - validation: impl-written out arg
-- **`TrackURI`** — URI of the current track.
+- **`TrackURI`**: URI of the current track.
   - validation: impl-written out arg
-- **`RelTime`** — Elapsed position within the track.
+- **`RelTime`**: Elapsed position within the track.
   - validation: impl-written out arg
-- **`AbsTime`** — Absolute time position.
+- **`AbsTime`**: Absolute time position.
   - validation: impl-written out arg
-- **`RelCount`** — Relative byte/frame count position.
+- **`RelCount`**: Relative byte/frame count position.
   - validation: impl-written out arg
-- **`AbsCount`** — Absolute byte/frame count.
+- **`AbsCount`**: Absolute byte/frame count.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2726,7 +2726,7 @@ Returns position metadata for the current track: Track number, TrackDuration, Tr
 See inputs.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
+- fn f_102b1a88 @ f_102b1a88; impl decode
 
 </details>
 
@@ -2736,7 +2736,7 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
+- fn f_102b1a88 @ f_102b1a88; impl decode
 
 </details>
 
@@ -2746,7 +2746,7 @@ InstanceID==0 only (where present).
 Mode impl+0x4654 selects the position source (indexed session vs streamer); per-field provenance unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
+- fn f_102b1a88 @ f_102b1a88; impl decode
 
 </details>
 
@@ -2760,7 +2760,7 @@ Mode impl+0x4654 selects the position source (indexed session vs streamer); per-
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
+- fn f_102b1a88 @ f_102b1a88; impl decode
 
 </details>
 
@@ -2770,7 +2770,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
+- fn f_102b1a88 @ f_102b1a88; impl decode
 
 </details>
 
@@ -2780,7 +2780,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
+- fn f_102b1a88 @ f_102b1a88; impl decode
 
 </details>
 
@@ -2795,7 +2795,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 **`718`** `strong`
 
-Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
 
 - InstanceID parses to nonzero / session object fails to resolve
 
@@ -2818,10 +2818,10 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl call `0x102fc010` obj `vret(*(sp-0x2070+0x206c),+0x24)` slot `16` arg4 `*(sp-0x2070+0x2064)`
 - req vcall `0x102fc06c` slot `12` (commit)
 
-- fn f_102b1a88 @ f_102b1a88 — impl decode
-- fn 0x102b1a88 — AVT impl vtable 0x10eaf2ec slot +0x18 entry
-- fn 0x102fbda4 @ 0x102fbda4 — action wrapper handler
-- @ 0x10eb30e4 — action dispatch table entry
+- fn f_102b1a88 @ f_102b1a88; impl decode
+- fn 0x102b1a88; AVT impl vtable 0x10eaf2ec slot +0x18 entry
+- fn 0x102fbda4 @ 0x102fbda4; action wrapper handler
+- @ 0x10eb30e4; action dispatch table entry
 
 </details>
 
@@ -2829,7 +2829,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports how much time is left on a running sleep timer, plus a generation counter that changes whenever the timer is reset — so an app can tell 'still 12 minutes' apart from 'a new timer was just set'.
+Reports how much time is left on a running sleep timer, plus a generation counter that changes whenever the timer is reset. This lets an app tell 'still 12 minutes' apart from 'a new timer was just set'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2843,7 +2843,7 @@ Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102a
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -2854,9 +2854,9 @@ Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102a
 | `RemainingSleepTimerDuration` | string | impl-defined engine state |
 | `CurrentSleepTimerGeneration` | unsigned int32 | impl-defined engine state |
 
-- **`RemainingSleepTimerDuration`** — Time left on the running sleep timer (empty/zero if none).
+- **`RemainingSleepTimerDuration`**: Time left on the running sleep timer (empty/zero if none).
   - validation: impl-written out arg
-- **`CurrentSleepTimerGeneration`** — Monotonic generation counter identifying the timer instance.
+- **`CurrentSleepTimerGeneration`**: Monotonic generation counter identifying the timer instance.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2866,7 +2866,7 @@ Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102a
 See inputs.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ada98 @ f_102ada98 — impl decode
+- fn f_102ada98 @ f_102ada98; impl decode
 
 </details>
 
@@ -2876,7 +2876,7 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ada98 @ f_102ada98 — impl decode
+- fn f_102ada98 @ f_102ada98; impl decode
 
 </details>
 
@@ -2886,7 +2886,7 @@ InstanceID==0 only (where present).
 Sleep-timer remaining time + generation counter read from engine timer state; field offsets unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ada98 @ f_102ada98 — impl decode
+- fn f_102ada98 @ f_102ada98; impl decode
 
 </details>
 
@@ -2900,7 +2900,7 @@ Sleep-timer remaining time + generation counter read from engine timer state; fi
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ada98 @ f_102ada98 — impl decode
+- fn f_102ada98 @ f_102ada98; impl decode
 
 </details>
 
@@ -2910,7 +2910,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ada98 @ f_102ada98 — impl decode
+- fn f_102ada98 @ f_102ada98; impl decode
 
 </details>
 
@@ -2920,7 +2920,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ada98 @ f_102ada98 — impl decode
+- fn f_102ada98 @ f_102ada98; impl decode
 
 </details>
 
@@ -2935,7 +2935,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 **`718`** `strong`
 
-Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
 
 - InstanceID parses to nonzero / session object fails to resolve
 
@@ -2960,10 +2960,10 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl call `0x102fb620` obj `vret(*(sp-0x70+0x6c),+0x24)` slot `16` arg4 `sp+0x1c`
 - req vcall `0x102fb658` slot `12` (commit)
 
-- fn f_102ada98 @ f_102ada98 — impl decode
-- fn 0x102ada98 — AVT impl vtable 0x10eaf2ec slot +0x94 entry
-- fn 0x102fb518 @ 0x102fb518 — action wrapper handler
-- @ 0x10eb30f0 — action dispatch table entry
+- fn f_102ada98 @ f_102ada98; impl decode
+- fn 0x102ada98; AVT impl vtable 0x10eaf2ec slot +0x94 entry
+- fn 0x102fb518 @ 0x102fb518; action wrapper handler
+- @ 0x10eb30f0; action dispatch table entry
 
 </details>
 
@@ -2971,7 +2971,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports details about the alarm currently ringing, if one is — which alarm it is (its ID), which group it belongs to, and when it was scheduled to start. Empty when no alarm is going off.
+Reports details about the alarm currently ringing, if one is: which alarm it is (its ID), which group it belongs to, and when it was scheduled to start. The answer is empty when no alarm is going off.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2985,7 +2985,7 @@ Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl 
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -2997,11 +2997,11 @@ Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl 
 | `GroupID` | string | impl-defined engine state |
 | `LoggedStartTime` | string | impl-defined engine state |
 
-- **`AlarmID`** — Identifier of the running alarm (empty if none).
+- **`AlarmID`**: Identifier of the running alarm (empty if none).
   - validation: impl-written out arg
-- **`GroupID`** — Group the alarm runs on.
+- **`GroupID`**: Group the alarm runs on.
   - validation: impl-written out arg
-- **`LoggedStartTime`** — Start timestamp as logged by the alarm scheduler.
+- **`LoggedStartTime`**: Start timestamp as logged by the alarm scheduler.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3011,7 +3011,7 @@ Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl 
 See inputs.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
+- fn f_102ad8fc @ f_102ad8fc; impl decode
 
 </details>
 
@@ -3021,7 +3021,7 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
+- fn f_102ad8fc @ f_102ad8fc; impl decode
 
 </details>
 
@@ -3031,7 +3031,7 @@ InstanceID==0 only (where present).
 Alarm context fields read from engine alarm state; empty when idle; provenance unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
+- fn f_102ad8fc @ f_102ad8fc; impl decode
 
 </details>
 
@@ -3045,7 +3045,7 @@ Alarm context fields read from engine alarm state; empty when idle; provenance u
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
+- fn f_102ad8fc @ f_102ad8fc; impl decode
 
 </details>
 
@@ -3055,7 +3055,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
+- fn f_102ad8fc @ f_102ad8fc; impl decode
 
 </details>
 
@@ -3065,7 +3065,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
+- fn f_102ad8fc @ f_102ad8fc; impl decode
 
 </details>
 
@@ -3100,10 +3100,10 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 - impl call `0x102fb7c8` obj `vret(*(sp-0xb0+0xac),+0x24)` slot `16` arg4 `sp+0x5c`
 - req vcall `0x102fb7dc` slot `12` (commit)
 
-- fn f_102ad8fc @ f_102ad8fc — impl decode
-- fn 0x102ad8fc — AVT impl vtable 0x10eaf2ec slot +0xa0 entry
-- fn 0x102fb664 @ 0x102fb664 — action wrapper handler
-- @ 0x10eb30fc — action dispatch table entry
+- fn f_102ad8fc @ f_102ad8fc; impl decode
+- fn 0x102ad8fc; AVT impl vtable 0x10eaf2ec slot +0xa0 entry
+- fn 0x102fb664 @ 0x102fb664; action wrapper handler
+- @ 0x10eb30fc; action dispatch table entry
 
 </details>
 
@@ -3111,7 +3111,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the headline playback state: whether the player is playing, paused, stopped, or transitioning, plus a status string and the play speed. This is the single most-asked question on the whole service — the app's play/pause button position is driven by it.
+Reports the headline playback state: whether the player is playing, paused, stopped, or transitioning, plus a status string and the play speed. This is the single most-asked question on the whole service, and the app's play/pause button position is driven by it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3125,7 +3125,7 @@ Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then wo
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -3137,11 +3137,11 @@ Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then wo
 | `CurrentTransportStatus` | string | impl-defined |
 | `CurrentSpeed` | string | impl-defined |
 
-- **`CurrentTransportState`** — Transport-state string filled per mode (PLAYING/PAUSED_PLAYBACK/STOPPED family).
+- **`CurrentTransportState`**: Transport-state string filled per mode (PLAYING/PAUSED_PLAYBACK/STOPPED family).
   - validation: impl-written out arg
-- **`CurrentTransportStatus`** — Status string (OK / ERROR_OCCURRED family).
+- **`CurrentTransportStatus`**: Status string (OK / ERROR_OCCURRED family).
   - validation: impl-written out arg
-- **`CurrentSpeed`** — Playback speed string - normally 1.
+- **`CurrentSpeed`**: Playback speed string - normally 1.
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3151,8 +3151,8 @@ Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then wo
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b1738 @ 0x102b1738 — gate decode
-- fn f_102b1684 @ 0x102b1684 — worker decode
+- fn f_102b1738 @ 0x102b1738; gate decode
+- fn f_102b1684 @ 0x102b1684; worker decode
 
 </details>
 
@@ -3162,7 +3162,7 @@ See inputs/impl notes
 InstanceID==0 only.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1738 @ 0x102b1818 — cmpwi r29,0 gate
+- fn f_102b1738 @ 0x102b1818; cmpwi r29,0 gate
 
 </details>
 
@@ -3172,7 +3172,7 @@ InstanceID==0 only.
 mode impl+0x4654 selects which state source fills the outputs (indexed vs streamer vs default f_10308aec path).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1684 @ 0x102b1928 — cmplwi mode,2/1 dispatch
+- fn f_102b1684 @ 0x102b1928; cmplwi mode,2/1 dispatch
 
 </details>
 
@@ -3186,7 +3186,7 @@ mode impl+0x4654 selects which state source fills the outputs (indexed vs stream
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1738 @ 0x102b1738 — read-only
+- fn f_102b1738 @ 0x102b1738; read-only
 
 </details>
 
@@ -3196,7 +3196,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1738 @ 0x102b1738 — no emit calls
+- fn f_102b1738 @ 0x102b1738; no emit calls
 
 </details>
 
@@ -3206,7 +3206,7 @@ None - pure read.
 0 on success after filling outs; 718 only for InstanceID!=0. No other faults observed in the impl.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b1738 @ 0x102b17fc — return paths
+- fn f_102b1738 @ 0x102b17fc; return paths
 
 </details>
 
@@ -3237,11 +3237,11 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 - req vcall `0x102fbc90` slot `64` (other)
 - req vcall `0x102fbd64` slot `12` (commit)
 
-- fn f_102b1738 @ 0x102b1738 — gate decode
-- fn f_102b1684 @ 0x102b1684 — worker decode
-- fn 0x102b1738 — AVT impl vtable 0x10eaf2ec slot +0x14 entry
-- fn 0x102fbb60 @ 0x102fbb60 — action wrapper handler
-- @ 0x10eb3108 — action dispatch table entry
+- fn f_102b1738 @ 0x102b1738; gate decode
+- fn f_102b1684 @ 0x102b1684; worker decode
+- fn 0x102b1738; AVT impl vtable 0x10eaf2ec slot +0x14 entry
+- fn 0x102fbb60 @ 0x102fbb60; action wrapper handler
+- @ 0x10eb3108; action dispatch table entry
 
 </details>
 
@@ -3263,7 +3263,7 @@ Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerpla
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl guard with 718 | none - required argument |
 
-- **`InstanceID`** — engine instance index; impl returns 718 when nonzero
+- **`InstanceID`**: engine instance index; impl returns 718 when nonzero
   - validation: impl guard cmpwi r4,0: nonzero parsed value -> 718
   - buffer cap: `0x18`
 
@@ -3274,9 +3274,9 @@ Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerpla
 | `PlayMode` | string | impl-defined engine state |
 | `RecQualityMode` | string | impl-defined engine state |
 
-- **`PlayMode`** — Current play-mode string; maps the stored enum 0-5 back to its name.
+- **`PlayMode`**: Current play-mode string; maps the stored enum 0-5 back to its name.
   - validation: impl-written out arg
-- **`RecQualityMode`** — Record quality mode string (NOT_IMPLEMENTED typical).
+- **`RecQualityMode`**: Record quality mode string (NOT_IMPLEMENTED typical).
   - validation: impl-written out arg
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3286,7 +3286,7 @@ Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerpla
 See inputs.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad634 @ f_102ad634 — impl decode
+- fn f_102ad634 @ f_102ad634; impl decode
 
 </details>
 
@@ -3296,7 +3296,7 @@ See inputs.
 InstanceID==0 only (where present).
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad634 @ f_102ad634 — impl decode
+- fn f_102ad634 @ f_102ad634; impl decode
 
 </details>
 
@@ -3306,7 +3306,7 @@ InstanceID==0 only (where present).
 PlayMode string derived from the stored play-mode enum; RecQualityMode from engine settings; field provenance unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad634 @ f_102ad634 — impl decode
+- fn f_102ad634 @ f_102ad634; impl decode
 
 </details>
 
@@ -3320,7 +3320,7 @@ PlayMode string derived from the stored play-mode enum; RecQualityMode from engi
 None.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad634 @ f_102ad634 — impl decode
+- fn f_102ad634 @ f_102ad634; impl decode
 
 </details>
 
@@ -3330,7 +3330,7 @@ None.
 None - pure read.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad634 @ f_102ad634 — impl decode
+- fn f_102ad634 @ f_102ad634; impl decode
 
 </details>
 
@@ -3340,7 +3340,7 @@ None - pure read.
 0 on success; 718 for InstanceID!=0 where the arg exists.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102ad634 @ f_102ad634 — impl decode
+- fn f_102ad634 @ f_102ad634; impl decode
 
 </details>
 
@@ -3355,7 +3355,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 **`718`** `strong`
 
-Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
+Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit
 
 - InstanceID parses to nonzero / session object fails to resolve
 
@@ -3375,10 +3375,10 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 - impl call `0x102f847c` obj `vret(*(sp-0x830+0x82c),+0x24)` slot `16` arg4 `sp+0x41c`
 - req vcall `0x102f8490` slot `12` (commit)
 
-- fn f_102ad634 @ f_102ad634 — impl decode
-- fn 0x102ad634 — AVT impl vtable 0x10eaf2ec slot +0x20 entry
-- fn 0x102f8340 @ 0x102f8340 — action wrapper handler
-- @ 0x10eb3114 — action dispatch table entry
+- fn f_102ad634 @ f_102ad634; impl decode
+- fn 0x102ad634; AVT impl vtable 0x10eaf2ec slot +0x20 entry
+- fn 0x102f8340 @ 0x102f8340; action wrapper handler
+- @ 0x10eb3114; action dispatch table entry
 
 </details>
 
@@ -3386,7 +3386,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Skips to the next track — the app's forward button. What it does depends on the source: on queue playback it advances to the next queued song; on streams and external sources it asks that source for the next item (or does nothing if the source has no concept of 'next'). If there is nothing to skip to, the command quietly has no effect.
+Skips to the next track, the app's forward button. What it does depends on the source: on queue playback it advances to the next queued song, while on streams and external sources it asks that source for the next item (or does nothing if the source has no concept of 'next'). If there is nothing to skip to, the command quietly has no effect.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3400,7 +3400,7 @@ Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: loc
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x38 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3410,8 +3410,8 @@ Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: loc
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b9874 @ 0x102b9874 — gate decode
-- fn f_102b60b0 @ 0x102b60b0 — worker decode
+- fn f_102b9874 @ 0x102b9874; gate decode
+- fn f_102b60b0 @ 0x102b60b0; worker decode
 
 </details>
 
@@ -3421,7 +3421,7 @@ See inputs/impl notes
 InstanceID==0 only.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b9874 @ 0x102b9874 — gate decode
+- fn f_102b9874 @ 0x102b9874; gate decode
 
 </details>
 
@@ -3431,7 +3431,7 @@ InstanceID==0 only.
 mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session path via impl+0x5a0.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b60b0 @ 0x102b60dc — cmplwi mode,2
+- fn f_102b60b0 @ 0x102b60dc; cmplwi mode,2
 
 </details>
 
@@ -3445,7 +3445,7 @@ mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session pa
 Current track advances by one (indexed) or streamer skip issued; submission vs completion distinction preserved: stream-mode success means the streamer vfunc returned nonzero.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b60b0 @ 0x102b61f8 — f_10256a84(op5) source-activate path
+- fn f_102b60b0 @ 0x102b61f8; f_10256a84(op5) source-activate path
 
 </details>
 
@@ -3455,7 +3455,7 @@ Current track advances by one (indexed) or streamer skip issued; submission vs c
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8674 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8674; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3465,7 +3465,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 Indexed submit rc {2->800,3->711,else->701}; stream path: streamer vfunc nonzero -> 0 else 701.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b60b0 @ 0x102b6184 — rc->800/711/701 isel map
+- fn f_102b60b0 @ 0x102b6184; rc->800/711/701 isel map
 
 </details>
 
@@ -3476,11 +3476,11 @@ Indexed submit rc {2->800,3->711,else->701}; stream path: streamer vfunc nonzero
 
 apply worker f_102b60b0 exit accumulator r30: literal {701 x2, 0, 800} plus call-derived; impl-side 718 on InstanceID!=0 stands; rc forwarded verbatim
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** literal paths bounded
-**Bounded unknown — unresolved:** apply-worker call-derived rc (session/track lookup chain f_102b8c44)
+**Bounded unknown (proven):** literal paths bounded
+**Bounded unknown (unresolved):** apply-worker call-derived rc (session/track lookup chain f_102b8c44)
 
 **`701`** `confirmed`
 
@@ -3510,7 +3510,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -3524,11 +3524,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f8754` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f86d0` slot `8` (parse)
 
-- fn f_102b9874 @ 0x102b9874 — gate decode
-- fn f_102b60b0 @ 0x102b60b0 — worker decode
-- fn 0x102b9874 — AVT impl vtable 0x10eaf2ec slot +0x38 entry
-- fn 0x102f8674 @ 0x102f8674 — action wrapper handler
-- @ 0x10eb3120 — action dispatch table entry
+- fn f_102b9874 @ 0x102b9874; gate decode
+- fn f_102b60b0 @ 0x102b60b0; worker decode
+- fn 0x102b9874; AVT impl vtable 0x10eaf2ec slot +0x38 entry
+- fn 0x102f8674 @ 0x102f8674; action wrapper handler
+- @ 0x10eb3120; action dispatch table entry
 
 </details>
 
@@ -3536,11 +3536,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Warns the player that something it might be playing has been deleted upstream — for example a music-share folder that was removed or a queue entry whose backing item vanished. The speaker compares the deleted address against its current source; if it is not using that item, the notice is ignored. If it is, playback of the now-dangling source is cleaned up.
+Warns the player that something it might be playing has been deleted upstream, for example a music-share folder that was removed or a queue entry whose backing item vanished. The speaker compares the deleted address against its current source. If it is not using that item, the notice is ignored, and if it is, playback of the now-dangling source is cleaned up.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) — the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs "job"/"deleted uri", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec) — likely triggering source-failover or stop behavior for the deleted content.
+Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) (the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs "job"/"deleted uri", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec)) likely triggering source-failover or stop behavior for the deleted content.
 
 </details>
 
@@ -3551,9 +3551,9 @@ Notifies the player that a URI it may be playing has been deleted upstream. Impl
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x48 with 718 | none - required argument |
 | `DeletedURI` | SonosStringArg | yes | Any string; only exact match with the active source has an effect / max 1024 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`DeletedURI`** — URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.
+- **`DeletedURI`**: URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.
   - buffer cap: `0x401`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3563,7 +3563,7 @@ Notifies the player that a URI it may be playing has been deleted upstream. Impl
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f912c — wrapper + impl decode
+- @ 0x102f912c; wrapper + impl decode
 
 </details>
 
@@ -3573,7 +3573,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x48\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f912c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f912c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3583,7 +3583,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0x48\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f912c — member vfunc calls: \['r30 v\[+0x48\]'\]
+- fn 0x102f912c; member vfunc calls: \['r30 v\[+0x48\]'\]
 
 </details>
 
@@ -3597,7 +3597,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x48\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x48\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f912c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x48\]'\]
+- fn 0x102f912c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x48\]'\]
 
 </details>
 
@@ -3607,7 +3607,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f912c — bl call scan: notify-family sites = \[\]
+- fn 0x102f912c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3617,7 +3617,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f912c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f912c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3637,8 +3637,8 @@ impl returns 0 unconditionally after the gate
 - n/a - every post-gate path returns 0
 
 
-**Bounded unknown — proven:** impl returns 0 unconditionally after the gate
-**Bounded unknown — unresolved:** none identified — the job-submission result is not propagated
+**Bounded unknown (proven):** impl returns 0 unconditionally after the gate
+**Bounded unknown (unresolved):** none identified: the job-submission result is not propagated
 
 **`402`** `confirmed`
 
@@ -3650,7 +3650,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -3664,9 +3664,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f9238` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x102f91b0` slot `8` (parse)
 
-- fn 0x102f912c @ 0x102f912c — action wrapper handler
-- @ 0x10eb312c — action dispatch table entry
-- fn 0x102d5858 — AVT impl vtable 0x10eaf2ec slot +0x48 entry
+- fn 0x102f912c @ 0x102f912c; action wrapper handler
+- @ 0x10eb312c; action dispatch table entry
+- fn 0x102d5858; AVT impl vtable 0x10eaf2ec slot +0x48 entry
 
 </details>
 
@@ -3674,7 +3674,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Pauses playback — the pause button. On sources that cannot truly pause (live radio, some streams), the underlying operation effectively stops or mutes the feed, and resuming means reconnecting.
+Pauses playback, the pause button. On sources that cannot truly pause (live radio, some streams), the underlying operation effectively stops or mutes the feed, and resuming means reconnecting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3688,7 +3688,7 @@ Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b3
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x30 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3698,8 +3698,8 @@ Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b3
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102d2b28 @ 0x102d2b28 — gate+body decode
-- fn f_102b00cc @ 0x102b00cc — worker decode
+- fn f_102d2b28 @ 0x102d2b28; gate+body decode
+- fn f_102b00cc @ 0x102b00cc; worker decode
 
 </details>
 
@@ -3709,7 +3709,7 @@ See inputs/impl notes
 None beyond InstanceID==0; no mode gate in the impl entry itself.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d2b28 @ 0x102d2b28 — gate decode
+- fn f_102d2b28 @ 0x102d2b28; gate decode
 
 </details>
 
@@ -3719,7 +3719,7 @@ None beyond InstanceID==0; no mode gate in the impl entry itself.
 Requires a live streamer/control target for the fast path; otherwise the f_102d0ac8 fallback handles (or fails) it.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b00cc @ 0x102b0134 — f_106a7880 on *(impl+0x5a0)
+- fn f_102b00cc @ 0x102b0134; f_106a7880 on *(impl+0x5a0)
 
 </details>
 
@@ -3733,7 +3733,7 @@ Requires a live streamer/control target for the fast path; otherwise the f_102d0
 Pause submitted to control target + streamer; submission vs actual pause completion is the accepted/submitted distinction - the SOAP call returns after the streamer vfunc returns, not after audio pauses.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b00cc @ 0x102b0134 — streamer vfunc path
+- fn f_102b00cc @ 0x102b0134; streamer vfunc path
 
 </details>
 
@@ -3743,7 +3743,7 @@ Pause submitted to control target + streamer; submission vs actual pause complet
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8588 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8588; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3753,7 +3753,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 Success iff worker returned nonzero (submitted + streamer accepted) OR the f_102d0ac8 fallback succeeded; impl rc = fallback rc on the zero path, else 0.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d2bcc @ 0x102d2be0 — fallback call f_102d0ac8(impl,1,1,-1,-1)
+- fn f_102d2bcc @ 0x102d2be0; fallback call f_102d0ac8(impl,1,1,-1,-1)
 
 </details>
 
@@ -3764,11 +3764,11 @@ Success iff worker returned nonzero (submitted + streamer accepted) OR the f_102
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** the fault path is reached when the impl call reports failure
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102d2b28 entry); remaining paths call-derived
+**Bounded unknown (proven):** the fault path is reached when the impl call reports failure
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102d2b28 entry); remaining paths call-derived
 
 **`vret(r5-in,+0x30)`** `strong`
 
@@ -3777,8 +3777,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: fallback worker f_10
 - f_102b00cc returned 0 AND f_102d0ac8 returned nonzero
 
 
-**Bounded unknown — proven:** fallback rc returned as impl status when streamer path failed
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102d2b28 entry); remaining paths call-derived
+**Bounded unknown (proven):** fallback rc returned as impl status when streamer path failed
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102d2b28 entry); remaining paths call-derived
 
 **`402`** `confirmed`
 
@@ -3798,11 +3798,11 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - impl call `0x102f8668` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f85e4` slot `8` (parse)
 
-- fn f_102d2b28 @ 0x102d2b28 — gate+body decode
-- fn f_102b00cc @ 0x102b00cc — worker decode
-- fn 0x102d2b28 — AVT impl vtable 0x10eaf2ec slot +0x30 entry
-- fn 0x102f8588 @ 0x102f8588 — action wrapper handler
-- @ 0x10eb3138 — action dispatch table entry
+- fn f_102d2b28 @ 0x102d2b28; gate+body decode
+- fn f_102b00cc @ 0x102b00cc; worker decode
+- fn 0x102d2b28; AVT impl vtable 0x10eaf2ec slot +0x30 entry
+- fn 0x102f8588 @ 0x102f8588; action wrapper handler
+- @ 0x10eb3138; action dispatch table entry
 
 </details>
 
@@ -3810,7 +3810,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts or resumes playback — the play button. It only accepts normal speed; asking for any other speed is refused, because this firmware does not support trick-play speeds on the standard path. What it does depends on the source: resume the queue at its stored position, reconnect a stream, or hand the command to whatever external session owns the source.
+Starts or resumes playback, the play button. It only accepts normal speed; asking for any other speed is refused, because this firmware does not support trick-play speeds on the standard path. What it does depends on the source: resume the queue at its stored position, reconnect a stream, or hand the command to whatever external session owns the source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3825,9 +3825,9 @@ Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x2c with 718 | none - required argument |
 | `Speed` | string | yes | literal "1" only - strcmp in impl; anything else -> 717 / max 1023 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`Speed`** — Playback speed string; impl does strcmp(Speed,"1") - ONLY the exact string '1' is accepted, any other value (including '1.0' or '') returns SOAP fault 717.
+- **`Speed`**: Playback speed string; impl does strcmp(Speed,"1") - ONLY the exact string '1' is accepted, any other value (including '1.0' or '') returns SOAP fault 717.
   - special values: `1` = the only accepted speed
   - buffer cap: `0x400`
 
@@ -3838,7 +3838,7 @@ Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d4078 @ 0x102d4078 — full impl decode
+- fn f_102d4078 @ 0x102d4078; full impl decode
 
 </details>
 
@@ -3848,7 +3848,7 @@ See inputs/impl notes
 Speed must be exactly '1'. Engine object must be live; *(impl+0x3dc)!=0 gates the logging preamble.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d4078 @ 0x102d4110 — strcmp(Speed,"1")
+- fn f_102d4078 @ 0x102d4110; strcmp(Speed,"1")
 
 </details>
 
@@ -3858,7 +3858,7 @@ Speed must be exactly '1'. Engine object must be live; *(impl+0x3dc)!=0 gates th
 Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse source triggers a rebuild/log path before play is submitted.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10eb145c — 'Received play for non-muse source'
+- @ 0x10eb145c; 'Received play for non-muse source'
 
 </details>
 
@@ -3872,7 +3872,7 @@ Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse
 Play submission to the engine/session machinery; exact track-selection semantics of the -1,-1 sentinels unresolved.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d4078 @ 0x102d4204 — -1,-1 sentinel args
+- fn f_102d4078 @ 0x102d4204; -1,-1 sentinel args
 
 </details>
 
@@ -3882,7 +3882,7 @@ Play submission to the engine/session machinery; exact track-selection semantics
 f_100caad8 is invoked on the submit path - the shared transport-changed emit used by the getter-scope boilerplate.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d4078 @ 0x102d41e8 — f_100caad8 call
+- fn f_102d4078 @ 0x102d41e8; f_100caad8 call
 
 </details>
 
@@ -3892,7 +3892,7 @@ f_100caad8 is invoked on the submit path - the shared transport-changed emit use
 rc of f_102cfa50 (or the non-muse path result) is returned as the impl status; cr0.eq=success convention -> SOAP emit vs req->v\[+0x14\] fault.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f9244 — wrapper decode
+- @ 0x102f9244; wrapper decode
 
 </details>
 
@@ -3903,7 +3903,7 @@ rc of f_102cfa50 (or the non-muse path result) is returned as the impl status; c
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`717`** `confirmed`
 
@@ -3927,7 +3927,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -3941,10 +3941,10 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f9350` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x102f92c8` slot `8` (parse)
 
-- fn f_102d4078 @ 0x102d4078 — full impl decode
-- fn 0x102d4078 — AVT impl vtable 0x10eaf2ec slot +0x2c entry
-- fn 0x102f9244 @ 0x102f9244 — action wrapper handler
-- @ 0x10eb3144 — action dispatch table entry
+- fn f_102d4078 @ 0x102d4078; full impl decode
+- fn 0x102d4078; AVT impl vtable 0x10eaf2ec slot +0x2c entry
+- fn 0x102f9244 @ 0x102f9244; action wrapper handler
+- @ 0x10eb3144; action dispatch table entry
 
 </details>
 
@@ -3952,7 +3952,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Skips back to the previous track — the back button. Same source-dependence as Next: on queue playback it steps back one song (or to the start of the current one, per Sonos convention); on streams it asks the source whether a 'previous' exists.
+Skips back to the previous track, the back button. It has the same source-dependence as Next: on queue playback it steps back one song (or to the start of the current one, per Sonos convention), and on streams it asks the source whether a 'previous' exists.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3966,7 +3966,7 @@ Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998:
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x3c with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3976,8 +3976,8 @@ Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998:
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b9938 @ 0x102b9938 — gate decode
-- fn f_102b6214 @ 0x102b6214 — worker decode
+- fn f_102b9938 @ 0x102b9938; gate decode
+- fn f_102b6214 @ 0x102b6214; worker decode
 
 </details>
 
@@ -3987,7 +3987,7 @@ See inputs/impl notes
 InstanceID==0 only.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b9938 @ 0x102b9938 — gate decode
+- fn f_102b9938 @ 0x102b9938; gate decode
 
 </details>
 
@@ -3997,7 +3997,7 @@ InstanceID==0 only.
 Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x580,0,1); without it Previous is a silent success no-op.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b6214 @ 0x102b6288 — andis. caps,0x10 -> silent success
+- fn f_102b6214 @ 0x102b6288; andis. caps,0x10 -> silent success
 
 </details>
 
@@ -4011,7 +4011,7 @@ Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x58
 Moves to previous track when the source supports it; capability-gated no-op otherwise - request accepted vs operation submitted distinction is explicit in this impl.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b6214 @ 0x102b6288 — capability short-circuit
+- fn f_102b6214 @ 0x102b6288; capability short-circuit
 
 </details>
 
@@ -4021,7 +4021,7 @@ Moves to previous track when the source supports it; capability-gated no-op othe
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8760 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8760; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4031,8 +4031,8 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 rc==0 on success incl. the capability no-op; 711 on indexed submit failure; 701 on streamer failure.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b6214 @ 0x102b62dc — li r3,0x2c7
-- fn f_102b6214 @ 0x102b624c — r30=0x2bd
+- fn f_102b6214 @ 0x102b62dc; li r3,0x2c7
+- fn f_102b6214 @ 0x102b624c; r30=0x2bd
 
 </details>
 
@@ -4043,11 +4043,11 @@ rc==0 on success incl. the capability no-op; 711 on indexed submit failure; 701 
 
 apply worker f_102b6214: literal {701, 0, 711} plus call-derived; impl-side 718 stands; rc forwarded verbatim
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** literal paths bounded
-**Bounded unknown — unresolved:** apply-worker call-derived rc (session/track lookup chain f_102b8c44)
+**Bounded unknown (proven):** literal paths bounded
+**Bounded unknown (unresolved):** apply-worker call-derived rc (session/track lookup chain f_102b8c44)
 
 **`701`** `confirmed`
 
@@ -4071,7 +4071,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -4085,11 +4085,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f8840` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f87bc` slot `8` (parse)
 
-- fn f_102b9938 @ 0x102b9938 — gate decode
-- fn f_102b6214 @ 0x102b6214 — worker decode
-- fn 0x102b9938 — AVT impl vtable 0x10eaf2ec slot +0x3c entry
-- fn 0x102f8760 @ 0x102f8760 — action wrapper handler
-- @ 0x10eb3150 — action dispatch table entry
+- fn f_102b9938 @ 0x102b9938; gate decode
+- fn f_102b6214 @ 0x102b6214; worker decode
+- fn 0x102b9938; AVT impl vtable 0x10eaf2ec slot +0x3c entry
+- fn 0x102f8760 @ 0x102f8760; action wrapper handler
+- @ 0x10eb3150; action dispatch table entry
 
 </details>
 
@@ -4097,7 +4097,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Empties the play queue completely — 'clear queue' in the app. Everything queued, including the currently selected track's list membership, is dropped; playback of the queue stops since there is nothing left to play.
+Empties the play queue completely, which is 'clear queue' in the app. Everything queued, including the currently selected track's list membership, is dropped, and playback of the queue stops since there is nothing left to play.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4111,7 +4111,7 @@ Removes every track from the local queue. Impl f_102b3bf4 delegates to shared wo
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x78 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -4121,7 +4121,7 @@ Removes every track from the local queue. Impl f_102b3bf4 delegates to shared wo
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f8cc4 — wrapper + impl decode
+- @ 0x102f8cc4; wrapper + impl decode
 
 </details>
 
@@ -4131,7 +4131,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x78\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8cc4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8cc4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4141,7 +4141,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x78\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8cc4 — member vfunc calls: \['r30 v\[+0x78\]'\]
+- fn 0x102f8cc4; member vfunc calls: \['r30 v\[+0x78\]'\]
 
 </details>
 
@@ -4155,7 +4155,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x78\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x78\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8cc4 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x78\]'\]
+- fn 0x102f8cc4; no transition-literal/store pattern; member delegates: \['r30 v\[+0x78\]'\]
 
 </details>
 
@@ -4165,7 +4165,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8cc4 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8cc4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4175,7 +4175,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8cc4 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8cc4; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4186,7 +4186,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`vret(r5-in,+0x78)`** `strong`
 
@@ -4216,9 +4216,9 @@ None The Queue service reaches the identical engine worker through queue-manager
 - impl call `0x102f8da4` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f8d20` slot `8` (parse)
 
-- fn 0x102f8cc4 @ 0x102f8cc4 — action wrapper handler
-- @ 0x10eb315c — action dispatch table entry
-- fn 0x102b3bf4 — AVT impl vtable 0x10eaf2ec slot +0x78 entry
+- fn 0x102f8cc4 @ 0x102f8cc4; action wrapper handler
+- @ 0x10eb315c; action dispatch table entry
+- fn 0x102b3bf4; AVT impl vtable 0x10eaf2ec slot +0x78 entry
 
 </details>
 
@@ -4226,11 +4226,11 @@ None The Queue service reaches the identical engine worker through queue-manager
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Deletes one track from the queue by position. It optionally accepts an update-ID — a version number for the queue — so the app can say 'delete track 5, but only if the queue is still the one I last saw', which prevents two people (or a stale app screen) from editing different versions of the list and silently clobbering each other.
+Deletes one track from the queue by position. It optionally accepts an update-ID, a version number for the queue, so the app can say 'delete track 5, but only if the queue is still the one I last saw'. That prevents two people (or a stale app screen) from editing different versions of the list and silently clobbering each other.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028) — optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.
+Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028): optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.
 
 </details>
 
@@ -4242,11 +4242,11 @@ Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fe
 | `ObjectID` | SonosStringArg | yes | Any string the request-record builder accepts; no local validation beyond presence / max 1023 chars | none - required argument |
 | `UpdateID` | SonosUintArg | yes | 0 (skip check) or exactly the current queue update-id - mismatch faults 1028 / 0 or current update-id | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`ObjectID`** — Identifies the queue entry to remove; stored verbatim into the request record by f_1032e440 (e.g. a queue object id).
+- **`ObjectID`**: Identifies the queue entry to remove; stored verbatim into the request record by f_1032e440 (e.g. a queue object id).
   - buffer cap: `0x400`
-- **`UpdateID`** — Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.
+- **`UpdateID`**: Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -4256,7 +4256,7 @@ Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fe
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f9aa8 — wrapper + impl decode
+- @ 0x102f9aa8; wrapper + impl decode
 
 </details>
 
@@ -4266,7 +4266,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x70\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9aa8 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f9aa8; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4276,7 +4276,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 service-internal state reached through member delegate(s): r30 v\[+0x70\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9aa8 — member vfunc calls: \['r30 v\[+0x70\]'\]
+- fn 0x102f9aa8; member vfunc calls: \['r30 v\[+0x70\]'\]
 
 </details>
 
@@ -4290,7 +4290,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x70\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x70\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9aa8 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x70\]'\]
+- fn 0x102f9aa8; no transition-literal/store pattern; member delegates: \['r30 v\[+0x70\]'\]
 
 </details>
 
@@ -4300,7 +4300,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9aa8 — bl call scan: notify-family sites = \[\]
+- fn 0x102f9aa8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4310,7 +4310,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9aa8 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f9aa8; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4337,13 +4337,13 @@ Transport mode is not 1 or 2, OR the session submission f_10255f64 returned 0 (f
 
 **`vret(r5-in,+0x70)`** `strong`
 
-nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 0x404=1028, 800, 0 — producers at 0x102aa7bc/0x102aa830/0x102aa840/0x102aa8a8
+nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 0x404=1028, 800, 0: producers at 0x102aa7bc/0x102aa830/0x102aa840/0x102aa8a8
 
 - a code path not covered by the enumerated checks produced a result
 
 
-**Bounded unknown — proven:** impl returns the preloaded code r31
-**Bounded unknown — unresolved:** any other rc the request-record builders could surface
+**Bounded unknown (proven):** impl returns the preloaded code r31
+**Bounded unknown (unresolved):** any other rc the request-record builders could surface
 
 **`402`** `confirmed`
 
@@ -4363,9 +4363,9 @@ Request parse layer rejected an argument before the impl was invoked.
 - impl call `0x102f9bf4` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x102f9b64` slot `8` (parse)
 
-- fn 0x102f9aa8 @ 0x102f9aa8 — action wrapper handler
-- @ 0x10eb3168 — action dispatch table entry
-- fn 0x102aa770 — AVT impl vtable 0x10eaf2ec slot +0x70 entry
+- fn 0x102f9aa8 @ 0x102f9aa8; action wrapper handler
+- @ 0x10eb3168; action dispatch table entry
+- fn 0x102aa770; AVT impl vtable 0x10eaf2ec slot +0x70 entry
 
 </details>
 
@@ -4373,11 +4373,11 @@ Request parse layer rejected an argument before the impl was invoked.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Deletes a contiguous run of tracks from the queue — 'remove tracks 3 through 10'. Both arguments count from 1, and zero is rejected rather than treated as a no-op, so callers must pass real positions.
+Deletes a contiguous run of tracks from the queue, as in 'remove tracks 3 through 10'. Both arguments count from 1, and zero is rejected rather than treated as a no-op, so callers must pass real positions.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work — StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector "0" via snprintf("%u") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match — selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.
+Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work (StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector "0" via snprintf("%u") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match) selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.
 
 </details>
 
@@ -4390,13 +4390,13 @@ Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 71
 | `StartingIndex` | SonosUintArg | yes | 1..queue length - 0 faults 402 / 1..N | none - required argument |
 | `NumberOfTracks` | SonosUintArg | yes | 1..queue length - 0 faults 402 / 1..N | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero. It is additionally reused by the worker as the queue selector formatted "%u" — value 0 selects the default queue.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero. It is additionally reused by the worker as the queue selector formatted "%u": value 0 selects the default queue.
   - buffer cap: `0x18`
-- **`UpdateID`** — Optimistic-concurrency token: 0 disables the check; nonzero must equal the current queue update-id else 1028.
+- **`UpdateID`**: Optimistic-concurrency token: 0 disables the check; nonzero must equal the current queue update-id else 1028.
   - buffer cap: `0x18`
-- **`StartingIndex`** — 1-based index of the first track to remove. Value 0 is rejected with 402 before any queue work — the impl treats it as invalid, not as "first element".
+- **`StartingIndex`**: 1-based index of the first track to remove. Value 0 is rejected with 402 before any queue work: the impl treats it as invalid, not as "first element".
   - buffer cap: `0x18`
-- **`NumberOfTracks`** — Count of tracks to remove starting at StartingIndex. Value 0 is rejected with 402.
+- **`NumberOfTracks`**: Count of tracks to remove starting at StartingIndex. Value 0 is rejected with 402.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -4405,7 +4405,7 @@ Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 71
 |---|---|---|
 | `NewUpdateID` | unsigned int32 | post-mutation queue UpdateID / length-bounded by parse-helper buffer cap |
 
-- **`NewUpdateID`** — New queue update-id written by the worker through the out pointer after a successful removal.
+- **`NewUpdateID`**: New queue update-id written by the worker through the out pointer after a successful removal.
   - validation: copied from the queue record update counter
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -4415,7 +4415,7 @@ Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 71
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102faf24 — wrapper + impl decode
+- @ 0x102faf24; wrapper + impl decode
 
 </details>
 
@@ -4425,7 +4425,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x74\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102faf24 — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x102faf24; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -4435,7 +4435,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-
 service-internal state reached through member delegate(s): r30 v\[+0x74\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102faf24 — member vfunc calls: \['r30 v\[+0x74\]'\]
+- fn 0x102faf24; member vfunc calls: \['r30 v\[+0x74\]'\]
 
 </details>
 
@@ -4449,7 +4449,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x74\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x74\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102faf24 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x74\]'\]
+- fn 0x102faf24; no transition-literal/store pattern; member delegates: \['r30 v\[+0x74\]'\]
 
 </details>
 
@@ -4459,7 +4459,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102faf24 — bl call scan: notify-family sites = \[\]
+- fn 0x102faf24; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4469,7 +4469,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102faf24 — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x102faf24; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -4501,8 +4501,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 - the removal body produced a code not covered by the enumerated gates
 
 
-**Bounded unknown — proven:** worker rc surfaced
-**Bounded unknown — unresolved:** the actual removal path beyond 0x102ace58 was not fully traced — additional submission codes may exist
+**Bounded unknown (proven):** worker rc surfaced
+**Bounded unknown (unresolved):** the actual removal path beyond 0x102ace58 was not fully traced: additional submission codes may exist
 
 **`402`** `confirmed`
 
@@ -4522,9 +4522,9 @@ Request parse layer rejected an argument before the impl was invoked.
 - impl call `0x102fb0a4` obj `*(sp-0x40+0x3c)` slot `12` arg4 `?`
 - req vcall `0x102fafec` slot `8` (parse)
 
-- fn 0x102faf24 @ 0x102faf24 — action wrapper handler
-- @ 0x10eb3174 — action dispatch table entry
-- fn 0x102acca8 — AVT impl vtable 0x10eaf2ec slot +0x74 entry
+- fn 0x102faf24 @ 0x102faf24; action wrapper handler
+- @ 0x10eb3174; action dispatch table entry
+- fn 0x102acca8; AVT impl vtable 0x10eaf2ec slot +0x74 entry
 
 </details>
 
@@ -4532,11 +4532,11 @@ Request parse layer rejected an argument before the impl was invoked.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Moves a block of tracks to a different position in the queue — drag-and-drop in the app's queue view. You name the starting track, how many tracks move, and before which position they should land; all positions count from 1.
+Moves a block of tracks to a different position in the queue, which is drag-and-drop in the app's queue view. You name the starting track, how many tracks move, and before which position they should land, and all positions count from 1.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work — StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector — the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).
+Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work (StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector) the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).
 
 </details>
 
@@ -4550,15 +4550,15 @@ Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: Ins
 | `InsertBefore` | SonosStringArg | yes | 1..queue length - 0 faults 402 / length-bounded by parse-helper buffer cap | none - required argument |
 | `UpdateID` | SonosStringArg | yes | 0 (skip) or current queue update-id / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`StartingIndex`** — 1-based index of the first track to move - 0 faults 402.
+- **`StartingIndex`**: 1-based index of the first track to move - 0 faults 402.
   - buffer cap: `0x18`
-- **`NumberOfTracks`** — Size of the block to move - 0 faults 402.
+- **`NumberOfTracks`**: Size of the block to move - 0 faults 402.
   - buffer cap: `0x18`
-- **`InsertBefore`** — 1-based insertion point for the moved block - 0 faults 402.
+- **`InsertBefore`**: 1-based insertion point for the moved block - 0 faults 402.
   - buffer cap: `0x18`
-- **`UpdateID`** — Optimistic-concurrency token handled by the shared worker (nonzero must match current queue update-id, as in RemoveTrackRangeFromQueue).
+- **`UpdateID`**: Optimistic-concurrency token handled by the shared worker (nonzero must match current queue update-id, as in RemoveTrackRangeFromQueue).
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -4568,7 +4568,7 @@ Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: Ins
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f8f88 — wrapper + impl decode
+- @ 0x102f8f88; wrapper + impl decode
 
 </details>
 
@@ -4578,7 +4578,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, validate×1, commit×1); member delegates: r30 v\[+0x6c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8f88 — req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8f88; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4588,7 +4588,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, vali
 service-internal state reached through member delegate(s): r30 v\[+0x6c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8f88 — member vfunc calls: \['r30 v\[+0x6c\]'\]
+- fn 0x102f8f88; member vfunc calls: \['r30 v\[+0x6c\]'\]
 
 </details>
 
@@ -4602,7 +4602,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x6c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x6c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8f88 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x6c\]'\]
+- fn 0x102f8f88; no transition-literal/store pattern; member delegates: \['r30 v\[+0x6c\]'\]
 
 </details>
 
@@ -4612,7 +4612,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8f88 — bl call scan: notify-family sites = \[\]
+- fn 0x102f8f88; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4622,7 +4622,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f8f88 — commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f8f88; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4649,8 +4649,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 - the shared worker produced a code not covered by the impl-level gates
 
 
-**Bounded unknown — proven:** shared worker rc surfaced
-**Bounded unknown — unresolved:** UpdateID-mismatch and mode codes from the shared worker family (1028/800 there) — which apply here is not fully traced
+**Bounded unknown (proven):** shared worker rc surfaced
+**Bounded unknown (unresolved):** UpdateID-mismatch and mode codes from the shared worker family (1028/800 there): which apply here is not fully traced
 
 
 
@@ -4664,9 +4664,9 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 - impl call `0x102f9120` obj `*(sp-0x40+0x3c)` slot `12` arg4 `402`
 - req vcall `0x102f9088` slot `8` (parse)
 
-- fn 0x102f8f88 @ 0x102f8f88 — action wrapper handler
-- @ 0x10eb3180 — action dispatch table entry
-- fn 0x102acf60 — AVT impl vtable 0x10eaf2ec slot +0x6c entry
+- fn 0x102f8f88 @ 0x102f8f88; action wrapper handler
+- @ 0x10eb3180; action dispatch table entry
+- fn 0x102acf60; AVT impl vtable 0x10eaf2ec slot +0x6c entry
 
 </details>
 
@@ -4674,7 +4674,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reorders tracks inside a saved queue — a Sonos playlist — rather than the live play queue: the stored-list equivalent of dragging songs around in the queue editor.
+Reorders tracks inside a saved queue (a Sonos playlist) rather than the live play queue. It is the stored-list equivalent of dragging songs around in the queue editor.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4692,15 +4692,15 @@ Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gat
 | `TrackList` | SonosStringArg | yes | comma-separated u32 track indices <= parse cap / max 4096 chars | none - required argument |
 | `NewPositionList` | SonosUintArg | yes | comma-separated u32 positions <= parse cap; must match TrackList arity / max 2048 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`ObjectID`** — Forwarded positionally to the f_1047a3bc subsystem worker.
+- **`ObjectID`**: Forwarded positionally to the f_1047a3bc subsystem worker.
   - buffer cap: `0x400`
-- **`UpdateID`** — Forwarded positionally to the f_1047a3bc subsystem worker.
+- **`UpdateID`**: Forwarded positionally to the f_1047a3bc subsystem worker.
   - buffer cap: `0x18`
-- **`TrackList`** — Forwarded positionally to the f_1047a3bc subsystem worker.
+- **`TrackList`**: Forwarded positionally to the f_1047a3bc subsystem worker.
   - buffer cap: `0x1001`
-- **`NewPositionList`** — Forwarded positionally to the f_1047a3bc subsystem worker.
+- **`NewPositionList`**: Forwarded positionally to the f_1047a3bc subsystem worker.
   - buffer cap: `0x801`
 
 #### Outputs
@@ -4711,11 +4711,11 @@ Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gat
 | `NewQueueLength` | unsigned int32 | "0" or "1" via bool-style parse helper; literal semantics under action validation / {0,1} |
 | `NewUpdateID` | unsigned int32 | post-mutation queue UpdateID / length-bounded by parse-helper buffer cap |
 
-- **`QueueLengthChange`** — Written by the f_1047a3bc worker on success.
+- **`QueueLengthChange`**: Written by the f_1047a3bc worker on success.
   - validation: worker-computed delta
-- **`NewQueueLength`** — Written by the f_1047a3bc worker on success.
+- **`NewQueueLength`**: Written by the f_1047a3bc worker on success.
   - validation: written from the queue record length after the mutation
-- **`NewUpdateID`** — Written by the f_1047a3bc worker on success.
+- **`NewUpdateID`**: Written by the f_1047a3bc worker on success.
   - validation: copied from the queue-record update counter
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -4725,7 +4725,7 @@ Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gat
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fc078 — wrapper + impl decode
+- @ 0x102fc078; wrapper + impl decode
 
 </details>
 
@@ -4735,7 +4735,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc078 — req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
+- fn 0x102fc078; req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
 </details>
 
@@ -4745,7 +4745,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc078 — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102fc078; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -4759,7 +4759,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc078 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102fc078; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -4769,7 +4769,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc078 — bl call scan: notify-family sites = \[\]
+- fn 0x102fc078; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4779,7 +4779,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc078 — commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
+- fn 0x102fc078; commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}
 
 </details>
 
@@ -4799,8 +4799,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: saved-queue worker r
 - the subsystem worker produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** saved-queue worker rc returned
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd238 entry); remaining paths call-derived
+**Bounded unknown (proven):** saved-queue worker rc returned
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd238 entry); remaining paths call-derived
 
 **`402`** `confirmed`
 
@@ -4812,7 +4812,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -4830,9 +4830,9 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 - impl call `0x102fc280` obj `*(sp-0x1c40+0x1c3c)` slot `12` arg4 `?`
 - req vcall `0x102fc170` slot `8` (parse)
 
-- fn 0x102fc078 @ 0x102fc078 — action wrapper handler
-- @ 0x10eb318c — action dispatch table entry
-- fn 0x102bd238 — AVT impl vtable 0x10eaf2ec slot +0x8c entry
+- fn 0x102fc078 @ 0x102fc078; action wrapper handler
+- @ 0x10eb318c; action dispatch table entry
+- fn 0x102bd238; AVT impl vtable 0x10eaf2ec slot +0x8c entry
 
 </details>
 
@@ -4840,11 +4840,11 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Fires a programmed alarm immediately — 'run this alarm now' rather than waiting for its scheduled time. Used for alarm previews and by the system's own scheduling path when an alarm's moment arrives.
+Fires a programmed alarm immediately, meaning 'run this alarm now' rather than waiting for its scheduled time. It is used for alarm previews and by the system's own scheduling path when an alarm's moment arrives.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc — the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.
+Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc: the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.
 
 </details>
 
@@ -4862,23 +4862,23 @@ Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-cal
 | `Volume` | SonosUintArg | yes | u32 volume; applied by the alarm-run path / parsed u32; worker-clamped | none - required argument |
 | `IncludeLinkedZones` | SonosBoolArg | yes | boolean flag parsed as u32 / {0,1} | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`AlarmID`** — Forwarded to shared alarm worker f_102e17dc.
+- **`AlarmID`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x18`
-- **`LoggedStartTime`** — Forwarded to shared alarm worker f_102e17dc.
+- **`LoggedStartTime`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x40`
-- **`Duration`** — Forwarded to shared alarm worker f_102e17dc.
+- **`Duration`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x40`
-- **`ProgramURI`** — Forwarded to shared alarm worker f_102e17dc.
+- **`ProgramURI`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x401`
-- **`ProgramMetaData`** — Forwarded to shared alarm worker f_102e17dc.
+- **`ProgramMetaData`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x1001`
-- **`PlayMode`** — Forwarded to shared alarm worker f_102e17dc.
+- **`PlayMode`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x20`
-- **`Volume`** — Forwarded to shared alarm worker f_102e17dc.
+- **`Volume`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x18`
-- **`IncludeLinkedZones`** — Forwarded to shared alarm worker f_102e17dc.
+- **`IncludeLinkedZones`**: Forwarded to shared alarm worker f_102e17dc.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -4888,7 +4888,7 @@ Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-cal
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fc4ac — wrapper + impl decode
+- @ 0x102fc4ac; wrapper + impl decode
 
 </details>
 
@@ -4898,7 +4898,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc4ac — req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fc4ac; req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4908,7 +4908,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, vali
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc4ac — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102fc4ac; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -4922,7 +4922,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc4ac — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102fc4ac; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -4932,7 +4932,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc4ac — bl call scan: notify-family sites = \[\]
+- fn 0x102fc4ac; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -4942,7 +4942,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc4ac — commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fc4ac; commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -4983,9 +4983,9 @@ None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm st
 - impl call `0x102fc6e8` obj `*(sp-0x14e0+0x14dc)` slot `12` arg4 `402`
 - req vcall `0x102fc63c` slot `8` (parse)
 
-- fn 0x102fc4ac @ 0x102fc4ac — action wrapper handler
-- @ 0x10eb3198 — action dispatch table entry
-- fn 0x102e1d68 — AVT impl vtable 0x10eaf2ec slot +0x98 entry
+- fn 0x102fc4ac @ 0x102fc4ac; action wrapper handler
+- @ 0x10eb3198; action dispatch table entry
+- fn 0x102e1d68; AVT impl vtable 0x10eaf2ec slot +0x98 entry
 
 </details>
 
@@ -4993,11 +4993,11 @@ None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm st
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Saves the current play queue as a named Sonos playlist — the 'Save queue' action. You give it a title; it trims whitespace and rejects empty names. The queue must actually contain something for this to work — you cannot save an empty list.
+Saves the current play queue as a named Sonos playlist, the 'Save queue' action. You give it a title, and it trims whitespace and rejects empty names. The queue must actually contain something for this to work, since you cannot save an empty list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \r or \n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) — the same persistence/path helper BackupQueue uses — storing the queue under the given ObjectID and writing the assigned object id.
+Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \r or \n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) (the same persistence/path helper BackupQueue uses) storing the queue under the given ObjectID and writing the assigned object id.
 
 </details>
 
@@ -5009,11 +5009,11 @@ Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4
 | `Title` | SonosStringArg | yes | Non-empty after sonosTrimWhitespace, and must not contain carriage-return or line-feed characters - violations fault 402 / max 1023 chars | none - required argument |
 | `ObjectID` | SonosStringArg | yes | Any string accepted by the persistence helper / max 1023 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`Title`** — Saved-queue name, copied into a 0x400-byte buffer then whitespace-trimmed.
+- **`Title`**: Saved-queue name, copied into a 0x400-byte buffer then whitespace-trimmed.
   - buffer cap: `0x400`
-- **`ObjectID`** — Requested object id / parent selector passed through to f_10146e94.
+- **`ObjectID`**: Requested object id / parent selector passed through to f_10146e94.
   - buffer cap: `0x400`
 
 #### Outputs
@@ -5022,7 +5022,7 @@ Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4
 |---|---|---|
 | `AssignedObjectID` | SonosStringArg | sq:-family object id assigned by the saved-queue store / length-bounded by parse-helper buffer cap |
 
-- **`AssignedObjectID`** — Object id assigned to the new saved queue, written by f_10146e94 through the out pointer.
+- **`AssignedObjectID`**: Object id assigned to the new saved queue, written by f_10146e94 through the out pointer.
   - validation: output of the persistence path f_10146e94
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -5032,7 +5032,7 @@ Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f96fc — wrapper + impl decode
+- @ 0x102f96fc; wrapper + impl decode
 
 </details>
 
@@ -5042,7 +5042,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x7c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f96fc — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x102f96fc; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -5052,7 +5052,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r30 v\[+0x7c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f96fc — member vfunc calls: \['r30 v\[+0x7c\]'\]
+- fn 0x102f96fc; member vfunc calls: \['r30 v\[+0x7c\]'\]
 
 </details>
 
@@ -5066,7 +5066,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x7c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x7c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f96fc — no transition-literal/store pattern; member delegates: \['r30 v\[+0x7c\]'\]
+- fn 0x102f96fc; no transition-literal/store pattern; member delegates: \['r30 v\[+0x7c\]'\]
 
 </details>
 
@@ -5076,7 +5076,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f96fc — bl call scan: notify-family sites = \[\]
+- fn 0x102f96fc; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -5086,7 +5086,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f96fc — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x102f96fc; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -5114,19 +5114,19 @@ Title was empty after whitespace trimming, or contained a CR/LF character.
 
 **`vret(r5-in,+0x7c)`** `strong`
 
-nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd — producers at 0x102aa910/0x102aa968/0x102aa984
+nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd: producers at 0x102aa910/0x102aa968/0x102aa984
 
 - f_10146e94 returned a nonzero code
 
 
-**Bounded unknown — proven:** f_10146e94 persistence rc returned
-**Bounded unknown — unresolved:** concrete codes the saved-queue persistence helper can produce (storage/duplicate errors)
+**Bounded unknown (proven):** f_10146e94 persistence rc returned
+**Bounded unknown (unresolved):** concrete codes the saved-queue persistence helper can produce (storage/duplicate errors)
 
 **`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
 
 savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -5141,9 +5141,9 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 - impl call `0x102f986c` obj `*(sp-0xc30+0xc2c)` slot `12` arg4 `?`
 - req vcall `0x102f97a8` slot `8` (parse)
 
-- fn 0x102f96fc @ 0x102f96fc — action wrapper handler
-- @ 0x10eb31a4 — action dispatch table entry
-- fn 0x102aa8b4 — AVT impl vtable 0x10eaf2ec slot +0x7c entry
+- fn 0x102f96fc @ 0x102f96fc; action wrapper handler
+- @ 0x10eb31a4; action dispatch table entry
+- fn 0x102aa8b4; AVT impl vtable 0x10eaf2ec slot +0x7c entry
 
 </details>
 
@@ -5151,7 +5151,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Jumps to a different position in what's playing — the app's scrub bar plus 'play track 7'. You say what kind of target (a track number in the queue, an absolute timestamp like 2:30, or a relative offset like -30 seconds) and the value; the player repositions within the current source if that source supports seeking — live streams simply cannot be scrubbed.
+Jumps to a different position in what's playing, covering both the app's scrub bar and 'play track 7'. You say what kind of target (a track number in the queue, an absolute timestamp like 2:30, or a relative offset like -30 seconds) and the value, and the player repositions within the current source if that source supports seeking. Live streams simply cannot be scrubbed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5167,16 +5167,16 @@ Repositions playback within the current transport source, dispatched to the zone
 | `Unit` | seek mode token | yes | `TRACK_NR`, `REL_TIME`, `TIME_DELTA` / max 1023 chars | none |
 | `Target` | SonosTrackOrdinal (TRACK_NR) or SonosSeekTime (REL_TIME/TIME_DELTA) - see payload_formats | yes | TRACK_NR: textual decimal whose strtol result lies in 1..65534. REL_TIME/TIME_DELTA: three u8-wrapping decimal components; computed value = h*3600+m*60+s seconds. / max 1023 chars | none |
 
-- **`InstanceID`** — Numeric transport-instance selector; the implementation accepts only 0 and rejects any other parsed value with error 718 before dispatching to the seek engine.
+- **`InstanceID`**: Numeric transport-instance selector; the implementation accepts only 0 and rejects any other parsed value with error 718 before dispatching to the seek engine.
   - special values: `0` = the only instance this zone player implements; anything else faults
   - validation: Request-layer validation faults 402 if absent/malformed (req vfunc +0x08 at 0x102f9408); implementation returns 718 when the parsed value is nonzero (0x102b9660-0x102b9668); on a successful engine call the value is stored into engine+0x6ed8 (0x102b96d4) but is not otherwise interpreted.
   - The value is range-checked only; it is not forwarded as a seek operand.
   - buffer cap: `0x18`
-- **`Unit`** — Seek-mode token; the engine compares it with strcmp against a fixed set and interprets Target accordingly.
+- **`Unit`**: Seek-mode token; the engine compares it with strcmp against a fixed set and interprets Target accordingly.
   - special values: `TRACK_NR` = target is a queue/track ordinal; only reached when engine mode field (this+0x4654) == 2 and capability bit 0x400000 is set, else 701; `REL_TIME` = target is an absolute time position (H:M:S); in stream mode always allowed, in indexed mode requires capability bit 0x200000; negative target rejected with 711 in indexed mode; `TIME_DELTA` = target is a relative time delta (H:M:S); same gating as REL_TIME; a zero delta is a no-op success in indexed mode
   - validation: strcmp chain in f_102b9088: indexed mode (engine+0x4654==2) accepts TRACK_NR/REL_TIME/TIME_DELTA (unknown -> 710 at 0x102b9320-0x102b9338); stream mode accepts only REL_TIME/TIME_DELTA (anything else -> 701 at 0x102b90e0-0x102b91b0). Missing or oversized argument faults 402 at the request layer.
   - buffer cap: `0x400`
-- **`Target`** — Destination operand whose syntax depends on Unit: a decimal track ordinal for TRACK_NR, or a \[-\]H:M:S time for REL_TIME/TIME_DELTA.
+- **`Target`**: Destination operand whose syntax depends on Unit: a decimal track ordinal for TRACK_NR, or a \[-\]H:M:S time for REL_TIME/TIME_DELTA.
   - unit: track ordinal; or seconds
   - special values: `TRACK_NR text beyond 1..65534 (incl. '0', '-5', '65537', saturating input)` = rejected with 711: validation is (strtol_result - 1) <= 0xFFFD unsigned on the UNMASKED value; the u16 truncation (rlwinm r4,r30,0,16,31 at 0x102b938c) only sizes the record field and never rescues an out-of-range text - '65537' faults, it does not wrap to track 1; `TRACK_NR with trailing junk, leading whitespace, '+', or zeros (' 5', '+5', '05', '5abc')` = accepted - strtol skips ws/sign and endptr is NULL so the tail is ignored; `'--H:M:S' or signed components ('-5:00:00' after the outer sign, '+01:02:03')` = accepted: the outer '-' is consumed manually, then each %hhu applies strtoul sign/wrap rules, so '--0:1:0' parses as negative-(251:00:00 wrapped) - a quirk of layering the manual sign over %hhu; `'00:00:00' or '-00:00:00' (REL_TIME/TIME_DELTA, indexed mode)` = zero magnitude -> success WITHOUT submitting any request (0x102b92d4-0x102b9318); '-00:00:00' under REL_TIME still faults 711 because the sign check precedes the zero check; `'-H:M:S' (REL_TIME, indexed mode)` = rejected with 711 - sign flag byte nonzero and Unit != TIME_DELTA (0x102b9258-0x102b9270); `'-H:M:S' (TIME_DELTA, indexed mode)` = accepted; parser negates only the low seconds word (neg at 0x102ab920, hi word stays 0) plus a separate sign byte; submitted as a negative relative offset; `'-H:M:S' (stream mode)` = not sign-checked at all - the negated seconds word *1000 yields a negative millisecond operand passed straight to the session vfunc; outcome is downstream-determined; `'256:00:00' / '999:99:99' (either mode)` = accepted with u8 wraparound: 256->0, 999->231 etc.; there is no upper bound check on the total; `'1 :2:3' (whitespace before a colon)` = rejected - the ':' literals in the scanf format must match immediately; `'01:02:03junk'` = accepted - sscanf stops after the 3rd conversion and the tail is never inspected
   - validation: TRACK_NR (indexed mode only): strtol result must satisfy (t-1) <= 0xFFFD unsigned else 711; on success u16 field t&0xffff is recorded in the rchsrcreq tag-8 record (the truncation is field-width only; the range check ran on the raw strtol value, so no wrap-to-valid exists). REL_TIME/TIME_DELTA: f_102ab830 failure -> 711 indexed / 701 stream; indexed-mode leading '-' under REL_TIME -> 711; indexed-mode zero magnitude -> silent success no-op; stream mode performs no sign or zero gating. Missing/unparsable at the request layer -> 402.
@@ -5243,7 +5243,7 @@ Service-level dispatcher fault, not produced by the Seek handler itself.
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`701`** `confirmed`
 
@@ -5277,7 +5277,7 @@ Illegal seek target: malformed time, negative REL_TIME, out-of-range track, or f
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -5295,12 +5295,12 @@ Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x1
 - impl call `0x102f9494` obj `*(sp-0x830+0x82c)` slot `12` arg4 `402`
 - req vcall `0x102f9408` slot `8` (parse)
 
-- fn 0x102f935c @ 0x102f935c — action wrapper handler
-- @ 0x10eb31b0 — action dispatch table entry
-- fn 0x102f935c @ 0x102f9428 — wrapper calls impl->vfunc\[+0x34\](inst,unit,target) via bctrl
-- @ 0x10eaf320 — vtable slot: vptr 0x10eaf2ec+0x34 -> f_102b95a8; identical at 0x10edfbec for vptr 0x10edfbb8
-- fn 0x102b9088 @ 0x102b9088 — seek engine: Unit strcmp chains, Target parsers, cap gating, submit calls
-- fn 0x102b95a8 — AVT impl vtable 0x10eaf2ec slot +0x34 entry
+- fn 0x102f935c @ 0x102f935c; action wrapper handler
+- @ 0x10eb31b0; action dispatch table entry
+- fn 0x102f935c @ 0x102f9428; wrapper calls impl->vfunc\[+0x34\](inst,unit,target) via bctrl
+- @ 0x10eaf320; vtable slot: vptr 0x10eaf2ec+0x34 -> f_102b95a8; identical at 0x10edfbec for vptr 0x10edfbb8
+- fn 0x102b9088 @ 0x102b9088; seek engine: Unit strcmp chains, Target parsers, cap gating, submit calls
+- fn 0x102b95a8; AVT impl vtable 0x10eaf2ec slot +0x34 entry
 
 </details>
 
@@ -5308,11 +5308,11 @@ Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Tells the player what to play — the single most important content command. You pass an address (a queue reference, a stream URL, a line-in selector, a service item) plus metadata describing it, and the player adopts it as the current source. 'Play this radio station' and 'play from this queue' both reduce to setting the right URI here; what happens afterward depends on what the address points at.
+Tells the player what to play, the single most important content command. You pass an address (a queue reference, a stream URL, a line-in selector, a service item) plus metadata describing it, and the player adopts it as the current source. 'Play this radio station' and 'play from this queue' both reduce to setting the right URI here, and what happens afterward depends on what the address points at.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.
+Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.
 
 </details>
 
@@ -5324,9 +5324,9 @@ Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling sh
 | `CurrentURI` | SonosUriArg | yes | Worker-validated URI string / max 1024 chars | none - required argument |
 | `CurrentURIMetaData` | SonosMetaDataArg | yes | Worker-validated DIDL string / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`CurrentURI`** — Playback URI installed by the shared worker.
+- **`CurrentURI`**: Playback URI installed by the shared worker.
   - buffer cap: `0x401`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -5336,7 +5336,7 @@ Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling sh
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fa71c — wrapper + impl decode
+- @ 0x102fa71c; wrapper + impl decode
 
 </details>
 
@@ -5346,7 +5346,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa71c — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa71c; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -5356,7 +5356,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 service-internal state reached through member delegate(s): r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa71c — member vfunc calls: \['r30 v\[+0x8\]'\]
+- fn 0x102fa71c; member vfunc calls: \['r30 v\[+0x8\]'\]
 
 </details>
 
@@ -5370,7 +5370,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa71c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x8\]'\]
+- fn 0x102fa71c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x8\]'\]
 
 </details>
 
@@ -5380,7 +5380,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa71c — bl call scan: notify-family sites = \[\]
+- fn 0x102fa71c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -5390,7 +5390,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa71c — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa71c; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -5401,7 +5401,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 **`vret(r5-in,+0x8)`** `strong`
 
@@ -5410,8 +5410,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: URI-set worker f_102
 - the worker produced a code not covered by the gate
 
 
-**Bounded unknown — proven:** shared URI-set worker f_102dc81c rc returned
-**Bounded unknown — unresolved:** URI validation, source-mode and session codes inside the worker; also the class-B group variant 0x10513230 is unexplored
+**Bounded unknown (proven):** shared URI-set worker f_102dc81c rc returned
+**Bounded unknown (unresolved):** URI validation, source-mode and session codes inside the worker; also the class-B group variant 0x10513230 is unexplored
 
 **`402`** `confirmed`
 
@@ -5423,7 +5423,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -5441,9 +5441,9 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 - impl call `0x102fa874` obj `*(sp-0x1440+0x143c)` slot `12` arg4 `402`
 - req vcall `0x102fa7d4` slot `8` (parse)
 
-- fn 0x102fa71c @ 0x102fa71c — action wrapper handler
-- @ 0x10eb31bc — action dispatch table entry
-- fn 0x102dcb58 — AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513230 slot +0x08 entry
+- fn 0x102fa71c @ 0x102fa71c; action wrapper handler
+- @ 0x10eb31bc; action dispatch table entry
+- fn 0x102dcb58; AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513230 slot +0x08 entry
 
 </details>
 
@@ -5451,7 +5451,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Turns crossfade on or off — the smooth blend between consecutive tracks. It only applies to queue playback, because blending requires both tracks to come from the same local list; on other sources the command is rejected.
+Turns crossfade on or off, the smooth blend between consecutive tracks. It only applies to queue playback, because blending requires both tracks to come from the same local list, and on other sources the command is rejected.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5466,9 +5466,9 @@ Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock imp
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x44 with 718 | none - required argument |
 | `CrossfadeMode` | string | yes | Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source. / see accepted_values | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`CrossfadeMode`** — Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.
+- **`CrossfadeMode`**: Parsed as a numeric byte (type-tag parser); value 0 is always accepted, nonzero requires an indexed-mode, non-HLS, crossfade-capable source.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -5478,8 +5478,8 @@ Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock imp
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b99fc @ 0x102b99fc — gate decode
-- fn f_102b26dc @ 0x102b26dc — worker decode
+- fn f_102b99fc @ 0x102b99fc; gate decode
+- fn f_102b26dc @ 0x102b26dc; worker decode
 
 </details>
 
@@ -5489,7 +5489,7 @@ See inputs/impl notes
 Only meaningful when a queued/indexed source is active (mode==2); streaming sources reject nonzero crossfade.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b26dc @ 0x102b2704 — cmpwi mode,2 -> 712 otherwise
+- fn f_102b26dc @ 0x102b2704; cmpwi mode,2 -> 712 otherwise
 
 </details>
 
@@ -5499,8 +5499,8 @@ Only meaningful when a queued/indexed source is active (mode==2); streaming sour
 Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi-hls:' URI - HLS streams cannot crossfade.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b26dc @ 0x102b2768 — strncmp(uri,'x-sonosapi-hls:',15)
-- fn f_102b26dc @ 0x102b277c — f_101475dc cap check
+- fn f_102b26dc @ 0x102b2768; strncmp(uri,'x-sonosapi-hls:',15)
+- fn f_102b26dc @ 0x102b277c; f_101475dc cap check
 
 </details>
 
@@ -5514,7 +5514,7 @@ Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi
 Crossfade mode applied through the indexed request machinery; arg==0 on an incapable source is a silent success no-op.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b26dc @ 0x102b27cc — arg==0 -> success even when blocked
+- fn f_102b26dc @ 0x102b27cc; arg==0 -> success even when blocked
 
 </details>
 
@@ -5524,7 +5524,7 @@ Crossfade mode applied through the indexed request machinery; arg==0 on an incap
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa158 — bl call scan: notify-family sites = \[\]
+- fn 0x102fa158; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -5534,7 +5534,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0 on success (incl. silent no-op); 712 for wrong mode, incapable source, or submit failure.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b26dc @ 0x102b270c — li r3,0x2c8
+- fn f_102b26dc @ 0x102b270c; li r3,0x2c8
 
 </details>
 
@@ -5545,11 +5545,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** the fault path is reached when the impl call reports failure
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b99fc entry); remaining paths call-derived
+**Bounded unknown (proven):** the fault path is reached when the impl call reports failure
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b99fc entry); remaining paths call-derived
 
 **`712`** `confirmed`
 
@@ -5577,11 +5577,11 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - impl call `0x102fa260` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102fa1d8` slot `8` (parse)
 
-- fn f_102b99fc @ 0x102b99fc — gate decode
-- fn f_102b26dc @ 0x102b26dc — worker decode
-- fn 0x102b99fc — AVT impl vtable 0x10eaf2ec slot +0x44 entry
-- fn 0x102fa158 @ 0x102fa158 — action wrapper handler
-- @ 0x10eb31c8 — action dispatch table entry
+- fn f_102b99fc @ 0x102b99fc; gate decode
+- fn f_102b26dc @ 0x102b26dc; worker decode
+- fn 0x102b99fc; AVT impl vtable 0x10eaf2ec slot +0x44 entry
+- fn 0x102fa158 @ 0x102fa158; action wrapper handler
+- @ 0x10eb31c8; action dispatch table entry
 
 </details>
 
@@ -5589,11 +5589,11 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Announces the upcoming track so the player can pre-buffer it — the mechanism behind gapless playback. While one song plays, the app (or the queue engine) supplies the next track's address and metadata; the player gets it ready so the transition has no silence. It only works on queue playback — the mode that knows what 'next' means.
+Announces the upcoming track so the player can pre-buffer it, which is the mechanism behind gapless playback. While one song plays, the app (or the queue engine) supplies the next track's address and metadata, and the player gets it ready so the transition has no silence. It only works on queue playback, the mode that knows what 'next' means.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate — impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with "lookup of %s URIs for %s failed" topology logging on failure) — i.e. the next-track request can be delegated to the actual playback member.
+Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate: impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with "lookup of %s URIs for %s failed" topology logging on failure), i.e. the next-track request can be delegated to the actual playback member.
 
 </details>
 
@@ -5605,9 +5605,9 @@ Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, the
 | `NextURI` | SonosStringArg | yes | Any URI string accepted by the record writer f_106faeb8 / max 1024 chars | none - required argument |
 | `NextURIMetaData` | SonosStringArg | yes | Any metadata string accepted by the record writer / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`NextURI`** — URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.
+- **`NextURI`**: URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.
   - buffer cap: `0x401`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -5617,7 +5617,7 @@ Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, the
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fa880 — wrapper + impl decode
+- @ 0x102fa880; wrapper + impl decode
 
 </details>
 
@@ -5627,7 +5627,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa880 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa880; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -5637,7 +5637,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa880 — member vfunc calls: \['r30 v\[+0xc\]'\]
+- fn 0x102fa880; member vfunc calls: \['r30 v\[+0xc\]'\]
 
 </details>
 
@@ -5651,7 +5651,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa880 — no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
+- fn 0x102fa880; no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
 
 </details>
 
@@ -5661,7 +5661,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa880 — bl call scan: notify-family sites = \[\]
+- fn 0x102fa880; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -5671,7 +5671,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fa880 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fa880; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -5686,9 +5686,9 @@ InstanceID is nonzero; the impl gate rejects any instance other than 0 for this 
 
 **`800`** `confirmed`
 
-Transport mode impl+0x4654 is not 2 — next-URI requires indexed/queue playback.
+Transport mode impl+0x4654 is not 2: next-URI requires indexed/queue playback.
 
-- impl+0x4654 != 2 — impl/parse rc path to shared fault emitter (see evidence)
+- impl+0x4654 != 2: impl/parse rc path to shared fault emitter (see evidence)
 
 **`vret(r5-in,+0xc)`** `strong`
 
@@ -5697,8 +5697,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: worker f_102af1c8 do
 - the delegated-URI path produced a code not covered by the enumerated gates
 
 
-**Bounded unknown — proven:** worker f_102af1c8 rc returned
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102af288 entry); remaining paths call-derived
+**Bounded unknown (proven):** worker f_102af1c8 rc returned
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102af288 entry); remaining paths call-derived
 
 **`402`** `confirmed`
 
@@ -5710,7 +5710,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -5724,9 +5724,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102fa9d8` obj `*(sp-0x1440+0x143c)` slot `12` arg4 `402`
 - req vcall `0x102fa938` slot `8` (parse)
 
-- fn 0x102fa880 @ 0x102fa880 — action wrapper handler
-- @ 0x10eb31d4 — action dispatch table entry
-- fn 0x102af288 — AVT impl vtable 0x10eaf2ec slot +0x0c entry
+- fn 0x102fa880 @ 0x102fa880; action wrapper handler
+- @ 0x10eb31d4; action dispatch table entry
+- fn 0x102af288; AVT impl vtable 0x10eaf2ec slot +0x0c entry
 
 </details>
 
@@ -5734,7 +5734,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Chooses the play mode — normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. This is what the shuffle and repeat buttons send. Some modes only make sense on the queue (you cannot repeat-one a live radio station), and the player rejects those combinations.
+Chooses the play mode: normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. This is what the shuffle and repeat buttons send. Some modes only make sense on the queue (you cannot repeat-one a live radio station), and the player rejects those combinations.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5749,9 +5749,9 @@ Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: 
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x40 with 718 | none - required argument |
 | `NewPlayMode` | string | yes | Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712. / max 1023 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`NewPlayMode`** — Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.
+- **`NewPlayMode`**: Play-mode name; exact-match string table in f_102b24dc: 'NORMAL'(0),'SHUFFLE_NOREPEAT'(1),'REPEAT_ALL'(2),'SHUFFLE'(3),'REPEAT_ONE'(4),'SHUFFLE_REPEAT_ONE'(5); anything else -> 712.
   - buffer cap: `0x400`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -5761,8 +5761,8 @@ Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: 
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b9a9c @ 0x102b9a9c — gate decode
-- fn f_102b24dc @ 0x102b24dc — worker decode
+- fn f_102b9a9c @ 0x102b9a9c; gate decode
+- fn f_102b24dc @ 0x102b24dc; worker decode
 
 </details>
 
@@ -5772,8 +5772,8 @@ See inputs/impl notes
 Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc and pass f_10147928/f_10148308 checks plus the impl+0x1a03 flag.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102b24dc @ 0x102b25d4 — f_10147928 gate
-- fn f_102b24dc @ 0x102b25f0 — impl+0x1a03 byte gate
+- fn f_102b24dc @ 0x102b25d4; f_10147928 gate
+- fn f_102b24dc @ 0x102b25f0; impl+0x1a03 byte gate
 
 </details>
 
@@ -5783,7 +5783,7 @@ Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc an
 mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mode==0 has its own NORMAL path.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b24dc @ 0x102b2530 — cmplwi mode,2/1 dispatch
+- fn f_102b24dc @ 0x102b2530; cmplwi mode,2/1 dispatch
 
 </details>
 
@@ -5797,7 +5797,7 @@ mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mo
 Play mode changes to the mapped enum; unknown strings rejected before any state change.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b24dc @ 0x102b25fc — string->enum table
+- fn f_102b24dc @ 0x102b25fc; string->enum table
 
 </details>
 
@@ -5807,7 +5807,7 @@ Play mode changes to the mapped enum; unknown strings rejected before any state 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f94a0 — bl call scan: notify-family sites = \[\]
+- fn 0x102f94a0; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -5817,7 +5817,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 Worker rc returned as impl status: 0 on success, 712 for unknown string, missing source, capability failure, or streamer rejection.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102b24dc @ 0x102b2554 — li r3,0x2c8
+- fn f_102b24dc @ 0x102b2554; li r3,0x2c8
 
 </details>
 
@@ -5828,11 +5828,11 @@ Worker rc returned as impl status: 0 on success, 712 for unknown string, missing
 
 impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v\[+0x1c\] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** the fault path is reached when the impl call reports failure
-**Bounded unknown — unresolved:** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b9a9c entry); remaining paths call-derived
+**Bounded unknown (proven):** the fault path is reached when the impl call reports failure
+**Bounded unknown (unresolved):** impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b9a9c entry); remaining paths call-derived
 
 **`712`** `confirmed`
 
@@ -5860,11 +5860,11 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 - impl call `0x102f95ac` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x102f9524` slot `8` (parse)
 
-- fn f_102b9a9c @ 0x102b9a9c — gate decode
-- fn f_102b24dc @ 0x102b24dc — worker decode
-- fn 0x102b9a9c — AVT impl vtable 0x10eaf2ec slot +0x40 entry
-- fn 0x102f94a0 @ 0x102f94a0 — action wrapper handler
-- @ 0x10eb31e0 — action dispatch table entry
+- fn f_102b9a9c @ 0x102b9a9c; gate decode
+- fn f_102b24dc @ 0x102b24dc; worker decode
+- fn 0x102b9a9c; AVT impl vtable 0x10eaf2ec slot +0x40 entry
+- fn 0x102f94a0 @ 0x102f94a0; action wrapper handler
+- @ 0x10eb31e0; action dispatch table entry
 
 </details>
 
@@ -5872,11 +5872,11 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Snoozes the currently ringing alarm for a given duration — the alarm-clock snooze button. It parses the requested nap length and reschedules the alarm to fire again then; the duration must be in the format the shared alarm machinery understands.
+Snoozes the currently ringing alarm for a given duration, the alarm-clock snooze button. It parses the requested nap length and reschedules the alarm to fire again then, and the duration must be in the format the shared alarm machinery understands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero — the ringing-alarm flag (else 701). It then logs "upnp"/"snooze", submits a transport op via f_102d0ac8(impl,0,0,...) — the same submission helper as the Pause fallback — calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.
+Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero (the ringing-alarm flag (else 701). It then logs "upnp"/"snooze", submits a transport op via f_102d0ac8(impl,0,0,...)) the same submission helper as the Pause fallback: calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.
 
 </details>
 
@@ -5885,11 +5885,11 @@ Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_10
 | Name | Type | Required | Values / range | Default |
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 only - nonzero faults 718 / 0 | none - required argument |
-| `Duration` | SonosDurationArg | yes | Text that f_10c3d2c4 parses — unparseable text faults 402 / max 63 chars | none - required argument |
+| `Duration` | SonosDurationArg | yes | Text that f_10c3d2c4 parses: unparseable text faults 402 / max 63 chars | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`Duration`** — Snooze duration parsed by shared parser f_10c3d2c4 — the same routine ConfigureSleepTimer uses.
+- **`Duration`**: Snooze duration parsed by shared parser f_10c3d2c4: the same routine ConfigureSleepTimer uses.
   - buffer cap: `0x40`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -5899,7 +5899,7 @@ Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_10
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102f9990 — wrapper + impl decode
+- @ 0x102f9990; wrapper + impl decode
 
 </details>
 
@@ -5909,7 +5909,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0xa4\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9990 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f9990; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -5919,7 +5919,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0xa4\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9990 — member vfunc calls: \['r30 v\[+0xa4\]'\]
+- fn 0x102f9990; member vfunc calls: \['r30 v\[+0xa4\]'\]
 
 </details>
 
@@ -5933,7 +5933,7 @@ service-internal state reached through member delegate(s): r30 v\[+0xa4\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xa4\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9990 — no transition-literal/store pattern; member delegates: \['r30 v\[+0xa4\]'\]
+- fn 0x102f9990; no transition-literal/store pattern; member delegates: \['r30 v\[+0xa4\]'\]
 
 </details>
 
@@ -5943,7 +5943,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9990 — bl call scan: notify-family sites = \[\]
+- fn 0x102f9990; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -5953,7 +5953,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f9990 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102f9990; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -5962,7 +5962,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 **`718`** `confirmed`
 
-Nonzero InstanceID — worker gate on the parsed int.
+Nonzero InstanceID: worker gate on the parsed int.
 
 - InstanceID argument is nonzero
 
@@ -5975,13 +5975,13 @@ Duration fails the shared f_10c3d2c4 parse.
 
 **`800`** `confirmed`
 
-engine+0x4654 is neither 1 nor 2 — snooze requires an active non-idle transport mode.
+engine+0x4654 is neither 1 nor 2: snooze requires an active non-idle transport mode.
 
 - (impl+0x4654 - 1) unsigned > 1
 
 **`701`** `confirmed`
 
-byte impl+0x5a86 is 0 — no alarm is ringing, nothing to snooze.
+byte impl+0x5a86 is 0: no alarm is ringing, nothing to snooze.
 
 - lbz impl+0x5a86 == 0
 
@@ -5995,7 +5995,7 @@ rec+4 u16 is returned; codes 718/402/800/701 enumerated.
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -6009,9 +6009,9 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f9a9c` obj `*(sp-0x70+0x6c)` slot `12` arg4 `402`
 - req vcall `0x102f9a14` slot `8` (parse)
 
-- fn 0x102f9990 @ 0x102f9990 — action wrapper handler
-- @ 0x10eb31ec — action dispatch table entry
-- fn 0x102d1fc4 — AVT impl vtable 0x10eaf2ec slot +0xa4 entry
+- fn 0x102f9990 @ 0x102f9990; action wrapper handler
+- @ 0x10eb31ec; action dispatch table entry
+- fn 0x102d1fc4; AVT impl vtable 0x10eaf2ec slot +0xa4 entry
 
 </details>
 
@@ -6019,11 +6019,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Launches an autoplay program — the mechanism behind 'when this alarm fires, start this playlist in that room'. You provide the program to run (what to play and its settings) and the player submits a session for it, the same machinery that backs alarm-triggered playback.
+Launches an autoplay program, the mechanism behind 'when this alarm fires, start this playlist in that room'. You provide the program to run (what to play and its settings) and the player submits a session for it, using the same machinery that backs alarm-triggered playback.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0 — sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.
+Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0: sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.
 
 </details>
 
@@ -6038,17 +6038,17 @@ Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a
 | `IncludeLinkedZones` | SonosBoolArg | yes | boolean flag parsed as u32; nonzero extends install to the group / {0,1} | none - required argument |
 | `ResetVolumeAfter` | SonosUintArg | yes | u32 seconds; volume-restore timer for the autoplay record / parsed u32 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
-- **`ProgramURI`** — Program definition parsed by f_10c3cbfc - rejection faults 402.
+- **`ProgramURI`**: Program definition parsed by f_10c3cbfc - rejection faults 402.
   - buffer cap: `0x401`
-- **`ProgramMetaData`** — Forwarded to shared autoplay worker f_102e14e0.
+- **`ProgramMetaData`**: Forwarded to shared autoplay worker f_102e14e0.
   - buffer cap: `0x1001`
-- **`Volume`** — Forwarded to shared autoplay worker f_102e14e0.
+- **`Volume`**: Forwarded to shared autoplay worker f_102e14e0.
   - buffer cap: `0x18`
-- **`IncludeLinkedZones`** — Forwarded to shared autoplay worker f_102e14e0.
+- **`IncludeLinkedZones`**: Forwarded to shared autoplay worker f_102e14e0.
   - buffer cap: `0x18`
-- **`ResetVolumeAfter`** — Forwarded to shared autoplay worker f_102e14e0.
+- **`ResetVolumeAfter`**: Forwarded to shared autoplay worker f_102e14e0.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -6058,7 +6058,7 @@ Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x102fc6f4 — wrapper + impl decode
+- @ 0x102fc6f4; wrapper + impl decode
 
 </details>
 
@@ -6068,7 +6068,7 @@ See inputs/impl notes
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc6f4 — req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fc6f4; req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -6078,7 +6078,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, vali
 service-internal state reached through member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc6f4 — member vfunc calls: \['r30 v\[+?\]'\]
+- fn 0x102fc6f4; member vfunc calls: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -6092,7 +6092,7 @@ service-internal state reached through member delegate(s): r30 v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc6f4 — no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
+- fn 0x102fc6f4; no transition-literal/store pattern; member delegates: \['r30 v\[+?\]'\]
 
 </details>
 
@@ -6102,7 +6102,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc6f4 — bl call scan: notify-family sites = \[\]
+- fn 0x102fc6f4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -6112,7 +6112,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102fc6f4 — commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x102fc6f4; commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -6160,9 +6160,9 @@ None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) 
 - impl call `0x102fc8a4` obj `*(sp-0x1440+0x143c)` slot `12` arg4 `402`
 - req vcall `0x102fc80c` slot `8` (parse)
 
-- fn 0x102fc6f4 @ 0x102fc6f4 — action wrapper handler
-- @ 0x10eb31f8 — action dispatch table entry
-- fn 0x102e17a8 — AVT impl vtable 0x10eaf2ec slot +0x9c entry
+- fn 0x102fc6f4 @ 0x102fc6f4; action wrapper handler
+- @ 0x10eb31f8; action dispatch table entry
+- fn 0x102e17a8; AVT impl vtable 0x10eaf2ec slot +0x9c entry
 
 </details>
 
@@ -6170,7 +6170,7 @@ None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops playback — the stop button. Unlike pause (which freezes position for resume), stop tears the current transport down; for queue playback resuming afterward means starting the track over.
+Stops playback, the stop button. Unlike pause (which freezes position for resume), stop tears the current transport down, and for queue playback resuming afterward means starting the track over.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6184,7 +6184,7 @@ Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2
 |---|---|---|---|---|
 | `InstanceID` | SonosUintArg | yes | 0 / 0 only; nonzero InstanceID rejected by impl +0x28 with 718 | none - required argument |
 
-- **`InstanceID`** — InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
+- **`InstanceID`**: InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.
   - buffer cap: `0x18`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -6194,8 +6194,8 @@ Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2
 See inputs/impl notes
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102d2e54 @ 0x102d2e54 — gate decode
-- fn f_102d2bec @ 0x102d2bec — worker decode
+- fn f_102d2e54 @ 0x102d2e54; gate decode
+- fn f_102d2bec @ 0x102d2bec; worker decode
 
 </details>
 
@@ -6205,7 +6205,7 @@ See inputs/impl notes
 None beyond InstanceID==0.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d2e54 @ 0x102d2e54 — gate decode
+- fn f_102d2e54 @ 0x102d2e54; gate decode
 
 </details>
 
@@ -6215,8 +6215,8 @@ None beyond InstanceID==0.
 Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/0x5a7f/0x7764 gate the chime-restore behavior.
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102d2bec @ 0x102d2c64 — mode dispatch
-- @ 0x10eb12cc — 'restoring after stop chime: ret=%d ar=%d wrca=%d pavt=%d'
+- fn f_102d2bec @ 0x102d2c64; mode dispatch
+- @ 0x10eb12cc; 'restoring after stop chime: ret=%d ar=%d wrca=%d pavt=%d'
 
 </details>
 
@@ -6230,7 +6230,7 @@ Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/
 Stop submitted; queue/URI fields cleared on the chime path; transport-state update run.
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn f_102d2bec @ 0x102d2cd8 — fields cleared
+- fn f_102d2bec @ 0x102d2cd8; fields cleared
 
 </details>
 
@@ -6240,7 +6240,7 @@ Stop submitted; queue/URI fields cleared on the chime path; transport-state upda
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x102f849c — bl call scan: notify-family sites = \[\]
+- fn 0x102f849c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -6250,8 +6250,8 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 701 when f_102931f0(impl+0x5dc) fails its precondition; else mode-path rc flows through f_102b05e4's status (0=success).
 <details markdown="1"><summary>Evidence (2)</summary>
 
-- fn f_102d2bec @ 0x102d2c40 — li r3,0x2bd on f_102931f0 fail
-- fn f_102d2bec @ 0x102d2d74 — f_102b05e4 rc -> r28
+- fn f_102d2bec @ 0x102d2c40; li r3,0x2bd on f_102931f0 fail
+- fn f_102d2bec @ 0x102d2d74; f_102b05e4 rc -> r28
 
 </details>
 
@@ -6262,11 +6262,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 apply worker f_102d2bec multi-exit: literal {701 x2, 0} plus call-derived (r30/r28 accumulators); impl-side 718 stands; rc forwarded verbatim
 
-- parsed InstanceID != 0 — impl/parse rc path to shared fault emitter (see evidence)
+- parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
 
-**Bounded unknown — proven:** literal paths bounded
-**Bounded unknown — unresolved:** apply-worker call-derived rc (session/track lookup chain f_102b8c44)
+**Bounded unknown (proven):** literal paths bounded
+**Bounded unknown (unresolved):** apply-worker call-derived rc (session/track lookup chain f_102b8c44)
 
 **`701`** `confirmed`
 
@@ -6281,8 +6281,8 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718, downstream mode
 - f_102b05e4(impl,1) returned nonzero
 
 
-**Bounded unknown — proven:** tail rc is returned
-**Bounded unknown — unresolved:** concrete codes produced by the mode paths (f_10256a84/f_102b0a48) surfacing here
+**Bounded unknown (proven):** tail rc is returned
+**Bounded unknown (unresolved):** concrete codes produced by the mode paths (f_10256a84/f_102b0a48) surfacing here
 
 **`402`** `confirmed`
 
@@ -6294,7 +6294,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -6308,11 +6308,11 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 - impl call `0x102f857c` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x102f84f8` slot `8` (parse)
 
-- fn f_102d2e54 @ 0x102d2e54 — gate decode
-- fn f_102d2bec @ 0x102d2bec — worker decode
-- fn 0x102d2e54 — AVT impl vtable 0x10eaf2ec slot +0x28 entry
-- fn 0x102f849c @ 0x102f849c — action wrapper handler
-- @ 0x10eb3204 — action dispatch table entry
+- fn f_102d2e54 @ 0x102d2e54; gate decode
+- fn f_102d2bec @ 0x102d2bec; worker decode
+- fn 0x102d2e54; AVT impl vtable 0x10eaf2ec slot +0x28 entry
+- fn 0x102f849c @ 0x102f849c; action wrapper handler
+- @ 0x10eb3204; action dispatch table entry
 
 </details>
 
@@ -6360,14 +6360,14 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 | `RecordMediumWriteStatus` | string | yes | constant evented field |
 | `CurrentRecordQualityMode` | string | yes | constant evented field |
 | `PossibleRecordQualityModes` | string | yes | constant evented field |
-| `RelativeTimePosition` | string | no | non-evented AVTransport state variable — read via action out-args, not pushed |
-| `AbsoluteTimePosition` | string | no | non-evented AVTransport state variable — read via action out-args, not pushed |
-| `RelativeCounterPosition` | i4 | no | non-evented AVTransport state variable — read via action out-args, not pushed |
-| `AbsoluteCounterPosition` | i4 | no | non-evented AVTransport state variable — read via action out-args, not pushed |
-| `AlarmIDRunning` | ui4 | no | non-evented AVTransport state variable — read via action out-args, not pushed |
-| `AlarmLoggedStartTime` | string | no | non-evented AVTransport state variable — read via action out-args, not pushed |
-| `LastChange` | string | yes | evented state variable — appears in AVTransport LastChange/GENA event notifications |
-| `MuseSessions` | string | no | non-evented AVTransport state variable — read via action out-args, not pushed |
+| `RelativeTimePosition` | string | no | non-evented AVTransport state variable: read via action out-args, not pushed |
+| `AbsoluteTimePosition` | string | no | non-evented AVTransport state variable: read via action out-args, not pushed |
+| `RelativeCounterPosition` | i4 | no | non-evented AVTransport state variable: read via action out-args, not pushed |
+| `AbsoluteCounterPosition` | i4 | no | non-evented AVTransport state variable: read via action out-args, not pushed |
+| `AlarmIDRunning` | ui4 | no | non-evented AVTransport state variable: read via action out-args, not pushed |
+| `AlarmLoggedStartTime` | string | no | non-evented AVTransport state variable: read via action out-args, not pushed |
+| `LastChange` | string | yes | evented state variable: appears in AVTransport LastChange/GENA event notifications |
+| `MuseSessions` | string | no | non-evented AVTransport state variable: read via action out-args, not pushed |
 | `A_ARG_TYPE_SeekMode` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_SeekTarget` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_InstanceID` | ui4 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
@@ -6400,7 +6400,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 | `A_ARG_TYPE_StreamRestartState` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_RejoinGroup` | boolean | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_ClearSource` | boolean | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
-| `QueueUpdateID` | ui4 | no | non-evented AVTransport state variable — read via action out-args, not pushed |
+| `QueueUpdateID` | ui4 | no | non-evented AVTransport state variable: read via action out-args, not pushed |
 | `A_ARG_TYPE_TrackList` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_RestartSink` | boolean | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 
@@ -6463,8 +6463,8 @@ Implementation sources (recovered): `zoneplayer/avt_impl.cxx`, `zoneplayer/track
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x101953c8 — service router function
-- @ 0x10eb300c — service vtable
-- @ 0x102fa5c4 — service dispatcher
+- @ 0x101953c8; service router function
+- @ 0x10eb300c; service vtable
+- @ 0x102fa5c4; service dispatcher
 
 </details>

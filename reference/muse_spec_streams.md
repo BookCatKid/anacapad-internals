@@ -1,6 +1,6 @@
 # Muse spec-pair streams (auto-extracted)
 
-The field catalog behind the modern REST API. Every request or response body is a set of named fields with declared types — this page lists, for each API operation, which fields it accepts or produces and what type each one is. `globalError` rows name the error payloads an operation can return; rows marked `upnpEvent` are pushed to subscribers rather than returned on request.
+The field catalog behind the modern REST API. Every request or response body is a set of named fields with declared types. This page lists, for each API operation, which fields it accepts or produces and what type each one is. `globalError` rows name the error payloads an operation can return; rows marked `upnpEvent` are pushed to subscribers rather than returned on request.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

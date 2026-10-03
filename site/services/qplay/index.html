@@ -526,8 +526,6 @@
       
         
       
-        
-      
     
     
     
@@ -722,33 +720,6 @@
     
   
   ContentDirectory
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Control
 
     
   </span>
@@ -1566,12 +1537,12 @@
                 
                   
 
-<h1 id="qplay-qplaycontrol"><code>QPlay</code> — <code>/QPlay/Control</code><a class="headerlink" href="#qplay-qplaycontrol" title="Permanent link">&para;</a></h1>
+<h1 id="qplay-qplaycontrol"><code>QPlay</code> <code>/QPlay/Control</code><a class="headerlink" href="#qplay-qplaycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>confirmed</code></p>
-<p>This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers — the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present — QPlay is a feature that shipped only on units sold for the Chinese market, which is why most users have never seen it.</p>
+<p>This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers, which is the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present, because QPlay shipped only on units sold for the Chinese market, which is why most users have never seen it.</p>
 <details>
 <summary><b>Technical details</b></summary>
-<p>QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.</p>
+<p>QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth: likely registered but dispatch entry unresolved in this build.</p>
 </details>
 <h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1609,7 +1580,7 @@
 </table>
 <h3 id="qplayauth"><code>QPlayAuth</code><a class="headerlink" href="#qplayauth" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp-dispatched</code></p>
-<p>The QPlay login handshake — the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration; meaningless to ordinary apps.</p>
+<p>The QPlay login handshake, the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration, so it is meaningless to ordinary apps.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>QPlay authentication handshake (Tencent seed-&gt;code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -&gt; exec f_1073a5d0. Exec calls req-&gt;v[+0x1c] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req-&gt;v[+0x08] (parse-ok check) -&gt; emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl-&gt;v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req-&gt;member[+0x04]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req-&gt;v[+0x24] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v[+0x10] emitter; response committed via req-&gt;v[+0x0c]. The Seed-&gt;Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).</p>
@@ -1636,7 +1607,7 @@
 </tbody>
 </table>
 <ul>
-<li><strong><code>Seed</code></strong> — client seed string feeding the auth-code computation f_10906304; required</li>
+<li><strong><code>Seed</code></strong>: client seed string feeding the auth-code computation f_10906304; required</li>
 <li>validation: required-arg parse precedes impl call; req-&gt;v[+0x08] gate emits 402 on failure</li>
 <li>buffer cap: <code>0x80</code></li>
 </ul>
@@ -1653,17 +1624,17 @@
 <tr>
 <td><code>Code</code></td>
 <td></td>
-<td>—</td>
+<td>none</td>
 </tr>
 <tr>
 <td><code>MID</code></td>
 <td></td>
-<td>—</td>
+<td>none</td>
 </tr>
 <tr>
 <td><code>DID</code></td>
 <td></td>
-<td>—</td>
+<td>none</td>
 </tr>
 </tbody>
 </table>
@@ -1674,8 +1645,8 @@
 <details>
 <summary>Evidence (2)</summary>
 <ul>
-<li>@ 0x1073a5d0 — validate gate + 0x192 literal</li>
-<li>@ 0x1073a6b8 — 0x192 -&gt; req-&gt;v[+0x14]</li>
+<li>@ 0x1073a5d0; validate gate + 0x192 literal</li>
+<li>@ 0x1073a6b8; 0x192 -&gt; req-&gt;v[+0x14]</li>
 </ul>
 </details>
 <h4 id="requirements-preconditions-confirmed">Requirements / preconditions <code>confirmed</code><a class="headerlink" href="#requirements-preconditions-confirmed" title="Permanent link">&para;</a></h4>
@@ -1683,7 +1654,7 @@
 <details>
 <summary>Evidence (1)</summary>
 <ul>
-<li>@ 0x1073a5d0 — required-arg parse order + gate</li>
+<li>@ 0x1073a5d0; required-arg parse order + gate</li>
 </ul>
 </details>
 <h4 id="state-dependencies-confirmed">State dependencies <code>confirmed</code><a class="headerlink" href="#state-dependencies-confirmed" title="Permanent link">&para;</a></h4>
@@ -1691,8 +1662,8 @@
 <details>
 <summary>Evidence (2)</summary>
 <ul>
-<li>@ 0x104666b4 — device-material lookups</li>
-<li>@ 0x1018f28c — impl ctor injection site</li>
+<li>@ 0x104666b4; device-material lookups</li>
+<li>@ 0x1018f28c; impl ctor injection site</li>
 </ul>
 </details>
 <h4 id="side-effects">Side effects<a class="headerlink" href="#side-effects" title="Permanent link">&para;</a></h4>
@@ -1704,7 +1675,7 @@
 <details>
 <summary>Evidence (1)</summary>
 <ul>
-<li>@ 0x104666b4 — read-only auth computation + return 0</li>
+<li>@ 0x104666b4; read-only auth computation + return 0</li>
 </ul>
 </details>
 <h4 id="events-confirmed">Events <code>confirmed</code><a class="headerlink" href="#events-confirmed" title="Permanent link">&para;</a></h4>
@@ -1712,7 +1683,7 @@
 <details>
 <summary>Evidence (1)</summary>
 <ul>
-<li>@ 0x104666b4 — unconditional return 0, no event emitter calls</li>
+<li>@ 0x104666b4; unconditional return 0, no event emitter calls</li>
 </ul>
 </details>
 <h4 id="return-behavior-confirmed">Return behavior <code>confirmed</code><a class="headerlink" href="#return-behavior-confirmed" title="Permanent link">&para;</a></h4>
@@ -1720,8 +1691,8 @@
 <details>
 <summary>Evidence (2)</summary>
 <ul>
-<li>@ 0x104666b4 — return 0</li>
-<li>@ 0x1073a5d0 — emit + commit tail</li>
+<li>@ 0x104666b4; return 0</li>
+<li>@ 0x1073a5d0; emit + commit tail</li>
 </ul>
 </details>
 <h4 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h4>
@@ -1749,10 +1720,10 @@
 <p>Dispatcher f_1073a4f0 strcmp-matches "QPlayAuth", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc-&gt;v[+0x0c] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req-&gt;v[+0x08] gate (else 402), then impl-&gt;v[+0x08] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req-&gt;v[+0x24] then commits via req-&gt;v[+0x0c].</p>
 </li>
 <li>
-<p>@ 0x1073a528 — strcmp dispatch site</p>
+<p>@ 0x1073a528; strcmp dispatch site</p>
 </li>
-<li>fn 0x1073a5d0 — svc vfunc +0x0c: Seed parse, 402 gate, impl call, Code/MID/DID emission</li>
-<li>fn 0x104666b4 — impl: auth-code computation + %u format; unconditional return 0</li>
+<li>fn 0x1073a5d0; svc vfunc +0x0c: Seed parse, 402 gate, impl call, Code/MID/DID emission</li>
+<li>fn 0x104666b4; impl: auth-code computation + %u format; unconditional return 0</li>
 </ul>
 </details>
 <h2 id="state-variables">State variables<a class="headerlink" href="#state-variables" title="Permanent link">&para;</a></h2>
@@ -1813,13 +1784,13 @@
 <li>Request action name matches no entry in the service dispatch table after the name-table search</li>
 </ul>
 </details>
-<p>Implementation sources (recovered): <code>compiled lib (qplay) — no path literal</code></p>
+<p>Implementation sources (recovered): <code>compiled lib (qplay): no path literal</code></p>
 <details>
 <summary>Service evidence (3)</summary>
 <ul>
-<li>@ 0x101953c8 — service router function</li>
-<li>@ 0x10f11d48 — service vtable</li>
-<li>@ 0x1073a4f0 — service dispatcher</li>
+<li>@ 0x101953c8; service router function</li>
+<li>@ 0x10f11d48; service vtable</li>
+<li>@ 0x1073a4f0; service dispatcher</li>
 </ul>
 </details>
 

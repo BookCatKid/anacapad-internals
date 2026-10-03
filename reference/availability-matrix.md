@@ -10,7 +10,7 @@ Every canonical action record. `advertised` services are in the served device-de
 
 In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/soft removed): `SystemProperties.ProvisionCredentialedTrialAccountX`, `SystemProperties.ResetThirdPartyCredentials`
 
-## `AVTransport` — `/MediaRenderer/AVTransport/Control` (advertised)
+## `AVTransport` `/MediaRenderer/AVTransport/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -57,7 +57,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `StartAutoplay` | advertised | callable | `strong` | `0x102fc6f4` |
 | `Stop` | advertised | callable | `strong` | `0x102f849c` |
 
-## `AlarmClock` — `/AlarmClock/Control` (advertised)
+## `AlarmClock` `/AlarmClock/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -79,7 +79,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetTimeZone` | advertised | callable | `strong` | `0x107342f0` |
 | `UpdateAlarm` | advertised | callable | `strong` | `0x107346ac` |
 
-## `AudioIn` — `/AudioIn/Control` (hidden)
+## `AudioIn` `/AudioIn/Control` (hidden)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -90,7 +90,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetLineInLevel` | advertised | stub | `confirmed` | `0x1073d8f8` |
 | `GetLineInLevel` | advertised | stub | `confirmed` | `0x1073d8f8` |
 
-## `ConnectionManager` — `/MediaRenderer/ConnectionManager/Control` (advertised)
+## `ConnectionManager` `/MediaRenderer/ConnectionManager/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -98,7 +98,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `GetCurrentConnectionInfo` | advertised | callable | `strong` | `0x107356bc` |
 | `GetProtocolInfo` | advertised | callable | `strong` | `0x10735b64` |
 
-## `ConnectionManager` — `/MediaServer/ConnectionManager/Control` (advertised)
+## `ConnectionManager` `/MediaServer/ConnectionManager/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -106,7 +106,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `GetCurrentConnectionInfo` | advertised | callable | `strong` | `0x107356bc` |
 | `GetProtocolInfo` | advertised | callable | `strong` | `0x10735b64` |
 
-## `ContentDirectory` — `/MediaServer/ContentDirectory/Control` (advertised)
+## `ContentDirectory` `/MediaServer/ContentDirectory/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -127,7 +127,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetBrowseable` | advertised | callable | `strong` | `0x10307424` |
 | `UpdateObject` | advertised | callable | `strong` | `0x10306d28` |
 
-## `DeviceProperties` — `/DeviceProperties/Control` (advertised)
+## `DeviceProperties` `/DeviceProperties/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -159,7 +159,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetUseAutoplayVolume` | advertised | callable | `strong` | `0x10736b44` |
 | `SetZoneAttributes` | advertised | callable | `strong` | `0x10736450` |
 
-## `GroupManagement` — `/GroupManagement/Control` (advertised)
+## `GroupManagement` `/GroupManagement/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -168,7 +168,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `ReportTrackBufferingResult` | advertised | callable | `strong` | `0x107388a4` |
 | `SetSourceAreaIds` | advertised | callable | `strong` | `0x10738550` |
 
-## `GroupRenderingControl` — `/MediaRenderer/GroupRenderingControl/Control` (advertised)
+## `GroupRenderingControl` `/MediaRenderer/GroupRenderingControl/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -179,7 +179,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetRelativeGroupVolume` | advertised | callable | `strong` | `0x107392ec` |
 | `SnapshotGroupVolume` | advertised | callable | `strong` | `0x10738db0` |
 
-## `HTControl` — `/HTControl/Control` (advertised)
+## `HTControl` `/HTControl/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -192,7 +192,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetIRRepeaterState` | advertised | callable | `strong` | `0x10739878` |
 | `SetLEDFeedbackState` | advertised | callable | `strong` | `0x10739a58` |
 
-## `MusicServices` — `/MusicServices/Control` (advertised)
+## `MusicServices` `/MusicServices/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -200,13 +200,13 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `ListAvailableServices` | advertised | callable | `strong` | `0x1073a424` |
 | `UpdateAvailableServices` | advertised | callable | `strong` | `0x1073a3b4` |
 
-## `QPlay` — `/QPlay/Control` (advertised)
+## `QPlay` `/QPlay/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
 | `QPlayAuth` | advertised | callable | `confirmed` | `0x1073a4f0` |
 
-## `Queue` — `/MediaRenderer/Queue/Control` (advertised)
+## `Queue` `/MediaRenderer/Queue/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -222,7 +222,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `ReplaceAllTracks` | advertised | callable | `strong` | `0x10465090` |
 | `SaveAsSonosPlaylist` | advertised | callable | `strong` | `0x104643c0` |
 
-## `RenderingControl` — `/MediaRenderer/RenderingControl/Control` (advertised)
+## `RenderingControl` `/MediaRenderer/RenderingControl/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -254,7 +254,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetVolume` | advertised | callable | `confirmed` | `0x1073c0e4` |
 | `SetVolumeDB` | advertised | callable | `confirmed` | `0x1073c38c` |
 
-## `SystemProperties` — `/SystemProperties/Control` (advertised)
+## `SystemProperties` `/SystemProperties/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -274,7 +274,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `SetAccountNicknameX` | advertised | callable | `strong` | `0x10731ce8` |
 | `SetString` | advertised | callable | `strong` | `0x10731adc` |
 
-## `VirtualLineIn` — `/MediaRenderer/VirtualLineIn/Control` (advertised)
+## `VirtualLineIn` `/MediaRenderer/VirtualLineIn/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|
@@ -287,7 +287,7 @@ In addition, 2 SCPD-advertised actions have **no dispatch record at all** (hard/
 | `Stop` | advertised | callable | `strong` | `0x1073d1f0` |
 | `StopTransmission` | advertised | callable | `strong` | `0x1073d544` |
 
-## `ZoneGroupTopology` — `/ZoneGroupTopology/Control` (advertised)
+## `ZoneGroupTopology` `/ZoneGroupTopology/Control` (advertised)
 
 | Action | Visibility | Wire status | Confidence | Handler |
 |---|---|---|---|---|

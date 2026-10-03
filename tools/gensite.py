@@ -122,7 +122,7 @@ def main():
     try:
         r = subprocess.run(cmd, cwd=ROOT)
     except FileNotFoundError:
-        sys.exit("zensical/mkdocs not found — install with: "
+        sys.exit("zensical/mkdocs not found; install with: "
                  "python3 -m venv .venv && "
                  ".venv/bin/pip install zensical")
     if r.returncode == 0:

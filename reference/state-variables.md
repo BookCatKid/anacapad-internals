@@ -1,6 +1,6 @@
 # State variables
 
-State variables are the player's named properties — things like volume, mute, or the address of the current track. Every command either reads them (the Get* family) or writes them (the Set* family), and the event system watches them: when one changes, the player announces it to anything that subscribed. The table below is the full property list — what each variable is called, what type of value it holds, its allowed range or values where the spec pins them down, and which commands touch it. Think of it as the player's complete settings-and-state inventory.
+State variables are the player's named properties: things like volume, mute, or the address of the current track. Every command either reads them (the Get* family) or writes them (the Set* family), and the event system watches them. When one changes, the player announces it to anything that subscribed. The table below is the full property list: what each variable is called, what type of value it holds, its allowed range or values where the spec pins them down, and which commands touch it. Think of it as the player's complete settings-and-state inventory.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -504,7 +504,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 
 ### `AC.AlarmListVersion`
 
-A version counter for the alarm list — ticks up every time an alarm is created, edited, or deleted. Apps watch this single number to know their cached alarm list went stale rather than re-fetching the whole list constantly.
+A version counter for the alarm list that ticks up every time an alarm is created, edited, or deleted. Apps watch this single number to know their cached alarm list went stale instead of re-fetching the whole list constantly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -516,7 +516,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.DateFormat`
 
-The speaker's preferred date display format — the setting behind how dates render in anything that asks the player rather than guessing at your region's convention.
+The speaker's preferred date display format. It is the setting behind how dates render in anything that asks the player rather than guessing at your region's convention.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -528,7 +528,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeFormat`
 
-The speaker's preferred clock format — 12-hour versus 24-hour — read by anything displaying times the way the speaker was configured to. 12-hour versus 24-hour — read by anything displaying times the way the speaker was configured.
+The speaker's preferred clock format: 12-hour versus 24-hour. It is read by anything displaying times the way the speaker was configured to.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -540,7 +540,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeGeneration`
 
-A counter that bumps whenever the household clock settings change — timezone switches, manual time sets, server changes. Lets other devices notice 'the clock just moved' and react.
+A counter that bumps whenever the household clock settings change, covering timezone switches, manual time sets, and server changes. It lets other devices notice 'the clock just moved' and react.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -552,7 +552,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeServer`
 
-The address of the network time source the speaker syncs against — the configured time server, reported so apps and diagnostics can see where the household clock comes from.
+The address of the network time source the speaker syncs against. It reports where the household clock comes from so apps and diagnostics can see the configured time server.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -564,7 +564,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AI.IRRepeaterState`
 
-Whether the infrared repeater is currently on — mirrors the home-theater IR setting so a change shows up as an event. Dead on this build along with the rest of the AudioIn surface.
+Whether the infrared repeater is currently on. It mirrors the home-theater IR setting so a change shows up as an event, though it is dead on this build along with the rest of the AudioIn surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -576,7 +576,7 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 
 ### `AI.TOSLinkConnected`
 
-Whether something is plugged into the optical input — the line-in detection flag. Part of the AudioIn surface that's a reject-everything stub on this firmware.
+Whether something is plugged into the optical input, which is the line-in detection flag. It is part of the AudioIn surface that is a reject-everything stub on this firmware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -588,7 +588,7 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 
 ### `AVT.AVTransportURI`
 
-The address of what's loaded in the player right now — the URI for the current source: a queue reference, a radio stream URL, a line-in selector, a service item. When this value changes, the speaker is pointing at something different — it's the answer to 'what is this room set to play'.
+The address of what's loaded in the player right now: a queue reference, a radio stream URL, a line-in selector, or a service item. When this value changes, the speaker is pointing at something different, so it is effectively the answer to 'what is this room set to play'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -600,7 +600,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.AVTransportURIMetaData`
 
-The description of what's loaded — title, artwork, and other display metadata for whatever AVTransportURI points at, packed in the track-metadata format apps render the 'now playing' header from.
+The description of what's loaded: title, artwork, and other display metadata for whatever AVTransportURI points at. It is packed in the track-metadata format that apps render the 'now playing' header from.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -612,7 +612,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentCrossfadeMode`
 
-Whether crossfade is on — the blend-between-tracks setting, reported so the app's toggle stays in sync with the actual player state. The blend-between-tracks setting — reported so the app's toggle stays in sync.
+Whether crossfade is on. It is the blend-between-tracks setting, reported so the app's toggle stays in sync with the actual player state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -624,7 +624,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentMediaDuration`
 
-Total duration of the loaded media — pinned at 'not implemented' in this build because Sonos reports durations per-track (CurrentTrackDuration) rather than for the whole program.
+The total duration of the loaded media. It is pinned at 'not implemented' in this build because Sonos reports durations per-track through CurrentTrackDuration rather than for the whole program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -636,7 +636,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.CurrentPlayMode`
 
-The current play mode — normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. The variable behind which shuffle/repeat icons light up in the app. Normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat — the variable behind which shuffle/repeat icons light up in the app.
+The current play mode: normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. It is the variable behind which shuffle and repeat icons light up in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -648,7 +648,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentRecordQualityMode`
 
-The recording quality setting — a leftover field from the standard spec; a speaker doesn't record, so it's permanently 'not implemented' here. A leftover field from the standard spec — permanently 'not implemented' on a speaker.
+The recording quality setting. It is a leftover field from the standard spec, permanently 'not implemented' on a speaker that doesn't record.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -660,7 +660,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.CurrentSection`
 
-Which 'section' of the current program is active — used by sources with internal structure (like chapters or segments); for ordinary tracks it's effectively the current position in the list.
+Which 'section' of the current program is active. It is used by sources with internal structure like chapters or segments, and for ordinary tracks it effectively means the current position in the list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -672,7 +672,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrack`
 
-The index of the track currently playing — which entry of the queue is live right now. Advances as the queue progresses; combined with NumberOfTracks it's 'track 4 of 23'.
+The index of the track currently playing, meaning which entry of the queue is live right now. It advances as the queue progresses, and combined with NumberOfTracks it produces 'track 4 of 23'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -684,7 +684,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackDuration`
 
-How long the current track is — the value the app's progress bar divides elapsed time by to draw the fill position. The value the app's progress bar divides elapsed time by to draw its fill.
+How long the current track is. This is the value the app's progress bar divides elapsed time by to draw its fill position.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -696,7 +696,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackMetaData`
 
-Metadata for the playing track — title, artist, album, artwork — packed in the track-metadata XML format. Everything the app's now-playing display shows about the song comes from this field.
+The metadata for the playing track: title, artist, album, and artwork, packed in the track-metadata XML format. Everything the app's now-playing display shows about the song comes from this field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -708,7 +708,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackURI`
 
-The address of the playing track itself — the specific item's URI, distinct from the source-level AVTransportURI: the queue might be the source while this names the exact song inside it.
+The address of the playing track itself, meaning the specific item's URI. It is distinct from the source-level AVTransportURI: the queue might be the source while this names the exact song inside it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -720,7 +720,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTransportActions`
 
-The list of transport commands currently legal — 'Play,Stop,Next' and friends — computed live from the source and state. Apps read it to decide which buttons to enable and which to grey out.
+The list of transport commands currently legal, such as 'Play,Stop,Next', computed live from the source and state. Apps read it to decide which buttons to enable and which to grey out.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -732,7 +732,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.NextAVTransportURI`
 
-The address of the next track, announced in advance — the gapless-playback lookahead: what has been lined up to play when the current track ends, so the player can pre-buffer it.
+The address of the next track, announced in advance. It is the gapless-playback lookahead: what has been lined up to play when the current track ends, so the player can pre-buffer it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -744,7 +744,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.NextAVTransportURIMetaData`
 
-Metadata for the announced next track — the title and artwork the app can show in 'up next' before the track actually starts. The title and artwork the app can show in 'up next' before the track starts.
+The metadata for the announced next track, meaning the title and artwork the app can show in 'up next' before the track actually starts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -756,7 +756,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.NumberOfTracks`
 
-How many tracks are in the current program — the queue length for queue playback, or a count for sources that behave like lists. The queue length for queue playback, or a count for sources that behave like lists.
+How many tracks are in the current program. For queue playback this is the queue length, and for sources that behave like lists it reports whatever count the source provides.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -768,7 +768,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.PlaybackStorageMedium`
 
-Which 'medium' the current playback comes from — queue, network stream, line-in, and so on: the broad category label for the current source. Queue, network stream, line-in — the broad category label for the current source.
+Which 'medium' the current playback comes from: queue, network stream, line-in, and so on. It is the broad category label for the current source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -780,7 +780,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.PossiblePlaybackStorageMedia`
 
-The list of source types this player can play — the hardware's declared talents, fixed per model: which media categories it will accept at all.
+The list of source types this player can play: the hardware's declared talents, fixed per model, describing which media categories it will accept at all.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -792,7 +792,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NONE
 
 ### `AVT.PossibleRecordQualityModes`
 
-The recording-quality options the player claims — none, since a speaker doesn't record; standard-spec boilerplate kept for protocol completeness. Spec boilerplate for a playback-only device.
+The recording-quality options the player claims. The answer is none, since a speaker doesn't record, and it is standard-spec boilerplate kept for protocol completeness.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -804,7 +804,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.PossibleRecordStorageMedia`
 
-The recording media the player claims — none; another spec field kept for completeness on a playback-only device. Another spec field kept for completeness on a device that doesn't record.
+The recording media the player claims. The answer is none, and it is another spec field kept for completeness on a device that doesn't record.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -816,7 +816,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.RecordMediumWriteStatus`
 
-Write-protect status of the 'record medium' — boilerplate for a player that doesn't record; present because the standard requires the field. Present because the standard requires the field — irrelevant on a player.
+Write-protect status of the 'record medium'. It is boilerplate for a player that doesn't record, present because the standard requires the field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -828,7 +828,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.RecordStorageMedium`
 
-Which medium would be recorded to — fixed at none on a playback-only device; spec boilerplate. Fixed at none on a playback-only device — spec boilerplate.
+Which medium would be recorded to. It is fixed at none on a playback-only device, included as spec boilerplate.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -840,7 +840,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.TransportErrorDescription`
 
-A text description of the last transport failure — the human-readable message attached when playback errors, describing what went wrong. The human-readable message attached when playback errors — describing what went wrong.
+A text description of the last transport failure: the human-readable message attached when playback errors, describing what went wrong.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -852,7 +852,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorHttpCode`
 
-When a stream fails, the HTTP status from the failed fetch — for example a 404 from a dead stream URL — so apps can tell 'the file is gone' apart from 'the network died'.
+When a stream fails, this holds the HTTP status from the failed fetch, for example a 404 from a dead stream URL. It lets apps tell 'the file is gone' apart from 'the network died'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -864,7 +864,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorHttpHeaders`
 
-The response headers captured from a failed stream fetch — extra diagnostics attached to transport errors, useful for debugging why a stream died. Extra diagnostics attached to transport errors — useful for debugging why a stream died.
+The response headers captured from a failed stream fetch. They are extra diagnostics attached to transport errors, useful for debugging why a stream died.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -876,7 +876,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorURI`
 
-The address that failed when a transport error occurred — which stream or item the error belongs to, so the failure can be traced back to its source.
+The address that failed when a transport error occurred. It identifies which stream or item the error belongs to, so the failure can be traced back to its source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -888,7 +888,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportPlaySpeed`
 
-The playback speed — normally '1'; the standard's field for variable-speed playback, which this firmware doesn't implement. Normally '1' — the standard's field for variable-speed playback this firmware doesn't implement.
+The playback speed, normally '1'. It is the standard's field for variable-speed playback, which this firmware doesn't implement.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -900,7 +900,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.TransportState`
 
-The headline playback state — PLAYING, PAUSED_PLAYBACK, STOPPED, or TRANSITIONING. The single most-watched variable on the player: every 'is it playing?' answer in every app comes from this one field.
+The headline playback state: PLAYING, PAUSED_PLAYBACK, STOPPED, or TRANSITIONING. It is the single most-watched variable on the player, because every 'is it playing?' answer in every app comes from this one field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -912,7 +912,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportStatus`
 
-The health of the transport — OK or an error indicator, paired with the state so 'stopped because you asked' differs from 'stopped because the stream died'.
+The health of the transport: OK or an error indicator. It is paired with the state so 'stopped because you asked' can be told apart from 'stopped because the stream died'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -924,7 +924,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:AlarmRunning`
 
-Whether an alarm is currently ringing — set while an alarm fires so the system (and snooze/stop logic) knows an alarm session is live. The 'r:' prefix marks it as a Sonos extension beyond the standard variable set.
+Whether an alarm is currently ringing. It is set while an alarm fires so the system (and the snooze and stop logic) knows an alarm session is live. The 'r:' prefix marks it as a Sonos extension beyond the standard variable set.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -936,7 +936,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:CurrentValidPlayModes`
 
-Which play modes are currently legal — the shuffle/repeat choices you may pick right now, computed from the source: repeat-one makes no sense on a live stream, so it's omitted then.
+Which play modes are currently legal: the shuffle and repeat choices you may pick right now, computed from the source. Repeat-one makes no sense on a live stream, so it is omitted then.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -948,7 +948,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlAccountID`
 
-Which account owns an active direct-control session — the identity of the external service feeding the player, set while one is in control. The identity of the external service feeding the player — set while one is in control.
+Which account owns an active direct-control session. It is the identity of the external service feeding the player, set while one is in control.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -960,7 +960,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlClientID`
 
-Which client owns an active direct-control session — the specific app or instance behind an external feed. The specific app or instance behind an external feed — set while a direct-control session owns the player.
+Which client owns an active direct-control session, meaning the specific app or instance behind an external feed. It is set while a direct-control session owns the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -972,7 +972,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlIsSuspended`
 
-Whether the direct-control session is suspended — paused in a way that keeps the session alive while the external source isn't actively streaming. Paused in a way that keeps the session alive while the external source isn't actively streaming.
+Whether the direct-control session is suspended: paused in a way that keeps the session alive while the external source isn't actively streaming.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -984,7 +984,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:EnqueuedTransportURI`
 
-The address of the source queued up to take over — the next program's URI: what will become current when the player switches source, distinct from the next track inside the current program.
+The address of the source queued up to take over, meaning the next program's URI. It names what will become current when the player switches source, which is distinct from the next track inside the current program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -996,7 +996,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:EnqueuedTransportURIMetaData`
 
-Metadata for the queued-up source — the description of whatever EnqueuedTransportURI points at, so apps can display what's coming next at the program level. The description of whatever EnqueuedTransportURI points at — so apps can show what's coming at the program level.
+The description of whatever EnqueuedTransportURI points at. It lets apps show what's coming next at the program level rather than the track level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1008,7 +1008,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:NextTrackMetaData`
 
-Metadata for the next track in the Sonos extension namespace — parallels the standard NextAVTransportURIMetaData under the r: prefix. Parallels the standard NextAVTransportURIMetaData under the r: prefix.
+The metadata for the next track in the Sonos extension namespace. It parallels the standard NextAVTransportURIMetaData under the r: prefix.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1020,7 +1020,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:NextTrackURI`
 
-The next track's address in the Sonos extension namespace — the same lookahead concept as NextAVTransportURI, exposed under the r: prefix. The same lookahead concept as NextAVTransportURI, exposed under the r: prefix.
+The next track's address in the Sonos extension namespace. It is the same lookahead concept as NextAVTransportURI, exposed under the r: prefix.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1032,7 +1032,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:RestartPending`
 
-Whether the player has flagged that a restart is pending — a marker used around updates and recovery so clients know the session may bounce.
+Whether the player has flagged that a restart is pending. It is a marker used around updates and recovery so clients know the session may bounce.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1044,7 +1044,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:SleepTimerGeneration`
 
-A counter that ticks whenever the sleep timer is set, changed, or cancelled — so apps can tell a fresh timer apart from an old one without comparing durations.
+A counter that ticks whenever the sleep timer is set, changed, or cancelled. It lets apps tell a fresh timer apart from an old one without comparing durations.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1056,7 +1056,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:SnoozeRunning`
 
-Whether an alarm snooze is currently counting down — set between hitting snooze and the alarm re-ringing. Set between hitting snooze and the alarm re-ringing — the 'a snooze is counting down' flag.
+Whether an alarm snooze is currently counting down. It is set between hitting snooze and the alarm re-ringing, which is how the system knows a snooze is in progress.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1428,7 +1428,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1438,7 +1438,7 @@ non-evented AVTransport state variable — read via action out-args, not pushed
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1448,7 +1448,7 @@ non-evented AVTransport state variable — read via action out-args, not pushed
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1458,7 +1458,7 @@ non-evented AVTransport state variable — read via action out-args, not pushed
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1625,7 +1625,7 @@ evented transport state variable (r:-prefixed rincon extension where applicable)
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AVTransport LastChange/GENA event notifications
+evented state variable: appears in AVTransport LastChange/GENA event notifications
 
 </details>
 
@@ -1634,7 +1634,7 @@ evented state variable — appears in AVTransport LastChange/GENA event notifica
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1730,7 +1730,7 @@ constant evented field
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1762,7 +1762,7 @@ constant evented field
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -1772,7 +1772,7 @@ non-evented AVTransport state variable — read via action out-args, not pushed
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented AVTransport state variable — read via action out-args, not pushed
+non-evented AVTransport state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2024,7 +2024,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2034,7 +2034,7 @@ evented state variable — appears in AlarmClock LastChange/GENA event notificat
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2044,7 +2044,7 @@ evented state variable — appears in AlarmClock LastChange/GENA event notificat
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2054,7 +2054,7 @@ evented state variable — appears in AlarmClock LastChange/GENA event notificat
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2064,7 +2064,7 @@ evented state variable — appears in AlarmClock LastChange/GENA event notificat
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2074,7 +2074,7 @@ evented state variable — appears in AlarmClock LastChange/GENA event notificat
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2084,7 +2084,7 @@ evented state variable — appears in AlarmClock LastChange/GENA event notificat
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AlarmClock LastChange/GENA event notifications
+evented state variable: appears in AlarmClock LastChange/GENA event notifications
 
 </details>
 
@@ -2124,7 +2124,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AudioIn LastChange/GENA event notifications
+evented state variable: appears in AudioIn LastChange/GENA event notifications
 
 </details>
 
@@ -2134,7 +2134,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AudioIn LastChange/GENA event notifications
+evented state variable: appears in AudioIn LastChange/GENA event notifications
 
 </details>
 
@@ -2144,7 +2144,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AudioIn LastChange/GENA event notifications
+evented state variable: appears in AudioIn LastChange/GENA event notifications
 
 </details>
 
@@ -2154,7 +2154,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AudioIn LastChange/GENA event notifications
+evented state variable: appears in AudioIn LastChange/GENA event notifications
 
 </details>
 
@@ -2163,7 +2163,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AudioIn LastChange/GENA event notifications
+evented state variable: appears in AudioIn LastChange/GENA event notifications
 
 </details>
 
@@ -2172,7 +2172,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in AudioIn LastChange/GENA event notifications
+evented state variable: appears in AudioIn LastChange/GENA event notifications
 
 </details>
 
@@ -2180,7 +2180,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 ### `CD.ContainerUpdateIDs`
 
-The change-markers for library containers — a list of which folders and playlists changed since the last check, so an app refreshes only the parts of its browse view that moved instead of re-reading the whole library.
+The change-markers for library containers: a list of which folders and playlists changed since the last check. It lets an app refresh only the parts of its browse view that moved instead of re-reading the whole library.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2191,7 +2191,7 @@ ContentDirectory evented variable in f_103035c4
 
 ### `CD.FavoritesUpdateID`
 
-A version counter for the favorites list — bumps whenever your saved stations, playlists, or items change, telling apps their favorites view is stale. Bumps whenever your saved stations, playlists, or items change — telling apps their favorites view is stale.
+A version counter for the favorites list. It bumps whenever your saved stations, playlists, or items change, which tells apps their favorites view is stale.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2202,7 +2202,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CD.RadioFavoritesUpdateID`
 
-A version counter for saved radio favorites — bumps when your radio presets change, so the stations list refreshes only when it needs to. Bumps when your radio presets change — so the stations list refreshes only when needed.
+A version counter for saved radio favorites. It bumps when your radio presets change, so the stations list refreshes only when it needs to.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2213,7 +2213,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CD.SavedQueuesUpdateID`
 
-A version counter for Sonos playlists — bumps when any saved queue is created, edited, or deleted: the 'your playlists changed' signal. Bumps when any saved queue is created, edited, or deleted — the 'your playlists changed' signal.
+A version counter for Sonos playlists. It bumps when any saved queue is created, edited, or deleted, making it the 'your playlists changed' signal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2224,7 +2224,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CD.ShareIndexInProgress`
 
-Whether a music-library rescan is running right now — the flag behind the 'updating music index' spinner in the app. The flag behind the 'updating music index' spinner — on while a rescan walks your folders.
+Whether a music-library rescan is running right now. It is the flag behind the 'updating music index' spinner, on while a rescan walks your folders.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2235,7 +2235,7 @@ ContentDirectory evented variable in f_103035c4
 
 ### `CD.ShareListUpdateID`
 
-A version counter for the music-shares list — bumps when folders are added to or removed from the library, so apps re-fetch the share list only on change.
+A version counter for the music-shares list. It bumps when folders are added to or removed from the library, so apps re-fetch the share list only when it changed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2246,7 +2246,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CM.CurrentConnectionIDs`
 
-The list of live connections against the player — the evented form of the connection-list command: fires whenever a control session opens or closes. The evented form of the connection-list command — fires whenever a control session opens or closes.
+The list of live connections against the player, which is the evented form of the connection-list command. It fires whenever a control session opens or closes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2329,7 +2329,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ConnectionManager LastChange/GENA event notifications
+evented state variable: appears in ConnectionManager LastChange/GENA event notifications
 
 </details>
 
@@ -2339,7 +2339,7 @@ evented state variable — appears in ConnectionManager LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ConnectionManager LastChange/GENA event notifications
+evented state variable: appears in ConnectionManager LastChange/GENA event notifications
 
 </details>
 
@@ -2349,7 +2349,7 @@ evented state variable — appears in ConnectionManager LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ConnectionManager LastChange/GENA event notifications
+evented state variable: appears in ConnectionManager LastChange/GENA event notifications
 
 </details>
 
@@ -2498,7 +2498,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2508,7 +2508,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2517,7 +2517,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2526,7 +2526,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2535,7 +2535,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2544,7 +2544,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2553,7 +2553,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2562,7 +2562,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented ContentDirectory state variable — read via action out-args, not pushed
+non-evented ContentDirectory state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2572,7 +2572,7 @@ non-evented ContentDirectory state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2582,7 +2582,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2591,7 +2591,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2600,7 +2600,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented ContentDirectory state variable — read via action out-args, not pushed
+non-evented ContentDirectory state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2610,7 +2610,7 @@ non-evented ContentDirectory state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
@@ -2620,14 +2620,14 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ContentDirectory LastChange/GENA event notifications
+evented state variable: appears in ContentDirectory LastChange/GENA event notifications
 
 </details>
 
 
 ### `DP.CurrentZoneName`
 
-This speaker's room name — the label you gave it in the app ('Kitchen'). Fires when it gets renamed, so every display updates. The label you gave it in the app ('Kitchen') — fires on rename so every display updates.
+This speaker's room name, the label you gave it in the app such as 'Kitchen'. It fires when the room gets renamed, so every display updates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2638,7 +2638,7 @@ DeviceProperties evented variable (ZoneNameChangedEvent)
 
 ### `DP.Invisible`
 
-Whether the speaker is hidden — an 'invisible' flag removing the player from normal room display, used for satellites and bonded members that shouldn't appear as separate rooms.
+Whether the speaker is hidden. This 'invisible' flag removes the player from normal room display, and it is used for satellites and bonded members that shouldn't appear as separate rooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2649,7 +2649,7 @@ DeviceProperties evented variable (DeviceInfo attr literal)
 
 ### `DP.MicEnabled`
 
-Whether the speaker's microphone is enabled — the mic-on flag for voice-capable products; kept for spec parity on this older hardware. The mic-on flag for voice-capable products — kept for spec parity on this older hardware.
+Whether the speaker's microphone is enabled. It is the mic-on flag for voice-capable products, kept in this service's spec for parity even though this older hardware has no mic.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2660,7 +2660,7 @@ DeviceProperties evented variable (DeviceInfo attr literal)
 
 ### `DP.ResetVolumeAfter`
 
-Whether the speaker resets its volume after a triggered session — the flag used by alarm/autoplay so a wake-up volume doesn't become the permanent level.
+Whether the speaker resets its volume after a triggered session. It is the flag used by alarm and autoplay so a wake-up volume doesn't become the permanent level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2744,7 +2744,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2753,7 +2753,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2762,7 +2762,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2772,7 +2772,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2782,7 +2782,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2792,7 +2792,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2802,7 +2802,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2813,7 +2813,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2822,7 +2822,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2831,7 +2831,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2841,7 +2841,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2850,7 +2850,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2860,7 +2860,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2870,7 +2870,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2880,7 +2880,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2889,7 +2889,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2899,7 +2899,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2909,7 +2909,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2918,7 +2918,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2928,7 +2928,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2938,7 +2938,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2948,7 +2948,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2957,7 +2957,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2967,7 +2967,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -2977,7 +2977,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2986,7 +2986,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -2995,7 +2995,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3005,7 +3005,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3015,7 +3015,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3025,7 +3025,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3034,7 +3034,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3043,7 +3043,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3052,7 +3052,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3062,7 +3062,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3072,7 +3072,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3081,7 +3081,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3091,7 +3091,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3100,7 +3100,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3109,7 +3109,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3118,7 +3118,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3127,7 +3127,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3137,7 +3137,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3146,7 +3146,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3156,7 +3156,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3165,7 +3165,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3175,7 +3175,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3184,7 +3184,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3193,7 +3193,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3202,7 +3202,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3211,7 +3211,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented DeviceProperties state variable — read via action out-args, not pushed
+non-evented DeviceProperties state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3221,7 +3221,7 @@ non-evented DeviceProperties state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3230,7 +3230,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3239,7 +3239,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3248,7 +3248,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in DeviceProperties LastChange/GENA event notifications
+evented state variable: appears in DeviceProperties LastChange/GENA event notifications
 
 </details>
 
@@ -3256,7 +3256,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 ### `GM.DelegatedGroupCoordinatorID`
 
-Which member group leadership was delegated to — set during a coordinator hand-off so the topology knows who is taking over the group. Set during a coordinator hand-off so the topology knows who's taking over the group.
+Which member group leadership was delegated to. It is set during a coordinator hand-off so the topology knows who is taking over the group.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3267,7 +3267,7 @@ GroupManagement evented variable (event-pool literal)
 
 ### `GM.LocalGroupUUID`
 
-The identifier of the group this speaker currently belongs to — its group membership in one value; changes on every group and ungroup. Its group membership in one value — changes on every group and ungroup.
+The identifier of the group this speaker currently belongs to. It is its group membership expressed in one value, and it changes on every group and ungroup.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3278,7 +3278,7 @@ GroupManagement evented variable (event-pool literal)
 
 ### `GM.VirtualLineInGroupID`
 
-The group associated with a virtual line-in session — set while an external feed session exists, tying the session to the group it serves. Set while an external feed session exists — tying the session to the group it serves.
+The group associated with a virtual line-in session. It is set while an external feed session exists, tying the session to the group it serves.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3289,7 +3289,7 @@ GroupManagement evented variable (setVirtualLineInGroupIDLocked worker)
 
 ### `GRC.GroupMute`
 
-The group's mute state — the evented flag every controller follows for the group mute button: change it anywhere and everyone sees it flip. The evented flag every controller follows for the group mute button — change it anywhere and everyone sees it flip.
+The group's mute state. It is the evented flag every controller follows for the group mute button, so when it changes anywhere, every app sees it flip.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3300,7 +3300,7 @@ GroupRenderingControl evented variable (SetGroupMute rc-log literal)
 
 ### `GRC.GroupVolume`
 
-The group's aggregate volume — the number behind the group slider, re-derived by the coordinator as member levels change. The number behind the group slider — re-derived by the coordinator as member levels change.
+The group's aggregate volume, which is the number behind the group slider. The coordinator re-derives it as member levels change.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3311,7 +3311,7 @@ GroupRenderingControl evented variable (SetGroupVolume rc-log literal)
 
 ### `GRC.GroupVolumeChangeable`
 
-Whether the group volume can currently be changed — a capability flag: in some configurations the group level is locked or derived and the slider should disable.
+Whether the group volume can currently be changed. In some configurations the group level is locked or derived, and this flag tells the app the slider should be disabled.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3374,7 +3374,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupManagement LastChange/GENA event notifications
+evented state variable: appears in GroupManagement LastChange/GENA event notifications
 
 </details>
 
@@ -3383,7 +3383,7 @@ evented state variable — appears in GroupManagement LastChange/GENA event noti
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupManagement LastChange/GENA event notifications
+evented state variable: appears in GroupManagement LastChange/GENA event notifications
 
 </details>
 
@@ -3393,7 +3393,7 @@ evented state variable — appears in GroupManagement LastChange/GENA event noti
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupManagement LastChange/GENA event notifications
+evented state variable: appears in GroupManagement LastChange/GENA event notifications
 
 </details>
 
@@ -3403,7 +3403,7 @@ evented state variable — appears in GroupManagement LastChange/GENA event noti
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented GroupManagement state variable — read via action out-args, not pushed
+non-evented GroupManagement state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3413,7 +3413,7 @@ non-evented GroupManagement state variable — read via action out-args, not pus
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupManagement LastChange/GENA event notifications
+evented state variable: appears in GroupManagement LastChange/GENA event notifications
 
 </details>
 
@@ -3422,7 +3422,7 @@ evented state variable — appears in GroupManagement LastChange/GENA event noti
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupManagement LastChange/GENA event notifications
+evented state variable: appears in GroupManagement LastChange/GENA event notifications
 
 </details>
 
@@ -3452,7 +3452,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupRenderingControl LastChange/GENA event notifications
+evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications
 
 </details>
 
@@ -3462,7 +3462,7 @@ evented state variable — appears in GroupRenderingControl LastChange/GENA even
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupRenderingControl LastChange/GENA event notifications
+evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications
 
 </details>
 
@@ -3473,14 +3473,14 @@ evented state variable — appears in GroupRenderingControl LastChange/GENA even
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in GroupRenderingControl LastChange/GENA event notifications
+evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications
 
 </details>
 
 
 ### `HT.LEDFeedbackState`
 
-Whether the remote-received LED flash is on — the home-theater feedback setting, evented so settings screens stay truthful. The remote-received LED flash setting — evented so settings screens stay truthful.
+Whether the remote-received LED flash is on. It is the home-theater feedback setting, evented so settings screens stay truthful about the device state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3491,7 +3491,7 @@ HTControl evented variable in f_10739c34
 
 ### `HT.RemoteConfigured`
 
-Whether the speaker has a configured infrared remote — set once remote-learning is done; the flag apps check before offering the setup wizard. Set once remote-learning is done — the flag apps check before offering the setup wizard.
+Whether the speaker has a configured infrared remote. It is set once remote-learning is done, and it is the flag apps check before offering the setup wizard.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3535,7 +3535,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in HTControl LastChange/GENA event notifications
+evented state variable: appears in HTControl LastChange/GENA event notifications
 
 </details>
 
@@ -3545,7 +3545,7 @@ evented state variable — appears in HTControl LastChange/GENA event notificati
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented HTControl state variable — read via action out-args, not pushed
+non-evented HTControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3555,7 +3555,7 @@ non-evented HTControl state variable — read via action out-args, not pushed
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented HTControl state variable — read via action out-args, not pushed
+non-evented HTControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3565,14 +3565,14 @@ non-evented HTControl state variable — read via action out-args, not pushed
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in HTControl LastChange/GENA event notifications
+evented state variable: appears in HTControl LastChange/GENA event notifications
 
 </details>
 
 
 ### `MS.ServiceListVersion`
 
-A version counter for the music-service catalog — bumps when the available-services list changes, so apps re-pull the catalog only when it moved. Bumps when the available-services list changes — so apps re-pull the catalog only when it moved.
+A version counter for the music-service catalog. It bumps when the available-services list changes, so apps re-pull the catalog only when it moved.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3606,7 +3606,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented MusicServices state variable — read via action out-args, not pushed
+non-evented MusicServices state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3616,7 +3616,7 @@ non-evented MusicServices state variable — read via action out-args, not pushe
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in MusicServices LastChange/GENA event notifications
+evented state variable: appears in MusicServices LastChange/GENA event notifications
 
 </details>
 
@@ -3626,7 +3626,7 @@ evented state variable — appears in MusicServices LastChange/GENA event notifi
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented MusicServices state variable — read via action out-args, not pushed
+non-evented MusicServices state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3636,7 +3636,7 @@ non-evented MusicServices state variable — read via action out-args, not pushe
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented MusicServices state variable — read via action out-args, not pushed
+non-evented MusicServices state variable: read via action out-args, not pushed
 
 </details>
 
@@ -3863,7 +3863,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 ### `Queue.Curated`
 
-Whether a queue is 'curated' — marked as managed by some system component rather than a raw user queue. Marked as managed by some system component rather than a raw user queue.
+Whether a queue is 'curated', meaning marked as managed by some system component rather than a raw user queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3876,14 +3876,14 @@ curated-queue flag
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in Queue LastChange/GENA event notifications
+evented state variable: appears in Queue LastChange/GENA event notifications
 
 </details>
 
 
 ### `Queue.QueueID`
 
-The identifier of the queue being described — which managed queue an event or answer refers to. Which managed queue an event or answer refers to — the queue's identifier.
+The identifier of the queue being described, naming which managed queue an event or answer refers to.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3894,7 +3894,7 @@ queue identifier assigned at AttachQueue/CreateQueue
 
 ### `Queue.QueueOwnerID`
 
-Which component owns a queue — the entity (internal module or session) holding edit rights over it. The entity (internal module or session) holding edit rights over the queue.
+Which component owns a queue: the entity (an internal module or a session) holding edit rights over it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3905,7 +3905,7 @@ queue owner UDN
 
 ### `Queue.UpdateID`
 
-A queue's version stamp — bumps on every edit; the token apps send back to prove they're editing the version they last saw, preventing lost updates.
+A queue's version stamp. It bumps on every edit, and apps send it back to prove they're editing the version they last saw, which prevents lost updates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3916,7 +3916,7 @@ queue content update id
 
 ### `RCS.AudioDelay`
 
-Lip-sync delay for the main output — how much audio delay is applied so sound lines up with the TV picture; exists because video processing adds latency the audio must wait out.
+The lip-sync delay for the main output: how much audio delay is applied so sound lines up with the TV picture. It exists because video processing adds latency the audio must wait out.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3928,7 +3928,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.AudioDelayLeftRear`
 
-Lip-sync delay for the left rear channel — the surround-specific version of the audio delay, so rear speakers can be timed independently. The surround-specific version of the audio delay — left rear timed independently.
+Lip-sync delay for the left rear channel. It is the surround-specific version of the audio delay, letting the left rear be timed independently.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3940,7 +3940,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.AudioDelayRightRear`
 
-Lip-sync delay for the right rear channel — the companion to the left-rear delay setting. The companion to the left-rear delay — right rear's own lip-sync trim.
+Lip-sync delay for the right rear channel, the companion to the left-rear delay. It gives the right rear its own lip-sync trim.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3952,7 +3952,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Bass`
 
-The bass level — the equalizer's bass setting, evented so the app's EQ panel tracks changes made anywhere. The equalizer's bass setting, evented so the app's EQ panel tracks changes made anywhere.
+The bass level. It is the equalizer's bass setting, evented so the app's EQ panel tracks changes made anywhere in the system.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3964,7 +3964,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.DialogLevel`
 
-The dialogue-boost amount — how much speech-enhancement lift is applied on products offering it; a per-model tone control. How much speech-enhancement lift is applied — a per-model tone control on products offering it.
+The dialogue-boost amount: how much speech-enhancement lift is applied on products that offer it. It is a per-model tone control for making voices easier to hear.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3976,7 +3976,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.HeightChannelLevel`
 
-The level of height/ceiling channels — a setting for surround products with upward-firing speakers; present for spec parity on this older unit. A setting for surround products with upward-firing speakers — present for spec parity here.
+The level of height or ceiling channels. It is a setting for surround products with upward-firing speakers, present here only for spec parity on this older unit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3988,7 +3988,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Loudness`
 
-The loudness toggle — Sonos's fullness boost for quiet listening, evented alongside the rest of the EQ state. Sonos's fullness boost for quiet listening — evented with the rest of the EQ state.
+The loudness toggle. Loudness is Sonos's fullness boost for quiet listening, and it is evented alongside the rest of the EQ state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4000,7 +4000,7 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 
 ### `RCS.MusicSurroundLevel`
 
-How much music playback goes to the surround speakers — the 'ambient versus full' music-surround level in a home-theater setup. The 'ambient versus full' music-surround level in a home-theater setup.
+How much music playback goes to the surround speakers. It is the 'ambient versus full' music-surround level in a home-theater setup.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4012,7 +4012,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Mute`
 
-The mute flag per channel — the most basic evented variable on this service: fires every time mute flips, whether from an app or the physical button.
+The mute flag per channel, the most basic evented variable on this service. It fires every time mute flips, whether the change came from an app or the physical button.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4024,7 +4024,7 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 
 ### `RCS.NightMode`
 
-Night mode — the dynamic-range compressor that softens loud effects for late-night TV: a home-theater toggle reported here. The dynamic-range compressor softening loud effects for late-night TV — a home-theater toggle.
+Whether night mode is on. Night mode is the dynamic-range compressor that softens loud effects for late-night TV, reported here as a home-theater toggle.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4036,7 +4036,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.OutputFixed`
 
-Whether output is fixed-level — the flag locking the speaker at line level for feeding an external amplifier. The flag locking the speaker at line level for feeding an external amplifier.
+Whether output is fixed-level. It is the flag that locks the speaker at line level for feeding an external amplifier.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4048,7 +4048,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.PresetNameList`
 
-The list of named EQ/volume presets available — the preset vocabulary some products expose for one-tap sound modes. The preset vocabulary some products expose for one-tap sound modes.
+The list of named EQ and volume presets available. It is the preset vocabulary some products expose for one-tap sound modes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4060,7 +4060,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SonarCalibrationAvailable`
 
-Whether sonar/room calibration can run on this device — a capability flag telling apps whether to offer the tuning feature. A capability flag telling apps whether to offer the tuning feature.
+Whether sonar or room calibration can run on this device. It is a capability flag telling apps whether to offer the tuning feature.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4072,7 +4072,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SonarEnabled`
 
-Whether sonar calibration is currently enabled — the tuning system's on/off state after a completed calibration. The tuning system's on/off state after a completed calibration.
+Whether sonar calibration is currently enabled, which is the tuning system's on/off state after a completed calibration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4084,7 +4084,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SpeakerSize`
 
-The speaker-size classification — the large/small designation the audio pipeline uses for bass handling in home-theater configuration. The large/small designation the audio pipeline uses for bass handling in theater configuration.
+The speaker-size classification: the large/small designation the audio pipeline uses for bass handling in home-theater configuration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4096,7 +4096,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SpeechEnhanceEnabled`
 
-Whether speech enhancement is on — the dialogue-clarity feature on theater products, evented so the toggle follows the real device state. The dialogue-clarity feature on theater products — evented so the toggle follows the real state.
+Whether speech enhancement is on. It is the dialogue-clarity feature on theater products, evented so the app's toggle follows the real device state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4108,7 +4108,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubCrossover`
 
-The subwoofer crossover frequency — where bass hands off from the soundbar to the bonded sub: a home-theater tuning value. Where bass hands off from the soundbar to the bonded sub — a home-theater tuning value.
+The subwoofer crossover frequency: where bass hands off from the soundbar to the bonded sub. It is one of the home-theater tuning values.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4120,7 +4120,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubEnabled`
 
-Whether the bonded subwoofer is enabled — the sub on/off flag inside a theater rig. The sub on/off flag inside a theater rig. Toggles the bonded sub's participation — the variable behind the app switch for 'use the sub'.
+Whether the bonded subwoofer is enabled. It is the variable behind the app switch for 'use the sub', toggling the sub's participation in the theater rig.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4132,7 +4132,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubGain`
 
-The subwoofer gain — the sub's level trim relative to the rest of the rig. The sub's level trim relative to the rest of the rig — how hot the bass runs.
+The subwoofer gain, meaning the sub's level trim relative to the rest of the rig. In plain terms, it controls how hot the bass runs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4144,7 +4144,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubPolarity`
 
-The subwoofer polarity — the phase setting (normal/inverted) keeping the sub's bass in step with the bar's drivers. The phase setting (normal/inverted) keeping the sub's bass in step with the bar's drivers.
+The subwoofer polarity: the phase setting (normal or inverted) that keeps the sub's bass in step with the bar's drivers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4156,7 +4156,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SupportsMaxDialogLevel`
 
-Whether this device supports the maximum dialogue-level setting — a capability flag gating the strongest speech-boost option. A capability flag gating the strongest speech-boost option.
+Whether this device supports the maximum dialogue-level setting. It is a capability flag that gates the strongest speech-boost option.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4168,7 +4168,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundEnabled`
 
-Whether surround speakers are active in the rig — the rear-channel enable flag. The rear-channel enable flag inside a theater rig. Flips the rear-channel participation on or off within a bonded theater rig.
+Whether surround speakers are active in the rig. It is the rear-channel enable flag inside a bonded theater setup, toggling the rears' participation on or off.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4180,7 +4180,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundLevel`
 
-The surround speakers' level trim — how loud the rears play relative to the bar. How loud the rear speakers play relative to the bar — the rear-channel trim.
+The surround speakers' level trim, controlling how loud the rear speakers play relative to the soundbar.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4192,7 +4192,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundMode`
 
-The surround mode for music playback — the 'ambient' versus 'full' setting deciding how much music goes to the rear speakers. 'Ambient' versus 'full' — how much music goes to the rear speakers.
+The surround mode for music playback: the 'ambient' versus 'full' setting that decides how much music goes to the rear speakers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4204,7 +4204,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Treble`
 
-The treble level — the equalizer's treble setting, evented alongside bass. The equalizer's treble setting, evented alongside bass. Adjust it anywhere and every evented view reflects the new value together with the other tone settings.
+The treble level. It is the equalizer's treble setting, evented alongside bass so every view reflects the new value as soon as it changes anywhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4216,7 +4216,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Volume`
 
-The volume per channel — the most-watched variable on this service: every slider move, button press, or remote command lands here. Every slider move, button press, or remote command lands here — the most-watched variable on this service.
+The volume per channel, which is the most-watched variable on this service. Every slider move, button press, or remote command lands here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4397,7 +4397,7 @@ dialog enhancement level
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4407,7 +4407,7 @@ non-evented RenderingControl state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4426,7 +4426,7 @@ height/Atmos channel output level
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in RenderingControl LastChange/GENA event notifications
+evented state variable: appears in RenderingControl LastChange/GENA event notifications
 
 </details>
 
@@ -4491,7 +4491,7 @@ list of available EQ preset names
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4510,7 +4510,7 @@ bonded-zone calibration info
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4519,7 +4519,7 @@ non-evented RenderingControl state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4528,7 +4528,7 @@ non-evented RenderingControl state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4538,7 +4538,7 @@ non-evented RenderingControl state variable — read via action out-args, not pu
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4628,7 +4628,7 @@ whether the device supports the maximum dialog level
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4683,7 +4683,7 @@ per-channel volume (Master/LF/RF elements)
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented RenderingControl state variable — read via action out-args, not pushed
+non-evented RenderingControl state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4872,7 +4872,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in SystemProperties LastChange/GENA event notifications
+evented state variable: appears in SystemProperties LastChange/GENA event notifications
 
 </details>
 
@@ -4881,7 +4881,7 @@ evented state variable — appears in SystemProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in SystemProperties LastChange/GENA event notifications
+evented state variable: appears in SystemProperties LastChange/GENA event notifications
 
 </details>
 
@@ -4890,7 +4890,7 @@ evented state variable — appears in SystemProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in SystemProperties LastChange/GENA event notifications
+evented state variable: appears in SystemProperties LastChange/GENA event notifications
 
 </details>
 
@@ -4899,7 +4899,7 @@ evented state variable — appears in SystemProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in SystemProperties LastChange/GENA event notifications
+evented state variable: appears in SystemProperties LastChange/GENA event notifications
 
 </details>
 
@@ -4908,7 +4908,7 @@ evented state variable — appears in SystemProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in SystemProperties LastChange/GENA event notifications
+evented state variable: appears in SystemProperties LastChange/GENA event notifications
 
 </details>
 
@@ -4917,7 +4917,7 @@ evented state variable — appears in SystemProperties LastChange/GENA event not
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented VirtualLineIn state variable — read via action out-args, not pushed
+non-evented VirtualLineIn state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4976,7 +4976,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in VirtualLineIn LastChange/GENA event notifications
+evented state variable: appears in VirtualLineIn LastChange/GENA event notifications
 
 </details>
 
@@ -4985,7 +4985,7 @@ evented state variable — appears in VirtualLineIn LastChange/GENA event notifi
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented VirtualLineIn state variable — read via action out-args, not pushed
+non-evented VirtualLineIn state variable: read via action out-args, not pushed
 
 </details>
 
@@ -4994,14 +4994,14 @@ non-evented VirtualLineIn state variable — read via action out-args, not pushe
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented VirtualLineIn state variable — read via action out-args, not pushed
+non-evented VirtualLineIn state variable: read via action out-args, not pushed
 
 </details>
 
 
 ### `ZGT.ZoneGroupState`
 
-The entire household map as one variable — every player, its room name, its group, and each group's leader, packed into a single document. The heartbeat of multi-room awareness: it changes (and announces) every time the system's shape changes.
+The entire household map as one variable: every player, its room name, its group, and each group's leader, packed into a single document. It is the heartbeat of multi-room awareness, because it changes and announces every time the system's shape changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5155,7 +5155,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5164,7 +5164,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5173,7 +5173,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5182,7 +5182,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-non-evented ZoneGroupTopology state variable — read via action out-args, not pushed
+non-evented ZoneGroupTopology state variable: read via action out-args, not pushed
 
 </details>
 
@@ -5192,7 +5192,7 @@ non-evented ZoneGroupTopology state variable — read via action out-args, not p
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5202,7 +5202,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5211,7 +5211,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5220,7 +5220,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5229,7 +5229,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5239,7 +5239,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5249,7 +5249,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5259,7 +5259,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-evented state variable — appears in ZoneGroupTopology LastChange/GENA event notifications
+evented state variable: appears in ZoneGroupTopology LastChange/GENA event notifications
 
 </details>
 
@@ -5267,7 +5267,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 ### `alarm_status_schema`
 
-The field list for the alarm page on the player's built-in diagnostics website — which alarm details the player exposes when you (or support tools) visit its status pages: what's scheduled, what's ringing, and the bookkeeping around each.
+The field list for the alarm page on the player's built-in diagnostics website: which alarm details the player exposes when you or support tools visit its status pages, covering what's scheduled, what's ringing, and the bookkeeping around each.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5278,7 +5278,7 @@ The field list for the alarm page on the player's built-in diagnostics website �
 
 ### `avt_lastchange`
 
-The field list for the transport service's bundled change reports — everything packed into the 'what just changed in playback' message: state, track, position, mode, source. One event carries all of this at once, which is why an app updates its whole now-playing screen from a single notification.
+The field list for the transport service's bundled change reports: everything packed into the 'what just changed in playback' message, covering state, track, position, mode, and source. One event carries all of this at once, which is why an app updates its whole now-playing screen from a single notification.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5289,7 +5289,7 @@ AVTransport LastChange evented fields
 
 ### `device_props_extra_vars`
 
-Additional device-property fields the settings service carries beyond the standard set — the extra bits of speaker configuration reported alongside the usual name/LED/button state. The extra bits of speaker configuration reported alongside the usual name/LED/button state.
+Additional device-property fields the settings service carries beyond the standard set: the extra bits of speaker configuration reported alongside the usual name, LED, and button state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5300,7 +5300,7 @@ more state vars
 
 ### `device_props_update_ids`
 
-The set of change-counters the device-properties service keeps — version numbers that tick when different aspects of the speaker's config change, so interested parties can tell what moved without comparing every field.
+The set of change-counters the device-properties service keeps. These version numbers tick when different aspects of the speaker's config change, so interested parties can tell what moved without comparing every field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5311,7 +5311,7 @@ update counters
 
 ### `ht_input_session`
 
-The telemetry fields captured for a home-theater input session — the bookkeeping the soundbar keeps about an active TV/optical input session: source, timing, and session state.
+The telemetry fields captured for a home-theater input session: the bookkeeping the soundbar keeps about an active TV or optical input session, covering source, timing, and session state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5322,7 +5322,7 @@ HT input-session telemetry fields
 
 ### `netsettings_schema`
 
-The layout of the player's replicated network-settings store — the on-disk document holding WiFi credentials and network configuration that all devices in the household share. This is where your WiFi password actually lives inside the system: encrypted per-household, replicated across players so any of them can join the network.
+The layout of the player's replicated network-settings store: the on-disk document holding WiFi credentials and network configuration that all devices in the household share. This is where your WiFi password actually lives inside the system: encrypted per-household and replicated across players so any of them can join the network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5333,7 +5333,7 @@ netsettings.json replicated network+PSK store
 
 ### `playstatemanager_schema`
 
-The fields of the play-state manager page on the diagnostics site — the component's own view of who's playing what where, exposed for debugging group playback issues.
+The fields of the play-state manager page on the diagnostics site. It is the component's own view of who's playing what where, exposed for debugging group playback issues.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5344,7 +5344,7 @@ The fields of the play-state manager page on the diagnostics site — the compon
 
 ### `renderingcontrol_status_schema`
 
-The fields on the diagnostics page for the volume/tone service — the player's internal view of channel volumes, mutes, EQ values, and flags, exposed for support and debugging.
+The fields on the diagnostics page for the volume and tone service. It is the player's internal view of channel volumes, mutes, EQ values, and flags, exposed for support and debugging.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5355,7 +5355,7 @@ The fields on the diagnostics page for the volume/tone service — the player's 
 
 ### `replicated_netsettings_schema`
 
-The layout of the replicated network-settings document exchanged between players — the shared network config (including WiFi details) every household member keeps in sync so any player can stand up the same network configuration.
+The layout of the replicated network-settings document exchanged between players. It is the shared network config (including WiFi details) every household member keeps in sync, so any player can stand up the same network configuration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5366,7 +5366,7 @@ netsettings replicated XML
 
 ### `savedqueues_rsq_schema`
 
-The file format of the saved-queues store on disk — how Sonos playlists are actually persisted on the speaker: the record structure that survives reboots, written by the queue-backup commands.
+The file format of the saved-queues store on disk, meaning how Sonos playlists are actually persisted on the speaker. It is the record structure that survives reboots, written by the queue-backup commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5377,7 +5377,7 @@ savedqueues.rsq persistence
 
 ### `services_xml_schema`
 
-The layout of the replicated services list — the document describing which music services exist on the household that all players share, so every speaker sees the same service catalog.
+The layout of the replicated services list: the document describing which music services exist on the household that all players share, so every speaker sees the same service catalog.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5388,7 +5388,7 @@ replicated services list XML
 
 ### `shares_schema`
 
-The layout of the replicated share registry — the document listing your music-library folders that all household players keep a copy of, so every speaker can index and play from the same shares.
+The layout of the replicated share registry: the document listing your music-library folders that all household players keep a copy of, so every speaker can index and play from the same shares.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5399,7 +5399,7 @@ replicated share registry XML
 
 ### `sounddevice_status_schema`
 
-The fields of the SoundDevice diagnostics page — per-zone audio bookkeeping: each player's volume, ducking state, and output details as the player reports them internally.
+The fields of the SoundDevice diagnostics page, which is per-zone audio bookkeeping: each player's volume, ducking state, and output details as the player reports them internally.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5410,7 +5410,7 @@ SoundDevice page (per-zone volume/ducking)
 
 ### `update_info_schema`
 
-The fields of the update-info diagnostics page — what the player reports about its firmware status: current version, what updates are pending or downloading, and update history.
+The fields of the update-info diagnostics page: what the player reports about its firmware status, covering current version, what updates are pending or downloading, and update history.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5421,7 +5421,7 @@ UpdateInfo page
 
 ### `userradio_schema`
 
-The layout of the user-radio favorites file — the document storing your saved radio stations, plus the delta-file format used to apply incremental changes without rewriting the whole list.
+The layout of the user-radio favorites file: the document storing your saved radio stations, plus the delta-file format used to apply incremental changes without rewriting the whole list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5432,7 +5432,7 @@ userradio.xml (+.d.xml delta) replicated favorites
 
 ### `vli_state_snapshot`
 
-The snapshot recorded when a virtual line-in session changes state — the fields captured at transitions so the session can be handed off or resumed: source, coordinator, transport settings at that moment.
+The snapshot recorded when a virtual line-in session changes state: the fields captured at transitions so the session can be handed off or resumed, covering source, coordinator, and transport settings at that moment.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5443,7 +5443,7 @@ VLI handoff snapshot recorded at state transitions
 
 ### `zone_group_state_schema`
 
-The layout of the household-map document — the same ZoneGroupState the topology service emits: every player, room, group, and coordinator, structured so any device can parse the whole system's shape.
+The layout of the household-map document, which is the same ZoneGroupState the topology service emits: every player, room, group, and coordinator, structured so any device can parse the whole system's shape.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5454,7 +5454,7 @@ evented ZoneGroupState XML emitted by topology_base
 
 ### `zoneplayers_status_schema`
 
-The fields of the ZonePlayers diagnostics page — the player's internal census of every speaker it knows about: IDs, rooms, versions, and addresses, exposed for debugging.
+The fields of the ZonePlayers diagnostics page: the player's internal census of every speaker it knows about, including IDs, rooms, versions, and addresses, exposed for debugging.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5465,7 +5465,7 @@ The fields of the ZonePlayers diagnostics page — the player's internal census 
 
 ### `zp_support_info`
 
-The layout of the support-information bundle — the structured data gathered when you submit diagnostics: versions, hardware details, state, and configuration, packaged so Sonos support can read it.
+The layout of the support-information bundle: the structured data gathered when you submit diagnostics, covering versions, hardware details, state, and configuration, packaged so Sonos support can read it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5476,7 +5476,7 @@ ZPSupportInfo schema
 
 ### `zpinfo_schema`
 
-The layout of the player's self-description documents — the fields a speaker publishes about itself: identity, device info, and play-mode capabilities, used by the rest of the household to recognize it.
+The layout of the player's self-description documents: the fields a speaker publishes about itself, covering identity, device info, and play-mode capabilities, used by the rest of the household to recognize it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5487,7 +5487,7 @@ ZPInfo + DeviceInfo + Playmode
 
 ### `zps_page`
 
-The fields of the household update-status page — the diagnostics view showing each player's update state during a rollout: who's updated, who's downloading, who's pending or failed.
+The fields of the household update-status page: the diagnostics view showing each player's update state during a rollout, covering who's updated, who's downloading, and who's pending or failed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

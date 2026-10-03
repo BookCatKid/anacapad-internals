@@ -1,8 +1,8 @@
-# `SystemProperties` — `/SystemProperties/Control`
+# `SystemProperties` `/SystemProperties/Control`
 
 **visibility** `advertised` · **status** `strong`
 
-This service is two things bolted together. First, it's the player's generic settings store — a key/value cupboard where the system keeps configuration strings that other features read (get, set, and delete named settings). Second, it holds the entire account-management family: every command for adding, editing, replacing, and removing the service-account credentials stored on the speaker — the saved logins that let it reach Spotify et al without your phone. It also carries a remote-diagnostics flag Sonos support uses, a web-code command for account linking, a post-update housekeeping hook, and two ghost entries that are still advertised but dead in this build.
+This service is two things bolted together. First, it's the player's generic settings store: a key/value cupboard where the system keeps configuration strings that other features read, with commands to get, set, and delete named settings. Second, it holds the entire account-management family: every command for adding, editing, replacing, and removing the service-account credentials stored on the speaker, which are the saved logins that let it reach Spotify and friends without your phone. It also carries a remote-diagnostics flag Sonos support uses, a web-code command for account linking, a post-update housekeeping hook, and two ghost entries that are still advertised but dead in this build.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -24,8 +24,8 @@ System properties service: generic config string store (Get/Set/Remove) plus the
 
 ## Removed / stale advertisements
 
-- `ProvisionCredentialedTrialAccountX` — SCPD-advertised but absent from the 86.x dispatch surface; related_action references in A_ARG_TYPE_* vars are SCPD-derived
-- `ResetThirdPartyCredentials` — SCPD-advertised but absent from the 86.x dispatch surface
+- `ProvisionCredentialedTrialAccountX`: SCPD-advertised but absent from the 86.x dispatch surface; related_action references in A_ARG_TYPE_* vars are SCPD-derived
+- `ResetThirdPartyCredentials`: SCPD-advertised but absent from the 86.x dispatch surface
 
 ## Actions
 
@@ -51,7 +51,7 @@ System properties service: generic config string store (Get/Set/Remove) plus the
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Adds a new service account to the speaker — the classic username-and-password path for attaching a music service. You supply the service type plus the login ID and password, and the account is stored so the player can reach the service on its own.
+Adds a new service account to the speaker, the classic username-and-password path for attaching a music service. You supply the service type plus the login ID and password, and the account is stored so the player can reach the service on its own.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -67,13 +67,13 @@ Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18
 | `AccountID` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 127 chars | none; required |
 | `AccountPassword` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 63 chars | none; required |
 
-- **`AccountType`** — music-service account type code
+- **`AccountType`**: music-service account type code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
-- **`AccountID`** — existing account id
+- **`AccountID`**: existing account id
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
-- **`AccountPassword`** — account password string forwarded to account-add impl
+- **`AccountPassword`**: account password string forwarded to account-add impl
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
 
@@ -83,7 +83,7 @@ Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18
 |---|---|---|
 | `AccountUDN` | response field | impl-produced / per the response writer |
 
-- **`AccountUDN`** — issued service-account UDN
+- **`AccountUDN`**: issued service-account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -93,7 +93,7 @@ Adds a service account: AccountType/AccountID/AccountPassword via impl->v\[+0x18
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10731f28 — wrapper family decode
+- @ 0x10731f28; wrapper family decode
 
 </details>
 
@@ -103,7 +103,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, optional-arg fetch×2, 0x28×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731f28 — req-vfunc call map: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0x28': 1, '0x10': 1, '0xc': 1}
+- fn 0x10731f28; req-vfunc call map: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0x28': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -113,7 +113,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731f28 — member vfunc calls: \['*(r30+4) v\[+0x18\]'\]
+- fn 0x10731f28; member vfunc calls: \['*(r30+4) v\[+0x18\]'\]
 
 </details>
 
@@ -127,7 +127,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x18\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731f28 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x18\]'\]
+- fn 0x10731f28; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x18\]'\]
 
 </details>
 
@@ -137,7 +137,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731f28 — bl call scan: notify-family sites = \[\]
+- fn 0x10731f28; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -147,7 +147,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731f28 — commit/fault slot usage: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0x28': 1, '0x10': 1, '0xc': 1}
+- fn 0x10731f28; commit/fault slot usage: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0x28': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -162,8 +162,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -171,7 +171,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -191,9 +191,9 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 - req vcall `0x10731fe4` slot `8` (parse)
 - req vcall `0x10732080` slot `40` (other)
 
-- fn 0x10731f28 @ 0x10731f28 — action wrapper handler
-- @ 0x10f110f0 — action dispatch table entry
-- fn 0x1068f8cc — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x18
+- fn 0x10731f28 @ 0x10731f28; action wrapper handler
+- @ 0x10f110f0; action dispatch table entry
+- fn 0x1068f8cc; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x18
 
 </details>
 
@@ -201,7 +201,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Adds a service account using OAuth-style credentials instead of a raw password — the modern login flow where the app hands the player a token and key obtained from the service's sign-in page. It takes a full bundle of credential fields and registers the account.
+Adds a service account using OAuth-style credentials instead of a raw password. This is the modern login flow where the app hands the player a token and key obtained from the service's sign-in page. It takes a full bundle of credential fields and registers the account.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -222,28 +222,28 @@ Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
 | `UserIdHashCode` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 25 chars | none; required |
 | `AccountTier` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / parser-type bounded | none; required |
 
-- **`AccountType`** — music-service account type code
+- **`AccountType`**: music-service account type code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
-- **`AccountToken`** — OAuth token string
+- **`AccountToken`**: OAuth token string
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x802`
-- **`AccountKey`** — OAuth key string
+- **`AccountKey`**: OAuth key string
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x802`
-- **`OAuthDeviceID`** — OAuth device identifier arg to account-add impl
+- **`OAuthDeviceID`**: OAuth device identifier arg to account-add impl
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x42`
-- **`AuthorizationCode`** — OAuth authorization code
+- **`AuthorizationCode`**: OAuth authorization code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x402`
-- **`RedirectURI`** — OAuth redirect URI
+- **`RedirectURI`**: OAuth redirect URI
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x2002`
-- **`UserIdHashCode`** — user id hash arg to account-add impl
+- **`UserIdHashCode`**: user id hash arg to account-add impl
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x1a`
-- **`AccountTier`** — account tier code
+- **`AccountTier`**: account tier code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
 
@@ -254,9 +254,9 @@ Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
 | `AccountUDN` | response field | impl-produced / per the response writer |
 | `AccountNickname` | response field | impl-produced / per the response writer |
 
-- **`AccountUDN`** — issued service-account UDN
+- **`AccountUDN`**: issued service-account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
-- **`AccountNickname`** — issued account nickname
+- **`AccountNickname`**: issued account nickname
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -266,7 +266,7 @@ Adds an OAuth account: 8 credential fields via impl->v\[+0x1c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10732454 — wrapper family decode
+- @ 0x10732454; wrapper family decode
 
 </details>
 
@@ -276,7 +276,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (none)
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732454 — req-vfunc call map: {}
+- fn 0x10732454; req-vfunc call map: {}
 
 </details>
 
@@ -286,7 +286,7 @@ impl consumes in-args via req slots (none)
 service-internal state reached through member delegate(s): none - impl works on req/inline members only
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732454 — member vfunc calls: \[\]
+- fn 0x10732454; member vfunc calls: \[\]
 
 </details>
 
@@ -300,7 +300,7 @@ service-internal state reached through member delegate(s): none - impl works on 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): none
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732454 — no transition-literal/store pattern; member delegates: \[\]
+- fn 0x10732454; no transition-literal/store pattern; member delegates: \[\]
 
 </details>
 
@@ -310,7 +310,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732454 — bl call scan: notify-family sites = \[\]
+- fn 0x10732454; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -320,7 +320,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732454 — commit/fault slot usage: {}
+- fn 0x10732454; commit/fault slot usage: {}
 
 </details>
 
@@ -334,8 +334,8 @@ request-validate failure (req->v\[+0x08\] returned 0)
 - request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v\[+0x14\]
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -343,7 +343,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -365,9 +365,9 @@ None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required
 - req vcall `0x10732784` slot `40` (other)
 - req vcall `0x107327ac` slot `12` (commit)
 
-- fn 0x10732454 @ 0x10732454 — action wrapper handler
-- @ 0x10f110fc — action dispatch table entry
-- fn 0x1068b7d0 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x1c
+- fn 0x10732454 @ 0x10732454; action wrapper handler
+- @ 0x10f110fc; action dispatch table entry
+- fn 0x1068b7d0; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x1c
 
 </details>
 
@@ -375,7 +375,7 @@ None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Runs the housekeeping jobs that should happen after a firmware update — migration and cleanup steps the system wants performed once the new software is up. Invoked by the update flow rather than by users.
+Runs the housekeeping jobs that should happen after a firmware update, meaning the migration and cleanup steps the system wants performed once the new software is up. It is invoked by the update flow rather than by users.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -390,7 +390,7 @@ Runs post-update migration/cleanup tasks via impl->v\[+0x14\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10732e24 — wrapper family decode
+- @ 0x10732e24; wrapper family decode
 
 </details>
 
@@ -400,7 +400,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v\[+0x38\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732e24 — req-vfunc call map: {'0x14': 1, '0xc': 1}
+- fn 0x10732e24; req-vfunc call map: {'0x14': 1, '0xc': 1}
 
 </details>
 
@@ -410,7 +410,7 @@ impl consumes in-args via req slots (raise-fault×1, commit×1); member delegate
 service-internal state reached through member delegate(s): *(r3+4) v\[+0x38\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732e24 — member vfunc calls: \['*(r3+4) v\[+0x38\]'\]
+- fn 0x10732e24; member vfunc calls: \['*(r3+4) v\[+0x38\]'\]
 
 </details>
 
@@ -424,7 +424,7 @@ service-internal state reached through member delegate(s): *(r3+4) v\[+0x38\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x38\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732e24 — no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x38\]'\]
+- fn 0x10732e24; no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x38\]'\]
 
 </details>
 
@@ -434,7 +434,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732e24 — bl call scan: notify-family sites = \[\]
+- fn 0x10732e24; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -444,7 +444,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732e24 — commit/fault slot usage: {'0x14': 1, '0xc': 1}
+- fn 0x10732e24; commit/fault slot usage: {'0x14': 1, '0xc': 1}
 
 </details>
 
@@ -459,8 +459,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -476,9 +476,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10732e90` obj `*(*(r4-in+0x0)+0x14)` slot `12` arg4 `vret(*(r3-in+0x4),+0x38)`
 - req vcall `0x10732e48` slot `56` (commit)
 
-- fn 0x10732e24 @ 0x10732e24 — action wrapper handler
-- @ 0x10f11108 — action dispatch table entry
-- @ 0x10732e24 — handler body: impl call + fault/commit only; no parse or emit arg sites
+- fn 0x10732e24 @ 0x10732e24; action wrapper handler
+- @ 0x10f11108; action dispatch table entry
+- @ 0x10732e24; handler body: impl call + fault/commit only; no parse or emit arg sites
 
 </details>
 
@@ -486,7 +486,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Edits the metadata attached to a stored service account — extra descriptive data the service keeps about the login, distinct from the password itself. Extra descriptive data the service keeps about a login, distinct from the password itself.
+Edits the metadata attached to a stored service account, which is the extra descriptive data the service keeps about a login, distinct from the password itself.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -502,13 +502,13 @@ Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
 | `AccountID` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 127 chars | none; required |
 | `NewAccountMd` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 127 chars | none; required |
 
-- **`AccountType`** — music-service account type code
+- **`AccountType`**: music-service account type code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
-- **`AccountID`** — existing account id
+- **`AccountID`**: existing account id
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
-- **`NewAccountMd`** — new account metadata payload arg
+- **`NewAccountMd`**: new account metadata payload arg
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
 
@@ -519,7 +519,7 @@ Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v\[+0x30\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10732310 — wrapper family decode
+- @ 0x10732310; wrapper family decode
 
 </details>
 
@@ -529,7 +529,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: *(r30+4) v\[+0x30\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732310 — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10732310; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -539,7 +539,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, vali
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x30\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732310 — member vfunc calls: \['*(r30+4) v\[+0x30\]'\]
+- fn 0x10732310; member vfunc calls: \['*(r30+4) v\[+0x30\]'\]
 
 </details>
 
@@ -553,7 +553,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x30\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x30\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732310 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x30\]'\]
+- fn 0x10732310; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x30\]'\]
 
 </details>
 
@@ -563,7 +563,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732310 — bl call scan: notify-family sites = \[\]
+- fn 0x10732310; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -573,7 +573,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732310 — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10732310; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -593,7 +593,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -607,9 +607,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - impl call `0x10732448` obj `*(sp-0x130+0x12c)` slot `12` arg4 `402`
 - req vcall `0x107323bc` slot `8` (parse)
 
-- fn 0x10732310 @ 0x10732310 — action wrapper handler
-- @ 0x10f11114 — action dispatch table entry
-- fn 0x101953c0 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x30
+- fn 0x10732310 @ 0x10732310; action wrapper handler
+- @ 0x10f11114; action dispatch table entry
+- fn 0x101953c0; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x30
 
 </details>
 
@@ -617,7 +617,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Supposed to change the password on a stored service account — but in this firmware build it is a documented no-op: the routine behind it is an empty routine that accepts the request, returns success, and updates nothing. The command remains advertised in the spec, but the actual password-edit feature was removed; account credentials now change through the replace/refresh commands instead.
+Supposed to change the password on a stored service account, but in this firmware build it is a documented no-op: the routine behind it is an empty routine that accepts the request, returns success, and updates nothing. The command remains advertised in the spec, but the actual password-edit feature was removed. Account credentials now change through the replace and refresh commands instead.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -633,13 +633,13 @@ Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the 
 | `AccountID` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 127 chars | none; required |
 | `NewAccountPassword` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 63 chars | none; required |
 
-- **`AccountType`** — music-service account type code
+- **`AccountType`**: music-service account type code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
-- **`AccountID`** — existing account id Parsed but provably unused: the impl is a no-op.
+- **`AccountID`**: existing account id Parsed but provably unused: the impl is a no-op.
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
-- **`NewAccountPassword`** — argument NewAccountPassword Parsed but provably unused: the impl is a no-op.
+- **`NewAccountPassword`**: argument NewAccountPassword Parsed but provably unused: the impl is a no-op.
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
 
@@ -650,7 +650,7 @@ Parses AccountID + NewAccountPassword, then calls impl->v\[+0x24\] which is the 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107321cc — wrapper family decode
+- @ 0x107321cc; wrapper family decode
 
 </details>
 
@@ -660,7 +660,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, optional-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107321cc — req-vfunc call map: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107321cc; req-vfunc call map: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -670,7 +670,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, opti
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107321cc — member vfunc calls: \['*(r30+4) v\[+0x24\]'\]
+- fn 0x107321cc; member vfunc calls: \['*(r30+4) v\[+0x24\]'\]
 
 </details>
 
@@ -684,7 +684,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x24\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107321cc — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x24\]'\]
+- fn 0x107321cc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x24\]'\]
 
 </details>
 
@@ -694,7 +694,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107321cc — bl call scan: notify-family sites = \[\]
+- fn 0x107321cc; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -704,7 +704,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107321cc — commit/fault slot usage: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107321cc; commit/fault slot usage: {'0x1c': 1, '0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -722,7 +722,7 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -740,10 +740,10 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 - impl call `0x10732304` obj `*(sp-0xf0+0xec)` slot `12` arg4 `402`
 - req vcall `0x10732278` slot `8` (parse)
 
-- fn 0x107321cc @ 0x107321cc — action wrapper handler
-- @ 0x10f11120 — action dispatch table entry
-- fn 0x1019d288 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x24
-- fn 0x1019d288 — impl vfunc +0x24 -> null stub
+- fn 0x107321cc @ 0x107321cc; action wrapper handler
+- @ 0x10f11120; action dispatch table entry
+- fn 0x1019d288; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x24
+- fn 0x1019d288; impl vfunc +0x24 -> null stub
 
 </details>
 
@@ -751,7 +751,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Turns the remote-diagnostics feature on or off — the flag that controls whether Sonos's support tooling is allowed deeper access to the player for troubleshooting. Support sessions that need more than the normal logs get it by enabling RDM through this command.
+Turns the remote-diagnostics feature on or off, the flag that controls whether Sonos's support tooling is allowed deeper access to the player for troubleshooting. Support sessions that need more than the normal logs get it by enabling RDM through this command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -765,7 +765,7 @@ Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
 |---|---|---|---|---|
 | `RDMValue` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / parser-type bounded | none; required |
 
-- **`RDMValue`** — RDM (remote diagnostics) flag
+- **`RDMValue`**: RDM (remote diagnostics) flag
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
 
@@ -776,7 +776,7 @@ Sets the RDM (remote diagnostics) flag via impl->v\[+0x3c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10732c80 — wrapper family decode
+- @ 0x10732c80; wrapper family decode
 
 </details>
 
@@ -786,7 +786,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x3c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732c80 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10732c80; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -796,7 +796,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732c80 — member vfunc calls: \['*(r30+4) v\[+0x3c\]'\]
+- fn 0x10732c80; member vfunc calls: \['*(r30+4) v\[+0x3c\]'\]
 
 </details>
 
@@ -810,7 +810,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x3c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732c80 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x3c\]'\]
+- fn 0x10732c80; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x3c\]'\]
 
 </details>
 
@@ -820,7 +820,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732c80 — bl call scan: notify-family sites = \[\]
+- fn 0x10732c80; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -830,7 +830,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732c80 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10732c80; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -858,9 +858,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10732d60` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x10732cdc` slot `8` (parse)
 
-- fn 0x10732c80 @ 0x10732c80 — action wrapper handler
-- @ 0x10f1112c — action dispatch table entry
-- fn 0x10188180 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x3c
+- fn 0x10732c80 @ 0x10732c80; action wrapper handler
+- @ 0x10f1112c; action dispatch table entry
+- fn 0x10188180; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x3c
 
 </details>
 
@@ -868,7 +868,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reports whether remote diagnostics are currently enabled — reads back the flag set by EnableRDM, so an app or support tool can see whether deeper diagnostic access is switched on.
+Reports whether remote diagnostics are currently enabled. It reads back the flag set by EnableRDM, so an app or support tool can see whether deeper diagnostic access is switched on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -882,7 +882,7 @@ Reads the RDM flag via impl->v\[+0x40\].
 |---|---|---|
 | `RDMValue` | response field | impl-produced / per the response writer |
 
-- **`RDMValue`** — RDM flag/value emitted by handler 0x10732d6c
+- **`RDMValue`**: RDM flag/value emitted by handler 0x10732d6c
   - validation: arg-name string loaded at 0x10732df0 inside impl 0x1019db98; emitted via the response writer
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -892,7 +892,7 @@ Reads the RDM flag via impl->v\[+0x40\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10732d6c — wrapper family decode
+- @ 0x10732d6c; wrapper family decode
 
 </details>
 
@@ -902,7 +902,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: *(r3+4) v\[+0x40\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732d6c — req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x10732d6c; req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -912,7 +912,7 @@ impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1
 service-internal state reached through member delegate(s): *(r3+4) v\[+0x40\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732d6c — member vfunc calls: \['*(r3+4) v\[+0x40\]'\]
+- fn 0x10732d6c; member vfunc calls: \['*(r3+4) v\[+0x40\]'\]
 
 </details>
 
@@ -926,7 +926,7 @@ service-internal state reached through member delegate(s): *(r3+4) v\[+0x40\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x40\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732d6c — no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x40\]'\]
+- fn 0x10732d6c; no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x40\]'\]
 
 </details>
 
@@ -936,7 +936,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732d6c — bl call scan: notify-family sites = \[\]
+- fn 0x10732d6c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -946,7 +946,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10732d6c — commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x10732d6c; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -961,8 +961,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -979,9 +979,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10732e18` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
 - Outputs recovered from arg-name string loads inside the impl function (extractor missed them).
 
-- fn 0x10732d6c @ 0x10732d6c — action wrapper handler
-- @ 0x10f11138 — action dispatch table entry
-- fn 0x10195810 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x40
+- fn 0x10732d6c @ 0x10732d6c; action wrapper handler
+- @ 0x10f11138; action dispatch table entry
+- fn 0x10195810; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x40
 
 </details>
 
@@ -989,7 +989,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reads one named setting from the player's generic settings store — 'what is the value of this configuration key'. Other features stash strings here and fetch them back through this command.
+Reads one named setting from the player's generic settings store, answering 'what is the value of this configuration key'. Other features stash strings here and fetch them back through this command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1003,7 +1003,7 @@ Reads config VariableName -> StringValue via impl->v\[+0xc\].
 |---|---|---|---|---|
 | `VariableName` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 1023 chars | none; required |
 
-- **`VariableName`** — property variable name
+- **`VariableName`**: property variable name
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x400`
 
@@ -1013,7 +1013,7 @@ Reads config VariableName -> StringValue via impl->v\[+0xc\].
 |---|---|---|
 | `StringValue` | string/numeric argument record | value within the request parse cap for its type tag; consumed by the impl vfunc / parser-type bounded |
 
-- **`StringValue`** — property string value
+- **`StringValue`**: property string value
   - validation: consumed by impl vfunc on the shared manager object
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1023,7 +1023,7 @@ Reads config VariableName -> StringValue via impl->v\[+0xc\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107319b4 — wrapper family decode
+- @ 0x107319b4; wrapper family decode
 
 </details>
 
@@ -1033,7 +1033,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107319b4 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x107319b4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1043,7 +1043,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107319b4 — member vfunc calls: \['*(r30+4) v\[+0xc\]'\]
+- fn 0x107319b4; member vfunc calls: \['*(r30+4) v\[+0xc\]'\]
 
 </details>
 
@@ -1057,7 +1057,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107319b4 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0xc\]'\]
+- fn 0x107319b4; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0xc\]'\]
 
 </details>
 
@@ -1067,7 +1067,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107319b4 — bl call scan: notify-family sites = \[\]
+- fn 0x107319b4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1077,7 +1077,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107319b4 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x107319b4; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1092,8 +1092,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl vfunc rc surfaced
-**Bounded unknown — unresolved:** concrete rc vocabulary for this operation
+**Bounded unknown (proven):** impl vfunc rc surfaced
+**Bounded unknown (unresolved):** concrete rc vocabulary for this operation
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1110,9 +1110,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10731ad0` obj `*(sp-0xc30+0xc2c)` slot `12` arg4 `?`
 - req vcall `0x10731a14` slot `8` (parse)
 
-- fn 0x107319b4 @ 0x107319b4 — action wrapper handler
-- @ 0x10f11144 — action dispatch table entry
-- fn 0x10537870 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x0c; NULL STUB impl (2-insn no-op)
+- fn 0x107319b4 @ 0x107319b4; action wrapper handler
+- @ 0x10f11144; action dispatch table entry
+- fn 0x10537870; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x0c; NULL STUB impl (2-insn no-op)
 
 </details>
 
@@ -1120,7 +1120,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Requests a short web code for a service account type — the short-lived code used in link-your-account flows, where the speaker produces a code you enter on a website to connect a service without typing a password on the player.
+Requests a short web code for a service account type. This is the short-lived code used in link-your-account flows, where the speaker produces a code you enter on a website to connect a service without typing a password on the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1134,7 +1134,7 @@ Returns a WebCode for AccountType via impl->v\[+0x14\].
 |---|---|---|---|---|
 | `AccountType` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / parser-type bounded | none; required |
 
-- **`AccountType`** — music-service account type code
+- **`AccountType`**: music-service account type code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
 
@@ -1144,7 +1144,7 @@ Returns a WebCode for AccountType via impl->v\[+0x14\].
 |---|---|---|
 | `WebCode` | string/numeric argument record | value within the request parse cap for its type tag; consumed by the impl vfunc / parser-type bounded |
 
-- **`WebCode`** — web-pairing code produced by impl
+- **`WebCode`**: web-pairing code produced by impl
   - validation: consumed by impl vfunc on the shared manager object
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1154,7 +1154,7 @@ Returns a WebCode for AccountType via impl->v\[+0x14\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10731e04 — wrapper family decode
+- @ 0x10731e04; wrapper family decode
 
 </details>
 
@@ -1164,7 +1164,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731e04 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x10731e04; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1174,7 +1174,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731e04 — member vfunc calls: \['*(r30+4) v\[+0x14\]'\]
+- fn 0x10731e04; member vfunc calls: \['*(r30+4) v\[+0x14\]'\]
 
 </details>
 
@@ -1188,7 +1188,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x14\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731e04 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x14\]'\]
+- fn 0x10731e04; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x14\]'\]
 
 </details>
 
@@ -1198,7 +1198,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731e04 — bl call scan: notify-family sites = \[\]
+- fn 0x10731e04; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1208,7 +1208,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731e04 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x10731e04; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1237,9 +1237,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10731f1c` obj `*(sp-0x430+0x42c)` slot `12` arg4 `?`
 - req vcall `0x10731e60` slot `8` (parse)
 
-- fn 0x10731e04 @ 0x10731e04 — action wrapper handler
-- @ 0x10f11150 — action dispatch table entry
-- fn 0x10690b78 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x14
+- fn 0x10731e04 @ 0x10731e04; action wrapper handler
+- @ 0x10f11150; action dispatch table entry
+- fn 0x10690b78; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x14
 
 </details>
 
@@ -1247,7 +1247,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Refreshes the stored credentials for a music-service account — the token-renewal path. Modern services rotate credentials; when a session token nears expiry the app calls this with the fresh token/key/ID bundle and the speaker replaces the old ones, keeping the account logged in without a full re-login.
+Refreshes the stored credentials for a music-service account, the token-renewal path. Modern services rotate credentials, and when a session token nears expiry the app calls this with the fresh token/key/ID bundle so the speaker replaces the old ones, keeping the account logged in without a full re-login.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1264,16 +1264,16 @@ Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via im
 | `AccountKey` | SonosStringArg | conditional | value within the request parse cap; consumed by the impl vfunc / max 2049 chars | absent tolerated - optional lookup via request v\[+0x20\] |
 | `AccountUID` | SonosStringArg | yes | value within the request parse cap; consumed by the impl vfunc / length-bounded by parse-helper buffer cap | none - required argument |
 
-- **`AccountType`** — Account credential field consumed by impl vfunc +0x2c
+- **`AccountType`**: Account credential field consumed by impl vfunc +0x2c
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
-- **`AccountToken`** — Account credential field consumed by impl vfunc +0x2c
+- **`AccountToken`**: Account credential field consumed by impl vfunc +0x2c
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x802`
-- **`AccountKey`** — Account credential field consumed by impl vfunc +0x2c
+- **`AccountKey`**: Account credential field consumed by impl vfunc +0x2c
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x802`
-- **`AccountUID`** — Account credential field consumed by impl vfunc +0x2c
+- **`AccountUID`**: Account credential field consumed by impl vfunc +0x2c
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
 
@@ -1284,7 +1284,7 @@ Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via im
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107327d4 — wrapper family decode
+- @ 0x107327d4; wrapper family decode
 
 </details>
 
@@ -1294,7 +1294,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×2, required-arg fetch×2, optional-arg fetch×2, validate×1, commit×1); member delegates: *(r28+4) v\[+0x2c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107327d4 — req-vfunc call map: {'0x1c': 2, '0x20': 2, '0x8': 1, '0x14': 2, '0xc': 1}
+- fn 0x107327d4; req-vfunc call map: {'0x1c': 2, '0x20': 2, '0x8': 1, '0x14': 2, '0xc': 1}
 
 </details>
 
@@ -1304,7 +1304,7 @@ impl consumes in-args via req slots (raise-fault×2, required-arg fetch×2, opti
 service-internal state reached through member delegate(s): *(r28+4) v\[+0x2c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107327d4 — member vfunc calls: \['*(r28+4) v\[+0x2c\]'\]
+- fn 0x107327d4; member vfunc calls: \['*(r28+4) v\[+0x2c\]'\]
 
 </details>
 
@@ -1318,7 +1318,7 @@ service-internal state reached through member delegate(s): *(r28+4) v\[+0x2c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v\[+0x2c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107327d4 — no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+0x2c\]'\]
+- fn 0x107327d4; no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+0x2c\]'\]
 
 </details>
 
@@ -1328,7 +1328,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107327d4 — bl call scan: notify-family sites = \[\]
+- fn 0x107327d4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1338,7 +1338,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107327d4 — commit/fault slot usage: {'0x1c': 2, '0x20': 2, '0x8': 1, '0x14': 2, '0xc': 1}
+- fn 0x107327d4; commit/fault slot usage: {'0x1c': 2, '0x20': 2, '0x8': 1, '0x14': 2, '0xc': 1}
 
 </details>
 
@@ -1353,8 +1353,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1362,7 +1362,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -1381,9 +1381,9 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 - impl call `0x107329a0` obj `*(sp-0x1040+0x103c)` slot `12` arg4 `vret(*(*(sp-0x1040+0x1030)+0x4),+0x2c)`
 - req vcall `0x107328c4` slot `8` (parse)
 
-- fn 0x107327d4 @ 0x107327d4 — action wrapper handler
-- @ 0x10f1115c — action dispatch table entry
-- fn 0x1019399c — shared manager secondary-base impl, slot +0x2c (thunk)
+- fn 0x107327d4 @ 0x107327d4; action wrapper handler
+- @ 0x10f1115c; action dispatch table entry
+- fn 0x1019399c; shared manager secondary-base impl, slot +0x2c (thunk)
 
 </details>
 
@@ -1391,7 +1391,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Deletes one named setting from the generic settings store — the counterpart of GetString/SetString for keys that should no longer exist. The counterpart of GetString/SetString for keys that should no longer exist.
+Deletes one named setting from the generic settings store. It is the counterpart of GetString and SetString for keys that should no longer exist.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1405,7 +1405,7 @@ Deletes config VariableName via impl->v\[+0x10\].
 |---|---|---|---|---|
 | `VariableName` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 1023 chars | none; required |
 
-- **`VariableName`** — property variable name
+- **`VariableName`**: property variable name
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x400`
 
@@ -1416,7 +1416,7 @@ Deletes config VariableName via impl->v\[+0x10\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10731bf8 — wrapper family decode
+- @ 0x10731bf8; wrapper family decode
 
 </details>
 
@@ -1426,7 +1426,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731bf8 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10731bf8; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1436,7 +1436,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731bf8 — member vfunc calls: \['*(r30+4) v\[+0x10\]'\]
+- fn 0x10731bf8; member vfunc calls: \['*(r30+4) v\[+0x10\]'\]
 
 </details>
 
@@ -1450,7 +1450,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731bf8 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x10\]'\]
+- fn 0x10731bf8; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x10\]'\]
 
 </details>
 
@@ -1460,7 +1460,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731bf8 — bl call scan: notify-family sites = \[\]
+- fn 0x10731bf8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1470,7 +1470,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731bf8 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10731bf8; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1485,8 +1485,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl vfunc rc surfaced
-**Bounded unknown — unresolved:** concrete rc vocabulary for this operation
+**Bounded unknown (proven):** impl vfunc rc surfaced
+**Bounded unknown (unresolved):** concrete rc vocabulary for this operation
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1494,7 +1494,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -1508,9 +1508,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - impl call `0x10731cdc` obj `*(sp-0x430+0x42c)` slot `12` arg4 `402`
 - req vcall `0x10731c58` slot `8` (parse)
 
-- fn 0x10731bf8 @ 0x10731bf8 — action wrapper handler
-- @ 0x10f11168 — action dispatch table entry
-- fn 0x10537870 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x10; NULL STUB impl (2-insn no-op)
+- fn 0x10731bf8 @ 0x10731bf8; action wrapper handler
+- @ 0x10f11168; action dispatch table entry
+- fn 0x10537870; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x10; NULL STUB impl (2-insn no-op)
 
 </details>
 
@@ -1518,7 +1518,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Removes a stored service account — deletes the saved login for a music service by its type and account ID. This is what happens when you remove a service from Sonos in the app.
+Removes a stored service account by deleting the saved login for a music service, given its type and account ID. This is what happens when you remove a service from Sonos in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1533,10 +1533,10 @@ Removes AccountType/AccountID via impl->v\[+0x20\].
 | `AccountType` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / parser-type bounded | none; required |
 | `AccountID` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 127 chars | none; required |
 
-- **`AccountType`** — music-service account type code
+- **`AccountType`**: music-service account type code
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x18`
-- **`AccountID`** — existing account id
+- **`AccountID`**: existing account id
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x80`
 
@@ -1547,7 +1547,7 @@ Removes AccountType/AccountID via impl->v\[+0x20\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107320b4 — wrapper family decode
+- @ 0x107320b4; wrapper family decode
 
 </details>
 
@@ -1557,7 +1557,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107320b4 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107320b4; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1567,7 +1567,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107320b4 — member vfunc calls: \['*(r30+4) v\[+0x20\]'\]
+- fn 0x107320b4; member vfunc calls: \['*(r30+4) v\[+0x20\]'\]
 
 </details>
 
@@ -1581,7 +1581,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107320b4 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x20\]'\]
+- fn 0x107320b4; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x20\]'\]
 
 </details>
 
@@ -1591,7 +1591,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107320b4 — bl call scan: notify-family sites = \[\]
+- fn 0x107320b4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1601,7 +1601,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107320b4 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107320b4; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1616,8 +1616,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1625,7 +1625,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -1639,9 +1639,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - impl call `0x107321c0` obj `*(sp-0xb0+0xac)` slot `12` arg4 `402`
 - req vcall `0x10732138` slot `8` (parse)
 
-- fn 0x107320b4 @ 0x107320b4 — action wrapper handler
-- @ 0x10f11174 — action dispatch table entry
-- fn 0x1069039c — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x20
+- fn 0x107320b4 @ 0x107320b4; action wrapper handler
+- @ 0x10f11174; action dispatch table entry
+- fn 0x1069039c; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x20
 
 </details>
 
@@ -1649,7 +1649,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Replaces one stored account's credentials wholesale — the command for switching a service slot from one login to another. You identify the existing account and supply the full new credential set (ID, password, token, key, and the OAuth device marker), and the speaker swaps them, returning the new account's identifier. This is the working path for account credential changes on this build, since EditAccountPasswordX is a no-op.
+Replaces one stored account's credentials wholesale, which is the command for switching a service slot from one login to another. You identify the existing account and supply the full new credential set (ID, password, token, key, and the OAuth device marker), and the speaker swaps them, returning the new account's identifier. This is the working path for account credential changes on this build, since EditAccountPasswordX is a no-op.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1668,22 +1668,22 @@ Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[
 | `AccountKey` | SonosStringArg | conditional | value within the request parse cap; consumed by the impl vfunc / max 2049 chars | absent tolerated - optional lookup via request v\[+0x20\] |
 | `OAuthDeviceID` | SonosStringArg | conditional | value within the request parse cap; consumed by the impl vfunc / max 65 chars | absent tolerated - optional lookup via request v\[+0x20\] |
 
-- **`AccountUDN`** — Account credential field consumed by impl vfunc +0x34
+- **`AccountUDN`**: Account credential field consumed by impl vfunc +0x34
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x92`
-- **`NewAccountID`** — Account credential field consumed by impl vfunc +0x34
+- **`NewAccountID`**: Account credential field consumed by impl vfunc +0x34
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x82`
-- **`NewAccountPassword`** — Account credential field consumed by impl vfunc +0x34
+- **`NewAccountPassword`**: Account credential field consumed by impl vfunc +0x34
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x42`
-- **`AccountToken`** — Account credential field consumed by impl vfunc +0x34
+- **`AccountToken`**: Account credential field consumed by impl vfunc +0x34
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x802`
-- **`AccountKey`** — Account credential field consumed by impl vfunc +0x34
+- **`AccountKey`**: Account credential field consumed by impl vfunc +0x34
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x802`
-- **`OAuthDeviceID`** — Account credential field consumed by impl vfunc +0x34
+- **`OAuthDeviceID`**: Account credential field consumed by impl vfunc +0x34
   - validation: optional arg fetched via request v\[+0x20\]; absent value tolerated, content capped at helper bound
   - buffer cap: `0x42`
 
@@ -1693,7 +1693,7 @@ Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[
 |---|---|---|
 | `NewAccountUDN` | response field | impl-produced / per the response writer |
 
-- **`NewAccountUDN`** — replacement account UDN
+- **`NewAccountUDN`**: replacement account UDN
   - validation: emitted via req->v\[+0x24/+0x28\] response writer vfunc
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1703,7 +1703,7 @@ Replaces an account's credentials: AccountUDN plus five new fields via impl->v\[
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107329ac — wrapper family decode
+- @ 0x107329ac; wrapper family decode
 
 </details>
 
@@ -1713,7 +1713,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×2, optional-arg fetch×6, 0x28×1, validate×1, commit×1); member delegates: *(r28+4) v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107329ac — req-vfunc call map: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}
+- fn 0x107329ac; req-vfunc call map: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1723,7 +1723,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×2, optional-
 service-internal state reached through member delegate(s): *(r28+4) v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107329ac — member vfunc calls: \['*(r28+4) v\[+?\]'\]
+- fn 0x107329ac; member vfunc calls: \['*(r28+4) v\[+?\]'\]
 
 </details>
 
@@ -1737,7 +1737,7 @@ service-internal state reached through member delegate(s): *(r28+4) v\[+?\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107329ac — no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+?\]'\]
+- fn 0x107329ac; no transition-literal/store pattern; member delegates: \['*(r28+4) v\[+?\]'\]
 
 </details>
 
@@ -1747,7 +1747,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107329ac — bl call scan: notify-family sites = \[\]
+- fn 0x107329ac; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1757,7 +1757,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107329ac — commit/fault slot usage: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}
+- fn 0x107329ac; commit/fault slot usage: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1777,7 +1777,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -1798,9 +1798,9 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 - req vcall `0x10732b18` slot `8` (parse)
 - req vcall `0x10732c30` slot `40` (other)
 
-- fn 0x107329ac @ 0x107329ac — action wrapper handler
-- @ 0x10f11180 — action dispatch table entry
-- fn 0x1017fbe0 — shared manager secondary-base impl, slot +0x34 (thunk)
+- fn 0x107329ac @ 0x107329ac; action wrapper handler
+- @ 0x10f11180; action dispatch table entry
+- fn 0x1017fbe0; shared manager secondary-base impl, slot +0x34 (thunk)
 
 </details>
 
@@ -1808,7 +1808,7 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the friendly name on a stored account — the label like 'Home Spotify' that shows in the app's service list when several accounts for the same service exist.
+Sets the friendly name on a stored account, the label like 'Home Spotify' that shows in the app's service list when several accounts for the same service exist.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1823,10 +1823,10 @@ Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
 | `AccountUDN` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 143 chars | none; required |
 | `AccountNickname` | string/numeric argument record | conditional | value within the request parse cap for its type tag; consumed by the impl vfunc / max 63 chars | none; required |
 
-- **`AccountUDN`** — device UDN arg
+- **`AccountUDN`**: device UDN arg
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x90`
-- **`AccountNickname`** — nickname string arg
+- **`AccountNickname`**: nickname string arg
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x40`
 
@@ -1837,7 +1837,7 @@ Sets AccountNickname for AccountUDN via impl->v\[+0x28\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10731ce8 — wrapper family decode
+- @ 0x10731ce8; wrapper family decode
 
 </details>
 
@@ -1847,7 +1847,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, optional-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x28\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731ce8 — req-vfunc call map: {'0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10731ce8; req-vfunc call map: {'0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1857,7 +1857,7 @@ impl consumes in-args via req slots (raise-fault×1, optional-arg fetch×2, vali
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731ce8 — member vfunc calls: \['*(r30+4) v\[+0x28\]'\]
+- fn 0x10731ce8; member vfunc calls: \['*(r30+4) v\[+0x28\]'\]
 
 </details>
 
@@ -1871,7 +1871,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x28\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731ce8 — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x28\]'\]
+- fn 0x10731ce8; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x28\]'\]
 
 </details>
 
@@ -1881,7 +1881,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731ce8 — bl call scan: notify-family sites = \[\]
+- fn 0x10731ce8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1891,7 +1891,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731ce8 — commit/fault slot usage: {'0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10731ce8; commit/fault slot usage: {'0x20': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1906,8 +1906,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
-**Bounded unknown — unresolved:** concrete rc domain of this impl
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; CR0.eq = success
+**Bounded unknown (unresolved):** concrete rc domain of this impl
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1915,7 +1915,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 #### Notes
@@ -1933,9 +1933,9 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 - impl call `0x10731df8` obj `*(sp-0x100+0xfc)` slot `12` arg4 `402`
 - req vcall `0x10731d70` slot `8` (parse)
 
-- fn 0x10731ce8 @ 0x10731ce8 — action wrapper handler
-- @ 0x10f1118c — action dispatch table entry
-- fn 0x1019d06c — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x28
+- fn 0x10731ce8 @ 0x10731ce8; action wrapper handler
+- @ 0x10f1118c; action dispatch table entry
+- fn 0x1019d06c; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x28
 
 </details>
 
@@ -1943,7 +1943,7 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Writes one named setting into the player's generic settings store — 'save this configuration key with this value'. 'Save this configuration key with this value' — the generic write for the settings store.
+Writes one named setting into the player's generic settings store: 'save this configuration key with this value'. It is the generic write that the settings store accepts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1958,10 +1958,10 @@ Writes VariableName=StringValue via impl->v\[+0x8\].
 | `VariableName` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 1023 chars | none; required |
 | `StringValue` | string/numeric argument record | yes | value within the request parse cap for its type tag; consumed by the impl vfunc / max 2047 chars | none; required |
 
-- **`VariableName`** — property variable name
+- **`VariableName`**: property variable name
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x400`
-- **`StringValue`** — property string value
+- **`StringValue`**: property string value
   - validation: consumed by impl vfunc on the shared manager object
   - buffer cap: `0x800`
 
@@ -1972,7 +1972,7 @@ Writes VariableName=StringValue via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10731adc — wrapper family decode
+- @ 0x10731adc; wrapper family decode
 
 </details>
 
@@ -1982,7 +1982,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731adc — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10731adc; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -1992,7 +1992,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731adc — member vfunc calls: \['*(r30+4) v\[+0x8\]'\]
+- fn 0x10731adc; member vfunc calls: \['*(r30+4) v\[+0x8\]'\]
 
 </details>
 
@@ -2006,7 +2006,7 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731adc — no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x8\]'\]
+- fn 0x10731adc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x8\]'\]
 
 </details>
 
@@ -2016,7 +2016,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731adc — bl call scan: notify-family sites = \[\]
+- fn 0x10731adc; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2026,7 +2026,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10731adc — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10731adc; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2046,7 +2046,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -2060,9 +2060,9 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 - impl call `0x10731bec` obj `*(sp-0xc30+0xc2c)` slot `12` arg4 `402`
 - req vcall `0x10731b64` slot `8` (parse)
 
-- fn 0x10731adc @ 0x10731adc — action wrapper handler
-- @ 0x10f11198 — action dispatch table entry
-- fn 0x101935f0 — shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x08
+- fn 0x10731adc @ 0x10731adc; action wrapper handler
+- @ 0x10f11198; action dispatch table entry
+- fn 0x101935f0; shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x08
 
 </details>
 
@@ -2088,11 +2088,11 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 | `A_ARG_TYPE_UserIdHashCode` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_AccountTier` | ui4 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_RedirectURI` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
-| `CustomerID` | string | yes | evented state variable — appears in SystemProperties LastChange/GENA event notifications |
-| `UpdateID` | ui4 | yes | evented state variable — appears in SystemProperties LastChange/GENA event notifications |
-| `UpdateIDX` | ui4 | yes | evented state variable — appears in SystemProperties LastChange/GENA event notifications |
-| `VoiceUpdateID` | ui4 | yes | evented state variable — appears in SystemProperties LastChange/GENA event notifications |
-| `ThirdPartyHash` | string | yes | evented state variable — appears in SystemProperties LastChange/GENA event notifications |
+| `CustomerID` | string | yes | evented state variable: appears in SystemProperties LastChange/GENA event notifications |
+| `UpdateID` | ui4 | yes | evented state variable: appears in SystemProperties LastChange/GENA event notifications |
+| `UpdateIDX` | ui4 | yes | evented state variable: appears in SystemProperties LastChange/GENA event notifications |
+| `VoiceUpdateID` | ui4 | yes | evented state variable: appears in SystemProperties LastChange/GENA event notifications |
+| `ThirdPartyHash` | string | yes | evented state variable: appears in SystemProperties LastChange/GENA event notifications |
 
 ## Events
 
@@ -2168,8 +2168,8 @@ Implementation sources (recovered): `common/netsettings_mgr.cxx`, `oc/common/src
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x1068bc0c — service router function
-- @ 0x10f110a8 — service vtable
-- @ 0x1073186c — service dispatcher
+- @ 0x1068bc0c; service router function
+- @ 0x10f110a8; service vtable
+- @ 0x1073186c; service dispatcher
 
 </details>

@@ -1,20 +1,20 @@
 # muse API (v1)
 
-The modern Sonos API — the REST-style interface the current app and the cloud channel drive, distinct from the older the older device-control protocol surface documented on the service pages. Where the classic commands are verbose XML exchanges from the early-2000s device-control world, this is the cleaner JSON-over-HTTP design a modern app expects: named resources like 'playback' or 'alarms', standard verbs like GET and PATCH, and structured request bodies. Everything on this page was recovered from the firmware's own route registration tables — hundreds of routes across dozens of resource groups — rather than from any public documentation, which makes this the most complete map of the modern Sonos API available anywhere.
+The modern Sonos API: the REST-style interface the current app and the cloud channel drive, distinct from the older device-control protocol surface documented on the service pages. Where the classic commands are verbose XML exchanges from the early-2000s device-control world, this is the cleaner JSON-over-HTTP design a modern app expects: named resources like 'playback' or 'alarms', standard verbs like GET and PATCH, and structured request bodies. Everything on this page was recovered from the firmware's own route registration tables (hundreds of routes across dozens of resource groups) rather than from any public documentation, which makes this the most complete map of the modern Sonos API available anywhere.
 
-Every route is registered as a small record holding three things: the URL pattern (with placeholders like a player ID), which HTTP methods it accepts, and a machine-name string naming the operation. Most operations exist in two spellings — one addressing a single player directly, one going through the household — which is why the route count is nearly double the operation count. The tables below are the complete recovered route registry.
+Every route is registered as a small record holding three things: the URL pattern (with placeholders like a player ID), which HTTP methods it accepts, and a machine-name string naming the operation. Most operations exist in two spellings, one addressing a single player directly and one going through the household, which is why the route count is nearly double the operation count. The tables below are the complete recovered route registry.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template*, flags, 0, handler*, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb\[,subparam\]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...). All muse routes are mounted under the /api prefix — the master HTTP table registers '/api' -> f_100d2cf8 which installs the muse dispatcher (stubs f_100d36c0/f_100d36e4 -> pipeline f_100d2e18), so on the wire paths are /api/v1/... .
+the complete muse route registration table recovered from rodata: 603 route records across 67 resources / 332 distinct operations. Each record is 24 bytes {path_template*, flags, 0, handler*, 0, csv_descriptor*}. The csv descriptor 'scope,resource,verb\[,subparam\]' names the operation; the path template carries {param} bindings. Most ops exist twice: unscoped (v1/players/{playerId}/...) and household-scoped (v1/households/{householdId}/players/{playerId}/...). All muse routes are mounted under the /api prefix: the master HTTP table registers '/api' -> f_100d2cf8 which installs the muse dispatcher (stubs f_100d36c0/f_100d36e4 -> pipeline f_100d2e18), so on the wire paths are /api/v1/... .
 
 </details>
 
-Each route carries a bitmask saying which HTTP verbs it accepts — GET for reads, POST for creates, PUT and PATCH for edits, DELETE for removals — plus a marker dividing 'settings' operations from 'playback' operations. That division turns out to be meaningful: the pipeline treats the two classes differently when checking permissions.
+Each route carries a bitmask saying which HTTP verbs it accepts (GET for reads, POST for creates, PUT and PATCH for edits, DELETE for removals) plus a marker dividing 'settings' operations from 'playback' operations. That division turns out to be meaningful, because the pipeline treats the two classes differently when checking permissions.
 
-Every route funnels into one shared router — a single front door that all API traffic passes through. Two thin entry points merely record which channel the request arrived on (local network versus the cloud tunnel) before joining the same machinery, so every operation sees a uniform request no matter where it came from.
+Every route funnels into one shared router: a single front door that all API traffic passes through. Two thin entry points merely record which channel the request arrived on (local network versus the cloud tunnel) before joining the same machinery, so every operation sees a uniform request no matter where it came from.
 
-Routes are registered in two dialect tables — one phrased in terms of household IDs (the cloud-flavored form, where requests name the household and the player inside it), one in player IDs (the local form used on your home network). The same operation appears in both, which is why the tables look like near-copies of each other.
+Routes are registered in two dialect tables: one phrased in terms of household IDs (the cloud-flavored form, where requests name the household and the player inside it) and one in player IDs (the local form used on your home network). The same operation appears in both, which is why the tables look like near-copies of each other.
 
 <details markdown="1"><summary><b>Route record internals</b></summary>
 
@@ -22,33 +22,33 @@ Routes are registered in two dialect tables — one phrased in terms of househol
 
 **dispatch:** two stubs only: f_100d36c0 (r8=0) serves 332 records, f_100d36e4 (r8=1) 271; both tail-call f_100d2e18 which normalizes the request into a 0x2a00-byte context (header/flag block at +0x416.., buf +0x2594) and dispatches on the parsed csv op name. r6==NULL fast-path returns 0.
 
-Registration arrays: `primary` — 0x10e7a68c.. (householdId dialect incl. protectedAdmin); `secondary` — 0x10e783f8.. ({HHID} dialect incl. protected-admin)
+Registration arrays: `primary`: 0x10e7a68c.. (householdId dialect incl. protectedAdmin); `secondary`: 0x10e783f8.. ({HHID} dialect incl. protected-admin)
 
 </details>
 
 ## How operations are built
 
-Every operation is a small object built from the same template: a shared 'may I run?' check, its own execute step that does the real work, and a ladder of optional hooks. The early hooks read fields out of the request body — each overridden hook corresponds to one declared parameter — and the later hooks build whatever internal request the operation forwards to the player's engines. Reading which hooks each operation overrides is exactly how each command's parameter list was recovered.
+Every operation is a small object built from the same template: a shared 'may I run?' check, its own execute step that does the real work, and a ladder of optional hooks. The early hooks read fields out of the request body (each overridden hook corresponds to one declared parameter), and the later hooks build whatever internal request the operation forwards to the player's engines. Reading which hooks each operation overrides is exactly how each command's parameter list was recovered.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-Every op is a C++ object sharing one vtable skeleton: `+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate (`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op **execute** (unique per op class — shown as Exec in the tables below), `+0x10` shared default, and `+0x14`..`+0x60` a fixed hook ladder whose base defaults live at `0x101c0638..0x101c06ac`. Ops override subsets of the hooks: the low hooks read body params — each overridden hook is one **declared parameter**, reading exactly one named JSON member through `f_108337b0` (e.g. setVolume: `+0x1c`→`muted`, `+0x20`→`volume`; seek: `+0x1c`→`playOnCompletion`, `+0x20`→`positionMillis`, `+0x28`→`itemId`, `+0x2c`→`window`) — the Params column lists them — and higher hooks build forwarded requests (e.g. `setVolume` overrides `+0x60` to emit `v1/players/{id}/playerVolume/mute` and `v1/groups/{id}/groupVolume`). Each verb registers two op classes — a player-channel variant and a fatter household-channel variant.
+Every op is a C++ object sharing one vtable skeleton: `+0x00`/`+0x04` destructors (per-op), `+0x08` shared run-gate (`0x109c9854`, same in all 682 vtables), `+0x0c` the per-op **execute** (unique per op class, shown as Exec in the tables below), `+0x10` shared default, and `+0x14`..`+0x60` a fixed hook ladder whose base defaults live at `0x101c0638..0x101c06ac`. Ops override subsets of the hooks: the low hooks read body params; each overridden hook is one **declared parameter**, reading exactly one named JSON member through `f_108337b0` (e.g. setVolume: `+0x1c`→`muted`, `+0x20`→`volume`; seek: `+0x1c`→`playOnCompletion`, `+0x20`→`positionMillis`, `+0x28`→`itemId`, `+0x2c`→`window`) (the Params column lists them) and higher hooks build forwarded requests (e.g. `setVolume` overrides `+0x60` to emit `v1/players/{id}/playerVolume/mute` and `v1/groups/{id}/groupVolume`). Each verb registers two op classes: a player-channel variant and a fatter household-channel variant.
 
 </details>
 
-Before any operation runs, a shared validation library checks the request body field by field — missing required fields, wrong types, out-of-range values, unknown fields that shouldn't be there. It's the same idea as the argument checking on the classic command surface, just generalized for JSON documents: every operation gets uniform, thorough input checking without implementing it itself.
+Before any operation runs, a shared validation library checks the request body field by field for missing required fields, wrong types, out-of-range values, and unknown fields that shouldn't be there. It's the same idea as the argument checking on the classic command surface, just generalized for JSON documents: every operation gets uniform, thorough input checking without implementing it itself.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-**Body validation library** (`0x109c74b0..0x109ca92c`): typed validators keyed by field name — `f_109ca3b4` emits 'Missing required field: ', `f_109c9cc0` 'Unexpected type given for key: ', `f_109c8c60` 'Found unexpected array for '/'Unable to parse array for ', `f_109c90ec` 'Found object for ', `f_109ca92c` coerces strings ('Unable to coerce string to boolean for key: '/' to number for key: '), `f_109c7cb4`/`f_109c8004`/`f_109c8354`/`f_109c86dc` numeric bounds ('below minimum of '/'above maximum of '), `f_109c7954` 'Parameter '…' out of range: ', `f_109c74b0` timestamps (' failed timestamp validation'), `f_109c7740` ' not a valid Muse error code'.
+**Body validation library** (`0x109c74b0..0x109ca92c`): typed validators keyed by field name; `f_109ca3b4` emits 'Missing required field: ', `f_109c9cc0` 'Unexpected type given for key: ', `f_109c8c60` 'Found unexpected array for '/'Unable to parse array for ', `f_109c90ec` 'Found object for ', `f_109ca92c` coerces strings ('Unable to coerce string to boolean for key: '/' to number for key: '), `f_109c7cb4`/`f_109c8004`/`f_109c8354`/`f_109c86dc` numeric bounds ('below minimum of '/'above maximum of '), `f_109c7954` 'Parameter '…' out of range: ', `f_109c74b0` timestamps (' failed timestamp validation'), `f_109c7740` ' not a valid Muse error code'.
 
 </details>
 
 ## Request pipeline
 
-The gauntlet each API request runs before it reaches real work: the incoming HTTP request is unpacked, its content type checked, the caller's credentials verified, the URL's numeric placeholders parsed, the body decoded as JSON and validated field-by-field, and only then the operation's own execute step runs. Each stage can reject the request with its own error before any music-relevant code is touched — which is why the API fails so uniformly: the failures all happen here, not in the operations.
+The gauntlet each API request runs before it reaches real work: the incoming HTTP request is unpacked, its content type checked, the caller's credentials verified, the URL's numeric placeholders parsed, the body decoded as JSON and validated field-by-field, and only then does the operation's own execute step run. Each stage can reject the request with its own error before any music-relevant code is touched, which is why the API fails so uniformly: the failures all happen here, not in the operations.
 
-Stage one: the incoming HTTP request is unpacked into a working context — headers, flags, and a scratch space the later stages fill in. From here on, the request is a structured object, not raw text.
+Stage one: the incoming HTTP request is unpacked into a working context made of headers, flags, and a scratch space the later stages fill in. From here on, the request is a structured object, not raw text.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -56,7 +56,7 @@ Stage one: the incoming HTTP request is unpacked into a working context — head
 
 </details>
 
-Stage two: requests carrying a body must declare they're sending JSON; edit operations (PATCH) additionally demand the merge-patch content type. Wrong or missing declarations are rejected here — the API refuses to guess what format a body is in.
+Stage two: requests carrying a body must declare they're sending JSON, and edit operations (PATCH) additionally demand the merge-patch content type. Wrong or missing declarations are rejected here, because the API refuses to guess what format a body is in.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -64,7 +64,7 @@ Stage two: requests carrying a body must declare they're sending JSON; edit oper
 
 </details>
 
-Stage three: an API-key check guards the whole surface. A missing or wrong key fails with 'Invalid API key' before anything else is examined — the bouncer at the door of the modern API. On local requests the check is typically satisfied by the household's own credentials; it's what stops arbitrary network neighbors from driving your speakers.
+Stage three: an API-key check guards the whole surface. A missing or wrong key fails with 'Invalid API key' before anything else is examined, making it the bouncer at the door of the modern API. On local requests the check is typically satisfied by the household's own credentials, and it's what stops arbitrary network neighbors from driving your speakers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -72,7 +72,7 @@ Stage three: an API-key check guards the whole surface. A missing or wrong key f
 
 </details>
 
-Stage four: numeric placeholders in the URL — the player, group, and household IDs embedded in the path — are parsed as integers. A non-numeric or malformed ID is rejected here, before it can confuse an operation.
+Stage four: numeric placeholders in the URL (the player, group, and household IDs embedded in the path) are parsed as integers. A non-numeric or malformed ID is rejected here, before it can confuse an operation.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -80,7 +80,7 @@ Stage four: numeric placeholders in the URL — the player, group, and household
 
 </details>
 
-Stage five: the JSON body is decoded into a working store — the structured document the operation's parameter hooks will read from. Malformed JSON fails here, and then the field-by-field validation library checks what was decoded.
+Stage five: the JSON body is decoded into a working store, the structured document the operation's parameter hooks will read from. Malformed JSON fails here, and then the field-by-field validation library checks what was decoded.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -88,7 +88,7 @@ Stage five: the JSON body is decoded into a working store — the structured doc
 
 </details>
 
-How pipeline failures are reported — each stage can abort with its own status code and error string before the operation ever runs, which is why API errors are so uniform: they all come from this shared gauntlet, not from the operations themselves.
+How pipeline failures are reported: each stage can abort with its own status code and error string before the operation ever runs. That's why API errors are so uniform: they all come from this shared gauntlet, not from the operations themselves.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -96,7 +96,7 @@ How pipeline failures are reported — each stage can abort with its own status 
 
 </details>
 
-Stage six: with everything validated, the named operation's own execute method finally runs — the stage that actually does the work, reading its parameters from the body store via its hooks and forwarding the real request to the player's engines.
+Stage six: with everything validated, the named operation's own execute method finally runs. This is the stage that actually does the work, reading its parameters from the body store via its hooks and forwarding the real request to the player's engines.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -106,7 +106,7 @@ Stage six: with everything validated, the named operation's own execute method f
 
 ## Outbound (player as muse client)
 
-The player is also a client of this same API — it builds these very calls itself toward other players and toward the cloud, for features like group volume fan-out and household coordination. The outbound vocabulary and request-building machinery lives here: the same API, from the sender's side.
+The player is also a client of this same API: it builds these very calls itself toward other players and toward the cloud, for features like group volume fan-out and household coordination. The outbound vocabulary and request-building machinery lives here, showing the same API from the sender's side.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -118,7 +118,7 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 |---|---|
 | `activateZone` | suffix `/activate` |
 | `addMissingZoneDefinition` | suffix `/missingDefinition` |
-| `addZoneDefinition` | — |
+| `addZoneDefinition` | none |
 | `authenticateClient` | prefix `players/` suffix `/authenticateClient` |
 | `authorizeDevice` | prefix `players/` suffix `/authorizeDevice` |
 | `batchTranslate` | prefix `services/` suffix `/ids` |
@@ -127,7 +127,7 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 | `deactivateZone` | suffix `/deactivate` |
 | `deleteInvite` | query `inviteId=` |
 | `duck` | suffix `/duck` |
-| `getActiveZoneList` | — |
+| `getActiveZoneList` | none |
 | `getContent` | suffix `/content` |
 | `getGroups` | query `includeDeviceInfo=` |
 | `getGroupsEx` | suffix `/extended` |
@@ -135,7 +135,7 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 | `getPolicyKey` | suffix `/policy` |
 | `getUsers` | suffix `/users` query `mainAccountId=` |
 | `getZoneDefinition` | suffix `/definition` |
-| `getZoneDefinitionList` | — |
+| `getZoneDefinitionList` | none |
 | `joinZone` | prefix `players/` suffix `/join` |
 | `loadContainer` | suffix `/loadContainer` |
 | `loadContent` | suffix `/content` |
@@ -146,7 +146,7 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 | `pause` | suffix `/pause` |
 | `play` | suffix `/play` |
 | `redeemInvite` | suffix `/redeem` |
-| `removeZoneDefinition` | — |
+| `removeZoneDefinition` | none |
 | `reportAccountSubscription` | suffix `/accountSubscription` |
 | `reportFirmwareDownload` | suffix `/firmwareDownload` |
 | `reportProductEvent` | suffix `/productEvent` |
@@ -169,11 +169,11 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 | `unjoinZone` | suffix `/unjoin` |
 | `unsubscribeUser` | prefix `households/` |
 | `updateActiveZone` | suffix `/activeZone` |
-| `updateZoneDefinition` | — |
+| `updateZoneDefinition` | none |
 | `updateZoneMemberSettings` | suffix `/memberSettings` |
 
 
-The request and response field names each API namespace works with — the vocabulary of the JSON documents flowing through the routes: which keys appear in playback commands, group settings, alarm edits. Field names matter because they're the real API contract — the strings an app actually sends.
+The request and response field names each API namespace works with: the vocabulary of the JSON documents flowing through the routes, covering which keys appear in playback commands, group settings, and alarm edits. Field names matter because they're the real API contract, meaning the strings an app actually sends.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -185,28 +185,28 @@ Per-namespace request-field vocabulary recovered from the .got2 outbound descrip
 |---|---|
 | `authorization` | `assertion`, `attributes`, `grantType`, `inviteId`, `mainAccountId`, `objectId`, `objectType`, `role`, `targetType`, `targetid`, `token` |
 | `catalog` | `objectIds` |
-| `entitlements` | — |
+| `entitlements` | none |
 | `groups` | `areaIds`, `musicContextGroupId`, `playerIds`, `playerIdsToAdd`, `playerIdsToRemove` |
-| `history` | — |
+| `history` | none |
 | `playback` | `action`, `advertisingInfo`, `allowTvPauseRestore`, `containerId`, `containerMetadata`, `defaults`, `deltaMillis`, `deviceFeedback`, `deviceId`, `id`, `instanceId`, `itemId`, `metadata`, `playModes`, `playOnCompletion`, `playbackAction`, `playbackLocation`, `positionMillis`, `queueAction`, `stationId`, `trackNumber`, `tracks`, `type` |
 | `playerVolume` | `durationMillis`, `muted`, `volume`, `volumeDelta` |
 | `settings` | `channelMapSet`, `name`, `zoneDefinition` |
-| `smartplay` | — |
+| `smartplay` | none |
 | `systemReporting` | `accountHash`, `accountType`, `keyName`, `keyValue`, `model`, `osVersion`, `softwareVersion` |
 | `zones` | `backhaulChannel`, `flatChannelMapSet`, `fronthaulChannel`, `isHomeTheater` |
 
 
 ## Event channels
 
-The named event channels available on the modern websocket connection — how an app subscribes to live updates from the API layer rather than polling. Each channel name identifies a feed of changes (playback state, group membership, settings) the app can opt into.
+The named event channels available on the modern websocket connection: how an app subscribes to live updates from the API layer rather than polling. Each channel name identifies a feed of changes (playback state, group membership, settings) the app can opt into.
 
-The complete muse event-channel namespace emitted over /websocket/api — each channel name below is a subscription target in the muse event bus (SUBSCRIBE/NOTIFY per channel). Includes several channels with no public documentation: waterStatus, poeStatus, speakerPresenceRateChange, microphoneSwitchStatus, bluetoothPairingStatus/ConnectionStatus, wiredSubConnectionStatus, trueroomAdaptationStatusEvent.
+The complete muse event-channel namespace emitted over /websocket/api: each channel name below is a subscription target in the muse event bus (SUBSCRIBE/NOTIFY per channel). Includes several channels with no public documentation: waterStatus, poeStatus, speakerPresenceRateChange, microphoneSwitchStatus, bluetoothPairingStatus/ConnectionStatus, wiredSubConnectionStatus, trueroomAdaptationStatusEvent.
 
 `groups`, `groupVolume`, `localDevices`, `playbackError`, `playerVolume`, `queue`, `timers`, `accessorySwapStatus`, `tvAudioSignalStatus`, `activeZonesChange`, `zoneDefinitionsChange`, `zoneError`, `alarmClock`, `alarmVersionChange`, `areasVersionChange`, `audioClipStatus`, `audioInput`, `availableSoftwareUpdate`, `avTransport`, `batteryStatus`, `wirelessNetworkStatus`, `microphoneSwitchStatus`, `waterStatus`, `bluetoothPairingStatus`, `bluetoothConnectionStatus`, `poeStatus`, `lineInStatus`, `wiredSubConnectionStatus`, `cloudRegistration`, `connectionManager`, `contentDirectory`, `deviceProperties`, `diagnosticSubmissionResults`, `diagnosticMetadata`, `effectiveSettingsDataChanged`, `entitlementsVersionChanged`, `extendedDeviceStatus`, `extendedPlaybackStatus`, `favoritesVersionChange`, `groupCoordinatorChanged`, `groupManagement`, `groupRendering`, `hdmiStatus`, `historyVersionChanged`, `householdUpdateStatus`, `upgradeManager`, `htControl`, `indexerStatus`, `musicServices`, `musicServicesChanged`, `playbackMetadataStatus`, `playbackStatus`, `playlistsVersionChange`, `positioningSessionStatus`, `positioningSessionError`, `positioningDeviceStatus`, `renderingControl`, `sessionError`, `sessionInfo`, `settingsVersionChanged`, `settingsDataChanged`, `settingsPlayerSettingsChanged`, `sleepTimerStatus`, `systemProperties`, `trueplayStatus`, `speakerPresenceStatus`, `speakerPresenceRateChange`, `trueroomAdaptationStatusEvent`, `trueroomCalibrationStatus`, `trueroomStatusEvent`, `virtualLineIn`, `voiceAccountsVersionChange`, `zoneGroupTopology`
 
 ## Resources
 
-The 67 resource groups — 'playback', 'groupVolume', 'alarms', 'devices' and the rest — with the operations each supports. This is the modern API's table of contents: everything the app can do, organized by what it operates on.
+The 67 resource groups ('playback', 'groupVolume', 'alarms', 'devices', and the rest) with the operations each supports. This is the modern API's table of contents: everything the app can do, organized by what it operates on.
 
 | Resource | Ops | Methods | Scope params |
 |---|---|---|---|
@@ -280,11 +280,11 @@ The 67 resource groups — 'playback', 'groupVolume', 'alarms', 'devices' and th
 
 ## `alarms`
 
-Alarm management for the modern API — the JSON twin of the classic alarm service covered on the service pages. Everything the app's alarm screen does flows through these routes: listing every alarm the household knows about, creating a new one with its time/sound/room, editing an existing alarm's fields, and deleting alarms you no longer want. Where the classic commands work one alarm at a time through verbose message exchanges, this surface treats alarms as ordinary API objects an app can fetch and edit like any other data.
+Alarm management for the modern API, which is the JSON twin of the classic alarm service covered on the service pages. Everything the app's alarm screen does flows through these routes: listing every alarm the household knows about, creating a new one with its time, sound, and room, editing an existing alarm's fields, and deleting alarms you no longer want. Where the classic commands work one alarm at a time through verbose message exchanges, this surface treats alarms as ordinary API objects an app can fetch and edit like any other data.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/alarms` | `getAlarms` | `-` | `0x20000101` | `0x10ac7834` `0x10ac7844` desc:`10acc494` | — | c1:`ok`:`upnpEvent`<br>c1:`alarmList`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/alarms` | `getAlarms` | `-` | `0x20000101` | `0x10ac7834` `0x10ac7844` desc:`10acc494` | none | c1:`ok`:`upnpEvent`<br>c1:`alarmList`:`upnpEvent` |
 | `GET` | `v1/households/{householdId}/alarms/{alarmId}` | `fetchAlarm` | `alarmId` | `0x20000101` | `0x10ac7844` `0x10ac7854` desc:`10acc4a4` | `alarmId` | c1:`alarmList`:`upnpEvent`<br>c2:`alarm`:`upnpEvent` `globalError`:`channelMapPair`<br>c1:`ok`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/alarms` | `createAlarm` | `-` | `0x20000102` | `0x10ac7854` `0x10ac7864` desc:`10acc4b4` | `alarmId`, `createAlarm`, `createAlarm` | c2:`alarm`:`upnpEvent` `globalError`:`channelMapPair`<br>c1:`ok`:`upnpEvent`<br>c5:`alarm`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`accessoryId` `globalError`:`none` `globalError`:`wiredSubStatus` |
 | `PUT` | `v1/households/{householdId}/alarms/{alarmId}` | `updateAlarm` | `alarmId` | `0x20000104` | `0x10ac7864` `0x10ac7874` desc:`10acc4c4` | `createAlarm`, `createAlarm`, `enabled`, `alarmId`, `description`, `description` | c5:`alarm`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`accessoryId` `globalError`:`none` `globalError`:`wiredSubStatus`<br>c5:`alarm`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`channelMapPair` `globalError`:`none` `globalError`:`wiredSubStatus` |
@@ -294,7 +294,7 @@ Alarm management for the modern API — the JSON twin of the classic alarm servi
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **alarm_state**: `ALARM_DISABLED`=1, `ALARM_PENDING`=2, `ALARM_SNOOZED`=3, `ALARM_FIRING`=4
 - **instance_state**: `ACTIVE`=1, `DONE`=2, `DISMISSED`=3, `INACTIVE`=4, `INTERRUPTED`=5, `ERROR`=6
@@ -307,11 +307,11 @@ Op-level JSON keys recovered from op-object methods: `muse`, `alarmId`, `createA
 
 ## `areas`
 
-Household 'areas' — the multi-room spaces concept newer app versions use to organize a home into named zones beyond plain rooms. An area groups players into a logical space (like 'downstairs'), and these routes let an app list the household's areas and manage which players belong to each. It's part of the newer organizational model the app is migrating toward.
+Household 'areas', the multi-room spaces concept newer app versions use to organize a home into named zones beyond plain rooms. An area groups players into a logical space like 'downstairs', and these routes let an app list the household's areas and manage which players belong to each. It's part of the newer organizational model the app is migrating toward.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/areas` | `getAreas` | `-` | `0x20000101` | `0x10acc4a4` `0x10acc4b4` desc:`10ad0368` | — | c1:`ok`:`upnpEvent`<br>c1:`areas`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/areas` | `getAreas` | `-` | `0x20000101` | `0x10acc4a4` `0x10acc4b4` desc:`10ad0368` | none | c1:`ok`:`upnpEvent`<br>c1:`areas`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/areas` | `createArea` | `-` | `0x20000102` | `0x10acc4b4` `0x10acc4c4` desc:`10ad0378` | `playerIds`, `playerIds`, `name` | c1:`areas`:`upnpEvent`<br>c5:`area`:`upnpEvent` `playerSetError`:`chirpRequest` `globalError`:`chirpRequest` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` |
 | `PUT` | `v1/households/{householdId}/areas/{areaId}` | `updateArea` | `areaId` | `0x20000104` | `0x10acc4c4` `0x10acc4d4` desc:`10ad0388` | `playerIds`, `playerIds`, `name`, `areaId` | c5:`area`:`upnpEvent` `playerSetError`:`chirpRequest` `globalError`:`chirpRequest` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c6:`area`:`upnpEvent` `playerSetError`:`chirpRequest` `globalError`:`chirpRequest` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`accessorySwap` |
 | `DELETE` | `v1/households/{householdId}/areas/{areaId}` | `removeArea` | `areaId` | `0x20000108` | `0x10acc4d4` `0x10acc4e4` desc:`10ad0398` | `playerIds`, `playerIds`, `areaId` | c6:`area`:`upnpEvent` `playerSetError`:`chirpRequest` `globalError`:`chirpRequest` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`accessorySwap`<br>c3:`ok`:`upnpEvent` `globalError`:`accessorySwap` `globalError`:`chirpRequest` |
@@ -325,7 +325,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `playerIds`, `name`
 
 ## `audioClip`
 
-The audio-clip feature — short sounds the system can play over whatever else is going on: a doorbell chime ringing through every speaker, an intercom-style announcement, a system alert tone. These routes cover uploading a clip into the household and triggering it to play, so a smart doorbell or home-automation event can make the speakers speak.
+The audio-clip feature: short sounds the system can play over whatever else is going on, like a doorbell chime ringing through every speaker, an intercom-style announcement, or a system alert tone. These routes cover uploading a clip into the household and triggering it to play, so a smart doorbell or home-automation event can make the speakers speak.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -343,21 +343,21 @@ Op-level JSON keys recovered from op-object methods: `muse`, `clipBehavior`, `vo
 
 ## `authorization`
 
-The sign-in and credential surface for the modern API — where API keys and authorization tokens are issued, presented, and checked. Every other resource group in the modern API trusts the credentials established here, so this is the foundation under the whole security model: get a valid credential here first, or nothing else will talk to you.
+The sign-in and credential surface for the modern API, where API keys and authorization tokens are issued, presented, and checked. Every other resource group in the modern API trusts the credentials established here, so this is the foundation under the whole security model: get a valid credential here first, or nothing else will talk to you.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
 | `POST` | `v1/households/{householdId}/authorization/tokens` | `resolveToken` | `-` | `0x20000102` | `0x10ad4b7c` | `token`, `attributes`, `attributes` | c1: |
 | `GET` | `v1/households/{householdId}/authorization/policy/{policyKey}` | `getPolicyKey` | `policyKey` | `0x20000101` | `0x10ad4b7c` `0x10ad4b8c` desc:`10ad88f8` `10ad8908` `10ad8918` | `token`, `attributes`, `attributes`, `policyKey` | c1:<br>c1:`authzPolicyKey`:`upnpEvent` |
 | `GET` | `v1/households/{householdId}/authorization/permissions/{role}` | `getPermissions` | `role` | `0x20000101` | `0x10ad4b8c` `0x10ad4b9c` desc:`10ad8928` `10ad8938` `10ad8948` | `policyKey`, `role` | c1:`authzPolicyKey`:`upnpEvent`<br>c2:`authzPermissions`:`upnpEvent` `globalError`:`chirpRequest` |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/invite` | `createInvite` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/households/{householdId}/authorization/invite` | `createInvite` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/households/{householdId}/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `GET` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `getUsers` | `-` | `0x20000101` | outbound-fwd | — | — |
-| `GET` | `v1/households/{householdId}/authorization/users` | `getUsers` | `-` | `0x20000101` | outbound-fwd | — | — |
-| `DELETE` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `deleteInvite` | `-` | `0x20000108` | outbound-fwd | — | — |
-| `DELETE` | `v1/households/{householdId}/authorization/users` | `deleteInvite` | `-` | `0x20000108` | outbound-fwd | — | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/invite` | `createInvite` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/households/{householdId}/authorization/invite` | `createInvite` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/households/{householdId}/authorization/redeem` | `redeemInvite` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `GET` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `getUsers` | `-` | `0x20000101` | outbound-fwd | none | none |
+| `GET` | `v1/households/{householdId}/authorization/users` | `getUsers` | `-` | `0x20000101` | outbound-fwd | none | none |
+| `DELETE` | `v1/\[error:  'none' is not a valid target\]/authorization/users` | `deleteInvite` | `-` | `0x20000108` | outbound-fwd | none | none |
+| `DELETE` | `v1/households/{householdId}/authorization/users` | `deleteInvite` | `-` | `0x20000108` | outbound-fwd | none | none |
 | `POST` | `v1/players/{playerId}/authorization/authorizeDevice` | `authorizeDevice` | `-` | `0x20000102` | `0x10ad4b9c` `0x10ad4bac` | `role`, `grantType` | c2:`authzPermissions`:`upnpEvent` `globalError`:`chirpRequest`<br>c2:`authzPermissions`:`upnpEvent` `globalError`:`chirpRequest`<br>c5:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`commandHeader` `globalError`:`container`<br>c5:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`commandHeader` `globalError`:`container` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/authorization/authorizeDevice` | `authorizeDevice` | `-` | `0x20000102` | `0x10ad4b9c` `0x10ad4bac` | `role`, `grantType` | c2:`authzPermissions`:`upnpEvent` `globalError`:`chirpRequest`<br>c2:`authzPermissions`:`upnpEvent` `globalError`:`chirpRequest`<br>c5:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`commandHeader` `globalError`:`container`<br>c5:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`commandHeader` `globalError`:`container` |
 | `POST` | `v1/players/{playerId}/authorization/authenticateClient` | `authenticateClient` | `-` | `0x20000102` | `0x10ad4bac` `0x10ad4bbc` | `grantType` | c5:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`commandHeader` `globalError`:`container`<br>c5:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`commandHeader` `globalError`:`container`<br>c6:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`diagnosticInfo` `globalError`:`content` `globalError`:`cloudDevice`<br>c6:`authorizationGrantResponse`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`diagnosticInfo` `globalError`:`content` `globalError`:`cloudDevice` |
@@ -365,7 +365,7 @@ The sign-in and credential surface for the modern API — where API keys and aut
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **auth_roles**: `OWNER`=1, `GUEST`=2, `CRM`=3, `ADMIN`=4, `EMPLOYEE`=5, `PLAYER_TO_PLAYER`=6, `BLE_DTLS`=7
 - **authz_namespaces**: `AUTHZTOKENS`=1, `AUTHZPOLICIES`=2, `DEVICES`=3, `ENTITLEMENTS`=4, `FCS`=5, `SETTINGS`=6, `HISTORY`=7
@@ -374,21 +374,21 @@ Related enum registrations (proven integer values — see `enum_tables`):
 
 Op-level JSON keys recovered from op-object methods: `token`, `objectId`, `objectType`, `attributes`, `muse`, `policyKey`, `role`, `route`, `protocolVersion`, `grantType`, `assertion`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `objectIds`, `query:accountId`, `query:destinationServiceId`, `query:inviteId`, `query:mainAccountId`, `query:protocolVersion`, `query:route`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `objectIds`, `query:accountId`, `query:destinationServiceId`, `query:inviteId`, `query:mainAccountId`, `query:protocolVersion`, `query:route`
 
 
 </details>
 
 ## `catalog`
 
-The music catalog surface — browsable service content (a service's playlists, charts, stations, and directories) exposed to the app as API resources. It bridges the old browse-the-catalog model into the modern JSON interface, so apps can walk a service's content tree through the same kind of calls they use for everything else.
+The music catalog surface: browsable service content (a service's playlists, charts, stations, and directories) exposed to the app as API resources. It bridges the old browse-the-catalog model into the modern JSON interface, so apps can walk a service's content tree through the same kind of calls they use for everything else.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | outbound-fwd | — | — |
-| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | outbound-fwd | — | — |
-| `GET` | `v1/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | outbound-fwd | — | — |
-| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | outbound-fwd | — | — |
+| `GET` | `v1/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | outbound-fwd | none | none |
+| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/id/{objectId}` | `translate` | `objectId` | `0x20000101` | outbound-fwd | none | none |
+| `GET` | `v1/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | outbound-fwd | none | none |
+| `GET` | `v1/households/{householdId}/services/{serviceId}/catalog/ids` | `batchTranslate` | `-` | `0x20000101` | outbound-fwd | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -401,26 +401,26 @@ Field vocabulary recovered from the resource's implementation functions: `catalo
 
 ## `devices`
 
-The device list — every player in the household presented as a modern API object with its identity, model, capabilities, and current state. When the app builds its roster of 'your Sonos products', this is where that data comes from: one resource per physical speaker.
+The device list: every player in the household presented as a modern API object with its identity, model, capabilities, and current state. When the app builds its roster of 'your Sonos products', this is where that data comes from, with one resource per physical speaker.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/devices` | `getDevices` | `-` | `0x20000101` | resource-block | — | — |
-| `DELETE` | `v1/households/{householdId}/devices/{playerId}` | `removeDevice` | `playerId` | `0x20000108` | resource-block | — | — |
-| `GET` | `v1/households/{householdId}/devices/registrations` | `getDeviceRegistrations` | `-` | `0x20000101` | resource-block | — | — |
-| `GET` | `v1/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | resource-block | — | — |
-| `GET` | `v1/households/{householdId}/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | resource-block | — | — |
-| `POST` | `v1/households/{householdId}/devices/registrations` | `initDeviceRegistration` | `-` | `0x20000102` | resource-block | — | — |
-| `POST` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `completeDeviceRegistration` | `deviceId` | `0x20000102` | resource-block | — | — |
-| `PUT` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `refreshDeviceRegistration` | `deviceId` | `0x20000104` | resource-block | — | — |
-| `DELETE` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `deregisterDevice` | `deviceId` | `0x20000108` | resource-block | — | — |
-| `GET` | `v1/players/{playerId}/devices/registration` | `getRegistrationStatus` | `-` | `0x20000101` | `0x10ad8908` `0x10ad8918` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/devices/registration` | `getRegistrationStatus` | `-` | `0x20000101` | `0x10ad8908` `0x10ad8918` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/devices` | `getDevices` | `-` | `0x20000101` | resource-block | none | none |
+| `DELETE` | `v1/households/{householdId}/devices/{playerId}` | `removeDevice` | `playerId` | `0x20000108` | resource-block | none | none |
+| `GET` | `v1/households/{householdId}/devices/registrations` | `getDeviceRegistrations` | `-` | `0x20000101` | resource-block | none | none |
+| `GET` | `v1/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | resource-block | none | none |
+| `GET` | `v1/households/{householdId}/users/{userId}/devices/registrations` | `getUserDeviceRegistrations` | `-` | `0x20000101` | resource-block | none | none |
+| `POST` | `v1/households/{householdId}/devices/registrations` | `initDeviceRegistration` | `-` | `0x20000102` | resource-block | none | none |
+| `POST` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `completeDeviceRegistration` | `deviceId` | `0x20000102` | resource-block | none | none |
+| `PUT` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `refreshDeviceRegistration` | `deviceId` | `0x20000104` | resource-block | none | none |
+| `DELETE` | `v1/households/{householdId}/devices/registrations/{deviceId}` | `deregisterDevice` | `deviceId` | `0x20000108` | resource-block | none | none |
+| `GET` | `v1/players/{playerId}/devices/registration` | `getRegistrationStatus` | `-` | `0x20000101` | `0x10ad8908` `0x10ad8918` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/devices/registration` | `getRegistrationStatus` | `-` | `0x20000101` | `0x10ad8908` `0x10ad8918` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent` |
 | `PUT` | `v1/players/{playerId}/devices/registration` | `setRegistrationState` | `-` | `0x20000104` | `0x10ad8918` `0x10ad8928` | `assertion` | c1:`RegistrationState`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent`<br>c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList`<br>c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList` |
 | `PUT` | `v1/households/{householdId}/players/{playerId}/devices/registration` | `setRegistrationState` | `-` | `0x20000104` | `0x10ad8918` `0x10ad8928` | `assertion` | c1:`RegistrationState`:`upnpEvent`<br>c1:`RegistrationState`:`upnpEvent`<br>c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList`<br>c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList` |
 | `PUT` | `v1/players/{playerId}/devices/transfer` | `transferDeviceRegistration` | `-` | `0x20000104` | `0x10ad8928` `0x10ad8938` | `assertion` | c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList`<br>c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList`<br>c2:`ok`:`batteryCells` `globalError`:`activeZoneList`<br>c2:`ok`:`batteryCells` `globalError`:`activeZoneList` |
 | `PUT` | `v1/households/{householdId}/players/{playerId}/devices/transfer` | `transferDeviceRegistration` | `-` | `0x20000104` | `0x10ad8928` `0x10ad8938` | `assertion` | c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList`<br>c8:`ok`:`batteryCells` `globalError`:`bluetoothPairing` `globalError`:`channelMapPair` `globalError`:`cloudRegistrationStatus` `globalError`:`chirpRequest` `globalError`:`zoneError` `globalError`:`contentResource` `globalError`:`activeZoneList`<br>c2:`ok`:`batteryCells` `globalError`:`activeZoneList`<br>c2:`ok`:`batteryCells` `globalError`:`activeZoneList` |
-| `GET` | `v1/households/{householdId}/devices/local` | `getLocalDevices` | `-` | `0x20000101` | `0x10ad8938` `0x10ad8948` | — | c2:`ok`:`batteryCells` `globalError`:`activeZoneList`<br>c2:`localDevices`:`upnpEvent` `globalError`:`channelMapPair` |
+| `GET` | `v1/households/{householdId}/devices/local` | `getLocalDevices` | `-` | `0x20000101` | `0x10ad8938` `0x10ad8948` | none | c2:`ok`:`batteryCells` `globalError`:`activeZoneList`<br>c2:`localDevices`:`upnpEvent` `globalError`:`channelMapPair` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -433,7 +433,7 @@ Implementation messages:
 - `\u%04X`
 - `%d`
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **net_state**: `SONOSNET`=1, `STATION`=2, `DISCONNECTED`=3, `STATION_SATELLITE`=4
 - **netmode**: `NETMODE_SONOSNET_WIRED`=1, `NETMODE_SONOSNET_WIRELESS`=2, `NETMODE_WIRED`=3, `NETMODE_WIRED_NO_WIFI`=4, `NETMODE_STATION`=5, `NETMODE_SATELLITE_V1`=6, `NETMODE_SATELLITE_V1_WIRED`=7, `NETMODE_SATELLITE_V2`=8
@@ -451,11 +451,11 @@ Op-level JSON keys recovered from op-object methods: `muse`, `assertion`
 
 ## `devicesExtended`
 
-The extended device surface — the deeper per-device detail beyond the basics: richer capability flags, configuration state, and diagnostics-grade fields the plain devices list doesn't carry. Apps needing more than a name and model consult this instead.
+The extended device surface: the deeper per-device detail beyond the basics, including richer capability flags, configuration state, and diagnostics-grade fields the plain devices list doesn't carry. Apps needing more than a name and model consult this instead.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/devicesExtended` | `getExtendedDeviceStatus` | `-` | `0x20000101` | `0x101c0740` `0x101c0750` | — | c1:`ok`:`upnpEvent`<br>c3:`extendedDeviceStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/devicesExtended` | `getExtendedDeviceStatus` | `-` | `0x20000101` | `0x101c0740` `0x101c0750` | none | c1:`ok`:`upnpEvent`<br>c3:`extendedDeviceStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -470,7 +470,7 @@ Op-level JSON keys recovered from op-object methods: `muse`
 
 ## `diagnostics`
 
-Diagnostics over the modern API — triggering log collection, fetching diagnostic state, and driving the support-reporting flow as JSON routes rather than through the old diagnostic web pages. When the app files a diagnostic report, this is the surface it uses.
+Diagnostics over the modern API: triggering log collection, fetching diagnostic state, and driving the support-reporting flow as JSON routes rather than through the old diagnostic web pages. When the app files a diagnostic report, this is the surface it uses.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -490,7 +490,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `includeControllers
 
 ## `effectiveSettings`
 
-Settings as the speaker actually applies them — the resolved result after defaults, household values, group values, and device-level overrides are merged into one answer. Reading 'the setting' here gives the value that governs real behavior rather than what some screen last typed, which is why automation and the app prefer this surface for checking current state.
+Settings as the speaker actually applies them: the resolved result after defaults, household values, group values, and device-level overrides are merged into one answer. Reading 'the setting' here gives the value that governs real behavior rather than what some screen last typed, which is why automation and the app prefer this surface for checking current state.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -512,36 +512,36 @@ Op-level JSON keys recovered from op-object methods: `muse`, `channel`, `delayMi
 
 ## `entitlements`
 
-Which features this household is entitled to — the license and entitlement surface telling the system (and the app) which capabilities are unlocked: subscriptions, feature flags, regional eligibility. It's the gatekeeping data behind 'this feature isn't available on your system'.
+Which features this household is entitled to: the license and entitlement surface telling the system (and the app) which capabilities are unlocked, covering subscriptions, feature flags, and regional eligibility. It's the gatekeeping data behind 'this feature isn't available on your system'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/users/{userId}/entitlements` | `getUserEntitlements` | `-` | `0x20000101` | `0x10ae4b84` `0x10ae4b94` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/users/{userId}/entitlements` | `getUserEntitlements` | `-` | `0x20000101` | `0x10ae4b84` `0x10ae4b94` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/entitlements` | `getEntitlements` | `-` | `0x20000101` | `0x10ae4b94` `0x10ae4ba4` desc:`10ae9208` `10ae9218` `10ae9228` `10ae9238` `10ae9248` `10ae9258` `10aec758` `10aec768` `10aec778` `10aec788` `10aec798` | — | c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/users/{userId}/entitlements` | `getUserEntitlements` | `-` | `0x20000101` | `0x10ae4b84` `0x10ae4b94` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/users/{userId}/entitlements` | `getUserEntitlements` | `-` | `0x20000101` | `0x10ae4b84` `0x10ae4b94` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/entitlements` | `getEntitlements` | `-` | `0x20000101` | `0x10ae4b94` `0x10ae4ba4` desc:`10ae9208` `10ae9218` `10ae9228` `10ae9238` `10ae9248` `10ae9258` `10aec758` `10aec768` `10aec778` `10aec788` `10aec798` | none | c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`entitlementsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
 Op-level JSON keys recovered from op-object methods: `muse`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `areaIds`, `musicContextGroupId`, `playerIds`, `playerIdsToAdd`, `playerIdsToRemove`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `areaIds`, `musicContextGroupId`, `playerIds`, `playerIdsToAdd`, `playerIdsToRemove`
 
 
 </details>
 
 ## `favorites`
 
-The favorites list over the modern API — your saved stations, playlists, and items managed as plain API resources: list what's saved, add new favorites, remove old ones. The JSON counterpart of the favorites the classic library service tracks.
+The favorites list over the modern API: your saved stations, playlists, and items managed as plain API resources, covering listing what's saved, adding new favorites, and removing old ones. It's the JSON counterpart of the favorites the classic library service tracks.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/favorites` | `getFavorites` | `-` | `0x20000101` | `0x101cc9d0` `0x101cc9e0` | — | c1:`ok`:`upnpEvent`<br>c2:`favoritesList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/favorites` | `getFavorites` | `-` | `0x20000101` | `0x101cc9d0` `0x101cc9e0` | none | c1:`ok`:`upnpEvent`<br>c2:`favoritesList`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/groups/{groupId}/favorites` | `loadFavorite` | `-` | `0x20000102` | `0x101cc9e0` `0x101cc9f0` | `playOnCompletion`, `favoriteId`, `playModes`, `playModes`, `action` | c2:`favoritesList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`favoritesList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c10:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` `globalError`:`album` `globalError`:`allowAirplaySetting` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`alarmDescription` `globalError`:`alarm`<br>c1:`ok`:`upnpEvent`<br>c10:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` `globalError`:`album` `globalError`:`allowAirplaySetting` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`alarmDescription` `globalError`:`alarm`<br>c1:`ok`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/favorites` | `loadFavorite` | `-` | `0x20000102` | `0x101cc9e0` `0x101cc9f0` | `playOnCompletion`, `favoriteId`, `playModes`, `playModes`, `action` | c2:`favoritesList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`favoritesList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c10:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` `globalError`:`album` `globalError`:`allowAirplaySetting` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`alarmDescription` `globalError`:`alarm`<br>c1:`ok`:`upnpEvent`<br>c10:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` `globalError`:`album` `globalError`:`allowAirplaySetting` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`alarmDescription` `globalError`:`alarm`<br>c1:`ok`:`upnpEvent` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
 - **rating_values**: `STAR`=1, `THUMBSUP`=2, `THUMBSDOWN`=3, `LOVE`=4, `HATE`=5, `BAN`=6, `NONE`=7, `SHELVED`=8
@@ -553,7 +553,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `playOnCompletion`,
 
 ## `groupVolume`
 
-Group-level volume over the modern API — the JSON version of the group volume and mute commands: set the group's absolute level, adjust it by a step, read the aggregate value. The routes behind the app's single slider that moves every grouped room at once.
+Group-level volume over the modern API: the JSON version of the group volume and mute commands, covering setting the group's absolute level, adjusting it by a step, and reading the aggregate value. These are the routes behind the app's single slider that moves every grouped room at once.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -585,7 +585,7 @@ Route fragments these ops build or forward to: `v1/players/`, `/playerVolume`, `
 
 ## `groups`
 
-Group management for the modern API — creating groups from rooms, adding member players, removing them, and dissolving groups back into independent rooms. The same group-coordination idea the classic services implement, expressed as resource operations the current app prefers.
+Group management for the modern API: creating groups from rooms, adding member players, removing them, and dissolving groups back into independent rooms. These are the routes behind 'group rooms' in the app.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -606,14 +606,14 @@ Op-level JSON keys recovered from op-object methods: `muse`, `includeDeviceInfo`
 
 ## `hardwareStatus`
 
-Hardware health and status — the player's report on its physical state: temperatures, wireless link quality, and other machine-level readings. Diagnostics screens and the network-health features draw from these routes to explain what's happening inside the box.
+Hardware health and status: the player's report on its physical state, covering temperatures, wireless link quality, and other machine-level readings. Diagnostics screens and the network-health features draw from these routes to explain what's happening inside the box.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/hardwareStatus/bluetooth` | `getBluetoothStatus` | `-` | `0x20000101` | `0x101d4cb4` `0x101d4cc4` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/bluetooth` | `getBluetoothStatus` | `-` | `0x20000101` | `0x101d4cb4` `0x101d4cc4` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
-| `GET` | `v1/players/{playerId}/hardwareStatus/battery` | `getBatteryStatus` | `-` | `0x20000101` | `0x101d4cc4` `0x101d4cd4` | — | c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/battery` | `getBatteryStatus` | `-` | `0x20000101` | `0x101d4cc4` `0x101d4cd4` | — | c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/bluetooth` | `getBluetoothStatus` | `-` | `0x20000101` | `0x101d4cb4` `0x101d4cc4` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/bluetooth` | `getBluetoothStatus` | `-` | `0x20000101` | `0x101d4cb4` `0x101d4cc4` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/battery` | `getBatteryStatus` | `-` | `0x20000101` | `0x101d4cc4` `0x101d4cd4` | none | c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/battery` | `getBatteryStatus` | `-` | `0x20000101` | `0x101d4cc4` `0x101d4cd4` | none | c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`bluetooth`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
 | `POST` | `v1/players/{playerId}/hardwareStatus/battery` | `changeBatteryStatus` | `-` | `0x20000102` | `0x101d4cd4` `0x101d4ce4` | `changeBatteryStatus`, `changeBatteryStatus` | c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c1:`battery`:`upnpEvent`<br>c1:`battery`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/battery` | `changeBatteryStatus` | `-` | `0x20000102` | `0x101d4cd4` `0x101d4ce4` | `changeBatteryStatus`, `changeBatteryStatus` | c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`battery`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c1:`battery`:`upnpEvent`<br>c1:`battery`:`upnpEvent` |
 | `GET` | `v1/players/{playerId}/hardwareStatus/batteryCells` | `getBatteryCells` | `-` | `0x20000101` | `0x101d4ce4` `0x101d4cf4` | `changeBatteryStatus`, `changeBatteryStatus` | c1:`battery`:`upnpEvent`<br>c1:`battery`:`upnpEvent`<br>c4:`batteryCells`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`batteryCells`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
@@ -622,12 +622,12 @@ Hardware health and status — the player's report on its physical state: temper
 | `POST` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/shipMode` | `transitionToShipMode` | `-` | `0x20000102` | `0x101d4cf4` `0x101d4d04` | `requiredMinimumBatteryPercentage` | c4:`batteryCells`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c4:`batteryCells`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c7:`transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`wiredSubStatus` `transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`channelMapPair` `transitionToShipModeStatus`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c7:`transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`wiredSubStatus` `transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`channelMapPair` `transitionToShipModeStatus`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent` |
 | `POST` | `v1/players/{playerId}/hardwareStatus/shutdown` | `initiateOrderlyShutdown` | `-` | `0x20000102` | `0x101d4d04` `0x101d4d14` | `requiredMinimumBatteryPercentage` | c7:`transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`wiredSubStatus` `transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`channelMapPair` `transitionToShipModeStatus`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c7:`transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`wiredSubStatus` `transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`channelMapPair` `transitionToShipModeStatus`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/shutdown` | `initiateOrderlyShutdown` | `-` | `0x20000102` | `0x101d4d04` `0x101d4d14` | `requiredMinimumBatteryPercentage` | c7:`transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`wiredSubStatus` `transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`channelMapPair` `transitionToShipModeStatus`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c7:`transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`wiredSubStatus` `transitionToShipModeStatus`:`upnpEvent` `transitionToShipModeStatus`:`channelMapPair` `transitionToShipModeStatus`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent` |
-| `GET` | `v1/players/{playerId}/hardwareStatus/ethernet` | `getEthernetStatus` | `-` | `0x20000101` | `0x101d4d14` `0x101d4d24` | — | c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/ethernet` | `getEthernetStatus` | `-` | `0x20000101` | `0x101d4d14` `0x101d4d24` | — | c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` |
-| `GET` | `v1/players/{playerId}/hardwareStatus/wiredSub` | `getWiredSubStatus` | `-` | `0x20000101` | `0x101d4d24` `0x101d4d34` | — | c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/wiredSub` | `getWiredSubStatus` | `-` | `0x20000101` | `0x101d4d24` `0x101d4d34` | — | c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` |
-| `GET` | `v1/players/{playerId}/hardwareStatus/wirelessNetworkStatus` | `getWirelessNetworkStatus` | `-` | `0x20000101` | `0x101d4d34` `0x101d4d44` | — | c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/wirelessNetworkStatus` | `getWirelessNetworkStatus` | `-` | `0x20000101` | `0x101d4d34` `0x101d4d44` | — | c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/ethernet` | `getEthernetStatus` | `-` | `0x20000101` | `0x101d4d14` `0x101d4d24` | none | c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/ethernet` | `getEthernetStatus` | `-` | `0x20000101` | `0x101d4d14` `0x101d4d24` | none | c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c5:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`bluetooth` `globalError`:`wiredSubStatus` `globalError`:`upnpEvent`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/wiredSub` | `getWiredSubStatus` | `-` | `0x20000101` | `0x101d4d24` `0x101d4d34` | none | c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/wiredSub` | `getWiredSubStatus` | `-` | `0x20000101` | `0x101d4d24` `0x101d4d34` | none | c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`ethernetPorts`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/wirelessNetworkStatus` | `getWirelessNetworkStatus` | `-` | `0x20000101` | `0x101d4d34` `0x101d4d44` | none | c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/wirelessNetworkStatus` | `getWirelessNetworkStatus` | `-` | `0x20000101` | `0x101d4d34` `0x101d4d44` | none | c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wiredSubStatus`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/hardwareStatus/bluetoothPairing` | `setBluetoothPairing` | `-` | `0x20000102` | `0x101d4d44` `0x101d4d54` | `enable` | c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/bluetoothPairing` | `setBluetoothPairing` | `-` | `0x20000102` | `0x101d4d44` `0x101d4d54` | `enable` | c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`wirelessNetworkStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`upnpEvent` |
 | `POST` | `v1/players/{playerId}/hardwareStatus/pairedBluetoothDevices/{bluetoothAddress}` | `activatePairedBluetoothDevice` | `bluetoothAddress` | `0x20000102` | `0x101d4d54` `0x101d4d64` | `enable`, `bluetoothAddress` | c2:`ok`:`upnpEvent` `globalError`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent` |
@@ -636,10 +636,10 @@ Hardware health and status — the player's report on its physical state: temper
 | `DELETE` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/pairedBluetoothDevices/{bluetoothAddress}` | `removePairedBluetoothDevice` | `bluetoothAddress` | `0x20000108` | `0x101d4d64` `0x101d4d74` | `bluetoothAddress` | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent` |
 | `GET` | `v1/players/{playerId}/hardwareStatus/microphoneSwitch` | `getMicrophoneSwitchState` | `-` | `0x20000101` | `0x101d4d74` `0x101d4d84` | `bluetoothAddress` | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
 | `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/microphoneSwitch` | `getMicrophoneSwitchState` | `-` | `0x20000101` | `0x101d4d74` `0x101d4d84` | `bluetoothAddress` | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
-| `GET` | `v1/players/{playerId}/hardwareStatus/water` | `getWaterStatus` | `-` | `0x20000101` | `0x101d4d84` `0x101d4d94` | — | c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/water` | `getWaterStatus` | `-` | `0x20000101` | `0x101d4d84` `0x101d4d94` | — | c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
-| `GET` | `v1/players/{playerId}/hardwareStatus/poe` | `getPoeStatus` | `-` | `0x20000101` | `0x101d4d94` `0x101d4da4` | — | c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/poe` | `getPoeStatus` | `-` | `0x20000101` | `0x101d4d94` `0x101d4da4` | — | c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/water` | `getWaterStatus` | `-` | `0x20000101` | `0x101d4d84` `0x101d4d94` | none | c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/water` | `getWaterStatus` | `-` | `0x20000101` | `0x101d4d84` `0x101d4d94` | none | c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`microphoneSwitch`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
+| `GET` | `v1/players/{playerId}/hardwareStatus/poe` | `getPoeStatus` | `-` | `0x20000101` | `0x101d4d94` `0x101d4da4` | none | c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/poe` | `getPoeStatus` | `-` | `0x20000101` | `0x101d4d94` `0x101d4da4` | none | c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`waterState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
 | `GET` | `v1/players/{playerId}/hardwareStatus/lineIn` | `getLineInStatus` | `-` | `0x20000101` | `0x101d4da4` `0x101d4db4` | `instanceId` | c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
 | `GET` | `v1/households/{householdId}/players/{playerId}/hardwareStatus/lineIn` | `getLineInStatus` | `-` | `0x20000101` | `0x101d4da4` `0x101d4db4` | `instanceId` | c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`poeState`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
 | `GET` | `v1/players/{playerId}/hardwareStatus/lineInStatuses` | `getLineInStatuses` | `-` | `0x20000101` | `0x101d4db4` `0x101d4dc4` | `instanceId` | c3:`lineInStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatusList`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent`<br>c3:`lineInStatusList`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`upnpEvent` |
@@ -660,58 +660,58 @@ Route fragments these ops build or forward to: `v1/players/%s/hardwareStatus/bat
 
 ## `hdmi`
 
-The HDMI input surface — controlling and reading the TV-connected input on products with HDMI-ARC: audio mode, TV detection, format, and the settings around how the soundbar takes its TV feed. Relevant to the soundbar-era products this codebase serves.
+The HDMI input surface: controlling and reading the TV-connected input on products with HDMI-ARC, covering audio mode, TV detection, format, and the settings around how the soundbar takes its TV feed. It's relevant to the soundbar-era products this codebase serves.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/hdmi/status` | `status` | `-` | `0x20000101` | `0x10aec768` `0x10aec778` | — | c1:`ok`<br>c1:`ok`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hdmi/status` | `status` | `-` | `0x20000101` | `0x10aec768` `0x10aec778` | — | c1:`ok`<br>c1:`ok`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo` |
-| `GET` | `v1/players/{playerId}/hdmi/edid` | `edid` | `-` | `0x20000101` | `0x10aec778` `0x10aec788` | — | c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hdmi/edid` | `edid` | `-` | `0x20000101` | `0x10aec778` `0x10aec788` | — | c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth` |
-| `GET` | `v1/players/{playerId}/hdmi/powercycle` | `powercycle` | `-` | `0x20000101` | `0x10aec788` `0x10aec798` | — | c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/hdmi/powercycle` | `powercycle` | `-` | `0x20000101` | `0x10aec788` `0x10aec798` | — | c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
+| `GET` | `v1/players/{playerId}/hdmi/status` | `status` | `-` | `0x20000101` | `0x10aec768` `0x10aec778` | none | c1:`ok`<br>c1:`ok`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hdmi/status` | `status` | `-` | `0x20000101` | `0x10aec768` `0x10aec778` | none | c1:`ok`<br>c1:`ok`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo` |
+| `GET` | `v1/players/{playerId}/hdmi/edid` | `edid` | `-` | `0x20000101` | `0x10aec778` `0x10aec788` | none | c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hdmi/edid` | `edid` | `-` | `0x20000101` | `0x10aec778` `0x10aec788` | none | c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`hdmiStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth` |
+| `GET` | `v1/players/{playerId}/hdmi/powercycle` | `powercycle` | `-` | `0x20000101` | `0x10aec788` `0x10aec798` | none | c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/hdmi/powercycle` | `powercycle` | `-` | `0x20000101` | `0x10aec788` `0x10aec798` | none | c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`edidStatus`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
 Op-level JSON keys recovered from op-object methods: `muse`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `accountHash`, `accountType`, `keyName`, `keyValue`, `model`, `osVersion`, `softwareVersion`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `accountHash`, `accountType`, `keyName`, `keyValue`, `model`, `osVersion`, `softwareVersion`
 
 
 </details>
 
 ## `history`
 
-Playback history — what this player has played recently, exposed as an API resource. Features that show your listening history (or that report it) draw their data from these routes.
+Playback history: what this player has played recently, exposed as an API resource. Features that show your listening history (or that report it) draw their data from these routes.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/history` | `getHistory` | `-` | `0x20000101` | `0x10aefcc4` `0x10aefcd4` | — | c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c3:`contentPagedResources`:`upnpEvent` `globalError`:`bluetooth` `globalError`:`bluetoothPairing` |
+| `GET` | `v1/households/{householdId}/history` | `getHistory` | `-` | `0x20000101` | `0x10aefcc4` `0x10aefcd4` | none | c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c3:`contentPagedResources`:`upnpEvent` `globalError`:`bluetooth` `globalError`:`bluetoothPairing` |
 | `POST` | `v1/households/{householdId}/history` | `postHistory` | `-` | `0x20000102` | `0x10aefcd4` `0x10aefce4` | `postHistory`, `postHistory`, `postHistory`, `postHistory` | c3:`contentPagedResources`:`upnpEvent` `globalError`:`bluetooth` `globalError`:`bluetoothPairing`<br>c1:`contentPagedResources`:`upnpEvent` |
 | `DELETE` | `v1/households/{householdId}/history/{id}` | `removeHistoryItem` | `id` | `0x20000108` | `0x10aefce4` `0x10aefcf4` desc:`10af3468` | `postHistory`, `postHistory`, `postHistory`, `postHistory`, `id` | c1:`contentPagedResources`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth` |
 | `DELETE` | `v1/households/{householdId}/history` | `clearHistory` | `-` | `0x20000108` | `0x10aefcf4` `0x10aefd04` | `id` | c2:`ok`:`upnpEvent` `globalError`:`bluetooth`<br>c2:`ok`:`upnpEvent` `globalError`:`bluetooth` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
 
 Op-level JSON keys recovered from op-object methods: `muse`, `postHistory`, `id`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `action`, `advertisingInfo`, `allowTvPauseRestore`, `containerId`, `containerMetadata`, `defaults`, `deltaMillis`, `deviceFeedback`, `deviceId`, `id`, `instanceId`, `itemId`, `metadata`, `playModes`, `playOnCompletion`, `playbackAction`, `playbackLocation`, `positionMillis`, `queueAction`, `stationId`, `trackNumber`, `tracks`, `type`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `action`, `advertisingInfo`, `allowTvPauseRestore`, `containerId`, `containerMetadata`, `defaults`, `deltaMillis`, `deviceFeedback`, `deviceId`, `id`, `instanceId`, `itemId`, `metadata`, `playModes`, `playOnCompletion`, `playbackAction`, `playbackLocation`, `positionMillis`, `queueAction`, `stationId`, `trackNumber`, `tracks`, `type`
 
 
 </details>
 
 ## `homeTheater`
 
-The home-theater settings surface — everything specific to a TV-connected rig over the modern API: lip-sync delay, surround levels, subwoofer settings, night mode, speech enhancement. The JSON surface behind the 'home theater' section of the soundbar's settings.
+The home-theater settings surface: everything specific to a TV-connected rig over the modern API, covering lip-sync delay, surround levels, subwoofer settings, night mode, and speech enhancement. It's the JSON surface behind the 'home theater' section of the soundbar's settings.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/homeTheater` | `loadHomeTheaterPlayback` | `-` | `0x20000102` | `0x101de924` `0x101de934` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/homeTheater` | `loadHomeTheaterPlayback` | `-` | `0x20000102` | `0x101de924` `0x101de934` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
+| `POST` | `v1/players/{playerId}/homeTheater` | `loadHomeTheaterPlayback` | `-` | `0x20000102` | `0x101de924` `0x101de934` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/homeTheater` | `loadHomeTheaterPlayback` | `-` | `0x20000102` | `0x101de924` `0x101de934` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
 | `POST` | `v1/players/{playerId}/homeTheater/tvPowerState` | `setTvPowerState` | `-` | `0x20000102` | `0x101de934` `0x101de944` | `tvPowerState` | c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c5:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c5:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/homeTheater/tvPowerState` | `setTvPowerState` | `-` | `0x20000102` | `0x101de934` `0x101de944` | `tvPowerState` | c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c5:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c5:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/players/{playerId}/homeTheater/options` | `getOptions` | `-` | `0x20000101` | `0x101de944` `0x101de954` | `tvPowerState` | c5:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c5:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c3:`homeTheaterOptions`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`deviceInfo`<br>c3:`homeTheaterOptions`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`deviceInfo` |
@@ -724,20 +724,20 @@ The home-theater settings surface — everything specific to a TV-connected rig 
 | `DELETE` | `v1/households/{householdId}/players/{playerId}/homeTheater/removeAccessory` | `removeAccessory` | `-` | `0x20000108` | `0x101de974` `0x101de984` | `wifiMacAddress`, `details`, `details`, `macAddress` | c3:`accessoryWifiPsk`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessoryWifiPsk`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/players/{playerId}/homeTheater/accessoryList` | `getAccessoryList` | `-` | `0x20000101` | `0x101de984` `0x101de994` | `macAddress` | c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/accessoryList` | `getAccessoryList` | `-` | `0x20000101` | `0x101de984` `0x101de994` | `macAddress` | c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/players/{playerId}/homeTheater/accessorySwapStatus` | `getAccessorySwapStatus` | `-` | `0x20000101` | `0x101de994` `0x101de9a4` | — | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/accessorySwapStatus` | `getAccessorySwapStatus` | `-` | `0x20000101` | `0x101de994` `0x101de9a4` | — | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/homeTheater/accessorySwapStatus` | `getAccessorySwapStatus` | `-` | `0x20000101` | `0x101de994` `0x101de9a4` | none | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/accessorySwapStatus` | `getAccessorySwapStatus` | `-` | `0x20000101` | `0x101de994` `0x101de9a4` | none | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/homeTheater/disconnectAccessory` | `disconnectAccessory` | `-` | `0x20000102` | `0x101de9a4` `0x101de9b4` | `macAddress` | c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/homeTheater/disconnectAccessory` | `disconnectAccessory` | `-` | `0x20000102` | `0x101de9a4` `0x101de9b4` | `macAddress` | c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`accessorySwap`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/players/{playerId}/homeTheater/connectedAccessoryList` | `getConnectedAccessoryList` | `-` | `0x20000101` | `0x101de9b4` `0x101de9c4` | `macAddress` | c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/connectedAccessoryList` | `getConnectedAccessoryList` | `-` | `0x20000101` | `0x101de9b4` `0x101de9c4` | `macAddress` | c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/players/{playerId}/homeTheater/swapModelInfo` | `getSwapModelInfo` | `-` | `0x20000101` | `0x101de9c4` `0x101de9d4` | — | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/swapModelInfo` | `getSwapModelInfo` | `-` | `0x20000101` | `0x101de9c4` `0x101de9d4` | — | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/players/{playerId}/homeTheater/tvAudioSignalStatus` | `getTVAudioSignalStatus` | `-` | `0x20000101` | `0x101de9d4` `0x101de9e4` | — | c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/tvAudioSignalStatus` | `getTVAudioSignalStatus` | `-` | `0x20000101` | `0x101de9d4` `0x101de9e4` | — | c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/homeTheater/swapModelInfo` | `getSwapModelInfo` | `-` | `0x20000101` | `0x101de9c4` `0x101de9d4` | none | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/swapModelInfo` | `getSwapModelInfo` | `-` | `0x20000101` | `0x101de9c4` `0x101de9d4` | none | c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`trustedAccessories`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/homeTheater/tvAudioSignalStatus` | `getTVAudioSignalStatus` | `-` | `0x20000101` | `0x101de9d4` `0x101de9e4` | none | c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/homeTheater/tvAudioSignalStatus` | `getTVAudioSignalStatus` | `-` | `0x20000101` | `0x101de9d4` `0x101de9e4` | none | c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`swapModelInfo`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus`<br>c3:`tvAudioSignalStatus`:`upnpEvent` `globalError`:`deviceInfo` `globalError`:`wiredSubStatus` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **dd_surround_config**: `DD_SAT_CONF`=1, `DD_NO_SURROUND`=2, `DD_NO_SURROUND_TO_SAT`=3, `DD_SURROUND`=4, `DD_SURROUND_TO_SAT`=5
 
@@ -755,14 +755,14 @@ Route fragments these ops build or forward to: `v1/players/%s/homeTheater`, `v1/
 
 ## `householdUpdate`
 
-Household firmware updates over the modern API — checking whether updates exist, reading the rollout status per player, and triggering the update process, all as JSON routes. The current app's 'update your system' flow runs through here.
+Household firmware updates over the modern API: checking whether updates exist, reading the rollout status per player, and triggering the update process, all as JSON routes. The current app's 'update your system' flow runs through here.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/devices/{deviceId}/householdUpdate/update` | `beginHouseholdSoftwareUpdate` | `-` | `0x20000102` | `0x10af58f0` `0x10af5900` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container` |
-| `POST` | `v1/households/{householdId}/devices/{deviceId}/householdUpdate/update` | `beginHouseholdSoftwareUpdate` | `-` | `0x20000102` | `0x10af58f0` `0x10af5900` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container` |
-| `GET` | `v1/devices/{deviceId}/householdUpdate/status` | `getHouseholdUpdateStatus` | `-` | `0x20000101` | `0x10af5900` `0x10af5910` desc:`10af71e0` `10af8770` `10af8780` | — | c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c1:`householdUpdateStatus`:`upnpEvent`<br>c1:`householdUpdateStatus`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/devices/{deviceId}/householdUpdate/status` | `getHouseholdUpdateStatus` | `-` | `0x20000101` | `0x10af5900` `0x10af5910` desc:`10af71e0` `10af8770` `10af8780` | — | c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c1:`householdUpdateStatus`:`upnpEvent`<br>c1:`householdUpdateStatus`:`upnpEvent` |
+| `POST` | `v1/devices/{deviceId}/householdUpdate/update` | `beginHouseholdSoftwareUpdate` | `-` | `0x20000102` | `0x10af58f0` `0x10af5900` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container` |
+| `POST` | `v1/households/{householdId}/devices/{deviceId}/householdUpdate/update` | `beginHouseholdSoftwareUpdate` | `-` | `0x20000102` | `0x10af58f0` `0x10af5900` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container` |
+| `GET` | `v1/devices/{deviceId}/householdUpdate/status` | `getHouseholdUpdateStatus` | `-` | `0x20000101` | `0x10af5900` `0x10af5910` desc:`10af71e0` `10af8770` `10af8780` | none | c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c1:`householdUpdateStatus`:`upnpEvent`<br>c1:`householdUpdateStatus`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/devices/{deviceId}/householdUpdate/status` | `getHouseholdUpdateStatus` | `-` | `0x20000101` | `0x10af5900` `0x10af5910` desc:`10af71e0` `10af8770` `10af8780` | none | c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c4:`ok`:`batteryCells` `globalError`:`availableSoftwareUpdate` `upgradeManager`:`versionChanged` `globalError`:`container`<br>c1:`householdUpdateStatus`:`upnpEvent`<br>c1:`householdUpdateStatus`:`upnpEvent` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -770,7 +770,7 @@ Resource implementation functions (string-block registrar family): `0x10af5930`
 
 Field vocabulary recovered from the resource's implementation functions: `householdUpdate`
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **device_update_fsm**: `UNDEFINED`=1, `CONNECT`=2, `HELLO`=3, `DOWNLOAD`=4, `FLASHWRITE`=5, `WAIT`=6, `REBOOT`=7, `ERROR`=8, `FINISHED`=9
 - **device_update_fsm2**: `INIT`=1, `HELLO`=2, `HELLO_DONE`=3, `DOWNLOAD`=4, `DOWNLOAD_DONE`=5, `FLASHWRITE`=6, `FLASHWRITE_DONE`=7, `REBOOT`=8, `REBOOTING_DONE`=9
@@ -783,17 +783,17 @@ Op-level JSON keys recovered from op-object methods: `muse`
 
 ## `households`
 
-The household resource itself — the top-level object all household-scoped routes hang off: the umbrella identity under which players, groups, and services live. A request naming a household says 'this operation is about the system as a whole, not one speaker'.
+The household resource itself: the top-level object all household-scoped routes hang off, which is the umbrella identity under which players, groups, and services live. A request naming a household says 'this operation is about the system as a whole, not one speaker'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/\[error:  'none' is not a valid target\]/households` | `getHouseholds` | `-` | `0x20000101` | resource-block | — | — |
-| `GET` | `v1/households/{householdId}/households` | `getHouseholds` | `-` | `0x20000101` | resource-block | — | — |
-| `GET` | `v1/\[error:  'none' is not a valid target\]/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | resource-block | — | — |
-| `GET` | `v1/households/{householdId}/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | resource-block | — | — |
-| `POST` | `v1/households/{householdId}/households/name` | `setName` | `-` | `0x20000102` | `0x10af3468` `0x10af58e0` `0x10af58f0` `0x10af5900` `0x10af5910` desc:`10af58e0` `10af58f0` `10af5900` `10af5910` | — | — |
-| `GET` | `v1/households/{householdId}/households/location` | `getHouseholdLocation` | `-` | `0x20000101` | resource-block | — | — |
-| `PUT` | `v1/households/{householdId}/households/location` | `setLocation` | `-` | `0x20000104` | resource-block | — | — |
+| `GET` | `v1/\[error:  'none' is not a valid target\]/households` | `getHouseholds` | `-` | `0x20000101` | resource-block | none | none |
+| `GET` | `v1/households/{householdId}/households` | `getHouseholds` | `-` | `0x20000101` | resource-block | none | none |
+| `GET` | `v1/\[error:  'none' is not a valid target\]/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | resource-block | none | none |
+| `GET` | `v1/households/{householdId}/households/{householdId}` | `getHousehold` | `householdId` | `0x20000101` | resource-block | none | none |
+| `POST` | `v1/households/{householdId}/households/name` | `setName` | `-` | `0x20000102` | `0x10af3468` `0x10af58e0` `0x10af58f0` `0x10af5900` `0x10af5910` desc:`10af58e0` `10af58f0` `10af5900` `10af5910` | none | none |
+| `GET` | `v1/households/{householdId}/households/location` | `getHouseholdLocation` | `-` | `0x20000101` | resource-block | none | none |
+| `PUT` | `v1/households/{householdId}/households/location` | `setLocation` | `-` | `0x20000104` | resource-block | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -806,12 +806,12 @@ Field vocabulary recovered from the resource's implementation functions: `househ
 
 ## `info`
 
-General player information — version, model, identity, and related facts: the modern API's 'about this device' read, used by anything needing the player's basic description.
+General player information: version, model, identity, and related facts. It's the modern API's 'about this device' read, used by anything needing the player's basic description.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | resource-block | — | — |
-| `GET` | `v1/households/{householdId}/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | resource-block | — | — |
+| `GET` | `v1/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | resource-block | none | none |
+| `GET` | `v1/households/{householdId}/players/{playerId}/info` | `getInfo` | `-` | `0x20000101` | resource-block | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -828,7 +828,7 @@ Implementation messages:
 
 ## `ircontrol`
 
-Infrared remote control over the modern API — the remote-learning and IR-repeater features expressed as routes: the modern twin of the classic home-theater control commands that teach the soundbar your TV remote.
+Infrared remote control over the modern API: the remote-learning and IR-repeater features expressed as routes. It's the modern twin of the classic home-theater control commands that teach the soundbar your TV remote.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -846,20 +846,20 @@ Op-level JSON keys recovered from op-object methods: `enabled`, `muse`
 
 ## `localContentLibrary`
 
-The local music library over the modern API — your indexed share folders, their contents, and library maintenance exposed as JSON resources. The modern front-end for the same library the classic browse service serves, so the app can manage 'Music Library' without the old protocol.
+The local music library over the modern API: your indexed share folders, their contents, and library maintenance exposed as JSON resources. It's the modern front-end for the same library the classic browse service serves, so the app can manage 'Music Library' without the old protocol.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/localContentLibrary` | `getShares` | `-` | `0x20000101` | `0x10afb944` `0x10afb954` | — | c1:`ok`:`upnpEvent`<br>c2:`sharesList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/localContentLibrary` | `getShares` | `-` | `0x20000101` | `0x10afb944` `0x10afb954` | none | c1:`ok`:`upnpEvent`<br>c2:`sharesList`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/localContentLibrary` | `addShare` | `-` | `0x20000102` | `0x10afb954` `0x10afb964` | `path` | c2:`sharesList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c7:`share`:`batteryCells` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`authorizationGrantHeader` `globalError`:`audioClipStatus` |
 | `DELETE` | `v1/households/{householdId}/localContentLibrary/{shareId}` | `removeShare` | `shareId` | `0x20000108` | `0x10afb964` `0x10afb974` | `path`, `shareId` | c7:`share`:`batteryCells` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`authorizationGrantHeader` `globalError`:`audioClipStatus`<br>c5:`ok`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`chirpRequest` `globalError`:`authorizationGrantHeader` `globalError`:`audioConnectorStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
 | `POST` | `v1/households/{householdId}/localContentLibrary/reindex` | `reindex` | `-` | `0x20000102` | `0x10afb974` `0x10afb984` | `shareId` | c5:`ok`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`chirpRequest` `globalError`:`authorizationGrantHeader` `globalError`:`audioConnectorStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader` |
-| `GET` | `v1/players/{playerId}/localContentLibrary/indexer` | `getIndexerStatus` | `-` | `0x20000101` | `0x10afb984` `0x10afb994` desc:`10afe1ac` `10afe1bc` `10b01a9c` `10b01aac` `10b01abc` `10b01acc` `10b01adc` `10b01aec` `10b01afc` | — | c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/localContentLibrary/indexer` | `getIndexerStatus` | `-` | `0x20000101` | `0x10afb984` `0x10afb994` desc:`10afe1ac` `10afe1bc` `10b01a9c` `10b01aac` `10b01abc` `10b01acc` `10b01adc` `10b01aec` `10b01afc` | — | c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/localContentLibrary/indexer` | `getIndexerStatus` | `-` | `0x20000101` | `0x10afb984` `0x10afb994` desc:`10afe1ac` `10afe1bc` `10b01a9c` `10b01aac` `10b01abc` `10b01acc` `10b01adc` `10b01aec` `10b01afc` | none | c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/localContentLibrary/indexer` | `getIndexerStatus` | `-` | `0x20000101` | `0x10afb984` `0x10afb994` desc:`10afe1ac` `10afe1bc` `10b01a9c` `10b01aac` `10b01abc` `10b01acc` `10b01adc` `10b01aec` `10b01afc` | none | c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`ok`:`batteryCells` `globalError`:`authorizationGrantHeader`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`indexerStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **replication_state**: `PENDING_ADD`=1, `ADD_IN_PROGRESS`=2, `ADD_COMPLETE`=3, `PENDING_REINDEXING`=4, `REINDEXING_IN_PROGRESS`=5, `REINDEXING_COMPLETE`=6, `REPLICATION_IN_PROGRESS`=7, `REPLICATION_COMPLETE`=8, `PENDING_DELETE`=9, `DELETE_COMPLETE`=10
 
@@ -870,12 +870,12 @@ Op-level JSON keys recovered from op-object methods: `muse`, `path`, `username`,
 
 ## `management`
 
-Device management — reboot, factory-reset paths, and similarly powerful maintenance operations over the modern API. Deliberately restricted: these are the routes you don't want a random network client reaching, which is part of why the API authenticates every call.
+Device management: reboot, factory-reset paths, and similarly powerful maintenance operations over the modern API. These are deliberately restricted, since they're the routes you don't want a random network client reaching, which is part of why the API authenticates every call.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/management/factoryReset` | `factoryReset` | `-` | `0x20000102` | `0x10afe1ac` | — | c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/management/factoryReset` | `factoryReset` | `-` | `0x20000102` | `0x10afe1ac` | — | c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent` |
+| `POST` | `v1/players/{playerId}/management/factoryReset` | `factoryReset` | `-` | `0x20000102` | `0x10afe1ac` | none | c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/management/factoryReset` | `factoryReset` | `-` | `0x20000102` | `0x10afe1ac` | none | c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent` |
 | `POST` | `v1/players/{playerId}/management/reboot` | `reboot` | `-` | `0x20000102` | `0x10afe1ac` `0x10afe1bc` `0x10b0d1b0` `0x10b0d1c0` | `fullSync`, `setting` | c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c2:<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/management/reboot` | `reboot` | `-` | `0x20000102` | `0x10afe1ac` `0x10afe1bc` `0x10b0d1b0` `0x10b0d1c0` | `fullSync`, `setting` | c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c2:`upnpEvent`:`globalError` `channelMapPair`:`globalError` `bluetooth`:`globalError` `upnpEvent`:`globalError` `wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c2:<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
 
@@ -885,7 +885,7 @@ Resource implementation functions (string-block registrar family): `0x10afe1dc`
 
 Field vocabulary recovered from the resource's implementation functions: `management`
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **net_state**: `SONOSNET`=1, `STATION`=2, `DISCONNECTED`=3, `STATION_SATELLITE`=4
 - **wifi_state_fsm**: `INACTIVE`=1, `WIFI_ENABLING`=2, `ACK_AWAIT`=3, `WIFI_DISABLING`=4, `WIFI_DISABLED`=5, `ACK_NOT_RECEIVED`=6
@@ -897,7 +897,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `fullSync`, `settin
 
 ## `musicServiceAccounts`
 
-Streaming-service accounts over the modern API — the JSON version of the account-management family: add a service login, replace credentials, set a nickname, remove an account. The routes behind the app's 'services & voice' account settings.
+Streaming-service accounts over the modern API: the JSON version of the account-management family, covering adding a service login, replacing credentials, setting a nickname, and removing an account. These are the routes behind the app's service account settings.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -911,7 +911,7 @@ Streaming-service accounts over the modern API — the JSON version of the accou
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **account_link_state**: `RESET`=1, `OFFLINE`=2, `INITIATING`=3, `ONLINE`=4, `TERMINATING`=5, `ERROR`=6
 - **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
@@ -928,7 +928,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `userIdHashCode`, `
 
 ## `networkTest`
 
-Network testing — routes that exercise the player's connectivity: ping-style checks and throughput probes used by diagnostics and the app's network-health features to prove whether the player's connection is the problem.
+Network testing: routes that exercise the player's connectivity, including ping-style checks and throughput probes. Diagnostics and the app's network-health features use them to prove whether the player's connection is the problem.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -948,16 +948,16 @@ Op-level JSON keys recovered from op-object methods: `delaySecs`, `durationSecs`
 
 ## `pinewood`
 
-An internal codename surface — the 'pinewood' routes cover a feature family known in the firmware by its development name (a remote-control channel in this case). Structurally present; the operations below show exactly which routes it exposes.
+An internal codename surface: the 'pinewood' routes cover a feature family known in the firmware by its development name (a remote-control channel in this case). It's structurally present, and the operations below show exactly which routes it exposes.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/pinewood/mute` | `toggleMute` | `-` | `0x20000102` | `0x10b09108` | — | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/mute` | `toggleMute` | `-` | `0x20000102` | `0x10b09108` | — | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus` |
-| `POST` | `v1/players/{playerId}/pinewood/volumeUp` | `volumeUp` | `-` | `0x20000102` | `0x10b09108` `0x10b09118` | — | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/volumeUp` | `volumeUp` | `-` | `0x20000102` | `0x10b09108` `0x10b09118` | — | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/players/{playerId}/pinewood/volumeDown` | `volumeDown` | `-` | `0x20000102` | `0x10b09118` `0x10b09128` | — | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/volumeDown` | `volumeDown` | `-` | `0x20000102` | `0x10b09118` `0x10b09128` | — | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/players/{playerId}/pinewood/mute` | `toggleMute` | `-` | `0x20000102` | `0x10b09108` | none | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/mute` | `toggleMute` | `-` | `0x20000102` | `0x10b09108` | none | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus` |
+| `POST` | `v1/players/{playerId}/pinewood/volumeUp` | `volumeUp` | `-` | `0x20000102` | `0x10b09108` `0x10b09118` | none | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/volumeUp` | `volumeUp` | `-` | `0x20000102` | `0x10b09108` `0x10b09118` | none | c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`tvAudioSignalStatus`:`tvAudioSignalStatus` `tvAudioSignalStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/players/{playerId}/pinewood/volumeDown` | `volumeDown` | `-` | `0x20000102` | `0x10b09118` `0x10b09128` | none | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/volumeDown` | `volumeDown` | `-` | `0x20000102` | `0x10b09118` `0x10b09128` | none | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/pinewood/loadResource` | `loadResource` | `-` | `0x20000102` | `0x10b09128` `0x10b09138` | `deeplink`, `deeplink` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`authzUser`<br>c2:`ok`:`upnpEvent` `globalError`:`authzUser` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/loadResource` | `loadResource` | `-` | `0x20000102` | `0x10b09128` `0x10b09138` | `deeplink`, `deeplink` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`authzUser`<br>c2:`ok`:`upnpEvent` `globalError`:`authzUser` |
 | `POST` | `v1/players/{playerId}/pinewood/power` | `power` | `-` | `0x20000102` | `0x10b09138` `0x10b09148` | `deeplink`, `deeplink` | c2:`ok`:`upnpEvent` `globalError`:`authzUser`<br>c2:`ok`:`upnpEvent` `globalError`:`authzUser`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
@@ -966,8 +966,8 @@ An internal codename surface — the 'pinewood' routes cover a feature family kn
 | `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/dpad` | `dpad` | `-` | `0x20000102` | `0x10b09148` `0x10b09158` | `dpadDirection` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/pinewood/back` | `back` | `-` | `0x20000102` | `0x10b09158` `0x10b09168` | `dpadDirection` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/back` | `back` | `-` | `0x20000102` | `0x10b09158` `0x10b09168` | `dpadDirection` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/players/{playerId}/pinewood/home` | `home` | `-` | `0x20000102` | `0x10b09168` `0x10b09178` | — | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/home` | `home` | `-` | `0x20000102` | `0x10b09168` `0x10b09178` | — | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/players/{playerId}/pinewood/home` | `home` | `-` | `0x20000102` | `0x10b09168` `0x10b09178` | none | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/home` | `home` | `-` | `0x20000102` | `0x10b09168` `0x10b09178` | none | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/pinewood/settings` | `settings` | `-` | `0x20000102` | `0x10b09178` `0x10b09188` | `menuType` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`chirpRequest`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`chirpRequest` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/pinewood/settings` | `settings` | `-` | `0x20000102` | `0x10b09178` `0x10b09188` | `menuType` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`chirpRequest`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`chirpRequest` |
 | `POST` | `v1/players/{playerId}/pinewood/play` | `togglePlay` | `-` | `0x20000102` | `0x10b09188` `0x10b09198` desc:`10b0d1b0` `10b0d1c0` `10b0d1d0` | `menuType` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`chirpRequest`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`chirpRequest`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
@@ -977,14 +977,14 @@ An internal codename surface — the 'pinewood' routes cover a feature family kn
 
 Op-level JSON keys recovered from op-object methods: `muse`, `deeplink`, `dpadDirection`, `menuType`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `backhaulChannel`, `flatChannelMapSet`, `fronthaulChannel`, `isHomeTheater`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `backhaulChannel`, `flatChannelMapSet`, `fronthaulChannel`, `isHomeTheater`
 
 
 </details>
 
 ## `platformInternal`
 
-Internal platform routes — operations meant for Sonos's own components rather than apps: the back-channel surface of the modern API used for system-level coordination between the player's own parts and Sonos's services.
+Internal platform routes: operations meant for Sonos's own components rather than apps. It's the back-channel surface of the modern API, used for system-level coordination between the player's own parts and Sonos's services.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1006,12 +1006,12 @@ Op-level JSON keys recovered from op-object methods: `fullSync`, `setting`, `ope
 
 ## `playback`
 
-Playback control over the modern API — the core remote: play, pause, skip, seek, and source selection expressed as JSON commands. This is the surface the current app actually drives when you press buttons on the now-playing screen, the modern counterpart of the classic transport commands.
+Playback control over the modern API: the core remote of play, pause, skip, seek, and source selection expressed as JSON commands. This is the surface the current app actually drives when you press buttons on the now-playing screen, the modern counterpart of the classic transport commands.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/groups/{groupId}/playback` | `getPlaybackStatus` | `-` | `0x20000001` | `0x101ea534` `0x101ea544` | — | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
-| `GET` | `v1/households/{householdId}/groups/{groupId}/playback` | `getPlaybackStatus` | `-` | `0x20000001` | `0x101ea534` `0x101ea544` | — | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
+| `GET` | `v1/groups/{groupId}/playback` | `getPlaybackStatus` | `-` | `0x20000001` | `0x101ea534` `0x101ea544` | none | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
+| `GET` | `v1/households/{householdId}/groups/{groupId}/playback` | `getPlaybackStatus` | `-` | `0x20000001` | `0x101ea534` `0x101ea544` | none | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
 | `POST` | `v1/groups/{groupId}/playback/play` | `play` | `-` | `0x20000002` | `0x101ea544` `0x101ea554` | `allowTvPauseRestore`, `deviceFeedback` | c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c4:`ok`:`upnpEvent` `playbackError`:`alarm` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c4:`ok`:`upnpEvent` `playbackError`:`alarm` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playback/play` | `play` | `-` | `0x20000002` | `0x101ea544` `0x101ea554` | `allowTvPauseRestore`, `deviceFeedback` | c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`playbackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c4:`ok`:`upnpEvent` `playbackError`:`alarm` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c4:`ok`:`upnpEvent` `playbackError`:`alarm` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
 | `POST` | `v1/groups/{groupId}/playback/pause` | `pause` | `-` | `0x20000002` | `0x101ea554` `0x101ea564` | `allowTvPauseRestore`, `deviceFeedback` | c4:`ok`:`upnpEvent` `playbackError`:`alarm` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c4:`ok`:`upnpEvent` `playbackError`:`alarm` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
@@ -1022,10 +1022,10 @@ Playback control over the modern API — the core remote: play, pause, skip, see
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playback/playMode` | `setPlayModes` | `-` | `0x20000002` | `0x101ea574` `0x101ea584` | `playModes`, `playModes` | c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`alarm` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`alarm` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
 | `POST` | `v1/groups/{groupId}/playback/skipToNextTrack` | `skipToNextTrack` | `-` | `0x20000002` | `0x101ea584` `0x101ea594` | `playModes`, `playModes` | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playback/skipToNextTrack` | `skipToNextTrack` | `-` | `0x20000002` | `0x101ea584` `0x101ea594` | `playModes`, `playModes` | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice` |
-| `POST` | `v1/groups/{groupId}/playback/skipToPreviousTrack` | `skipToPreviousTrack` | `-` | `0x20000002` | `0x101ea594` `0x101ea5a4` | — | c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
-| `POST` | `v1/households/{householdId}/groups/{groupId}/playback/skipToPreviousTrack` | `skipToPreviousTrack` | `-` | `0x20000002` | `0x101ea594` `0x101ea5a4` | — | c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
-| `POST` | `v1/groups/{groupId}/playback/skipBack` | `skipBack` | `-` | `0x20000002` | `0x101ea5a4` `0x101ea5b4` | — | c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
-| `POST` | `v1/households/{householdId}/groups/{groupId}/playback/skipBack` | `skipBack` | `-` | `0x20000002` | `0x101ea5a4` `0x101ea5b4` | — | c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
+| `POST` | `v1/groups/{groupId}/playback/skipToPreviousTrack` | `skipToPreviousTrack` | `-` | `0x20000002` | `0x101ea594` `0x101ea5a4` | none | c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
+| `POST` | `v1/households/{householdId}/groups/{groupId}/playback/skipToPreviousTrack` | `skipToPreviousTrack` | `-` | `0x20000002` | `0x101ea594` `0x101ea5a4` | none | c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
+| `POST` | `v1/groups/{groupId}/playback/skipBack` | `skipBack` | `-` | `0x20000002` | `0x101ea5a4` `0x101ea5b4` | none | c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
+| `POST` | `v1/households/{householdId}/groups/{groupId}/playback/skipBack` | `skipBack` | `-` | `0x20000002` | `0x101ea5a4` `0x101ea5b4` | none | c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice` |
 | `POST` | `v1/groups/{groupId}/playback/seek` | `seek` | `-` | `0x20000002` | `0x101ea5b4` `0x101ea5c4` `0x101fcf68` `0x101fcf78` | `positionMillis`, `itemId`, `playOnCompletion`, `window`, `window` | c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`allowLineInSetting` `playbackError`:`bluetooth` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`channelMapPair`<br>c1:`ok`:`upnpEvent`<br>c7:`ok`:`upnpEvent` `playbackError`:`allowLineInSetting` `playbackError`:`bluetooth` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`channelMapPair`<br>c1:`ok`:`upnpEvent`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playback/seek` | `seek` | `-` | `0x20000002` | `0x101ea5b4` `0x101ea5c4` `0x101fcf68` `0x101fcf78` | `positionMillis`, `itemId`, `playOnCompletion`, `window`, `window` | c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `playbackError`:`allowLineInSetting` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c7:`ok`:`upnpEvent` `playbackError`:`allowLineInSetting` `playbackError`:`bluetooth` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`channelMapPair`<br>c1:`ok`:`upnpEvent`<br>c7:`ok`:`upnpEvent` `playbackError`:`allowLineInSetting` `playbackError`:`bluetooth` `playbackError`:`wiredSubStatus` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`channelMapPair`<br>c1:`ok`:`upnpEvent`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair` |
 | `POST` | `v1/groups/{groupId}/playback/seekRelative` | `seekRelative` | `-` | `0x20000002` | `0x101ea5c4` `0x101ea5d4` `0x101fcf78` `0x101fcf88` | `positionMillis`, `itemId`, `deltaMillis` | c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c5:`ok`:`upnpEvent` `playbackError`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair`<br>c6:`ok`:`upnpEvent` `playbackError`:`bluetooth` `playbackError`:`upnpEvent` `playbackError`:`channelMapPair` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`channelMapPair` |
@@ -1045,7 +1045,7 @@ Playback control over the modern API — the core remote: play, pause, skip, see
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **play_modes**: `NORMAL`=1, `REPEAT_ALL`=2, `SHUFFLE`=3, `SHUFFLE_NOREPEAT`=4
 - **playback_button**: `PLAY`=1, `PAUSE`=2, `NEXT_TRACK`=3, `PREV_TRACK`=4
@@ -1068,19 +1068,19 @@ Validation / log strings recovered from op-object methods:
 
 Route fragments these ops build or forward to: `v1/groups/%s/playback/play`, `v1/groups/%s/playback/pause`, `v1/groups/%s/playback/playMode`, `v1/groups/%s/playback/skipToNextTrack`, `v1/groups/%s/playback/skipToPreviousTrack`, `v1/groups/%s/playback/seek`, `v1/groups/%s/playback/seekRelative`, `v1/groups/%s/playback/loadContainer`, `v1/groups/%s/playback/loadStream`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `durationMillis`, `muted`, `volume`, `volumeDelta`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `durationMillis`, `muted`, `volume`, `volumeDelta`
 
 
 </details>
 
 ## `playbackExtended`
 
-Extended playback operations — the less-common transport actions beyond basic play/pause: session control, source management, and the richer playback verbs the main playback group doesn't carry.
+Extended playback operations: the less-common transport actions beyond basic play/pause, covering session control, source management, and the richer playback verbs the main playback group doesn't carry.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/groups/{groupId}/playbackExtended` | `getExtendedPlaybackStatus` | `-` | `0x20000101` | `0x101f1748` `0x101f1758` | — | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
-| `GET` | `v1/households/{householdId}/groups/{groupId}/playbackExtended` | `getExtendedPlaybackStatus` | `-` | `0x20000101` | `0x101f1748` `0x101f1758` | — | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
+| `GET` | `v1/groups/{groupId}/playbackExtended` | `getExtendedPlaybackStatus` | `-` | `0x20000101` | `0x101f1748` `0x101f1758` | none | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
+| `GET` | `v1/households/{householdId}/groups/{groupId}/playbackExtended` | `getExtendedPlaybackStatus` | `-` | `0x20000101` | `0x101f1748` `0x101f1758` | none | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount`<br>c3:`extendedPlaybackStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`amazonAlexaAccount` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -1091,12 +1091,12 @@ Op-level JSON keys recovered from op-object methods: `muse`
 
 ## `playbackMetadata`
 
-Now-playing metadata over the modern API — the current track's title, artist, album, artwork, and related display data as a resource the app can fetch cleanly, rather than parsing it out of the packed metadata strings the classic layer uses.
+Now-playing metadata over the modern API: the current track's title, artist, album, artwork, and related display data as a resource the app can fetch cleanly, rather than parsing it out of the packed metadata strings the classic layer uses.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/groups/{groupId}/playbackMetadata` | `getMetadataStatus` | `-` | `0x20000001` | `0x10b0f758` `0x10b0f768` | — | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
-| `GET` | `v1/households/{householdId}/groups/{groupId}/playbackMetadata` | `getMetadataStatus` | `-` | `0x20000001` | `0x10b0f758` `0x10b0f768` | — | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
+| `GET` | `v1/groups/{groupId}/playbackMetadata` | `getMetadataStatus` | `-` | `0x20000001` | `0x10b0f758` `0x10b0f768` | none | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
+| `GET` | `v1/households/{householdId}/groups/{groupId}/playbackMetadata` | `getMetadataStatus` | `-` | `0x20000001` | `0x10b0f758` `0x10b0f768` | none | c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` |
 | `POST` | `v1/groups/{groupId}/playbackMetadata/ratings` | `rate` | `-` | `0x20000002` | `0x10b0f768` `0x10b0f778` | `itemId`, `rating`, `rating` | c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c4:`rateStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c4:`rateStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c1:`ok`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/groups/{groupId}/playbackMetadata/ratings` | `rate` | `-` | `0x20000002` | `0x10b0f768` `0x10b0f778` | `itemId`, `rating`, `rating` | c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c2:`metadataStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice`<br>c4:`rateStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c1:`ok`:`upnpEvent`<br>c4:`rateStatus`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c1:`ok`:`upnpEvent` |
 
@@ -1109,7 +1109,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `itemId`, `rating`
 
 ## `playbackSession`
 
-Playback sessions — the modern API's model of 'a thing playing': tracks a session's lifecycle from creation through playing, suspension, and end, letting the app reason about playback as objects with state rather than reading raw variables.
+Playback sessions: the modern API's model of 'a thing playing'. It tracks a session's lifecycle from creation through playing, suspension, and end, letting the app reason about playback as objects with state rather than reading raw variables.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1160,7 +1160,7 @@ Route fragments these ops build or forward to: `v1/groups/%s/playback/seek`, `v1
 
 ## `playerVolume`
 
-Per-player volume over the modern API — a single speaker's volume and mute as JSON resources: the modern twin of the classic rendering-control commands, behind the per-room sliders.
+Per-player volume over the modern API: a single speaker's volume and mute as JSON resources. It's the modern twin of the classic rendering-control commands, behind the per-room sliders.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1198,11 +1198,11 @@ Route fragments these ops build or forward to: `v1/players/`, `/playerVolume`, `
 
 ## `playlists`
 
-Sonos playlists over the modern API — the saved-queue feature as resources: list the playlists stored on the system, create new ones, edit their contents, delete them. The JSON surface behind 'Sonos Playlists' in the app.
+Sonos playlists over the modern API: the saved-queue feature as resources, covering listing the playlists stored on the system, creating new ones, editing their contents, and deleting them. It's the JSON surface behind 'Sonos Playlists' in the app.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/playlists` | `getPlaylists` | `-` | `0x20000101` | `0x10b12e78` `0x10b12e88` desc:`10b1b2bc` `10b1b2cc` `10b1b2dc` `10b1b2ec` | — | c1:`ok`:`upnpEvent`<br>c2:`playlistsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/playlists` | `getPlaylists` | `-` | `0x20000101` | `0x10b12e78` `0x10b12e88` desc:`10b1b2bc` `10b1b2cc` `10b1b2dc` `10b1b2ec` | none | c1:`ok`:`upnpEvent`<br>c2:`playlistsList`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/households/{householdId}/playlists/{playlistId}` | `getPlaylist` | `playlistId` | `0x20000101` | `0x10b12e88` `0x10b12e98` desc:`10b1b2fc` `10b1b30c` `10b1b31c` `10b1b32c` | `playlistId` | c2:`playlistsList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c3:`playlistSummary`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo` |
 | `POST` | `v1/households/{householdId}/playlists/getPlaylist` | `postPlaylist` | `-` | `0x20000102` | `0x10b12e98` `0x10b12ea8` desc:`10b1b33c` `10b1b34c` `10b1b35c` `10b1b36c` | `playlistId` | c3:`playlistSummary`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`deviceInfo`<br>c3:`playlistSummary`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` |
 | `POST` | `v1/groups/{groupId}/playlists` | `loadPlaylist` | `-` | `0x20000102` | `0x10b12ea8` `0x10b12eb8` desc:`10b1b37c` `10b1b38c` `10b1b39c` `10b1b3ac` | `playlistId`, `playOnCompletion`, `playModes`, `playModes` | c3:`playlistSummary`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c3:`playlistSummary`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair`<br>c9:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` `globalError`:`allowAirplaySetting` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`alarmDescription` `globalError`:`alarm`<br>c9:`ok`:`upnpEvent` `groupCoordinatorChanged`:`bluetoothDevice` `globalError`:`wiredSubStatus` `globalError`:`channelMapPair` `globalError`:`allowAirplaySetting` `globalError`:`chirpRequest` `globalError`:`upnpEvent` `globalError`:`alarmDescription` `globalError`:`alarm` |
@@ -1210,7 +1210,7 @@ Sonos playlists over the modern API — the saved-queue feature as resources: li
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **content_object_type**: `ALBUM`=1, `ARTIST`=2, `AUDIOBOOK`=3, `CHAPTER`=4, `SMAPI_CONTAINER`=5, `EPISODE`=6, `PLAYLIST`=7, `PODCAST`=8, `PROGRAM`=9, `STREAM`=10, `TRACK`=11
 
@@ -1221,7 +1221,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `playlistId`, `play
 
 ## `positioning`
 
-Speaker positioning — the room-placement features: which physical spot a speaker occupies in a bonded or surround arrangement, and the operations around assigning and detecting those positions during setup.
+Speaker positioning: the room-placement features, covering which physical spot a speaker occupies in a bonded or surround arrangement and the operations for assigning and detecting those positions during setup.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1267,12 +1267,12 @@ Validation / log strings recovered from op-object methods:
 
 ## `power`
 
-Standby and sleep behavior plus power-state reads over the modern API — the routes behind low-power operation and waking. The modern-API counterpart of the standby/idle machinery — how the app asks about and controls the player's power state directly.
+Standby and sleep behavior plus power-state reads over the modern API. It's the modern counterpart of the standby and idle machinery, and it's how the app asks about and controls the player's power state directly.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | `0x10b20c04` `0x10b22460` `0x10b22470` `0x10b2b8f4` | — | — |
-| `POST` | `v1/households/{householdId}/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | `0x10b20c04` `0x10b22460` `0x10b22470` `0x10b2b8f4` | — | — |
+| `POST` | `v1/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | `0x10b20c04` `0x10b22460` `0x10b22470` `0x10b2b8f4` | none | none |
+| `POST` | `v1/households/{householdId}/players/{playerId}/power/policy` | `setPowerPolicy` | `-` | `0x20000102` | `0x10b20c04` `0x10b22460` `0x10b22470` `0x10b2b8f4` | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -1280,7 +1280,7 @@ Resource implementation functions (string-block registrar family): `0x10b20c24`,
 
 Field vocabulary recovered from the resource's implementation functions: `power`, `volumeUp`, `volumeDown`, `toggleMute`, `loadResource`, `dpad`, `back`, `home`, `settings`, `togglePlay`, `secondary`, `role`, `stp`, `useCase`, `powerWakeupFromSemiSleep`, `primary`, `ht`
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **playback_button**: `PLAY`=1, `PAUSE`=2, `NEXT_TRACK`=3, `PREV_TRACK`=4
 - **power_states**: `MOTION_DETECTED`=1, `MOTION_SETTLED`=2, `SLEEPING`=3, `WAKING_UP`=4, `POWERING_DOWN`=5, `POWERING_UP`=6, `SMART_DOCKED`=7, `CHARGING`=8, `PRIMARY_PLAYBACK_STARTED`=9, `POWERING_UP_UPDATED`=10, `WAKING_UP_FROM_USER`=11, `PRIMARY_NETWORK_STATUS_CHANGE`=12
@@ -1291,7 +1291,7 @@ Related enum registrations (proven integer values — see `enum_tables`):
 
 ## `roomDetection`
 
-Room detection over the modern API — the 'which physical speaker is this' identification feature as routes: the chirp-and-identify flow used while placing surrounds and bonded speakers.
+Room detection over the modern API: the 'which physical speaker is this' identification feature as routes. It's the chirp-and-identify flow used while placing surrounds and bonded speakers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1309,7 +1309,7 @@ Op-level JSON keys recovered from op-object methods: `channelNumber`, `durationS
 
 ## `settings`
 
-General settings over the modern API — the player's configuration as readable and writable JSON settings rather than one command per knob: the consolidated settings surface the app prefers.
+General settings over the modern API: the player's configuration as readable and writable JSON settings rather than one command per knob. It's the consolidated settings surface the app prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1357,7 +1357,7 @@ Op-level JSON keys recovered from op-object methods: `setting`, `muse`, `network
 
 ## `sleepTimer`
 
-The sleep timer over the modern API — set a 'stop playing in N minutes' timer, read how much is left, cancel it. A small resource group mirroring the classic sleep-timer commands.
+The sleep timer over the modern API: set a 'stop playing in N minutes' timer, read how much is left, and cancel it. It's a small resource group mirroring the classic sleep-timer commands.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1375,22 +1375,22 @@ Op-level JSON keys recovered from op-object methods: `muse`, `duration`
 
 ## `smartplay`
 
-'Smart play' — Sonos's smarter playback-decision feature family, exposed as its own resource group. The operations listed below are the routes it adds; the name reflects an intelligent-playback feature rather than a user-facing setting.
+'Smart play', Sonos's smarter playback-decision feature family, exposed as its own resource group. The operations listed below are the routes it adds, and the name reflects an intelligent-playback feature rather than a user-facing setting.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/smartplay/content` | `getContent` | `-` | `0x20000101` | `0x10b3446c` `0x10b35b38` `0x10b35b48` `0x10b37854` desc:`10b35b38` `10b35b48` | — | — |
+| `GET` | `v1/households/{householdId}/smartplay/content` | `getContent` | `-` | `0x20000101` | `0x10b3446c` `0x10b35b38` `0x10b35b48` `0x10b37854` desc:`10b35b38` `10b35b48` | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `currentVersion`, `downloadSpeed`, `fromVersion`, `hardwareVersion`, `householdId`, `requestPath`, `serialNumber`, `sonosId`, `systemVersion`, `updateId`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `currentVersion`, `downloadSpeed`, `fromVersion`, `hardwareVersion`, `householdId`, `requestPath`, `serialNumber`, `sonosId`, `systemVersion`, `updateId`
 
 
 </details>
 
 ## `soundSwap`
 
-Sound swap — the feature that moves a TV's audio between a soundbar and a paired portable speaker ('swap the sound to the other room'), exposed as API routes for triggering and managing the swap.
+Sound swap: the feature that moves a TV's audio between a soundbar and a paired portable speaker ('swap the sound to the other room'), exposed as API routes for triggering and managing the swap.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1408,7 +1408,7 @@ Op-level JSON keys recovered from op-object methods: `playerId`, `muse`, `playba
 
 ## `svc`
 
-An internal service-level group — routes that don't fit a named resource, used for operations scoped to the API itself rather than to a thing like 'playback' or 'alarms'.
+An internal service-level group: routes that don't fit a named resource, used for operations scoped to the API itself rather than to a thing like 'playback' or 'alarms'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1428,33 +1428,33 @@ Op-level JSON keys recovered from op-object methods: `enabled`, `geoLocation`, `
 
 ## `systemReporting`
 
-System reporting — fleet-level telemetry and reporting routes: how the player packages and sends its health and usage data to Sonos over the modern channel.
+System reporting: fleet-level telemetry and reporting routes, covering how the player packages and sends its health and usage data to Sonos over the modern channel.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | outbound-fwd | — | — |
-| `POST` | `v1/households/{householdId}/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | outbound-fwd | — | — |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/households/{householdId}/systemReporting/firmwareDownload` | `reportFirmwareDownload` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/households/{householdId}/systemReporting/softwareDownload` | `reportSoftwareDownload` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/households/{householdId}/systemReporting/accountSubscription` | `reportAccountSubscription` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/\[error:  'none' is not a valid target\]/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | outbound-fwd | none | none |
+| `POST` | `v1/households/{householdId}/systemReporting/productEvent` | `reportProductEvent` | `-` | `0x20000102` | outbound-fwd | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `channelMapSet`, `name`, `zoneDefinition`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `channelMapSet`, `name`, `zoneDefinition`
 
 
 </details>
 
 ## `systemTime`
 
-Household system time over the modern API — the shared clock's JSON surface: read and set the coordinated household time that alarms and scheduling depend on.
+Household system time over the modern API: the shared clock's JSON surface for reading and setting the coordinated household time that alarms and scheduling depend on.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/systemTime/timeZone` | `getTimeZoneInfo` | `-` | `0x20000101` | `0x10b39424` desc:`10b3a534` `10b3eac4` `10b3ead4` `10b3eae4` `10b3eaf4` | — | c2: |
+| `GET` | `v1/households/{householdId}/systemTime/timeZone` | `getTimeZoneInfo` | `-` | `0x20000101` | `0x10b39424` desc:`10b3a534` `10b3eac4` `10b3ead4` `10b3eae4` `10b3eaf4` | none | c2: |
 | `PUT` | `v1/households/{householdId}/systemTime/timeZone` | `setTimeZoneInfo` | `-` | `0x20000104` | `0x10b39424` `0x10b39434` desc:`10b3eb04` `10b3eb14` `10b3eb24` `10b3eb34` `10b3eb44` | `timeZoneInfo`, `timeZoneInfo` | c2:<br>c3:`timeZoneInfo`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c2:`relativeTimeStamp`:`upnpEvent` `globalError`:`container` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
@@ -1470,12 +1470,12 @@ Op-level JSON keys recovered from op-object methods: `muse`, `timeZoneInfo`
 
 ## `time`
 
-Time over the modern API — reading the player's current time and timezone: the JSON counterpart of the classic time getters, for anything needing the player's own view of 'now'.
+Time over the modern API: reading the player's current time and timezone. It's the JSON counterpart of the classic time getters, for anything needing the player's own view of 'now'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | `0x10b39434` `0x10b3a534` `0x10b3eac4` `0x10b3ead4` `0x10b3eae4` `0x10b3eaf4` | — | — |
-| `GET` | `v1/households/{householdId}/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | `0x10b39434` `0x10b3a534` `0x10b3eac4` `0x10b3ead4` `0x10b3eae4` `0x10b3eaf4` | — | — |
+| `GET` | `v1/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | `0x10b39434` `0x10b3a534` `0x10b3eac4` `0x10b3ead4` `0x10b3eae4` `0x10b3eaf4` | none | none |
+| `GET` | `v1/households/{householdId}/players/{playerId}/time/relative` | `getRelativeTime` | `-` | `0x20000101` | `0x10b39434` `0x10b3a534` `0x10b3eac4` `0x10b3ead4` `0x10b3eae4` `0x10b3eaf4` | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -1496,12 +1496,12 @@ Implementation messages:
 
 ## `timers`
 
-The machinery for timed operations beyond the alarm-clock flow, exposed as its own resource group over the modern API. Covers scheduled work on the player — timing machinery the JSON surface exposes as its own group.
+The machinery for timed operations beyond the alarm-clock flow, exposed as its own resource group over the modern API. It covers the scheduled work on the player that the JSON surface exposes as its own group.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/timers` | `getTimers` | `-` | `0x20000101` | `0x10b3ead4` `0x10b3eae4` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`timers`:`upnpEvent`<br>c1:`timers`:`upnpEvent` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/timers` | `getTimers` | `-` | `0x20000101` | `0x10b3ead4` `0x10b3eae4` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`timers`:`upnpEvent`<br>c1:`timers`:`upnpEvent` |
+| `GET` | `v1/players/{playerId}/timers` | `getTimers` | `-` | `0x20000101` | `0x10b3ead4` `0x10b3eae4` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`timers`:`upnpEvent`<br>c1:`timers`:`upnpEvent` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/timers` | `getTimers` | `-` | `0x20000101` | `0x10b3ead4` `0x10b3eae4` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c1:`timers`:`upnpEvent`<br>c1:`timers`:`upnpEvent` |
 | `POST` | `v1/players/{playerId}/timers/create` | `createTimer` | `-` | `0x20000102` | `0x10b3eae4` `0x10b3eaf4` | `name`, `duration`, `duration` | c1:`timers`:`upnpEvent`<br>c1:`timers`:`upnpEvent`<br>c4:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c4:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/timers/create` | `createTimer` | `-` | `0x20000102` | `0x10b3eae4` `0x10b3eaf4` | `name`, `duration`, `duration` | c1:`timers`:`upnpEvent`<br>c1:`timers`:`upnpEvent`<br>c4:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c4:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` |
 | `PUT` | `v1/players/{playerId}/timers/setDuration/{timerId}` | `setDuration` | `timerId` | `0x20000104` | `0x10b3eaf4` `0x10b3eb04` | `name`, `duration`, `duration`, `timerId` | c4:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c4:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c5:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`authzPolicyKeyLechmere` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c5:`timer`:`upnpEvent` `globalError`:`commandHeader` `globalError`:`authzPolicyKeyLechmere` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` |
@@ -1524,16 +1524,16 @@ Op-level JSON keys recovered from op-object methods: `muse`, `name`, `duration`,
 
 ## `trueplay`
 
-Trueplay — Sonos's room-tuning feature — over the modern API: calibration status and the tuning-session commands as routes, the JSON front-end for the measure-and-tune flow.
+Trueplay, Sonos's room-tuning feature, over the modern API: calibration status and the tuning-session commands as routes. It's the JSON front-end for the measure-and-tune flow.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/trueplay/discovery` | `detectSpeakers` | `-` | `0x20000101` | `0x10b44644` `0x10b44654` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/trueplay/discovery` | `detectSpeakers` | `-` | `0x20000101` | `0x10b44644` `0x10b44654` | — | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/players/{playerId}/trueplay/presenceDiscovery` | `detectSpeakerPresence` | `-` | `0x20000101` | `0x10b44654` `0x10b44664` | — | c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/trueplay/presenceDiscovery` | `detectSpeakerPresence` | `-` | `0x20000101` | `0x10b44654` `0x10b44664` | — | c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `DELETE` | `v1/players/{playerId}/trueplay/discovery` | `resetDetectedSpeaker` | `-` | `0x20000108` | `0x10b44664` `0x10b44674` | — | c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `DELETE` | `v1/households/{householdId}/players/{playerId}/trueplay/discovery` | `resetDetectedSpeaker` | `-` | `0x20000108` | `0x10b44664` `0x10b44674` | — | c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/trueplay/discovery` | `detectSpeakers` | `-` | `0x20000101` | `0x10b44644` `0x10b44654` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/trueplay/discovery` | `detectSpeakers` | `-` | `0x20000101` | `0x10b44644` `0x10b44654` | none | c1:`ok`:`upnpEvent`<br>c1:`ok`:`upnpEvent`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/trueplay/presenceDiscovery` | `detectSpeakerPresence` | `-` | `0x20000101` | `0x10b44654` `0x10b44664` | none | c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/trueplay/presenceDiscovery` | `detectSpeakerPresence` | `-` | `0x20000101` | `0x10b44654` `0x10b44664` | none | c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerDetectionStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `DELETE` | `v1/players/{playerId}/trueplay/discovery` | `resetDetectedSpeaker` | `-` | `0x20000108` | `0x10b44664` `0x10b44674` | none | c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `DELETE` | `v1/households/{householdId}/players/{playerId}/trueplay/discovery` | `resetDetectedSpeaker` | `-` | `0x20000108` | `0x10b44664` `0x10b44674` | none | c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceResultList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/trueplay/presenceRate` | `setSpeakerPresenceRate` | `-` | `0x20000102` | `0x10b44674` `0x10b44684` | `duration`, `rate` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceEffectiveRate`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`speakerPresenceEffectiveRate`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/trueplay/presenceRate` | `setSpeakerPresenceRate` | `-` | `0x20000102` | `0x10b44674` `0x10b44684` | `duration`, `rate` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`speakerPresenceEffectiveRate`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`speakerPresenceEffectiveRate`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
 | `GET` | `v1/players/{playerId}/trueplay/config/{id}` | `getConfiguration` | `id` | `0x20000101` | `0x10b44684` `0x10b44694` | `duration`, `rate`, `id` | c2:`speakerPresenceEffectiveRate`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`speakerPresenceEffectiveRate`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c1:`trueplayConfiguration`:`upnpEvent`<br>c1:`trueplayConfiguration`:`upnpEvent` |
@@ -1545,7 +1545,7 @@ Trueplay — Sonos's room-tuning feature — over the modern API: calibration st
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **measurement_type**: `NONE`=1, `SESSION_RESULTS`=2, `MEASUREMENT_RESULTS`=3, `MEASUREMENT_RAW_AUDIO`=4
 - **positioning_measure**: `ANGLE`=1, `BEARING`=2, `DISTANCE`=3, `MAP`=4, `ACOUSTIC_SPACE_MAP`=5, `PORTABLE_SURROUNDS`=6
@@ -1558,18 +1558,18 @@ Op-level JSON keys recovered from op-object methods: `muse`, `duration`, `rate`,
 
 ## `trueroom`
 
-'Trueroom' — the room-correction system this generation used internally (the sonar-style calibration that predates the Trueplay branding on this era's hardware). These routes drive the measurement and tuning flow.
+'Trueroom', the room-correction system this generation used internally (the sonar-style calibration that predates the Trueplay branding on this era's hardware). These routes drive the measurement and tuning flow.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/trueroom/estimatorConfiguration` | `estimatorConfiguration` | `-` | `0x20000101` | `0x10b4911c` `0x10b4912c` | — | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
-| `GET` | `v1/households/{householdId}/players/{playerId}/trueroom/estimatorConfiguration` | `estimatorConfiguration` | `-` | `0x20000101` | `0x10b4911c` `0x10b4912c` | — | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/players/{playerId}/trueroom/estimatorConfiguration` | `estimatorConfiguration` | `-` | `0x20000101` | `0x10b4911c` `0x10b4912c` | none | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/players/{playerId}/trueroom/estimatorConfiguration` | `estimatorConfiguration` | `-` | `0x20000101` | `0x10b4911c` `0x10b4912c` | none | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/trueroom/adaptation` | `adaptation` | `-` | `0x20000102` | `0x10b4912c` `0x10b4913c` | `trueroomEstimatedParams` | c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/trueroom/adaptation` | `adaptation` | `-` | `0x20000102` | `0x10b4912c` `0x10b4913c` | `trueroomEstimatedParams` | c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`trueroomEstimatorConfig`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent` |
 | `GET` | `v1/players/{playerId}/trueroom/calibrationStatus` | `getCalibrationStatus` | `-` | `0x20000101` | `0x10b4913c` `0x10b4914c` | `trueroomEstimatedParams` | c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/households/{householdId}/players/{playerId}/trueroom/calibrationStatus` | `getCalibrationStatus` | `-` | `0x20000101` | `0x10b4913c` `0x10b4914c` | `trueroomEstimatedParams` | c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c4:`trueroomAdaptationStatus`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest`<br>c1:`ok`:`upnpEvent`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/players/{playerId}/trueroom/successTone` | `playSuccessTone` | `-` | `0x20000102` | `0x10b4914c` `0x10b4915c` | — | c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/trueroom/successTone` | `playSuccessTone` | `-` | `0x20000102` | `0x10b4914c` `0x10b4915c` | — | c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/players/{playerId}/trueroom/successTone` | `playSuccessTone` | `-` | `0x20000102` | `0x10b4914c` `0x10b4915c` | none | c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/trueroom/successTone` | `playSuccessTone` | `-` | `0x20000102` | `0x10b4914c` `0x10b4915c` | none | c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`trueroomCalibrationStatus`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/trueroom/swapInputMute` | `setSwapInputMute` | `-` | `0x20000102` | `0x10b4915c` `0x10b4916c` | `mute` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/trueroom/swapInputMute` | `setSwapInputMute` | `-` | `0x20000102` | `0x10b4915c` `0x10b4916c` | `mute` | c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 
@@ -1582,7 +1582,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `trueroomEstimatedP
 
 ## `update`
 
-Software update over the modern API — the player-level update routes: check for new firmware, download it, and apply it as JSON operations. The per-device half of the update flow.
+Software update over the modern API: the player-level update routes for checking new firmware, downloading it, and applying it as JSON operations. It's the per-device half of the update flow.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1602,7 +1602,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `useCachedOnly`, `u
 
 ## `upnpAVTransport`
 
-The classic AVTransport service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic AVTransport service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the transport, queue, and play-mode commands that drive playback, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1624,7 +1624,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpAlarmClock`
 
-The classic AlarmClock service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic AlarmClock service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the alarm and household-clock commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1646,7 +1646,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpAudioIn`
 
-The classic AudioIn service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic AudioIn service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the line-in commands (all stubs on this build), each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1668,7 +1668,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpConnectionManager`
 
-The classic ConnectionManager service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic ConnectionManager service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the connection-inventory plumbing commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1690,7 +1690,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpContentDirectory`
 
-The classic ContentDirectory service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic ContentDirectory service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the music-library browse and maintenance commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1712,7 +1712,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpDeviceProperties`
 
-The classic DeviceProperties service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic DeviceProperties service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the speaker settings, bonding, and autoplay commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1734,7 +1734,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpGroupManagement`
 
-The classic GroupManagement service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic GroupManagement service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the group membership and coordination commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1756,7 +1756,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpGroupRenderingControl`
 
-The classic GroupRenderingControl service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic GroupRenderingControl service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the group volume and mute commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1778,7 +1778,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpHTControl`
 
-The classic HTControl service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic HTControl service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the remote-learning and infrared commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1800,7 +1800,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpMusicServices`
 
-The classic MusicServices service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic MusicServices service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the music-service catalog and session commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1822,7 +1822,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpQueue`
 
-The classic Queue service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic Queue service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the multi-queue management commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1844,7 +1844,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpRenderingControl`
 
-The classic RenderingControl service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic RenderingControl service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the volume, mute, and tone commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1866,7 +1866,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpSystemProperties`
 
-The classic SystemProperties service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic SystemProperties service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the settings-store and account-management commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1888,7 +1888,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpVirtualLineIn`
 
-The classic VirtualLineIn service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic VirtualLineIn service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the external-feed session commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1910,7 +1910,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpZoneGroupTopology`
 
-The classic ZoneGroupTopology service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
+The classic ZoneGroupTopology service presented as a modern API resource: a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. The operations here mirror the household map, update, and diagnostics commands, each mapping to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1927,14 +1927,14 @@ The classic ZoneGroupTopology service presented as a modern API resource — a b
 
 Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output`, `method`, `muse`, `durationSecs`, `service`, `logicalSID`
 
-Field vocabulary (request/response keys seen in the resource's client tables — not yet bound to individual ops): `query:includeDeviceInfo`
+Field vocabulary (request/response keys seen in the resource's client tables, not yet bound to individual ops): `query:includeDeviceInfo`
 
 
 </details>
 
 ## `virtualLineIn`
 
-External-audio sessions as JSON resources — the push-audio feature's modern surface, parallel to the classic VLI service. How the app creates or joins an external-feed session through the modern API rather than the classic commands.
+External-audio sessions as JSON resources: the push-audio feature's modern surface, parallel to the classic VLI service. It's how the app creates or joins an external-feed session through the modern API rather than the classic commands.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1948,12 +1948,12 @@ External-audio sessions as JSON resources — the push-audio feature's modern su
 | `POST` | `v1/households/{householdId}/players/{playerId}/virtualLineIn/sendBackChannelCmd` | `sendBackChannelCmd` | `-` | `0x20000102` | `0x10b82f88` `0x10b82f98` | `source`, `backChannelCmd` | c4:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c4:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/players/{playerId}/virtualLineIn/startAudio` | `startAudio` | `-` | `0x20000102` | `0x10b82f98` `0x10b82fa8` | `backChannelCmd` | c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/virtualLineIn/startAudio` | `startAudio` | `-` | `0x20000102` | `0x10b82f98` `0x10b82fa8` | `backChannelCmd` | c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c3:`ok`:`upnpEvent` `globalError`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
-| `POST` | `v1/players/{playerId}/virtualLineIn/stopAudio` | `stopAudio` | `-` | `0x20000102` | `0x10b82fa8` `0x10b82fb8` | — | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
-| `POST` | `v1/households/{householdId}/players/{playerId}/virtualLineIn/stopAudio` | `stopAudio` | `-` | `0x20000102` | `0x10b82fa8` `0x10b82fb8` | — | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
+| `POST` | `v1/players/{playerId}/virtualLineIn/stopAudio` | `stopAudio` | `-` | `0x20000102` | `0x10b82fa8` `0x10b82fb8` | none | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
+| `POST` | `v1/households/{householdId}/players/{playerId}/virtualLineIn/stopAudio` | `stopAudio` | `-` | `0x20000102` | `0x10b82fa8` `0x10b82fb8` | none | c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair`<br>c2:`ok`:`upnpEvent` `globalError`:`channelMapPair` |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **abort_reasons**: `NONE`=1, `ABORT_UNRECOGNIZED_OP`=2, `ABORT_INCORRECT_MODE`=3, `ABORT_NO_SOURCE`=4, `ABORT_INVALID_OP`=5, `ABORT_REFUSED`=6, `ABORT_UNDETERMINED`=7, `DEVICE`=8, `NACK`=9, `REPLY_TIMEOUT`=10, `ROOT_INDIRECT`=11, `BROADCAST_BLOCKED`=12, `UNKNOWN`=13
 - **linein_conn_state**: `NO_CONNECTION`=1, `CONNECTED`=2, `SONGLE`=3, `UNKNOWN`=4
@@ -1965,12 +1965,12 @@ Op-level JSON keys recovered from op-object methods: `source`, `muse`, `backChan
 
 ## `virtualRemoteControl`
 
-Virtual remote control — lets an app act as the speaker's remote: button events and remote-style commands delivered as API calls rather than hardware presses.
+Virtual remote control: lets an app act as the speaker's remote, with button events and remote-style commands delivered as API calls rather than hardware presses.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `POST` | `v1/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | `0x10b8541c` `0x10b894b0` `0x10b894c0` `0x10b894d0` `0x10b894e0` desc:`10b894b0` `10b894c0` `10b894d0` `10b894e0` `10b894f0` `10b89500` `10b89510` `10b89520` | — | — |
-| `POST` | `v1/households/{householdId}/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | `0x10b8541c` `0x10b894b0` `0x10b894c0` `0x10b894d0` `0x10b894e0` desc:`10b894b0` `10b894c0` `10b894d0` `10b894e0` `10b894f0` `10b89500` `10b89510` `10b89520` | — | — |
+| `POST` | `v1/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | `0x10b8541c` `0x10b894b0` `0x10b894c0` `0x10b894d0` `0x10b894e0` desc:`10b894b0` `10b894c0` `10b894d0` `10b894e0` `10b894f0` `10b89500` `10b89510` `10b89520` | none | none |
+| `POST` | `v1/households/{householdId}/players/{playerId}/virtualRemoteControl/buttonCommand` | `sendButtonCommand` | `-` | `0x20000102` | `0x10b8541c` `0x10b894b0` `0x10b894c0` `0x10b894d0` `0x10b894e0` desc:`10b894b0` `10b894c0` `10b894d0` `10b894e0` `10b894f0` `10b89500` `10b89510` `10b89520` | none | none |
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
@@ -1978,7 +1978,7 @@ Resource implementation functions (string-block registrar family): `0x10b85458`
 
 Field vocabulary recovered from the resource's implementation functions: `virtualRemoteControl`
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **dpad_directions**: `UP`=1, `DOWN`=2, `LEFT`=3, `RIGHT`=4, `SELECT`=5
 - **remote_buttons**: `POWER`=1, `BACK`=2, `HOME`=3, `MENU`=4, `PLAY_PAUSE`=5, `MUSIC`=6, `DPAD_UP`=7, `DPAD_DOWN`=8, `DPAD_LEFT`=9, `DPAD_RIGHT`=10, `DPAD_SELECT`=11
@@ -1990,12 +1990,12 @@ Related enum registrations (proven integer values — see `enum_tables`):
 
 ## `voice`
 
-Voice-assistant integration — the voice-service routes (status, linked assistants) on products that support them; present in the shared codebase for platform parity even where the hardware lacks microphones.
+Voice-assistant integration: the voice-service routes (status, linked assistants) on products that support them. It's present in the shared codebase for platform parity even where the hardware lacks microphones.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/players/{playerId}/voice/accounts` | `getVoiceAccounts` | `-` | `0x20000101` | `0x10b894b0` desc:`10b92fe0` `10b92ff0` `10b93000` | — | c2:<br>c2: |
-| `GET` | `v1/households/{householdId}/players/{playerId}/voice/accounts` | `getVoiceAccounts` | `-` | `0x20000101` | `0x10b894b0` desc:`10b92fe0` `10b92ff0` `10b93000` | — | c2:<br>c2: |
+| `GET` | `v1/players/{playerId}/voice/accounts` | `getVoiceAccounts` | `-` | `0x20000101` | `0x10b894b0` desc:`10b92fe0` `10b92ff0` `10b93000` | none | c2:<br>c2: |
+| `GET` | `v1/households/{householdId}/players/{playerId}/voice/accounts` | `getVoiceAccounts` | `-` | `0x20000101` | `0x10b894b0` desc:`10b92fe0` `10b92ff0` `10b93000` | none | c2:<br>c2: |
 | `POST` | `v1/players/{playerId}/voice/accounts` | `createVoiceAccount` | `-` | `0x20000102` | `0x10b894b0` `0x10b894c0` | `allowVoiceDataCollection`, `timeoutSeconds`, `service`, `wakeword`, `wakeword` | c2:<br>c2:<br>c6:`accountError`:`microphoneSwitch` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo`<br>c6:`accountError`:`microphoneSwitch` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo` |
 | `POST` | `v1/households/{householdId}/players/{playerId}/voice/accounts` | `createVoiceAccount` | `-` | `0x20000102` | `0x10b894b0` `0x10b894c0` | `allowVoiceDataCollection`, `timeoutSeconds`, `service`, `wakeword`, `wakeword` | c2:<br>c2:<br>c6:`accountError`:`microphoneSwitch` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo`<br>c6:`accountError`:`microphoneSwitch` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo` |
 | `POST` | `v1/players/{playerId}/voice/accounts/{accountId}` | `updateVoiceAccount` | `accountId` | `0x20000102` | `0x10b894c0` `0x10b894d0` desc:`10b93010` `10b93020` `10b93030` | `allowVoiceDataCollection`, `timeoutSeconds`, `service`, `wakeword`, `wakeword`, `accountId` | c6:`accountError`:`microphoneSwitch` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo`<br>c6:`accountError`:`microphoneSwitch` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo`<br>c6:`accountError`:`waterState` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo`<br>c6:`accountError`:`waterState` `accountError`:`chirpRequest` `accountError`:`wiredSubStatus` `accountError`:`bluetooth` `voiceAccount`:`upnpEvent` `globalError`:`deviceInfo` |
@@ -2016,11 +2016,11 @@ Op-level JSON keys recovered from op-object methods: `muse`, `allowVoiceDataColl
 
 ## `zones`
 
-Zones over the modern API — the household's rooms and zones as resources: the modern view of the player map the classic topology service provides, for apps that read the household's shape as JSON.
+Zones over the modern API: the household's rooms and zones as resources. It's the modern view of the player map the classic topology service provides, for apps that read the household's shape as JSON.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
-| `GET` | `v1/households/{householdId}/zones` | `getActiveZoneList` | `-` | `0x20000101` | `0x10b92ff0` `0x10b93000` | — | c1:`ok`:`upnpEvent`<br>c2:`activeZoneList`:`upnpEvent` `globalError`:`wiredSubStatus` |
+| `GET` | `v1/households/{householdId}/zones` | `getActiveZoneList` | `-` | `0x20000101` | `0x10b92ff0` `0x10b93000` | none | c1:`ok`:`upnpEvent`<br>c2:`activeZoneList`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/households/{householdId}/zones/definition/{zoneId}` | `getZoneDefinition` | `zoneId` | `0x20000101` | `0x10b93000` `0x10b93010` | `zoneId` | c2:`activeZoneList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c3:`zoneDefinition`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus` |
 | `GET` | `v1/households/{householdId}/zones/definition` | `getZoneDefinitionList` | `-` | `0x20000101` | `0x10b93010` `0x10b93020` | `zoneId` | c3:`zoneDefinition`:`upnpEvent` `globalError`:`chirpRequest` `globalError`:`wiredSubStatus`<br>c2:`zoneDefinitionList`:`upnpEvent` `globalError`:`wiredSubStatus` |
 | `POST` | `v1/households/{householdId}/zones/definition` | `addZoneDefinition` | `-` | `0x20000102` | `0x10b93020` `0x10b93030` | `channelMapSet`, `channelMapSet`, `name`, `channelMapSet`, `channelMapSet` | c2:`zoneDefinitionList`:`upnpEvent` `globalError`:`wiredSubStatus`<br>c4:`zoneDefinition`:`upnpEvent` `globalError`:`wiredSubStatus` `globalError`:`chirpRequest` `globalError`:`activeZoneMember` |
@@ -2038,7 +2038,7 @@ Zones over the modern API — the household's rooms and zones as resources: the 
 
 <details markdown="1"><summary><b>Recovered vocabulary & internals</b></summary>
 
-Related enum registrations (proven integer values — see `enum_tables`):
+Related enum registrations (proven integer values, see `enum_tables`):
 
 - **compression_level**: `OFF`=1, `LOW`=2, `DEFAULT`=3, `MAX`=4
 - **zone_availability**: `UNDEFINED`=1, `ENABLED_AVAILABLE`=2, `ENABLED_UNAVAILABLE`=3, `DISABLED_AVAILABLE`=4, `DISABLED_UNAVAILABLE`=5, `SECONDARY_STATE_IGNORED_BY_CR`=6
@@ -2051,10 +2051,10 @@ Op-level JSON keys recovered from op-object methods: `muse`, `zoneId`, `channelM
 
 <details markdown="1"><summary>Evidence (5)</summary>
 
-- @ 0x10e7a68c — route record array head (householdId dialect)
-- @ 0x10e783f8 — route record array head ({HHID} dialect)
-- @ 0x100d36c0 — handler stub r8=0 -> f_100d2e18
-- @ 0x100d36e4 — handler stub r8=1 -> f_100d2e18
-- @ 0x100d2e18 — request normalizer + dispatcher
+- @ 0x10e7a68c; route record array head (householdId dialect)
+- @ 0x10e783f8; route record array head ({HHID} dialect)
+- @ 0x100d36c0; handler stub r8=0 -> f_100d2e18
+- @ 0x100d36e4; handler stub r8=1 -> f_100d2e18
+- @ 0x100d2e18; request normalizer + dispatcher
 
 </details>

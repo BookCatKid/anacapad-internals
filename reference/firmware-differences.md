@@ -1,6 +1,6 @@
 # Firmware / model differences
 
-How this build compares to other Sonos firmware versions — checked by matching strings and structures across binaries, never by assumption. The target here is a specific Playbar-era build; comparing it against other builds and other models shows what's shared firmware-wide, what's model-specific, and what changed over time. Where a feature appears or disappears between builds, that's evidence of what Sonos was shipping and when — and a warning against assuming anything on this site applies to a different player or version.
+How this build compares to other Sonos firmware versions, checked by matching strings and structures across binaries, never by assumption. The target here is a specific Playbar-era build. Comparing it against other builds and other models shows what's shared firmware-wide, what's model-specific, and what changed over time. Where a feature appears or disappears between builds, that's evidence of what Sonos was shipping and when, and a warning against assuming anything on this site applies to a different player or version.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -13,18 +13,18 @@ String-set diff across anacapad 34.16 (fenway), 57.10 (fenway), 86.8-78270 (play
 
 ## Product surface
 
-Across the builds compared, every player advertises the same set of service documents with the same command lists — the advertised surface is remarkably stable. The interesting differences hide underneath: which commands are actually implemented, which handlers do real work, and which features exist on which models. The spec is a veneer; this section is about what's behind it on each build.
+Across the builds compared, every player advertises the same set of service documents with the same command lists, so the advertised surface is remarkably stable. The interesting differences hide underneath: which commands are actually implemented, which routines do real work, and which features exist on which models. The spec is a veneer; this section is about what's behind it on each build.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-PRODUCT comparison play1-model8 vs playbar-model9 vs 86.10-model9: all 3 ship the IDENTICAL 16-SCPD advertised surface (same action+statevar counts); sole content diff is the 86.10 A_ARG_TYPE_ClearSource addition. Sonos advertised API is hardware-uniform — product differentiation is binary/feature-gating level, not SCPD. play1-model8 additionally ships satellite_device.xml (device desc, not SCPD).
+PRODUCT comparison play1-model8 vs playbar-model9 vs 86.10-model9: all 3 ship the IDENTICAL 16-SCPD advertised surface (same action+statevar counts); sole content diff is the 86.10 A_ARG_TYPE_ClearSource addition. Sonos advertised API is hardware-uniform: product differentiation is binary/feature-gating level, not SCPD. play1-model8 additionally ships satellite_device.xml (device desc, not SCPD).
 
 </details>
 
 
 ## Service-URN matrix
 
-A literal check of which service identifiers exist in each build — a simple present/absent matrix showing what the firmware added or dropped across versions and models. It's the quickest way to see, for example, which builds carry the QPlay integration or the virtual line-in service.
+A literal check of which service identifiers exist in each build: a simple present/absent matrix showing what the firmware added or dropped across versions and models. It's the quickest way to see, for example, which builds carry the QPlay integration or the virtual line-in service.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -46,11 +46,11 @@ A literal check of which service identifiers exist in each build — a simple pr
 
 ## Entries
 
-Individual differences found between builds, each backed by literal evidence — the strings, tables, or structures that appear in one firmware and not another — plus which builds carry each difference. Where a change is meaningful (a feature added, a command removed, a subsystem moved) the entry says so plainly.
+Individual differences found between builds, each backed by literal evidence (the strings, tables, or structures that appear in one firmware and not another) plus which builds carry each difference. Where a change is meaningful, like a feature added, a command removed, or a subsystem moved, the entry says so plainly.
 
 ### QPlay service URN literal
 
-The QPlay service — the Tencent QQ Music casting integration — exists only in certain builds. Its identifier string is present in this firmware, proving the feature shipped here even though most markets never saw it; other builds lack the string entirely, showing where the integration was added or dropped.
+The QPlay service, the Tencent QQ Music casting integration, exists only in certain builds. Its identifier string is present in this firmware, proving the feature shipped here even though most markets never saw it. Other builds lack the string entirely, showing where the integration was added or dropped.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -67,7 +67,7 @@ urn:schemas-tencent-com:service:QPlay:1 present in 34.16/57.10, ABSENT in 86.x -
 
 ### VirtualLineIn service
 
-The virtual line-in service — the control surface for externally-pushed audio — appears in some builds and not others. Its presence tracks which firmware can host push-style sessions like a music service's own direct-streaming.
+The virtual line-in service, meaning the control surface for externally-pushed audio, appears in some builds and not others. Its presence tracks which firmware can host push-style sessions like a music service's own direct-streaming.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -84,7 +84,7 @@ urn:schemas-upnp-org:service:VirtualLineIn:1 absent in 34.16; present 57.10+ wit
 
 ### sonos-com ContentDirectory namespace
 
-The music-library service carries a Sonos-specific extension namespace on some builds — extra commands beyond the standard set. Which builds carry it marks where Sonos extended the standard library protocol with their own commands.
+The music-library service carries a Sonos-specific extension namespace on some builds, meaning extra commands beyond the standard set. Which builds carry it marks where Sonos extended the standard library protocol with their own commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -100,7 +100,7 @@ urn:schemas-sonos-com:service:ContentDirectory:1 absent in 34.16; added 57.10+ a
 
 ### /status/opt/log/mdnsd.log
 
-One diagnostic HTTP path found in some builds: an endpoint that serves the multicast-discovery daemon's log — useful for debugging 'speakers can't see each other' problems, present only on certain firmware.
+One diagnostic HTTP path found in some builds: an endpoint that serves the multicast-discovery daemon's log. It's useful for debugging 'speakers can't see each other' problems, and it's present only on certain firmware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -115,7 +115,7 @@ status endpoint added after 34.16
 
 ### /device_account registration subroutes
 
-Some builds expose extra web endpoints under device-account registration — part of the account-linking flow where a speaker registers itself against Sonos's cloud. Which routes exist changed across versions as that flow evolved.
+Some builds expose extra web endpoints under device-account registration, which is part of the account-linking flow where a speaker registers itself against Sonos's cloud. Which routes exist changed across versions as that flow evolved.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -130,7 +130,7 @@ Some builds expose extra web endpoints under device-account registration — par
 
 ### /api route
 
-The presence of the top-level /api mount — the front door of the modern REST API — differs across builds, marking exactly which firmware generation introduced the modern app-facing interface alongside the classic command surface.
+The presence of the top-level /api mount (the front door of the modern REST API) differs across builds. It marks exactly which firmware generation introduced the modern app-facing interface alongside the classic command surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -146,7 +146,7 @@ The presence of the top-level /api mount — the front door of the modern REST A
 
 ### FV token grammar
 
-The format of an authentication token used in API access changed across builds — the grammar of the credential string the modern API checks. A small but real security-relevant difference between versions.
+The format of an authentication token used in API access changed across builds, meaning the grammar of the credential string the modern API checks. It's a small but real security-relevant difference between versions.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -162,7 +162,7 @@ The format of an authentication token used in API access changed across builds �
 
 ### x-sonos-* header set
 
-The family of custom HTTP headers the firmware recognizes — headers carrying Sonos-specific request metadata — grew across builds. Each addition is evidence of a new cross-device feature riding on the HTTP layer.
+The family of custom HTTP headers the firmware recognizes grew across builds. These headers carry Sonos-specific request metadata, and each addition is evidence of a new cross-device feature riding on the HTTP layer.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -177,7 +177,7 @@ x-sonos-action/x-sonos-dock/x-sonos-starttime only in <=57.10 (removed); x-sonos
 
 ### x-sonosapi-iqradio scheme
 
-A custom address scheme for iHeartRadio-style service items appears only in certain builds — dating when that integration's addressing was added or changed. A service-namespaced radio scheme that appears in some builds — one of the private provider address forms for the iHeartRadio-style integration.
+A service-namespaced radio scheme that appears in some builds: one of the private provider address forms for the iHeartRadio-style integration. Its presence or absence dates when that integration's addressing was added or changed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -192,7 +192,7 @@ x-sonosapi-iqradio:* and x-sonosapi-iqradioinst:* only in 34.16 - iQR radio serv
 
 ### x-rincon-stream / x-sonosapi-show / trueroom
 
-Several custom address schemes — for room-to-room streaming, show-style service items, and room-tuning data — vary by build, mapping the evolution of the player's address vocabulary.
+Several custom address schemes vary by build: ones for room-to-room streaming, show-style service items, and room-tuning data. Together they map the evolution of the player's address vocabulary.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -207,7 +207,7 @@ x-rincon-stream:%s:%s, x-sonosapi-show:, x-rincon-trueroom:, x-rincon-sonarcal:c
 
 ### x-rincon-enc2
 
-A variant of the room-to-room stream address carrying different encoding parameters exists on some builds — evidence of a second-generation stream format being introduced. Another protected-stream address scheme present in certain builds — part of the encrypted-content machinery.
+Another protected-stream address scheme present in certain builds, part of the encrypted-content machinery. It carries different encoding parameters, evidence of a second-generation stream format being introduced.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -222,7 +222,7 @@ x-rincon-enc2 scheme literal only in playbar-model9 86.8 - model-specific encryp
 
 ### explicitContentFiltering config key
 
-A settings-store key for explicit-content filtering appears in newer builds — the parental-control toggle arriving as a stored configuration option. A stored-setting key controlling explicit-content filtering — lets the system flag or block adult material, with the setting living in the standard settings store.
+A stored-setting key controlling explicit-content filtering that lets the system flag or block adult material. It appears in newer builds as a parental-control toggle inside the standard settings store.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -237,7 +237,7 @@ config-key literal added in 57.10 (f_106bb20c handler family)
 
 ### int_setTransferMode
 
-An internal transfer-mode command name found in some builds — part of the network layer's internals, its presence/absence tracks a rewrite of how the player negotiates transfers.
+An internal transfer-mode command name found in some builds. It's part of the network layer's internals, and its presence or absence tracks a rewrite of how the player negotiates transfers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -252,7 +252,7 @@ transfer-mode key literal only in 86.10-80260
 
 ### RINCON metadata NS additions
 
-New fields in the RINCON metadata namespace — the XML vocabulary track and queue metadata uses — appear across builds, each addition being a capability the metadata format learned.
+New fields in the RINCON metadata namespace (the XML vocabulary track and queue metadata uses) appear across builds. Each addition is a capability the metadata format learned.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -268,7 +268,7 @@ metadata-1-0 fields isAd/linkUrl/trackGain added in 86.x; preset only in <=57.10
 
 ### /status route table
 
-The diagnostic web surface's route table — the list of /status pages the player serves — differs between builds, showing which diagnostics each generation exposed.
+The diagnostic web surface's route table (the list of /status pages the player serves) differs between builds, showing which diagnostics each generation exposed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -283,7 +283,7 @@ all ~59 /status paths identical across 57.10-86.x; only mdnsd.log absent in 34.1
 
 ### SystemProperties removed actions
 
-Two SystemProperties commands — ProvisionCredentialedTrialAccountX and ResetThirdPartyCredentials — are still advertised in this build's spec but have no implementation: they're the 'ghost' entries, and comparing builds shows when each died.
+Two SystemProperties commands (ProvisionCredentialedTrialAccountX and ResetThirdPartyCredentials) are still advertised in this build's spec but have no implementation. They're the 'ghost' entries, and comparing builds shows when each died.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -298,7 +298,7 @@ FIRMWARE-STATE MATRIX (docs/crossbuild_matrix.json, 3-state per action): REMOVED
 
 ### Muse software-update REST surface restructure
 
-The modern API's software-update routes were restructured between builds — the endpoints apps use to check for and trigger updates were reorganized, marking a change in how firmware updates are driven.
+The modern API's software-update routes were restructured between builds: the endpoints apps use to check for and trigger updates were reorganized, marking a change in how firmware updates are driven.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -315,11 +315,11 @@ The modern API's software-update routes were restructured between builds — the
 
 ### Muse common layer moved to sonos-muse-1.0 build tree
 
-The shared plumbing of the modern API moved build trees between versions — an internal restructuring visible in the binaries' own record of where code came from.
+The shared plumbing of the modern API moved build trees between versions. It's an internal restructuring visible in the binaries' own record of where code came from.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx source-path literals present in 86.8 anacapad .rodata are gone in 86.10, replaced by sonos-muse-1.0/sonos-muse/{src/sonos/muse/common/{context,eventing,noncehandler}.cxx, include/sonos/muse/common/history.h} — the muse context/eventing/nonce layer was moved to the sonos-muse-1.0 source tree (a build-tree reorganization — no libsonos-muse*.so exists in the rootfs; the code is statically linked, not a runtime library boundary). ${MUSE_V2_API_STRING} placeholder literal also dropped; muse_target_validator + museItemType added; flat 86.8 relative-path subscription table (zones/*, */subscription, authorization/*) no longer appears as standalone literals.
+oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx source-path literals present in 86.8 anacapad .rodata are gone in 86.10, replaced by sonos-muse-1.0/sonos-muse/{src/sonos/muse/common/{context,eventing,noncehandler}.cxx, include/sonos/muse/common/history.h} (the muse context/eventing/nonce layer was moved to the sonos-muse-1.0 source tree, a build-tree reorganization. No libsonos-muse*.so exists in the rootfs; the code is statically linked, not a runtime library boundary). ${MUSE_V2_API_STRING} placeholder literal also dropped; muse_target_validator + museItemType added; flat 86.8 relative-path subscription table (zones/*, */subscription, authorization/*) no longer appears as standalone literals.
 
 </details>
 
@@ -330,7 +330,7 @@ oc/zone/muse/{musecontext,museeventing,musenoncehandler}.cxx source-path literal
 
 ### RMuseFeature flag additions
 
-New capability flags for the modern API appear in later builds — internal switches gating API features, each addition marking a feature that version learned.
+New capability flags for the modern API appear in later builds. These are internal switches gating API features, and each addition marks a feature that version learned.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -345,11 +345,11 @@ Five new capability-name literals appear only in 86.10: AUTOMATIC_WIRED_SOFTAP, 
 
 ### Group-forming ungroupable-player guards
 
-Later builds add guards preventing certain players from forming groups — a restriction for models that can't lead or join in some modes, absent from older firmware.
+Later builds add guards preventing certain players from forming groups. It's a restriction for models that can't lead or join in some modes, and it's absent from older firmware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-86.10 adds a battery of rejection/guard literals absent in 86.8: 'Grouping ungroupable player to other players is not supported.', 'Rejecting AddMember: GC or new member is an ungroupable player (gcUUID=%s memberID=%s)', 'Rejecting x-rincon URI \[%s\]: source or target is an ungroupable player', clone/create-group-to-ungroupable failure logs, 'Resetting required group caps \[0x%08x\] -> \[0x%08x\]', x-sonos-gc-cleared-content header, and BecomeGroupCoordinatorAndSource bCloningGCState/bSourceGCClearedContent tracing — consistent with the new ClearSource dispatch arg.
+86.10 adds a battery of rejection/guard literals absent in 86.8: 'Grouping ungroupable player to other players is not supported.', 'Rejecting AddMember: GC or new member is an ungroupable player (gcUUID=%s memberID=%s)', 'Rejecting x-rincon URI \[%s\]: source or target is an ungroupable player', clone/create-group-to-ungroupable failure logs, 'Resetting required group caps \[0x%08x\] -> \[0x%08x\]', x-sonos-gc-cleared-content header, and BecomeGroupCoordinatorAndSource bCloningGCState/bSourceGCClearedContent tracing: consistent with the new ClearSource dispatch arg.
 
 </details>
 
@@ -360,7 +360,7 @@ Later builds add guards preventing certain players from forming groups — a res
 
 ### Bundled curl upgrade (DoH + HTTPS-RR + happy-eyeballs v2)
 
-The bundled HTTP client library was upgraded across builds, gaining newer DNS and connection-racing features — plumbing that makes the player's outgoing connections more robust.
+The bundled HTTP client library was upgraded across builds, gaining newer DNS and connection-racing features. It's plumbing that makes the player's outgoing connections more robust.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -375,7 +375,7 @@ The bundled HTTP client library was upgraded across builds, gaining newer DNS an
 
 ### Playback-state guard additions
 
-New guards on playback-state handling appear in later builds — extra checks that reject invalid transitions, marking tightened state machinery over time. Extra checks added around playback state in newer builds — stricter validation before transport commands are allowed to proceed.
+Extra checks added around playback state in newer builds: stricter validation before transport commands are allowed to proceed, marking tightened state machinery over time.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -388,13 +388,13 @@ New guards on playback-state handling appear in later builds — extra checks th
 | `86.8` | absent |
 | `86.10` | present |
 
-### rootfs content diff — fenway (m8) vs limelight (m9), same build 86.10-80260
+### rootfs content diff: fenway (m8) vs limelight (m9), same build 86.10-80260
 
-Two products running the same firmware version ship different filesystems — the model-8 (Play:1) and model-9 (Playbar) images differ in bundled files and components, showing what each hardware line includes even when version-matched.
+Two products running the same firmware version ship different filesystems: the model-8 (Play:1) and model-9 (Playbar) images differ in bundled files and components. It shows what each hardware line includes even when version-matched.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-m9-only: libdcadec.so.0 (DTS), libsqlite3.so.0, modules/ir_rcvr.ko + opt/ir/ (Playbar has an IR receiver; Play:1 does not), opt/dsp/S9_array.xml (woofer array), opt/buzzers/speaker-detect.mp3 (chirp room-detect tone), wifi/N/dfs.ko + radartool (DFS radar — HT master owns SonosNet), icon-S9.png, opt/bin/anacapad. m8-only: opt/bin/update — RECOVERY BOOT LOOP: writes 'URL: \[http://update-firmware.sonos.com/firmware/Prod/JFFS_Static_Link/fenway.upd\]' to /var/run/upgradeinfo (honors /var/run/forceupdateurl override), rotates /jffs/recovery.log -> recovery_prev.log (112-line trim), runs /bin/upgrade -b every 30s — the unbricker path, ABSENT on m9 (limelight recovery handled differently, likely boot-bank); opt/htdocs/audio/level.mp3 (271KB test tone); opt/htdocs/xml/satellite_device.xml (fenway ships a SATELLITE device-description template — Play:1 can present as a bonded surround); icons S1/S3/Sub.png for topology display. Configure diffs: JFFS on mtdblock3/mtd3 (m8) vs mtdblock4/mtd4 (m9) — different flash layouts; frcheck rc==0 -> netstartd --soft-reset on m8 vs --hard-reset on m9 — the same factory-reset status maps to DIFFERENT reset severity per model.
+m9-only: libdcadec.so.0 (DTS), libsqlite3.so.0, modules/ir_rcvr.ko + opt/ir/ (Playbar has an IR receiver; Play:1 does not), opt/dsp/S9_array.xml (woofer array), opt/buzzers/speaker-detect.mp3 (chirp room-detect tone), wifi/N/dfs.ko + radartool (DFS radar, HT master owns SonosNet), icon-S9.png, opt/bin/anacapad. m8-only: opt/bin/update. RECOVERY BOOT LOOP: writes 'URL: \[http://update-firmware.sonos.com/firmware/Prod/JFFS_Static_Link/fenway.upd\]' to /var/run/upgradeinfo (honors /var/run/forceupdateurl override), rotates /jffs/recovery.log -> recovery_prev.log (112-line trim), runs /bin/upgrade -b every 30s (the unbricker path, ABSENT on m9 where limelight recovery is handled differently, likely boot-bank); opt/htdocs/audio/level.mp3 (271KB test tone); opt/htdocs/xml/satellite_device.xml (fenway ships a SATELLITE device-description template so Play:1 can present as a bonded surround); icons S1/S3/Sub.png for topology display. Configure diffs: JFFS on mtdblock3/mtd3 (m8) vs mtdblock4/mtd4 (m9) (different flash layouts; frcheck rc==0 -> netstartd --soft-reset on m8 vs --hard-reset on m9): the same factory-reset status maps to DIFFERENT reset severity per model.
 
 </details>
 
@@ -409,9 +409,9 @@ m9-only: libdcadec.so.0 (DTS), libsqlite3.so.0, modules/ir_rcvr.ko + opt/ir/ (Pl
 
 </details>
 
-### anacapad binary .rodata diff — m8/fenway (Play:1) vs m9/limelight (Playbar), same build 86.8
+### anacapad binary .rodata diff: m8/fenway (Play:1) vs m9/limelight (Playbar), same build 86.8
 
-Comparing the read-only data of the same program across two models on the same version: the Play:1 and Playbar builds share most strings and tables but differ in model-specific sections — the evidence that a shared codebase compiles into per-model firmware with real feature differences.
+Comparing the read-only data of the same program across two models on the same version: the Play:1 and Playbar builds share most strings and tables but differ in model-specific sections. It's the evidence that a shared codebase compiles into per-model firmware with real feature differences.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

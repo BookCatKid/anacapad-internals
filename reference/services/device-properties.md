@@ -1,8 +1,8 @@
-# `DeviceProperties` — `/DeviceProperties/Control`
+# `DeviceProperties` `/DeviceProperties/Control`
 
 **visibility** `advertised` · **status** `strong`
 
-This service manages the speaker's own settings — the properties of the physical device rather than anything about music. It covers the status LED and the physical buttons on top (including locking them so kids can't press them), the room name and icon that show up in the app, and the player's identity inside the household. It is also where speaker bonding lives: turning two identical speakers into a stereo pair, attaching surround speakers or a subwoofer to a soundbar, and undoing those bonds. On top of that it owns the autoplay defaults — what a player should automatically do when a familiar source comes back — and a configuration mode that apps enter during setup and diagnostics. In short: everything you would find under 'this speaker' in system settings routes through here.
+This service manages the speaker's own settings, meaning the properties of the physical device rather than anything about music. It covers the status LED and the physical buttons on top (including locking them so kids can't press them), the room name and icon that show up in the app, and the player's identity inside the household. It is also where speaker bonding lives: turning two identical speakers into a stereo pair, attaching surround speakers or a subwoofer to a soundbar, and undoing those bonds. On top of that it owns the autoplay defaults, which decide what a player should automatically do when a familiar source comes back, and a configuration mode that apps enter during setup and diagnostics. In short: everything you would find under 'this speaker' in system settings routes through here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -58,7 +58,7 @@ Device properties service: LED/button state, zone attributes, stereo-pair and ho
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Bonds additional speakers to this one so they behave as a single room. The argument describes which channel each added speaker should play (for example, which speaker becomes left and which becomes right). This is one of the building blocks the app uses when you group speakers into a surround setup or stereo arrangement — unlike casual grouping, a bond is a deeper hardware-level association: the bonded speakers share a room identity and split audio channels between them rather than just playing in sync.
+Bonds additional speakers to this one so they behave as a single room. The argument describes which channel each added speaker should play, for example which speaker becomes left and which becomes right. This is one of the building blocks the app uses when you group speakers into a surround setup or stereo arrangement. Unlike casual grouping, a bond is a deeper hardware-level association: the bonded speakers share a room identity and split audio channels between them rather than just playing in sync.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -72,7 +72,7 @@ Adds bonded zones (ChannelMapSet) via impl->v\[+0x18\].
 |---|---|---|---|---|
 | `ChannelMapSet` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 639 chars | none; required input |
 
-- **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
+- **`ChannelMapSet`**: Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
 
@@ -83,7 +83,7 @@ Adds bonded zones (ChannelMapSet) via impl->v\[+0x18\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10735e4c — wrapper family decode
+- @ 0x10735e4c; wrapper family decode
 
 </details>
 
@@ -93,7 +93,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735e4c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10735e4c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -103,7 +103,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735e4c — member vfunc calls: \['r30 v\[+0x18\]'\]
+- fn 0x10735e4c; member vfunc calls: \['r30 v\[+0x18\]'\]
 
 </details>
 
@@ -117,7 +117,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x18\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x18\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735e4c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
+- fn 0x10735e4c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x18\]'\]
 
 </details>
 
@@ -127,7 +127,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735e4c — bl call scan: notify-family sites = \[\]
+- fn 0x10735e4c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -137,7 +137,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735e4c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10735e4c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -152,8 +152,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -161,7 +161,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -175,9 +175,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - impl call `0x10735f30` obj `*(sp-0x2b0+0x2ac)` slot `12` arg4 `402`
 - req vcall `0x10735eac` slot `8` (parse)
 
-- fn 0x10735e4c @ 0x10735e4c — action wrapper handler
-- @ 0x10f1190c — action dispatch table entry
-- fn 0x1068f8cc — impl vtable 0x10e98278 slot +0x18; direct impl body
+- fn 0x10735e4c @ 0x10735e4c; action wrapper handler
+- @ 0x10f1190c; action dispatch table entry
+- fn 0x1068f8cc; impl vtable 0x10e98278 slot +0x18; direct impl body
 
 </details>
 
@@ -185,7 +185,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Attaches one speaker to this player as a home-theater satellite — the role surround speakers or a sub play behind a soundbar. You name the room the satellite lives in and describe which channels it should carry, and the speaker integrates it into the home-theater rig. This is part of what happens when you set up 'Playbar + surrounds' in the app.
+Attaches one speaker to this player as a home-theater satellite, the role surround speakers or a sub play behind a soundbar. You name the room the satellite lives in and describe which channels it should carry, and the speaker integrates it into the home-theater rig. This is part of what happens when you set up 'Playbar plus surrounds' in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -199,7 +199,7 @@ Adds a home-theater satellite with HTSatChanMapSet via impl->v\[+0x48\].
 |---|---|---|---|---|
 | `HTSatChanMapSet` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 639 chars | none; required input |
 
-- **`HTSatChanMapSet`** — Home-theater satellite channel-map string
+- **`HTSatChanMapSet`**: Home-theater satellite channel-map string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
 
@@ -210,7 +210,7 @@ Adds a home-theater satellite with HTSatChanMapSet via impl->v\[+0x48\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737e14 — wrapper family decode
+- @ 0x10737e14; wrapper family decode
 
 </details>
 
@@ -220,7 +220,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×2); member delegates: r30 v\[+0x48\], r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737e14 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
+- fn 0x10737e14; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
 
 </details>
 
@@ -230,7 +230,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x48\], r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737e14 — member vfunc calls: \['r30 v\[+0x48\]', 'r30 v\[+0xc\]'\]
+- fn 0x10737e14; member vfunc calls: \['r30 v\[+0x48\]', 'r30 v\[+0xc\]'\]
 
 </details>
 
@@ -244,7 +244,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x48\], r30 v
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x48\], r30 v\[+0xc\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737e14 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x48\]', 'r30 v\[+0xc\]'\]
+- fn 0x10737e14; no transition-literal/store pattern; member delegates: \['r30 v\[+0x48\]', 'r30 v\[+0xc\]'\]
 
 </details>
 
@@ -254,7 +254,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737e14 — bl call scan: notify-family sites = \[\]
+- fn 0x10737e14; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -264,7 +264,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737e14 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
+- fn 0x10737e14; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
 
 </details>
 
@@ -279,8 +279,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -288,7 +288,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -304,9 +304,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - req vcall `0x10737e74` slot `8` (parse)
 - req vcall `0x10737eb8` slot `12` (commit)
 
-- fn 0x10737e14 @ 0x10737e14 — action wrapper handler
-- @ 0x10f11918 — action dispatch table entry
-- fn 0x1017fa08 — impl vtable 0x10e98278 slot +0x48; secondary-base trampoline this-0x3a8 via 0x1017fa90
+- fn 0x10737e14 @ 0x10737e14; action wrapper handler
+- @ 0x10f11918; action dispatch table entry
+- fn 0x1017fa08; impl vtable 0x10e98278 slot +0x48; secondary-base trampoline this-0x3a8 via 0x1017fa90
 
 </details>
 
@@ -314,7 +314,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Joins two matching speakers into a stereo pair — one playing the left channel, one the right, presented in the app as a single room. The argument describes which physical speaker takes which channel. After bonding, the pair behaves as one logical speaker for almost everything else: playback, grouping, and volume.
+Joins two matching speakers into a stereo pair: one playing the left channel, one the right, presented in the app as a single room. The argument describes which physical speaker takes which channel. After bonding, the pair behaves as one logical speaker for almost everything else, including playback, grouping, and volume.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -328,7 +328,7 @@ Bonds two players into a stereo pair with ChannelMapSet via impl->v\[+0x20\].
 |---|---|---|---|---|
 | `ChannelMapSet` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 639 chars | none; required input |
 
-- **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
+- **`ChannelMapSet`**: Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
 
@@ -339,7 +339,7 @@ Bonds two players into a stereo pair with ChannelMapSet via impl->v\[+0x20\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10735f3c — wrapper family decode
+- @ 0x10735f3c; wrapper family decode
 
 </details>
 
@@ -349,7 +349,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735f3c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10735f3c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -359,7 +359,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735f3c — member vfunc calls: \['r30 v\[+0x20\]'\]
+- fn 0x10735f3c; member vfunc calls: \['r30 v\[+0x20\]'\]
 
 </details>
 
@@ -373,7 +373,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x20\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x20\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735f3c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x20\]'\]
+- fn 0x10735f3c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x20\]'\]
 
 </details>
 
@@ -383,7 +383,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735f3c — bl call scan: notify-family sites = \[\]
+- fn 0x10735f3c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -393,7 +393,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735f3c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10735f3c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -408,8 +408,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -417,7 +417,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -431,9 +431,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - impl call `0x10736020` obj `*(sp-0x2b0+0x2ac)` slot `12` arg4 `402`
 - req vcall `0x10735f9c` slot `8` (parse)
 
-- fn 0x10735f3c @ 0x10735f3c — action wrapper handler
-- @ 0x10f11924 — action dispatch table entry
-- fn 0x1069039c — impl vtable 0x10e98278 slot +0x20; direct impl body
+- fn 0x10735f3c @ 0x10735f3c; action wrapper handler
+- @ 0x10f11924; action dispatch table entry
+- fn 0x1069039c; impl vtable 0x10e98278 slot +0x20; direct impl body
 
 </details>
 
@@ -441,7 +441,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Puts the speaker into a special configuration mode used during setup, diagnostics, or factory servicing. You pass a mode name plus options, and it returns the state the device ended up in. This is deliberately not a normal-day command — the app uses it for onboarding flows and support tools, and while it is active the speaker behaves differently from usual.
+Puts the speaker into a special configuration mode used during setup, diagnostics, or factory servicing. You pass a mode name plus options, and it returns the state the device ended up in. This is deliberately not a normal-day command: the app uses it for onboarding flows and support tools, and while it is active the speaker behaves differently from usual.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -456,10 +456,10 @@ Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
 | `Mode` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 31 chars | none; required input |
 | `Options` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 127 chars | none; required input |
 
-- **`Mode`** — Config-mode selector string
+- **`Mode`**: Config-mode selector string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x20`
-- **`Options`** — Config-mode options string
+- **`Options`**: Config-mode options string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x80`
 
@@ -469,7 +469,7 @@ Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
 |---|---|---|
 | `State` | response field | config-mode state string produced by the mode-context member / per the response writer |
 
-- **`State`** — Resulting config-mode state string written to the response
+- **`State`**: Resulting config-mode state string written to the response
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -479,7 +479,7 @@ Enters a device config Mode with Options, returning State via impl->v\[+0x60\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073611c — wrapper family decode
+- @ 0x1073611c; wrapper family decode
 
 </details>
 
@@ -489,7 +489,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x60\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073611c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x1073611c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -499,7 +499,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r30 v\[+0x60\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073611c — member vfunc calls: \['r30 v\[+0x60\]'\]
+- fn 0x1073611c; member vfunc calls: \['r30 v\[+0x60\]'\]
 
 </details>
 
@@ -513,7 +513,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x60\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x60\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073611c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x60\]'\]
+- fn 0x1073611c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x60\]'\]
 
 </details>
 
@@ -523,7 +523,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073611c — bl call scan: notify-family sites = \[\]
+- fn 0x1073611c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -533,7 +533,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073611c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x1073611c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -548,8 +548,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a returns r3+0x9
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -566,9 +566,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10736264` obj `*(sp-0x4d0+0x4cc)` slot `12` arg4 `?`
 - req vcall `0x107361a4` slot `8` (parse)
 
-- fn 0x1073611c @ 0x1073611c — action wrapper handler
-- @ 0x10f11930 — action dispatch table entry
-- fn 0x1012bb4c — impl vtable 0x10e98278 slot +0x60; secondary-base trampoline this-0x3a8 via 0x1012bb60; terminal returns adjusted member pointer
+- fn 0x1073611c @ 0x1073611c; action wrapper handler
+- @ 0x10f11930; action dispatch table entry
+- fn 0x1012bb4c; impl vtable 0x10e98278 slot +0x60; secondary-base trampoline this-0x3a8 via 0x1012bb60; terminal returns adjusted member pointer
 
 </details>
 
@@ -576,7 +576,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Takes the speaker back out of configuration mode after EnterConfigMode, restoring normal behavior. Options say how to exit — for example whether to keep or discard changes made while in that mode.
+Takes the speaker back out of configuration mode after EnterConfigMode, restoring normal behavior. The options say how to exit, for example whether to keep or discard changes made while in that mode.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -590,7 +590,7 @@ Exits config mode with Options via impl->v\[+0x64\].
 |---|---|---|---|---|
 | `Options` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 127 chars | none; required input |
 
-- **`Options`** — Exit options string
+- **`Options`**: Exit options string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x80`
 
@@ -601,7 +601,7 @@ Exits config mode with Options via impl->v\[+0x64\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736270 — wrapper family decode
+- @ 0x10736270; wrapper family decode
 
 </details>
 
@@ -611,7 +611,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x64\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736270 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736270; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -621,7 +621,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x64\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736270 — member vfunc calls: \['r30 v\[+0x64\]'\]
+- fn 0x10736270; member vfunc calls: \['r30 v\[+0x64\]'\]
 
 </details>
 
@@ -635,7 +635,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x64\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x64\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736270 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x64\]'\]
+- fn 0x10736270; no transition-literal/store pattern; member delegates: \['r30 v\[+0x64\]'\]
 
 </details>
 
@@ -645,7 +645,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736270 — bl call scan: notify-family sites = \[\]
+- fn 0x10736270; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -655,7 +655,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736270 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736270; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -670,8 +670,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a returns r3+0x5
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -687,9 +687,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10736354` obj `*(sp-0xb0+0xac)` slot `12` arg4 `402`
 - req vcall `0x107362d0` slot `8` (parse)
 
-- fn 0x10736270 @ 0x10736270 — action wrapper handler
-- @ 0x10f1193c — action dispatch table entry
-- fn 0x1019db48 — impl vtable 0x10e98278 slot +0x64; secondary-base trampoline via 0x1019db58; returns this+0x5b60 member
+- fn 0x10736270 @ 0x10736270; action wrapper handler
+- @ 0x10f1193c; action dispatch table entry
+- fn 0x1019db48; impl vtable 0x10e98278 slot +0x64; secondary-base trampoline via 0x1019db58; returns this+0x5b60 member
 
 </details>
 
@@ -697,7 +697,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports whether autoplay is allowed to bring grouped speakers along — when a player resumes a source automatically, should it also wake up the rooms it is grouped with? A simple on/off setting read back by the app.
+Reports whether autoplay is allowed to bring grouped speakers along: when a player resumes a source automatically, should it also wake up the rooms it is grouped with? A simple on/off setting read back by the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -711,7 +711,7 @@ Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
 |---|---|---|---|---|
 | `Source` | SonosStringArg | yes | impl-side grammar applies / max 4 chars | none - required argument |
 
-- **`Source`** — autoplay source identifier string (which line-in/source the autoplay volume applies to)
+- **`Source`**: autoplay source identifier string (which line-in/source the autoplay volume applies to)
   - validation: consumed by the impl vfunc
 
 #### Outputs
@@ -720,7 +720,7 @@ Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
 |---|---|---|
 | `IncludeLinkedZones` | boolean ('0'/'1') | 0/1 flag read from the autoplay-linked member / per the response writer |
 
-- **`IncludeLinkedZones`** — Whether autoplay extends to linked zones
+- **`IncludeLinkedZones`**: Whether autoplay extends to linked zones
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -730,7 +730,7 @@ Returns IncludeLinkedZones flag via impl->v\[+0x1c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736c84 — wrapper family decode
+- @ 0x10736c84; wrapper family decode
 
 </details>
 
@@ -740,7 +740,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r28 v\[+0x2c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736c84 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
+- fn 0x10736c84; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -750,7 +750,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r28 v\[+0x2c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736c84 — member vfunc calls: \['r28 v\[+0x2c\]'\]
+- fn 0x10736c84; member vfunc calls: \['r28 v\[+0x2c\]'\]
 
 </details>
 
@@ -764,7 +764,7 @@ service-internal state reached through member delegate(s): r28 v\[+0x2c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+0x2c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736c84 — no transition-literal/store pattern; member delegates: \['r28 v\[+0x2c\]'\]
+- fn 0x10736c84; no transition-literal/store pattern; member delegates: \['r28 v\[+0x2c\]'\]
 
 </details>
 
@@ -774,7 +774,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736c84 — bl call scan: notify-family sites = \[\]
+- fn 0x10736c84; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -784,7 +784,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736c84 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
+- fn 0x10736c84; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -816,9 +816,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - req vcall `0x10736dc4` slot `36` (other)
 - req vcall `0x10736dec` slot `12` (commit)
 
-- fn 0x10736c84 @ 0x10736c84 — action wrapper handler
-- @ 0x10f11948 — action dispatch table entry
-- fn 0x10193708 — impl vtable 0x10e98278 slot +0x2c; secondary-base trampoline via 0x1019399c
+- fn 0x10736c84 @ 0x10736c84; action wrapper handler
+- @ 0x10f11948; action dispatch table entry
+- fn 0x10193708; impl vtable 0x10e98278 slot +0x2c; secondary-base trampoline via 0x1019399c
 
 </details>
 
@@ -840,7 +840,7 @@ Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
 |---|---|---|---|---|
 | `Source` | SonosStringArg | yes | impl-side grammar applies / max 4 chars | none - required argument |
 
-- **`Source`** — autoplay source identifier string (which line-in/source the autoplay volume applies to)
+- **`Source`**: autoplay source identifier string (which line-in/source the autoplay volume applies to)
   - validation: consumed by the impl vfunc
 
 #### Outputs
@@ -849,7 +849,7 @@ Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
 |---|---|---|
 | `RoomUUID` | response field | UUID string stored in the autoplay record / per the response writer |
 
-- **`RoomUUID`** — Configured autoplay source room UUID
+- **`RoomUUID`**: Configured autoplay source room UUID
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -859,7 +859,7 @@ Returns the configured autoplay RoomUUID via impl->v\[+0x1c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736750 — wrapper family decode
+- @ 0x10736750; wrapper family decode
 
 </details>
 
@@ -869,7 +869,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×2, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r28 v\[+0x34\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736750 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
+- fn 0x10736750; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
 
 </details>
 
@@ -879,7 +879,7 @@ impl consumes in-args via req slots (out-arg store×2, raise-fault×1, required-
 service-internal state reached through member delegate(s): r28 v\[+0x34\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736750 — member vfunc calls: \['r28 v\[+0x34\]'\]
+- fn 0x10736750; member vfunc calls: \['r28 v\[+0x34\]'\]
 
 </details>
 
@@ -893,7 +893,7 @@ service-internal state reached through member delegate(s): r28 v\[+0x34\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+0x34\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736750 — no transition-literal/store pattern; member delegates: \['r28 v\[+0x34\]'\]
+- fn 0x10736750; no transition-literal/store pattern; member delegates: \['r28 v\[+0x34\]'\]
 
 </details>
 
@@ -903,7 +903,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736750 — bl call scan: notify-family sites = \[\]
+- fn 0x10736750; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -913,7 +913,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736750 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
+- fn 0x10736750; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
 
 </details>
 
@@ -946,9 +946,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - req vcall `0x107368a0` slot `36` (other)
 - req vcall `0x107368c8` slot `12` (commit)
 
-- fn 0x10736750 @ 0x10736750 — action wrapper handler
-- @ 0x10f11954 — action dispatch table entry
-- fn 0x1017fbcc — impl vtable 0x10e98278 slot +0x34; secondary-base trampoline via 0x1017fbe0 -> loads *(this+0x9d6c) then f_1074c090
+- fn 0x10736750 @ 0x10736750; action wrapper handler
+- @ 0x10f11954; action dispatch table entry
+- fn 0x1017fbcc; impl vtable 0x10e98278 slot +0x34; secondary-base trampoline via 0x1017fbe0 -> loads *(this+0x9d6c) then f_1074c090
 
 </details>
 
@@ -956,7 +956,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the volume the speaker should use when autoplay starts it playing — separate from its normal volume, so a wake-up source does not blast at whatever the level happened to be.
+Reports the volume the speaker should use when autoplay starts it playing. This is separate from its normal volume, so a wake-up source does not blast at whatever the level happened to be.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -970,7 +970,7 @@ Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
 |---|---|---|---|---|
 | `Source` | SonosStringArg | yes | impl-side grammar applies / max 4 chars | none - required argument |
 
-- **`Source`** — autoplay source identifier string (which line-in/source the autoplay volume applies to)
+- **`Source`**: autoplay source identifier string (which line-in/source the autoplay volume applies to)
   - validation: consumed by the impl vfunc
 
 #### Outputs
@@ -979,7 +979,7 @@ Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
 |---|---|---|
 | `CurrentVolume` | unsigned int16 | u16 volume member value / per the response writer |
 
-- **`CurrentVolume`** — Configured autoplay volume
+- **`CurrentVolume`**: Configured autoplay volume
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -989,7 +989,7 @@ Returns CurrentVolume used for autoplay via impl->v\[+0x1c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107370ac — wrapper family decode
+- @ 0x107370ac; wrapper family decode
 
 </details>
 
@@ -999,7 +999,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r28 v\[+0x3c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107370ac — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
+- fn 0x107370ac; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1009,7 +1009,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r28 v\[+0x3c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107370ac — member vfunc calls: \['r28 v\[+0x3c\]'\]
+- fn 0x107370ac; member vfunc calls: \['r28 v\[+0x3c\]'\]
 
 </details>
 
@@ -1023,7 +1023,7 @@ service-internal state reached through member delegate(s): r28 v\[+0x3c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+0x3c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107370ac — no transition-literal/store pattern; member delegates: \['r28 v\[+0x3c\]'\]
+- fn 0x107370ac; no transition-literal/store pattern; member delegates: \['r28 v\[+0x3c\]'\]
 
 </details>
 
@@ -1033,7 +1033,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107370ac — bl call scan: notify-family sites = \[\]
+- fn 0x107370ac; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1043,7 +1043,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107370ac — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
+- fn 0x107370ac; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1075,9 +1075,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - req vcall `0x107371ec` slot `36` (other)
 - req vcall `0x10737214` slot `12` (commit)
 
-- fn 0x107370ac @ 0x107370ac — action wrapper handler
-- @ 0x10f11960 — action dispatch table entry
-- fn 0x10188024 — impl vtable 0x10e98278 slot +0x3c; secondary-base trampoline via 0x10188180
+- fn 0x107370ac @ 0x107370ac; action wrapper handler
+- @ 0x10f11960; action dispatch table entry
+- fn 0x10188024; impl vtable 0x10e98278 slot +0x3c; secondary-base trampoline via 0x10188180
 
 </details>
 
@@ -1085,7 +1085,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports whether the physical buttons on the speaker are locked. When locked, pressing play/pause or the volume rocker on the unit does nothing — the child-lock of the Sonos world. The app reads this to show the toggle's current position.
+Reports whether the physical buttons on the speaker are locked. When locked, pressing play/pause or the volume rocker on the unit does nothing, which makes it the child-lock of the Sonos world. The app reads this to show the toggle's current position.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1099,7 +1099,7 @@ Returns CurrentButtonLockState via impl->v\[+0x8\].
 |---|---|---|
 | `CurrentButtonLockState` | response field | enum string built from the lock-state member pair at this+0x5730/0x5734 / per the response writer |
 
-- **`CurrentButtonLockState`** — Button-lock state string read from the impl member pair and written to the response
+- **`CurrentButtonLockState`**: Button-lock state string read from the impl member pair and written to the response
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1109,7 +1109,7 @@ Returns CurrentButtonLockState via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107377d4 — wrapper family decode
+- @ 0x107377d4; wrapper family decode
 
 </details>
 
@@ -1119,7 +1119,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], r30 v\[+0x70\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107377d4 — req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x107377d4; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1129,7 +1129,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg w
 service-internal state reached through member delegate(s): r4 v\[+0x8\], r30 v\[+0x70\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107377d4 — member vfunc calls: \['r4 v\[+0x8\]', 'r30 v\[+0x70\]'\]
+- fn 0x107377d4; member vfunc calls: \['r4 v\[+0x8\]', 'r30 v\[+0x70\]'\]
 
 </details>
 
@@ -1143,7 +1143,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], r30 v\[
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], r30 v\[+0x70\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107377d4 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', 'r30 v\[+0x70\]'\]
+- fn 0x107377d4; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', 'r30 v\[+0x70\]'\]
 
 </details>
 
@@ -1153,7 +1153,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107377d4 — bl call scan: notify-family sites = \[\]
+- fn 0x107377d4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1163,7 +1163,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107377d4 — commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x107377d4; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1178,8 +1178,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz pair into 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1197,9 +1197,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x107378b0` obj `vret(*(sp-0x30+0x2c),+0x24)` slot `16` arg4 `sp+0x18`
 - req vcall `0x107378c4` slot `12` (commit)
 
-- fn 0x107377d4 @ 0x107377d4 — action wrapper handler
-- @ 0x10f1196c — action dispatch table entry
-- fn 0x101a07dc — impl vtable 0x10e98278 slot +0x70; secondary-base trampoline via 0x101a0840 (this in r4)
+- fn 0x107377d4 @ 0x107377d4; action wrapper handler
+- @ 0x10f1196c; action dispatch table entry
+- fn 0x101a07dc; impl vtable 0x10e98278 slot +0x70; secondary-base trampoline via 0x101a0840 (this in r4)
 
 </details>
 
@@ -1207,7 +1207,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the state of the speaker's physical buttons — whether they are enabled and possibly their current pressed state. Diagnostic plumbing for the hardware controls.
+Reports the state of the speaker's physical buttons, meaning whether they are enabled and possibly their current pressed state. Diagnostic plumbing for the hardware controls.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1221,7 +1221,7 @@ Returns button state via impl->v\[+0x8\].
 |---|---|---|
 | `State` | response field | impl-produced / per the response writer |
 
-- **`State`** — button lock/panel state read from device state by impl 0x107378d0 and emitted as 'State'
+- **`State`**: button lock/panel state read from device state by impl 0x107378d0 and emitted as 'State'
   - validation: arg-name string loaded at 0x10737924 inside impl 0x107378d0; emitted via the response writer
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1231,7 +1231,7 @@ Returns button state via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073799c — wrapper family decode
+- @ 0x1073799c; wrapper family decode
 
 </details>
 
@@ -1241,7 +1241,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073799c — req-vfunc call map: {'0x14': 1}
+- fn 0x1073799c; req-vfunc call map: {'0x14': 1}
 
 </details>
 
@@ -1251,7 +1251,7 @@ impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0
 service-internal state reached through member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073799c — member vfunc calls: \['r4 v\[+0x8\]'\]
+- fn 0x1073799c; member vfunc calls: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -1265,7 +1265,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073799c — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
+- fn 0x1073799c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -1275,7 +1275,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073799c — bl call scan: notify-family sites = \[\]
+- fn 0x1073799c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1285,7 +1285,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073799c — commit/fault slot usage: {'0x14': 1}
+- fn 0x1073799c; commit/fault slot usage: {'0x14': 1}
 
 </details>
 
@@ -1300,8 +1300,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1316,9 +1316,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x107379c8` obj `r4-in` slot `8` arg4 `r4-in`
 - Outputs recovered from arg-name string loads inside the impl function (extractor missed them).
 
-- fn 0x1073799c @ 0x1073799c — action wrapper handler
-- @ 0x10f11978 — action dispatch table entry
-- fn 0x107378d0 — impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse via req v\[+0x08\] then tail f_107378d0
+- fn 0x1073799c @ 0x1073799c; action wrapper handler
+- @ 0x10f11978; action dispatch table entry
+- fn 0x107378d0; impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse via req v\[+0x08\] then tail f_107378d0
 
 </details>
 
@@ -1326,7 +1326,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports the identifier of the Sonos household this speaker belongs to. Every speaker in a home shares one household ID — it is how the system knows two players are part of the same installation rather than neighbors' devices that happen to be reachable. Apps use this constantly behind the scenes to decide which speakers belong together.
+Reports the identifier of the Sonos household this speaker belongs to. Every speaker in a home shares one household ID, and it is how the system knows two players are part of the same installation rather than a neighbor's devices that happen to be reachable. Apps use this constantly behind the scenes to decide which speakers belong together.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1340,7 +1340,7 @@ Returns CurrentHouseholdID via impl->v\[+0x8\].
 |---|---|---|
 | `CurrentHouseholdID` | response field | household UUID string from the member at this+0x901c / per the response writer |
 
-- **`CurrentHouseholdID`** — Household identifier string
+- **`CurrentHouseholdID`**: Household identifier string
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1350,7 +1350,7 @@ Returns CurrentHouseholdID via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737a20 — wrapper family decode
+- @ 0x10737a20; wrapper family decode
 
 </details>
 
@@ -1360,7 +1360,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], r30 v\[+0x58\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737a20 — req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x10737a20; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1370,7 +1370,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg w
 service-internal state reached through member delegate(s): r4 v\[+0x8\], r30 v\[+0x58\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737a20 — member vfunc calls: \['r4 v\[+0x8\]', 'r30 v\[+0x58\]'\]
+- fn 0x10737a20; member vfunc calls: \['r4 v\[+0x8\]', 'r30 v\[+0x58\]'\]
 
 </details>
 
@@ -1384,7 +1384,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], r30 v\[
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], r30 v\[+0x58\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737a20 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', 'r30 v\[+0x58\]'\]
+- fn 0x10737a20; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', 'r30 v\[+0x58\]'\]
 
 </details>
 
@@ -1394,7 +1394,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737a20 — bl call scan: notify-family sites = \[\]
+- fn 0x10737a20; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1404,7 +1404,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737a20 — commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x10737a20; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1419,8 +1419,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz *(impl+0x2
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1438,9 +1438,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10737afc` obj `vret(*(sp-0x50+0x4c),+0x24)` slot `16` arg4 `sp+0x18`
 - req vcall `0x10737b10` slot `12` (commit)
 
-- fn 0x10737a20 @ 0x10737a20 — action wrapper handler
-- @ 0x10f11984 — action dispatch table entry
-- fn 0x1019dbb4 — impl vtable 0x10e98278 slot +0x58; secondary-base trampoline via 0x1019dbc8 -> loads *(this+0x901c) member
+- fn 0x10737a20 @ 0x10737a20; action wrapper handler
+- @ 0x10f11984; action dispatch table entry
+- fn 0x1019dbb4; impl vtable 0x10e98278 slot +0x58; secondary-base trampoline via 0x1019dbc8 -> loads *(this+0x901c) member
 
 </details>
 
@@ -1448,7 +1448,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports whether the speaker's status LED is on or off — the setting behind 'Status Light' in the app. The LED is the small indicator on the unit; some people switch it off in bedrooms.
+Reports whether the speaker's status LED is on or off, which is the setting behind 'Status Light' in the app. The LED is the small indicator on the unit, and some people switch it off in bedrooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1462,7 +1462,7 @@ Returns CurrentLEDState via impl->v\[+0x8\].
 |---|---|---|
 | `CurrentLEDState` | response field | enum string from the LED-state member / per the response writer |
 
-- **`CurrentLEDState`** — Current front-LED state
+- **`CurrentLEDState`**: Current front-LED state
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1472,7 +1472,7 @@ Returns CurrentLEDState via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737b1c — wrapper family decode
+- @ 0x10737b1c; wrapper family decode
 
 </details>
 
@@ -1482,7 +1482,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737b1c — req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x10737b1c; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1492,7 +1492,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg w
 service-internal state reached through member delegate(s): r4 v\[+0x8\], r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737b1c — member vfunc calls: \['r4 v\[+0x8\]', 'r30 v\[+0x14\]'\]
+- fn 0x10737b1c; member vfunc calls: \['r4 v\[+0x8\]', 'r30 v\[+0x14\]'\]
 
 </details>
 
@@ -1506,7 +1506,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], r30 v\[
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], r30 v\[+0x14\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737b1c — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', 'r30 v\[+0x14\]'\]
+- fn 0x10737b1c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', 'r30 v\[+0x14\]'\]
 
 </details>
 
@@ -1516,7 +1516,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737b1c — bl call scan: notify-family sites = \[\]
+- fn 0x10737b1c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1526,7 +1526,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737b1c — commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
+- fn 0x10737b1c; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1556,9 +1556,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10737bf8` obj `vret(*(sp-0x30+0x2c),+0x24)` slot `16` arg4 `sp+0x18`
 - req vcall `0x10737c0c` slot `12` (commit)
 
-- fn 0x10737b1c @ 0x10737b1c — action wrapper handler
-- @ 0x10f11990 — action dispatch table entry
-- fn 0x10690b78 — impl vtable 0x10e98278 slot +0x14; direct impl body
+- fn 0x10737b1c @ 0x10737b1c; action wrapper handler
+- @ 0x10f11990; action dispatch table entry
+- fn 0x10690b78; impl vtable 0x10e98278 slot +0x14; direct impl body
 
 </details>
 
@@ -1580,7 +1580,7 @@ Returns UseVolume flag via impl->v\[+0x1c\].
 |---|---|---|---|---|
 | `Source` | SonosStringArg | yes | impl-side grammar applies / max 4 chars | none - required argument |
 
-- **`Source`** — autoplay source identifier string (which line-in/source the autoplay volume applies to)
+- **`Source`**: autoplay source identifier string (which line-in/source the autoplay volume applies to)
   - validation: consumed by the impl vfunc
 
 #### Outputs
@@ -1589,7 +1589,7 @@ Returns UseVolume flag via impl->v\[+0x1c\].
 |---|---|---|
 | `UseVolume` | boolean ('0'/'1') | 0/1 flag from the autoplay-volume member / per the response writer |
 
-- **`UseVolume`** — Whether the autoplay volume is applied
+- **`UseVolume`**: Whether the autoplay volume is applied
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1599,7 +1599,7 @@ Returns UseVolume flag via impl->v\[+0x1c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736df8 — wrapper family decode
+- @ 0x10736df8; wrapper family decode
 
 </details>
 
@@ -1609,7 +1609,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r28 v\[+0x44\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736df8 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
+- fn 0x10736df8; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1619,7 +1619,7 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 service-internal state reached through member delegate(s): r28 v\[+0x44\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736df8 — member vfunc calls: \['r28 v\[+0x44\]'\]
+- fn 0x10736df8; member vfunc calls: \['r28 v\[+0x44\]'\]
 
 </details>
 
@@ -1633,7 +1633,7 @@ service-internal state reached through member delegate(s): r28 v\[+0x44\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v\[+0x44\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736df8 — no transition-literal/store pattern; member delegates: \['r28 v\[+0x44\]'\]
+- fn 0x10736df8; no transition-literal/store pattern; member delegates: \['r28 v\[+0x44\]'\]
 
 </details>
 
@@ -1643,7 +1643,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736df8 — bl call scan: notify-family sites = \[\]
+- fn 0x10736df8; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1653,7 +1653,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736df8 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
+- fn 0x10736df8; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}
 
 </details>
 
@@ -1668,8 +1668,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1689,9 +1689,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - req vcall `0x10736f38` slot `36` (other)
 - req vcall `0x10736f60` slot `12` (commit)
 
-- fn 0x10736df8 @ 0x10736df8 — action wrapper handler
-- @ 0x10f1199c — action dispatch table entry
-- fn 0x1018a20c — impl vtable 0x10e98278 slot +0x44; secondary-base trampoline via 0x1018a570
+- fn 0x10736df8 @ 0x10736df8; action wrapper handler
+- @ 0x10f1199c; action dispatch table entry
+- fn 0x1018a20c; impl vtable 0x10e98278 slot +0x44; secondary-base trampoline via 0x1018a570
 
 </details>
 
@@ -1699,7 +1699,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports this speaker's descriptive attributes — its room name, icon, and related presentation details, i.e. what the app shows for this device on the rooms screen.
+Reports this speaker's descriptive attributes: its room name, icon, and related presentation details. In other words, it is what the app shows for this device on the rooms screen.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1716,13 +1716,13 @@ Returns zone attributes via impl->v\[+0x8\].
 | `CurrentConfiguration` | response field | impl-produced / per the response writer |
 | `CurrentTargetRoomName` | response field | impl-produced / per the response writer |
 
-- **`CurrentZoneName`** — configured room name emitted by impl 0x10737c18
+- **`CurrentZoneName`**: configured room name emitted by impl 0x10737c18
   - validation: arg-name string loaded at 0x10737c88 inside impl 0x10737c18; emitted via the response writer
-- **`CurrentIcon`** — configured zone icon identifier emitted by impl 0x10737c18
+- **`CurrentIcon`**: configured zone icon identifier emitted by impl 0x10737c18
   - validation: arg-name string loaded at 0x10737cb4 inside impl 0x10737c18; emitted via the response writer
-- **`CurrentConfiguration`** — zone configuration descriptor emitted by impl 0x10737c18
+- **`CurrentConfiguration`**: zone configuration descriptor emitted by impl 0x10737c18
   - validation: arg-name string loaded at 0x10737ce4 inside impl 0x10737c18; emitted via the response writer
-- **`CurrentTargetRoomName`** — target room name emitted by impl 0x10737c18
+- **`CurrentTargetRoomName`**: target room name emitted by impl 0x10737c18
   - validation: arg-name string loaded at 0x10737d14 inside impl 0x10737c18; emitted via the response writer
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1732,7 +1732,7 @@ Returns zone attributes via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737d90 — wrapper family decode
+- @ 0x10737d90; wrapper family decode
 
 </details>
 
@@ -1742,7 +1742,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737d90 — req-vfunc call map: {'0x14': 1}
+- fn 0x10737d90; req-vfunc call map: {'0x14': 1}
 
 </details>
 
@@ -1752,7 +1752,7 @@ impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0
 service-internal state reached through member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737d90 — member vfunc calls: \['r4 v\[+0x8\]'\]
+- fn 0x10737d90; member vfunc calls: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -1766,7 +1766,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737d90 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
+- fn 0x10737d90; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -1776,7 +1776,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737d90 — bl call scan: notify-family sites = \[\]
+- fn 0x10737d90; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1786,7 +1786,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737d90 — commit/fault slot usage: {'0x14': 1}
+- fn 0x10737d90; commit/fault slot usage: {'0x14': 1}
 
 </details>
 
@@ -1801,8 +1801,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1817,9 +1817,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10737dbc` obj `r4-in` slot `8` arg4 `r4-in`
 - Outputs recovered from arg-name string loads inside the impl function (extractor missed them).
 
-- fn 0x10737d90 @ 0x10737d90 — action wrapper handler
-- @ 0x10f119a8 — action dispatch table entry
-- fn 0x10737c18 — impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse then tail f_10737c18
+- fn 0x10737d90 @ 0x10737d90; action wrapper handler
+- @ 0x10f119a8; action dispatch table entry
+- fn 0x10737c18; impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse then tail f_10737c18
 
 </details>
 
@@ -1827,7 +1827,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reports this speaker's identifying details — model, software version, serial-related fields: the 'About my Sonos product' data the app displays and support tools collect. The 'about this product' data — what you see in the app under the speaker's details and what support asks for.
+Reports this speaker's identifying details: model, software version, and serial-related fields. This is the 'About my Sonos product' data you see in the app under the speaker's details, and it is also what support asks for when you call with a problem.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1850,25 +1850,25 @@ Returns zone info via impl->v\[+0x8\].
 | `HTAudioIn` | response field | impl-produced / per the response writer |
 | `Flags` | response field | impl-produced / per the response writer |
 
-- **`SerialNumber`** — device serial number emitted by impl 0x10737470
+- **`SerialNumber`**: device serial number emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x10737530 inside impl 0x10737470; emitted via the response writer
-- **`SoftwareVersion`** — running software version string emitted by impl 0x10737470
+- **`SoftwareVersion`**: running software version string emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x1073755c inside impl 0x10737470; emitted via the response writer
-- **`DisplaySoftwareVersion`** — user-facing software version emitted by impl 0x10737470
+- **`DisplaySoftwareVersion`**: user-facing software version emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x1073758c inside impl 0x10737470; emitted via the response writer
-- **`HardwareVersion`** — hardware version string emitted by impl 0x10737470
+- **`HardwareVersion`**: hardware version string emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x107375bc inside impl 0x10737470; emitted via the response writer
-- **`IPAddress`** — player IP address emitted by impl 0x10737470
+- **`IPAddress`**: player IP address emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x107375ec inside impl 0x10737470; emitted via the response writer
-- **`MACAddress`** — player MAC address emitted by impl 0x10737470
+- **`MACAddress`**: player MAC address emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x1073761c inside impl 0x10737470; emitted via the response writer
-- **`CopyrightInfo`** — copyright/version notice emitted by impl 0x10737470
+- **`CopyrightInfo`**: copyright/version notice emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x1073764c inside impl 0x10737470; emitted via the response writer
-- **`ExtraInfo`** — extra info blob emitted by impl 0x10737470
+- **`ExtraInfo`**: extra info blob emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x1073767c inside impl 0x10737470; emitted via the response writer
-- **`HTAudioIn`** — home-theater audio-in descriptor emitted by impl 0x10737470
+- **`HTAudioIn`**: home-theater audio-in descriptor emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x107376ac inside impl 0x10737470; emitted via the response writer
-- **`Flags`** — capability flag word emitted by impl 0x10737470
+- **`Flags`**: capability flag word emitted by impl 0x10737470
   - validation: arg-name string loaded at 0x107376d0 inside impl 0x10737470; emitted via the response writer
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -1878,7 +1878,7 @@ Returns zone info via impl->v\[+0x8\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737750 — wrapper family decode
+- @ 0x10737750; wrapper family decode
 
 </details>
 
@@ -1888,7 +1888,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737750 — req-vfunc call map: {'0x14': 1}
+- fn 0x10737750; req-vfunc call map: {'0x14': 1}
 
 </details>
 
@@ -1898,7 +1898,7 @@ impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v\[+0
 service-internal state reached through member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737750 — member vfunc calls: \['r4 v\[+0x8\]'\]
+- fn 0x10737750; member vfunc calls: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -1912,7 +1912,7 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737750 — no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
+- fn 0x10737750; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]'\]
 
 </details>
 
@@ -1922,7 +1922,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737750 — bl call scan: notify-family sites = \[\]
+- fn 0x10737750; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -1932,7 +1932,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737750 — commit/fault slot usage: {'0x14': 1}
+- fn 0x10737750; commit/fault slot usage: {'0x14': 1}
 
 </details>
 
@@ -1947,8 +1947,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -1963,9 +1963,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x1073777c` obj `r4-in` slot `8` arg4 `r4-in`
 - Outputs recovered from arg-name string loads inside the impl function (extractor missed them).
 
-- fn 0x10737750 @ 0x10737750 — action wrapper handler
-- @ 0x10f119b4 — action dispatch table entry
-- fn 0x10737470 — impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse then tail f_10737470
+- fn 0x10737750 @ 0x10737750; action wrapper handler
+- @ 0x10f119b4; action dispatch table entry
+- fn 0x10737470; impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse then tail f_10737470
 
 </details>
 
@@ -1973,7 +1973,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Breaks a hardware bond between speakers — the undo for AddBondedZones. You describe which bonded speakers to release and whether they should stay merely grouped (casual sync) afterward; the speakers regain independent room identities.
+Breaks a hardware bond between speakers, which is the undo for AddBondedZones. You describe which bonded speakers to release and whether they should stay merely grouped (casual sync) afterward, and the speakers regain independent room identities.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1988,10 +1988,10 @@ Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v\[+0x1c\].
 | `ChannelMapSet` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 639 chars | none; required input |
 | `KeepGrouped` | boolean/numeric flag (type-tag-1, 24-byte record) | yes | nonzero = true; 0 = false (byte-width flag) / 0/1 | none; required input |
 
-- **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
+- **`ChannelMapSet`**: Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
-- **`KeepGrouped`** — Keep the zone grouped after unbonding
+- **`KeepGrouped`**: Keep the zone grouped after unbonding
   - validation: flag consumed by the impl vfunc
   - buffer cap: `0x18`
 
@@ -2002,7 +2002,7 @@ Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v\[+0x1c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x107368d4 — wrapper family decode
+- @ 0x107368d4; wrapper family decode
 
 </details>
 
@@ -2012,7 +2012,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107368d4 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107368d4; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2022,7 +2022,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107368d4 — member vfunc calls: \['r30 v\[+0x1c\]'\]
+- fn 0x107368d4; member vfunc calls: \['r30 v\[+0x1c\]'\]
 
 </details>
 
@@ -2036,7 +2036,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x1c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x1c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107368d4 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
+- fn 0x107368d4; no transition-literal/store pattern; member delegates: \['r30 v\[+0x1c\]'\]
 
 </details>
 
@@ -2046,7 +2046,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107368d4 — bl call scan: notify-family sites = \[\]
+- fn 0x107368d4; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2056,7 +2056,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x107368d4 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x107368d4; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2071,8 +2071,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a bctr through o
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -2080,7 +2080,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -2094,9 +2094,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - impl call `0x107369f8` obj `*(sp-0x2b0+0x2ac)` slot `12` arg4 `402`
 - req vcall `0x1073696c` slot `8` (parse)
 
-- fn 0x107368d4 @ 0x107368d4 — action wrapper handler
-- @ 0x10f119c0 — action dispatch table entry
-- fn 0x1068b7d0 — impl vtable 0x10e98278 slot +0x1c; vtable thunk: forwards to *(this)->v\[+0x18\]
+- fn 0x107368d4 @ 0x107368d4; action wrapper handler
+- @ 0x10f119c0; action dispatch table entry
+- fn 0x1068b7d0; impl vtable 0x10e98278 slot +0x1c; vtable thunk: forwards to *(this)->v\[+0x18\]
 
 </details>
 
@@ -2104,7 +2104,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Detaches one home-theater satellite — a surround speaker or sub — from this player's theater rig. The speaker goes back to being a normal standalone room.
+Detaches one home-theater satellite, such as a surround speaker or a sub, from this player's theater rig. The detached speaker goes back to being a normal standalone room.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2118,7 +2118,7 @@ Removes HT satellite SatRoomUUID via impl->v\[+0x4c\].
 |---|---|---|---|---|
 | `SatRoomUUID` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 24 chars | none; required input |
 
-- **`SatRoomUUID`** — Room UUID of the satellite to detach
+- **`SatRoomUUID`**: Room UUID of the satellite to detach
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x19`
 
@@ -2129,7 +2129,7 @@ Removes HT satellite SatRoomUUID via impl->v\[+0x4c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737f3c — wrapper family decode
+- @ 0x10737f3c; wrapper family decode
 
 </details>
 
@@ -2139,7 +2139,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×2); member delegates: r30 v\[+0x4c\], r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737f3c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
+- fn 0x10737f3c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
 
 </details>
 
@@ -2149,7 +2149,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x4c\], r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737f3c — member vfunc calls: \['r30 v\[+0x4c\]', 'r30 v\[+?\]'\]
+- fn 0x10737f3c; member vfunc calls: \['r30 v\[+0x4c\]', 'r30 v\[+?\]'\]
 
 </details>
 
@@ -2163,7 +2163,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x4c\], r30 v
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x4c\], r30 v\[+?\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737f3c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x4c\]', 'r30 v\[+?\]'\]
+- fn 0x10737f3c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x4c\]', 'r30 v\[+?\]'\]
 
 </details>
 
@@ -2173,7 +2173,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737f3c — bl call scan: notify-family sites = \[\]
+- fn 0x10737f3c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2183,7 +2183,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737f3c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
+- fn 0x10737f3c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}
 
 </details>
 
@@ -2203,7 +2203,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -2219,9 +2219,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - req vcall `0x10737f9c` slot `8` (parse)
 - req vcall `0x10737fe0` slot `12` (commit)
 
-- fn 0x10737f3c @ 0x10737f3c — action wrapper handler
-- @ 0x10f119cc — action dispatch table entry
-- fn 0x1068b998 — impl vtable 0x10e98278 slot +0x4c; direct impl body
+- fn 0x10737f3c @ 0x10737f3c; action wrapper handler
+- @ 0x10f119cc; action dispatch table entry
+- fn 0x1068b998; impl vtable 0x10e98278 slot +0x4c; direct impl body
 
 </details>
 
@@ -2229,7 +2229,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Makes a bonded speaker play a repeating chirp sound so the system (or you) can tell which physical box is which — the 'identify this speaker' feature used while arranging surrounds or pairing. You choose which channel chirps and for how long, and can ask it to chirp even while normal audio is playing; it returns an ID used to stop the chirping.
+Makes a bonded speaker play a repeating chirp sound so the system (or you) can tell which physical box is which. This is the 'identify this speaker' feature used while arranging surrounds or pairing. You choose which channel chirps and for how long, and you can ask it to chirp even while normal audio is playing. It returns an ID you later use to stop the chirping.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2245,13 +2245,13 @@ Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwapp
 | `DurationMilliseconds` | numeric argument (type-tag-4, 24-byte record) | yes | decimal integer parsed into the argument record / full width of the parsed integer; impl-side domain applies | none; required input |
 | `ChirpIfPlayingSwappableAudio` | boolean/numeric flag (type-tag-1, 24-byte record) | yes | nonzero = true; 0 = false (byte-width flag) / 0/1 | none; required input |
 
-- **`Channel`** — Chirp channel selector
+- **`Channel`**: Chirp channel selector
   - validation: numeric value consumed by the impl vfunc
   - buffer cap: `0x18`
-- **`DurationMilliseconds`** — Chirp duration in milliseconds
+- **`DurationMilliseconds`**: Chirp duration in milliseconds
   - validation: numeric value consumed by the impl vfunc
   - buffer cap: `0x18`
-- **`ChirpIfPlayingSwappableAudio`** — Allow chirp while swappable audio plays
+- **`ChirpIfPlayingSwappableAudio`**: Allow chirp while swappable audio plays
   - validation: flag consumed by the impl vfunc
   - buffer cap: `0x18`
 
@@ -2261,7 +2261,7 @@ Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwapp
 |---|---|---|
 | `PlayId` | unsigned int32 | u32 session id assigned by the chirp member / per the response writer |
 
-- **`PlayId`** — Play/session id assigned to the chirp
+- **`PlayId`**: Play/session id assigned to the chirp
   - validation: emitted via the response object vfuncs
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -2271,7 +2271,7 @@ Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwapp
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073730c — wrapper family decode
+- @ 0x1073730c; wrapper family decode
 
 </details>
 
@@ -2281,7 +2281,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v\[+0x50\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073730c — req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x1073730c; req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -2291,7 +2291,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, out-
 service-internal state reached through member delegate(s): r30 v\[+0x50\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073730c — member vfunc calls: \['r30 v\[+0x50\]'\]
+- fn 0x1073730c; member vfunc calls: \['r30 v\[+0x50\]'\]
 
 </details>
 
@@ -2305,7 +2305,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x50\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x50\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073730c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x50\]'\]
+- fn 0x1073730c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x50\]'\]
 
 </details>
 
@@ -2315,7 +2315,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073730c — bl call scan: notify-family sites = \[\]
+- fn 0x1073730c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2325,7 +2325,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073730c — commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
+- fn 0x1073730c; commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
 
 </details>
 
@@ -2340,8 +2340,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz *(r3+0x100
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -2357,9 +2357,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10737464` obj `*(sp-0x30+0x2c)` slot `12` arg4 `?`
 - req vcall `0x107373b0` slot `8` (parse)
 
-- fn 0x1073730c @ 0x1073730c — action wrapper handler
-- @ 0x10f119d8 — action dispatch table entry
-- fn 0x100c3a54 — impl vtable 0x10e98278 slot +0x50; secondary-base trampoline via 0x100c3a68 -> loads *(this+0xaa30) member
+- fn 0x1073730c @ 0x1073730c; action wrapper handler
+- @ 0x10f119d8; action dispatch table entry
+- fn 0x100c3a54; impl vtable 0x10e98278 slot +0x50; secondary-base trampoline via 0x100c3a68 -> loads *(this+0xaa30) member
 
 </details>
 
@@ -2367,7 +2367,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops the identification chirp started by RoomDetectionStartChirping — you hand back the ID that command returned. Hand back the ID the start command returned; the targeted speaker goes quiet.
+Stops the identification chirp that RoomDetectionStartChirping started. You hand back the ID that the start command returned, and the targeted speaker goes quiet.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2381,7 +2381,7 @@ Stops chirping for PlayId via impl->v\[+0x54\].
 |---|---|---|---|---|
 | `PlayId` | numeric argument (type-tag-4, 24-byte record) | yes | decimal integer parsed into the argument record / full width of the parsed integer; impl-side domain applies | none; required input |
 
-- **`PlayId`** — Play/session id returned by RoomDetectionStartChirping
+- **`PlayId`**: Play/session id returned by RoomDetectionStartChirping
   - validation: numeric value consumed by the impl vfunc
   - buffer cap: `0x18`
 
@@ -2392,7 +2392,7 @@ Stops chirping for PlayId via impl->v\[+0x54\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10737220 — wrapper family decode
+- @ 0x10737220; wrapper family decode
 
 </details>
 
@@ -2402,7 +2402,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x54\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737220 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10737220; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2412,7 +2412,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x54\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737220 — member vfunc calls: \['r30 v\[+0x54\]'\]
+- fn 0x10737220; member vfunc calls: \['r30 v\[+0x54\]'\]
 
 </details>
 
@@ -2426,7 +2426,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x54\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x54\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737220 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x54\]'\]
+- fn 0x10737220; no transition-literal/store pattern; member delegates: \['r30 v\[+0x54\]'\]
 
 </details>
 
@@ -2436,7 +2436,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737220 — bl call scan: notify-family sites = \[\]
+- fn 0x10737220; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2446,7 +2446,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10737220 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10737220; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2461,8 +2461,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | impl is a lwz pair into 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -2478,9 +2478,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10737300` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x1073727c` slot `8` (parse)
 
-- fn 0x10737220 @ 0x10737220 — action wrapper handler
-- @ 0x10f119e4 — action dispatch table entry
-- fn 0x100c3ef0 — impl vtable 0x10e98278 slot +0x54; secondary-base trampoline via 0x100c3f54 -> writes out-record from *(this+0x5b58/+0x5b5c)
+- fn 0x10737220 @ 0x10737220; action wrapper handler
+- @ 0x10f119e4; action dispatch table entry
+- fn 0x100c3ef0; impl vtable 0x10e98278 slot +0x54; secondary-base trampoline via 0x100c3f54 -> writes out-record from *(this+0x5b58/+0x5b5c)
 
 </details>
 
@@ -2488,7 +2488,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-In this firmware build this command is a documented no-op: it is supposed to split a stereo pair back into two independent speakers, but its implementation was replaced by an empty routine that accepts the request, returns success, and changes nothing. The wiring and the advert in the spec remain — only the actual work is missing. To actually break a pair on this build, the app has to go through the bonded-zones removal path instead.
+In this firmware build this command is a documented no-op. It is supposed to split a stereo pair back into two independent speakers, but its implementation was replaced by an empty routine that accepts the request, returns success, and changes nothing. The wiring and the advert in the spec remain, and only the actual work is missing. To actually break a pair on this build, the app has to go through the bonded-zones removal path instead.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2502,7 +2502,7 @@ Parses inputs, then calls impl->v\[+0x24\] = null stub f_1019d288. In this build
 |---|---|---|---|---|
 | `ChannelMapSet` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 639 chars | none; required input |
 
-- **`ChannelMapSet`** — Channel-map DSL string selecting the channels affected by the bonding operation
+- **`ChannelMapSet`**: Channel-map DSL string selecting the channels affected by the bonding operation
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x280`
 
@@ -2513,7 +2513,7 @@ Parses inputs, then calls impl->v\[+0x24\] = null stub f_1019d288. In this build
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073602c — wrapper family decode
+- @ 0x1073602c; wrapper family decode
 
 </details>
 
@@ -2523,7 +2523,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073602c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073602c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2533,7 +2533,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073602c — member vfunc calls: \['r30 v\[+0x24\]'\]
+- fn 0x1073602c; member vfunc calls: \['r30 v\[+0x24\]'\]
 
 </details>
 
@@ -2547,7 +2547,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x24\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x24\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073602c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x24\]'\]
+- fn 0x1073602c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x24\]'\]
 
 </details>
 
@@ -2557,7 +2557,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073602c — bl call scan: notify-family sites = \[\]
+- fn 0x1073602c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2567,7 +2567,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073602c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073602c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2585,7 +2585,7 @@ Wrapper parse layer rejected an argument before the impl call. | request-validat
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -2599,10 +2599,10 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - impl call `0x10736110` obj `*(sp-0x2b0+0x2ac)` slot `12` arg4 `402`
 - req vcall `0x1073608c` slot `8` (parse)
 
-- fn 0x1073602c @ 0x1073602c — action wrapper handler
-- @ 0x10f119f0 — action dispatch table entry
-- fn 0x1019d288 — impl vtable 0x10e98278 slot +0x24; direct impl body
-- fn 0x1019d288 — impl vfunc +0x24 -> null stub
+- fn 0x1073602c @ 0x1073602c; action wrapper handler
+- @ 0x10f119f0; action dispatch table entry
+- fn 0x1019d288; impl vtable 0x10e98278 slot +0x24; direct impl body
+- fn 0x1019d288; impl vfunc +0x24 -> null stub
 
 </details>
 
@@ -2610,7 +2610,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Turns the autoplay linked-zones option on or off — whether automatic playback should include the speakers this one is grouped with. When on, an autoplay start pulls the speaker's group members along rather than playing alone.
+Turns the autoplay linked-zones option on or off, which controls whether automatic playback should include the speakers this one is grouped with. When the option is on, an autoplay start pulls the speaker's group members along rather than playing alone.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2625,10 +2625,10 @@ Sets IncludeLinkedZones (+Source) via impl->v\[+0x28\].
 | `IncludeLinkedZones` | boolean/numeric flag (type-tag-1, 24-byte record) | yes | nonzero = true; 0 = false (byte-width flag) / 0/1 | none; required input |
 | `Source` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 4 chars | none; required input |
 
-- **`IncludeLinkedZones`** — Enable autoplay across linked zones
+- **`IncludeLinkedZones`**: Enable autoplay across linked zones
   - validation: flag consumed by the impl vfunc
   - buffer cap: `0x18`
-- **`Source`** — Autoplay source identifier string
+- **`Source`**: Autoplay source identifier string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
 
@@ -2639,7 +2639,7 @@ Sets IncludeLinkedZones (+Source) via impl->v\[+0x28\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736a04 — wrapper family decode
+- @ 0x10736a04; wrapper family decode
 
 </details>
 
@@ -2649,7 +2649,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r29 v\[+0x28\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736a04 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736a04; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2659,7 +2659,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r29 v\[+0x28\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736a04 — member vfunc calls: \['r29 v\[+0x28\]'\]
+- fn 0x10736a04; member vfunc calls: \['r29 v\[+0x28\]'\]
 
 </details>
 
@@ -2673,7 +2673,7 @@ service-internal state reached through member delegate(s): r29 v\[+0x28\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x28\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736a04 — no transition-literal/store pattern; member delegates: \['r29 v\[+0x28\]'\]
+- fn 0x10736a04; no transition-literal/store pattern; member delegates: \['r29 v\[+0x28\]'\]
 
 </details>
 
@@ -2683,7 +2683,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736a04 — bl call scan: notify-family sites = \[\]
+- fn 0x10736a04; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2693,7 +2693,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736a04 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736a04; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2708,8 +2708,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -2725,9 +2725,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10736b38` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x10736aa8` slot `8` (parse)
 
-- fn 0x10736a04 @ 0x10736a04 — action wrapper handler
-- @ 0x10f119fc — action dispatch table entry
-- fn 0x101981f0 — impl vtable 0x10e98278 slot +0x28; secondary-base trampoline via 0x1019d06c -> manager-scale worker
+- fn 0x10736a04 @ 0x10736a04; action wrapper handler
+- @ 0x10f119fc; action dispatch table entry
+- fn 0x101981f0; impl vtable 0x10e98278 slot +0x28; secondary-base trampoline via 0x1019d06c -> manager-scale worker
 
 </details>
 
@@ -2735,7 +2735,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Chooses which room this speaker follows when autoplay is triggered — the room whose playback it will automatically join. The speaker follows that room's playback when autoplay triggers — picking the leader for the follow-me feature.
+Chooses which room this speaker follows when autoplay is triggered, meaning the room whose playback it will automatically join. In other words, you pick the leader for the follow-me feature and this speaker tails whatever plays there.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2750,10 +2750,10 @@ Sets the autoplay RoomUUID (+Source selector) via impl->v\[+0x30\].
 | `RoomUUID` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 25 chars | none; required input |
 | `Source` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 4 chars | none; required input |
 
-- **`RoomUUID`** — Autoplay source room UUID to store
+- **`RoomUUID`**: Autoplay source room UUID to store
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x1a`
-- **`Source`** — Autoplay source identifier string
+- **`Source`**: Autoplay source identifier string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
 
@@ -2764,7 +2764,7 @@ Sets the autoplay RoomUUID (+Source selector) via impl->v\[+0x30\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x1073660c — wrapper family decode
+- @ 0x1073660c; wrapper family decode
 
 </details>
 
@@ -2774,7 +2774,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r29 v\[+0x30\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073660c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073660c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2784,7 +2784,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r29 v\[+0x30\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073660c — member vfunc calls: \['r29 v\[+0x30\]'\]
+- fn 0x1073660c; member vfunc calls: \['r29 v\[+0x30\]'\]
 
 </details>
 
@@ -2798,7 +2798,7 @@ service-internal state reached through member delegate(s): r29 v\[+0x30\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x30\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073660c — no transition-literal/store pattern; member delegates: \['r29 v\[+0x30\]'\]
+- fn 0x1073660c; no transition-literal/store pattern; member delegates: \['r29 v\[+0x30\]'\]
 
 </details>
 
@@ -2808,7 +2808,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073660c — bl call scan: notify-family sites = \[\]
+- fn 0x1073660c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2818,7 +2818,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x1073660c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x1073660c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2833,8 +2833,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -2850,9 +2850,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10736744` obj `*(sp-0x50+0x4c)` slot `12` arg4 `402`
 - req vcall `0x107366b4` slot `8` (parse)
 
-- fn 0x1073660c @ 0x1073660c — action wrapper handler
-- @ 0x10f11a08 — action dispatch table entry
-- fn 0x101939a4 — impl vtable 0x10e98278 slot +0x30; secondary-base trampoline via 0x101953c0
+- fn 0x1073660c @ 0x1073660c; action wrapper handler
+- @ 0x10f11a08; action dispatch table entry
+- fn 0x101939a4; impl vtable 0x10e98278 slot +0x30; secondary-base trampoline via 0x101953c0
 
 </details>
 
@@ -2860,7 +2860,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the volume level to use specifically for autoplay starts — the cap that stops an auto-resumed source from coming in too loud. The cap that stops an auto-started source blasting at whatever the volume happened to be.
+Sets the volume level to use specifically for autoplay starts. It is the cap that stops an auto-started source from blasting at whatever the volume happened to be when the source connected.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2875,10 +2875,10 @@ Sets the autoplay Volume (+Source) via impl->v\[+0x38\].
 | `Volume` | numeric argument (type-tag-2, 24-byte record) | yes | decimal integer parsed into the argument record / full width of the parsed integer; impl-side domain applies | none; required input |
 | `Source` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 4 chars | none; required input |
 
-- **`Volume`** — Autoplay volume level
+- **`Volume`**: Autoplay volume level
   - validation: numeric value consumed by the impl vfunc
   - buffer cap: `0x18`
-- **`Source`** — Autoplay source identifier string
+- **`Source`**: Autoplay source identifier string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
 
@@ -2889,7 +2889,7 @@ Sets the autoplay Volume (+Source) via impl->v\[+0x38\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736f6c — wrapper family decode
+- @ 0x10736f6c; wrapper family decode
 
 </details>
 
@@ -2899,7 +2899,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r29 v\[+0x38\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736f6c — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736f6c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2909,7 +2909,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r29 v\[+0x38\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736f6c — member vfunc calls: \['r29 v\[+0x38\]'\]
+- fn 0x10736f6c; member vfunc calls: \['r29 v\[+0x38\]'\]
 
 </details>
 
@@ -2923,7 +2923,7 @@ service-internal state reached through member delegate(s): r29 v\[+0x38\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x38\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736f6c — no transition-literal/store pattern; member delegates: \['r29 v\[+0x38\]'\]
+- fn 0x10736f6c; no transition-literal/store pattern; member delegates: \['r29 v\[+0x38\]'\]
 
 </details>
 
@@ -2933,7 +2933,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736f6c — bl call scan: notify-family sites = \[\]
+- fn 0x10736f6c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -2943,7 +2943,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736f6c — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736f6c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -2971,9 +2971,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x107370a0` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x10737010` slot `8` (parse)
 
-- fn 0x10736f6c @ 0x10736f6c — action wrapper handler
-- @ 0x10f11a14 — action dispatch table entry
-- fn 0x10193700 — impl vtable 0x10e98278 slot +0x38; secondary-base trampoline via 0x10193700
+- fn 0x10736f6c @ 0x10736f6c; action wrapper handler
+- @ 0x10f11a14; action dispatch table entry
+- fn 0x10193700; impl vtable 0x10e98278 slot +0x38; secondary-base trampoline via 0x10193700
 
 </details>
 
@@ -2981,7 +2981,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Locks or unlocks the speaker's physical buttons — the child-lock toggle. While locked, presses on the unit's controls are ignored; control still works from the app.
+Locks or unlocks the speaker's physical buttons, which is the child-lock toggle. While locked, presses on the unit's controls are ignored, though control still works from the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2995,7 +2995,7 @@ Sets DesiredButtonLockState via impl->v\[+0x6c\].
 |---|---|---|---|---|
 | `DesiredButtonLockState` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 4 chars | none; required input |
 
-- **`DesiredButtonLockState`** — Desired button-lock state enum string
+- **`DesiredButtonLockState`**: Desired button-lock state enum string
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x5`
 
@@ -3006,7 +3006,7 @@ Sets DesiredButtonLockState via impl->v\[+0x6c\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736360 — wrapper family decode
+- @ 0x10736360; wrapper family decode
 
 </details>
 
@@ -3016,7 +3016,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x6c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736360 — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736360; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3026,7 +3026,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x6c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736360 — member vfunc calls: \['r30 v\[+0x6c\]'\]
+- fn 0x10736360; member vfunc calls: \['r30 v\[+0x6c\]'\]
 
 </details>
 
@@ -3040,7 +3040,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x6c\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x6c\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736360 — no transition-literal/store pattern; member delegates: \['r30 v\[+0x6c\]'\]
+- fn 0x10736360; no transition-literal/store pattern; member delegates: \['r30 v\[+0x6c\]'\]
 
 </details>
 
@@ -3050,7 +3050,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736360 — bl call scan: notify-family sites = \[\]
+- fn 0x10736360; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3060,7 +3060,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736360 — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736360; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3075,8 +3075,8 @@ impl worker f_1019db60 is itself a 5-insn accessor returning r3+0x3fa2c member p
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -3092,9 +3092,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10736444` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x107363c0` slot `8` (parse)
 
-- fn 0x10736360 @ 0x10736360 — action wrapper handler
-- @ 0x10f11a20 — action dispatch table entry
-- fn 0x1019db74 — impl vtable 0x10e98278 slot +0x6c; secondary-base trampoline via 0x1019db74
+- fn 0x10736360 @ 0x10736360; action wrapper handler
+- @ 0x10f11a20; action dispatch table entry
+- fn 0x1019db74; impl vtable 0x10e98278 slot +0x6c; secondary-base trampoline via 0x1019db74
 
 </details>
 
@@ -3102,7 +3102,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Turns the speaker's status LED on or off — the 'Status Light' toggle in settings. The 'Status Light' toggle in settings — off makes the unit dark for bedrooms.
+Turns the speaker's status LED on or off. This is the 'Status Light' toggle you find in settings, and switching it off makes the unit dark for bedrooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3116,7 +3116,7 @@ Sets DesiredLEDState via impl->v\[+0x10\].
 |---|---|---|---|---|
 | `DesiredLEDState` | string argument (type-tag-7 record) | yes | any string; impl never reads it / max 3 chars | none; required input |
 
-- **`DesiredLEDState`** — Desired LED state enum string (parsed but IGNORED: impl 0x10537870 is a 2-insn no-op)
+- **`DesiredLEDState`**: Desired LED state enum string (parsed but IGNORED: impl 0x10537870 is a 2-insn no-op)
   - buffer cap: `0x4`
 
 <details markdown="1"><summary><b>Technical analysis</b></summary>
@@ -3126,7 +3126,7 @@ Sets DesiredLEDState via impl->v\[+0x10\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10735d5c — wrapper family decode
+- @ 0x10735d5c; wrapper family decode
 
 </details>
 
@@ -3136,7 +3136,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735d5c — req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10735d5c; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3146,7 +3146,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735d5c — member vfunc calls: \['r30 v\[+0x10\]'\]
+- fn 0x10735d5c; member vfunc calls: \['r30 v\[+0x10\]'\]
 
 </details>
 
@@ -3160,7 +3160,7 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x10\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735d5c — no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
+- fn 0x10735d5c; no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
 
 </details>
 
@@ -3170,7 +3170,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735d5c — bl call scan: notify-family sites = \[\]
+- fn 0x10735d5c; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3180,7 +3180,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10735d5c — commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10735d5c; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3195,8 +3195,8 @@ request-validate failure (req->v\[+0x08\] returned 0) | Wrapper parse layer reje
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
 
-**Bounded unknown — proven:** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
-**Bounded unknown — unresolved:** the concrete rc set each impl can produce
+**Bounded unknown (proven):** impl result in r3 -> req v\[+0x14\] fault code; success branch tests CR0.eq (impl-side compare)
+**Bounded unknown (unresolved):** the concrete rc set each impl can produce
 
 impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verbatim
 
@@ -3212,9 +3212,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10735e40` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x10735dbc` slot `8` (parse)
 
-- fn 0x10735d5c @ 0x10735d5c — action wrapper handler
-- @ 0x10f11a2c — action dispatch table entry
-- fn 0x10537870 — impl vtable 0x10e98278 slot +0x10; NULL STUB: 2-insn empty function - action is a no-op in this build
+- fn 0x10735d5c @ 0x10735d5c; action wrapper handler
+- @ 0x10f11a2c; action dispatch table entry
+- fn 0x10537870; impl vtable 0x10e98278 slot +0x10; NULL STUB: 2-insn empty function - action is a no-op in this build
 
 </details>
 
@@ -3237,10 +3237,10 @@ Sets UseVolume flag (+Source) via impl->v\[+0x40\].
 | `UseVolume` | boolean/numeric flag (type-tag-1, 24-byte record) | yes | nonzero = true; 0 = false (byte-width flag) / 0/1 | none; required input |
 | `Source` | string argument (type-tag-7 record) | yes | any string within the request parse cap / max 4 chars | none; required input |
 
-- **`UseVolume`** — Enable applying the stored autoplay volume
+- **`UseVolume`**: Enable applying the stored autoplay volume
   - validation: flag consumed by the impl vfunc
   - buffer cap: `0x18`
-- **`Source`** — Autoplay source identifier string
+- **`Source`**: Autoplay source identifier string
   - validation: consumed by impl vfunc +0x40
   - buffer cap: `0x5`
 
@@ -3251,7 +3251,7 @@ Sets UseVolume flag (+Source) via impl->v\[+0x40\].
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736b44 — wrapper family decode
+- @ 0x10736b44; wrapper family decode
 
 </details>
 
@@ -3261,7 +3261,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r29 v\[+0x40\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736b44 — req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736b44; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3271,7 +3271,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 service-internal state reached through member delegate(s): r29 v\[+0x40\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736b44 — member vfunc calls: \['r29 v\[+0x40\]'\]
+- fn 0x10736b44; member vfunc calls: \['r29 v\[+0x40\]'\]
 
 </details>
 
@@ -3285,7 +3285,7 @@ service-internal state reached through member delegate(s): r29 v\[+0x40\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x40\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736b44 — no transition-literal/store pattern; member delegates: \['r29 v\[+0x40\]'\]
+- fn 0x10736b44; no transition-literal/store pattern; member delegates: \['r29 v\[+0x40\]'\]
 
 </details>
 
@@ -3295,7 +3295,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736b44 — bl call scan: notify-family sites = \[\]
+- fn 0x10736b44; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3305,7 +3305,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736b44 — commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736b44; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3333,9 +3333,9 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 - impl call `0x10736c78` obj `*(sp-0x30+0x2c)` slot `12` arg4 `402`
 - req vcall `0x10736be8` slot `8` (parse)
 
-- fn 0x10736b44 @ 0x10736b44 — action wrapper handler
-- @ 0x10f11a38 — action dispatch table entry
-- fn 0x10195810 — impl vtable 0x10e98278 slot +0x40; secondary-base trampoline via 0x10195810
+- fn 0x10736b44 @ 0x10736b44; action wrapper handler
+- @ 0x10f11a38; action dispatch table entry
+- fn 0x10195810; impl vtable 0x10e98278 slot +0x40; secondary-base trampoline via 0x10195810
 
 </details>
 
@@ -3343,7 +3343,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets this speaker's descriptive properties — room name, icon, and related fields. This is what happens when you rename a room in the app. This is what happens when you rename a room or change its icon in the app.
+Sets this speaker's descriptive properties, meaning room name, icon, and related fields. This is what happens when you rename a room or change its icon in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3360,16 +3360,16 @@ Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via 
 | `DesiredConfiguration` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 15 chars | none; required input |
 | `DesiredTargetRoomName` | string argument (type-tag-7 record) | yes | any string within the request parse cap; no lexical whitelist observed at the parse layer / max 64 chars | none; required input |
 
-- **`DesiredZoneName`** — Zone-attribute string field (DesiredZoneName)
+- **`DesiredZoneName`**: Zone-attribute string field (DesiredZoneName)
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x400`
-- **`DesiredIcon`** — Zone-attribute string field (DesiredIcon)
+- **`DesiredIcon`**: Zone-attribute string field (DesiredIcon)
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x400`
-- **`DesiredConfiguration`** — Zone-attribute string field (DesiredConfiguration)
+- **`DesiredConfiguration`**: Zone-attribute string field (DesiredConfiguration)
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x10`
-- **`DesiredTargetRoomName`** — Zone-attribute string field (DesiredTargetRoomName)
+- **`DesiredTargetRoomName`**: Zone-attribute string field (DesiredTargetRoomName)
   - validation: consumed by the impl vfunc; impl-side validation as noted
   - buffer cap: `0x41`
 
@@ -3380,7 +3380,7 @@ Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- @ 0x10736450 — wrapper family decode
+- @ 0x10736450; wrapper family decode
 
 </details>
 
@@ -3390,7 +3390,7 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r26 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736450 — req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736450; req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3400,7 +3400,7 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, vali
 service-internal state reached through member delegate(s): r26 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736450 — member vfunc calls: \['r26 v\[+0x8\]'\]
+- fn 0x10736450; member vfunc calls: \['r26 v\[+0x8\]'\]
 
 </details>
 
@@ -3414,7 +3414,7 @@ service-internal state reached through member delegate(s): r26 v\[+0x8\]
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r26 v\[+0x8\]
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736450 — no transition-literal/store pattern; member delegates: \['r26 v\[+0x8\]'\]
+- fn 0x10736450; no transition-literal/store pattern; member delegates: \['r26 v\[+0x8\]'\]
 
 </details>
 
@@ -3424,7 +3424,7 @@ no state-machine transition literal in impl; transition, if any, inside member d
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736450 — bl call scan: notify-family sites = \[\]
+- fn 0x10736450; bl call scan: notify-family sites = \[\]
 
 </details>
 
@@ -3434,7 +3434,7 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
 <details markdown="1"><summary>Evidence (1)</summary>
 
-- fn 0x10736450 — commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
+- fn 0x10736450; commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}
 
 </details>
 
@@ -3454,7 +3454,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band
 
-- the backing store-commit worker returned a nonzero code — propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
+- the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
 
 
 
@@ -3468,9 +3468,9 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 - impl call `0x10736600` obj `*(sp-0x890+0x88c)` slot `12` arg4 `402`
 - req vcall `0x10736560` slot `8` (parse)
 
-- fn 0x10736450 @ 0x10736450 — action wrapper handler
-- @ 0x10f11a44 — action dispatch table entry
-- fn 0x101935f0 — impl vtable 0x10e98278 slot +0x08; secondary-base trampoline via 0x101935f0
+- fn 0x10736450 @ 0x10736450; action wrapper handler
+- @ 0x10f11a44; action dispatch table entry
+- fn 0x101935f0; impl vtable 0x10e98278 slot +0x08; secondary-base trampoline via 0x101935f0
 
 </details>
 
@@ -3478,63 +3478,63 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 | Name | Type | Evented | Description |
 |---|---|---|---|
-| `HouseholdID` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `SettingsReplicationState` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `ZoneName` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `Icon` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `Configuration` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `TargetRoomName` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `Invisible` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `IsZoneBridge` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `AirPlayEnabled` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `SupportsAudioIn` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `SupportsAudioClip` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `IsIdle` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `MoreInfo` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `ChannelMapSet` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `HTSatChanMapSet` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `HTBondedZoneCommitState` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `Orientation` | i4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `LastChangedPlayState` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `RoomCalibrationState` | i4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `AvailableRoomCalibration` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `SatRoomUUID` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `LEDState` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `SerialNumber` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `SoftwareVersion` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `DisplaySoftwareVersion` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `HardwareVersion` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `IPAddress` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `MACAddress` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `CopyrightInfo` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `ExtraInfo` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `HTAudioIn` | ui4 | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `Flags` | ui4 | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `AutoplayIncludeLinkedZones` | boolean | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `AutoplayRoomUUID` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `AutoplaySource` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `AutoplayVolume` | ui2 | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `AutoplayUseVolume` | boolean | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `TVConfigurationError` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `HdmiCecAvailable` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `WirelessMode` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `ConnectionType` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `HasConfiguredSSID` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `ChannelFreq` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `BehindWifiExtender` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `WifiEnabled` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `EthLink` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `ConfigMode` | string | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `SecureRegState` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
+| `HouseholdID` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `SettingsReplicationState` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `ZoneName` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `Icon` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `Configuration` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `TargetRoomName` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `Invisible` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `IsZoneBridge` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `AirPlayEnabled` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `SupportsAudioIn` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `SupportsAudioClip` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `IsIdle` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `MoreInfo` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `ChannelMapSet` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `HTSatChanMapSet` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `HTBondedZoneCommitState` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `Orientation` | i4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `LastChangedPlayState` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `RoomCalibrationState` | i4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `AvailableRoomCalibration` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `SatRoomUUID` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `LEDState` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `SerialNumber` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `SoftwareVersion` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `DisplaySoftwareVersion` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `HardwareVersion` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `IPAddress` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `MACAddress` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `CopyrightInfo` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `ExtraInfo` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `HTAudioIn` | ui4 | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `Flags` | ui4 | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `AutoplayIncludeLinkedZones` | boolean | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `AutoplayRoomUUID` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `AutoplaySource` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `AutoplayVolume` | ui2 | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `AutoplayUseVolume` | boolean | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `TVConfigurationError` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `HdmiCecAvailable` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `WirelessMode` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `ConnectionType` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `HasConfiguredSSID` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `ChannelFreq` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `BehindWifiExtender` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `WifiEnabled` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `EthLink` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `ConfigMode` | string | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `SecureRegState` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
 | `A_ARG_TYPE_ConfigModeOptions` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_ConfigModeState` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_ButtonState` | string | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
-| `ButtonLockState` | string | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
-| `VoiceConfigState` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `MicEnabled` | ui4 | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `SvcActive` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `AlexaCBLSupported` | boolean | yes | evented state variable — appears in DeviceProperties LastChange/GENA event notifications |
-| `KeepGrouped` | boolean | no | non-evented DeviceProperties state variable — read via action out-args, not pushed |
+| `ButtonLockState` | string | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
+| `VoiceConfigState` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `MicEnabled` | ui4 | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `SvcActive` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `AlexaCBLSupported` | boolean | yes | evented state variable: appears in DeviceProperties LastChange/GENA event notifications |
+| `KeepGrouped` | boolean | no | non-evented DeviceProperties state variable: read via action out-args, not pushed |
 | `A_ARG_TYPE_RoomDetectionChirpChannel` | ui2 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_RoomDetectionDurationMilliseconds` | ui4 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
 | `A_ARG_TYPE_RoomDetectionPlayId` | ui4 | no | argument-type state variable (SCPD type declaration for action args; not device state, not evented) |
@@ -3596,8 +3596,8 @@ Implementation sources (recovered): `common/dp_impl.cxx`, `zoneplayer/dp_zpimpl.
 
 <details markdown="1"><summary>Service evidence (3)</summary>
 
-- @ 0x1068bc0c — service router function
-- @ 0x10f11900 — service vtable
-- @ 0x10735c04 — service dispatcher
+- @ 0x1068bc0c; service router function
+- @ 0x10f11900; service vtable
+- @ 0x10735c04; service dispatcher
 
 </details>

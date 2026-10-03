@@ -1,12 +1,12 @@
 # anacapad SOAP/UPnP reference
 
-This site documents what a Sonos player's main control program actually does on the network — every command it accepts, every setting it stores, and every update it can push out, recovered by reading the device's firmware rather than by guessing from the outside. Sonos speakers don't publish this level of detail: the company documents a small set of commands for app developers, but the real surface inside the device is far larger, and everything here was verified against the actual program that ships inside a Playbar-era player. You'll find two kinds of text on every page. The plain paragraphs you see first explain each piece in everyday language — what it does, why it exists, and what it means for you. The collapsed 'Technical details' sections hold the engineer-facing evidence — memory addresses, table layouts, and the reasoning that proves each claim — so you can check the work without wading through it. The aim throughout: if it isn't proven by the firmware, it doesn't appear here.
+This site documents what a Sonos player's main control program actually does on the network: every command it accepts, every setting it stores, and every update it can push out, all recovered by reading the device's firmware rather than by guessing from the outside. Sonos speakers don't publish this level of detail. The company documents a small set of commands for app developers, but the real surface inside the device is far larger, and everything here was verified against the actual program that ships inside a Playbar-era player. You'll find two kinds of text on every page. The plain paragraphs you see first explain each piece in everyday language: what it does, why it exists, and what it means for you. The collapsed 'Technical details' sections hold the engineer-facing evidence, meaning memory addresses, table layouts, and the reasoning that proves each claim, so you can check the work without wading through it. The aim throughout: if it isn't proven by the firmware, it doesn't appear here.
 
-Binary `anacapad`, build `86.10-80260` — model-9 (Playbar/limelight). Generated from the frozen canonical static-analysis dataset (`docs/documentation.json`); no runtime verification was performed. The binary implementation is the ground truth throughout.
+Binary `anacapad`, build `86.10-80260`, model-9 (Playbar/limelight). Generated from the frozen canonical static-analysis dataset (`docs/documentation.json`); no runtime verification was performed. The binary implementation is the ground truth throughout.
 
 ## Authoritative counts
 
-The counts below distinguish three things that are easy to conflate — and conflating them is exactly how 'the speaker has 205 commands' myths start. First: what the product's specification documents promise. Sonos ships each player with small description files listing the commands it claims to support — that's the advertised surface, and it can over-promise, because a command can stay in the spec after the code behind it was removed. Second: what the player actually dispatches — commands a request will really reach code for. Third: what that code does — a few advertised commands are wired to empty routines that accept your request and change nothing, and a few more reject every call with an error. This site tracks all three layers separately, so for every command you can see whether it's genuinely live, a stub that does nothing, or a ghost that only exists in the paperwork.
+The counts below distinguish three things that are easy to conflate, and conflating them is exactly how 'the speaker has 205 commands' myths start. First: what the product's specification documents promise. Sonos ships each player with small description files listing the commands it claims to support. That's the advertised surface, and it can over-promise, because a command can stay in the spec after the code behind it was removed. Second: what the player actually dispatches, meaning the commands a request will really reach code for. Third: what that code does. A few advertised commands are wired to empty routines that accept your request and change nothing, and a few more reject every call with an error. This site tracks all three layers separately, so for every command you can see whether it's genuinely live, a stub that does nothing, or a ghost that only exists in the paperwork.
 
 | Count | Value | Definition |
 |---|---|---|
@@ -21,12 +21,12 @@ The counts below distinguish three things that are easy to conflate — and conf
 
 ## Confidence vocabulary
 
-Every fact on this site carries a confidence tag so nothing is overstated. 'Confirmed' means the code path was followed end to end — we traced the command from arrival through its routine and saw exactly what it does. 'Strong' means the evidence is solid but some detail remains inferred — for example the command's job is proven but one internal branch wasn't worth mapping. 'Weak' means structure suggests the claim but the trail runs cold partway. Where a behavior can't be resolved without running the device — and remember, this whole project is static analysis: no player was ever touched — the page says so explicitly rather than guessing.
+Every fact on this site carries a confidence tag so nothing is overstated. 'Confirmed' means the code path was followed end to end: we traced the command from arrival through its routine and saw exactly what it does. 'Strong' means the evidence is solid but some detail remains inferred, for example the command's job is proven but one internal branch wasn't worth mapping. 'Weak' means structure suggests the claim but the trail runs cold partway. Where a behavior can't be resolved without running the device (and remember, this whole project is static analysis: no player was ever touched), the page says so explicitly rather than guessing.
 
-- **visibility** — action/service surface classification: 'advertised' = declared in a shipped SCPD document AND (at service level) present in the served device_description.xml serviceList (16 of 17 services — everything except AudioIn); 'hidden' = service omitted from the serviceList even though its SCPD ships (AudioIn only); 'internal' = callable on the wire but not SCPD-declared — supported class, EMPTY on this build (verified: all 205 canonical actions appear in their service's SCPD actionList)
-- **reachability** — 'callable' = dispatched to a real implementation; 'hidden-callable' = reachable by action name on the control path but not SCPD-declared — EMPTY on this build
-- **confidence** — confirmed = direct binary proof; strong = strong static evidence; inferred = heuristic; unresolved = not yet determined
-- **fault_vocabulary_caveat** — identical fault-code vocabularies across builds do NOT prove identical error behavior; a fault-code vocabulary delta claim is made only where control flow was also compared
+- **visibility**: action/service surface classification: 'advertised' = declared in a shipped SCPD document AND (at service level) present in the served device_description.xml serviceList (16 of 17 services, everything except AudioIn); 'hidden' = service omitted from the serviceList even though its SCPD ships (AudioIn only); 'internal' = callable on the wire but not SCPD-declared; supported class, EMPTY on this build (verified: all 205 canonical actions appear in their service's SCPD actionList)
+- **reachability**: 'callable' = dispatched to a real implementation; 'hidden-callable' = reachable by action name on the control path but not SCPD-declared: EMPTY on this build
+- **confidence**: confirmed = direct binary proof; strong = strong static evidence; inferred = heuristic; unresolved = not yet determined
+- **fault_vocabulary_caveat**: identical fault-code vocabularies across builds do NOT prove identical error behavior; a fault-code vocabulary delta claim is made only where control flow was also compared
 
 ## Services
 
@@ -52,14 +52,14 @@ Every fact on this site carries a confidence tag so nothing is overstated. 'Conf
 
 ## Sections
 
-- [Architecture](architecture.md) — routing, dispatch, request lifecycle, shared subsystems
-- [Availability matrix](availability-matrix.md) — the full action-by-action surface
-- [State variables](state-variables.md) — evented and argument type variables
-- [Events](events.md) — GENA/LastChange and WSS eventing
-- [Errors](errors.md) — SOAP fault wire format and code vocabulary
-- [URI formats](uri-formats.md) — URI scheme grammars
-- [Payload formats](payload-formats.md) — opaque field/payload grammars
-- [HTTP API](http-api.md) — non-SOAP HTTP endpoints and diagnostics
-- [muse API](muse-api.md) — the v1 REST surface (route table, methods, op names)
-- [Subsystems](subsystems.md) — non-SOAP protocols and engines with coverage levels
-- [Firmware differences](firmware-differences.md) — cross-build/cross-model deltas
+- [Architecture](architecture.md): routing, dispatch, request lifecycle, shared subsystems
+- [Availability matrix](availability-matrix.md): the full action-by-action surface
+- [State variables](state-variables.md): evented and argument type variables
+- [Events](events.md): GENA/LastChange and WSS eventing
+- [Errors](errors.md): SOAP fault wire format and code vocabulary
+- [URI formats](uri-formats.md): URI scheme grammars
+- [Payload formats](payload-formats.md): opaque field/payload grammars
+- [HTTP API](http-api.md): non-SOAP HTTP endpoints and diagnostics
+- [muse API](muse-api.md): the v1 REST surface (route table, methods, op names)
+- [Subsystems](subsystems.md): non-SOAP protocols and engines with coverage levels
+- [Firmware differences](firmware-differences.md): cross-build/cross-model deltas

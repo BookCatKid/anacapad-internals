@@ -1,6 +1,6 @@
 # HTTP / non-SOAP surface
 
-Beyond the documented control surface, the player answers ordinary HTTP requests — a built-in diagnostic and maintenance web surface most users never see. Some of it is famous: the /status page gives a rich snapshot of what the player is doing, and the support tools lean on it heavily. But there are also endpoints for rebooting, managing logs, checking network state, and a few surprising extras. This page inventories every HTTP path the firmware registers — what's served, what it accepts, and which of them are genuinely useful versus internal.
+Beyond the documented control surface, the player answers ordinary HTTP requests: a built-in diagnostic and maintenance web surface most users never see. Some of it is famous. The /status page gives a rich snapshot of what the player is doing, and the support tools lean on it heavily. But there are also endpoints for rebooting, managing logs, checking network state, and a few surprising extras. This page inventories every HTTP path the firmware registers: what's served, what it accepts, and which of them are genuinely useful versus internal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -10,7 +10,7 @@ Endpoints and HTTP-layer behaviors recovered from the binary outside the SOAP co
 
 ## `http_status_endpoints`
 
-The /status route table — the full registration map of the diagnostics website: every status page, what produces it, and its access flags. The complete inventory of the built-in support site.
+The /status route table: the full registration map of the diagnostics website, covering every status page, what produces it, and its access flags. It's the complete inventory of the built-in support site.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -307,7 +307,7 @@ The /status route table — the full registration map of the diagnostics website
     - **description:** Sonos Logger admin form (POST, csrfToken): fields {dest:file\|"udp"\|"stderr",cat:category e.g. avt_impl,level:0-11 DIAGC(0)→SONOS_LOG(3)} + UDP {udp,udp_addr,udp_port,udp_default} + stderr {stderr,stderr_default} + Diag Msg {msg} + Log Backup {backup_dir,submitAction=logBackup→/jffs/app/log}; errors {Invalid log level/UDP port/UDP default/STDERR default,Log destination not found,UDP already enabled,Diag Msg not allowed}; "Private IP address is required for UDP logging"; dest charset `_ -./\`; status shows Active Destinations(default level)
   - **/devmode:**
     - **status:** strong
-    - **description:** dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit\|delete} → "Statement installed."/"Statement removed." — signed statement mechanism
+    - **description:** dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit\|delete} → "Statement installed."/"Statement removed.": signed statement mechanism
   - **/support:**
     - **detail:** ZPSupportInfo XML: <ZPSupportInfo><ZPNetworkInfo type="%s" %s="%s"><ZPSupportItem title="%s">… exec pages wrap <Command cmdline="…"> + /tmp/diagstdout+/tmp/diagstdin + <!-- SDT: %ld ms -->; path allowlist {/jffs/app/log,/jffs/app/settings,/jffs,/opt/log,/opt,/tmp,/var} + ambient caps dropped + child read timeout; application/octet downloads; CDATA escapes
 - **description:** Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 prefix-mount (sub-dispatcher) (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).
@@ -395,7 +395,7 @@ The /status route table — the full registration map of the diagnostics website
     - **/ssh/fingerprints:** f_105e9578 flag 0x101
     - **/rdmhhsetup /rdmbuttonfwd /mtmhhsetup:** flag 0x100 (retail/demo mgmt)
     - **/ranges boundary:** multipart template ##123456789###BOUNDARY
-  - **flags_note:** w\[2\] flag field small-int space {1,3,0x100,0x101,0x102,0x200,0x30002,0x400,0x230101,0x232101}: likely method/capability bitmask (0x100=POST-ish, 0x200=WS upgrade, 0x400=internal); large values may pack method+auth+tier — undecoded
+  - **flags_note:** w\[2\] flag field small-int space {1,3,0x100,0x101,0x102,0x200,0x30002,0x400,0x230101,0x232101}: likely method/capability bitmask (0x100=POST-ish, 0x200=WS upgrade, 0x400=internal); large values may pack method+auth+tier: undecoded
   - **routes:**
     - **/status:**
       - **handler:** f_105ebb20
@@ -751,21 +751,21 @@ The /status route table — the full registration map of the diagnostics website
   - **locator_global:** 0x11097680 (.bss, runtime-populated service locator)
   - **locator_vfuncs:**
     - **0x84:** resolve module object for this page (per-handler hardcoded or string-keyed)
-    - **0xf8:** module render — writes the page XML into the response stream
+    - **0xf8:** module render: writes the page XML into the response stream
     - **0x6c_0x178:** /device-class handlers call locator members +0x6c/+0x178 for shared header emit
-  - **registry2_global:** 0x11095f88 — second .bss registry used by the /accounts,/analoglinein,/registration class; handler verifies installed vfunc+0x24 against a per-module constant before indirect call
+  - **registry2_global:** 0x11095f88: second .bss registry used by the /accounts,/analoglinein,/registration class; handler verifies installed vfunc+0x24 against a per-module constant before indirect call
   - **module_tags** (89):
   
     ```
     AccountsInfo, Active, ActiveDeviceList, Alarm, Alarms, AudioCore, Backtrace, Bundles, Cert, ClientVersion, Cloud, ConnectionDetails, CpuMonitor, DNSCache, DSPStateManager, Decoder, DeviceInfo, DiagLevel, EnetPorts, Entry, General, HTConfig, HardwareStatusInfo, History, IRCode, IdxTrk, Incoming, LedPatternInfo, LocalSettings, LocalTime, MediaServers, Mode, Mount, Muse, MusicDecoder, NetSettings, NextLocal, NextUTC, Outgoing, Path, Pending, PendingAlarm, PerformanceCounterTables, Presentation, QuarantinedDevices, Registration, RenderingControl, Replication, RestHistory, RoomCalibrationActiveState, RoomCalibrationAvailCalID, RoomCalibrationBondedZoneInfo, RoomCalibrationInfo, RoomCalibrationOrientation, RoomCalibrationUserIntent, SPDIFTap, SSLClientCache, Satellites, Scheduler, SelfTrueplayEQ, SelfTrueplayInfo, ServiceIds, Services, SsidList, SubscribedEvents, Subscription, Subscriptions, Tables, ThirdPartyLibraryInfo, TimeUTC, Titles, Total, TrackQueueSummary, TrackSummary, UTCTime, UpdateInfo, UsageMetrics, UserAgent, VanishedDevices, Version, WebSocketHistory, Wireless, ZPInfo, ZPSupportInfo, ZoneGroupState, ZoneGroups, ZoneName, ZonePlayers, Zones
     ```
-  - **note:** <Name> tags = the emitted root element AND the registered module identity; 90 tags in rodata vs 57 routed pages — unrouted tags (e.g. RoomCalibration*, VanishedDevices, UsageMetrics) are sub-documents emitted inside other pages
+  - **note:** <Name> tags = the emitted root element AND the registered module identity; 90 tags in rodata vs 57 routed pages: unrouted tags (e.g. RoomCalibration*, VanishedDevices, UsageMetrics) are sub-documents emitted inside other pages
   - **resolve_slot:** locator->vt\[+0x84\] proven (resolves module; e.g. /wireless f_105eab50)
   - **render_slot:** module->vt\[+0xFC\] proven for /wireless shape (+0xF8 for other modules - per-module vtable layout)
   - **registry2_pattern:** Pattern A: handler reads *(0x11095f88)+N prebound module ptrs, verifies module->vt\[+0x24\] == per-page constant (the page method), calls it. Adjuster thunks (this+=off; b) bridge MI bases, e.g. /accounts f_101b6edc -> f_10427174.
   - **shared_base_renderer:** /ai_speech_enhance,/decoder,/htconfig,/spdiftap,/tvprocessor all verify f_100c3f5c (one base-class page method); /analoglinein verifies f_100c3b0c. Output = member dump via computed names - no static schema literals.
 - **status_page_registry:**
-  - **provenance:** stride-12 {name*, flag, source*/handler*} table at ~0x11090144-0x11090b6c (immediately precedes the master 102-record route table at 0x11090c00). Two page families: exec/file pages (source = shell cmd string like /sbin/lsmod, /bin/chronyc, or file path under /jffs /opt/log /proc/ath_rincon) and module pages (source = .text handler). flag values 1,2,6,0xa,0xb,0xe,0x43,0x46,0x82 — semantics undecoded, likely content-type/auth bitmask (0x82 set on /api,/cloudqueue,/leds).
+  - **provenance:** stride-12 {name*, flag, source*/handler*} table at ~0x11090144-0x11090b6c (immediately precedes the master 102-record route table at 0x11090c00). Two page families: exec/file pages (source = shell cmd string like /sbin/lsmod, /bin/chronyc, or file path under /jffs /opt/log /proc/ath_rincon) and module pages (source = .text handler). flag values 1,2,6,0xa,0xb,0xe,0x43,0x46,0x82: semantics undecoded, likely content-type/auth bitmask (0x82 set on /api,/cloudqueue,/leds).
   - **exec_pages:** `/ifconfig->/sbin/...`, `/lsmod->/sbin/lsmod`, `/mount->/bin/mount`, `/netstat->/bin/netstat -an`, `/ntpsources->/bin/chronyc -n sources -v`, `/ps->/bin/ps`, `/route->/sbin/route -n`, `/scanresults->/wifi/athconfig scangetresults ath0 (flag 6)`, `/showmacs->brctl showmacs br0`, `/showports->brctl showports br0`, `/showstats->brctl showstats br0`, `/showstp->brctl showstp br0`, `/uptime->/usr/bin/uptime`, `/df`, `/du-jffs`, `/free`, `/date`, `/debugfiles`, `/dmesg`
   - **file_pages:** ~45 file-cat pages: /VERSION, /etc/resolv.conf, /jffs/{settings/*.json\|xml, *.log, irconfig.txt, localsettings.txt, shadow/stats, sys/log/setup*}, /opt/log/anacapa.*.log (18+ named logs incl. musecmdandrsp/museevt/lechmere.event/chsrc.state/trueplay), /proc/ath_rincon*/{device,dfs,fullstatus,mibcc,nf,phyerr,roam,station,status,primary}
   - **module_pages:**
@@ -774,7 +774,7 @@ The /status route table — the full registration map of the diagnostics website
     - **/ai_speech_enhance:** f_100ba8b0
     - **/alarm:** f_100b9278
     - **/analoglinein:** f_100bced0
-    - **/api:** f_105eb124 (flag 0x82 — muse)
+    - **/api:** f_105eb124 (flag 0x82: muse)
     - **/audiocore:** f_100bb008
     - **/backtrace:** f_100b9260
     - **/button_triggered.xml:** f_100b91d8
@@ -885,9 +885,9 @@ The /status route table — the full registration map of the diagnostics website
     - **/root_cert_bundles:**
       - **schema:** <RootCertBundleInfo><Bundles><CurrentBundle><BundleVersion/><BundleID/><IsFallback/></CurrentBundle><CachedCloudBundle><BundleVersion/><BundleID/><ETag/></CachedCloudBundle><PreviousBundle><BundleVersion/><BundleID/></PreviousBundle></Bundles></RootCertBundleInfo>
       - **confidence:** PROVEN (reportuploader 0x10eeb9b4+)
-    - **/renderingcontrol:** <RenderingControl><DuckingFlags>%s</DuckingFlags><SodVolume>%d</SodVolume><ExtVolume>%d</ExtVolume><AudioCoreReady>%s</AudioCoreReady><DeviceTime>%d.%06d</DeviceTime></RenderingControl> — literals found in f_100b8f2c handler body (previously listed unresolved; the stub tail-calls into the shared emit fn but the schema literals sit in the handler itself)
+    - **/renderingcontrol:** <RenderingControl><DuckingFlags>%s</DuckingFlags><SodVolume>%d</SodVolume><ExtVolume>%d</ExtVolume><AudioCoreReady>%s</AudioCoreReady><DeviceTime>%d.%06d</DeviceTime></RenderingControl>: literals found in f_100b8f2c handler body (previously listed unresolved; the stub tail-calls into the shared emit fn but the schema literals sit in the handler itself)
     - **/decoder:** <MusicDecoder><LastActiveDecoder>%s</LastActiveDecoder></MusicDecoder>
-    - **/topology:** <ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d"><SonosNet Disable="%d"/><SonosNet Frequency="%d"/><Network SSID="%s" Flags="%d"/><BackupLanSwapPsk id="%s"/></ReplicatedNetSettings> — shared emitter also used by /wireless,/dmesg,/netsettings.*,/ssidlist.txt (same render lib)
+    - **/topology:** <ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d"><SonosNet Disable="%d"/><SonosNet Frequency="%d"/><Network SSID="%s" Flags="%d"/><BackupLanSwapPsk id="%s"/></ReplicatedNetSettings>: shared emitter also used by /wireless,/dmesg,/netsettings.*,/ssidlist.txt (same render lib)
     - **/radiolog:** <PerformanceCounterTables> (perfcounter table emitter shared with /perfcounters) + radio log tail
   - **unresolved_pages:** /ai_speech_enhance /analoglinein /hls /htconfig /tvprocessor /spdiftap /wireless - vfunc member-dump stubs (load member of global app object @0x11095f88 + fixed offset, call its vfunc render); /settings/* /syssettings /dnscache /api /dmesg resolved to shared emitters f_101886a4/f_106937dc/f_10769d34/f_1076b10c which delegate further without literal schemas
 - **admin_post_endpoints:**
@@ -900,7 +900,7 @@ The /status route table — the full registration map of the diagnostics website
       - **params:** `key`, `value`, `csrfToken`
       - **response:** <h2>System Settings</h2>Setting changed \| HTTP Error %d
       - **headers:** `Cache-Control: no-cache, no-store, must-revalidate`
-      - **note:** raw SystemProperties write — arbitrary settings key/value with CSRF gate
+      - **note:** raw SystemProperties write: arbitrary settings key/value with CSRF gate
     - **/removestring:**
       - **handler:** f_100b79e0
       - **method:** POST
@@ -919,42 +919,42 @@ The /status route table — the full registration map of the diagnostics website
       - **params:** `flush`
       - **response:** Flushed
       - **note:** flushes pending sonar tones via sonar-tone (mod_zp)
-  - **ranges_literal:** /ranges; boundary=##123456789###BOUNDARY @0x10e72241 — multipart range-request response boundary template (HTTP 206 partial content)
+  - **ranges_literal:** /ranges; boundary=##123456789###BOUNDARY @0x10e72241: multipart range-request response boundary template (HTTP 206 partial content)
 - **resolved_extra_handlers:**
-  - **/content/api:** f_102fd76c — translateId bridge: fields {objectId,serviceId->targetSid,targetObjectId}; outbound catalog/id/%s?destinationServiceId=%s; translation cache (cache.h) "saved/retrieved translation from cache"; errors objectId/serviceId/targetObjectId missing, "cannot perform translateId request"
-  - **/bridge/content/api:** f_1048f3a4 — getContent proxy w/ "service base path: %s", per-call timing "getContent took %ld ms: %s", "getContent parse failed"
-  - **/entitlements/api:** f_1037120c — entmt obj; "using cloud URL: %s"; cache-control/etag headers; onCacheUpdate; "cloud entitlements: rc %d, http %d"
-  - **/ZPs:** f_104d1b74 — upgrade_mgr JSON report emit {SystemResult,Result,DownloadDuration,ExtendedError}; "report array size mismatch (%d/%zu)"
-  - **/authz:** f_1060363c — resolveToken proxy to muse: logs token masked ******%s; fields {apiKey,credential,responseResolveToken}; cache-control passthrough; "Failed to resolve token http=%d"/"Failed to parse token response"
-  - **/auth/oauth/v2/validate:** f_1063fe2c — outbound fmt /auth/oauth/v2/validate?access_token=%s
-  - **/v2/diags:** f_106b6da0 — diagnostic submit: form-data {originator,serial_num}; submit logs "%s for %s submitted (ID: %s, GUID: %s)" w/ guid-confirm mismatch check; "Local diagnostic" type; Diagnostic stub
-  - **/settings/api/v1/locations/:** f_105dd808 — locSetUpdMgr: processUpdateAllSettings GET /settings/api/v1/locations/%s/effectiveSettings conditional \[etag\|version\] + Last-Modified; X-Sonos-Corr-Id; keys {source,initial}
-  - **/drc:** f_10d5ee28 — dolby DRC config setter (see dsp_drc vocabulary)
-  - **/staticparams:** f_10d5f1e4 shared with /dynamicparams — DSP param registry {virt_mode,dap,frontangle,heightangle,surrangle,rearsurrangle,oarBassExtraction,dapCutOff,upmix,hfilt,post,mode,vlamp,vmcal}
+  - **/content/api:** f_102fd76c: translateId bridge: fields {objectId,serviceId->targetSid,targetObjectId}; outbound catalog/id/%s?destinationServiceId=%s; translation cache (cache.h) "saved/retrieved translation from cache"; errors objectId/serviceId/targetObjectId missing, "cannot perform translateId request"
+  - **/bridge/content/api:** f_1048f3a4: getContent proxy w/ "service base path: %s", per-call timing "getContent took %ld ms: %s", "getContent parse failed"
+  - **/entitlements/api:** f_1037120c: entmt obj; "using cloud URL: %s"; cache-control/etag headers; onCacheUpdate; "cloud entitlements: rc %d, http %d"
+  - **/ZPs:** f_104d1b74: upgrade_mgr JSON report emit {SystemResult,Result,DownloadDuration,ExtendedError}; "report array size mismatch (%d/%zu)"
+  - **/authz:** f_1060363c: resolveToken proxy to muse: logs token masked ******%s; fields {apiKey,credential,responseResolveToken}; cache-control passthrough; "Failed to resolve token http=%d"/"Failed to parse token response"
+  - **/auth/oauth/v2/validate:** f_1063fe2c: outbound fmt /auth/oauth/v2/validate?access_token=%s
+  - **/v2/diags:** f_106b6da0: diagnostic submit: form-data {originator,serial_num}; submit logs "%s for %s submitted (ID: %s, GUID: %s)" w/ guid-confirm mismatch check; "Local diagnostic" type; Diagnostic stub
+  - **/settings/api/v1/locations/:** f_105dd808: locSetUpdMgr: processUpdateAllSettings GET /settings/api/v1/locations/%s/effectiveSettings conditional \[etag\|version\] + Last-Modified; X-Sonos-Corr-Id; keys {source,initial}
+  - **/drc:** f_10d5ee28: dolby DRC config setter (see dsp_drc vocabulary)
+  - **/staticparams:** f_10d5f1e4 shared with /dynamicparams: DSP param registry {virt_mode,dap,frontangle,heightangle,surrangle,rearsurrangle,oarBassExtraction,dapCutOff,upmix,hfilt,post,mode,vlamp,vmcal}
   - **/dynamicparams:** same fn as /staticparams
   - **/upload:** f_102537b0 shared crashdump uploader for /anacapad-external /sonospowercoordinator-external /watchdog(-legacy) /sonosledmgrd-external (/jffs/app/debug/sonosledmgrd.dmp) /netstartd-external /btmanager-external legacy-to-sentry; type=crashdump; "No URL found to upload dump file: %s"
-  - **/watchdog:** f_100aaa04 shared with /devmode — internal HTTP subserver: routes /log /devmode /threadinfo /watchdogs /reboot /sonos_log? /unlock; "set log level: %s=%d"; serves anacapa.log; %d.%d.%d.%d host parse; HTML error pages
-  - **/devmode:** f_105e8d90 -> trampoline 0x10789cbc (mp4 header parser region — dev-mode media tools)
-  - **/testenv:** f_105eb9dc — locator module render via obj->vt\[+0x9c\], page field \[r3+356\]
-  - **/sethostip:** f_100b9fac — permission gate 0x10550b24 else HTTP 403; delegates to setter 0x10551bfc
-  - **/sonarctl:** f_100bc354 — "flush" op on mod_zp: "flushing sonar tones"/"Flushed"
-  - **/spotdbg:** f_100b8140 — "spot: permission denied" gate; no-store response
-  - **/snapshotspdiftap:** f_100bd5e4 — "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!"/"Feature not supported."
-  - **/traceroute:** f_100d3ff4 — exec /usr/bin/traceroute
-  - **/ping:** f_100d3f88 — exec (see /traceroute sibling; earlier finding /bin/ping -c 3)
-  - **/ttm_helper:** f_100b9740 — text/plain responder
-  - **/networkmatrix:** f_105ea2f0 — builds matrix record buffer (49-elem), responds 200
-  - **/support/asyncsubmit:** f_105ea400 — form {diagId,guid,flags,excludeFlags,type,coordinator,delay}; schedules diag submission; "already pending" conflict; "Unable to find player from UUID"
-  - **/support/reportstatus:** f_105ea734 — form {guid,uuid,success,controller}; updates submission status
-  - **/support/directsubmit:** f_105e9b30 — HTML "Diagnostic Submission to Sonos, Inc." w/ csrfToken form
-  - **/support/aggregate:** f_105e9fb0 — collects watchdog.dmesg, watchdog.log, button_triggered.xml, dropout_triggered.xml; "cleanup logs after diagnostic"; requires diag type
-  - **/support/review:** f_105e9e60 — XML review doc w/ /xml/review.xsl stylesheet
+  - **/watchdog:** f_100aaa04 shared with /devmode: internal HTTP subserver: routes /log /devmode /threadinfo /watchdogs /reboot /sonos_log? /unlock; "set log level: %s=%d"; serves anacapa.log; %d.%d.%d.%d host parse; HTML error pages
+  - **/devmode:** f_105e8d90 -> trampoline 0x10789cbc (mp4 header parser region: dev-mode media tools)
+  - **/testenv:** f_105eb9dc: locator module render via obj->vt\[+0x9c\], page field \[r3+356\]
+  - **/sethostip:** f_100b9fac: permission gate 0x10550b24 else HTTP 403; delegates to setter 0x10551bfc
+  - **/sonarctl:** f_100bc354: "flush" op on mod_zp: "flushing sonar tones"/"Flushed"
+  - **/spotdbg:** f_100b8140: "spot: permission denied" gate; no-store response
+  - **/snapshotspdiftap:** f_100bd5e4: "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!"/"Feature not supported."
+  - **/traceroute:** f_100d3ff4: exec /usr/bin/traceroute
+  - **/ping:** f_100d3f88: exec (see /traceroute sibling; earlier finding /bin/ping -c 3)
+  - **/ttm_helper:** f_100b9740: text/plain responder
+  - **/networkmatrix:** f_105ea2f0: builds matrix record buffer (49-elem), responds 200
+  - **/support/asyncsubmit:** f_105ea400: form {diagId,guid,flags,excludeFlags,type,coordinator,delay}; schedules diag submission; "already pending" conflict; "Unable to find player from UUID"
+  - **/support/reportstatus:** f_105ea734: form {guid,uuid,success,controller}; updates submission status
+  - **/support/directsubmit:** f_105e9b30: HTML "Diagnostic Submission to Sonos, Inc." w/ csrfToken form
+  - **/support/aggregate:** f_105e9fb0: collects watchdog.dmesg, watchdog.log, button_triggered.xml, dropout_triggered.xml; "cleanup logs after diagnostic"; requires diag type
+  - **/support/review:** f_105e9e60: XML review doc w/ /xml/review.xsl stylesheet
   - **/radiolog:** status-registry page {flag=2, handler=f_100b8ff8} radiolog.cxx
   - **/du-jffs:** status-registry exec page {flag=2, cmd="/usr/bin/du -a -d 5 -k -x /jffs"}
   - **/dsp/eqdata.txt:** serves app/debug/dsp/eqdata.txt + persistentEQ.xml (literal-adjacent, reference mechanism not table)
-  - **/sonar-tone:** not in master table; .rodata-referenced near app/run/inverters + ZP_MODE_STANDALONE + variantDebuginfo — sonar variant-tone config path
+  - **/sonar-tone:** not in master table; .rodata-referenced near app/run/inverters + ZP_MODE_STANDALONE + variantDebuginfo: sonar variant-tone config path
   - **/debugfiles:** exec page flag=0xa: /bin/ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug
-  - **/customsd:** f_103429f4 — CSRF form "Add/update custom service descriptor": fields {sid(240-253\|255), name(blank erases), secureUri, pollInterval, authType in {UserId,Anonymous,DeviceLink,AppLink}, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, containerType in {MService,SoundLab}, caps\[\] in {search,trFavorites,alFavorites,ucPlaylists,logging,playbackLogging,accountLogging,extendedMD,radioExtendedMD,playlistExtendedMD,disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}} — full SMAPI SD capability set
+  - **/customsd:** f_103429f4 (CSRF form "Add/update custom service descriptor": fields {sid(240-253\|255), name(blank erases), secureUri, pollInterval, authType in {UserId,Anonymous,DeviceLink,AppLink}, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, containerType in {MService,SoundLab}, caps\[\] in {search,trFavorites,alFavorites,ucPlaylists,logging,playbackLogging,accountLogging,extendedMD,radioExtendedMD,playlistExtendedMD,disableAlarms,noMultiAccount,mediaUriActions,contextHeaders,deviceCerts,playerIds,contextReporting,userInfo,contentFiltering,manifest,authorizationHeader}}) full SMAPI SD capability set
 - **flags_decode_attempt:** Static flag field ({name,flags,target} records, values 1,2,6,a,b,e,43,46,82) is NOT a page-type discriminator - all three page families (handler/exec/file) share the same values. Empirical groupings: 0x2 = bulk default; 0x82 = prefix-mount ({/api,/cloudqueue,/leds} + /opt/log/anacapa.dc.log; 0x80 = mount bit); 0xa = net/sys dumps (/date,/netstat,/uptime,/dmesg,/topology,/upnp + chronyd/udhcpc/ledmgrd/sonosledmgrd logs + arp + sysclock); 0xe = counters/verbose logs (/cpumon,/perfcounters,/showmacs,/showports + anacapa.log/netstartd/wpa_supplicant/fullstatus/netstat); 0xb = realtime link state (/enetports,/wireless,/showstp); 0x6 = wifi mib/dfs class (ath_rincon mibcc/nf/phyerr/primary,mdnsd.log,/playmode,/scanresults); 0x1 = identity (/VERSION,/zp,/ifconfig); 0x43/0x46 = ath_rincon status/dfs. HYPOTHESIS (unconfirmed): bitfield of support-bundle sections - the ZPSupportInfo generator (ap_status_handle_support_request, f_1076b5dc emits <ZPSupportInfo>...</ZPSupportInfo></ZPNetworkInfo>) pulls pages by flag bit. Dispatch path proven: f_105ebb20 -> f_105be5c8 match ctx -> lbz 0x110 matched-flag, accept-header text/plain shortcut, 200 + CONTENT-TYPE from a request-side helper, then per-page render. No static flag-bit comparison found in the walkers scanned; exact bit semantics remain undecoded.
 - **bundle_file_manifest:** support-bundle table at 0x1109013c+ interleaves {name_ptr, flags_u32, cmd_or_path_ptr} records: shell-command sections {/date:/bin/date, /debugfiles:'ls --full-time /jffs/app/debug /jffs/sys/debug /jffs/net/debug', /df:/bin/df, /du-jffs, /free, /ifconfig, /lsmod, /mount, /netstat, /ntpsources, /ps, /route, /scanresults, /showmacs, /showports, /showstats, /showstp, /uptime} (flags 0x1/0x2/0x6/0xa/0xb/0xe gate conditional inclusion); file sections: /etc/resolv.conf, /VERSION, /jffs/{irconfig.txt,netstartd_prev.log,recovery.log,settings/{alarmclock.xml,areas.json,householdsettings.json,zones.json},shadow/stats,sys/log/{setup,setup_ok}/setup.{dmesg,log},upgrade_prev.log,upgrade_tmp_prev.log,watchdog.log,app/log/upgrade_mgr.log}, /opt/log/{anacapa.{alarm.job,chsrc.state,dc,ext.audio.action,gm.events,ht,hw.events,lechmere.event,log,musedebug,museevt,rc.upnp,snf,spotify.debug,spotify,sps,trueplay,vl},chronyd,dropbear,mdnsd,netstartd,sddpd,sonosledmgrd,udhcpc,wacd,wpa_supplicant}.log, /proc/ath_rincon{,_ath1}/{device,dfs,fullstatus,mibcc,nf,phyerr,primary,station,status}, /proc/driver/{accel,fpga/{circ,data},gravity-vector,ledctl/status,tdm/{regs,rxring,txring},temp-sensor}, /proc/{interrupts,net/{arp,snmp,sockstat,udp},slabinfo}, /tmp/memorylog{,.old}/log.*, /tmp/udhcpc_resp_mac_addr, /tmp/upgrade.log, /var/lib/chrony/sysclock_state
 - **handler_table:** 56-entry {handler_fn, name, flags_u32} dispatch at 0x110908c4: /accounts, /activeZones, /ai_speech_enhance, /alarm, /analoglinein, /api(0x82), /audiocore, /backtrace, /button_triggered.xml, /cloud, /cloudqueue(0x82), /cpumon(0xe), /decoder, /device, /dmesg(0xa), /dnscache, /dropout_triggered.xml, /enetports(0xb), /ethportstatistics(0xa), /experiments, /hardwareevents, /hls, /htconfig, /leds(0x82), /libraries, /location_settings_update, /musicservices, /netsettings.json, /netsettings.txt, /opt/log/mdnsd.log, /perfcounters(0xe), /playmode, /policy, /radiolog, /regcert, /registration, /renderingcontrol, /root_cert_bundles, /rss, /settings/{effective,location,player}, /shares, /spdiftap, /ssidlist.txt, /ssl_client_cache, /syssettings, /temperature, /topology(0xa), /track_queue_summary, /tracks_summary, /trueplayinfo, /tvprocessor, /update, /upnp(0xa), /wireless(0xb), /zp(0x1); flag byte gates conditional visibility
@@ -964,7 +964,7 @@ The /status route table — the full registration map of the diagnostics website
 
 ## `device_account_endpoint`
 
-The device-account endpoint — the web surface for the account-registration flow: where a speaker registers itself against a Sonos account.  Where a speaker registers itself against a Sonos account — the web surface of the enrollment flow.
+The device-account endpoint: the web surface for the account-registration flow, where a speaker registers itself against a Sonos account.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -978,7 +978,7 @@ The device-account endpoint — the web surface for the account-registration flo
 
 ## `http_chunked_strictness`
 
-How strictly the HTTP layer enforces chunked-transfer rules — the parsing strictness the player's web code applies to streamed request bodies.  How strictly the web layer enforces streaming-body rules — the parsing strictness applied to chunked requests.
+How strictly the HTTP layer enforces chunked-transfer rules: the parsing strictness the player's web code applies to streamed request bodies.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -990,25 +990,25 @@ How strictly the HTTP layer enforces chunked-transfer rules — the parsing stri
 
 ## `httpcache_manager`
 
-The HTTP cache manager — the component owning the web-content cache: what's stored, eviction, and freshness policies.  What's cached, what's evicted, freshness policy — the component owning the web-content cache.
+The HTTP cache manager: the component owning the web-content cache, covering what's stored, eviction, and freshness policies.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **file:** httpcachemgr/httpcaches.json — httpcache_manager.cxx
-- **protocol:** {cacheHashes, hashLocal, hashRemote} + Force-cleared cache + Invalidated local cache + Invalidating remote caches — distributed HTTP-cache invalidation across zones w/ hash comparison
+- **file:** httpcachemgr/httpcaches.json: httpcache_manager.cxx
+- **protocol:** {cacheHashes, hashLocal, hashRemote} + Force-cleared cache + Invalidated local cache + Invalidating remote caches: distributed HTTP-cache invalidation across zones w/ hash comparison
 
 </details>
 
 
 ## `http_range`
 
-HTTP range support — byte-range request handling: how the player serves (and requests) partial content, used for seeking inside remote files.  Byte-range handling — serving and requesting partial content, the machinery behind seeking inside remote files.
+HTTP range support: byte-range request handling for serving and requesting partial content, which is the machinery behind seeking inside remote files.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **grammar:** Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu} — 64-bit
+- **grammar:** Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu}: 64-bit
 - **status_line:** 0x10ee6bcc 'HTTP/1.0 206' - range responses are emitted on the HTTP/1.0 status line (HTTP/1.1 variant not separately templated)
 
 </details>
@@ -1016,13 +1016,13 @@ HTTP range support — byte-range request handling: how the player serves (and r
 
 ## `muse_authhelper`
 
-The muse auth helper — the shared credential-checking machinery the modern API's auth stage uses. Called from the modern API's auth stage whenever a request needs its credentials checked.
+The modern-API auth helper: the shared credential-checking machinery the API's auth stage calls whenever a request needs its credentials checked.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **impl:** museclient_authhelper.cxx
-- **semantics:** museauth module + museAuthzCache — cached cloud-authz tokens for Muse clients
+- **semantics:** museauth module + museAuthzCache: cached cloud-authz tokens for Muse clients
 - **oauth:**
   - **status:** confirmed
   - **evidence:**
@@ -1035,14 +1035,14 @@ The muse auth helper — the shared credential-checking machinery the modern API
   - **thor:**
     - **name:** thor
     - **strings:** `UserAuthorization`, `ThorOperations`, `PolicyKeyTableMutex`
-    - **note:** muse authorization is evaluated by the Thor policy subsystem — op calls carry credType through the <Command> envelope and Thor checks the caller against UserAuthorization policy keys
+    - **note:** muse authorization is evaluated by the Thor policy subsystem: op calls carry credType through the <Command> envelope and Thor checks the caller against UserAuthorization policy keys
 
 </details>
 
 
 ## `muse_common`
 
-The muse common layer — shared machinery all modern-API operations use: the common code beneath the route handlers. Shared plumbing beneath the modern API's operations — common request handling every verb relies on.
+The modern-API common layer: shared machinery all modern-API operations use beneath their route logic, covering the common request handling every verb relies on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1054,7 +1054,7 @@ The muse common layer — shared machinery all modern-API operations use: the co
 
 ## `diagnostic_manifest`
 
-The diagnostics manifest — the list of what a diagnostics bundle contains: which logs, states, and files go into a support submission.  The packing list for a support bundle — which logs, states, and files go in.
+The diagnostics manifest: the packing list of what a diagnostics bundle contains, covering which logs, states, and files go into a support submission.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1080,14 +1080,14 @@ The diagnostics manifest — the list of what a diagnostics bundle contains: whi
 - **proc_files:** `/proc/ath_rincon/{device,phyerr,roam,station,status}`, `/proc/ath_rincon_ath1/{mibcc,nf,phyerr,primary}`, `/proc/driver/fpga/{data,reg/all}`, `/proc/driver/gravity-vector`, `/proc/driver/ledctl/status`, `/proc/driver/tdm/{stats,txring}`, `/proc/driver/temp-sensor`, `/proc/fs/cifs/DebugData`, `/proc/net/{snmp,sockstat,tcp,udp}`
 - **tmp_files:** `/tmp/memorylog*/log.*`, `/tmp/sonosConcurrencyUnrecoverableError`, `/tmp/udhcpc_resp_mac_addr`, `/tmp/upgrade.log`, `/tmp/wifi_card_mac_addr`
 - **jobs_endpoint:** /jobs?job=<JobName> triggers any manifest task handler directly over HTTP (port 1400)
-- **exec_backend:** etc/diagprocessd (generated from configs/arch/limelight.toml): FIFO menu — mkfifo /tmp/diagstdin + /tmp/diagstdout, read loop dispatching numeric commands: 0=date, 1=ls -l debug dirs, 2=df, 3=du jffs top100, 4=free, 5=ifconfig, 6=lsmod, 7=mount, 8=netstat -an, 9=ps, 10=route -n, 11-14=brctl showmacs/showports/showstats/showstp br0, 15=uptime, 16=dmesg -s 32768, 17=/wifi/athconfig scangetresults ath0, 18=chronyc -n sources -v, *=NA. The support-bundle shell_cmds (/df,/free,/ps,/lsmod,/netstat,/ntpsources,/showmacs,...) resolve THROUGH this daemon — anacapad sends the command index over the FIFO rather than exec'ing directly (privilege separation: diagprocessd runs as root).
+- **exec_backend:** etc/diagprocessd (generated from configs/arch/limelight.toml): FIFO menu (mkfifo /tmp/diagstdin + /tmp/diagstdout, read loop dispatching numeric commands: 0=date, 1=ls -l debug dirs, 2=df, 3=du jffs top100, 4=free, 5=ifconfig, 6=lsmod, 7=mount, 8=netstat -an, 9=ps, 10=route -n, 11-14=brctl showmacs/showports/showstats/showstp br0, 15=uptime, 16=dmesg -s 32768, 17=/wifi/athconfig scangetresults ath0, 18=chronyc -n sources -v, *=NA. The support-bundle shell_cmds (/df,/free,/ps,/lsmod,/netstat,/ntpsources,/showmacs,...) resolve THROUGH this daemon) anacapad sends the command index over the FIFO rather than exec'ing directly (privilege separation: diagprocessd runs as root).
 
 </details>
 
 
 ## `diagnostics`
 
-The diagnostics machinery — the overall system for gathering health data: the /status pages, log collection, and support-bundle assembly.  Behind 'submit diagnostics' and the /status website — the system for gathering health data.
+The diagnostics machinery: the overall system for gathering health data, covering the /status pages, log collection, and support-bundle assembly. It's what's behind 'submit diagnostics' and the built-in status website.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1099,7 +1099,7 @@ The diagnostics machinery — the overall system for gathering health data: the 
 
 ## `proprietary_headers`
 
-The proprietary HTTP headers — the Sonos-specific request/response headers the firmware recognizes: the private extensions riding on ordinary HTTP.  The Sonos-specific request/response headers the firmware recognizes — private extensions riding on ordinary HTTP.
+The proprietary HTTP headers: the Sonos-specific request and response headers the firmware recognizes, which are private extensions riding on ordinary HTTP.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1160,7 +1160,7 @@ The proprietary HTTP headers — the Sonos-specific request/response headers the
 
 ## `discovery_layer`
 
-The discovery layer — how the player finds other devices and is found: the announcements and searches behind 'speakers see each other'.  The announcements and searches behind 'speakers see each other on the network'.
+The discovery layer: how the player finds other devices and is found, covering the announcements and searches behind 'speakers see each other on the network'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1175,7 +1175,7 @@ The discovery layer — how the player finds other devices and is found: the ann
 
 ## `ssdp_discovery`
 
-Device-discovery announcements and searches — the classic find-each-other protocol: speakers announce presence, search for peers, and log who answered. The older discovery layer alongside the Sonos-specific mechanisms.
+Device-discovery announcements and searches: the classic find-each-other protocol where speakers announce presence, search for peers, and log who answered. It's the older discovery layer alongside the Sonos-specific mechanisms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1198,7 +1198,7 @@ Device-discovery announcements and searches — the classic find-each-other prot
 
 ## `ssdp_signed_msearch`
 
-Signed M-search — the authenticated form of discovery search: a signed variant protecting the discovery exchange.  The authenticated form of discovery search — a signed variant protecting the exchange.
+Signed M-search: the authenticated form of discovery search, a signed variant protecting the exchange.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1212,12 +1212,12 @@ Signed M-search — the authenticated form of discovery search: a signed variant
 
 ## `upnp_cloud_tunnel`
 
-The the classic device-control protocol cloud tunnel — the channel carrying classic-protocol traffic over the cloud connection: how remote commands reach the player from off-network.  How remote commands reach the player from off-network — classic-protocol traffic carried over the cloud channel.
+The classic-protocol cloud tunnel: the channel carrying classic-protocol traffic over the cloud connection, which is how remote commands reach the player from off-network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **surface:** every service's upnp<Service> cloud resource exposes {subscribe, renew(logicalSID), unsubscribe(logicalSID)} — GENA subscription management relayed cloud->local
+- **surface:** every service's upnp<Service> cloud resource exposes {subscribe, renew(logicalSID), unsubscribe(logicalSID)}: GENA subscription management relayed cloud->local
 - **semantics:** renewSubs op; local SUBSCRIBE/UNSUBSCRIBE handled by f_105e8290 GENA handler; cloud mirror proxies event subscription state (logicalSID keys)
 
 </details>
@@ -1225,21 +1225,21 @@ The the classic device-control protocol cloud tunnel — the channel carrying cl
 
 ## `soap_client`
 
-The the classic command protocol client — the machinery for outbound classic-API calls: when the player itself calls another device's commands (like group fan-out to members).  When the player calls another device's commands (like group fan-out to members), this is the outbound machinery it uses.
+The classic command-protocol client: the machinery for outbound classic-API calls, used when the player itself calls another device's commands like group fan-out to members.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"' — urn#action forms
-- **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant — SOAP relayed over the cloud tunnel shares the dispatcher
-- **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx — outbound control-point stack
+- **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"': urn#action forms
+- **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant: SOAP relayed over the cloud tunnel shares the dispatcher
+- **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx: outbound control-point stack
 
 </details>
 
 
 ## `websocket_impl`
 
-The websocket implementation — the machinery behind websocket connections: the persistent-channel plumbing the modern event layer uses.  The persistent-channel plumbing the modern event layer uses — the machinery behind websocket connections.
+The websocket implementation: the persistent-channel plumbing the modern event layer uses, which is the machinery behind websocket connections.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1254,16 +1254,16 @@ The websocket implementation — the machinery behind websocket connections: the
 
 ## `cert_identity`
 
-The certificate identity — the player's own digital credential: which certificate it presents to prove it's a genuine Sonos device.  It's what the player presents to prove it's a genuine Sonos device rather than an impersonator.
+The certificate identity: the player's own digital credential, which is what it presents to prove it's a genuine Sonos device rather than an impersonator.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **crypto:** mbedTLS; sonos::certval::validate(sonos_device_x509_fields*, mbedtls_x509_crt* cert, crt, crl, x509_crt_profile, name, flags, cb, RootCACertBundle*) — custom device-x509 field validation
+- **crypto:** mbedTLS; sonos::certval::validate(sonos_device_x509_fields*, mbedtls_x509_crt* cert, crt, crl, x509_crt_profile, name, flags, cb, RootCACertBundle*): custom device-x509 field validation
 - **client_identities:** `R_CLIENT_KEYCERT_ID_SONOS`, `R_CLIENT_KEYCERT_ID_SONOS_DEVICE`, `R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY`, `R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE`
 - **status_route:** /root_cert_bundles
 - **reg_ids:** `RegisteredCertSonosID`, `newRegisteredCertSonosIDLocked`, `DeviceCertInvalid`
-- **jwt:** 'JWT cert validation finished: %s' — JWT validation path exists
+- **jwt:** 'JWT cert validation finished: %s': JWT validation path exists
 - **curl:** 'Curl - set cert validation callbacks'/'Curl - set key and cert for client validation'; 'cert validation for %s (local port %u)'; 'Expected cert validation failure for %s'
 - **bundle:**
   - **lib:** libsonos-root-cert-bundle.so.2
@@ -1276,24 +1276,24 @@ The certificate identity — the player's own digital credential: which certific
 
 ## `device_auth`
 
-Device authentication — how the player proves itself to other devices and services: the credential-checking machinery guarding device-level trust.  The credential-checking machinery guarding device-level trust — how a speaker proves itself to peers and services.
+Device authentication: how the player proves itself to other devices and services, which is the credential-checking machinery guarding device-level trust.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **headers:** `X-Sonos-DeviceCert: <cert>`, `X-Sonos-Device-Id`, `X-Sonos-Api-Key`, `X-Sonos-Corr-Id`
-- **certval:** sonos::certval::validate(sonos_device_x509_fields, mbedtls crt+crl+profile, RootCACertBundle) — full device-cert chain validation; sonosCertvalSetSSLToSonosDevice SSL profile
+- **certval:** sonos::certval::validate(sonos_device_x509_fields, mbedtls crt+crl+profile, RootCACertBundle): full device-cert chain validation; sonosCertvalSetSSLToSonosDevice SSL profile
 - **tokens:** v1/households/{householdId}/authorization/tokens + resolveToken; getAuthTokenResult/'Treating auth token as expired'; authToken{Changed,Refreshed} events; getDeviceAuthToken res==%d failure
 - **regcert:** fetchRegDeviceCert/refreshRegDeviceCert -> /regcert local endpoint; RegCertUpdateEvent
-- **oauth:** int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken — OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs
-- **ssl:** /ssl_client_cache status endpoint — TLS session cache
+- **oauth:** int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken: OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs
+- **ssl:** /ssl_client_cache status endpoint: TLS session cache
 
 </details>
 
 
 ## `noncehandler`
 
-The nonce routine — generates and validates one-time values (nonces) used to prevent replay in authentication flows.  Generates and validates one-time values used to prevent replay in authentication flows.
+The nonce routine: it generates and validates one-time values used to prevent replay in authentication flows.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1305,19 +1305,19 @@ The nonce routine — generates and validates one-time values (nonces) used to p
 
 ## `circuitbreaker`
 
-The circuit-breaker implementation — after enough failures to an endpoint, calls fail fast for a while instead of queueing up timeouts; a reliability pattern protecting the whole system from one dead service.  It's why one dead service can't drag the whole player down — calls fail fast for a while instead of stacking timeouts.
+The circuit-breaker implementation: after enough failures to an endpoint, calls fail fast for a while instead of queueing up timeouts. It's why one dead service can't drag the whole player down.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **semantics:** circuitBreakerTelemetry — breaker pattern on outbound paths w/ telemetry
+- **semantics:** circuitBreakerTelemetry: breaker pattern on outbound paths w/ telemetry
 
 </details>
 
 
 ## `hls_radio`
 
-The HLS radio path — playing Apple's segmented-stream format for radio: playlist parsing and segment fetching for continuous audio.  Apple's segmented stream format for radio — playlist parsing and segment fetching for continuous audio.
+The HLS radio path: playing Apple's segmented-stream format for radio, covering playlist parsing and segment fetching for continuous audio.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1331,7 +1331,7 @@ The HLS radio path — playing Apple's segmented-stream format for radio: playli
 
 ## `cloud_request`
 
-The cloud request machinery — how the player forms and sends requests to Sonos's servers: the outbound half of the cloud connection.  The outbound half of the cloud link — every 'ask Sonos's servers' call goes through it.
+The cloud request machinery: how the player forms and sends requests to Sonos's servers, which is the outbound half of the cloud connection.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1343,12 +1343,12 @@ The cloud request machinery — how the player forms and sends requests to Sonos
 
 ## `cloud_registration`
 
-Cloud registration — the flow enrolling this player under a Sonos account: the machinery making a speaker known to the cloud.  Without it the speaker is local-only — the enrollment that ties hardware to your account.
+Cloud registration: the flow enrolling this player under a Sonos account. Without it the speaker is local-only, and it's the enrollment that ties hardware to your account.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **tls:** secure reg over SSL ('Invalid secure reg SSL port','Could not create secure reg SSL Context'); 'Curl - using R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE for %s' — client-cert identity
+- **tls:** secure reg over SSL ('Invalid secure reg SSL port','Could not create secure reg SSL Context'); 'Curl - using R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE for %s': client-cert identity
 - **cloud_routes:** `v1/households/{householdId}/devices/registrations (+GET registrations, initDeviceRegistration)`, `v1/households/{householdId}/devices/registrations/{deviceId} (complete/refresh/deregister)`, `v1/users/{userId}/devices/registrations`, `v1/players/{playerId}/devices/registration (getRegistrationStatus/setRegistrationState/transferDeviceRegistration)`
 - **events:** `NewCertRegistrationEvent`, `SecureRegistrationStateUpdateEvent`, `SecureRegistrationChangeEvent`, `RegCertUpdateEvent`
 - **objects:** `cloud_registration`, `CloudRegistration`, `makeMuseCloudRegistrationStatus`
@@ -1360,14 +1360,14 @@ Cloud registration — the flow enrolling this player under a Sonos account: the
 
 ## `service_accounts`
 
-The service accounts machinery — the saved-login store: where music-service credentials live and how they're retrieved.  Where saved music-service logins live — the credential store retrieved when a service authenticates.
+The service accounts machinery: the saved-login store where music-service credentials live and how they're retrieved when a service authenticates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **impl:** zpserviceaccounts.cxx -> RZPServiceAccounts
 - **accounts:** sn (service-account serial) + sid (service id); musicServiceAccounts ops {match,preferred set/get,startDirectControlEx,endDirectControl}
-- **oauth_migration:** 'migrated account to OAuth, type:%u, sn:%u' / 'failed to migrate' / 'Authentication failed during migration' — legacy->OAuth migration path
+- **oauth_migration:** 'migrated account to OAuth, type:%u, sn:%u' / 'failed to migrate' / 'Authentication failed during migration': legacy->OAuth migration path
 - **manifests:** per-account manifest download 'failed to download manifest file for account sid:%u, sn:%u'
 - **events:** NewMuseHHIDEvent/NewLocationIdEvent -> RZPServiceAccounts; userInfo updates 'updating userInfo for account SN: %u' + user-hash cleanup
 
@@ -1376,17 +1376,17 @@ The service accounts machinery — the saved-login store: where music-service cr
 
 ## `device_registration`
 
-Device registration — the machinery enrolling the player with Sonos's services: making a fresh speaker known to the account.  Turns 'a box on the network' into 'your registered product' — the enrollment machinery.
+Device registration: the machinery enrolling the player with Sonos's services, which turns 'a box on the network' into 'your registered product'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **impl:** register.cxx + regdevicecert.cxx + cloudregistration.cxx
 - **wire:** RegistrationReqMsg/RegistrationRespMsg pair; registration/{state,status,id,state/transfer} endpoints; <WebsocketRegistration> element
-- **signing:** registration signing key {set,cleared}; 'signature required/invalid' — requests signed via IPC-provisioned key
-- **cert:** R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE — the registered-device client-cert for curl cloud calls; Loading/Unloading secure reg cert; 'reg cert not available; cannot generate token'; fetchRegDeviceCert/refreshRegDeviceCert; NewCertRegistrationEvent/RegCertUpdateEvent
+- **signing:** registration signing key {set,cleared}; 'signature required/invalid': requests signed via IPC-provisioned key
+- **cert:** R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE: the registered-device client-cert for curl cloud calls; Loading/Unloading secure reg cert; 'reg cert not available; cannot generate token'; fetchRegDeviceCert/refreshRegDeviceCert; NewCertRegistrationEvent/RegCertUpdateEvent
 - **states:** during suspend/time expired/success/error/retrying; secureReg/secureRegState/secureRegTransfer; SecureRegistration{State,Change}UpdateEvent
-- **gating:** 'not securely registered' blocks config fetch; 'should be quarantined (secure reg required)'; 'Removing settings denylists after registration' — registration lifts settings restrictions
+- **gating:** 'not securely registered' blocks config fetch; 'should be quarantined (secure reg required)'; 'Removing settings denylists after registration': registration lifts settings restrictions
 - **cloud:** makeMuseCloudRegistrationStatus; 'Updating cloud registration due to %s. MuseSessionId %s->%s'; 'defer due to missing required field(s)'; cached event; wifi-monitor jobs; SET_CONFIG sends registration
 
 </details>
@@ -1394,7 +1394,7 @@ Device registration — the machinery enrolling the player with Sonos's services
 
 ## `assoctracker`
 
-The association tracker — watches which network devices the player is associated with, feeding the connectivity-state data diagnostics use. Part of the group-membership machinery — tracking associations the grouping layer relies on.
+The association tracker: it watches which network devices the player is associated with, feeding the connectivity-state data diagnostics use.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1406,12 +1406,12 @@ The association tracker — watches which network devices the player is associat
 
 ## `target_udn_routing`
 
-Target-UDN routing — how requests addressed to a specific device ID get routed: the mechanism directing commands to the right unit.  Directs commands to the right unit — how requests addressed to a specific device ID get routed.
+Target-UDN routing: how requests addressed to a specific device ID get routed, which is the mechanism directing commands to the right unit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
-- **header:** X-SONOS-TARGET-UDN: uuid:%s + targetUDN param — directs a SOAP action to a specific bonded-zone member UDN
+- **header:** X-SONOS-TARGET-UDN: uuid:%s + targetUDN param: directs a SOAP action to a specific bonded-zone member UDN
 - **semantics:** multi-device action routing: the coordinator/group proxy forwards actions to the target member identified by UDN; pairs w/ MobileDeviceUDN/playerUDN/HTPrimaryUDN identity fields
 
 </details>
@@ -1419,7 +1419,7 @@ Target-UDN routing — how requests addressed to a specific device ID get routed
 
 ## `http_extra_endpoints`
 
-Extra HTTP endpoints — the second sweep of web paths present in the binary beyond the main registration table: the fuller picture of the web surface.  The fuller web surface — paths found in a second sweep beyond the main registration table.
+Extra HTTP endpoints: the second sweep of web paths found in the binary beyond the main registration table, giving the fuller picture of the web surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1512,62 +1512,62 @@ Extra HTTP endpoints — the second sweep of web paths present in the binary bey
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e765a4, notes: /spotifyzc
 - **range:** "Session status 0x%x connected %d wantWrite %d wantRead %d" + "Current state: %d Current Status 0x%08x" + HTTP/1.1 206 partial-content support
 - **decoded_handlers:**
-  - **/setstring:** f_100b7cb4 — POST application/x-www-form-urlencoded {key, value, csrfToken} -> "<h2>System Settings</h2>Setting changed" / "HTTP Error %d". CSRF-protected settings write (writes a raw key/value into the settings store).
-  - **/removestring:** f_100b79e0 — POST {key, csrfToken} -> "Setting removed" / "HTTP Error %d". CSRF-protected key delete.
-  - **/sonarctl:** f_100bc354 — param flush -> "flushing sonar tones" / "Flushed" (mod_zp). Sonar-test tone control.
-  - **/mdnsannounce:** f_100c1230 — POST {csrfToken} triggers mDNS ResendResponses ("Failed to trigger ResendResponses: %i" / "Success"). CSRF-protected.
-  - **/ping:** f_100d3f88 — execs /bin/ping -c 3 (host param from query). Shared literal block with /traceroute /pcap.
-  - **/traceroute:** f_100d3ff4 — execs /usr/bin/traceroute.
-  - **/pcap:** f_100d416c — execs /bin/pcap - not (host %s and port %d); returns application/octet-stream as attachment; filename="trace.pcap". Live capture download.
-  - **/jobs:** f_105523e8 — POST {job, modjob?}: "Requesting \"%s\" job run" -> "Job \"%s\" scheduled" or "Please use a valid job shortname or index". Schedules timed-job registry entries on demand.
-  - **/reboot:** f_105e92e0 — minimal confirm page then reboot.
-  - **/reset:** f_105e935c — minimal confirm page then factory reset.
-  - **/sethostip:** f_100b9fac — HTML form page; sets the host IP override.
-  - **/nslookup:** f_100b96d0 — text/plain output; DNS lookup helper.
-  - **/forcegtkrekey:** f_100b9640 — "Forced GTK rekey" / "Forbidden" — auth-gated group-key rotation trigger.
-  - **/advconfig:** f_105e8444 (+/advconfig.htm) — advanced config form; fields {FirstZP,PriorityBridge} + csrfToken POST.
-  - **/audio_tap:** f_100becc4 — params {tap,timeout,header}; source names {as-srcin-chsnk0,codecout,hta,irdecoder,linein,mixergm,mixersat,tv_}; "AudioTap: permission denied" — gated raw-audio tap selector.
-  - **/cloudqueuepoll:** f_100b8260 (flag 0x400) — application/json {timeoutpaused,timeoutplaying} + %zu counts; cloud-queue poll control.
-  - **/customsd:** f_103429f4 (+.htm) — custom service-descriptor upload form (dp_impl.cxx).
-  - **/device_account:** f_1065bd70 (flag 0x100) — device-account endpoint; "Too Many Unlocks" rate limit; x-rincon-signature header.
-  - **/devmode:** f_105e8d90 — dev-mode toggle page; references /tmp/udhcpc_resp_mac_addr.
-  - **/diaglevel /logger /diagmsg:** f_105e93d8 shared handler — minimal `></html>` diag-control pages.
-  - **/dolby_config:** f_100be454 — application/json Dolby config body.
-  - **/downloadspdiftap:** f_100b9ed0 — octet-stream download of %s/%s tap files; "Feature not supported." guard; spdiftap.compressed.
-  - **/dsp:** f_100ba73c — serves /dsp/eqdata.txt and DSP debug files; htdocs_locked gate.
-  - **/fcs:** f_105eba60 — FCS (factory-config-service) page; accept/content-type only.
-  - **/getDSP:** f_100bd9fc — returns text/xml <root>…</root> incl {ZPExpirationTime,ZPGroupExpirationTime,ZPLocalSettingsFile,sonos-dspid}.
-  - **/putDSP:** f_100bb63c — accepts text/xml; charset=UTF-8 DSP data upload.
-  - **/getrs /notify:** f_105e82a8 / f_105e82c8 — GENA notify plumbing {nts,seq,sid,upnp:event,upnp:propchange}.
-  - **/indexrepl:** f_100b8a10 (flag 0x230101) — index replication proxy: params {bytes=,id=} + headers {x-rincon-content-version,x-rincon-last-update-device,x-rincon-range}; "queueing album art request %s %u %u %u" (mod_zp_aa).
-  - **/info:** f_100c11e4 — POST {csrfToken} → ResendResponses trigger (same fn family as /mdnsannounce).
-  - **/mfgunlock:** f_10675234 (flag 0x100) — manufacturing unlock: confirm= param; "refresh update info in %us" (updsched); Success page.
-  - **/msprox:** f_100b88d0 — music-service proxy: params {bytes=,id=,uuid} + rincon replication headers {x-rincon-content-version,x-rincon-last-update-device,x-rincon-range}.
-  - **/mtmhhsetup:** f_105ec758 (flag 0x100) — application/json MTM household-setup body.
-  - **/musedebug:** f_100ba010 — muse_debug page; <pre> dump.
-  - **/raw:** f_105ea98c (flag 0x10000000) — execs /bin/dmesg -s {131072,32768}; also serves /button_triggered,/dropout_triggered raw dumps.
-  - **/rdmbuttonfwd:** f_100b9e58 (flag 0x100) — retail-demo button forward; "invalid method" guard.
-  - **/rdmhhsetup:** f_105ebeb4 (flag 0x100) — Retail Display HHID setup; X-Sonos-Api-Key required; "...setup failed%s".
-  - **/removeDSPDebugFiles:** f_100bc518 — deletes {dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,persistentEQ.xml}.
-  - **/save_eq_presets:** f_100ba144 — writes preset via %s.tmp staging file.
-  - **/setPersistentEQ:** f_100ba218 — persistent EQ write via %s.tmp staging.
-  - **/snapshotspdiftap:** f_100bd5e4 — "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!" / "Feature not supported."
-  - **/spotdbg:** f_100b8140 — spotify debug control {timeoutpaused,timeoutplaying}; "spot: permission denied".
-  - **/spotifyzc:** f_1020f8c4 — Spotify Connect zeroconf relay: POST {method,action,path,userAgent} → {esdkVersion,responseCode,spotifyzc}; "Invalid ZeroConf request %s" / SpotZc_Failure. Only getInfo served to GC per earlier note.
-  - **/spotresetnts:** f_100b7fd8 — POST {csrfToken} → reset spotify NTS; "spot: permission denied" / Success.
-  - **/ssh/fingerprints:** f_105e9578 (flag 0x101) — "Sending device_description.xml to %s (cv=%d)"; {association,Transfer-Encoding: chunked,text/xml} — SSH fingerprint/device-desc association service.
-  - **/support/aggregate:** f_105e9fb0 (flag 0x10000000) — params {type,include_crs} — support-bundle aggregation.
-  - **/support/asyncsubmit:** f_105ea400 (flag 0x30002) — async diagnostic submission; body fields {coordinator,delay,diagId,diagType,excludeFlags,flags,guid} each with "Unable to extract X" error; "Invalid content type","Unable to read request body".
-  - **/support/directsubmit:** f_105e9b30 — "Diagnostic Submission to Sonos, Inc." <h2>%s</h2> / HTTP Error %d.
-  - **/support/networkmatrix:** f_105ea2f0 (flag 0x30000) — network-matrix diagnostic collection.
-  - **/support/reportstatus:** f_105ea734 (flag 0x102) — report-status poll.
-  - **/support/review:** f_105e9e60 — support-bundle review page.
-  - **/testenv:** f_105eb9dc — environment switcher (PROD/PERF/STAGE/TEST/INT + OnlineUpdateBaseURL override).
-  - **/testpoint:** f_100b85ec (flag 0x400) — internal testpoint.
-  - **/tools:** f_100d4060 (+.htm) — tools page.
-  - **/ttm_helper:** f_100b9740 — trueplay/tone-test helper.
-  - **/unlock:** f_10675244 (+.htm, flag 0x100) — unlock flow w/ rate limit.
-  - **/websocket/api:** f_100bb8ac (flag 0x200) — websocket upgrade endpoint for the muse API.
+  - **/setstring:** f_100b7cb4: POST application/x-www-form-urlencoded {key, value, csrfToken} -> "<h2>System Settings</h2>Setting changed" / "HTTP Error %d". CSRF-protected settings write (writes a raw key/value into the settings store).
+  - **/removestring:** f_100b79e0: POST {key, csrfToken} -> "Setting removed" / "HTTP Error %d". CSRF-protected key delete.
+  - **/sonarctl:** f_100bc354: param flush -> "flushing sonar tones" / "Flushed" (mod_zp). Sonar-test tone control.
+  - **/mdnsannounce:** f_100c1230: POST {csrfToken} triggers mDNS ResendResponses ("Failed to trigger ResendResponses: %i" / "Success"). CSRF-protected.
+  - **/ping:** f_100d3f88: execs /bin/ping -c 3 (host param from query). Shared literal block with /traceroute /pcap.
+  - **/traceroute:** f_100d3ff4: execs /usr/bin/traceroute.
+  - **/pcap:** f_100d416c: execs /bin/pcap - not (host %s and port %d); returns application/octet-stream as attachment; filename="trace.pcap". Live capture download.
+  - **/jobs:** f_105523e8: POST {job, modjob?}: "Requesting \"%s\" job run" -> "Job \"%s\" scheduled" or "Please use a valid job shortname or index". Schedules timed-job registry entries on demand.
+  - **/reboot:** f_105e92e0: minimal confirm page then reboot.
+  - **/reset:** f_105e935c: minimal confirm page then factory reset.
+  - **/sethostip:** f_100b9fac: HTML form page; sets the host IP override.
+  - **/nslookup:** f_100b96d0: text/plain output; DNS lookup helper.
+  - **/forcegtkrekey:** f_100b9640 ("Forced GTK rekey" / "Forbidden") auth-gated group-key rotation trigger.
+  - **/advconfig:** f_105e8444 (+/advconfig.htm): advanced config form; fields {FirstZP,PriorityBridge} + csrfToken POST.
+  - **/audio_tap:** f_100becc4 (params {tap,timeout,header}; source names {as-srcin-chsnk0,codecout,hta,irdecoder,linein,mixergm,mixersat,tv_}; "AudioTap: permission denied") gated raw-audio tap selector.
+  - **/cloudqueuepoll:** f_100b8260 (flag 0x400): application/json {timeoutpaused,timeoutplaying} + %zu counts; cloud-queue poll control.
+  - **/customsd:** f_103429f4 (+.htm): custom service-descriptor upload form (dp_impl.cxx).
+  - **/device_account:** f_1065bd70 (flag 0x100): device-account endpoint; "Too Many Unlocks" rate limit; x-rincon-signature header.
+  - **/devmode:** f_105e8d90: dev-mode toggle page; references /tmp/udhcpc_resp_mac_addr.
+  - **/diaglevel /logger /diagmsg:** f_105e93d8 shared handler: minimal `></html>` diag-control pages.
+  - **/dolby_config:** f_100be454: application/json Dolby config body.
+  - **/downloadspdiftap:** f_100b9ed0: octet-stream download of %s/%s tap files; "Feature not supported." guard; spdiftap.compressed.
+  - **/dsp:** f_100ba73c: serves /dsp/eqdata.txt and DSP debug files; htdocs_locked gate.
+  - **/fcs:** f_105eba60: FCS (factory-config-service) page; accept/content-type only.
+  - **/getDSP:** f_100bd9fc: returns text/xml <root>…</root> incl {ZPExpirationTime,ZPGroupExpirationTime,ZPLocalSettingsFile,sonos-dspid}.
+  - **/putDSP:** f_100bb63c: accepts text/xml; charset=UTF-8 DSP data upload.
+  - **/getrs /notify:** f_105e82a8 / f_105e82c8: GENA notify plumbing {nts,seq,sid,upnp:event,upnp:propchange}.
+  - **/indexrepl:** f_100b8a10 (flag 0x230101): index replication proxy: params {bytes=,id=} + headers {x-rincon-content-version,x-rincon-last-update-device,x-rincon-range}; "queueing album art request %s %u %u %u" (mod_zp_aa).
+  - **/info:** f_100c11e4: POST {csrfToken} → ResendResponses trigger (same fn family as /mdnsannounce).
+  - **/mfgunlock:** f_10675234 (flag 0x100): manufacturing unlock: confirm= param; "refresh update info in %us" (updsched); Success page.
+  - **/msprox:** f_100b88d0: music-service proxy: params {bytes=,id=,uuid} + rincon replication headers {x-rincon-content-version,x-rincon-last-update-device,x-rincon-range}.
+  - **/mtmhhsetup:** f_105ec758 (flag 0x100): application/json MTM household-setup body.
+  - **/musedebug:** f_100ba010: muse_debug page; <pre> dump.
+  - **/raw:** f_105ea98c (flag 0x10000000): execs /bin/dmesg -s {131072,32768}; also serves /button_triggered,/dropout_triggered raw dumps.
+  - **/rdmbuttonfwd:** f_100b9e58 (flag 0x100): retail-demo button forward; "invalid method" guard.
+  - **/rdmhhsetup:** f_105ebeb4 (flag 0x100): Retail Display HHID setup; X-Sonos-Api-Key required; "...setup failed%s".
+  - **/removeDSPDebugFiles:** f_100bc518: deletes {dsp_preset.xml,dsp_preset_default.xml,dsp_preset_satellite.xml,dsp_system_default.bin,persistentEQ.xml}.
+  - **/save_eq_presets:** f_100ba144: writes preset via %s.tmp staging file.
+  - **/setPersistentEQ:** f_100ba218: persistent EQ write via %s.tmp staging.
+  - **/snapshotspdiftap:** f_100bd5e4: "Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!" / "Feature not supported."
+  - **/spotdbg:** f_100b8140: spotify debug control {timeoutpaused,timeoutplaying}; "spot: permission denied".
+  - **/spotifyzc:** f_1020f8c4: Spotify Connect zeroconf relay: POST {method,action,path,userAgent} → {esdkVersion,responseCode,spotifyzc}; "Invalid ZeroConf request %s" / SpotZc_Failure. Only getInfo served to GC per earlier note.
+  - **/spotresetnts:** f_100b7fd8: POST {csrfToken} → reset spotify NTS; "spot: permission denied" / Success.
+  - **/ssh/fingerprints:** f_105e9578 (flag 0x101): "Sending device_description.xml to %s (cv=%d)"; {association,Transfer-Encoding: chunked,text/xml}. SSH fingerprint/device-desc association service.
+  - **/support/aggregate:** f_105e9fb0 (flag 0x10000000) (params {type,include_crs}) support-bundle aggregation.
+  - **/support/asyncsubmit:** f_105ea400 (flag 0x30002): async diagnostic submission; body fields {coordinator,delay,diagId,diagType,excludeFlags,flags,guid} each with "Unable to extract X" error; "Invalid content type","Unable to read request body".
+  - **/support/directsubmit:** f_105e9b30: "Diagnostic Submission to Sonos, Inc." <h2>%s</h2> / HTTP Error %d.
+  - **/support/networkmatrix:** f_105ea2f0 (flag 0x30000): network-matrix diagnostic collection.
+  - **/support/reportstatus:** f_105ea734 (flag 0x102): report-status poll.
+  - **/support/review:** f_105e9e60: support-bundle review page.
+  - **/testenv:** f_105eb9dc: environment switcher (PROD/PERF/STAGE/TEST/INT + OnlineUpdateBaseURL override).
+  - **/testpoint:** f_100b85ec (flag 0x400): internal testpoint.
+  - **/tools:** f_100d4060 (+.htm): tools page.
+  - **/ttm_helper:** f_100b9740: trueplay/tone-test helper.
+  - **/unlock:** f_10675244 (+.htm, flag 0x100): unlock flow w/ rate limit.
+  - **/websocket/api:** f_100bb8ac (flag 0x200): websocket upgrade endpoint for the muse API.
   - **/device_account_note:** aux 0x100 = POST-ish routes (unlock family, rdm*, device_account); 0x200 = websocket; 0x400 = internal; 0x30000/0x30002 = support-submit variants; 0x10000000 = raw/streaming.
 - **csrf_note:** All mutating form endpoints carry a csrfToken form field (setstring/removestring/mdnsannounce + the form posts) - the HTTP layer enforces CSRF on writes while reads are open.
 
@@ -1576,7 +1576,7 @@ Extra HTTP endpoints — the second sweep of web paths present in the binary bey
 
 ## `csrf_protection`
 
-The CSRF protection on the web forms — every browser-facing POST endpoint embeds a hidden token the request must echo back, stopping a malicious web page from driving your speaker while you browse.
+The CSRF protection on the web forms: every browser-facing POST endpoint embeds a hidden token the request must echo back, which stops a malicious web page from driving your speaker while you browse.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1593,7 +1593,7 @@ The CSRF protection on the web forms — every browser-facing POST endpoint embe
 
 ## `device_description_variants`
 
-The device-description variants — the different self-description documents the player can serve: the normal player, a group-level variant, a satellite variant — each presenting the unit's role differently.  Normal player, group-level, satellite — each presents the unit's role differently to the outside.
+The device-description variants: the different self-description documents the player can serve, covering the normal player, a group-level variant, and a satellite variant, each presenting the unit's role differently to the outside.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1605,7 +1605,7 @@ The device-description variants — the different self-description documents the
 
 ## `gena_internals`
 
-The internals of classic eventing — how subscriptions are installed and validated (including pre-installed IDs and URL forms), how notifications are sequenced, and how the subscription list is kept.  The concrete machinery: how subscriptions get installed and validated, how notifications are sequenced, how the list is kept clean.
+The internals of classic eventing: how subscriptions are installed and validated (including pre-installed IDs and URL forms), how notifications are sequenced, and how the subscription list is kept clean.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1617,21 +1617,21 @@ The internals of classic eventing — how subscriptions are installed and valida
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f0c580, notes: <LogicalSID>
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f00cb8, notes: <NotifyErrors>
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e89d80, notes: <LastChange>
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed1c6c, notes: <Event xmlns="urn:schemas-sonos-com:metadata-1-0/Queue/"> — proprietary Queue LastChange
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed1c6c, notes: <Event xmlns="urn:schemas-sonos-com:metadata-1-0/Queue/">: proprietary Queue LastChange
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed1cd0, notes: <QueueID val="%.20s"> + QueueOwnerID/UpdateID/Curated elements
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eb29e8, notes: AVT LastChange envelope with r: namespace + full element sequence
 - **lastchange_schemas:**
-  - **RCS:** <Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/"><InstanceID val="0">... — standard UPnP RCS event envelope
-  - **AVT:** <Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/"> then elements in order: TransportState, CurrentPlayMode, CurrentCrossfadeMode, NumberOfTracks, CurrentTrack, CurrentSection (non-standard), CurrentTrackURI, CurrentTrackDuration, CurrentTrackMetaData, r:EnqueuedTransportURI, r:EnqueuedTransportURIMetaData, PlaybackStorageMedium, AVTransportURI, AVTransportURIMetaData, NextAVTransportURI, NextAVTransportURIMetaData — all as <X val="..."> attribute-value form
-  - **Queue:** proprietary Sonos namespace urn:schemas-sonos-com:metadata-1-0/Queue/ — NOT a UPnP standard schema. Elements: <QueueID val="%.20s"> (20-char truncated), <QueueOwnerID val="%s"/>, <UpdateID val="%u"/>, <Curated val="..."> — the Curated flag matches the SavedQueue store schema
-- **notes:** AVT envelopes carry the r: extension namespace for Sonos fields; Queue events live in a Sonos-private namespace (schemas-sonos-com, not rinconnetworks) — clients parsing LastChange must handle all three namespaces; val="" attribute form used throughout
+  - **RCS:** <Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/"><InstanceID val="0">...: standard UPnP RCS event envelope
+  - **AVT:** <Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/"> then elements in order: TransportState, CurrentPlayMode, CurrentCrossfadeMode, NumberOfTracks, CurrentTrack, CurrentSection (non-standard), CurrentTrackURI, CurrentTrackDuration, CurrentTrackMetaData, r:EnqueuedTransportURI, r:EnqueuedTransportURIMetaData, PlaybackStorageMedium, AVTransportURI, AVTransportURIMetaData, NextAVTransportURI, NextAVTransportURIMetaData: all as <X val="..."> attribute-value form
+  - **Queue:** proprietary Sonos namespace urn:schemas-sonos-com:metadata-1-0/Queue/ (NOT a UPnP standard schema. Elements: <QueueID val="%.20s"> (20-char truncated), <QueueOwnerID val="%s"/>, <UpdateID val="%u"/>, <Curated val="...">) the Curated flag matches the SavedQueue store schema
+- **notes:** AVT envelopes carry the r: extension namespace for Sonos fields; Queue events live in a Sonos-private namespace (schemas-sonos-com, not rinconnetworks): clients parsing LastChange must handle all three namespaces; val="" attribute form used throughout
 
 </details>
 
 
 ## `didl_classes_ext`
 
-The extended metadata classes — the object types beyond plain songs in the metadata vocabulary: audiobooks, podcasts, episodes, and their containers, so catalogs can distinguish them.  Lets catalogs distinguish audiobooks, podcasts, and episodes from plain songs — the richer item vocabulary.
+The extended metadata classes: the object types beyond plain songs in the metadata vocabulary, covering audiobooks, podcasts, episodes, and their containers, so catalogs can distinguish them.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1649,13 +1649,13 @@ The extended metadata classes — the object types beyond plain songs in the met
 
 ## `protocol_info_full`
 
-The full protocol-info string — the verbatim capability declaration the player returns: every format it claims to handle in its own words.  The verbatim capability declaration — every format the player claims to handle in its own words.
+The full protocol-info string: the verbatim capability declaration the player returns, listing every format it claims to handle in its own words.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **name:** Complete GetProtocolInfo Source CSV
-- **description:** Verbatim protocol-info CSV returned by ConnectionManager.GetProtocolInfo — captures the sonos.com-{http,mms,spotify,rtrecent} transport prefixes, x-file-cifs local-share scheme, DASH and every MIME type the renderer claims.
+- **description:** Verbatim protocol-info CSV returned by ConnectionManager.GetProtocolInfo: captures the sonos.com-{http,mms,spotify,rtrecent} transport prefixes, x-file-cifs local-share scheme, DASH and every MIME type the renderer claims.
 - **csv:** http-get:*:audio/mp3:*,x-file-cifs:*:audio/mp3:*,http-get:*:audio/mp4:*,x-file-cifs:*:audio/mp4:*,http-get:*:audio/x-m4a:*,x-file-cifs:*:audio/x-m4a:*,http-get:*:audio/mpeg:*,x-file-cifs:*:audio/mpeg:*,http-get:*:audio/mpegurl:*,x-file-cifs:*:audio/mpegurl:*,file:*:audio/mpegurl:*,http-get:*:audio/x-mpegurl:*,x-file-cifs:*:audio/x-mpegurl:*,http-get:*:application/x-mpegurl:*,x-file-cifs:*:application/x-mpegurl:*,http-get:*:application/vnd.apple.mpegurl:*,x-file-cifs:*:application/vnd.apple.mpegurl:*,http-get:*:application/dash+xml:*,x-file-cifs:*:application/dash+xml:*,http-get:*:audio/mpeg3:*,x-file-cifs:*:audio/mpeg3:*,http-get:*:audio/wav:*,x-file-cifs:*:audio/wav:*,http-get:*:audio/x-wav:*,x-file-cifs:*:audio/x-wav:*,http-get:*:audio/wma:*,x-file-cifs:*:audio/wma:*,http-get:*:audio/x-ms-wma:*,x-file-cifs:*:audio/x-ms-wma:*,http-get:*:audio/aiff:*,x-file-cifs:*:audio/aiff:*,http-get:*:audio/x-aiff:*,x-file-cifs:*:audio/x-aiff:*,http-get:*:audio/flac:*,x-file-cifs:*:audio/flac:*,http-get:*:application/ogg:*,x-file-cifs:*:application/ogg:*,http-get:*:audio/ogg:*,x-file-cifs:*:audio/ogg:*,sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:audio/mp3:*,sonos.com-http:*:audio/mpeg:*,sonos.com-http:*:audio/mpeg3:*,sonos.com-http:*:audio/wma:*,sonos.com-http:*:audio/mp4:*,sonos.com-http:*:audio/x-m4a:*,sonos.com-http:*:audio/wav:*,sonos.com-http:*:audio/aiff:*,sonos.com-http:*:audio/flac:*,sonos.com-http:*:application/ogg:*,sonos.com-http:*:application/x-mpegURL:*,sonos.com-http:*:application/dash+xml:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*,x-sonosapi-stream:*:*:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-sonosapi-radio:*:audio/x-sonosapi-radio:*,x-rincon-cpcontainer:*:*:*,
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eb87e4, notes: http-get:*:audio/mp3
@@ -1665,13 +1665,13 @@ The full protocol-info string — the verbatim capability declaration the player
 
 ## `icy_metadata`
 
-ICY stream metadata — the in-band 'now playing' info inside MP3 radio streams: how the player reads the song titles radio stations embed in the audio feed.  How the player reads song titles radio stations embed in the audio feed — the in-band metadata path.
+ICY stream metadata: the in-band 'now playing' info inside MP3 radio streams, which is how the player reads the song titles stations embed in the audio feed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** strong
 - **name:** ICY/Shoutcast inline metadata
-- **description:** mp3radio streams carry ICY metadata — '@icy-metaint:' interval header parsed for in-band track metadata.
+- **description:** mp3radio streams carry ICY metadata: '@icy-metaint:' interval header parsed for in-band track metadata.
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed461b, notes: @icy-metaint
 
@@ -1680,7 +1680,7 @@ ICY stream metadata — the in-band 'now playing' info inside MP3 radio streams:
 
 ## `alert_engine`
 
-The alert/notification audio player — plays short sounds (chimes, prompts, doorbells) with priority rules that decide whether an alert may interrupt whatever's playing. The policy strings recovered show real rules: an alert can be refused if the current clip outranks it.  It's why a doorbell chime can be heard over music without stopping the song — priorities decide who wins the speaker at any moment.
+The alert and notification audio player: it plays short sounds like chimes, prompts, and doorbells with priority rules that decide whether an alert may interrupt whatever's playing. This is why a doorbell chime can be heard over music without stopping the song, because priorities decide who wins the speaker at any moment.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1697,13 +1697,13 @@ The alert/notification audio player — plays short sounds (chimes, prompts, doo
 
 ## `household_psk_vocabulary`
 
-The household key vocabulary — the named shared secrets the system uses: separate keys for the household, the control channel, the LAN swap, and room encryption, each protecting a different communication path.  Separate keys guard the household, the control channel, the LAN swap, and room encryption — the named secrets behind each protected path.
+The household key vocabulary: the named shared secrets the system uses, with separate keys guarding the household channel, the control channel, the LAN swap, and room encryption.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** strong
 - **name:** household encryption key elements
-- **description:** Replicated-state PSK identifiers: HhPsk (household), ControlPsk (control channel), LanSwapPsk, RoomEncPsk (room encryption), each with a Backup* mirror — the key hierarchy for household crypto. Distribution/rotation mechanics undocumented.
+- **description:** Replicated-state PSK identifiers: HhPsk (household), ControlPsk (control channel), LanSwapPsk, RoomEncPsk (room encryption), each with a Backup* mirror: the key hierarchy for household crypto. Distribution/rotation mechanics undocumented.
 - **elements:** `HhPsk`, `ControlPsk`, `LanSwapPsk`, `RoomEncPsk`, `BackupHhPsk`, `BackupControlPsk`, `BackupLanSwapPsk`, `BackupRoomEncPsk`
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efae10, notes: <HhPsk
@@ -1714,7 +1714,7 @@ The household key vocabulary — the named shared secrets the system uses: separ
 
 ## `replication_elements`
 
-Replication protocol elements — the vocabulary of the state-replication protocol: the message types household members exchange to stay synchronized.  The message types household members exchange to stay synchronized — the replication protocol's vocabulary.
+Replication protocol elements: the message types household members exchange to stay synchronized, which is the vocabulary of the state-replication protocol.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1731,13 +1731,13 @@ Replication protocol elements — the vocabulary of the state-replication protoc
 
 ## `token_refresh_state_machine`
 
-The token-refresh state machine — the per-account logic renewing expiring credentials: the states and transitions that keep logins alive automatically.  The per-account logic renewing expiring credentials — states and transitions keeping logins alive.
+The token-refresh state machine: the per-account logic renewing expiring credentials, covering the states and transitions that keep logins alive automatically.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** strong
 - **name:** music-account OAuth token refresh lifecycle
-- **description:** Per-account token refresh FSM ('token refresh state for acct. sn. %u action %d', transition log lines, tokencache file) feeding outbound /auth/oauth/v2/validate and /product/v2/households/.../players?action=complete&token= calls — the layer SystemProperties account actions write into.
+- **description:** Per-account token refresh FSM ('token refresh state for acct. sn. %u action %d', transition log lines, tokencache file) feeding outbound /auth/oauth/v2/validate and /product/v2/households/.../players?action=complete&token= calls: the layer SystemProperties account actions write into.
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efc408, notes: /auth/oauth/v2/validate
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed7a78, notes: tokencache
@@ -1748,7 +1748,7 @@ The token-refresh state machine — the per-account logic renewing expiring cred
 
 ## `xml_schema_clusters`
 
-The XML schema clusters — element vocabularies across status dumps and persisted files not individually decomposed: collected so the full document grammar is inventoried.  Element vocabularies across status dumps and persisted files, collected so the full document grammar is inventoried.
+The XML schema clusters: element vocabularies across status dumps and persisted files that haven't been individually decomposed, collected so the full document grammar is inventoried.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1766,13 +1766,13 @@ The XML schema clusters — element vocabularies across status dumps and persist
 
 ## `internal_error_families`
 
-The internal error families — error-code vocabularies outside the standard set: per-feature error namespaces (like the last.fm error set) that surface through their own channels.
+The internal error families: error-code vocabularies outside the standard set, such as per-feature error namespaces like the last.fm set that surface through their own channels.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** strong
 - **name:** non-UPnP fault-code families
-- **description:** ERROR_* fault vocabularies outside the UPnP code table: ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,NO_CONTENT,BAD_ACCOUNT}, ERROR_PAND_* (Pandora), ERROR_DOCK_INTERRUPT, ERROR_WMP_* — reported via R_* codes and service-layer logs, not SOAP faults.
+- **description:** ERROR_* fault vocabularies outside the UPnP code table: ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,NO_CONTENT,BAD_ACCOUNT}, ERROR_PAND_* (Pandora), ERROR_DOCK_INTERRUPT, ERROR_WMP_*: reported via R_* codes and service-layer logs, not SOAP faults.
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee504, notes: ERROR_LASTFM_STREAM_LIMIT
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee550, notes: ERROR_DOCK_INTERRUPT
@@ -1782,7 +1782,7 @@ The internal error families — error-code vocabularies outside the standard set
 
 ## `system_property_keys`
 
-The system-property key space — the real set of named configuration keys the settings store accepts: what actually exists to get and set.  The real set of named configuration keys the settings store accepts — what actually exists to get and set.
+The system-property key space: the real set of named configuration keys the settings store accepts, which is what actually exists to get and set.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1818,20 +1818,20 @@ The system-property key space — the real set of named configuration keys the s
   - **R_UseSonosContentDirNS:** f_1068c5dc
   - **R_VolNormMode:** f_103f9010,f_104b1e48
 - **side_effect_dispatcher:** f_104b1e48 (strcmp chain on changed key name)
-- **note:** key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary — other SystemProperties keys may exist under different prefixes
+- **note:** key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary: other SystemProperties keys may exist under different prefixes
 
 </details>
 
 
 ## `internal_result_namespace`
 
-The internal result-code namespace — the program's own error vocabulary (the R_* codes) in literal form: what internal functions return and how those map to network-visible errors.  The program's own error vocabulary (the R_* codes) in literal form — what internal functions return and how they map to network errors.
+The internal result-code namespace: the program's own error vocabulary (the R_* codes) in literal form, showing what internal functions return and how those map to network errors.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** strong
 - **name:** internal ERROR_*/R_* name vocabularies
-- **description:** The binary's internal result/error identifiers in their LITERAL forms — corrected after auditing: the earlier '403 R_* codes' listing was polluted by substring matches (BONDED_STEREOPAIR_AND_SUB→'R_AND_SUB', DEFER_PLAYING→'R_PLAYING'). Word-boundary re-extraction gives 172 ERROR_* literals (the fault namespace that maps to UPnP/muse errors) plus ~47 real R_* enum identifiers (LED modes, play/stream ops, keycert ids, spotify events). Integer enum values remain unproven.
+- **description:** The binary's internal result/error identifiers in their LITERAL forms: corrected after auditing: the earlier '403 R_* codes' listing was polluted by substring matches (BONDED_STEREOPAIR_AND_SUB→'R_AND_SUB', DEFER_PLAYING→'R_PLAYING'). Word-boundary re-extraction gives 172 ERROR_* literals (the fault namespace that maps to UPnP/muse errors) plus ~47 real R_* enum identifiers (LED modes, play/stream ops, keycert ids, spotify events). Integer enum values remain unproven.
 - **count:** 221
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fbb0a5, notes: R_LED_BEGIN_SETUP_MODE
@@ -1867,14 +1867,14 @@ The internal result-code namespace — the program's own error vocabulary (the R
   - **R_SPOT_EVT_* (spotify events):** `R_SPOT_EVT_AUDIO_TIMEOUT`, `R_SPOT_EVT_METADATA_CHANGE`
 - **noise_note:** single-letter R_A..R_V tokens are column-name/initial noise; R_ALLOW_SSH_PUBKEY_INSTALL is a settings key, not a result code; names extracted from inside longer strings ('R_SPOT_EVT_AUDIO_TIMEOUT event handler.') are real identifiers but the bare-literal table is the ERROR_* set
 - **notes:**
-  - **outbound_client_codes:** The 1001/1002-class constants appearing in nearly every propagated reach set are the OUTBOUND SOAP-client result namespace, not per-action wire faults: emitted by f_10181eb8 (outbound SOAP POST emitter, "POST %s HTTP/1.1 ... SOAPACTION"), f_10716614 (sonoscp proxy — "SOAP fault '%s', returning %d" + DeviceCertInvalid/DeviceCertExpired), and f_1038e82c (cloudqueue client — "Client error"/"Connection failed"). Reachable-from-action ≠ emittable-by-action; these codes ride the client-side result path only.
+  - **outbound_client_codes:** The 1001/1002-class constants appearing in nearly every propagated reach set are the OUTBOUND SOAP-client result namespace, not per-action wire faults: emitted by f_10181eb8 (outbound SOAP POST emitter, "POST %s HTTP/1.1 ... SOAPACTION"), f_10716614 (sonoscp proxy ("SOAP fault '%s', returning %d" + DeviceCertInvalid/DeviceCertExpired), and f_1038e82c (cloudqueue client) "Client error"/"Connection failed"). Reachable-from-action ≠ emittable-by-action; these codes ride the client-side result path only.
 
 </details>
 
 
 ## `smapi_capability_vocabulary`
 
-The SMAPI capability vocabulary — the authoritative list of feature flags a music-service descriptor can declare: what a service may say it supports.  The authoritative list of feature flags a service descriptor may declare — what a service can say it supports.
+The SMAPI capability vocabulary: the authoritative list of feature flags a music-service descriptor can declare, meaning what a service may say it supports.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1901,7 +1901,7 @@ The SMAPI capability vocabulary — the authoritative list of feature flags a mu
 
 ## `albumart_proxy`
 
-The album-art proxy — serves artwork through the player's own web server so apps load covers from the speaker rather than fetching them remotely each time.  This is why artwork in the app loads fast and keeps working offline — the speaker serves the image locally.
+The album-art proxy: it serves artwork through the player's own web server so apps load covers from the speaker rather than fetching them remotely each time. This is why artwork in the app loads fast and keeps working offline.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1916,14 +1916,14 @@ The album-art proxy — serves artwork through the player's own web server so ap
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f0f3c4, notes: /getaa?s=1&u=%s variant
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ecd458, notes: AlbumArt_{GUID}_Large.jpg cache filename
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f9c1f0, notes: enableSecureAlbumArt flag
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100b8c2c, notes: /getaa route handler — queue + singleton create
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100b8c2c, notes: /getaa route handler: queue + singleton create
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100c34fc, notes: request processor: m/s/vli/u param parse + u-terminator
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100c3714, notes: Cache-Control: private, max-age=15780000 response header
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10299e5c, notes: worker thread: 32-slot ring + TCP_INFO abort check
 - **status:** confirmed
-- **request_grammar:** GET /getaa?{m\|s\|vli}...&u=<url>\[&v=<n>\] — query parsed by f_10c3b72c: param names <=32 chars, values <=1024 chars, '&'-separated. Recognized params (compared in order m,s,vli,u via strcmp at 0x100c35cc-0x100c3618): 'm' medium-variant flag, 's' small-variant flag, 'vli' virtual-line-in image flag, 'u' upstream image URL. IMPORTANT: 'u' is the TERMINATOR — when encountered, parsing stops and the request proceeds; any params AFTER u= are never read. 'v' is NOT parsed by the handler at all — it appears in emitted URIs (/getaa?u=%s&v=%u) purely as a client-side cache-buster/etag. Unknown params are skipped silently
-- **response:** image bytes streamed back via vliStreamImage (f_101867c8), logged as 'invoking vliStreamImage on %s %u %u %u %s' and 'Fetching album art for %s: %s'. Response header: Cache-Control: private, max-age=15780000 (~6 months). Failure path: 'vliStreamImage failed on %s %u %u %u %s' then status 0x194 sent via f_100b4614 — upstream fetch failures surface as 404
-- **async_model:** handler f_100b8c2c is async: logs 'queueing album art request %s %u %u %u', lazily creates the mod_zp_aa server singleton (new 0x428a0, ctor f_10299a48) at 0x11096c98, enqueues the request into a 32-slot ring of 0x2134-byte entries (f_10299c34) and returns. Worker thread f_10299e5c blocks on a condvar, pops slots, probes the client socket with getsockopt(TCP_INFO) and takes an abort path (f_100c34fc slot-discard) when the peer is already in CLOSE/CLOSE_WAIT/CLOSING — clients that give up early are never served
+- **request_grammar:** GET /getaa?{m\|s\|vli}...&u=<url>\[&v=<n>\] (query parsed by f_10c3b72c: param names <=32 chars, values <=1024 chars, '&'-separated. Recognized params (compared in order m,s,vli,u via strcmp at 0x100c35cc-0x100c3618): 'm' medium-variant flag, 's' small-variant flag, 'vli' virtual-line-in image flag, 'u' upstream image URL. IMPORTANT: 'u' is the TERMINATOR) when encountered, parsing stops and the request proceeds; any params AFTER u= are never read. 'v' is NOT parsed by the handler at all: it appears in emitted URIs (/getaa?u=%s&v=%u) purely as a client-side cache-buster/etag. Unknown params are skipped silently
+- **response:** image bytes streamed back via vliStreamImage (f_101867c8), logged as 'invoking vliStreamImage on %s %u %u %u %s' and 'Fetching album art for %s: %s'. Response header: Cache-Control: private, max-age=15780000 (~6 months). Failure path: 'vliStreamImage failed on %s %u %u %u %s' then status 0x194 sent via f_100b4614: upstream fetch failures surface as 404
+- **async_model:** handler f_100b8c2c is async: logs 'queueing album art request %s %u %u %u', lazily creates the mod_zp_aa server singleton (new 0x428a0, ctor f_10299a48) at 0x11096c98, enqueues the request into a 32-slot ring of 0x2134-byte entries (f_10299c34) and returns. Worker thread f_10299e5c blocks on a condvar, pops slots, probes the client socket with getsockopt(TCP_INFO) and takes an abort path (f_100c34fc slot-discard) when the peer is already in CLOSE/CLOSE_WAIT/CLOSING: clients that give up early are never served
 - **param_semantics:** m/s/vli select the image path BEFORE the request object is built: no flags -> default fetch (u URL streamed direct); m -> f_100c2f94 variant; s -> f_100c31c8 variant; vli -> direct vli-image fetch f_100be6ec. The three u16 fields carried on the request (+0x180/+0x182/+0x184) ride through to the vliStreamImage call - request dimensions/ids, not user params
 - **arturi_cap:** albumArtURI emission capped at 1024 bytes (buffer obj+0x54, len at +0x458, f_10381528); overflow logs 'AlbumArtURI longer than expected.' in the favorites log domain
 
@@ -1932,12 +1932,12 @@ The album-art proxy — serves artwork through the player's own web server so ap
 
 ## `muse_route_verbs`
 
-The muse route verbs — the operation-name vocabulary bound to routes: every verb the modern API dispatches.  Every verb the modern API dispatches — the operation-name vocabulary bound to routes.
+The modern-API route verbs: the operation-name vocabulary bound to routes, covering every verb the API can invoke.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
-- **name:** muse route registration verbs — complete table
-- **role:** every muse route registers as a (param,resource,verb) triple; this is the decoded verb inventory per resource — the muse API's real operation surface, 70+ resources
+- **name:** muse route registration verbs: complete table
+- **role:** every muse route registers as a (param,resource,verb) triple; this is the decoded verb inventory per resource: the muse API's real operation surface, 70+ resources
 - **verbs:**
   - **settings:** `getAllSettings`, `getPlayerSettings`, `getProtectedAdminSettings`, `getProtectedSettings`, `getPublicSettings`, `getRestrictedAdminSettings`, `getSettings`, `setAllowMicrophone`, `setEnablePositioningMeasurement`, `setPlayerSettings`, `setProtectedAdminSettings`, `setRestrictedAdminSettings`, `setSelfTruePlay`, `setSonosNetChannel`, `setUserMetricsTracking`, `updateAllSettings`
   - **alarms:** `createAlarm`, `getAlarms`, `snoozeAlarm`
@@ -2001,16 +2001,16 @@ The muse route verbs — the operation-name vocabulary bound to routes: every ve
   - **hardwareStatus:** exposes features beyond this hardware: getBatteryCells, getWaterStatus, getPoeStatus, getWiredSubStatus, getMicrophoneSwitchState, transitionToShipMode, initiateOrderlyShutdown
   - **settings:** privilege-tiered: getPublicSettings/getProtectedSettings/getProtectedAdminSettings/getRestrictedAdminSettings + setRestrictedAdminSettings/setProtectedAdminSettings; setAllowMicrophone, setSonosNetChannel, setSelfTruePlay
   - **positioning:** the Trueplay measurement-session API: startSession/playStimulus/sendMeasurements/setStimulusTuning/getStimulusTuning/getSessionMap/notifySessionStatus
-  - **soundSwap:** requestSwap/triggerSwap — accessory-swap feature also under homeTheater (getAccessorySwapStatus/getSwapModelInfo)
-  - **hdmi:** edid/powercycle/status — direct HDMI control
+  - **soundSwap:** requestSwap/triggerSwap: accessory-swap feature also under homeTheater (getAccessorySwapStatus/getSwapModelInfo)
+  - **hdmi:** edid/powercycle/status: direct HDMI control
   - **management:** factoryReset + reboot reachable over muse
-  - **upnp*:** every SOAP service exposes exactly {call, subscribe} — a thin proxy, not a reimplementation
-  - **virtualRemoteControl:** sendButtonCommand — cloud-injected button presses
+  - **upnp*:** every SOAP service exposes exactly {call, subscribe}: a thin proxy, not a reimplementation
+  - **virtualRemoteControl:** sendButtonCommand: cloud-injected button presses
   - **platformInternal:** invalidateCache/reboot/sync
-  - **svc:** getWeatherConfig/setWeatherConfig/voiceCommand — a voice-service config proxy
+  - **svc:** getWeatherConfig/setWeatherConfig/voiceCommand: a voice-service config proxy
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e7d060, notes: (param,resource,verb) registration triples, e.g. userId,entitlements,getUserEntitlements
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e7f660, notes: playerId,pinewood,toggleMute — pinewood verb form
+  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e7f660, notes: playerId,pinewood,toggleMute: pinewood verb form
 - **status:** confirmed
 
 </details>
@@ -2018,13 +2018,13 @@ The muse route verbs — the operation-name vocabulary bound to routes: every ve
 
 ## `enum_tables`
 
-The enumeration tables — the named-constant vocabularies recovered across the firmware: the states, modes, and codes internal machinery speaks in.  The named-constant vocabularies internal machinery speaks — states, modes, and codes recovered across the firmware.
+The enumeration tables: the named-constant vocabularies recovered across the firmware, covering the states, modes, and codes internal machinery speaks.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
 - **status:** confirmed
 - **name:** Static enum name->integer registration tables
-- **note:** 48 {name*, strlen, enumval} record arrays in .data.rel.ro — the binary's own enum registration tables, giving proven integer values for the name vocabularies elsewhere catalogued as unordered literals (muse roles/auth-types/playModes, SMAPI capability bitmask, CHSRC source classes, alarm/timer/power/replication FSM states, remote buttons, speaker orientation, netmodes, trueroom data types, content-object classes, ratings, update-FSM results, vanish reasons). Values are sequential (enum) or power-of-two (bitmask) as marked.
+- **note:** 48 {name*, strlen, enumval} record arrays in .data.rel.ro: the binary's own enum registration tables, giving proven integer values for the name vocabularies elsewhere catalogued as unordered literals (muse roles/auth-types/playModes, SMAPI capability bitmask, CHSRC source classes, alarm/timer/power/replication FSM states, remote buttons, speaker orientation, netmodes, trueroom data types, content-object classes, ratings, update-FSM results, vanish reasons). Values are sequential (enum) or power-of-two (bitmask) as marked.
 - **tables:**
   - **10ea5b08:**
     - none
@@ -2777,7 +2777,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
     - DD_SURROUND_TO_SAT
     - 5
   - **r_led_mask:**
-    - **provenance:** per-use extraction: applyLEDMode f_10c918a0 bit-test chain — each R_LED_* name logs its tested mask bit as (hi<<32)\|lo constants; PROVEN from code, not registration table
+    - **provenance:** per-use extraction: applyLEDMode f_10c918a0 bit-test chain: each R_LED_* name logs its tested mask bit as (hi<<32)\|lo constants; PROVEN from code, not registration table
     - **kind:** bitmask64
     - **names:**
       - **R_LED_MUTED:** 0x1
@@ -2802,13 +2802,13 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **R_LED_CONTROL_FEEDBACK:** 0x100000000
       - **R_LED_BREAK_POP:** 0x800000000
       - **R_LED_IDENTIFY_PLAYER:** 0x4000000000
-      - **R_LED_PLAYING:** 0x0 (else/default case — mask with no bit set)
+      - **R_LED_PLAYING:** 0x0 (else/default case: mask with no bit set)
     - **note:** 64-bit LED-state mask; !R_LED_HHID logs the same 0x2 bit inverted (set vs clear both logged)
   - **r_play_op:**
-    - **provenance:** jump-table dispatch in f_104c9270: cmplwi bound 6 + PIC offset table @0x10ed8640; each case logs its R_PLAY_OP name — PROVEN
+    - **provenance:** jump-table dispatch in f_104c9270: cmplwi bound 6 + PIC offset table @0x10ed8640; each case logs its R_PLAY_OP name: PROVEN
     - **kind:** enum
     - **names:**
-      - **0:** (no R_ log in case — likely NONE/nop)
+      - **0:** (no R_ log in case: likely NONE/nop)
       - **1:** R_PLAY_OP_BOUNDARY
       - **2:** R_PLAY_OP_RESYNC (immed log site)
       - **3:** R_PLAY_OP_ERROR
@@ -2816,7 +2816,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **5:** R_PLAY_OP_CODEC_SELECTED
       - **6:** R_PLAY_OP_ORIGIN_TIME_SELECTED
   - **r_stream_op:**
-    - **provenance:** jump-table dispatch in f_104c6264 (stream op handler); case->log-name bucketing — PROVEN
+    - **provenance:** jump-table dispatch in f_104c6264 (stream op handler); case->log-name bucketing: PROVEN
     - **kind:** enum
     - **names:**
       - **0:** (no R_ log)
@@ -2831,7 +2831,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **9:** R_STREAM_OP_ORIGIN_TIME_SELECTED
       - **10:** R_STREAM_OP_QUALITY_SELECTED
   - **muse_result_codes:**
-    - **provenance:** direct-indexed char* table @0x10f94d14; consumer f_109e0d14 does cmplwi 106 bound-check + table\[code\] name lookup; f_109e0e10 the reverse (name->code). PROVEN — index IS the wire result code
+    - **provenance:** direct-indexed char* table @0x10f94d14; consumer f_109e0d14 does cmplwi 106 bound-check + table\[code\] name lookup; f_109e0e10 the reverse (name->code). PROVEN: index IS the wire result code
     - **kind:** enum
     - **count:** 107
     - **names:**
@@ -2944,7 +2944,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **106:** ERROR_NOT_DESIGNATED_DEVICE
     - **note:** the muse/lechmere result-code enum (systemResult/result fields, cmd responses). 0-51 domain errors, 52-56 success (OK/CREATED/ACCEPTED/NO_CONTENT/NOT_MODIFIED mirroring HTTP 200/201/202/204/304), 57-106 protocol/request errors. Out-of-range renders UNKNOWN
   - **media_service_errors:**
-    - **provenance:** ordered char* name table @0x110925dc, 71 entries; duplicate-name codes share pointers (ACCESS_DENIED x3, NO_RESOURCE x3) confirming index semantics. Consumer not yet located — value binding inferred from table order, lower confidence than muse_result_codes
+    - **provenance:** ordered char* name table @0x110925dc, 71 entries; duplicate-name codes share pointers (ACCESS_DENIED x3, NO_RESOURCE x3) confirming index semantics. Consumer not yet located: value binding inferred from table order, lower confidence than muse_result_codes
     - **kind:** enum
     - **count:** 71
     - **names:**
@@ -3033,7 +3033,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **5:** SPEAKER_MASK_NINE_DOT_ONE_DOT_FOUR
     - **note:** HT channel-mask enum (three.1=3.1ch, five.1.2/9.1.4 = Atmos heights)
   - **security_errors:**
-    - **provenance:** contiguous literal run @0x10f92018-0x10f92274, 19 names; order likely = enum order but NO pointer table found — values unproven
+    - **provenance:** contiguous literal run @0x10f92018-0x10f92274, 19 names; order likely = enum order but NO pointer table found: values unproven
     - **kind:** enum_unproven
     - **count:** 19
     - **names:** `SECURITY_ERROR_AUTH_GENERAL`, `SECURITY_ERROR_LOGIN_DENIED`, `SECURITY_ERROR_PEER_FAILED_VERIFICATION`, `SECURITY_ERROR_REMOTE_ACCESS_DENIED`, `SECURITY_ERROR_SSL_CACERT`, `SECURITY_ERROR_SSL_CACERT_BADFILE`, `SECURITY_ERROR_SSL_CERTPROBLEM`, `SECURITY_ERROR_SSL_CIPHER`, `SECURITY_ERROR_SSL_CLIENTCERT`, `SECURITY_ERROR_SSL_CONNECT`, `SECURITY_ERROR_SSL_CRL_BADFILE`, `SECURITY_ERROR_SSL_ENGINE_INITFAILED`, `SECURITY_ERROR_SSL_ENGINE_NOTFOUND`, `SECURITY_ERROR_SSL_ENGINE_SETFAILED`, `SECURITY_ERROR_SSL_INVALIDCERTSTATUS`, `SECURITY_ERROR_SSL_ISSUER`, `SECURITY_ERROR_SSL_PINNEDPUBKEYNOTMATCH`, `SECURITY_ERROR_SSL_SHUTDOWN_FAILED`, `SECURITY_ERROR_USE_SSL_FAILED`
@@ -3114,7 +3114,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **28:** RS
       - **29:** LRS
       - **30:** RRS
-    - **note:** 4 profile layouts (3x 8-ch with LFE + 1x 7-ch without LFE) — the stereo-pair+sub+surround+height map variants
+    - **note:** 4 profile layouts (3x 8-ch with LFE + 1x 7-ch without LFE): the stereo-pair+sub+surround+height map variants
   - **timezones:**
     - **provenance:** ordered char* table @0x11092824, 11 entries
     - **kind:** enum
@@ -3133,7 +3133,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **10:** JST
     - **note:** tz abbrev table (CST appears twice - US Central + China Standard)
   - **r_client_keycert_id:**
-    - **provenance:** selector f_1057ac60 returns id in r3; each arm loads its R_CLIENT_KEYCERT_ID_* log string then returns 0-3 — PROVEN name->id
+    - **provenance:** selector f_1057ac60 returns id in r3; each arm loads its R_CLIENT_KEYCERT_ID_* log string then returns 0-3: PROVEN name->id
     - **kind:** enum
     - **count:** 4
     - **names:**
@@ -3601,7 +3601,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **12:** INADEQUATE_SECURITY
       - **13:** HTTP_1_1_REQUIRED
     - **provenance:** contiguous char* name table @0x10f8ab34, 14 entries
-    - **note:** complete HTTP/2 RST_STREAM error-code name table (bundled nghttp2): NO_ERROR..HTTP_1_1_REQUIRED — matches RFC 7540 section 7 exactly
+    - **note:** complete HTTP/2 RST_STREAM error-code name table (bundled nghttp2): NO_ERROR..HTTP_1_1_REQUIRED: matches RFC 7540 section 7 exactly
   - **10ee9a50:**
     - **kind:** enum
     - **count:** 10
@@ -3794,7 +3794,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **8:** FLAC__STREAM_DECODER_MEMORY_ALLOCATION_ERROR
       - **9:** FLAC__STREAM_DECODER_UNINITIALIZED
     - **provenance:** contiguous char* name table @0x10fbb860, 10 entries
-    - **note:** bundled libFLAC decoder-state names (FLAC__STREAM_DECODER_*) — upstream libFLAC enum
+    - **note:** bundled libFLAC decoder-state names (FLAC__STREAM_DECODER_*): upstream libFLAC enum
   - **10fbb89c:**
     - **kind:** enum
     - **count:** 22
@@ -3822,7 +3822,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **20:** FLAC__STREAM_DECODER_INIT_STATUS_ERROR_OPENING_FILE
       - **21:** FLAC__STREAM_DECODER_INIT_STATUS_ALREADY_INITIALIZED
     - **provenance:** contiguous char* name table @0x10fbb89c, 22 entries
-    - **note:** bundled libFLAC status/error names (FLAC__STREAM_DECODER_{ERROR,LENGTH,TELL,SEEK,INIT}_STATUS_*) — upstream libFLAC enums concatenated
+    - **note:** bundled libFLAC status/error names (FLAC__STREAM_DECODER_{ERROR,LENGTH,TELL,SEEK,INIT}_STATUS_*): upstream libFLAC enums concatenated
   - **10fbef08:**
     - **kind:** enum
     - **count:** 21
@@ -3849,7 +3849,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **19:** CHANNEL_DIRECTION_INDIRECT_SINGLE_DRIVER
       - **20:** @
     - **provenance:** contiguous char* name table @0x10fbef08, ~21 entries
-    - **note:** audio-config proto enum names: CHANNEL_TYPE_* (L/R/C/SUB/LS/RS/LRS/RRS/LTM/RTM/LW/...) then CHANNEL_DIRECTION_* (DIRECT/INDIRECT_ARRAY/INDIRECT_SINGLE_DRIVER) — proto field vocabularies concatenated in one string table
+    - **note:** audio-config proto enum names: CHANNEL_TYPE_* (L/R/C/SUB/LS/RS/LRS/RRS/LTM/RTM/LW/...) then CHANNEL_DIRECTION_* (DIRECT/INDIRECT_ARRAY/INDIRECT_SINGLE_DRIVER): proto field vocabularies concatenated in one string table
   - **10fbf1d4:**
     - **kind:** enum
     - **count:** 14
@@ -3869,7 +3869,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
       - **12:** VOLTAGE_GAIN_CALCULATOR_TYPE_BOOSTED_BATTERY
       - **13:** VOLTAGE_GAIN_CALCULATOR_TYPE_BUCKED_CAPACITOR
     - **provenance:** contiguous char* name table @0x10fbf1d4, 14 entries
-    - **note:** DSP/tuning proto enum names: TONE_HANDLER_TYPE_* (STANDARD/SUB), ARRAY_SUB_SYSTEM_TYPE_* (BRAVO/FURY/OPTIMO2/OPTIMO2_SURROUND/LASSO/APOLLO — internal hardware codenames), VOLTAGE_GAIN_CALCULATOR_TYPE_* (BULK_CAPACITORS/BOOSTED_BATTERY/BUCKED_CAPACITOR)
+    - **note:** DSP/tuning proto enum names: TONE_HANDLER_TYPE_* (STANDARD/SUB), ARRAY_SUB_SYSTEM_TYPE_* (BRAVO/FURY/OPTIMO2/OPTIMO2_SURROUND/LASSO/APOLLO: internal hardware codenames), VOLTAGE_GAIN_CALCULATOR_TYPE_* (BULK_CAPACITORS/BOOSTED_BATTERY/BUCKED_CAPACITOR)
   - **10fbff4c:**
     - **kind:** enum
     - **count:** 19
@@ -4067,7 +4067,7 @@ The enumeration tables — the named-constant vocabularies recovered across the 
     - **note:** channel/speaker-position name map: lfe=2, lrs=3, lrrs=4, lrw=5, lrtm=6, lrtf=7, lrtr=8, lre=9, lrrh=10, lrfh=11, lrse=12, lrrse=13, lrs1=14, lrrs1=15, lrs2=16, lrrs2=17, lrcs=18, cs=19
 - **evidence:**
   - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
-- **r_star_status:** ALL genuine R_* namespaces now resolved or accounted: R_LED_* (proven mask), R_PLAY_OP_*/R_STREAM_OP_* (proven jump-table), R_CLIENT_KEYCERT_ID_* (proven selector returns 0-3), ~29 R_* settings keys (separate key vocabulary, no integer semantics). Earlier catalogued "R_*" families were substring artifacts of ERROR_*/FLAC__*/SPEAKER_MASK_* strings — those belong to the media_service_errors and muse_result_codes enums instead
+- **r_star_status:** ALL genuine R_* namespaces now resolved or accounted: R_LED_* (proven mask), R_PLAY_OP_*/R_STREAM_OP_* (proven jump-table), R_CLIENT_KEYCERT_ID_* (proven selector returns 0-3), ~29 R_* settings keys (separate key vocabulary, no integer semantics). Earlier catalogued "R_*" families were substring artifacts of ERROR_*/FLAC__*/SPEAKER_MASK_* strings: those belong to the media_service_errors and muse_result_codes enums instead
 
 </details>
 
