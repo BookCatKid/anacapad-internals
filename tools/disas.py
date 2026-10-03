@@ -22,9 +22,7 @@ _elf = _text = _plt = _starts = None
 def init(path=None):
     global _elf, _text, _plt, _starts, ELF_PATH
     ELF_PATH = path or os.environ.get(
-        "ANACAPAD",
-        "/Users/simon/MyDocuments/gpt/sonos-firmware-archive/"
-        "artifacts/downloads/rootfs-86.10-80260-1-9/opt/bin/anacapad")
+        "ANACAPAD", "anacapad")
     _elf = X.Elf(ELF_PATH)
     _text = X.Text(_elf)
     _plt = _elf.plt_names

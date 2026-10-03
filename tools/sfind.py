@@ -17,9 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import extract_soap_api as X
 
 ELF_PATH = os.environ.get(
-    "ANACAPAD",
-    "/Users/simon/MyDocuments/gpt/sonos-firmware-archive/"
-    "artifacts/downloads/rootfs-86.10-80260-1-9/opt/bin/anacapad")
+    "ANACAPAD", "anacapad")
 
 
 def main():

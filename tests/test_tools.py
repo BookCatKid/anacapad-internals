@@ -443,8 +443,9 @@ class GenModelTests(unittest.TestCase):
                          "Friendly action blurb.")
         md = gendocs.render_service(s)
         self.assertIn("Friendly action blurb.", md)
-        self.assertIn("**Technical description:** dispatch table entry",
-                      md)
+        self.assertIn("Technical details", md)
+        self.assertIn("dispatch table entry", md)
+        self.assertIn("<details", md)
         r = genmodel.qa(m)
         self.assertTrue(any("/A/Control.Ghost" in e
                             for e in r.errors))

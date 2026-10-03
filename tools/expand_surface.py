@@ -36,9 +36,7 @@ import extract_soap_api as X
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOC = os.path.join(ROOT, "docs/documentation.json")
 ELF_PATH = os.environ.get(
-    "ANACAPAD",
-    "/Users/simon/MyDocuments/gpt/sonos-firmware-archive/"
-    "artifacts/downloads/rootfs-86.10-80260-1-9/opt/bin/anacapad")
+    "ANACAPAD", "anacapad")
 BUILD = "86.10-80260"
 
 _e = None
@@ -123,7 +121,7 @@ def main():
 
     # ---- R_* internal result-code namespace --------------------------
     rcodes = []
-    for line in open("/tmp/r_all.txt"):
+    for line in open("/tmp/r_all.txt") if os.path.exists("/tmp/r_all.txt") else []:
         k = line.strip()
         if k:
             rcodes.append(k)
