@@ -117802,10 +117802,11 @@
    "throttling": "'restricting excessive fatal error reporting [%s(err=%d)]'; 'reporting xml configuration update skipping update due to older rev'; initial interval randomized 'Initializing reporting interval to %d. r=%d,c=%d'",
    "http": "/support/reportstatus polls {guid,uuid,success,controller}; upgrade_mgr_user_report.json user-report files",
    "todo": [
-    "Resolved: the Telemetry 1.0 emit path - reportTelemetryLocked serializes a fixed 8-field ordered doc {task, correlationId, locationId, group, taskStart, retryCount, status, locationSettings} via the key-value doc builder, with field offsets on the telemetry record decoded.",
-    "Remaining: the post-serialize transport (which uploader endpoint the doc posts to) - the doc hands to the uploader already catalogued in the record."
+    "Established: transport resolved - shared report-uploader channel keyed by product-data-telemetry MessageType; no standalone endpoint.",
+    "Remaining: none at this granularity."
    ],
-   "serializer": "reportTelemetryLocked f_105db9c8: structured doc emission (doc-begin f_10557fa8, key-setter f_1055847c, int-setter f_105580f4, finalize f_10559024). Fixed field order from the record object r31: 'task'(+0x10), 'correlationId'(+0x14), 'locationId'(+0x2c), 'group'(+0x44), 'taskStart' (computed timestamp via f_105d925c), 'retryCount'(+0x90, int), 'status'(*(+0x88)+0xc), 'locationSettings'('locSetUpdMgr' module state). Encoding = ordered key:value JSON-ish doc, not a flat wire blob."
+   "serializer": "reportTelemetryLocked f_105db9c8: structured doc emission (doc-begin f_10557fa8, key-setter f_1055847c, int-setter f_105580f4, finalize f_10559024). Fixed field order from the record object r31: 'task'(+0x10), 'correlationId'(+0x14), 'locationId'(+0x2c), 'group'(+0x44), 'taskStart' (computed timestamp via f_105d925c), 'retryCount'(+0x90, int), 'status'(*(+0x88)+0xc), 'locationSettings'('locSetUpdMgr' module state). Encoding = ordered key:value JSON-ish doc, not a flat wire blob.",
+   "transport": "No dedicated telemetry URL exists - the serialized doc posts through the shared RReportUploader/zonereportmgr channel; routing key is the X-Sonos-MessageType: product-data-telemetry header. The doc-builder sink (f_10557fa8/84/94/f_10559024 chain) IS the wire path - each Telemetry 1.0 Event field line serializes directly into the upload body."
   },
   "cloudqueue": {
    "local_routes": [
@@ -117944,8 +117945,8 @@
     }
    ],
    "todo": [
-    "Resolved: full verb-to-action map (10 verbs: toggleMute, volumeUp, volumeDown, loadResource, power, dpad, back, home, settings, togglePlay), handler class f_101c06cc with its registered field surface, and the CEC boundary (verbs forward over pinewood; local CEC tx absent - execution is via the hdmi/ family on CEC-capable peers).",
-    "Remaining: the per-verb payload shape (e.g. dpad direction arg, loadResource target) - each action's argument field."
+    "Established: per-verb payload shapes decoded - 4-field vocabulary {toggleMute,togglePlay,menuType,dpadDirection}; dpadDirection enum {MENU,PLAY_PAUSE,MUSIC,DPAD_UP/DOWN/LEFT/RIGHT/SELECT,LONG_PRESS}; power/volume verbs are bodyless.",
+    "Remaining: the menuType value domain (which menu names it accepts) - bounded by the enum table the menuType field validates against."
    ],
    "verb_map": {
     "pinewood/mute": "toggleMute",
@@ -117960,7 +117961,30 @@
     "pinewood/play": "togglePlay"
    },
    "handler": "Pinewood resource impl class f_101c06cc (installed by registration stuffer f_10b091d4) - the resource's data surface registers fields settings:accessorySettings, settings:frontierLlms, playerBasic, upnpAudioIn, systemTime, dSwap, svc, security, settings:video, dashboard, preferences. Sibling hdmi/ verb family: hdmi/status, hdmi/edid, hdmi/powercycle.",
-   "cec_boundary": "The remote verbs ride the pinewood muse channel as forwarded remote commands; CEC emission is NOT in this handler - 'HDMI CEC'/'CECStatus' literals belong to the separate hdmi/ family, and this Playbar (model 9, optical-era) build carries the pinewood verb surface but routes execution through the paired/grouped player's transport rather than a local CEC tx (no CEC-send literals in f_10b091d4's family)."
+   "cec_boundary": "The remote verbs ride the pinewood muse channel as forwarded remote commands; CEC emission is NOT in this handler - 'HDMI CEC'/'CECStatus' literals belong to the separate hdmi/ family, and this Playbar (model 9, optical-era) build carries the pinewood verb surface but routes execution through the paired/grouped player's transport rather than a local CEC tx (no CEC-send literals in f_10b091d4's family).",
+   "payload_fields": {
+    "vocabulary": "exactly four fields registered beside the verbs (0xfa4010-0xfa4034): toggleMute, togglePlay, menuType, dpadDirection",
+    "per_verb": {
+     "mute": "{toggleMute}",
+     "play": "{togglePlay}",
+     "settings|home|back": "{menuType}",
+     "dpad": "{dpadDirection}",
+     "power|volumeUp|volumeDown": "bodyless command (path-param only: playerId,pinewood,<verb>)",
+     "loadResource": "resource path is the target; no dedicated field in the 4-field set"
+    },
+    "dpadDirection_enum": [
+     "MENU",
+     "PLAY_PAUSE",
+     "MUSIC",
+     "DPAD_UP",
+     "DPAD_DOWN",
+     "DPAD_LEFT",
+     "DPAD_RIGHT",
+     "DPAD_SELECT",
+     "LONG_PRESS"
+    ],
+    "path_params": "routes carry only {playerId,pinewood,<verb>} (household form adds {householdId}) - all payload data travels in the body fields"
+   }
   },
   "testenv_logger": {
    "description": "/testenv: HTML form POST env\u2208{prod,perf,stage,test,int}+OnlineUpdateBaseURL override; exposes 6 backend bases {Cloud,Service catalog,System,Transfero,Metrics,Update} API; ~120s household replication",
