@@ -38,9 +38,16 @@ docs/artifacts.json         firmware artifact manifest (friendly +
 docs/muse_spec_streams.json decoded spec-pair streams (muse API field
                             catalog; rendered by gendocs.py)
 soap_api-86.10-80260.json   raw extractor output (SOAP surface)
-reference/                  generated Markdown (31 files)
-reference/services/         one page per UPnP service (18 files)
-reference/files/            extracted firmware artifacts (audio, XML
+reference/                  generated Markdown (~84 files)
+reference/soap/             UPnP section: one page per service, plus
+                            state-variables/, events, errors, URI and
+                            payload formats, availability matrix
+reference/muse/             muse v1 API section: overview, outbound
+                            client, resources/ family pages, spec streams
+reference/http/             non-SOAP HTTP surface, grouped by function
+reference/subsystems/       native subsystems, split by coverage tier
+reference/artifacts/        firmware artifact pages, one per category
+reference/public/files/     extracted firmware artifacts (audio, XML
                             specs, configs, scripts, binaries, package
                             pieces); refreshed by tools/extract_artifacts.py
 site/                       generated static HTML site

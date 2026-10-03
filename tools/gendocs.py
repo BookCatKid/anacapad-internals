@@ -305,7 +305,26 @@ def render_index(m):
         for k, v in term.items():
             out.append("- **%s**: %s" % (_e(k), _e(v)))
         out.append("")
-    out += ["## Services", ""]
+    out += ["## Sections", "",
+            "- [Architecture](architecture.md): routing, dispatch, request "
+            "lifecycle, shared subsystems",
+            "- [SOAP / UPnP](soap/index.md): the seventeen services, "
+            "state variables, eventing, errors, and wire grammars",
+            "- [muse API](muse/index.md): the v1 REST surface, resources, "
+            "outbound client, and spec streams",
+            "- [HTTP layer](http/index.md): non-SOAP HTTP endpoints, "
+            "discovery, auth, and outbound clients",
+            "- [Subsystems](subsystems/index.md): non-SOAP protocols and "
+            "engines with coverage levels",
+            "- [Firmware differences](firmware-differences.md): "
+            "cross-build/cross-model deltas",
+            "- [Firmware artifacts](artifacts/index.md): every "
+            "extractable file in the image, playable or downloadable",
+            ""]
+    return "\n".join(out)
+
+
+def _service_table(m, link_prefix):
     rows = []
     for s in m.services:
         impl = sum(1 for a in s.actions.values() if a.is_implemented)
@@ -313,36 +332,31 @@ def render_index(m):
         desc = "%d" % len(s.actions)
         if stub:
             desc += " (%d stub)" % stub
-        rows.append(["[%s](services/%s.md)" % (s.name, s.slug),
+        rows.append(["[%s](%s%s.md)" % (s.name, link_prefix, s.slug),
                      "`%s`" % s.control_path, _e(s.visibility), desc,
                      _status(s.status)])
-    _table(out, ["Service", "Control path", "Visibility", "Actions",
-                 "Status"], rows)
-    out += ["## Sections", "",
-            "- [Architecture](architecture.md): routing, dispatch, request "
-            "lifecycle, shared subsystems",
-            "- [Availability matrix](availability-matrix.md): the full "
-            "action-by-action surface",
-            "- [State variables](state-variables.md): evented and argument "
-            "type variables",
+    _table_rows = [["Service", "Control path", "Visibility", "Actions",
+                    "Status"], rows]
+    return _table_rows
+
+
+def render_soap_index(m):
+    out = ["# SOAP / UPnP", ""]
+    _pt_add(m, out, "soap", "intro")
+    out += ["## Services", ""]
+    header, rows = _service_table(m, "")
+    _table(out, header, rows)
+    out += ["## In this section", "",
+            "- [State variables](state-variables.md): evented and "
+            "argument-type variables, one page per service",
             "- [Events](events.md): GENA/LastChange and WSS eventing",
             "- [Errors](errors.md): SOAP fault wire format and code "
             "vocabulary",
             "- [URI formats](uri-formats.md): URI scheme grammars",
-            "- [Payload formats](payload-formats.md): opaque field/payload "
-            "grammars",
-            "- [HTTP API](http-api.md): non-SOAP HTTP endpoints and "
-            "diagnostics",
-            "- [muse API](muse-api.md): the v1 REST surface (route table, "
-            "methods, op names)",
-            "- [Subsystems](subsystems.md): non-SOAP protocols and "
-            "engines with coverage levels",
-            "- [Firmware differences](firmware-differences.md): "
-            "cross-build/cross-model deltas",
-            "- [Firmware artifacts](artifacts.md): every extractable "
-            "file in the image, playable or downloadable",
-            "- [Muse spec-pair streams](muse_spec_streams.md): the raw "
-            "field-type catalog behind the v1 API",
+            "- [Payload formats](payload-formats.md): opaque "
+            "field/payload grammars",
+            "- [Availability matrix](availability-matrix.md): the full "
+            "action-by-action surface",
             ""]
     return "\n".join(out)
 
@@ -820,48 +834,75 @@ def render_service(s):
 # topic pages
 # --------------------------------------------------------------------------
 
+def _sv_slug(name, used):
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "misc"
+    base, i = slug, 2
+    while slug in used:
+        slug = "%s-%d" % (base, i)
+        i += 1
+    used.add(slug)
+    return slug
+
+
 def render_state_variables(m):
+    files = {}
+    allsv = m.all_state_variables()
+    by_svc = {}
+    for k in sorted(allsv):
+        svc = allsv[k].service or "internal schemas"
+        by_svc.setdefault(svc, []).append(k)
+
     out = ["# State variables", ""]
     _pt_add(m, out, "state_variables", "intro")
     _details(out, ["Evented variables carry `<NAME val=\"...\"/>` elements "
                    "inside `LastChange` documents; `A_ARG_TYPE_*` variables "
                    "are SCPD argument-type declarations, not device state."])
-    allsv = m.all_state_variables()
+    used = set()
+    slugs = {svc: _sv_slug(svc, used) for svc in sorted(by_svc)}
     rows = []
     for k in sorted(allsv):
         sv = allsv[k]
-        rows.append(["`%s`" % k, _e(sv.service), _e(sv.data_type),
+        svc = sv.service or "internal schemas"
+        rows.append(["`%s`" % k,
+                     "[%s](state-variables/%s.md)"
+                     % (_e(svc), slugs[svc]),
+                     _e(sv.data_type),
                      ("yes" if sv.evented else "no")
                      if sv.evented is not None else "?",
                      _status(sv.status)])
     _table(out, ["Variable", "Service", "Type", "Evented", "Status"], rows)
-    for k in sorted(allsv):
-        sv = allsv[k]
-        if not (sv.description or sv.accepted_values or sv.range
-                or sv.related_actions or sv.notes
-                or getattr(sv, "client_summary", None)):
-            continue
-        out.append("### `%s`" % k)
-        out.append("")
-        if getattr(sv, "client_summary", None):
-            out.append(_para(sv.client_summary))
+    files["soap/state-variables.md"] = "\n".join(out)
+
+    for svc in sorted(by_svc):
+        out = ["# State variables: `%s`" % svc, ""]
+        for k in by_svc[svc]:
+            sv = allsv[k]
+            if not (sv.description or sv.accepted_values or sv.range
+                    or sv.related_actions or sv.notes
+                    or getattr(sv, "client_summary", None)):
+                continue
+            out.append("### `%s`" % k)
             out.append("")
-        if sv.description:
-            _details(out, [_para(sv.description)])
-        if sv.accepted_values:
-            out.append("- accepted values: %s" % _fmt_val(
-                sv.accepted_values))
-        if sv.range:
-            out.append("- range: %s" % _fmt_val(sv.range))
-        if sv.form:
-            out.append("- form: `%s`" % _e(sv.form))
-        if sv.related_actions:
-            out.append("- related actions: %s" % ", ".join(
-                "`%s`" % r for r in sv.related_actions))
-        if sv.notes:
-            out.append("- %s" % _para(sv.notes))
-        out.append("")
-    return "\n".join(out)
+            if getattr(sv, "client_summary", None):
+                out.append(_para(sv.client_summary))
+                out.append("")
+            if sv.description:
+                _details(out, [_para(sv.description)])
+            if sv.accepted_values:
+                out.append("- accepted values: %s" % _fmt_val(
+                    sv.accepted_values))
+            if sv.range:
+                out.append("- range: %s" % _fmt_val(sv.range))
+            if sv.form:
+                out.append("- form: `%s`" % _e(sv.form))
+            if sv.related_actions:
+                out.append("- related actions: %s" % ", ".join(
+                    "`%s`" % r for r in sv.related_actions))
+            if sv.notes:
+                out.append("- %s" % _para(sv.notes))
+            out.append("")
+        files["soap/state-variables/%s.md" % slugs[svc]] = "\n".join(out)
+    return files
 
 
 def render_events(m):
@@ -1032,26 +1073,70 @@ _HTTP_KEYS = [
 ]
 
 
+_HTTP_GROUPS = [
+    ("endpoints", "Endpoints & server behavior",
+     ["http_status_endpoints", "http_extra_endpoints",
+      "diagnostic_manifest", "diagnostics", "proprietary_headers",
+      "http_chunked_strictness", "http_range", "httpcache_manager",
+      "csrf_protection", "device_description_variants",
+      "albumart_proxy", "alert_engine"]),
+    ("discovery", "Discovery & routing",
+     ["discovery_layer", "ssdp_discovery", "ssdp_signed_msearch",
+      "target_udn_routing", "assoctracker", "gena_internals"]),
+    ("auth-security", "Auth & security",
+     ["cert_identity", "device_auth", "noncehandler",
+      "token_refresh_state_machine", "household_psk_vocabulary",
+      "muse_authhelper", "circuitbreaker"]),
+    ("cloud-clients", "Outbound clients & cloud",
+     ["upnp_cloud_tunnel", "soap_client", "cloud_request",
+      "cloud_registration", "service_accounts", "device_registration",
+      "device_account_endpoint"]),
+    ("media-streaming", "Media & streaming",
+     ["hls_radio", "websocket_impl", "icy_metadata",
+      "didl_classes_ext", "protocol_info_full"]),
+    ("vocabularies", "Internal vocabularies & tables",
+     ["xml_schema_clusters", "internal_error_families",
+      "system_property_keys", "internal_result_namespace",
+      "smapi_capability_vocabulary", "muse_route_verbs", "enum_tables",
+      "muse_common", "replication_elements"]),
+]
+
+
 def render_http_api(m):
+    files = {}
+    sp = m.shared_primitives
+    groups = [(slug, title, [k for k in keys if k in sp])
+              for slug, title, keys in _HTTP_GROUPS]
+    covered = {k for _, _, keys in groups for k in keys}
+    leftover = [k for k in _HTTP_KEYS if k in sp and k not in covered]
+    if leftover:
+        groups.append(("other", "Other", leftover))
+
     out = ["# HTTP / non-SOAP surface", ""]
     _pt_add(m, out, "http_api", "intro")
-    _details(out, ["Endpoints and HTTP-layer behaviors recovered from the "
-                   "binary outside the SOAP control path. All are "
+    _details(out, ["Endpoints and HTTP-layer behaviors recovered from "
+                   "the binary outside the SOAP control path. All are "
                    "static-analysis records."])
-    sp = m.shared_primitives
-    for k in _HTTP_KEYS:
-        if k not in sp:
-            continue
-        v = sp[k]
-        out.append("## `%s`" % k)
-        out.append("")
-        if v.get("client_summary"):
-            out.append(_para(v["client_summary"]))
+    rows = [["[%s](%s.md)" % (_e(title), slug), str(len(keys))]
+            for slug, title, keys in groups]
+    _table(out, ["Group", "Entries"], rows)
+    files["http/index.md"] = "\n".join(out)
+
+    for slug, title, keys in groups:
+        out = ["# HTTP: %s" % _e(title), ""]
+        for k in keys:
+            v = sp[k]
+            out.append("## `%s`" % k)
             out.append("")
-        _details(out, _generic_lines(
-            {kk: vv for kk, vv in v.items() if kk != "client_summary"}))
-        out.append("")
-    return "\n".join(out)
+            if v.get("client_summary"):
+                out.append(_para(v["client_summary"]))
+                out.append("")
+            _details(out, _generic_lines(
+                {kk: vv for kk, vv in v.items()
+                 if kk != "client_summary"}))
+            out.append("")
+        files["http/%s.md" % slug] = "\n".join(out)
+    return files
 
 
 def render_firmware(m):
@@ -1102,7 +1187,53 @@ _STATUS_ORDER = {"absent": 0, "vocab": 1, "partial": 2,
                  "documented": 3}
 
 
+_SUB_TIERS = [
+    ("decoded", "Decoded subsystems",
+     {"strong", "confirmed", "substantially decoded", "documented"}),
+    ("partial", "Partially decoded", {"partial"}),
+    ("catalogued", "Catalogued / absent", None),
+]
+
+
+def _sub_tier(status):
+    for slug, _, statuses in _SUB_TIERS[:-1]:
+        if status in statuses:
+            return slug
+    return "catalogued"
+
+
+def _subsystem_body(out, n, s):
+    out += ["## `%s`" % n, ""]
+    out.append("**coverage** `%s`" % _e(s.get("status") or "?"))
+    out.append("")
+    if s.get("client_summary"):
+        out.append(_para(s["client_summary"]))
+        out.append("")
+    tech = []
+    if s.get("summary"):
+        tech += [_para(s["summary"]), ""]
+    if s.get("anchors"):
+        tech += ["- binary anchors: %s"
+                 % ", ".join("`%s`" % _e(a)
+                             for a in s["anchors"]), ""]
+    _generic(tech, {k: v for k, v in s.items()
+                    if k not in ("summary", "status", "anchors",
+                                 "evidence")})
+    _ev_details([genmodel.Evidence.from_raw(e)
+                 for e in s.get("evidence") or []], tech)
+    if any(x.strip() for x in tech):
+        _details(out, tech)
+
+
 def render_subsystems(m):
+    files = {}
+    subs = sorted(m.subsystems.items(),
+                  key=lambda kv: (_STATUS_ORDER.get(
+                      kv[1].get("status"), 9), kv[0]))
+    by_tier = {}
+    for n, s in subs:
+        by_tier.setdefault(_sub_tier(s.get("status")), []).append((n, s))
+
     out = ["# Non-SOAP subsystems", ""]
     _pt_add(m, out, "subsystems", "intro")
     _details(out, ["Self-contained protocols/engines living in the same "
@@ -1111,9 +1242,6 @@ def render_subsystems(m):
                    "semantics undecoded, `partial` = some real "
                    "documentation exists. Evidence addresses are the "
                    "rodata anchor strings."])
-    subs = sorted(m.subsystems.items(),
-                  key=lambda kv: (_STATUS_ORDER.get(
-                      kv[1].get("status"), 9), kv[0]))
 
     def _gloss(s):
         t = s.get("client_summary") or s.get("summary") or ""
@@ -1122,35 +1250,189 @@ def render_subsystems(m):
             t = t[:cut + 1]
         return t
 
-    rows = [["`%s`" % n, "**%s**" % _e(s.get("status") or "?"),
+    rows = [["[`%s`](%s.md#%s)" % (n, _sub_tier(s.get("status")), n),
+             "**%s**" % _e(s.get("status") or "?"),
              _e(_gloss(s))]
             for n, s in subs]
     _table(out, ["Subsystem", "Coverage", "Summary"], rows)
-    for n, s in subs:
-        out += ["## `%s`" % n, ""]
-        out.append("**coverage** `%s`" % _e(s.get("status") or "?"))
+    files["subsystems/index.md"] = "\n".join(out)
+
+    for slug, title, _ in _SUB_TIERS:
+        members = by_tier.get(slug) or []
+        if not members:
+            continue
+        out = ["# %s" % title, ""]
+        for n, s in members:
+            _subsystem_body(out, n, s)
+        files["subsystems/%s.md" % slug] = "\n".join(out)
+    return files
+
+
+_MUSE_RESOURCE_GROUPS = [
+    ("playback", "Playback & sessions",
+     ["playback", "playbackSession", "playbackExtended",
+      "playbackMetadata", "sleepTimer", "queue"]),
+    ("volume-home-theater", "Volume & home theater",
+     ["playerVolume", "groupVolume", "homeTheater", "hdmi",
+      "soundSwap", "pinewood"]),
+    ("audio-input", "Audio input", ["virtualLineIn"]),
+    ("households-zones", "Households, zones & grouping",
+     ["groups", "zones", "households", "areas"]),
+    ("alarms-timers", "Alarms & timers", ["alarms", "timers"]),
+    ("content", "Content, library & music services",
+     ["localContentLibrary", "musicServiceAccounts", "playlists",
+      "favorites", "catalog", "history", "entitlements", "audioClip"]),
+    ("calibration", "Calibration & positioning",
+     ["trueplay", "trueroom", "roomDetection", "positioning"]),
+    ("settings", "Settings", ["settings", "effectiveSettings"]),
+    ("device-hardware", "Device & hardware",
+     ["hardwareStatus", "devices", "devicesExtended", "power",
+      "ircontrol"]),
+    ("voice-control", "Voice & remote control",
+     ["voice", "virtualRemoteControl", "smartplay"]),
+    ("system", "System, updates & diagnostics",
+     ["update", "householdUpdate", "diagnostics", "systemReporting",
+      "networkTest", "management", "platformInternal", "svc", "info",
+      "systemTime", "time"]),
+    ("authorization", "Authorization", ["authorization"]),
+    ("upnp-bridge", "UPnP bridge resources", None),
+]
+
+
+def _muse_resource_groups(res):
+    """Yield (slug, title, [(name, resource)]) grouped per
+    _MUSE_RESOURCE_GROUPS; the upnp-bridge group collects every
+    upnp*-prefixed resource and anything unmapped lands in 'other'."""
+    mapped = set()
+    groups = []
+    for slug, title, members in _MUSE_RESOURCE_GROUPS:
+        if members is None:
+            members = sorted(n for n in res if n.startswith("upnp"))
+        groups.append([slug, title,
+                       [(n, res[n]) for n in members if n in res]])
+        mapped.update(members)
+    leftover = sorted(n for n in res if n not in mapped)
+    if leftover:
+        groups.append(["other", "Other resources",
+                       [(n, res[n]) for n in leftover]])
+    return [g for g in groups if g[2]]
+
+
+def _muse_resource_body(out, n, r):
+    out += ["## `%s`" % n, ""]
+    if r.get("client_summary"):
+        out.append(_para(r["client_summary"]))
         out.append("")
-        if s.get("client_summary"):
-            out.append(_para(s["client_summary"]))
-            out.append("")
-        tech = []
-        if s.get("summary"):
-            tech += [_para(s["summary"]), ""]
-        if s.get("anchors"):
-            tech += ["- binary anchors: %s"
-                     % ", ".join("`%s`" % _e(a)
-                                 for a in s["anchors"]), ""]
-        _generic(tech, {k: v for k, v in s.items()
-                        if k not in ("summary", "status", "anchors",
-                                     "evidence")})
-        _ev_details([genmodel.Evidence.from_raw(e)
-                     for e in s.get("evidence") or []], tech)
-        if any(x.strip() for x in tech):
-            _details(out, tech)
-    return "\n".join(out)
+    rows = []
+    seen = set()
+    fields_seen = []
+    msgs_seen = []
+    paths_seen = []
+    for op in r.get("ops") or []:
+        key = (op["method"], op["path"], op["verb"])
+        if key in seen:
+            continue
+        seen.add(key)
+        impl = op.get("impl") or {}
+        if impl.get("execs"):
+            execs = " ".join("`%s`" % x for x in impl["execs"])
+        elif impl.get("kind") == "outbound_registry":
+            execs = "outbound-fwd"
+        elif impl.get("kind") == "resource_block":
+            execs = "resource-block"
+        else:
+            execs = "none"
+        if op.get("desc_execs"):
+            execs += " desc:`%s`" % "` `".join(
+                x[2:] for x in op["desc_execs"])
+        for f_ in op.get("op_fields") or []:
+            if f_ not in fields_seen:
+                fields_seen.append(f_)
+        for m_ in op.get("op_msgs") or []:
+            if m_ not in msgs_seen:
+                msgs_seen.append(m_)
+        for p_ in op.get("op_paths") or []:
+            if p_ not in paths_seen:
+                paths_seen.append(p_)
+        prm = op.get("op_params") or []
+        prm_txt = ", ".join("`%s`" % _e(n) for _, n in prm) if prm \
+            else "none"
+        specs = []
+        for s_ in op.get("spec") or []:
+            for a_ in s_.get("accessors") or []:
+                mem = [x for x in (a_.get("members") or []) if x]
+                pairs = []
+                it = 0
+                while it + 1 < len(mem):
+                    pairs.append("`%s`:`%s`" % (_e(mem[it]),
+                                               _e(mem[it + 1])))
+                    it += 2
+                if it < len(mem):
+                    pairs.append("`%s`" % _e(mem[it]))
+                specs.append("c%d:%s" % (a_.get("class"),
+                                         " ".join(pairs)))
+        spec_txt = "<br>".join(specs) if specs else "none"
+        rows.append(["`%s`" % _e(op["method"]),
+                     "`%s`" % _e(op["path"]),
+                     "`%s`" % _e(op["verb"]),
+                     "`%s`" % _e(op["subparam"] or "-"),
+                     "`%s`" % _e(op["flags"]),
+                     execs,
+                     prm_txt,
+                     spec_txt])
+    _table(out, ["Method", "Path", "Op", "Trailing param",
+                 "Flags", "Exec (vtable +0x0c)", "Params",
+                 "Spec lists (classId: root, field:type pairs)"], rows)
+    tech = []
+    if r.get("impl_funcs"):
+        tech += ["Resource implementation functions (string-block "
+                 "registrar family): %s"
+                 % ", ".join("`%s`" % f for f in r["impl_funcs"]), ""]
+    if r.get("impl_fields"):
+        tech += ["Field vocabulary recovered from the resource's "
+                 "implementation functions: %s"
+                 % ", ".join("`%s`" % _e(x)
+                             for x in r["impl_fields"]), ""]
+    if r.get("impl_msgs"):
+        tech += ["Implementation messages:", ""]
+        tech += ["- `%s`" % _e(m_) for m_ in r["impl_msgs"]]
+        tech.append("")
+    ens = r.get("enums") or {}
+    if ens:
+        tech += ["Related enum registrations (proven integer "
+                 "values, see `enum_tables`):", ""]
+        tech += ["- **%s**: %s"
+                 % (_e(enm), ", ".join(
+                     "`%s`=%s" % (_e(s), v)
+                     for s, v in sorted(
+                         mem.items(), key=lambda kv: kv[1])))
+                 for enm, mem in sorted(ens.items())]
+        tech.append("")
+    if fields_seen:
+        tech += ["Op-level JSON keys recovered from op-object "
+                 "methods: %s"
+                 % ", ".join("`%s`" % _e(x) for x in fields_seen), ""]
+    if msgs_seen:
+        tech += ["Validation / log strings recovered from "
+                 "op-object methods:", ""]
+        tech += ["- `%s`" % _e(m_) for m_ in msgs_seen]
+        tech.append("")
+    if paths_seen:
+        tech += ["Route fragments these ops build or forward to: "
+                 "%s" % ", ".join("`%s`" % _e(p)
+                                  for p in paths_seen), ""]
+    fv = r.get("field_vocab") or []
+    if fv:
+        tech += ["Field vocabulary (request/response keys seen in "
+                 "the resource's client tables, not yet bound to "
+                 "individual ops): %s"
+                 % ", ".join("`%s`" % _e(x) for x in fv), ""]
+    if tech:
+        _details(out, tech, "Recovered vocabulary & internals")
 
 
 def render_muse(m):
+    files = {}
     mu = m.muse or {}
     out = ["# muse API (v1)", ""]
     _pt_add(m, out, "muse", "intro")
@@ -1219,9 +1501,51 @@ def render_muse(m):
                 _pt_add(m, out, "muse", k)
                 _details(out, ["**%s.** %s" % (k.replace("_", " "),
                                               _e(pipe[k]))])
+    ec = mu.get("event_channels") or {}
+    if ec:
+        out += ["## Event channels", ""]
+        _pt_add(m, out, "muse", "event_channels")
+        if ec.get("note"):
+            out.append(_para(ec["note"]))
+            out.append("")
+        ch = ec.get("channels") or []
+        if ch:
+            out.append(", ".join("`%s`" % _e(c) for c in ch))
+            out.append("")
+    res = mu.get("resources") or {}
+    groups = _muse_resource_groups(res)
+    res_page = {}
+    for n, r in res.items():
+        for slug, _, members in groups:
+            if any(mn == n for mn, _ in members):
+                res_page[n] = slug
+                break
+    out += ["## Resources", ""]
+    _pt_add(m, out, "muse", "resources")
+    rows = [["[`%s`](resources/%s.md#%s)"
+             % (n, res_page.get(n, "other"), n.lower()),
+             str(r.get("op_count") or 0),
+             ", ".join(r.get("methods") or []),
+             _e(", ".join(r.get("scopes") or []))]
+            for n, r in sorted(res.items())]
+    _table(out, ["Resource", "Ops", "Methods", "Scope params"], rows)
+    out += ["Resource pages, grouped by function:", ""]
+    out += ["- [%s](resources/%s.md)" % (_e(title), slug)
+            for slug, title, _ in groups]
+    out.append("")
+    if mu.get("unresolved"):
+        out += ["## Unresolved", ""]
+        _pt_add(m, out, "muse", "unresolved")
+        _details(out, [_para(mu["unresolved"])])
+    if mu.get("evidence"):
+        out.append("")
+        _ev_details([genmodel.Evidence.from_raw(e)
+                     for e in mu["evidence"]], out)
+    files["muse/index.md"] = "\n".join(out)
+
     ob = mu.get("outbound") or {}
     if ob:
-        out += ["## Outbound (player as muse client)", ""]
+        out = ["# Outbound: player as muse client", ""]
         _pt_add(m, out, "muse", "outbound")
         if ob.get("note"):
             _details(out, [_para(ob["note"])])
@@ -1248,142 +1572,19 @@ def render_muse(m):
                     for n, fs in sorted(fv.items())]
             _table(out, ["Namespace", "Request fields"], rows)
             out.append("")
-    ec = mu.get("event_channels") or {}
-    if ec:
-        out += ["## Event channels", ""]
-        _pt_add(m, out, "muse", "event_channels")
-        if ec.get("note"):
-            out.append(_para(ec["note"]))
+        files["muse/outbound.md"] = "\n".join(out)
+
+    fam_text = ((getattr(m, "pages_client", {}) or {}).get("muse")
+                or {}).get("family_text") or {}
+    for slug, title, members in groups:
+        out = ["# muse resources: %s" % title, ""]
+        if fam_text.get(slug):
+            out.append(_para(fam_text[slug]))
             out.append("")
-        ch = ec.get("channels") or []
-        if ch:
-            out.append(", ".join("`%s`" % _e(c) for c in ch))
-            out.append("")
-    res = mu.get("resources") or {}
-    out += ["## Resources", ""]
-    _pt_add(m, out, "muse", "resources")
-    rows = [["`%s`" % n, str(r.get("op_count") or 0),
-             ", ".join(r.get("methods") or []),
-             _e(", ".join(r.get("scopes") or []))]
-            for n, r in sorted(res.items())]
-    _table(out, ["Resource", "Ops", "Methods", "Scope params"], rows)
-    for n, r in sorted(res.items()):
-        out += ["## `%s`" % n, ""]
-        if r.get("client_summary"):
-            out.append(_para(r["client_summary"]))
-            out.append("")
-        rows = []
-        seen = set()
-        fields_seen = []
-        msgs_seen = []
-        paths_seen = []
-        for op in r.get("ops") or []:
-            key = (op["method"], op["path"], op["verb"])
-            if key in seen:
-                continue
-            seen.add(key)
-            impl = op.get("impl") or {}
-            if impl.get("execs"):
-                execs = " ".join("`%s`" % x for x in impl["execs"])
-            elif impl.get("kind") == "outbound_registry":
-                execs = "outbound-fwd"
-            elif impl.get("kind") == "resource_block":
-                execs = "resource-block"
-            else:
-                execs = "none"
-            if op.get("desc_execs"):
-                execs += " desc:`%s`" % "` `".join(
-                    x[2:] for x in op["desc_execs"])
-            for f_ in op.get("op_fields") or []:
-                if f_ not in fields_seen:
-                    fields_seen.append(f_)
-            for m_ in op.get("op_msgs") or []:
-                if m_ not in msgs_seen:
-                    msgs_seen.append(m_)
-            for p_ in op.get("op_paths") or []:
-                if p_ not in paths_seen:
-                    paths_seen.append(p_)
-            prm = op.get("op_params") or []
-            prm_txt = ", ".join("`%s`" % _e(n) for _, n in prm) if prm else "none"
-            specs = []
-            for s_ in op.get("spec") or []:
-                for a_ in s_.get("accessors") or []:
-                    mem = [x for x in (a_.get("members") or []) if x]
-                    pairs = []
-                    it = 0
-                    while it + 1 < len(mem):
-                        pairs.append("`%s`:`%s`" % (_e(mem[it]), _e(mem[it + 1])))
-                        it += 2
-                    if it < len(mem):
-                        pairs.append("`%s`" % _e(mem[it]))
-                    specs.append("c%d:%s" % (a_.get("class"), " ".join(pairs)))
-            spec_txt = "<br>".join(specs) if specs else "none"
-            rows.append(["`%s`" % _e(op["method"]),
-                         "`%s`" % _e(op["path"]),
-                         "`%s`" % _e(op["verb"]),
-                         "`%s`" % _e(op["subparam"] or "-"),
-                         "`%s`" % _e(op["flags"]),
-                         execs,
-                         prm_txt,
-                         spec_txt])
-        _table(out, ["Method", "Path", "Op", "Trailing param",
-                     "Flags", "Exec (vtable +0x0c)", "Params",
-                     "Spec lists (classId: root, field:type pairs)"], rows)
-        tech = []
-        if r.get("impl_funcs"):
-            tech += ["Resource implementation functions (string-block "
-                     "registrar family): %s"
-                     % ", ".join("`%s`" % f for f in r["impl_funcs"]), ""]
-        if r.get("impl_fields"):
-            tech += ["Field vocabulary recovered from the resource's "
-                     "implementation functions: %s"
-                     % ", ".join("`%s`" % _e(x)
-                                 for x in r["impl_fields"]), ""]
-        if r.get("impl_msgs"):
-            tech += ["Implementation messages:", ""]
-            tech += ["- `%s`" % _e(m_) for m_ in r["impl_msgs"]]
-            tech.append("")
-        ens = r.get("enums") or {}
-        if ens:
-            tech += ["Related enum registrations (proven integer "
-                     "values, see `enum_tables`):", ""]
-            tech += ["- **%s**: %s"
-                     % (_e(enm), ", ".join(
-                         "`%s`=%s" % (_e(s), v)
-                         for s, v in sorted(
-                             mem.items(), key=lambda kv: kv[1])))
-                     for enm, mem in sorted(ens.items())]
-            tech.append("")
-        if fields_seen:
-            tech += ["Op-level JSON keys recovered from op-object "
-                     "methods: %s"
-                     % ", ".join("`%s`" % _e(x) for x in fields_seen), ""]
-        if msgs_seen:
-            tech += ["Validation / log strings recovered from "
-                     "op-object methods:", ""]
-            tech += ["- `%s`" % _e(m_) for m_ in msgs_seen]
-            tech.append("")
-        if paths_seen:
-            tech += ["Route fragments these ops build or forward to: "
-                     "%s" % ", ".join("`%s`" % _e(p)
-                                      for p in paths_seen), ""]
-        fv = r.get("field_vocab") or []
-        if fv:
-            tech += ["Field vocabulary (request/response keys seen in "
-                     "the resource's client tables, not yet bound to "
-                     "individual ops): %s"
-                     % ", ".join("`%s`" % _e(x) for x in fv), ""]
-        if tech:
-            _details(out, tech, "Recovered vocabulary & internals")
-    if mu.get("unresolved"):
-        out += ["## Unresolved", ""]
-        _pt_add(m, out, "muse", "unresolved")
-        _details(out, [_para(mu["unresolved"])])
-    if mu.get("evidence"):
-        out.append("")
-        _ev_details([genmodel.Evidence.from_raw(e)
-                     for e in mu["evidence"]], out)
-    return "\n".join(out)
+        for n, r in members:
+            _muse_resource_body(out, n, r)
+        files["muse/resources/%s.md" % slug] = "\n".join(out)
+    return files
 
 
 def render_availability(m):
@@ -1440,21 +1641,100 @@ def _preview_lines(path, limit=60):
     return lines[:limit], len(lines)
 
 
+def _artifact_cat_slug(cat):
+    return re.sub(r"[^a-z0-9]+", "-", cat.lower()).strip("-")
+
+
+def _artifact_entry(out, rel, e, cat):
+    name = os.path.basename(rel)
+    status = e.get("status")
+    out.append("### `%s`" % name)
+    out.append("")
+    if e.get("friendly"):
+        out.append(_para(e["friendly"]))
+        out.append("")
+
+    fs_path = os.path.join(ROOT, "reference", "public",
+                           "files", rel)
+    # public/files/ is served at the site root; root-absolute
+    # links get the VitePress base prepended automatically
+    link = "/files/" + rel
+    raw_link = link
+    if status == "absent":
+        out.append("*Not shipped in this build; documented because "
+                   "other firmware versions and binary string "
+                   "evidence reference it.*")
+        out.append("")
+    elif status == "missing" or not os.path.isfile(fs_path):
+        out.append("*Listed in the manifest but not found during "
+                   "the last extraction run.*")
+        out.append("")
+    else:
+        kind = e.get("kind") or "binary"
+        if kind == "audio":
+            # custom container defined in .vitepress/config.mts;
+            # emits the <audio> element at render time so no raw
+            # HTML ever sits in the markdown (html rules are off)
+            out.append("::: audio %s" % raw_link)
+            out.append(":::")
+            out.append("")
+        elif kind == "image":
+            out.append('![%s](%s)' % (_e(name), raw_link))
+            out.append("")
+        if e.get("sensitive"):
+            out.append("*Security-sensitive file: it is published "
+                       "firmware data and stays downloadable, but "
+                       "its contents are not previewed inline.*")
+            out.append("")
+        bits = []
+        if kind in ("text",) and not e.get("sensitive"):
+            bits.append("[View](%s)" % link)
+        bits.append("[Download](%s)" % link)
+        bits.append(_fmt_size(e.get("size")))
+        out.append(" · ".join(bits))
+        out.append("")
+        if kind == "text" and not e.get("sensitive"):
+            preview, nlines = _preview_lines(fs_path)
+            if preview:
+                fold = ["First %d of %d lines:"
+                        % (len(preview), nlines), "",
+                        "```"]
+                fold += preview
+                fold.append("```")
+                _details(out, fold, summary="Preview")
+
+    tech = []
+    tech.append("- **Path in image:** `/%s`"
+                % (rel if not rel.startswith("package/")
+                   else rel))
+    tech.append("- **Category:** %s" % cat)
+    if e.get("size") is not None:
+        tech.append("- **Size:** %s (%d bytes)"
+                    % (_fmt_size(e["size"]), e["size"]))
+    if e.get("sha256"):
+        tech.append("- **SHA-256:** `%s`" % e["sha256"])
+    tech.append("")
+    if e.get("technical"):
+        tech += [_para(e["technical"]), ""]
+    _details(out, tech)
+
+
 def render_artifacts(m):
-    """Categorized, downloadable firmware artifact page. The manifest
+    """Categorized, downloadable firmware artifact pages. The manifest
     (docs/artifacts.json) is authored by hand; tools/extract_artifacts.py
-    copies the real files into reference/files/ and fills in size, sha256
-    and kind."""
+    copies the real files into reference/public/files/ and fills in
+    size, sha256 and kind."""
     man_path = os.path.join(ROOT, "docs", "artifacts.json")
     man = json.load(open(man_path))
     cats = man.get("categories") or {}
-    files = man.get("files") or {}
+    entries = man.get("files") or {}
+    files = {}
 
     out = ["# Firmware artifacts", ""]
     _pt_add(m, out, "artifacts", "intro")
-    shipped = [p for p, e in files.items()
+    shipped = [p for p, e in entries.items()
                if e.get("status") in ("shipped", "package")]
-    total = sum(e.get("size") or 0 for p, e in files.items()
+    total = sum(e.get("size") or 0 for p, e in entries.items()
                 if e.get("status") in ("shipped", "package"))
     out.append("Every file below was extracted from the `%s` firmware "
                "image (%d files, %s total). Audio plays in the page, "
@@ -1464,95 +1744,39 @@ def render_artifacts(m):
                "open." % (man.get("rootfs", "firmware"), len(shipped),
                           _fmt_size(total)))
     out.append("")
-
+    rows = []
     for cat, cmeta in cats.items():
-        members = sorted(p for p, e in files.items()
+        members = sorted(p for p, e in entries.items()
                          if e.get("category") == cat)
         if not members:
             continue
-        out.append("## %s" % _e(cmeta.get("title") or cat))
-        out.append("")
+        rows.append(["[%s](%s.md)"
+                     % (_e(cmeta.get("title") or cat),
+                        _artifact_cat_slug(cat)),
+                     str(len(members)),
+                     _fmt_size(sum(e.get("size") or 0
+                                   for e in
+                                   (entries[p] for p in members)))])
+    _table(out, ["Category", "Files", "Total size"], rows)
+    files["artifacts/index.md"] = "\n".join(out)
+
+    for cat, cmeta in cats.items():
+        members = sorted(p for p, e in entries.items()
+                         if e.get("category") == cat)
+        if not members:
+            continue
+        out = ["# Artifacts: %s" % _e(cmeta.get("title") or cat), ""]
         if cmeta.get("friendly"):
             out.append(_para(cmeta["friendly"]))
             out.append("")
         if cmeta.get("technical"):
             _details(out, [_para(cmeta["technical"])])
-
         for rel in members:
-            e = files[rel]
-            name = os.path.basename(rel)
-            status = e.get("status")
-            out.append("### `%s`" % name)
-            out.append("")
-            if e.get("friendly"):
-                out.append(_para(e["friendly"]))
-                out.append("")
-
-            fs_path = os.path.join(ROOT, "reference", "public",
-                                   "files", rel)
-            # public/files/ is served at the site root; root-absolute
-            # links get the VitePress base prepended automatically
-            link = "/files/" + rel
-            raw_link = link
-            if status == "absent":
-                out.append("*Not shipped in this build; documented because "
-                           "other firmware versions and binary string "
-                           "evidence reference it.*")
-                out.append("")
-            elif status == "missing" or not os.path.isfile(fs_path):
-                out.append("*Listed in the manifest but not found during "
-                           "the last extraction run.*")
-                out.append("")
-            else:
-                kind = e.get("kind") or "binary"
-                if kind == "audio":
-                    # custom container defined in .vitepress/config.mts;
-                    # emits the <audio> element at render time so no raw
-                    # HTML ever sits in the markdown (html rules are off)
-                    out.append("::: audio %s" % raw_link)
-                    out.append(":::")
-                    out.append("")
-                elif kind == "image":
-                    out.append('![%s](%s)' % (_e(name), raw_link))
-                    out.append("")
-                if e.get("sensitive"):
-                    out.append("*Security-sensitive file: it is published "
-                               "firmware data and stays downloadable, but "
-                               "its contents are not previewed inline.*")
-                    out.append("")
-                bits = []
-                if kind in ("text",) and not e.get("sensitive"):
-                    bits.append("[View](%s)" % link)
-                bits.append("[Download](%s)" % link)
-                bits.append(_fmt_size(e.get("size")))
-                out.append(" · ".join(bits))
-                out.append("")
-                if kind == "text" and not e.get("sensitive"):
-                    preview, nlines = _preview_lines(fs_path)
-                    if preview:
-                        fold = ["First %d of %d lines:"
-                                % (len(preview), nlines), "",
-                                "```"]
-                        fold += preview
-                        fold.append("```")
-                        _details(out, fold, summary="Preview")
-
-            tech = []
-            tech.append("- **Path in image:** `/%s`"
-                        % (rel if not rel.startswith("package/")
-                           else rel))
-            tech.append("- **Category:** %s" % cat)
-            if e.get("size") is not None:
-                tech.append("- **Size:** %s (%d bytes)"
-                            % (_fmt_size(e["size"]), e["size"]))
-            if e.get("sha256"):
-                tech.append("- **SHA-256:** `%s`" % e["sha256"])
-            tech.append("")
-            if e.get("technical"):
-                tech += [_para(e["technical"]), ""]
-            _details(out, tech)
+            _artifact_entry(out, rel, entries[rel], cat)
         out.append("")
-    return "\n".join(out)
+        files["artifacts/%s.md" % _artifact_cat_slug(cat)] = \
+            "\n".join(out)
+    return files
 
 
 # --------------------------------------------------------------------------
@@ -1597,37 +1821,53 @@ def render_muse_spec_streams(m):
 def render_all(m, outdir):
     files = {"index.md": render_index(m),
              "architecture.md": render_architecture(m),
-             "state-variables.md": render_state_variables(m),
-             "events.md": render_events(m),
-             "errors.md": render_errors(m),
-             "uri-formats.md": render_formats(
+             "firmware-differences.md": render_firmware(m),
+             "soap/index.md": render_soap_index(m),
+             "soap/events.md": render_events(m),
+             "soap/errors.md": render_errors(m),
+             "soap/uri-formats.md": render_formats(
                  m, "uri", "URI formats",
                  "URI scheme grammars recovered from literal tables and "
                  "parser call sites."),
-             "payload-formats.md": render_formats(
+             "soap/payload-formats.md": render_formats(
                  m, "payload", "Payload formats",
                  "Opaque payload/field grammars recovered from sscanf/"
                  "printf templates and parser functions."),
-             "http-api.md": render_http_api(m),
-             "muse-api.md": render_muse(m),
-             "subsystems.md": render_subsystems(m),
-             "firmware-differences.md": render_firmware(m),
-             "availability-matrix.md": render_availability(m)}
-    for rel, fn in (("artifacts.md", render_artifacts),
-                    ("muse_spec_streams.md", render_muse_spec_streams)):
+             "soap/availability-matrix.md": render_availability(m)}
+    files.update(render_state_variables(m))
+    files.update(render_http_api(m))
+    files.update(render_muse(m))
+    files.update(render_subsystems(m))
+    for fn in (render_artifacts, render_muse_spec_streams):
         try:
-            files[rel] = fn(m)
+            out = fn(m)
         except FileNotFoundError:
-            pass
-    svc_dir = os.path.join(outdir, "services")
-    os.makedirs(svc_dir, exist_ok=True)
+            continue
+        if isinstance(out, dict):
+            files.update(out)
+        elif fn is render_muse_spec_streams:
+            files["muse/spec-streams.md"] = out
     for s in m.services:
-        files[os.path.join("services", "%s.md" % s.slug)] = \
+        files[os.path.join("soap", "%s.md" % s.slug)] = \
             render_service(s)
+
     os.makedirs(outdir, exist_ok=True)
+    # drop generated pages from previous layouts so stale files can
+    # never linger in the built site (public/ and dotdirs are kept)
+    for dp, dns, fns in os.walk(outdir):
+        rel_dp = os.path.relpath(dp, outdir)
+        if rel_dp != "." and any(
+                p.startswith(".") or p == "public"
+                for p in rel_dp.split(os.sep)):
+            continue
+        for fn in fns:
+            rel = os.path.normpath(os.path.join(rel_dp, fn))
+            if fn.endswith(".md") and rel not in files:
+                os.remove(os.path.join(dp, fn))
     written = []
     for rel, text in files.items():
         p = os.path.join(outdir, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, "w") as fh:
             fh.write(text if text.endswith("\n") else text + "\n")
         written.append(rel)

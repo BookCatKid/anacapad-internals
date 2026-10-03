@@ -521,8 +521,9 @@ class GenSiteTests(unittest.TestCase):
 
     def test_config_exists_and_discovers_services(self):
         src = open(self.CFG).read()
-        self.assertIn("'..', 'services'", src)
-        self.assertIn("readdirSync(SERVICES_DIR)", src)
+        self.assertIn("dirItems('soap', '/soap'", src)
+        self.assertIn("readdirSync", src)
+        self.assertIn("'soap/state-variables'", src)
 
     def test_config_sets_base_and_search(self):
         src = open(self.CFG).read()

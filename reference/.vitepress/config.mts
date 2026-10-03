@@ -3,58 +3,132 @@ import container from 'markdown-it-container'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-// Page order for the top-level reference pages; anything else in the
-// sidebar is discovered from the filesystem at config-eval time so new
-// generated pages are picked up automatically.
-const PAGE_ORDER: [string, string][] = [
-  ['index', 'Overview'],
-  ['architecture', 'Architecture'],
-  ['availability-matrix', 'Availability matrix'],
-  ['state-variables', 'State variables'],
-  ['events', 'Events'],
-  ['errors', 'Errors'],
-  ['uri-formats', 'URI formats'],
-  ['payload-formats', 'Payload formats'],
-  ['http-api', 'HTTP / non-SOAP'],
-  ['muse-api', 'muse API (v1)'],
-  ['firmware-differences', 'Firmware differences'],
-  ['artifacts', 'Firmware artifacts'],
-  ['muse_spec_streams', 'Muse spec streams'],
-  ['subsystems', 'Subsystems'],
-]
+// The sidebar is discovered from the generated reference tree at
+// config-eval time, so new pages gendocs.py emits are picked up
+// automatically. Labels come from each file's first H1 where possible.
 
-const SERVICES_DIR = join(__dirname, '..', 'services')
+const ROOT = join(__dirname, '..')
 
-function serviceLabel(file: string, slug: string): string {
+function h1Label(file: string, fallback: string): string {
   try {
-    const head = readFileSync(join(SERVICES_DIR, file), 'utf8').slice(0, 4096)
-    const m = head.match(/^#\s+`?([A-Za-z]+)/m)
-    if (m) return m[1]
+    const head = readFileSync(file, 'utf8').slice(0, 4096)
+    const m = head.match(/^#\s+(.+)$/m)
+    if (m) {
+      let t = m[1].trim()
+      // "State variables: `X`" / "muse resources: X" -> use the tail
+      const c = t.indexOf(':')
+      if (c > 0 && c < 40) t = t.slice(c + 1).trim()
+      return t.replace(/^`+|`+$/g, '')
+    }
   } catch {}
-  return slug
+  return fallback
 }
+
+// items for every *.md in a dir (excluding `exclude`); link base is the
+// site path for that dir
+function dirItems(
+  relDir: string,
+  linkBase: string,
+  exclude: Set<string> = new Set(),
+): { text: string; link: string }[] {
+  const abs = join(ROOT, relDir)
+  try {
+    return readdirSync(abs)
+      .filter(f => f.endsWith('.md') && !exclude.has(f.slice(0, -3)))
+      .sort()
+      .map(f => {
+        const slug = f.slice(0, -3)
+        return {
+          text: h1Label(join(abs, f), slug),
+          link: `${linkBase}/${slug}`,
+        }
+      })
+  } catch {
+    return []
+  }
+}
+
+// files inside soap/ that are topic pages rather than service pages
+const SOAP_TOP = new Set([
+  'index', 'events', 'errors', 'uri-formats', 'payload-formats',
+  'availability-matrix', 'state-variables',
+])
 
 const BASE = '/anacapad-internals/'
 
 function buildSidebar() {
-  const pages = PAGE_ORDER
-    .filter(([slug]) => slug !== 'index')
-    .map(([slug, label]) => ({ text: label, link: `/${slug}` }))
-
-  let services: { text: string; link: string }[] = []
-  try {
-    services = readdirSync(SERVICES_DIR)
-      .filter(f => f.endsWith('.md'))
-      .sort()
-      .map(f => {
-        const slug = f.slice(0, -3)
-        return { text: serviceLabel(f, slug), link: `/services/${slug}` }
-      })
-  } catch {}
-
   return [
-    { text: 'Reference', items: pages },
-    { text: 'UPnP services', collapsed: true, items: services },
+    {
+      text: 'Guide',
+      items: [
+        { text: 'Overview', link: '/' },
+        { text: 'Architecture', link: '/architecture' },
+        { text: 'Firmware differences', link: '/firmware-differences' },
+      ],
+    },
+    {
+      text: 'SOAP / UPnP',
+      items: [
+        { text: 'Overview', link: '/soap/' },
+        {
+          text: 'Services',
+          collapsed: true,
+          items: dirItems('soap', '/soap', SOAP_TOP),
+        },
+        {
+          text: 'State variables',
+          collapsed: true,
+          items: [
+            { text: 'Index', link: '/soap/state-variables' },
+            ...dirItems('soap/state-variables',
+                        '/soap/state-variables'),
+          ],
+        },
+        { text: 'Events', link: '/soap/events' },
+        { text: 'Errors', link: '/soap/errors' },
+        { text: 'URI formats', link: '/soap/uri-formats' },
+        { text: 'Payload formats', link: '/soap/payload-formats' },
+        { text: 'Availability matrix', link: '/soap/availability-matrix' },
+      ],
+    },
+    {
+      text: 'muse API (v1)',
+      collapsed: true,
+      items: [
+        { text: 'Overview', link: '/muse/' },
+        { text: 'Outbound client', link: '/muse/outbound' },
+        {
+          text: 'Resources',
+          collapsed: true,
+          items: dirItems('muse/resources', '/muse/resources'),
+        },
+        { text: 'Spec streams', link: '/muse/spec-streams' },
+      ],
+    },
+    {
+      text: 'HTTP layer',
+      collapsed: true,
+      items: [
+        { text: 'Overview', link: '/http/' },
+        ...dirItems('http', '/http', new Set(['index'])),
+      ],
+    },
+    {
+      text: 'Subsystems',
+      collapsed: true,
+      items: [
+        { text: 'Coverage index', link: '/subsystems/' },
+        ...dirItems('subsystems', '/subsystems', new Set(['index'])),
+      ],
+    },
+    {
+      text: 'Firmware artifacts',
+      collapsed: true,
+      items: [
+        { text: 'Index', link: '/artifacts/' },
+        ...dirItems('artifacts', '/artifacts', new Set(['index'])),
+      ],
+    },
   ]
 }
 
@@ -70,8 +144,9 @@ export default defineConfig({
   ignoreDeadLinks: [/^files\//, /^\.\.\/files\//, /^\/files\//],
   themeConfig: {
     nav: [
-      { text: 'Reference', link: '/architecture' },
-      { text: 'Artifacts', link: '/artifacts' },
+      { text: 'SOAP', link: '/soap/' },
+      { text: 'muse', link: '/muse/' },
+      { text: 'Artifacts', link: '/artifacts/' },
       { text: 'Repo', link: 'https://github.com/BookCatKid/anacapad-internals' },
     ],
     sidebar: buildSidebar(),

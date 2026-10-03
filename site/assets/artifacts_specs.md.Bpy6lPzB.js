@@ -1,0 +1,1274 @@
+import{_ as s,o as n,c as t,ag as e}from"./chunks/framework.BXn5fPR3.js";const d=JSON.parse('{"title":"Artifacts: Service specifications and device descriptions (XML)","description":"","frontmatter":{},"headers":[],"relativePath":"artifacts/specs.md","filePath":"artifacts/specs.md"}'),l={name:"artifacts/specs.md"};function p(i,a,o,c,r,g){return n(),t("div",null,[...a[0]||(a[0]=[e(`<h1 id="artifacts-service-specifications-and-device-descriptions-xml" tabindex="-1">Artifacts: Service specifications and device descriptions (XML) <a class="header-anchor" href="#artifacts-service-specifications-and-device-descriptions-xml" aria-label="Permalink to &quot;Artifacts: Service specifications and device descriptions (XML)&quot;">​</a></h1><p>These XML files are the speaker&#39;s public contract. They describe, in a standard format, every service the player offers, every command each service accepts, and every value it reports. Apps and other software read these files straight off the speaker to learn what it can do before they ever send it a command.</p><details class="details custom-block"><summary>Technical details</summary><p>UPnP SCPD documents plus the #TOKEN#-templated device description, served verbatim from /opt/htdocs/xml over the device&#39;s embedded web server.</p></details><h3 id="zpmetricsconfigv2-xml" tabindex="-1"><code>zpMetricsConfigV2.xml</code> <a class="header-anchor" href="#zpmetricsconfigv2-xml" aria-label="Permalink to &quot;\`zpMetricsConfigV2.xml\`&quot;">​</a></h3><p>The telemetry rulebook: a 104-entry list of exactly which usage events the speaker is even capable of reporting to Sonos, with almost all of them switched off by default. It is the clearest evidence of what the player could measure about your usage, and proof that most of it is not collected unless enabled.</p><p><a href="/anacapad-internals/files/opt/conf/zpMetricsConfigV2.xml">View</a> · <a href="/anacapad-internals/files/opt/conf/zpMetricsConfigV2.xml">Download</a> · 7.8 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 109 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot;?&gt;</span></span>
+<span class="line"><span>&lt;MetricsConfig version=&quot;1.0&quot; rev=&quot;13&quot; expires=&quot;0&quot; enabled=&quot;ON&quot; defaultUploader=&quot;&quot; optOutExemptUploader=&quot;optOutExempt&quot;&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.device.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.device.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.favorites.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.favorites.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.groupVolume.getVolume&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.groupVolume.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.groupVolume.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playback.getPlaybackStatus&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playback.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playback.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playbackMetadata.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playbackMetadata.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playbackSession.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playbackSession.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playerVolume.duck&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playerVolume.getVolume&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playerVolume.subscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playerVolume.unduck&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;muse.playerVolume.unsubscribe&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;nowplaying.playReport&quot; uploader-ref=&quot;optOutExempt&quot; level=&quot;ON&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetHouseholdTimeAtStamp&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetMute&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetPositionInfo&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetRemainingSleepTimerDuration&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetRunningAlarmProperties&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetString&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetTimeZoneAndRule&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetTransportInfo&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetTransportSettings&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.ReportUnresponsiveDevice&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.SetMute&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.SetRoomCalibrationStatus&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.ReportAlarmStartedRunning&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.reportPlaySeconds&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;zpAM.maintenance&quot; uploader-ref=&quot;&quot; level=&quot;ON&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;!-- Events added since 2023 R1 --&gt;</span></span>
+<span class="line"><span>    &lt;!-- DO NOT CHANGE THIS ORDER, as old (S1) players only load up to a certain point --&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.CreateObject&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetAlbumArtistDisplayOption&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetAllPrefixLocations&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetAudioInputAttributes&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetBass&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetButtonState&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetCrossfadeMode&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetDailyIndexRefreshTime&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.getDeviceAuthToken&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.getDeviceLinkCode&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetEQ&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.getExtendedMetadata&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetHeadphoneConnected&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.getLastUpdate&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetLEDFeedbackState&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetLEDState&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetLineInLevel&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetLoudness&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.GetMediaInfo&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.getMediaMetadata&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;Category name=&quot;upnp.getMetadata&quot; uploader-ref=&quot;&quot; level=&quot;OFF&quot;/&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/conf/zpMetricsConfigV2.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 7.8 KB (8015 bytes)</li><li><strong>SHA-256:</strong> <code>22632157b4ff286933f1792da55a19e673a1361d9b597e5d0c804041632ba7ab</code></li></ul><p>Metrics category table, revision 13. Positionally parsed for S1-era compatibility (the file carries a comment warning not to reorder it). Three categories default ON; the rest are opt-in. Referenced by telemetry_submission and the shipped_config record.</p></details><h3 id="s9-array-xml" tabindex="-1"><code>S9_array.xml</code> <a class="header-anchor" href="#s9-array-xml" aria-label="Permalink to &quot;\`S9_array.xml\`&quot;">​</a></h3><p>The Playbar&#39;s speaker-array description: which physical drivers exist, where they sit, and how they are wired. The audio processing reads this to know what hardware it is mixing sound for.</p><p><a href="/anacapad-internals/files/opt/dsp/S9_array.xml">View</a> · <a href="/anacapad-internals/files/opt/dsp/S9_array.xml">Download</a> · 13.5 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 72 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;arrayDefinition version=&quot;1.0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;date&gt;05-Feb-2016&lt;/date&gt;</span></span>
+<span class="line"><span>  &lt;config entry=&quot;0&quot;&gt;</span></span>
+<span class="line"><span>    &lt;driverset name=&quot;woofer&quot;&gt;</span></span>
+<span class="line"><span>      &lt;numChan&gt;6&lt;/numChan&gt;</span></span>
+<span class="line"><span>      &lt;numTaps&gt;16&lt;/numTaps&gt;</span></span>
+<span class="line"><span>      &lt;description&gt;Production_H_design123&lt;/description&gt;</span></span>
+<span class="line"><span>      &lt;digest&gt;tempmd5&lt;/digest&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayLeftLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0x3D881B03,0x3DE1E31C,0x3D9D7115,0xBDB021AD,0xBE74C3B1,0xBDDCCABB,0x3DA27639,0x3D22C0AC,0xBCF43317,0x3DA5DAE6,0x3DA00DBF,0xBCB68795,0x3D22ABD5,0x3B5A72EC,0xBCDBB4D5,0xBB5F525E,0xBD31E165,0x3D86D6B1,0x3D469DCC,0x3C982FEF,0xBE2CC9C2,0xBE0A520D,0x3DD1AF74,0x3D6CFDF5,0xBD670BED,0xBBA89B3D,0x3DF2E9BA,0xBBCE717B,0xBCE8829C,0x3D895248,0xBD4739F7,0xBB02EFA0,0xBC21CACF,0xBD69277D,0x3D5FFD41,0x3D44A280,0x3CAB5D51,0xBDC97318,0xBE36C4E0,0x3C4CA330,0x3E3B34AB,0x3DA03AFC,0xBDD56BD7,0x3D0E29FE,0x3D0D4C55,0xBDFAE22C,0x3D6C31DD,0xBBC0AE2F,0xBD03E5B0,0x3D8DBED3,0xBD513B3C,0x3D395C47,0xBD5DD5A4,0xBE31F6B8,0xBE17F511,0x3E0105B0,0x3DFB3E59,0xBDAD75F2,0x3DF668BC,0x3D97CB19,0xBDA91608,0x3D1A3985,0xBD605E60,0xBCE01EE3,0x3D0B2384,0xBCDA14F2,0x3CC1F136,0xBC1D16D0,0xBD19AEF6,0xBD0CB3C3,0xBE40DD06,0xBD3BE4D6,0x3E498890,0xBC5EA609,0xBCE96C2A,0x3DC315AE,0xBC7D8F9C,0x3C331849,0x3D1FB3E2,0xBD47F8F6,0xBB43159F,0xBBFDB628,0xBD0C62CF,0x3CA43079,0xBB89C6E2,0xBDA8CE74,0xBE26C3E1,0x3D8C5DB1,0x3E065E14,0xBD18BEAF,0x3D2275AC,0x3D295F18,0xBD4043EE,0x3CEE0DDD,0xBC0F9EAE,0xBD0A5EC0,0x3D00AA8E,0xBC965F09,0xBB4C3C97,0xBB90876C,0xBD03535D,0x3C3C43B1&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;44,33,8,14,0,0&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayRightLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0xBDA8CE74,0xBE26C3E1,0x3D8C5DB1,0x3E065E14,0xBD18BEAF,0x3D2275AC,0x3D295F18,0xBD4043EE,0x3CEE0DDD,0xBC0F9EAE,0xBD0A5EC0,0x3D00AA8E,0xBC965F09,0xBB4C3C97,0xBB90876C,0xBD03535D,0x3C3C43B1,0xBD19AEF6,0xBD0CB3C3,0xBE40DD06,0xBD3BE4D6,0x3E498890,0xBC5EA609,0xBCE96C2A,0x3DC315AE,0xBC7D8F9C,0x3C331849,0x3D1FB3E2,0xBD47F8F6,0xBB43159F,0xBBFDB628,0xBD0C62CF,0x3CA43079,0xBB89C6E2,0x3D395C47,0xBD5DD5A4,0xBE31F6B8,0xBE17F511,0x3E0105B0,0x3DFB3E59,0xBDAD75F2,0x3DF668BC,0x3D97CB19,0xBDA91608,0x3D1A3985,0xBD605E60,0xBCE01EE3,0x3D0B2384,0xBCDA14F2,0x3CC1F136,0xBC1D16D0,0x3D5FFD41,0x3D44A280,0x3CAB5D51,0xBDC97318,0xBE36C4E0,0x3C4CA330,0x3E3B34AB,0x3DA03AFC,0xBDD56BD7,0x3D0E29FE,0x3D0D4C55,0xBDFAE22C,0x3D6C31DD,0xBBC0AE2F,0xBD03E5B0,0x3D8DBED3,0xBD513B3C,0x3D86D6B1,0x3D469DCC,0x3C982FEF,0xBE2CC9C2,0xBE0A520D,0x3DD1AF74,0x3D6CFDF5,0xBD670BED,0xBBA89B3D,0x3DF2E9BA,0xBBCE717B,0xBCE8829C,0x3D895248,0xBD4739F7,0xBB02EFA0,0xBC21CACF,0xBD69277D,0x3D881B03,0x3DE1E31C,0x3D9D7115,0xBDB021AD,0xBE74C3B1,0xBDDCCABB,0x3DA27639,0x3D22C0AC,0xBCF43317,0x3DA5DAE6,0x3DA00DBF,0xBCB68795,0x3D22ABD5,0x3B5A72EC,0xBCDBB4D5,0xBB5F525E,0xBD31E165&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;0,0,14,8,33,44&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayCenterLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0x3CE33ADA,0x3D3FED12,0x3D299E2C,0xBB4672D7,0xBD4D1B04,0xBD1EA43B,0xBC8E0841,0xBBD55477,0x3C8CAD30,0x3CDED141,0x3C04E61A,0x3CA98045,0x3C8423F9,0xBCC28CDE,0xBC8F5E4E,0xBC624FC6,0xBC4F9DDB,0x3C5BC6F8,0x3B4FCE4D,0xBC803F23,0xBD8D9E18,0xBD3B4FA7,0x3D17ADDE,0x3D8DB852,0x3D1650A5,0x3C1020D4,0xBC862654,0xBD1A946F,0xBC8FFB66,0xBD07D4DF,0x3BE2D706,0x3CA9FCB4,0x3BFE4EA7,0x3CEA256A,0x3E020AB8,0xBE823A69,0xBEF6CB1A,0x3D8CA807,0x3EC6E6F9,0xBDBB1EC7,0x3E5D29FA,0x3D9F4F8B,0xBE265AC2,0x3DC224C3,0xBE778C1A,0x3C201D65,0xBD9ADD1B,0xBCB0A77F,0x3E0FDB95,0x3C8B78DA,0x3E11EEF1,0x3D0F5647,0xBD94C632,0xBE6FC4F7,0xBDA36246,0x3E39B97C,0x3DBF4C05,0x3D6AC31E,0x3DB8C360,0xBD654862,0xBD5E22BA,0xBD8B9E7E,0xBD9C1B7B,0xBADFC78C,0x3C01357E,0x3D4E0220,0x3D72AACB,0x3CF9E5AA,0x3BA288D6,0xBD41B92D,0xBD6B3F78,0x3BF815F1,0x3D00339B,0x3D874C2C,0x3D4582C8,0xBC865E1E,0xBD0703CE,0xBD2B8A5E,0xBD02EBE8,0xBC381434,0x3CA19770,0x3CC379CC,0x3CBAB215,0x3CA2B986,0xBABEDDFB,0x3D15317B,0x3D24B8BD,0x3C40E6CB,0xBC42024D,0xBC148991,0xBD09FDB4,0xBD1F53F8,0x3A630A59,0x3B00E9D9,0x3C363DDB,0x3D0EA5A4,0x3D04E141,0x3C9068EE,0xBC947E7E,0xBCCB243D,0xBCCE4195,0xBCE8348F&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;0,19,63,54,49,19&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>    &lt;/driverset&gt;</span></span>
+<span class="line"><span>  &lt;/config&gt;</span></span>
+<span class="line"><span>  &lt;config entry=&quot;1&quot;&gt;</span></span>
+<span class="line"><span>    &lt;driverset name=&quot;woofer&quot;&gt;</span></span>
+<span class="line"><span>      &lt;numChan&gt;6&lt;/numChan&gt;</span></span>
+<span class="line"><span>      &lt;numTaps&gt;16&lt;/numTaps&gt;</span></span>
+<span class="line"><span>      &lt;description&gt;Production_VA_design123&lt;/description&gt;</span></span>
+<span class="line"><span>      &lt;digest&gt;tempmd5&lt;/digest&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayLeftLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0x3D881B03,0x3DE1E31C,0x3D9D7115,0xBDB021AD,0xBE74C3B1,0xBDDCCABB,0x3DA27639,0x3D22C0AC,0xBCF43317,0x3DA5DAE6,0x3DA00DBF,0xBCB68795,0x3D22ABD5,0x3B5A72EC,0xBCDBB4D5,0xBB5F525E,0xBD31E165,0x3D86D6B1,0x3D469DCC,0x3C982FEF,0xBE2CC9C2,0xBE0A520D,0x3DD1AF74,0x3D6CFDF5,0xBD670BED,0xBBA89B3D,0x3DF2E9BA,0xBBCE717B,0xBCE8829C,0x3D895248,0xBD4739F7,0xBB02EFA0,0xBC21CACF,0xBD69277D,0x3D5FFD41,0x3D44A280,0x3CAB5D51,0xBDC97318,0xBE36C4E0,0x3C4CA330,0x3E3B34AB,0x3DA03AFC,0xBDD56BD7,0x3D0E29FE,0x3D0D4C55,0xBDFAE22C,0x3D6C31DD,0xBBC0AE2F,0xBD03E5B0,0x3D8DBED3,0xBD513B3C,0x3D395C47,0xBD5DD5A4,0xBE31F6B8,0xBE17F511,0x3E0105B0,0x3DFB3E59,0xBDAD75F2,0x3DF668BC,0x3D97CB19,0xBDA91608,0x3D1A3985,0xBD605E60,0xBCE01EE3,0x3D0B2384,0xBCDA14F2,0x3CC1F136,0xBC1D16D0,0xBD19AEF6,0xBD0CB3C3,0xBE40DD06,0xBD3BE4D6,0x3E498890,0xBC5EA609,0xBCE96C2A,0x3DC315AE,0xBC7D8F9C,0x3C331849,0x3D1FB3E2,0xBD47F8F6,0xBB43159F,0xBBFDB628,0xBD0C62CF,0x3CA43079,0xBB89C6E2,0xBDA8CE74,0xBE26C3E1,0x3D8C5DB1,0x3E065E14,0xBD18BEAF,0x3D2275AC,0x3D295F18,0xBD4043EE,0x3CEE0DDD,0xBC0F9EAE,0xBD0A5EC0,0x3D00AA8E,0xBC965F09,0xBB4C3C97,0xBB90876C,0xBD03535D,0x3C3C43B1&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;44,33,8,14,0,0&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayRightLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0xBDA8CE74,0xBE26C3E1,0x3D8C5DB1,0x3E065E14,0xBD18BEAF,0x3D2275AC,0x3D295F18,0xBD4043EE,0x3CEE0DDD,0xBC0F9EAE,0xBD0A5EC0,0x3D00AA8E,0xBC965F09,0xBB4C3C97,0xBB90876C,0xBD03535D,0x3C3C43B1,0xBD19AEF6,0xBD0CB3C3,0xBE40DD06,0xBD3BE4D6,0x3E498890,0xBC5EA609,0xBCE96C2A,0x3DC315AE,0xBC7D8F9C,0x3C331849,0x3D1FB3E2,0xBD47F8F6,0xBB43159F,0xBBFDB628,0xBD0C62CF,0x3CA43079,0xBB89C6E2,0x3D395C47,0xBD5DD5A4,0xBE31F6B8,0xBE17F511,0x3E0105B0,0x3DFB3E59,0xBDAD75F2,0x3DF668BC,0x3D97CB19,0xBDA91608,0x3D1A3985,0xBD605E60,0xBCE01EE3,0x3D0B2384,0xBCDA14F2,0x3CC1F136,0xBC1D16D0,0x3D5FFD41,0x3D44A280,0x3CAB5D51,0xBDC97318,0xBE36C4E0,0x3C4CA330,0x3E3B34AB,0x3DA03AFC,0xBDD56BD7,0x3D0E29FE,0x3D0D4C55,0xBDFAE22C,0x3D6C31DD,0xBBC0AE2F,0xBD03E5B0,0x3D8DBED3,0xBD513B3C,0x3D86D6B1,0x3D469DCC,0x3C982FEF,0xBE2CC9C2,0xBE0A520D,0x3DD1AF74,0x3D6CFDF5,0xBD670BED,0xBBA89B3D,0x3DF2E9BA,0xBBCE717B,0xBCE8829C,0x3D895248,0xBD4739F7,0xBB02EFA0,0xBC21CACF,0xBD69277D,0x3D881B03,0x3DE1E31C,0x3D9D7115,0xBDB021AD,0xBE74C3B1,0xBDDCCABB,0x3DA27639,0x3D22C0AC,0xBCF43317,0x3DA5DAE6,0x3DA00DBF,0xBCB68795,0x3D22ABD5,0x3B5A72EC,0xBCDBB4D5,0xBB5F525E,0xBD31E165&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;0,0,14,8,33,44&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayCenterLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0x3CE33ADA,0x3D3FED12,0x3D299E2C,0xBB4672D7,0xBD4D1B04,0xBD1EA43B,0xBC8E0841,0xBBD55477,0x3C8CAD30,0x3CDED141,0x3C04E61A,0x3CA98045,0x3C8423F9,0xBCC28CDE,0xBC8F5E4E,0xBC624FC6,0xBC4F9DDB,0x3C5BC6F8,0x3B4FCE4D,0xBC803F23,0xBD8D9E18,0xBD3B4FA7,0x3D17ADDE,0x3D8DB852,0x3D1650A5,0x3C1020D4,0xBC862654,0xBD1A946F,0xBC8FFB66,0xBD07D4DF,0x3BE2D706,0x3CA9FCB4,0x3BFE4EA7,0x3CEA256A,0x3E020AB8,0xBE823A69,0xBEF6CB1A,0x3D8CA807,0x3EC6E6F9,0xBDBB1EC7,0x3E5D29FA,0x3D9F4F8B,0xBE265AC2,0x3DC224C3,0xBE778C1A,0x3C201D65,0xBD9ADD1B,0xBCB0A77F,0x3E0FDB95,0x3C8B78DA,0x3E11EEF1,0x3D0F5647,0xBD94C632,0xBE6FC4F7,0xBDA36246,0x3E39B97C,0x3DBF4C05,0x3D6AC31E,0x3DB8C360,0xBD654862,0xBD5E22BA,0xBD8B9E7E,0xBD9C1B7B,0xBADFC78C,0x3C01357E,0x3D4E0220,0x3D72AACB,0x3CF9E5AA,0x3BA288D6,0xBD41B92D,0xBD6B3F78,0x3BF815F1,0x3D00339B,0x3D874C2C,0x3D4582C8,0xBC865E1E,0xBD0703CE,0xBD2B8A5E,0xBD02EBE8,0xBC381434,0x3CA19770,0x3CC379CC,0x3CBAB215,0x3CA2B986,0xBABEDDFB,0x3D15317B,0x3D24B8BD,0x3C40E6CB,0xBC42024D,0xBC148991,0xBD09FDB4,0xBD1F53F8,0x3A630A59,0x3B00E9D9,0x3C363DDB,0x3D0EA5A4,0x3D04E141,0x3C9068EE,0xBC947E7E,0xBCCB243D,0xBCCE4195,0xBCE8348F&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215,0xBF6E6215&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;0,19,63,54,49,19&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>    &lt;/driverset&gt;</span></span>
+<span class="line"><span>  &lt;/config&gt;</span></span>
+<span class="line"><span>  &lt;config entry=&quot;2&quot;&gt;</span></span>
+<span class="line"><span>    &lt;driverset name=&quot;woofer&quot;&gt;</span></span>
+<span class="line"><span>      &lt;numChan&gt;6&lt;/numChan&gt;</span></span>
+<span class="line"><span>      &lt;numTaps&gt;16&lt;/numTaps&gt;</span></span>
+<span class="line"><span>      &lt;description&gt;Production_VB_design123&lt;/description&gt;</span></span>
+<span class="line"><span>      &lt;digest&gt;tempmd5&lt;/digest&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayLeftLows&quot;&gt;</span></span>
+<span class="line"><span>        &lt;weights&gt;0x3D881B03,0x3DE1E31C,0x3D9D7115,0xBDB021AD,0xBE74C3B1,0xBDDCCABB,0x3DA27639,0x3D22C0AC,0xBCF43317,0x3DA5DAE6,0x3DA00DBF,0xBCB68795,0x3D22ABD5,0x3B5A72EC,0xBCDBB4D5,0xBB5F525E,0xBD31E165,0x3D86D6B1,0x3D469DCC,0x3C982FEF,0xBE2CC9C2,0xBE0A520D,0x3DD1AF74,0x3D6CFDF5,0xBD670BED,0xBBA89B3D,0x3DF2E9BA,0xBBCE717B,0xBCE8829C,0x3D895248,0xBD4739F7,0xBB02EFA0,0xBC21CACF,0xBD69277D,0x3D5FFD41,0x3D44A280,0x3CAB5D51,0xBDC97318,0xBE36C4E0,0x3C4CA330,0x3E3B34AB,0x3DA03AFC,0xBDD56BD7,0x3D0E29FE,0x3D0D4C55,0xBDFAE22C,0x3D6C31DD,0xBBC0AE2F,0xBD03E5B0,0x3D8DBED3,0xBD513B3C,0x3D395C47,0xBD5DD5A4,0xBE31F6B8,0xBE17F511,0x3E0105B0,0x3DFB3E59,0xBDAD75F2,0x3DF668BC,0x3D97CB19,0xBDA91608,0x3D1A3985,0xBD605E60,0xBCE01EE3,0x3D0B2384,0xBCDA14F2,0x3CC1F136,0xBC1D16D0,0xBD19AEF6,0xBD0CB3C3,0xBE40DD06,0xBD3BE4D6,0x3E498890,0xBC5EA609,0xBCE96C2A,0x3DC315AE,0xBC7D8F9C,0x3C331849,0x3D1FB3E2,0xBD47F8F6,0xBB43159F,0xBBFDB628,0xBD0C62CF,0x3CA43079,0xBB89C6E2,0xBDA8CE74,0xBE26C3E1,0x3D8C5DB1,0x3E065E14,0xBD18BEAF,0x3D2275AC,0x3D295F18,0xBD4043EE,0x3CEE0DDD,0xBC0F9EAE,0xBD0A5EC0,0x3D00AA8E,0xBC965F09,0xBB4C3C97,0xBB90876C,0xBD03535D,0x3C3C43B1&lt;/weights&gt;</span></span>
+<span class="line"><span>        &lt;alphas&gt;0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5,0xBF671FA5&lt;/alphas&gt;</span></span>
+<span class="line"><span>        &lt;delays&gt;44,33,8,14,0,0&lt;/delays&gt;</span></span>
+<span class="line"><span>      &lt;/arrayDef&gt;</span></span>
+<span class="line"><span>      &lt;arrayDef name=&quot;ArrayRightLows&quot;&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/dsp/S9_array.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 13.5 KB (13775 bytes)</li><li><strong>SHA-256:</strong> <code>9f918ed4a9ea9d584af2e72d5d9e61083a482fa55bf73b98bd02ac8841758e46</code></li></ul><p>Per-model driver/array map for model S9 consumed by the DSP configuration layer. Sister entries exist for other models (the S39/S41 variants referenced in dsp_files are not shipped here).</p></details><h3 id="avtransport1-xml" tabindex="-1"><code>AVTransport1.xml</code> <a class="header-anchor" href="#avtransport1-xml" aria-label="Permalink to &quot;\`AVTransport1.xml\`&quot;">​</a></h3><p>The official contract for the AVTransport service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/AVTransport1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/AVTransport1.xml">Download</a> · 51.3 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 1537 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TransportState&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;STOPPED&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;PLAYING&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;PAUSED_PLAYBACK&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;TRANSITIONING&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TransportStatus&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TransportErrorDescription&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TransportErrorURI&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TransportErrorHttpCode&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TransportErrorHttpHeaders&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;PlaybackStorageMedium&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;NONE&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;NETWORK&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;RecordStorageMedium&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;NONE&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;PossiblePlaybackStorageMedia&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;PossibleRecordStorageMedia&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/AVTransport1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 51.3 KB (52535 bytes)</li><li><strong>SHA-256:</strong> <code>37b60a5577dbc75d12d11574e6cfbfec0a8442363fb1590ebd3fa147df14d84d</code></li></ul><p>SCPD (Service Control Protocol Description) for AVTransport1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="alarmclock1-xml" tabindex="-1"><code>AlarmClock1.xml</code> <a class="header-anchor" href="#alarmclock1-xml" aria-label="Permalink to &quot;\`AlarmClock1.xml\`&quot;">​</a></h3><p>The official contract for the AlarmClock service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/AlarmClock1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/AlarmClock1.xml">Download</a> · 14.5 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 447 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ISO8601Time&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Recurrence&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;ONCE&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;WEEKDAYS&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;WEEKENDS&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;DAILY&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmList&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmEnabled&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmProgramURI&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmProgramMetaData&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmPlayMode&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;NORMAL&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;REPEAT_ALL&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;SHUFFLE_NOREPEAT&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;SHUFFLE&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>      &lt;defaultValue&gt;NORMAL&lt;/defaultValue&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmVolume&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui2&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlarmIncludeLinkedZones&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/AlarmClock1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 14.5 KB (14871 bytes)</li><li><strong>SHA-256:</strong> <code>548d73b396023dfb1bc1125cf195ff224dda63563f012a6ab43af38e9d1d0387</code></li></ul><p>SCPD (Service Control Protocol Description) for AlarmClock1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="audioin1-xml" tabindex="-1"><code>AudioIn1.xml</code> <a class="header-anchor" href="#audioin1-xml" aria-label="Permalink to &quot;\`AudioIn1.xml\`&quot;">​</a></h3><p>The official contract for the AudioIn service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/AudioIn1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/AudioIn1.xml">Download</a> · 4.2 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 137 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_MemberID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_TransportSettings&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;AudioInputName&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Icon&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;LineInConnected&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;LeftLineInLevel&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;RightLineInLevel&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ObjectID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Playing&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;StartTransmissionToGroup&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;ObjectID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_ObjectID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;CoordinatorID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_MemberID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;CurrentTransportSettings&lt;/name&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/AudioIn1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 4.2 KB (4282 bytes)</li><li><strong>SHA-256:</strong> <code>86b16d72f97cf9acd2838755c2fa2e1316e64328eb5b0a59618779f7d9bf9b2a</code></li></ul><p>SCPD (Service Control Protocol Description) for AudioIn1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="connectionmanager1-xml" tabindex="-1"><code>ConnectionManager1.xml</code> <a class="header-anchor" href="#connectionmanager1-xml" aria-label="Permalink to &quot;\`ConnectionManager1.xml\`&quot;">​</a></h3><p>The official contract for the ConnectionManager service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/ConnectionManager1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/ConnectionManager1.xml">Download</a> · 4.3 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 132 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SourceProtocolInfo&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SinkProtocolInfo&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;CurrentConnectionIDs&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ConnectionStatus&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;OK&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;ContentFormatMismatch&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;InsufficientBandwidth&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;UnreliableChannel&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Unknown&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ConnectionManager&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Direction&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Input&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Output&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ProtocolInfo&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ConnectionID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AVTransportID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_RcsID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/ConnectionManager1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 4.3 KB (4410 bytes)</li><li><strong>SHA-256:</strong> <code>e83cb407f88ee426584e81b72ec0cf6f81c9f7cc93d1fe0c781a76050e999c9f</code></li></ul><p>SCPD (Service Control Protocol Description) for ConnectionManager1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="contentdirectory1-xml" tabindex="-1"><code>ContentDirectory1.xml</code> <a class="header-anchor" href="#contentdirectory1-xml" aria-label="Permalink to &quot;\`ContentDirectory1.xml\`&quot;">​</a></h3><p>The official contract for the ContentDirectory service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/ContentDirectory1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/ContentDirectory1.xml">Download</a> · 12.1 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 387 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ObjectID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Result&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_SearchCriteria&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_BrowseFlag&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;BrowseMetadata&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;BrowseDirectChildren&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Filter&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_SortCriteria&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Prefix&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Index&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Count&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_UpdateID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_TagValueList&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AlbumArtistDisplayOption&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/ContentDirectory1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 12.1 KB (12412 bytes)</li><li><strong>SHA-256:</strong> <code>da7fba3dbe2a6e1b2a5800d405acd9224ccc21b670486ba5b799da2b94d2759d</code></li></ul><p>SCPD (Service Control Protocol Description) for ContentDirectory1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="deviceproperties1-xml" tabindex="-1"><code>DeviceProperties1.xml</code> <a class="header-anchor" href="#deviceproperties1-xml" aria-label="Permalink to &quot;\`DeviceProperties1.xml\`&quot;">​</a></h3><p>The official contract for the DeviceProperties service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/DeviceProperties1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/DeviceProperties1.xml">Download</a> · 21.2 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 688 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;HouseholdID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SettingsReplicationState&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ZoneName&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Icon&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Configuration&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TargetRoomName&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Invisible&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;IsZoneBridge&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;AirPlayEnabled&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SupportsAudioIn&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SupportsAudioClip&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;IsIdle&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;MoreInfo&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/DeviceProperties1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 21.2 KB (21692 bytes)</li><li><strong>SHA-256:</strong> <code>e28dca20dc7acd059a6793cb9b703b51b079204685772f50788e19c85909d95f</code></li></ul><p>SCPD (Service Control Protocol Description) for DeviceProperties1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="groupmanagement1-xml" tabindex="-1"><code>GroupManagement1.xml</code> <a class="header-anchor" href="#groupmanagement1-xml" aria-label="Permalink to &quot;\`GroupManagement1.xml\`&quot;">​</a></h3><p>The official contract for the GroupManagement service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/GroupManagement1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/GroupManagement1.xml">Download</a> · 4.1 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 130 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_MemberID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_TransportSettings&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AVTransportURI&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_BufferingResultCode&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_BootSeq&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;GroupCoordinatorIsLocal&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;LocalGroupUUID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;VirtualLineInGroupID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SourceAreaIds&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ResetVolumeAfter&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;VolumeAVTransportURI&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;AddMember&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;MemberID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_MemberID&lt;/relatedStateVariable&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/GroupManagement1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 4.1 KB (4192 bytes)</li><li><strong>SHA-256:</strong> <code>5d0aecb87832118364f3f0ebc25034d40d3d6113cddb20fdbd86966b4e187c67</code></li></ul><p>SCPD (Service Control Protocol Description) for GroupManagement1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="grouprenderingcontrol1-xml" tabindex="-1"><code>GroupRenderingControl1.xml</code> <a class="header-anchor" href="#grouprenderingcontrol1-xml" aria-label="Permalink to &quot;\`GroupRenderingControl1.xml\`&quot;">​</a></h3><p>The official contract for the GroupRenderingControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/GroupRenderingControl1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/GroupRenderingControl1.xml">Download</a> · 3.8 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 126 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;GroupMute&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;GroupVolume&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui2&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;0&lt;/minimum&gt;</span></span>
+<span class="line"><span>        &lt;maximum&gt;100&lt;/maximum&gt;</span></span>
+<span class="line"><span>        &lt;step&gt;1&lt;/step&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueRange&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;GroupVolumeChangeable&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_InstanceID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_VolumeAdjustment&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;GetGroupMute&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;InstanceID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_InstanceID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;CurrentMute&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;out&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;GroupMute&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>      &lt;/argumentList&gt;</span></span>
+<span class="line"><span>    &lt;/action&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SetGroupMute&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;InstanceID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_InstanceID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;DesiredMute&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/GroupRenderingControl1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 3.8 KB (3847 bytes)</li><li><strong>SHA-256:</strong> <code>b57c4da0060d81daeddbdcce776f6450e86b3a29444c9dd0f30d24b06d011fc1</code></li></ul><p>SCPD (Service Control Protocol Description) for GroupRenderingControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="htcontrol1-xml" tabindex="-1"><code>HTControl1.xml</code> <a class="header-anchor" href="#htcontrol1-xml" aria-label="Permalink to &quot;\`HTControl1.xml\`&quot;">​</a></h3><p>The official contract for the HTControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/HTControl1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/HTControl1.xml">Download</a> · 4.0 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 137 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;TOSLinkConnected&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;IRRepeaterState&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;On&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Off&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Disabled&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Timeout&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;0&lt;/minimum&gt;</span></span>
+<span class="line"><span>        &lt;maximum&gt;60000&lt;/maximum&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueRange&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_IRRemoteName&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_IRCode&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;RemoteConfigured&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;LEDFeedbackState&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;On&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Off&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SetIRRepeaterState&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;DesiredIRRepeaterState&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;IRRepeaterState&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>      &lt;/argumentList&gt;</span></span>
+<span class="line"><span>    &lt;/action&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/HTControl1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 4.0 KB (4096 bytes)</li><li><strong>SHA-256:</strong> <code>77f2bbc05da5be3f69c111e18caa6d0e382f9906ed3423f637fefe06ab9b2759</code></li></ul><p>SCPD (Service Control Protocol Description) for HTControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="musicservices1-xml" tabindex="-1"><code>MusicServices1.xml</code> <a class="header-anchor" href="#musicservices1-xml" aria-label="Permalink to &quot;\`MusicServices1.xml\`&quot;">​</a></h3><p>The official contract for the MusicServices service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/MusicServices1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/MusicServices1.xml">Download</a> · 2.4 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 78 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ServiceDescriptorList&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ServiceTypeList&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ServiceId&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ServiceListVersion&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;SessionId&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Username&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;GetSessionId&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;ServiceId&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;ServiceId&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;Username&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;Username&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;SessionId&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;out&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;SessionId&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>      &lt;/argumentList&gt;</span></span>
+<span class="line"><span>    &lt;/action&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ListAvailableServices&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;AvailableServiceDescriptorList&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;out&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_ServiceDescriptorList&lt;/relatedStateVariable&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/MusicServices1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 2.4 KB (2437 bytes)</li><li><strong>SHA-256:</strong> <code>443c68da88cfaa81fb693ae95d61554d8d4cbf15636a56e88d2fe753e49141c4</code></li></ul><p>SCPD (Service Control Protocol Description) for MusicServices1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="qplay1-xml" tabindex="-1"><code>QPlay1.xml</code> <a class="header-anchor" href="#qplay1-xml" aria-label="Permalink to &quot;\`QPlay1.xml\`&quot;">​</a></h3><p>The official contract for the QPlay service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/QPlay1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/QPlay1.xml">Download</a> · 1.5 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 52 of 52 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Seed&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Code&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_MID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_DID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;QPlayAuth&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;Seed&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_Seed&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;Code&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;out&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_Code&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;MID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;out&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_MID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;DID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;out&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_DID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>      &lt;/argumentList&gt;</span></span>
+<span class="line"><span>    &lt;/action&gt;</span></span>
+<span class="line"><span>  &lt;/actionList&gt;</span></span>
+<span class="line"><span>&lt;/scpd&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/QPlay1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 1.5 KB (1541 bytes)</li><li><strong>SHA-256:</strong> <code>f24c1e176d29b120a34d4e45fdf08c624cc412a7456b50a4c1d0bfe04d58d7e3</code></li></ul><p>SCPD (Service Control Protocol Description) for QPlay1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="queue1-xml" tabindex="-1"><code>Queue1.xml</code> <a class="header-anchor" href="#queue1-xml" aria-label="Permalink to &quot;\`Queue1.xml\`&quot;">​</a></h3><p>The official contract for the Queue service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/Queue1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/Queue1.xml">Download</a> · 15.8 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 474 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;LastChange&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;UpdateID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Curated&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_UpdateID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_QueueID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_QueueOwnerID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_QueueOwnerContext&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_QueuePolicy&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_URI&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_LIST_URI&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_URIMetaData&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_ObjectID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_TrackNumber&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/Queue1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 15.8 KB (16218 bytes)</li><li><strong>SHA-256:</strong> <code>dc3a1fbf9ab423435c47898efe6155e70087aaece34f8b7de386fc9e1e14c897</code></li></ul><p>SCPD (Service Control Protocol Description) for Queue1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="renderingcontrol1-xml" tabindex="-1"><code>RenderingControl1.xml</code> <a class="header-anchor" href="#renderingcontrol1-xml" aria-label="Permalink to &quot;\`RenderingControl1.xml\`&quot;">​</a></h3><p>The official contract for the RenderingControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/RenderingControl1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/RenderingControl1.xml">Download</a> · 23.6 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 756 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;LastChange&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Mute&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Volume&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui2&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;0&lt;/minimum&gt;</span></span>
+<span class="line"><span>        &lt;maximum&gt;100&lt;/maximum&gt;</span></span>
+<span class="line"><span>        &lt;step&gt;1&lt;/step&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueRange&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_LeftVolume&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui2&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;0&lt;/minimum&gt;</span></span>
+<span class="line"><span>        &lt;maximum&gt;100&lt;/maximum&gt;</span></span>
+<span class="line"><span>        &lt;step&gt;1&lt;/step&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueRange&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_RightVolume&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui2&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;0&lt;/minimum&gt;</span></span>
+<span class="line"><span>        &lt;maximum&gt;100&lt;/maximum&gt;</span></span>
+<span class="line"><span>        &lt;step&gt;1&lt;/step&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueRange&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;VolumeDB&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i2&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Bass&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i2&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;-10&lt;/minimum&gt;</span></span>
+<span class="line"><span>        &lt;maximum&gt;10&lt;/maximum&gt;</span></span>
+<span class="line"><span>        &lt;step&gt;1&lt;/step&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueRange&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;Treble&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;i2&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueRange&gt;</span></span>
+<span class="line"><span>        &lt;minimum&gt;-10&lt;/minimum&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/RenderingControl1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 23.6 KB (24173 bytes)</li><li><strong>SHA-256:</strong> <code>f2f3a113a1b4b1b6fc30466e6b63c7f38e92c24cf87ed396d698ac7d1175c656</code></li></ul><p>SCPD (Service Control Protocol Description) for RenderingControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="systemproperties1-xml" tabindex="-1"><code>SystemProperties1.xml</code> <a class="header-anchor" href="#systemproperties1-xml" aria-label="Permalink to &quot;\`SystemProperties1.xml\`&quot;">​</a></h3><p>The official contract for the SystemProperties service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/SystemProperties1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/SystemProperties1.xml">Download</a> · 13.9 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 429 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_VariableName&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_VariableStringValue&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountType&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountUID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountUDN&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountPassword&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountNickname&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountCredential&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_AccountMd&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_IsExpired&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_StubsCreated&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_RDMEnabled&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/SystemProperties1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 13.9 KB (14284 bytes)</li><li><strong>SHA-256:</strong> <code>b28a3a00f1d8cadae1b518a1205366fc9bc19011106f36b30729fb8b637db993</code></li></ul><p>SCPD (Service Control Protocol Description) for SystemProperties1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="virtuallinein1-xml" tabindex="-1"><code>VirtualLineIn1.xml</code> <a class="header-anchor" href="#virtuallinein1-xml" aria-label="Permalink to &quot;\`VirtualLineIn1.xml\`&quot;">​</a></h3><p>The official contract for the VirtualLineIn service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/VirtualLineIn1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/VirtualLineIn1.xml">Download</a> · 4.6 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 152 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_InstanceID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui4&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_PlayerID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Volume&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;ui2&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_CurrentTransportSettings&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_Speed&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;CurrentTrackMetaData&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;EnqueuedTransportURIMetaData&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;AVTransportURIMetaData&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;CurrentTransportActions&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>  &lt;/serviceStateTable&gt;</span></span>
+<span class="line"><span>  &lt;actionList&gt;</span></span>
+<span class="line"><span>    &lt;action&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;StartTransmission&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;argumentList&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;InstanceID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_InstanceID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;CoordinatorID&lt;/name&gt;</span></span>
+<span class="line"><span>          &lt;direction&gt;in&lt;/direction&gt;</span></span>
+<span class="line"><span>          &lt;relatedStateVariable&gt;A_ARG_TYPE_PlayerID&lt;/relatedStateVariable&gt;</span></span>
+<span class="line"><span>        &lt;/argument&gt;</span></span>
+<span class="line"><span>        &lt;argument&gt;</span></span>
+<span class="line"><span>          &lt;name&gt;CurrentTransportSettings&lt;/name&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/VirtualLineIn1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 4.6 KB (4665 bytes)</li><li><strong>SHA-256:</strong> <code>5cac437abedee9e253984bad999a9094c6b6b03dbb1792995719390dd80d5396</code></li></ul><p>SCPD (Service Control Protocol Description) for VirtualLineIn1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="zonegrouptopology1-xml" tabindex="-1"><code>ZoneGroupTopology1.xml</code> <a class="header-anchor" href="#zonegrouptopology1-xml" aria-label="Permalink to &quot;\`ZoneGroupTopology1.xml\`&quot;">​</a></h3><p>The official contract for the ZoneGroupTopology service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page &#39;real&#39; rather than guesswork.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/ZoneGroupTopology1.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/ZoneGroupTopology1.xml">Download</a> · 8.5 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 262 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;scpd xmlns=&quot;urn:schemas-upnp-org:service-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;serviceStateTable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;AvailableSoftwareUpdate&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ZoneGroupState&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ThirdPartyMediaServersX&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;AlarmRunSequence&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;MuseHouseholdId&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ZoneGroupName&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ZoneGroupID&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;yes&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;ZonePlayerUUIDsInGroup&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_UpdateType&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>      &lt;allowedValueList&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;All&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>        &lt;allowedValue&gt;Software&lt;/allowedValue&gt;</span></span>
+<span class="line"><span>      &lt;/allowedValueList&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_CachedOnly&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;boolean&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_UpdateItem&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span>
+<span class="line"><span>      &lt;name&gt;A_ARG_TYPE_UpdateURL&lt;/name&gt;</span></span>
+<span class="line"><span>      &lt;dataType&gt;string&lt;/dataType&gt;</span></span>
+<span class="line"><span>    &lt;/stateVariable&gt;</span></span>
+<span class="line"><span>    &lt;stateVariable sendEvents=&quot;no&quot;&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/ZoneGroupTopology1.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 8.5 KB (8661 bytes)</li><li><strong>SHA-256:</strong> <code>326ef256aedc954c06984039a6c9940a9e537e27b37c5ed2031728a835fe330f</code></li></ul><p>SCPD (Service Control Protocol Description) for ZoneGroupTopology1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.</p></details><h3 id="device-description-xml" tabindex="-1"><code>device_description.xml</code> <a class="header-anchor" href="#device-description-xml" aria-label="Permalink to &quot;\`device_description.xml\`&quot;">​</a></h3><p>The speaker&#39;s self-description document: the first file any controller downloads. It announces the model, the serial number, the icon, and the list of services the device offers, so everything else in the conversation starts from here.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/device_description.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/device_description.xml">Download</a> · 9.7 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 220 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;</span></span>
+<span class="line"><span>&lt;root xmlns=&quot;urn:schemas-upnp-org:device-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;device&gt;</span></span>
+<span class="line"><span>    &lt;deviceType&gt;urn:schemas-upnp-org:device:ZonePlayer:1&lt;/deviceType&gt;</span></span>
+<span class="line"><span>    &lt;friendlyName&gt;#HOST# - #VENDOR_NAME# #DISPLAY_NAME# - #UUID#&lt;/friendlyName&gt;</span></span>
+<span class="line"><span>    &lt;manufacturer&gt;Sonos, Inc.&lt;/manufacturer&gt;</span></span>
+<span class="line"><span>    &lt;manufacturerURL&gt;http://www.sonos.com&lt;/manufacturerURL&gt;</span></span>
+<span class="line"><span>    &lt;modelNumber&gt;#MODEL#&lt;/modelNumber&gt;</span></span>
+<span class="line"><span>    &lt;modelDescription&gt;#VENDOR_NAME# #DISPLAY_NAME#&lt;/modelDescription&gt;</span></span>
+<span class="line"><span>    &lt;modelName&gt;#VENDOR_NAME# #DISPLAY_NAME#&lt;/modelName&gt;</span></span>
+<span class="line"><span>    &lt;modelURL&gt;http://www.sonos.com/products/zoneplayers/#MODEL#&lt;/modelURL&gt;</span></span>
+<span class="line"><span>    &lt;softwareVersion&gt;#SW_VERSION#&lt;/softwareVersion&gt;</span></span>
+<span class="line"><span>    &lt;swGen&gt;#SW_GENERATION#&lt;/swGen&gt;</span></span>
+<span class="line"><span>    &lt;hardwareVersion&gt;#HW_VERSION#&lt;/hardwareVersion&gt;</span></span>
+<span class="line"><span>    &lt;serialNum&gt;#SERIAL_NUM#&lt;/serialNum&gt;</span></span>
+<span class="line"><span>    &lt;MACAddress&gt;#MAC_ADDRESS#&lt;/MACAddress&gt;</span></span>
+<span class="line"><span>    &lt;UDN&gt;uuid:#UUID#&lt;/UDN&gt;</span></span>
+<span class="line"><span>    &lt;iconList&gt;</span></span>
+<span class="line"><span>      &lt;icon&gt;</span></span>
+<span class="line"><span>        &lt;id&gt;0&lt;/id&gt;</span></span>
+<span class="line"><span>        &lt;mimetype&gt;image/png&lt;/mimetype&gt;</span></span>
+<span class="line"><span>        &lt;width&gt;48&lt;/width&gt;</span></span>
+<span class="line"><span>        &lt;height&gt;48&lt;/height&gt;</span></span>
+<span class="line"><span>        &lt;depth&gt;24&lt;/depth&gt;</span></span>
+<span class="line"><span>        &lt;url&gt;/img/icon-#MODEL#.png&lt;/url&gt;</span></span>
+<span class="line"><span>      &lt;/icon&gt;</span></span>
+<span class="line"><span>    &lt;/iconList&gt;</span></span>
+<span class="line"><span>    &lt;minCompatibleVersion&gt;#SW_MINCOMPATVER#&lt;/minCompatibleVersion&gt;</span></span>
+<span class="line"><span>    &lt;legacyCompatibleVersion&gt;#SW_LEGACYCOMPATVER#&lt;/legacyCompatibleVersion&gt;</span></span>
+<span class="line"><span>    &lt;apiVersion&gt;#API_VERSION#&lt;/apiVersion&gt;</span></span>
+<span class="line"><span>    &lt;minApiVersion&gt;#MIN_API_VERSION#&lt;/minApiVersion&gt;</span></span>
+<span class="line"><span>    &lt;displayVersion&gt;#DISPLAY_VERSION#&lt;/displayVersion&gt;</span></span>
+<span class="line"><span>    &lt;extraVersion&gt;#EXTRA_VERSION#&lt;/extraVersion&gt;</span></span>
+<span class="line"><span>    &lt;nsVersion&gt;#NS_VERSION#&lt;/nsVersion&gt;</span></span>
+<span class="line"><span>    &lt;versions&gt;</span></span>
+<span class="line"><span>      &lt;audioTxProtocol&gt;#NODE_PROTO_VERSIONS#&lt;/audioTxProtocol&gt;</span></span>
+<span class="line"><span>      &lt;htAudioTxProtocol&gt;#HTA_FRAME_VERSIONS#&lt;/htAudioTxProtocol&gt;</span></span>
+<span class="line"><span>      &lt;controlAPI&gt;#MUSE_API_VERSIONS#&lt;/controlAPI&gt;</span></span>
+<span class="line"><span>      &lt;trueplaySDK&gt;#TRUEPLAY_SDK_VERSIONS#&lt;/trueplaySDK&gt;</span></span>
+<span class="line"><span>    &lt;/versions&gt;</span></span>
+<span class="line"><span>    &lt;roomName&gt;#NAME#&lt;/roomName&gt;</span></span>
+<span class="line"><span>    &lt;displayName&gt;#DISPLAY_NAME#&lt;/displayName&gt;</span></span>
+<span class="line"><span>    &lt;zoneType&gt;#ZONETYPE#&lt;/zoneType&gt;</span></span>
+<span class="line"><span>    &lt;feature1&gt;#FEATURE1#&lt;/feature1&gt;</span></span>
+<span class="line"><span>    &lt;feature2&gt;#FEATURE2#&lt;/feature2&gt;</span></span>
+<span class="line"><span>    &lt;feature3&gt;#FEATURE3#&lt;/feature3&gt;</span></span>
+<span class="line"><span>    &lt;feature4&gt;#FEATURE4#&lt;/feature4&gt;</span></span>
+<span class="line"><span>    &lt;seriesid&gt;#SERIESID#&lt;/seriesid&gt;</span></span>
+<span class="line"><span>    &lt;variant&gt;#VARIANT#&lt;/variant&gt;</span></span>
+<span class="line"><span>    &lt;internalSpeakerSize&gt;#INT_SPEAKER_SIZE#&lt;/internalSpeakerSize&gt;</span></span>
+<span class="line"><span>    &lt;memory&gt;#MEMORY#&lt;/memory&gt;</span></span>
+<span class="line"><span>    &lt;flash&gt;#FLASH#&lt;/flash&gt;</span></span>
+<span class="line"><span>    &lt;ampOnTime&gt;#AMP_ONTIME#&lt;/ampOnTime&gt;</span></span>
+<span class="line"><span>    &lt;retailMode&gt;#RETAIL_MODE#&lt;/retailMode&gt;</span></span>
+<span class="line"><span>    &lt;SSLPort&gt;#SSL_PORT#&lt;/SSLPort&gt;</span></span>
+<span class="line"><span>    &lt;securehhSSLPort&gt;#HHSSL_PORT#&lt;/securehhSSLPort&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/device_description.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 9.7 KB (9936 bytes)</li><li><strong>SHA-256:</strong> <code>58dabd2bfc174cafa5d524805c681a2c759bc1ee0636d364702df56b1d80633d</code></li></ul><p>The #TOKEN#-templated root UPnP device description. 35 substitution tokens (#UUID#, #HOST#, #MODEL#, #SW_VERSION#...) are filled in per-unit before serving. This is the file that makes the box discoverable and describable.</p></details><h3 id="factory-reset-xsl" tabindex="-1"><code>factory_reset.xsl</code> <a class="header-anchor" href="#factory-reset-xsl" aria-label="Permalink to &quot;\`factory_reset.xsl\`&quot;">​</a></h3><p>A stylesheet used to render a simple page during the factory-reset flow: the tiny bit of presentation logic behind the reset web screen.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/factory_reset.xsl">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/factory_reset.xsl">Download</a> · 647 B</p><details class="details custom-block"><summary>Preview</summary><p>First 15 of 15 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span></span>
+<span class="line"><span>&lt;xsl:stylesheet version=&quot;1.0&quot; xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot;&gt;&lt;xsl:template match=&quot;/&quot;&gt;</span></span>
+<span class="line"><span>&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;</span></span>
+<span class="line"><span>    &lt;head&gt;&lt;/head&gt;</span></span>
+<span class="line"><span>    &lt;body&gt;</span></span>
+<span class="line"><span>        Challenge: &lt;xsl:value-of select=&quot;/factoryResetKeys/challenge&quot; /&gt;&lt;br /&gt;</span></span>
+<span class="line"><span>        </span></span>
+<span class="line"><span>        &lt;form action=&quot;/reboot&quot; method=&quot;POST&quot;&gt;</span></span>
+<span class="line"><span>            &lt;input type=&quot;hidden&quot; name=&quot;reset&quot; value=&quot;yes&quot;/&gt;</span></span>
+<span class="line"><span>            &lt;label for=&quot;confirm&quot;&gt;Confirmation Token: &lt;/label&gt;&lt;input type=&quot;text&quot; name=&quot;confirm&quot; id=&quot;confirm&quot; /&gt;&lt;br /&gt;</span></span>
+<span class="line"><span>            &lt;button type=&quot;submit&quot;&gt;Confirm&lt;/button&gt;</span></span>
+<span class="line"><span>        &lt;/form&gt;</span></span>
+<span class="line"><span>    &lt;/body&gt;</span></span>
+<span class="line"><span>&lt;/html&gt;</span></span>
+<span class="line"><span>&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/factory_reset.xsl</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 647 B (647 bytes)</li><li><strong>SHA-256:</strong> <code>27510614835b3191e769680c2a3bcd4fa618dcf9980cf966146bf54a67ba44d2</code></li></ul><p>XSL transform shipped alongside the XML specs; used when rendering reset-related status content in the embedded web UI.</p></details><h3 id="group-description-xml" tabindex="-1"><code>group_description.xml</code> <a class="header-anchor" href="#group-description-xml" aria-label="Permalink to &quot;\`group_description.xml\`&quot;">​</a></h3><p>The same kind of self-description, but for a grouped room rather than a single speaker. When a group of players acts as one, this document describes that combined identity to the outside world.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/group_description.xml">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/group_description.xml">Download</a> · 825 B</p><details class="details custom-block"><summary>Preview</summary><p>First 24 of 24 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot;?&gt;</span></span>
+<span class="line"><span>&lt;root xmlns=&quot;urn:schemas-upnp-org:device-1-0&quot;&gt;</span></span>
+<span class="line"><span>  &lt;specVersion&gt;</span></span>
+<span class="line"><span>    &lt;major&gt;1&lt;/major&gt;</span></span>
+<span class="line"><span>    &lt;minor&gt;0&lt;/minor&gt;</span></span>
+<span class="line"><span>  &lt;/specVersion&gt;</span></span>
+<span class="line"><span>  &lt;device&gt;</span></span>
+<span class="line"><span>    &lt;deviceType&gt;urn:smartspeaker-audio:device:SpeakerGroup:1&lt;/deviceType&gt;</span></span>
+<span class="line"><span>    &lt;friendlyName&gt;#GROUP_NAME#&lt;/friendlyName&gt;</span></span>
+<span class="line"><span>    &lt;manufacturer&gt;SONOS&lt;/manufacturer&gt;</span></span>
+<span class="line"><span>    &lt;UDN&gt;uuid:#UUID#&lt;/UDN&gt;</span></span>
+<span class="line"><span>    &lt;apiVersion&gt;#API_VERSION#&lt;/apiVersion&gt;</span></span>
+<span class="line"><span>    &lt;minApiVersion&gt;#MIN_API_VERSION#&lt;/minApiVersion&gt;</span></span>
+<span class="line"><span>    &lt;serviceList&gt;</span></span>
+<span class="line"><span>      &lt;service&gt;</span></span>
+<span class="line"><span>        &lt;serviceType&gt;urn:smartspeaker-audio:service:SpeakerGroup:1&lt;/serviceType&gt;</span></span>
+<span class="line"><span>        &lt;serviceId&gt;urn:smartspeaker-audio:serviceId:SpeakerGroup&lt;/serviceId&gt;</span></span>
+<span class="line"><span>        &lt;controlURL&gt;/ssdp/notfound&lt;/controlURL&gt;</span></span>
+<span class="line"><span>        &lt;eventSubURL&gt;/ssdp/notfound&lt;/eventSubURL&gt;</span></span>
+<span class="line"><span>        &lt;SCPDURL&gt;/ssdp/notfound&lt;/SCPDURL&gt;</span></span>
+<span class="line"><span>      &lt;/service&gt;</span></span>
+<span class="line"><span>    &lt;/serviceList&gt;</span></span>
+<span class="line"><span>  &lt;/device&gt;</span></span>
+<span class="line"><span>&lt;/root&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/group_description.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 825 B (825 bytes)</li><li><strong>SHA-256:</strong> <code>cf5570ddb9e3f7ba505ef790c0f599bda7476390b856f58b7e413a8ee2513cc6</code></li></ul><p>The group-level device description variant. Distinct from satellite_device.xml on smaller models; here it presents the zone group&#39;s virtual device surface.</p></details><h3 id="review-xsl" tabindex="-1"><code>review.xsl</code> <a class="header-anchor" href="#review-xsl" aria-label="Permalink to &quot;\`review.xsl\`&quot;">​</a></h3><p>A companion stylesheet for rendering a review-style status page in the speaker&#39;s built-in web interface.</p><p><a href="/anacapad-internals/files/opt/htdocs/xml/review.xsl">View</a> · <a href="/anacapad-internals/files/opt/htdocs/xml/review.xsl">Download</a> · 90.1 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 2014 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;</span></span>
+<span class="line"><span>&lt;xsl:stylesheet version=&quot;1.0&quot; xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot;&gt;</span></span>
+<span class="line"><span>&lt;xsl:template match=&quot;/&quot;&gt;</span></span>
+<span class="line"><span>&lt;html&gt;</span></span>
+<span class="line"><span>&lt;head&gt;</span></span>
+<span class="line"><span>&lt;style type=&quot;text/css&quot;&gt;</span></span>
+<span class="line"><span>a { text-decoration: none; }</span></span>
+<span class="line"><span>a:hover { text-decoration: underline; }</span></span>
+<span class="line"><span>h1 {</span></span>
+<span class="line"><span>    font-family: arial, helvetica, sans-serif;</span></span>
+<span class="line"><span>    font-size: 18pt;</span></span>
+<span class="line"><span>    font-weight: bold;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>h2 {</span></span>
+<span class="line"><span>    font-family: arial, helvetica, sans-serif;</span></span>
+<span class="line"><span>    font-size: 14pt;</span></span>
+<span class="line"><span>    font-weight: bold;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>body, td {</span></span>
+<span class="line"><span>    font-family: arial, helvetica, sans-serif;</span></span>
+<span class="line"><span>    font-size: 10pt;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>th {</span></span>
+<span class="line"><span>    font-family: arial, helvetica, sans-serif;</span></span>
+<span class="line"><span>    font-size: 11pt;</span></span>
+<span class="line"><span>    font-weight: bold;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>table,table.purple {</span></span>
+<span class="line"><span>border-spacing:1px;</span></span>
+<span class="line"><span>margin-bottom:20px;</span></span>
+<span class="line"><span>margin-top: 20px;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>table.purple {</span></span>
+<span class="line"><span>margin-left: auto;</span></span>
+<span class="line"><span>margin-right: auto;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>table.purple tr {background:#cccccc;}</span></span>
+<span class="line"><span>table.purple td {padding:3px; background:#cccccc;}</span></span>
+<span class="line"><span>table.purple th {padding:3px; background:#9999cc;}</span></span>
+<span class="line"><span>table.purple td.left {</span></span>
+<span class="line"><span>font-weight: bold;</span></span>
+<span class="line"><span>background:#ccccff;</span></span>
+<span class="line"><span>padding-right:20px;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span>.l1 { }</span></span>
+<span class="line"><span>.leftMargin { margin-left: 10pt}</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>#edidTable {table-layout:fixed; word-wrap:break-word; width:50%}</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>#networkTable {table-collapse:collapse; border-spacing:0}</span></span>
+<span class="line"><span>#networkTable td {border:2px groove black; padding:7px}</span></span>
+<span class="line"><span>#networkTable th {border:2px groove black; padding:7px}</span></span>
+<span class="line"><span>.ctr {text-align:center}</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>.cellWithTooltip {</span></span>
+<span class="line"><span>    position:relative;</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>.cellTooltip {</span></span>
+<span class="line"><span>    display: none;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/htdocs/xml/review.xsl</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 90.1 KB (92259 bytes)</li><li><strong>SHA-256:</strong> <code>61d6e6c46d29a2cb2a85d49cef6a01221ce4091422807894d37942300d8f0f82</code></li></ul><p>XSL transform under /opt/htdocs/xml; pairs with review.js in the web assets.</p></details><h3 id="musicservices-xml" tabindex="-1"><code>musicservices.xml</code> <a class="header-anchor" href="#musicservices-xml" aria-label="Permalink to &quot;\`musicservices.xml\`&quot;">​</a></h3><p>The seed list of music services the player knows about before the cloud supplies an updated catalog. On first boot this is how the speaker already knows names like Spotify before your account adds anything.</p><p><a href="/anacapad-internals/files/opt/musicservices/musicservices.xml">View</a> · <a href="/anacapad-internals/files/opt/musicservices/musicservices.xml">Download</a> · 293 B</p><details class="details custom-block"><summary>Preview</summary><p>First 6 of 6 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;Services&gt;</span></span>
+<span class="line"><span>  &lt;Service Id=&quot;254&quot; Name=&quot;TuneIn&quot; Version=&quot;1.1&quot; Uri=&quot;http://legato.radiotime.com/Radio.asmx&quot; SecureUri=&quot;https://legato.radiotime.com/Radio.asmx&quot; ContainerType=&quot;MService&quot; Capabilities=&quot;0&quot;&gt;</span></span>
+<span class="line"><span>    &lt;Policy Auth=&quot;Anonymous&quot; PollInterval=&quot;0&quot;/&gt;</span></span>
+<span class="line"><span>    &lt;Presentation /&gt;</span></span>
+<span class="line"><span>  &lt;/Service&gt;</span></span>
+<span class="line"><span>&lt;/Services&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/musicservices/musicservices.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 293 B (293 bytes)</li><li><strong>SHA-256:</strong> <code>d3b7e14ddaf84f03c59b21ae228efc0dafe44c8d6800a849676ea4c10f361e8b</code></li></ul><p>Seed service catalog under /opt/musicservices. Replaced by the cloud-delivered service list at registration; replicated household-wide afterwards via the settings-replication machinery.</p></details><h3 id="timezones-xml" tabindex="-1"><code>timezones.xml</code> <a class="header-anchor" href="#timezones-xml" aria-label="Permalink to &quot;\`timezones.xml\`&quot;">​</a></h3><p>The timezone table the speaker keeps on board: the complete list of named time zones it understands, so when you set your location the player can convert it to the right clock offset and daylight-saving rules.</p><p><a href="/anacapad-internals/files/opt/timezones/timezones.xml">View</a> · <a href="/anacapad-internals/files/opt/timezones/timezones.xml">Download</a> · 7.1 KB</p><details class="details custom-block"><summary>Preview</summary><p>First 60 of 157 lines:</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>&lt;TimeZoneRules Version=&quot;9&quot; &gt;</span></span>
+<span class="line"><span>  &lt;TimeZones&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;0&quot; GMTBias=&quot;720&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;1&quot; GMTBias=&quot;660&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;2&quot; GMTBias=&quot;600&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;3&quot; GMTBias=&quot;540&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;4&quot; GMTBias=&quot;480&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;5&quot; GMTBias=&quot;420&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;6&quot; GMTBias=&quot;420&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;7&quot; GMTBias=&quot;420&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;8&quot; GMTBias=&quot;360&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;9&quot; GMTBias=&quot;360&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;10&quot; GMTBias=&quot;360&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;11&quot; GMTBias=&quot;360&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;12&quot; GMTBias=&quot;300&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;13&quot; GMTBias=&quot;300&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;14&quot; GMTBias=&quot;300&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;15&quot; GMTBias=&quot;240&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;16&quot; GMTBias=&quot;240&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;17&quot; GMTBias=&quot;240&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;5&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;0&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;8&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;0&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;18&quot; GMTBias=&quot;210&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;11&quot; DayOfWeek=&quot;0&quot; Day=&quot;1&quot; Hour=&quot;2&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;0&quot; Day=&quot;2&quot; Hour=&quot;2&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;19&quot; GMTBias=&quot;180&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;2&quot; DayOfWeek=&quot;0&quot; Day=&quot;3&quot; Hour=&quot;0&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;10&quot; DayOfWeek=&quot;0&quot; Day=&quot;3&quot; Hour=&quot;0&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;20&quot; GMTBias=&quot;180&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;21&quot; GMTBias=&quot;180&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;10&quot; DayOfWeek=&quot;6&quot; Day=&quot;5&quot; Hour=&quot;23&quot; Bias=&quot;0&quot; /&gt;</span></span>
+<span class="line"><span>      &lt;DaylightTime Month=&quot;3&quot; DayOfWeek=&quot;6&quot; Day=&quot;5&quot; Hour=&quot;22&quot; Bias=&quot;-60&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;/TimeZone&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;22&quot; GMTBias=&quot;120&quot; /&gt;</span></span>
+<span class="line"><span>    &lt;TimeZone ID=&quot;23&quot; GMTBias=&quot;60&quot; &gt;</span></span>
+<span class="line"><span>      &lt;StandardTime Month=&quot;10&quot; DayOfWeek=&quot;0&quot; Day=&quot;5&quot; Hour=&quot;1&quot; Bias=&quot;0&quot; /&gt;</span></span></code></pre></div></details><details class="details custom-block"><summary>Technical details</summary><ul><li><strong>Path in image:</strong> <code>/opt/timezones/timezones.xml</code></li><li><strong>Category:</strong> specs</li><li><strong>Size:</strong> 7.1 KB (7293 bytes)</li><li><strong>SHA-256:</strong> <code>2b944103333dae5995405bbf961f2e2efd5e3e7a9afd79594ac799206b27d879</code></li></ul><p>Zone index used by GetTimeZone/SetTimeZoneAndRule; the firmware&#39;s static mapping from index to POSIX timezone rule. Referenced by the timezone_table primitive entry.</p></details>`,123)])])}const m=s(l,[["render",p]]);export{d as __pageData,m as default};

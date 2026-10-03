@@ -26,12 +26,13 @@ tools/lint.py                  weak-documentation linter
 tools/coverage.py              coverage report
 tools/genmodel.py              normalized generator IR + consistency QA
 tools/gendocs.py               Markdown reference renderer (consumes the IR;
-                               also renders artifacts.md from docs/artifacts.json
-                               and muse_spec_streams.md from
-                               docs/muse_spec_streams.json)
+                               also renders artifacts/*.md from
+                               docs/artifacts.json and muse/spec-streams.md
+                               from docs/muse_spec_streams.json)
 tools/extract_artifacts.py     copies manifest files from an unpacked rootfs
-                               into reference/files/ (ANACAPAD_ROOTFS env var),
-                               refreshing size/sha256/kind in the manifest
+                               into reference/public/files/
+                               (ANACAPAD_ROOTFS env var), refreshing
+                               size/sha256/kind in the manifest
 tools/gensite.py               VitePress site build wrapper
 reference/.vitepress/config.mts  site config (title, sidebar, search,
                                markdown rules) — evaluated by VitePress
@@ -195,8 +196,9 @@ npm run docs:preview                # serve the built site locally
 ```
 
 `gensite.py` wraps `npm run docs:build` (VitePress). The site config lives
-in `reference/.vitepress/config.mts`; the sidebar's service list is
-discovered from `reference/services/` at config-eval time, so new service
+in `reference/.vitepress/config.mts`; the sidebar is discovered from
+the reference tree at config-eval time (services under `soap/`, muse
+resource pages under `muse/resources/`, and so on), so new generated
 pages are picked up automatically. Requires a one-time Node setup:
 
 ```

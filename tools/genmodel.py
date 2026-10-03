@@ -775,6 +775,7 @@ def normalize(doc, client_text=None):
 # no rendered prose block can silently lack a client layer.
 PAGE_TEXT_SPEC = {
     "index": {"intro", "counts", "confidence"},
+    "soap": {"intro"},
     "architecture": {"intro", "routing", "request_vtable",
                      "capability_fields", "internal_functions",
                      "dispatch_candidates", "shared_subsystems"},
@@ -795,7 +796,8 @@ PAGE_TEXT_SPEC = {
              "tables", "op_spine", "validation_lib", "pipeline",
              "request_envelope", "content_type", "auth", "path_params",
              "body", "errors", "op_dispatch", "outbound", "field_vocab",
-             "event_channels", "resources", "unresolved"},
+             "event_channels", "resources", "unresolved",
+             "family_text"},
 }
 
 

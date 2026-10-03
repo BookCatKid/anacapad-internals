@@ -28,40 +28,12 @@ Every fact on this site carries a confidence tag so nothing is overstated. 'Conf
 - **confidence**: confirmed = direct binary proof; strong = strong static evidence; inferred = heuristic; unresolved = not yet determined
 - **fault_vocabulary_caveat**: identical fault-code vocabularies across builds do NOT prove identical error behavior; a fault-code vocabulary delta claim is made only where control flow was also compared
 
-## Services
-
-| Service | Control path | Visibility | Actions | Status |
-|---|---|---|---|---|
-| [AVTransport](services/av-transport.md) | `/MediaRenderer/AVTransport/Control` | advertised | 42 | `strong` |
-| [AlarmClock](services/alarm-clock.md) | `/AlarmClock/Control` | advertised | 17 | `strong` |
-| [AudioIn](services/audio-in.md) | `/AudioIn/Control` | hidden | 6 (6 stub) | `confirmed` |
-| [ConnectionManager](services/connection-manager-renderer.md) | `/MediaRenderer/ConnectionManager/Control` | advertised | 3 | `strong` |
-| [ConnectionManager](services/connection-manager-server.md) | `/MediaServer/ConnectionManager/Control` | advertised | 3 | `strong` |
-| [ContentDirectory](services/content-directory.md) | `/MediaServer/ContentDirectory/Control` | advertised | 16 | `strong` |
-| [DeviceProperties](services/device-properties.md) | `/DeviceProperties/Control` | advertised | 27 | `strong` |
-| [GroupManagement](services/group-management.md) | `/GroupManagement/Control` | advertised | 4 | `strong` |
-| [GroupRenderingControl](services/group-rendering-control.md) | `/MediaRenderer/GroupRenderingControl/Control` | advertised | 6 | `strong` |
-| [HTControl](services/ht-control.md) | `/HTControl/Control` | advertised | 8 | `strong` |
-| [MusicServices](services/music-services.md) | `/MusicServices/Control` | advertised | 3 | `strong` |
-| [QPlay](services/qplay.md) | `/QPlay/Control` | advertised | 1 | `confirmed` |
-| [Queue](services/queue.md) | `/MediaRenderer/Queue/Control` | advertised | 11 | `strong` |
-| [RenderingControl](services/rendering-control.md) | `/MediaRenderer/RenderingControl/Control` | advertised | 27 | `strong` |
-| [SystemProperties](services/system-properties.md) | `/SystemProperties/Control` | advertised | 15 | `strong` |
-| [VirtualLineIn](services/virtual-line-in.md) | `/MediaRenderer/VirtualLineIn/Control` | advertised | 8 | `strong` |
-| [ZoneGroupTopology](services/zone-group-topology.md) | `/ZoneGroupTopology/Control` | advertised | 8 | `strong` |
-
 ## Sections
 
 - [Architecture](architecture.md): routing, dispatch, request lifecycle, shared subsystems
-- [Availability matrix](availability-matrix.md): the full action-by-action surface
-- [State variables](state-variables.md): evented and argument type variables
-- [Events](events.md): GENA/LastChange and WSS eventing
-- [Errors](errors.md): SOAP fault wire format and code vocabulary
-- [URI formats](uri-formats.md): URI scheme grammars
-- [Payload formats](payload-formats.md): opaque field/payload grammars
-- [HTTP API](http-api.md): non-SOAP HTTP endpoints and diagnostics
-- [muse API](muse-api.md): the v1 REST surface (route table, methods, op names)
-- [Subsystems](subsystems.md): non-SOAP protocols and engines with coverage levels
+- [SOAP / UPnP](soap/index.md): the seventeen services, state variables, eventing, errors, and wire grammars
+- [muse API](muse/index.md): the v1 REST surface, resources, outbound client, and spec streams
+- [HTTP layer](http/index.md): non-SOAP HTTP endpoints, discovery, auth, and outbound clients
+- [Subsystems](subsystems/index.md): non-SOAP protocols and engines with coverage levels
 - [Firmware differences](firmware-differences.md): cross-build/cross-model deltas
-- [Firmware artifacts](artifacts.md): every extractable file in the image, playable or downloadable
-- [Muse spec-pair streams](muse_spec_streams.md): the raw field-type catalog behind the v1 API
+- [Firmware artifacts](artifacts/index.md): every extractable file in the image, playable or downloadable
