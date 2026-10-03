@@ -889,8 +889,6 @@ def render_events(m):
         if blurb:
             out.append(_para(blurb))
             out.append("")
-        if ev.mechanism:
-            _details(out, [_para(ev.mechanism)])
         for attr, label in [("namespace", "Namespace"),
                             ("lastchange_var", "LastChange variable"),
                             ("lastchange_template", "Template"),
@@ -903,8 +901,15 @@ def render_events(m):
         if ev.wss_event_names:
             out.append("- **WSS events:** %s" % ", ".join(
                 "`%s`" % x for x in ev.wss_event_names))
+        tech = []
+        if ev.mechanism:
+            tech += ["**Mechanism**", "", _para(ev.mechanism), ""]
         if ev.extra:
-            _details(out, _generic_lines(ev.extra))
+            tech += ["**Additional data**", ""]
+            tech += _generic_lines(ev.extra)
+            tech.append("")
+        if tech:
+            _details(out, tech)
         out.append("")
     sp = m.shared_primitives.get("wss_event_vocabulary")
     if sp:
@@ -975,8 +980,6 @@ def render_formats(m, kind, title, blurb):
         if getattr(f, "client_summary", None):
             out.append(_para(f.client_summary))
             out.append("")
-        if f.description:
-            _details(out, [_para(f.description)])
         if f.format:
             out.append("```\n%s\n```" % f.format)
             out.append("")
@@ -988,10 +991,17 @@ def render_formats(m, kind, title, blurb):
             out.append("Used by: %s"
                        % "; ".join(_e(x) for x in f.used_by))
             out.append("")
+        tech = []
+        if f.description:
+            tech += ["**Description**", "", _para(f.description), ""]
         if f.notes:
-            _details(out, [_para(f.notes)])
+            tech += ["**Notes**", "", _para(f.notes), ""]
         if f.extra:
-            _details(out, _generic_lines(f.extra))
+            tech += ["**Additional data**", ""]
+            tech += _generic_lines(f.extra)
+            tech.append("")
+        if tech:
+            _details(out, tech)
         _ev_details(f.evidence, out)
     return "\n".join(out)
 
@@ -1069,13 +1079,18 @@ def render_firmware(m):
         if eblurbs.get(e.item):
             out.append(_para(eblurbs[e.item]))
             out.append("")
-        if e.detail:
-            _details(out, [_para(e.detail)])
         if e.builds:
             _table(out, ["Build", "State"],
                    [["`%s`" % b, _e(v)] for b, v in e.builds.items()])
+        tech = []
+        if e.detail:
+            tech += ["**Description**", "", _para(e.detail), ""]
         if e.extra:
-            _details(out, _generic_lines(e.extra))
+            tech += ["**Additional data**", ""]
+            tech += _generic_lines(e.extra)
+            tech.append("")
+        if tech:
+            _details(out, tech)
     return "\n".join(out)
 
 
