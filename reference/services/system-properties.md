@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-A generic key/value store plus the music-service account manager. SetString/GetString/Remove are a free-form property bag that many features lean on (client-facing settings ride through it). The account actions manage per-service credentials: legacy login (AddAccountX), OAuth (AddOAuthAccountX and friends keyed by AccountUDN), nickname/edit/remove, and credential refresh. Two SCPD-advertised actions are dead in this build: ProvisionCredentialedTrialAccountX (name string absent - hard-removed) and ResetThirdPartyCredentials (string present but unreferenced - soft-removed); both fault 401 on the wire.
+This service is two things bolted together. First, it's the player's generic settings store — a key/value cupboard where the system keeps configuration strings that other features read (get, set, and delete named settings). Second, it holds the entire account-management family: every command for adding, editing, replacing, and removing the service-account credentials stored on the speaker — the saved logins that let it reach Spotify et al without your phone. It also carries a remote-diagnostics flag Sonos support uses, a web-code command for account linking, a post-update housekeeping hook, and two ghost entries that are still advertised but dead in this build.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -51,7 +51,7 @@ System properties service: generic config string store (Get/Set/Remove) plus the
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Registers a music-service account with legacy credentials (AccountType id, AccountID username, AccountPassword); returns the AccountUDN used by all other account actions.
+Adds a new service account to the speaker — the classic username-and-password path for attaching a music service. You supply the service type plus the login ID and password, and the account is stored so the player can reach the service on its own.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -201,7 +201,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Registers an OAuth music-service account: AccountType plus token/key/device-id/authorization-code/redirect metadata and optional UserIdHashCode/AccountTier. Returns AccountUDN and the service-provided AccountNickname.
+Adds a service account using OAuth-style credentials instead of a raw password — the modern login flow where the app hands the player a token and key obtained from the service's sign-in page. It takes a full bundle of credential fields and registers the account.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -375,7 +375,7 @@ None Optionality measured per-arg: \['AccountType', 'AccountTier'\] via required
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Runs bookkeeping that should execute after a firmware update (data migration, cached-state rebuild).
+Runs the housekeeping jobs that should happen after a firmware update — migration and cleanup steps the system wants performed once the new software is up. Invoked by the update flow rather than by users.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -486,7 +486,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Replaces the metadata (Md) blob for an account.
+Edits the metadata attached to a stored service account — extra descriptive data the service keeps about the login, distinct from the password itself. Extra descriptive data the service keeps about a login, distinct from the password itself.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -617,7 +617,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Changes the password on a legacy-credential account.
+Supposed to change the password on a stored service account — but in this firmware build it is a documented no-op: the routine behind it is an empty routine that accepts the request, returns success, and updates nothing. The command remains advertised in the spec, but the actual password-edit feature was removed; account credentials now change through the replace/refresh commands instead.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -751,7 +751,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Enables or disables Retail Demo Mode on the player.
+Turns the remote-diagnostics feature on or off — the flag that controls whether Sonos's support tooling is allowed deeper access to the player for troubleshooting. Support sessions that need more than the normal logs get it by enabling RDM through this command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -868,7 +868,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns whether Retail Demo Mode is enabled.
+Reports whether remote diagnostics are currently enabled — reads back the flag set by EnableRDM, so an app or support tool can see whether deeper diagnostic access is switched on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -989,7 +989,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reads a property value by VariableName from the key/value store.
+Reads one named setting from the player's generic settings store — 'what is the value of this configuration key'. Other features stash strings here and fetch them back through this command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1120,7 +1120,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns a short WebCode for the given AccountType - used to link an account via the provider's web flow.
+Requests a short web code for a service account type — the short-lived code used in link-your-account flows, where the speaker produces a code you enter on a website to connect a service without typing a password on the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1247,7 +1247,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Refreshes OAuth credentials (token/key) for an existing AccountUID.
+Refreshes the stored credentials for a music-service account — the token-renewal path. Modern services rotate credentials; when a session token nears expiry the app calls this with the fresh token/key/ID bundle and the speaker replaces the old ones, keeping the account logged in without a full re-login.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1391,7 +1391,7 @@ None Optionality measured per-arg: \['AccountType'\] via required-lookup v\[+0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Deletes VariableName from the key/value store.
+Deletes one named setting from the generic settings store — the counterpart of GetString/SetString for keys that should no longer exist. The counterpart of GetString/SetString for keys that should no longer exist.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1518,7 +1518,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Deletes a music-service account by AccountType + AccountID.
+Removes a stored service account — deletes the saved login for a music service by its type and account ID. This is what happens when you remove a service from Sonos in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1649,7 +1649,7 @@ settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; acco
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Swaps the account behind AccountUDN for new credentials (NewAccountID/password or OAuth token set), returning NewAccountUDN.
+Replaces one stored account's credentials wholesale — the command for switching a service slot from one login to another. You identify the existing account and supply the full new credential set (ID, password, token, key, and the OAuth device marker), and the speaker swaps them, returning the new account's identifier. This is the working path for account credential changes on this build, since EditAccountPasswordX is a no-op.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1808,7 +1808,7 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the display nickname for an AccountUDN.
+Sets the friendly name on a stored account — the label like 'Home Spotify' that shows in the app's service list when several accounts for the same service exist.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1943,7 +1943,7 @@ None Optionality measured per-arg: \[\] via required-lookup v\[+0x1c\], \['Accou
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Writes VariableName=StringValue into the property store.
+Writes one named setting into the player's generic settings store — 'save this configuration key with this value'. 'Save this configuration key with this value' — the generic write for the settings store.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

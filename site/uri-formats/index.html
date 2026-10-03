@@ -2157,13 +2157,13 @@
                   
 
 <h1 id="uri-formats">URI formats<a class="headerlink" href="#uri-formats" title="Permanent link">&para;</a></h1>
-<p>The URI grammar the player understands. Commands like 'play this stream' take a URI argument, and the leading scheme decides where it goes: the queue, a radio station, a music-library share, a line-in source. Each entry decodes one scheme's shape and what its parts mean.</p>
+<p>The address grammar the player understands. When a command says 'play this', it takes an address — a URI, the URL-like string that identifies a song, a stream, a queue entry, a radio station, or a line-in source. Sonos uses its own family of address schemes on top of ordinary URLs: some point at the local queue, some at another room's stream, some at music-service items, and many carry opaque fields whose meaning had to be recovered from the code that parses them. This page is the complete grammar — every address family the firmware recognizes, what each field means, and which commands accept which families.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>URI scheme grammars recovered from literal tables and parser call sites.</p>
 </details>
 <h2 id="cloud_api_routes-confirmed"><code>cloud_api_routes</code> <code>confirmed</code><a class="headerlink" href="#cloud_api_routes-confirmed" title="Permanent link">&para;</a></h2>
-<p>The outbound cloud API route map — 533 route literals: the full set of Sonos cloud endpoints this firmware knows how to call.</p>
+<p>The full map of outbound cloud API calls the player can make — hundreds of route templates covering everything the player asks Sonos's cloud for: accounts, services, updates, telemetry. Documented as the outbound counterpart of the API the player serves.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Complete outbound cloud API route+dispatch map — 533 route literals, 324 {scope,path,cmd} op tuples over 7 id scopes</p>
@@ -2207,7 +2207,7 @@
 </ul>
 </details>
 <h2 id="explore_scheme-strong"><code>explore_scheme</code> <code>strong</code><a class="headerlink" href="#explore_scheme-strong" title="Permanent link">&para;</a></h2>
-<p>explore:* container URIs — browsable 'explore' trees for services that expose them.</p>
+<p>The 'explore:' container scheme — an address family for explorable content collections, a sibling to the radio and container schemes. It marks browsable sections of service catalogs rather than individual playable items.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>explore:* container URI scheme — sibling to radio/container schemes for explorable content</p>
@@ -2229,7 +2229,7 @@
 </ul>
 </details>
 <h2 id="hls-aac-strong"><code>hls-aac</code> <code>strong</code><a class="headerlink" href="#hls-aac-strong" title="Permanent link">&para;</a></h2>
-<p><code>hls-aac://</code> — the AAC-coded HLS variant; same engine as hls-radio with ADTS framing expectations.</p>
+<p>An HLS AAC stream address — segmented AAC audio in the scheme vocabulary, distinct from the generic HLS token. Segmented AAC audio in the scheme vocabulary — distinct from the generic HLS token.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>HLS AAC variant</p>
@@ -2247,7 +2247,7 @@
 </ul>
 </details>
 <h2 id="hls-radio-strong"><code>hls-radio</code> <code>strong</code><a class="headerlink" href="#hls-radio-strong" title="Permanent link">&para;</a></h2>
-<p><code>hls-radio://</code> — marks a URI as an HLS radio stream, routing it to the hls-live player rather than a one-shot fetch.</p>
+<p>An HLS radio stream address — segmented radio appearing in the scheme vocabulary as its own token. Segmented radio appearing in the scheme vocabulary as its own token.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>HLS radio stream</p>
@@ -2265,7 +2265,7 @@
 </ul>
 </details>
 <h2 id="hls_aac-strong"><code>hls_aac</code> <code>strong</code><a class="headerlink" href="#hls_aac-strong" title="Permanent link">&para;</a></h2>
-<p>Marker scheme for AAC-over-HLS streams.</p>
+<p>An HLS AAC variant — a segmented-stream address in AAC encoding: another marker steering the fetch machinery toward the right decoder. A segmented-stream address in AAC encoding — another marker steering the fetch machinery toward the right decoder for that variant.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>HLS AAC variant scheme token in the protocol vocabulary.</p>
@@ -2284,7 +2284,7 @@
 </ul>
 </details>
 <h2 id="hls_radio-strong"><code>hls_radio</code> <code>strong</code><a class="headerlink" href="#hls_radio-strong" title="Permanent link">&para;</a></h2>
-<p>Marker scheme for HLS-based internet radio streams.</p>
+<p>An HLS-radio stream variant — Apple's segmented-stream format used for radio, tagged in the address so the player picks the right streaming machinery for it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>HLS radio variant scheme token in the protocol vocabulary.</p>
@@ -2303,7 +2303,7 @@
 </ul>
 </details>
 <h2 id="hm-strong"><code>hm</code> <code>strong</code><a class="headerlink" href="#hm-strong" title="Permanent link">&para;</a></h2>
-<p><code>hm://</code> — the Spotify hermes/mercury channel scheme; URIs under it address hermes resources (hwptp devices, tsv, resolve) rather than audio. Never a playable transport URI.</p>
+<p>The Spotify 'Hermes' daemon channel — the hardware bridge inside the embedded Spotify client that carries Connect traffic; what the hm:// addresses route to. The hardware bridge inside the embedded Spotify client that carries Connect traffic — what the hm:// addresses route to.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Spotify Hermes-style daemon channel (see hm_scheme): hwptp = hardware-platform player bridge carrying the Connect device API; hwp-events = v1/log_event sink. The Connect device paths (%s/devices/%s/{play,pause-state,volume,set_shuffle,set_repeat,pull_playback,queue}, content_encryption_key, offline/restrictions) are Spotify eSDK cache_restrictions.c/api layer.</p>
@@ -2321,7 +2321,7 @@
 </ul>
 </details>
 <h2 id="hm_scheme-confirmed"><code>hm_scheme</code> <code>confirmed</code><a class="headerlink" href="#hm_scheme-confirmed" title="Permanent link">&para;</a></h2>
-<p>hm: scheme token — the hermes/mercury-style URI family used by the embedded Spotify stack for device registration and track resolution.</p>
+<p>The 'hm://' address for the Spotify Connect channel — the embedded Spotify component (the 'Hermes' path) that lets the speaker appear as a Spotify Connect device; the address family routing that integration's traffic.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>hm:// host-scheme for the Spotify Connect Hermes channel: the embedded Spotify eSDK (buildagent esdk paths, sp_ auth keys) addresses the device's hardware-platform daemons as hm://<service>/vN/<path>. Confirmed hosts: 'hwptp' = hw-platform player bridge (hm://hwptp/v1/devices, hm://hwptp/v1/tsv, hm://hwptp/v2/resolve/%s/%d/%s) and 'hwp-events' = event sink (hm://hwp-events/v1/log_event). The Spotify Connect device API rides it: %s/devices/%s/{state,state_conflict,volume,play,set_shuffle,set_repeat,pull_playback,queue} plus %s/content_encryption_key/%s, %s/cache_key, %s/offline/restrictions.</p>
@@ -2341,7 +2341,7 @@
 </ul>
 </details>
 <h2 id="http-endpoints-muse-strong"><code>http-endpoints-muse</code> <code>strong</code><a class="headerlink" href="#http-endpoints-muse-strong" title="Permanent link">&para;</a></h2>
-<p>The outbound muse/HTTP path templates — the REST routes the player calls or serves, including cloud API routes.</p>
+<p>The outbound API paths the player itself calls — when the player acts as a client toward other players or the cloud, these are the route templates it formats its requests against.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Outbound muse/HTTP API path templates (client side, plus local /avt.txt persistence): "v1/households/{householdId}/alarms[/...]", "v1/groups/{groupId}/alarms/snooze", "v1/players/{playerId}/upnpAlarmClock[/subscription[/{logicalSID}]]" families - REST CRUD + subscription surfaces consumed/emitted by the cloud bridge.</p>
@@ -2358,7 +2358,7 @@
 </ul>
 </details>
 <h2 id="last_fm-radio-http-confirmed"><code>last_fm-radio-http</code> <code>confirmed</code><a class="headerlink" href="#last_fm-radio-http-confirmed" title="Permanent link">&para;</a></h2>
-<p>The <code>last.fm-radio-http</code> scheme — legacy Last.fm radio over HTTP; still accepted by the scheme table even though the service integration is historical.</p>
+<p>A Last.fm radio HTTP address — the service-namespaced radio scheme for the Last.fm integration, a leftover of one of the older service partnerships. The service-namespaced radio scheme for the Last.fm integration — a leftover of one of the older service partnerships.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Last.fm radio HTTP scheme</p>
@@ -2376,7 +2376,7 @@
 </ul>
 </details>
 <h2 id="misc_schemes-strong"><code>misc_schemes</code> <code>strong</code><a class="headerlink" href="#misc_schemes-strong" title="Permanent link">&para;</a></h2>
-<p>The long tail of URI schemes - file://, rtsp://, mms://, last.fm-radio-http, hls-<em>, pndrradio-</em>, hm://, skd:, stub: - mostly alternate transports for specific services.</p>
+<p>Address schemes missed by the main sweep — oddballs like Pandora's ad-insertion transport and HLS radio variants. Collected so the scheme inventory is genuinely complete rather than just the common cases.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>URI schemes missed by the main sweep: pndrradioad:// (Pandora ad-insertion transport), pndrradio-http://, hls-radio://, hls-aac://, last.fm-radio-http, skd://, stub://, hm://, file://, rtsp://, mms:// — plus the urn:dev:ops:44974-zp- UDN prefix, urn:ietf:params:oauth:grant-type:jwt-bearer grant, urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1 WMP-registrar advertisement and urn:schemas-rinconnetworks-com:{metadata,update}-1-0 namespaces.</p>
@@ -2397,7 +2397,7 @@
 </ul>
 </details>
 <h2 id="oauth_jwt_urn-strong"><code>oauth_jwt_urn</code> <code>strong</code><a class="headerlink" href="#oauth_jwt_urn-strong" title="Permanent link">&para;</a></h2>
-<p>The standard OAuth JWT-bearer grant URN used in token exchange flows.</p>
+<p>A standard token-grant identifier from the OAuth world — part of the vocabulary used when the player exchanges credentials with services, recorded as reference rather than a playable address.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabulary; also listed under misc_schemes.</p>
@@ -2416,7 +2416,7 @@
 </ul>
 </details>
 <h2 id="pandora_com-pndrradioad-strong"><code>pandora_com-pndrradioad</code> <code>strong</code><a class="headerlink" href="#pandora_com-pndrradioad-strong" title="Permanent link">&para;</a></h2>
-<p>The <code>pandora.com-pndrradioad</code> service prefix — identifies Pandora ad-insertion streams distinctly from normal station audio.</p>
+<p>A Pandora ad-insertion address with the service prefix — the service-namespaced form of the ad-transport marker. The service-namespaced form of the ad-transport marker — Pandora's ad stream with the provider prefix attached.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>pandora ad service prefix</p>
@@ -2434,7 +2434,7 @@
 </ul>
 </details>
 <h2 id="pndrradio-http-strong"><code>pndrradio-http</code> <code>strong</code><a class="headerlink" href="#pndrradio-http-strong" title="Permanent link">&para;</a></h2>
-<p><code>pndrradio-http://</code> — a Pandora radio variant served over plain HTTP. Appears in queue/transport URIs when a Pandora station uses the non-SMAPI path.</p>
+<p>Pandora's plain-HTTP radio variant — the non-ad Pandora stream address, used for the normal station feed. The non-ad Pandora stream address — the normal station feed as distinct from the ad-insertion variant.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Pandora radio HTTP variant</p>
@@ -2452,7 +2452,7 @@
 </ul>
 </details>
 <h2 id="pndrradioad-strong"><code>pndrradioad</code> <code>strong</code><a class="headerlink" href="#pndrradioad-strong" title="Permanent link">&para;</a></h2>
-<p>Pandora ad-insertion transport scheme — ad segments arrive as pndrradioad:// URIs.</p>
+<p>Pandora's ad-insertion stream marker — the address variant used when Pandora injects ads into a stream, so the player treats those segments correctly rather than mistaking them for the station's audio.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Pandora ad-insertion stream marker; scheme strings embedded in the streamer URI dispatch vocabulary.</p>
@@ -2471,7 +2471,7 @@
 </ul>
 </details>
 <h2 id="protocol_info_schemes-confirmed"><code>protocol_info_schemes</code> <code>confirmed</code><a class="headerlink" href="#protocol_info_schemes-confirmed" title="Permanent link">&para;</a></h2>
-<p>The URI-scheme vocabulary the player advertises in GetProtocolInfo — i.e. what it claims it can play.</p>
+<p>The scheme vocabulary the player advertises in its capability strings — the address families it tells the world it can accept or produce, used when devices check compatibility before handing each other streams.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>protocolInfo URI scheme vocabulary — the GetProtocolInfo capability set across sink/source</p>
@@ -2497,7 +2497,7 @@
 </ul>
 </details>
 <h2 id="rdradio_scheme-strong"><code>rdradio_scheme</code> <code>strong</code><a class="headerlink" href="#rdradio_scheme-strong" title="Permanent link">&para;</a></h2>
-<p>rdradio: URIs select streaming-radio station sources.</p>
+<p>The 'rdradio:' scheme — an address family marking radio-station items for the streaming-radio path: how a saved station is identified as something to tune into rather than a file to fetch.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>rdradio: radio-station URI scheme — streaming radio source selector</p>
@@ -2519,7 +2519,7 @@
 </ul>
 </details>
 <h2 id="rhapsody_imageserver-confirmed"><code>rhapsody_imageserver</code> <code>confirmed</code><a class="headerlink" href="#rhapsody_imageserver-confirmed" title="Permanent link">&para;</a></h2>
-<p>A leftover hardcoded Rhapsody integration: album art for Rhapsody content is fetched from a fixed imageserver URL baked into the program - the only hardcoded third-party image CDN in the binary. Everything else goes through per-service metadata.</p>
+<p>The Rhapsody (later Napster) image-server addresses — how artwork from that service's catalog was fetched. A leftover of one of Sonos's oldest music-service integrations, kept for compatibility.</p>
 <p>Used by: album-art URL construction for Rhapsody-sourced content</p>
 <details>
 <summary><b>Technical details</b></summary>
@@ -2538,7 +2538,7 @@
 </ul>
 </details>
 <h2 id="rinconnetworks_urn-strong"><code>rinconnetworks_urn</code> <code>strong</code><a class="headerlink" href="#rinconnetworks_urn-strong" title="Permanent link">&para;</a></h2>
-<p>The Sonos 'rinconnetworks' XML namespace — appears inside DIDL/LastChange metadata for Sonos extension fields.</p>
+<p>The 'RinconNetworks' URN namespace prefix — the internal namespace Sonos's metadata and service identifiers use ('rincon' is the platform's internal codename, which is why it appears throughout these schemes).</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>RinconNetworks URN namespace prefix observed in service/URN vocabulary.</p>
@@ -2557,7 +2557,7 @@
 </ul>
 </details>
 <h2 id="skd-strong"><code>skd</code> <code>strong</code><a class="headerlink" href="#skd-strong" title="Permanent link">&para;</a></h2>
-<p>skd: — a streamer vocabulary token; semantics unresolved (plausibly a secure-key-delivery or SDK marker).</p>
+<p>A scheme token present in the streamer's vocabulary whose meaning couldn't be resolved — recorded for completeness with the honest note that its purpose is unknown rather than guessing.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Scheme token in the streamer URI vocabulary; semantics unresolved.</p>
@@ -2576,7 +2576,7 @@
 </ul>
 </details>
 <h2 id="sonos-schemes-strong"><code>sonos-schemes</code> <code>strong</code><a class="headerlink" href="#sonos-schemes-strong" title="Permanent link">&para;</a></h2>
-<p>Bare sonos: printf templates (sonos:%d, sonos:%s) — internal identifier formatting, not a playable scheme.</p>
+<p>Bare 'sonos:' addresses used internally as templates and identifiers — a small family of Sonos-namespaced locators for housekeeping rather than playable content. They show up inside the system's own bookkeeping rather than in anything you'd browse to.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Bare sonos: forms used as printf templates and identifiers: "sonos:%d" (0x10ecc3cb), "sonos:%s" (0x10f0ec90), "sonos:hhid:"/"sonos:unit-hhid:" (0x10f9900c/0x10f9901c), plus structured-token prefixes sonos:device/udn/hhid/user/idtype/environment (muse/auth token namespacing, not playback URIs).</p>
@@ -2593,7 +2593,7 @@
 </ul>
 </details>
 <h2 id="sonos_albumart_path-strong"><code>sonos_albumart_path</code> <code>strong</code><a class="headerlink" href="#sonos_albumart_path-strong" title="Permanent link">&para;</a></h2>
-<p>The filename pattern for cached album art on disk: AlbumArt_{guid}_Large.jpg — where /getaa responses come from.</p>
+<p>The filename pattern for album-art assets the player stores or serves — a GUID-shaped name so every image has a unique, stable address apps can cache against.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg — GUID-braced filename emitted by f_10421e70</p>
@@ -2611,7 +2611,7 @@
 </ul>
 </details>
 <h2 id="sonos_com-hls-radio-strong"><code>sonos_com-hls-radio</code> <code>strong</code><a class="headerlink" href="#sonos_com-hls-radio-strong" title="Permanent link">&para;</a></h2>
-<p>The <code>sonos.com-hls-radio</code> service prefix — marks HLS-radio streams coming through the Sonos-hosted radio aggregation service.</p>
+<p>An HLS-radio address carrying the 'sonos.com' service prefix — the service-namespaced form of the segmented-radio scheme, tagging which provider the stream belongs to. The service-namespaced form of the segmented-radio scheme — tagging which provider the stream belongs to.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>hls-radio service prefix</p>
@@ -2629,7 +2629,7 @@
 </ul>
 </details>
 <h2 id="sonos_queue_track_uri-strong"><code>sonos_queue_track_uri</code> <code>strong</code><a class="headerlink" href="#sonos_queue_track_uri-strong" title="Permanent link">&para;</a></h2>
-<p>The emitted form of a queue track reference — x-rincon-queue:<device>#<position>. Useful when constructing 'play this specific track' URIs.</p>
+<p>How a queue-track reference looks when the player emits one — the device-and-queue address plus a fragment naming the track's position, so a reply can identify exactly which entry is meant rather than just 'the queue'.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Queue URI emit form: x-rincon-queue:%s#%u — device selector + #track fragment (1-based position); %s#0 emits queue head; emitted by f_102d5974, f_102d8518, f_102dac20</p>
@@ -2647,7 +2647,7 @@
 </ul>
 </details>
 <h2 id="sonos_settings_rest-strong"><code>sonos_settings_rest</code> <code>strong</code><a class="headerlink" href="#sonos_settings_rest-strong" title="Permanent link">&para;</a></h2>
-<p>Household settings REST endpoints (/settings/api/v1/locations/.../effectiveSettings) — the location/settings API paths.</p>
+<p>The settings paths the player calls on the household's configuration service — where effective settings and per-location settings live on the REST surface. Where effective settings and per-location settings live on the REST surface — the paths the player calls on the household's configuration service.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Household settings REST paths: /settings/api/v1/locations/%s/effectiveSettings and .../%s — emitted by f_105dd808, f_105de198 (outbound settings client)</p>
@@ -2665,7 +2665,7 @@
 </ul>
 </details>
 <h2 id="spotify_scheme-strong"><code>spotify_scheme</code> <code>strong</code><a class="headerlink" href="#spotify_scheme-strong" title="Permanent link">&para;</a></h2>
-<p>Spotify content URIs — spotify:track: / spotify:episode: plus the x-spotify:// transport wrapper used when the embedded Spotify client owns playback.</p>
+<p>Spotify's own address family — 'spotify:track:' and friends plus the x-spotify form — the markers telling the player an item comes through the Spotify integration rather than the generic service path. Seeing one means the request routes through the Spotify machinery.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>spotify:{track,episode}: + x-spotify:// — Spotify content URI schemes routed via spotify_smapi</p>
@@ -2687,7 +2687,7 @@
 </ul>
 </details>
 <h2 id="stub-strong"><code>stub</code> <code>strong</code><a class="headerlink" href="#stub-strong" title="Permanent link">&para;</a></h2>
-<p>A placeholder URI used by dummy/synthetic players in group handling. If it shows up in a queue, the source is a synthetic entry, not real media.</p>
+<p>A stub-player address — the placeholder used where a real source hasn't been selected yet. The placeholder used where a real source hasn't been selected yet — a stand-in address rather than playable content.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>stub player URI</p>
@@ -2705,7 +2705,7 @@
 </ul>
 </details>
 <h2 id="stub_scheme-strong"><code>stub_scheme</code> <code>strong</code><a class="headerlink" href="#stub_scheme-strong" title="Permanent link">&para;</a></h2>
-<p>stub: - a placeholder scheme used as a no-op transport marker.</p>
+<p>A stub scheme token — likely a placeholder marking a source the player recognizes but can't actually play, standing in where a real address would go.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Stub scheme token; likely a placeholder/no-op transport marker.</p>
@@ -2724,7 +2724,7 @@
 </ul>
 </details>
 <h2 id="tqueue_probe_chain-strong"><code>tqueue_probe_chain</code> <code>strong</code><a class="headerlink" href="#tqueue_probe_chain-strong" title="Permanent link">&para;</a></h2>
-<p>The queue's URI-sniffing fallback chain: when a scheme isn't directly recognized, the queue probes in this order — explaining why some oddly-schemed URIs still resolve.</p>
+<p>The queue's address-sniffing chain — when a URI arrives that isn't obviously one type, the queue probes it through an ordered fallback sequence to figure out what it actually is.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>queue URI sniffing/fallback chain</p>
@@ -2739,7 +2739,7 @@
 </ul>
 </details>
 <h2 id="tqueue_scheme_registry-strong"><code>tqueue_scheme_registry</code> <code>strong</code><a class="headerlink" href="#tqueue_scheme_registry-strong" title="Permanent link">&para;</a></h2>
-<p>The queue's complete scheme-dispatch table: every URI scheme the track queue will accept, harvested as a contiguous literal run — the authoritative list of what can be enqueued.</p>
+<p>The complete zoo of playable address schemes harvested from the queue engine's routing table — every scheme the queue knows how to direct, in one inventory. The master list of 'what kinds of source addresses exist'.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>complete playable-URI scheme zoo harvested as a contiguous literal run from tqueue.cxx — the queue's scheme dispatch table</p>
@@ -2754,7 +2754,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-buzzer-strong"><code>x-rincon-buzzer</code> <code>strong</code><a class="headerlink" href="#x-rincon-buzzer-strong" title="Permanent link">&para;</a></h2>
-<p>The built-in buzzer/alarm-tone URI — a local chime sound, usable as an alarm sound.</p>
+<p>The address of the player's built-in alarm tones. Instead of waking to music, an alarm can play a buzzer sound stored in the firmware itself — this scheme names those built-in assets, so an alarm's 'sound' can be something that works with zero network.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Built-in buzzer/alarm-tone URI. "x-rincon-buzzer:" (0x10e93a38), "x-rincon-buzzer:1"/"x-rincon-buzzer:0" (0x10e99a04/0x10eaaef8), "x-rincon-buzzer:%u:o" (0x10eb1958 - %u=tone index, :o suffix).</p>
@@ -2769,7 +2769,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-configmode-sonar-strong"><code>x-rincon-configmode-sonar</code> <code>strong</code><a class="headerlink" href="#x-rincon-configmode-sonar-strong" title="Permanent link">&para;</a></h2>
-<p>Setup-mode tone URIs used while the player is in calibration/config mode.</p>
+<p>The addresses of the setup and calibration tones — the chirps and test sounds the player plays during speaker-detection and room-calibration. These point at built-in audio files used while configuring a system, not at music.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Setup/calibration tone URIs: x-rincon-configmode:{sonar-calibrate-tone, sonar-calibrate-complete, speaker-detect(.mp3), trueroom-tone} and x-rincon-sonarcal:{leader.ogg, testtone.ogg, complete_ht.ogg} - local asset playback for Sonar/trueroom calibration.</p>
@@ -2788,7 +2788,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-cpcontainer-strong"><code>x-rincon-cpcontainer</code> <code>strong</code><a class="headerlink" href="#x-rincon-cpcontainer-strong" title="Permanent link">&para;</a></h2>
-<p>ContentDirectory provider containers — x-rincon-cpcontainer:RDCPA:/RDCPI: URIs address browsable music-service container roots. A 12-entry firmware table maps each container id (e.g. RDCPA:GLBALBUM:, RDCPA:LIBPLAYLISTS:, RDCPI:GLBSTATION:) onto the SMaPI browse path it delegates to (explore:artist:mainreleases::art.<id>, mymusic:playlists, station::ps.<id>...), plus a short item-id prefix (art./alb./pp./mp./ps./sas.) used to build children ids and a flag marking local-library vs cloud-service containers.</p>
+<p>How a music service's browsable folders are addressed. When an app browses a service's catalog — its playlists, charts, stations — the containers it walks carry addresses in this scheme, tagging them as provider-hosted content rather than local items.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>ContentDirectory provider container URI. Variants: "x-rincon-cpcontainer:RDCPA:" / "RDCPI:" (0x10e77970/0x10e7798c - provider-namespace prefixes), "x-rincon-cpcontainer:%s" (0x10e77a40), "x-rincon-cpcontainer:SCPB:%s/%s" (0x10f0dbd4).</p>
@@ -2927,7 +2927,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-mp3radio-strong"><code>x-rincon-mp3radio</code> <code>strong</code><a class="headerlink" href="#x-rincon-mp3radio-strong" title="Permanent link">&para;</a></h2>
-<p>The marker for plain internet radio MP3 streams — when a service hands a direct MP3 URL the player wraps it in this scheme.</p>
+<p>The address family for internet radio. A radio-station item carries this scheme so the player knows it's a live MP3 stream to tune into rather than a file or queue entry — the marker that sends the request down the streaming-radio path.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>MP3-radio stream marker. "x-rincon-mp3radio://" (0x10e93918), "x-rincon-mp3radio:" (0x10eb8788), bare "x-rincon-mp3radio" (0x10ecce84).</p>
@@ -2943,7 +2943,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-playlist-strong"><code>x-rincon-playlist</code> <code>strong</code><a class="headerlink" href="#x-rincon-playlist-strong" title="Permanent link">&para;</a></h2>
-<p>URI for the player's built-in Sonos playlists (the saved 'Sonos Playlists' list), not to be confused with the playback queue.</p>
+<p>The address of a saved Sonos playlist — how commands refer to a stored playlist rather than the live queue. Handing this scheme to 'play' loads the playlist as the current source.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Local playlist URI "x-rincon-playlist:" (0x10e89327).</p>
@@ -2958,7 +2958,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-queue-strong"><code>x-rincon-queue</code> <code>strong</code><a class="headerlink" href="#x-rincon-queue-strong" title="Permanent link">&para;</a></h2>
-<p>How you address the local play queue: x-rincon-queue:<device> identifies a player's queue, and #<n> selects the 1-based track position. This is the URI you set as AVTransportURI to play a queue.</p>
+<p>How you address the local play queue. When a command says 'play the queue' or 'play track 5 of the queue', the address it hands the player starts with x-rincon-queue: followed by the player's own ID. The address identifies the queue itself, not an item inside it — a '#5' style suffix on some forms pins it to a specific queue position.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Local queue URI scheme. Variants: "x-rincon-queue:" (0x10e93904), "x-rincon-queue:%s" (0x10eb1710) - owner/queue selector printf-formatted.</p>
@@ -2978,7 +2978,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-sonarcal-confirmed"><code>x-rincon-sonarcal</code> <code>confirmed</code><a class="headerlink" href="#x-rincon-sonarcal-confirmed" title="Permanent link">&para;</a></h2>
-<p>URIs for the sonar-calibration tones (leader/testtone/complete_ht .ogg) — played during Trueplay setup; not normal content.</p>
+<p>The addresses of the sonar-calibration audio — the test tones played during this generation's room-tuning process: leader tone, test tone, completion sound. The addresses of the sonar-calibration audio — the test tones played during this generation's room tuning: leader tone, test tone, and completion sound, kept as built-in assets.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg — sonar-calibration audio URI scheme</p>
@@ -2997,7 +2997,7 @@
 </ul>
 </details>
 <h2 id="x-rincon-stream-strong"><code>x-rincon-stream</code> <code>strong</code><a class="headerlink" href="#x-rincon-stream-strong" title="Permanent link">&para;</a></h2>
-<p>The URI for room-to-room streaming — pointing a player at x-rincon-stream:<source> makes it play another player's audio (this is what line-in sharing and grouping use underneath).</p>
+<p>How you point a player at another room's audio. When rooms are grouped, the followers don't fetch the music themselves — they play a stream served by the group leader, and this address names that stream: the source player's ID plus a stream reference. It's the address that makes 'play what the living room is playing' work across the network.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Rincon inter-room stream URI. Variants: "x-rincon-stream:" (0x10eacf20), "x-rincon-stream:%s" (0x10e99a5c), "x-rincon-stream:%s:%s" (0x10eb1d08) - room-id[:sub] printf forms.</p>
@@ -3013,7 +3013,7 @@
 </ul>
 </details>
 <h2 id="x-sonos-misc-strong"><code>x-sonos-misc</code> <code>strong</code><a class="headerlink" href="#x-sonos-misc-strong" title="Permanent link">&para;</a></h2>
-<p>Assorted internal x-sonos-* schemes (HT audio stream, http wrappers, service markers) — mostly internal transport plumbing.</p>
+<p>A catch-all of internal Sonos address schemes for odds and ends: home-theater audio streams, plain HTTP variants, MMS-era stream types, service locators. Individually rare, collectively the long tail of sources the player can address.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Assorted internal x-sonos schemes: x-sonos-htastream (HT audio stream), x-sonos-http[:], x-sonos-mms/x-sonosprog-mms, x-sonos-spotify/x-sonosprog-spotify, x-sonos-recent[:], x-sonos-dock:, x-sonos-clone-gc/x-sonos-gc-cleared-content (group-coordinator internal), x-sonos-upnp-tunnel/x-sonos-upnp-loopback-token, x-sonos-sync-method/x-sonos-method/x-sonos-uri (sync control), x-sonos-auth-https%s.</p>
@@ -3035,7 +3035,7 @@
 </ul>
 </details>
 <h2 id="x-sonos-unknown-confirmed"><code>x-sonos-unknown</code> <code>confirmed</code><a class="headerlink" href="#x-sonos-unknown-confirmed" title="Permanent link">&para;</a></h2>
-<p><code>x-sonos-unknown:</code> — the placeholder for a source whose type couldn't be determined. Shows up in transport state when metadata is missing or the source predates classification.</p>
+<p>The 'unknown source' placeholder — the address the player uses when it can't identify what a source is: a safe label rather than a wrong guess.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>unknown-source placeholder URI</p>
@@ -3053,7 +3053,7 @@
 </ul>
 </details>
 <h2 id="x-sonos-vli-strong"><code>x-sonos-vli</code> <code>strong</code><a class="headerlink" href="#x-sonos-vli-strong" title="Permanent link">&para;</a></h2>
-<p>Virtual line-in — a URI that references another player's line-in as a source, the mechanism behind 'line-in sharing'.</p>
+<p>The address of a virtual line-in source — the marker for audio being pushed at the player by an external feed rather than pulled from a queue or stream. Seeing this scheme means the sound originates outside the normal playback machinery.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Virtual line-in source URI. "x-sonos-vli" / "x-sonos-vli:" (0x10ecb64c/0x10ecc20a), "x-sonos-vli:%s:%u" (0x10f01804 - member-id:channel printf form).</p>
@@ -3069,7 +3069,7 @@
 </ul>
 </details>
 <h2 id="x-sonosapi-strong"><code>x-sonosapi-*</code> <code>strong</code><a class="headerlink" href="#x-sonosapi-strong" title="Permanent link">&para;</a></h2>
-<p>The cloud/music-service URI family — x-sonosapi-* URIs are content refs that resolve through Sonos cloud APIs rather than direct URLs.</p>
+<p>The address family for cloud and music-service items — the whole family of schemes that say 'this item lives behind a service's API': HLS streams, radio services, streaming-service tracks. Each variant marks how the player should fetch and interpret the content.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Cloud/music-service API URI family: x-sonosapi-hls:%s, x-sonosapi-hls-static:, x-sonosapi-radio[:ST:%s], x-sonosapi-stream:, x-sonosapi-iqradio[:], x-sonosapi-rtrecent:, x-sonosapi-show:. These mark stream endpoints fetched through the Sonos cloud services rather than direct URLs.</p>
@@ -3091,7 +3091,7 @@
 </ul>
 </details>
 <h2 id="x-sonosapi-radio-strong"><code>x-sonosapi-radio</code> <code>strong</code><a class="headerlink" href="#x-sonosapi-radio-strong" title="Permanent link">&para;</a></h2>
-<p>A Sonos Radio station URI: x-sonosapi-radio:ST:<id>?sid=&amp;flags=&amp;sn= — carries station id and flags for the radio service.</p>
+<p>The address of a Sonos Radio station — carries the station identifier plus flags and a session number as parameters, and pairs with an API-key header when the station is fetched.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>x-sonosapi-radio:ST:%s?sid=&amp;flags=&amp;sn= — Sonos Radio station URI w/ sid/flags/sn params + X-Sonos-Api-Key</p>
@@ -3113,7 +3113,7 @@
 </ul>
 </details>
 <h2 id="x_rincon_schemes-confirmed"><code>x_rincon_schemes</code> <code>confirmed</code><a class="headerlink" href="#x_rincon_schemes-confirmed" title="Permanent link">&para;</a></h2>
-<p>The x-rincon-* scheme family overview — all the local/internal transports (queue, stream, radio, buzzer, calibration tones, containers).</p>
+<p>The x-rincon* scheme family as a group — the queue, radio, buzzer, calibration, and container address types collected under their shared 'rincon' prefix (rincon being Sonos's internal platform name).</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>x-rincon* URI scheme family — queue/mp3radio/buzzer/configmode/sonarcal/trueroom/cpcontainer</p>
@@ -3139,7 +3139,7 @@
 </ul>
 </details>
 <h2 id="x_sonos_schemes-confirmed"><code>x_sonos_schemes</code> <code>confirmed</code><a class="headerlink" href="#x_sonos_schemes-confirmed" title="Permanent link">&para;</a></h2>
-<p>The x-sonos-* scheme family overview — HT/streaming/API service markers.</p>
+<p>The x-sonos* scheme family as a group — every Sonos-prefixed address type and the headers that travel with them, collected so the whole family's grammar lives in one place.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>x-sonos* URI scheme family — htastream/prog/api/service schemes + associated headers</p>

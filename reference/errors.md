@@ -1,10 +1,10 @@
 # Errors
 
-What a failed command actually returns. UPnP defines a standard 'fault' reply carrying a numeric error code, and every Sonos action can raise a fixed set of them. This page shows the reply's wire shape, the complete vocabulary of codes the firmware can emit, and which codes each individual action can return.
+What a failed command actually returns. When a request goes wrong — a missing argument, a value out of range, a command that doesn't exist — the player answers with a standardized fault message carrying a numeric error code. Some codes mean the same thing everywhere in the system (bad arguments are always the same number); others are service-specific or internal error codes leaking out. This page documents the fault format itself, every code the firmware is proven to emit, and for each command the specific set of errors it can produce — which is often the most useful part, since 'what can go wrong' is as much of an interface as 'what it does right'.
 
 ## SOAP fault wire format
 
-The exact XML skeleton of a failed reply. One important detail: only the number travels in the fault - no human-readable message is included on this channel. Any descriptive text comes back through the command's output arguments instead.
+The exact structure of a failure reply — the envelope a fault travels in. One detail worth knowing: only the error number is machine-checked by the player; the human-readable message beside it is decorative, and some errors carry deliberately unhelpful text. So when you see a fault, trust the number, not the words.
 
 ```xml
 <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>%d</errorCode></UPnPError></s:Fault>
@@ -14,7 +14,7 @@ fault detail carries ONLY the numeric errorCode - no errorDescription element on
 
 ## Fault code vocabulary
 
-Every numeric error code proven to be emittable by this firmware. The standard UPnP ranges cover common failures like 'action not found' and 'invalid args'; codes in the high bands are Sonos-internal additions.
+Every numeric error code proven to be emittable by this firmware. The standard ranges cover common meanings — invalid action, missing argument, value out of range — while higher numbers encode Sonos-specific failures: wrong playback mode for this source, optimistic-concurrency clashes on queue edits, feature-not-implemented on this model. Where a code's meaning was recovered from the binary rather than the public spec, that's noted.
 
 - **status:** strong
 - **extraction:** original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.
@@ -32,7 +32,7 @@ Every numeric error code proven to be emittable by this firmware. The standard U
 
 ## Per-action error surface
 
-For each action, the union of codes it can actually produce - everything its handler, its argument validation, and its dispatch layer can raise.
+For each command, the union of error codes it can actually produce — everything its routine, argument validation, and internal machinery can emit, not just the generic set. This is the practical section: 'what can this specific command fail with' is what a real client needs to handle.
 
 ### `AVTransport`
 

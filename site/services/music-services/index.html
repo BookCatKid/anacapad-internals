@@ -2010,7 +2010,7 @@
 
 <h1 id="musicservices-musicservicescontrol"><code>MusicServices</code> — <code>/MusicServices/Control</code><a class="headerlink" href="#musicservices-musicservicescontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.</p>
+<p>This service manages the player's relationship with streaming services — Spotify, Apple Music, and the dozens of others Sonos supports. It answers 'which services are available on this system', asks the cloud for a refreshed service list, and hands out session tokens: the credentials a service (or the app on its behalf) needs to keep a logged-in session alive on the speaker. It's the account/session plumbing between your speaker and your streaming subscriptions — not the commands that actually play music.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.</p>
@@ -2068,7 +2068,7 @@
 </table>
 <h3 id="getsessionid"><code>GetSessionId</code><a class="headerlink" href="#getsessionid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.</p>
+<p>Returns the session token for a specific music-service account — the credential string that lets a client act on that service as you. You name the service and the account username, and the speaker hands back its stored session ID.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl-&gt;v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.</p>
@@ -2217,7 +2217,7 @@
 </details>
 <h3 id="listavailableservices"><code>ListAvailableServices</code><a class="headerlink" href="#listavailableservices" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.</p>
+<p>Returns the full list of music services this system knows about — the catalog the app shows when you browse 'Add Music Services' or pick a source: service names, capabilities, and how to talk to each one.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the list of available music services. Wrapper reaches the impl through <em>(</em>(sp+0x18)+0x8) — a doubly-indirect member — and calls its v[+0x8] which serializes the service list.</p>
@@ -2341,7 +2341,7 @@
 </details>
 <h3 id="updateavailableservices"><code>UpdateAvailableServices</code><a class="headerlink" href="#updateavailableservices" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Forces a refresh of the cached service descriptor list from the cloud/catalog.</p>
+<p>Asks the speaker to refresh its catalog of music services — re-pull the current service list so newly launched or updated services appear. Re-pulls the current service list so newly launched or updated services appear.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Triggers a refresh of the available music-services list via impl-&gt;v[+0x8] on the svc+4 member.</p>

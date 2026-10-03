@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Standard UPnP ConnectionManager for the embedded MediaServer (the side that serves the local library). Same three actions as the renderer variant.
+Same plumbing service as its sibling, but attached to the player's media-server side — the part of the firmware that serves the local music library rather than plays audio. It inventories open connections, describes individual sessions, and advertises which media formats the library side can deal in. Standard protocol bookkeeping: invisible in apps, required by the device-control conventions the ecosystem shares.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -34,7 +34,7 @@ Standard UPnP ConnectionManager registered at /MediaServer/ConnectionManager/Con
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the CSV list of active connection ids (normally empty).
+Returns the list of connections currently open against the library side of the player, as a comma-separated list of IDs. Each entry is one live session — for example an app actively browsing the music library.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -153,7 +153,7 @@ The impl->v\[+0x8\] call returned 0 — no usable connection list. | n/a — suc
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns per-connection detail for the media-server side. Unlike the renderer twin it takes no ConnectionID argument and reports the single active/default connection.
+Returns the full details of one library-side connection — which remote endpoint owns it, what it is for, the formats it announced, and the data-flow direction — given its connection ID.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -287,7 +287,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the Source/Sink protocol-info CSVs the media server supports.
+Reports which media formats the library side of the player advertises it can produce or consume — the capability strings used when another device checks whether this player can serve it something playable.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

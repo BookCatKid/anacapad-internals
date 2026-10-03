@@ -2183,9 +2183,9 @@
                   
 
 <h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
-<p>How a network command reaches real code. When a control message arrives at the player it passes through a chain of checks: a router decides which service owns the address, a gate decides whether that service is enabled on this particular device, then a dispatcher picks the right command handler. This page maps that plumbing.</p>
+<p>How a network command reaches real code. When a control message arrives at the player it doesn't land on one dedicated function — it passes through a layered routing system: parsed, looked up by name, validated, and finally handed to the code that does the work. This page maps that journey and the machinery on each step.</p>
 <h2 id="routing">Routing<a class="headerlink" href="#routing" title="Permanent link">&para;</a></h2>
-<p>The tables below are the player's URL map for control traffic. Each row is one service address (like /AlarmClock/Control) and shows which internal flag decides whether the service answers at all. Services gated 'by field' only respond when this player is in the right role - for instance several only work on the group coordinator.</p>
+<p>The tables below are the player's URL map for control traffic. Each row is one service address — the path part of the URL the command is sent to, like a postal code for which department should open the letter. When a request arrives, the player matches its destination against this map to find the right service object, and from there the per-service command table takes over. Seeing all the addresses in one place is the clearest proof of which services genuinely exist on this firmware — anything missing here can't be reached no matter what the spec documents say.</p>
 <table>
 <thead>
 <tr>
@@ -2355,7 +2355,7 @@
 <li><code>0x101953c8</code> → <code>0x1068bc0c</code> (at <code>0x101956e4</code>)</li>
 </ul>
 <h2 id="request-object-vtable">Request object vtable<a class="headerlink" href="#request-object-vtable" title="Permanent link">&para;</a></h2>
-<p>Every command receives its arguments through the same generic 'request' object. Its method table has fixed slots - read a parameter, identify the caller, build the response - so one piece of plumbing serves all 205 commands uniformly. The table lists what each slot is for.</p>
+<p>Every command receives its arguments through the same generic 'request' object — think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free — missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list with confidence: the form's slots are visible in the code.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Every action wrapper interacts with the request through these vfunc slots (confidence: <code>inferred</code>).</p>
@@ -2407,7 +2407,7 @@
 </tbody>
 </table>
 <h2 id="capability-fields">Capability fields<a class="headerlink" href="#capability-fields" title="Permanent link">&para;</a></h2>
-<p>The player keeps internal switches that decide which features exist on this hardware or in this mode. They are why a Playbar exposes a different command set than a Play:1, and why whole services can silently enable or disable at runtime. Each row is one switch and the behavior it gates.</p>
+<p>The player keeps internal switches that decide which features exist on this particular hardware or in this mode — a capabilities checklist consulted at runtime. Some commands read these switches before doing anything: a feature may be compiled into the firmware but disabled on this model, or enabled only while a certain mode is active. This is why 'the command exists' doesn't always mean 'the command works' — a switch can make an otherwise-live command refuse to run.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Object fields the firmware reads to gate behavior. Read/write sites are static evidence; the <em>predicate</em> each gates is noted honestly where unresolved.</p>
@@ -2471,7 +2471,7 @@
 <h3 id="0x571c"><code>0x571c</code><a class="headerlink" href="#0x571c" title="Permanent link">&para;</a></h3>
 <p>Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/AVTransport/Control), ConnectionManager (/MediaRenderer/ConnectionManager/Control), GroupRenderingControl (/MediaRenderer/GroupRenderingControl/Control), Queue (/MediaRenderer/Queue/Control), VirtualLineIn (/MediaRenderer/VirtualLineIn/Control), ConnectionManager (/MediaServer/ConnectionManager/Control), ContentDirectory (/MediaServer/ContentDirectory/Control), MusicServices (/MusicServices/Control), QPlay (/QPlay/Control)</p>
 <h2 id="internal-functions">Internal functions<a class="headerlink" href="#internal-functions" title="Permanent link">&para;</a></h2>
-<p>Named helper routines the command handlers share - parameter parsers, validators, and error translators. They're listed because the real argument-checking logic lives here rather than inside each command.</p>
+<p>Named helper routines the command handlers share — the common toolbox: argument parsers that turn text fields into numbers, validators that enforce ranges and required values, and error translators that turn internal result codes into proper network error replies. Listing them matters because they're the vocabulary every routine speaks; once you know these helpers, you can predict how any command will react to malformed input.</p>
 <table>
 <thead>
 <tr>
@@ -3394,7 +3394,7 @@
 </tbody>
 </table>
 <h2 id="dispatch-candidates">Dispatch candidates<a class="headerlink" href="#dispatch-candidates" title="Permanent link">&para;</a></h2>
-<p>Functions we investigated because they looked like command dispatchers; each entry records the verdict.</p>
+<p>Functions we investigated because they looked like command routers — the routines that might have been the switchboard steering incoming commands to their implementations. Most turned out to be something else; the survivors are documented here with the evidence for and against.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Functions that looked like dispatchers, with the verdict each received.</p>
@@ -3437,9 +3437,9 @@
 <p>RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f11f70 at svc+0, installed by ctor f_1073d930 into *(r3-in+0xaa6c)). Reject-all: emits 401 for every action — the service is a registered stub in this build. Evidence is definitive: unconditional 401 emit (li r4,0x191) + vtable 0x10f11f70 at svc+0 installed by ctor f_1073d930.</p>
 </details>
 <h2 id="shared-subsystems">Shared subsystems<a class="headerlink" href="#shared-subsystems" title="Permanent link">&para;</a></h2>
-<p>Building blocks reused across many commands - URI grammars, metadata parsers, error helpers. Documented once here rather than repeated under every command that uses them.</p>
+<p>Building blocks reused across many commands — URI grammars for the address formats the player accepts, metadata parsers for the XML-ish documents that describe tracks, and error helpers that format failures consistently. Documenting them once, here, keeps the service pages from repeating the same machinery dozens of times — when a command 'parses a track URI', this is what that means.</p>
 <h3 id="soap_fault_wire_format"><code>soap_fault_wire_format</code><a class="headerlink" href="#soap_fault_wire_format" title="Permanent link">&para;</a></h3>
-<p>The exact XML shape of a SOAP fault response from this firmware — the faultcode/faultstring/detail element layout a client must parse when an action fails.</p>
+<p>The fault wire format — the exact document shape of a returned error: what a failure looks like on the network.  What a failure looks like on the network — the exact document shape of a returned error.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3453,7 +3453,7 @@
 </ul>
 </details>
 <h3 id="soap_fault_code_vocabulary"><code>soap_fault_code_vocabulary</code><a class="headerlink" href="#soap_fault_code_vocabulary" title="Permanent link">&para;</a></h3>
-<p>Every UPnP error code the firmware can raise (UPnP-defined 4xx/5xx plus Sonos custom codes like ERROR_LASTFM_*), so clients can map numeric codes to causes.</p>
+<p>The fault-code vocabulary — the full set of numeric error codes the command layer can emit, in their own terms.  The full set of numeric error codes the command layer can emit, in their own terms.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3470,7 +3470,7 @@
   - <strong>census_union:</strong> Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.</p>
 </details>
 <h3 id="soap_client"><code>soap_client</code><a class="headerlink" href="#soap_client" title="Permanent link">&para;</a></h3>
-<p>The outbound UPnP/SOAP client the player uses to call other players — coordinator-to-satellite calls, group joins, delegate actions all go through it.</p>
+<p>The the classic command protocol client — the machinery for outbound classic-API calls: when the player itself calls another device's commands (like group fan-out to members).  When the player calls another device's commands (like group fan-out to members), this is the outbound machinery it uses.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3481,7 +3481,7 @@
 </ul>
 </details>
 <h3 id="soap_param_redaction"><code>soap_param_redaction</code><a class="headerlink" href="#soap_param_redaction" title="Permanent link">&para;</a></h3>
-<p>Parameters the firmware deliberately strips or masks in logging/diagnostics — mostly credentials and session tokens. If you see missing values in /status dumps, this is why.</p>
+<p>Parameter redaction — which argument values get scrubbed before logging: the privacy machinery keeping credentials out of the logs.  The privacy machinery keeping credentials out of logs — which argument values get scrubbed before recording.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3491,7 +3491,7 @@
 </ul>
 </details>
 <h3 id="upnp_client_stack"><code>upnp_client_stack</code><a class="headerlink" href="#upnp_client_stack" title="Permanent link">&para;</a></h3>
-<p>The player's UPnP control-point side — it acts as a client toward other Sonos devices (and historically other UPnP gear), handling M-SEARCH, subscriptions and action calls.</p>
+<p>The the classic device-control protocol client stack — the machinery for acting as a client to other the classic device-control protocol devices: the outbound classic-protocol layer.  The outbound classic-protocol layer — acting as a client to other devices.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3503,7 +3503,7 @@
 </ul>
 </details>
 <h3 id="upnp_eventing_impl"><code>upnp_eventing_impl</code><a class="headerlink" href="#upnp_eventing_impl" title="Permanent link">&para;</a></h3>
-<p>The concrete event-delivery machinery behind GENA — how LastChange blobs are assembled and pushed to subscribers' callback URLs.</p>
+<p>The the classic device-control protocol eventing implementation — the concrete machinery behind the classic subscribe/notify channel.  The concrete machinery behind the classic subscribe/notify channel. Covers subscription install, renewal, expiry cleanup, and the per-subscriber notify sequence.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3514,7 +3514,7 @@
 </ul>
 </details>
 <h3 id="upnp_genaclient"><code>upnp_genaclient</code><a class="headerlink" href="#upnp_genaclient" title="Permanent link">&para;</a></h3>
-<p>The GENA subscription client — used when the player subscribes to another device's events rather than serving its own.</p>
+<p>The the classic device-control protocol the classic event protocol client — the client side of the classic event protocol: when the player subscribes to other devices' events.  When the player subscribes to other devices' events — the client side of the classic event protocol.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3523,7 +3523,7 @@
 </ul>
 </details>
 <h3 id="gena_eventing"><code>gena_eventing</code><a class="headerlink" href="#gena_eventing" title="Permanent link">&para;</a></h3>
-<p>The UPnP GENA event layer: subscription tracking (SubscribedEvents, LogicalSID), SID preinstall for boot-time delivery, notify dispatch and per-service LastChange event variables. This is what delivers AVTransport/RenderingControl change events to subscribers.</p>
+<p>The classic the classic device-control protocol eventing implementation — subscribe, renew, notify: the machinery behind the older event channel. The classic subscribe/notify protocol implemented in full — listeners subscribe per service and get every state change pushed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3542,7 +3542,7 @@
 </ul>
 </details>
 <h3 id="subscription_manager"><code>subscription_manager</code><a class="headerlink" href="#subscription_manager" title="Permanent link">&para;</a></h3>
-<p>Tracks active GENA subscriptions: who is subscribed to which service, renewal expiry, and cleanup when subscribers vanish.</p>
+<p>The subscription manager — owns event subscriptions: who subscribed, renewal tracking, expiry cleanup.  Owns event subscriptions — who subscribed, renewals, expiry cleanup. Owns the registry of active subscribers so a lapsed client stops receiving traffic.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3554,7 +3554,7 @@
 </ul>
 </details>
 <h3 id="wss_event_vocabulary"><code>wss_event_vocabulary</code><a class="headerlink" href="#wss_event_vocabulary" title="Permanent link">&para;</a></h3>
-<p>The vocabulary of events that flow over the websocket/cloud channel — the event types above the TLV framing.</p>
+<p>The websocket event vocabulary — the named events the modern channel carries: the subscription terms the app uses.  The named events the modern channel carries — the subscription terms the app uses.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3673,7 +3673,7 @@
 - </em><em>entry_semantics:</em>* {+0x4 name, +0x8 event-type-id (3..355), +0xc u16 wire tag, +0xe s8 type, +0x10 kind} — idx==registry slot, id==internal event enum, tag==on-wire TLV tag</p>
 </details>
 <h3 id="internal_event_bus"><code>internal_event_bus</code><a class="headerlink" href="#internal_event_bus" title="Permanent link">&para;</a></h3>
-<p>The internal pub/sub bus — subsystems subscribe to events (topology change, settings change, button press) without calling each other directly.</p>
+<p>The internal event bus — the spine connecting in-process events: the backbone the publish/subscribe machinery runs on.  The backbone the publish/subscribe machinery runs on — the spine connecting in-process events.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3698,7 +3698,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="device_description_template"><code>device_description_template</code><a class="headerlink" href="#device_description_template" title="Permanent link">&para;</a></h3>
-<p>The XML template for the player's UPnP device description (what /xml/device_description.xml serves). Two variants exist — one including the AudioIn service and one without — so clients must not assume AudioIn is always advertised.</p>
+<p>The device-description template — the skeleton document that becomes the player's self-description once filled with this unit's values: the file every client fetches first.  Filled with this unit's values it becomes the self-description file every client fetches first.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3719,7 +3719,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 - <strong>note:</strong> Confirmed absence: no 'scpd','stateVariable','serviceStateTable','sendEvents','allowedValue','dataType' literal exists anywhere in the image - this build never emits SCPD/service-description XML; the state-variable registry lives only inside the eventing engine.</p>
 </details>
 <h3 id="svcmanifest"><code>svcmanifest</code><a class="headerlink" href="#svcmanifest" title="Permanent link">&para;</a></h3>
-<p>The service manifest — the compiled table mapping UPnP service types to their control/event URLs and dispatch records.</p>
+<p>The service manifest — the build's service inventory: the list behind what the device description advertises.  The build's service inventory — the list behind what the device description advertises.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3729,7 +3729,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="xml_parser"><code>xml_parser</code><a class="headerlink" href="#xml_parser" title="Permanent link">&para;</a></h3>
-<p>The shared XML parser layer — used for DIDL, SCPD, settings XML and most of the schemas in this database.</p>
+<p>The XML parser — the bundled parser every XML-speaking component uses: metadata, specs, settings all decode through it.  Every XML-speaking component decodes through this bundled parser — metadata, specs, settings.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3741,7 +3741,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="mega_impl_object"><code>mega_impl_object</code><a class="headerlink" href="#mega_impl_object" title="Permanent link">&para;</a></h3>
-<p>The mega-implementation object — many UPnP service interfaces share one underlying C++ object that fields calls for several services at once.</p>
+<p>The mega implementation object — the large composite object at the heart of the player, assembled from dozens of sub-interfaces: the single structure most services reach into for their real work.  Most services reach into this single structure for their real work — the composite object at the player's heart.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3757,7 +3757,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="svc_array"><code>svc_array</code><a class="headerlink" href="#svc_array" title="Permanent link">&para;</a></h3>
-<p>The flat service array the manifest is built from — every registered UPnP service with its handler pointers.</p>
+<p>The service array — the registry of service objects embedded in the program: the table behind which services exist.  The table behind which services exist — the registry of service objects embedded in the program.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3769,7 +3769,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="composite_subobject_interfaces"><code>composite_subobject_interfaces</code><a class="headerlink" href="#composite_subobject_interfaces" title="Permanent link">&para;</a></h3>
-<p>Some services expose nested implementation objects (e.g. line-in and HT-input sub-objects inside AudioIn) — the composite pattern used to share logic.</p>
+<p>How the big implementation objects are assembled — a single service object is built from many sub-objects each providing one interface, and this maps which sub-objects exist and what each contributes.  It maps which sub-objects exist and what each provides — how the big service objects are actually assembled.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -3780,7 +3780,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="native_protocols"><code>native_protocols</code><a class="headerlink" href="#native_protocols" title="Permanent link">&para;</a></h3>
-<p>Sonos's proprietary LAN protocols — SCI, MRPC, netstart2, TLV, CHSRC/CHSNK — the buses players use among themselves below UPnP.</p>
+<p>The native protocol set — Sonos's own internal protocols recovered as a group: the channel-source/sink audio distribution, node messaging, and related private wire formats.  Sonos's own internal protocols as a group — the audio-distribution, node-messaging, and private wire formats recovered together.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4031,7 +4031,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="hwmessagelib"><code>hwmessagelib</code><a class="headerlink" href="#hwmessagelib" title="Permanent link">&para;</a></h3>
-<p>The hardware-message layer — multicast BUTTON/AMP-style messages between players on the LAN.</p>
+<p>The hardware-message library — the shared library for hardware-level messaging between components: the plumbing under button/LED/hardware events.  The shared library for hardware-level messaging — plumbing under button/LED/hardware events.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4044,7 +4044,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="wifi_sonosnet"><code>wifi_sonosnet</code><a class="headerlink" href="#wifi_sonosnet" title="Permanent link">&para;</a></h3>
-<p>SonosNet — the proprietary mesh: channel selection, bridging, FirstZP/PriorityBridge knobs and the wireless links between players.</p>
+<p>SonosNet wireless — Sonos's own mesh network: the proprietary wireless linking speakers use instead of (or alongside) your WiFi.  Sonos's proprietary mesh — the dedicated wireless linking speakers use instead of (or alongside) your WiFi.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4060,7 +4060,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="bt_sbc"><code>bt_sbc</code><a class="headerlink" href="#bt_sbc" title="Permanent link">&para;</a></h3>
-<p>Bluetooth SBC codec plumbing — present in the binary even on models without BT hardware; part of the shared codebase.</p>
+<p>The Bluetooth SBC decoder path — Bluetooth audio handling present in the shared codebase for products that include it.  Part of the platform code on this build — present for products that carry Bluetooth, dormant here.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4072,7 +4072,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="ssdp_discovery"><code>ssdp_discovery</code><a class="headerlink" href="#ssdp_discovery" title="Permanent link">&para;</a></h3>
-<p>The SSDP responder/advertiser — answers M-SEARCH, announces the player on boot/network change. This is what makes the player discoverable at all.</p>
+<p>Device-discovery announcements and searches — the classic find-each-other protocol: speakers announce presence, search for peers, and log who answered. The older discovery layer alongside the Sonos-specific mechanisms.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4092,7 +4092,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="ssdp_signed_msearch"><code>ssdp_signed_msearch</code><a class="headerlink" href="#ssdp_signed_msearch" title="Permanent link">&para;</a></h3>
-<p>Support for signed/authenticated M-SEARCH — discovery requests carrying credentials get different answers than anonymous ones.</p>
+<p>Signed M-search — the authenticated form of discovery search: a signed variant protecting the discovery exchange.  The authenticated form of discovery search — a signed variant protecting the exchange.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4103,7 +4103,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="proprietary_headers"><code>proprietary_headers</code><a class="headerlink" href="#proprietary_headers" title="Permanent link">&para;</a></h3>
-<p>Custom HTTP headers the firmware emits and consumes — X-Sonos-* household/player identifiers, X-RINCON-BOOTSEQ boot-counter checks, the fake WMP NSS user-agent used when fetching Windows-media streams, and ICY metadata negotiation.</p>
+<p>The proprietary HTTP headers — the Sonos-specific request/response headers the firmware recognizes: the private extensions riding on ordinary HTTP.  The Sonos-specific request/response headers the firmware recognizes — private extensions riding on ordinary HTTP.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>
@@ -4163,7 +4163,7 @@ PlaybackEvent, RuntimePolicyEvent, CdNotifyUpdateId, DeviceNetInterfaceStateEven
 </ul>
 </details>
 <h3 id="chirp_sdk"><code>chirp_sdk</code><a class="headerlink" href="#chirp_sdk" title="Permanent link">&para;</a></h3>
-<p>The ultrasonic 'chirp' used to pair devices without touching Wi-Fi credentials comes from a third-party SDK (Chirp 4.2.3, build 1898). The speaker plays or listens for a short encoded tone to exchange setup information — the same technique used for room detection in home-theater setup.</p>
+<p>The chirp SDK interface — the internal API for the speaker-identification tone: start, stop, and configure the 'which box am I' chirp.  So the room-detection commands don't each reimplement tone control — one shared interface for identification sounds.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <ul>

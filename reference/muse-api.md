@@ -1,8 +1,8 @@
 # muse API (v1)
 
-The modern Sonos API - the REST-style interface the current app and the cloud channel drive, distinct from the older UPnP/SOAP surface. It was recovered from the binary's own route tables rather than from public documentation: 603 registered routes covering 67 resource groups and 332 distinct operations, all mounted under the /api/v1 prefix.
+The modern Sonos API — the REST-style interface the current app and the cloud channel drive, distinct from the older the older device-control protocol surface documented on the service pages. Where the classic commands are verbose XML exchanges from the early-2000s device-control world, this is the cleaner JSON-over-HTTP design a modern app expects: named resources like 'playback' or 'alarms', standard verbs like GET and PATCH, and structured request bodies. Everything on this page was recovered from the firmware's own route registration tables — hundreds of routes across dozens of resource groups — rather than from any public documentation, which makes this the most complete map of the modern Sonos API available anywhere.
 
-Every route is registered as a small record holding three things: the URL pattern (with placeholders like {playerId}), which HTTP methods it accepts, and a machine-name string naming the operation. Most operations exist in two spellings - one addressing a single player, one household-scoped - which is why the route count is nearly double the operation count.
+Every route is registered as a small record holding three things: the URL pattern (with placeholders like a player ID), which HTTP methods it accepts, and a machine-name string naming the operation. Most operations exist in two spellings — one addressing a single player directly, one going through the household — which is why the route count is nearly double the operation count. The tables below are the complete recovered route registry.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -10,11 +10,11 @@ the complete muse route registration table recovered from rodata: 603 route reco
 
 </details>
 
-Each route carries a bitmask saying which HTTP verbs it accepts - GET, POST, PUT, DELETE, and PATCH for settings edits - plus a marker dividing 'settings' operations from 'playback' operations.
+Each route carries a bitmask saying which HTTP verbs it accepts — GET for reads, POST for creates, PUT and PATCH for edits, DELETE for removals — plus a marker dividing 'settings' operations from 'playback' operations. That division turns out to be meaningful: the pipeline treats the two classes differently when checking permissions.
 
-Every route funnels into one shared dispatcher. Two thin entry points merely record which channel the request arrived on (local app versus cloud), then a common routine unpacks the request and hands it to the operation by name.
+Every route funnels into one shared router — a single front door that all API traffic passes through. Two thin entry points merely record which channel the request arrived on (local network versus the cloud tunnel) before joining the same machinery, so every operation sees a uniform request no matter where it came from.
 
-Routes are registered in two dialect tables - one phrased in terms of household IDs, one in player IDs - covering the same operations for the two address styles.
+Routes are registered in two dialect tables — one phrased in terms of household IDs (the cloud-flavored form, where requests name the household and the player inside it), one in player IDs (the local form used on your home network). The same operation appears in both, which is why the tables look like near-copies of each other.
 
 <details markdown="1"><summary><b>Route record internals</b></summary>
 
@@ -28,7 +28,7 @@ Registration arrays: `primary` — 0x10e7a68c.. (householdId dialect incl. prote
 
 ## How operations are built
 
-Every operation is a small object built from the same template: a shared 'may I run?' check, its own execute step, and a ladder of optional hooks. The early hooks each read exactly one named field out of the request's JSON body - which is how every command's parameter list was recovered (setVolume reads 'muted' and 'volume'; seek reads 'playOnCompletion', 'positionMillis', 'itemId', and 'window'). The later hooks build the outgoing request - setVolume, for example, can emit a mute call to one player or a volume call to a whole group. Each verb exists twice: a single-player variant and a household-wide variant.
+Every operation is a small object built from the same template: a shared 'may I run?' check, its own execute step that does the real work, and a ladder of optional hooks. The early hooks read fields out of the request body — each overridden hook corresponds to one declared parameter — and the later hooks build whatever internal request the operation forwards to the player's engines. Reading which hooks each operation overrides is exactly how each command's parameter list was recovered.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -36,7 +36,7 @@ Every op is a C++ object sharing one vtable skeleton: `+0x00`/`+0x04` destructor
 
 </details>
 
-Before any operation runs, a shared validation library checks the request body field by field - missing fields, wrong types, out-of-range numbers, malformed timestamps - each failure producing its own specific error message.
+Before any operation runs, a shared validation library checks the request body field by field — missing required fields, wrong types, out-of-range values, unknown fields that shouldn't be there. It's the same idea as the argument checking on the classic command surface, just generalized for JSON documents: every operation gets uniform, thorough input checking without implementing it itself.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -46,9 +46,9 @@ Before any operation runs, a shared validation library checks the request body f
 
 ## Request pipeline
 
-The gauntlet each request runs: the HTTP request is unpacked into a work context, the Content-Type header is checked (JSON required; merge-patch JSON for edits), an API key is verified (rejection: 'Invalid api key'), URL parameters are parsed as numbers, the JSON body is decoded, and finally the operation is dispatched. The items below are each stage's notes.
+The gauntlet each API request runs before it reaches real work: the incoming HTTP request is unpacked, its content type checked, the caller's credentials verified, the URL's numeric placeholders parsed, the body decoded as JSON and validated field-by-field, and only then the operation's own execute step runs. Each stage can reject the request with its own error before any music-relevant code is touched — which is why the API fails so uniformly: the failures all happen here, not in the operations.
 
-Stage one: the incoming HTTP request is unpacked into a working context - headers, flags, and a scratch buffer the operation's hooks read from.
+Stage one: the incoming HTTP request is unpacked into a working context — headers, flags, and a scratch space the later stages fill in. From here on, the request is a structured object, not raw text.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -56,7 +56,7 @@ Stage one: the incoming HTTP request is unpacked into a working context - header
 
 </details>
 
-Stage two: requests carrying a body must declare JSON content; edit operations (PATCH) demand the merge-patch media type instead. Anything else is rejected before the operation sees it.
+Stage two: requests carrying a body must declare they're sending JSON; edit operations (PATCH) additionally demand the merge-patch content type. Wrong or missing declarations are rejected here — the API refuses to guess what format a body is in.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -64,7 +64,7 @@ Stage two: requests carrying a body must declare JSON content; edit operations (
 
 </details>
 
-Stage three: an API-key check guards the whole surface. A missing or wrong key fails with 'Invalid api key' before any operation runs.
+Stage three: an API-key check guards the whole surface. A missing or wrong key fails with 'Invalid API key' before anything else is examined — the bouncer at the door of the modern API. On local requests the check is typically satisfied by the household's own credentials; it's what stops arbitrary network neighbors from driving your speakers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -72,7 +72,7 @@ Stage three: an API-key check guards the whole surface. A missing or wrong key f
 
 </details>
 
-Stage four: numeric placeholders in the URL (playerId, groupId and friends) are parsed as integers.
+Stage four: numeric placeholders in the URL — the player, group, and household IDs embedded in the path — are parsed as integers. A non-numeric or malformed ID is rejected here, before it can confuse an operation.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -80,7 +80,7 @@ Stage four: numeric placeholders in the URL (playerId, groupId and friends) are 
 
 </details>
 
-Stage five: the JSON body is decoded into a working store the operation's parameter hooks read from.
+Stage five: the JSON body is decoded into a working store — the structured document the operation's parameter hooks will read from. Malformed JSON fails here, and then the field-by-field validation library checks what was decoded.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -88,7 +88,7 @@ Stage five: the JSON body is decoded into a working store the operation's parame
 
 </details>
 
-How pipeline failures are reported - each stage can abort with its own status and error string before the operation ever runs.
+How pipeline failures are reported — each stage can abort with its own status code and error string before the operation ever runs, which is why API errors are so uniform: they all come from this shared gauntlet, not from the operations themselves.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -96,7 +96,7 @@ How pipeline failures are reported - each stage can abort with its own status an
 
 </details>
 
-Stage six: with everything validated, the named operation's execute method runs.
+Stage six: with everything validated, the named operation's own execute method finally runs — the stage that actually does the work, reading its parameters from the body store via its hooks and forwarding the real request to the player's engines.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -106,7 +106,7 @@ Stage six: with everything validated, the named operation's execute method runs.
 
 ## Outbound (player as muse client)
 
-The player is also a muse client - it builds these REST calls itself toward other players and the cloud. The table shows each outbound operation's URL shape and query parameters.
+The player is also a client of this same API — it builds these very calls itself toward other players and toward the cloud, for features like group volume fan-out and household coordination. The outbound vocabulary and request-building machinery lives here: the same API, from the sender's side.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -173,7 +173,7 @@ The player is also a muse CLIENT (household channel): a descriptor stream at .go
 | `updateZoneMemberSettings` | suffix `/memberSettings` |
 
 
-The request and response field names each namespace works with - the vocabulary of the JSON documents exchanged, recovered from the code that reads and writes them.
+The request and response field names each API namespace works with — the vocabulary of the JSON documents flowing through the routes: which keys appear in playback commands, group settings, alarm edits. Field names matter because they're the real API contract — the strings an app actually sends.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -198,7 +198,7 @@ Per-namespace request-field vocabulary recovered from the .got2 outbound descrip
 
 ## Event channels
 
-The named event channels the player supports on the muse/websocket layer - how an app subscribes to live updates such as groupVolume or playbackSession.
+The named event channels available on the modern websocket connection — how an app subscribes to live updates from the API layer rather than polling. Each channel name identifies a feed of changes (playback state, group membership, settings) the app can opt into.
 
 The complete muse event-channel namespace emitted over /websocket/api — each channel name below is a subscription target in the muse event bus (SUBSCRIBE/NOTIFY per channel). Includes several channels with no public documentation: waterStatus, poeStatus, speakerPresenceRateChange, microphoneSwitchStatus, bluetoothPairingStatus/ConnectionStatus, wiredSubConnectionStatus, trueroomAdaptationStatusEvent.
 
@@ -206,7 +206,7 @@ The complete muse event-channel namespace emitted over /websocket/api — each c
 
 ## Resources
 
-The 67 resource groups - 'playback', 'groupVolume', 'alarms', 'devices' and the rest - with the operation count and HTTP methods each exposes. Every resource has its own section below with the full route table and the fields each operation handles.
+The 67 resource groups — 'playback', 'groupVolume', 'alarms', 'devices' and the rest — with the operations each supports. This is the modern API's table of contents: everything the app can do, organized by what it operates on.
 
 | Resource | Ops | Methods | Scope params |
 |---|---|---|---|
@@ -280,7 +280,7 @@ The 67 resource groups - 'playback', 'groupVolume', 'alarms', 'devices' and the 
 
 ## `alarms`
 
-Alarm management for the modern API. Mirrors the legacy AlarmClock service but routes are group- or household-scoped, so creating an alarm targets a playback group rather than a raw player. Ops cover listing, creating, updating and deleting alarms; the underlying state lives in the same alarmclock persistence layer, so alarms created here appear in UPnP `ListAlarms` output and vice versa.
+Alarm management for the modern API — the JSON twin of the classic alarm service covered on the service pages. Everything the app's alarm screen does flows through these routes: listing every alarm the household knows about, creating a new one with its time/sound/room, editing an existing alarm's fields, and deleting alarms you no longer want. Where the classic commands work one alarm at a time through verbose message exchanges, this surface treats alarms as ordinary API objects an app can fetch and edit like any other data.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -307,7 +307,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `alarmId`, `createA
 
 ## `areas`
 
-Household areas (the multi-room 'spaces' concept used by newer app surfaces). Ops create, update, list and delete named areas under a household. Separate from zone groups — an area is a user-facing organizational container, not an active playback group.
+Household 'areas' — the multi-room spaces concept newer app versions use to organize a home into named zones beyond plain rooms. An area groups players into a logical space (like 'downstairs'), and these routes let an app list the household's areas and manage which players belong to each. It's part of the newer organizational model the app is migrating toward.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -325,7 +325,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `playerIds`, `name`
 
 ## `audioClip`
 
-The doorbell/chime audio-clip feature. A client uploads or registers a short audio clip on a player and later triggers it (used by the doorbell button chimes). POST-only write surface with delete; clips are player-scoped.
+The audio-clip feature — short sounds the system can play over whatever else is going on: a doorbell chime ringing through every speaker, an intercom-style announcement, a system alert tone. These routes cover uploading a clip into the household and triggering it to play, so a smart doorbell or home-automation event can make the speakers speak.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -343,7 +343,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `clipBehavior`, `vo
 
 ## `authorization`
 
-The auth surface for the muse API itself. Ops: `authenticateClient`, `authorizeDevice`, `createInvite`/`redeemInvite`/`deleteInvite`, `getPolicyKey`, `getPermissions`, `resolveToken`, `translate`/`batchTranslate` (id translation), `getUsers`, `subscribeUser`/`unsubscribeUser`. A third-party or app client first authenticates, redeems a household invite to gain membership, receives a policy key and a role, then attaches credentials to subsequent requests. `subscribeUser` grants the per-user access the invite flow gates. This is the resource every other resource implicitly depends on.
+The sign-in and credential surface for the modern API — where API keys and authorization tokens are issued, presented, and checked. Every other resource group in the modern API trusts the credentials established here, so this is the foundation under the whole security model: get a valid credential here first, or nothing else will talk to you.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -381,7 +381,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `catalog`
 
-Catalog lookups for music services. `serviceId`-scoped GETs resolve service catalog entries — this is how the app turns a content URI or service token into playable metadata without going through SMAPI directly.
+The music catalog surface — browsable service content (a service's playlists, charts, stations, and directories) exposed to the app as API resources. It bridges the old browse-the-catalog model into the modern JSON interface, so apps can walk a service's content tree through the same kind of calls they use for everything else.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -401,7 +401,7 @@ Field vocabulary recovered from the resource's implementation functions: `catalo
 
 ## `devices`
 
-Device CRUD and discovery for the household. Lists players in a household, registers/unregisters devices, and manages per-device attributes. `userId`-scoped ops handle user-specific device registrations.
+The device list — every player in the household presented as a modern API object with its identity, model, capabilities, and current state. When the app builds its roster of 'your Sonos products', this is where that data comes from: one resource per physical speaker.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -451,7 +451,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `assertion`
 
 ## `devicesExtended`
 
-A wider read-only device listing — the same household device set decorated with extended attributes (capabilities, versions) that the plain `devices` list omits.
+The extended device surface — the deeper per-device detail beyond the basics: richer capability flags, configuration state, and diagnostics-grade fields the plain devices list doesn't carry. Apps needing more than a name and model consult this instead.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -470,7 +470,7 @@ Op-level JSON keys recovered from op-object methods: `muse`
 
 ## `diagnostics`
 
-Per-player diagnostic capture. POST triggers a diagnostic submission; GETs read submitted results. This is the surface behind 'Submit Diagnostics' in the app.
+Diagnostics over the modern API — triggering log collection, fetching diagnostic state, and driving the support-reporting flow as JSON routes rather than through the old diagnostic web pages. When the app files a diagnostic report, this is the surface it uses.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -490,7 +490,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `includeControllers
 
 ## `effectiveSettings`
 
-Read-mostly computed settings: the resolved value of each setting after merging player, household and user layers. PATCH ops override at the player scope. Useful when a client wants 'what does this player actually run' rather than the raw stored values.
+Settings as the speaker actually applies them — the resolved result after defaults, household values, group values, and device-level overrides are merged into one answer. Reading 'the setting' here gives the value that governs real behavior rather than what some screen last typed, which is why automation and the app prefer this surface for checking current state.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -512,7 +512,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `channel`, `delayMi
 
 ## `entitlements`
 
-Music-service entitlements for a household or user — which paid/trial service tiers are active. Read-only GET surface; the `subscribeUser`/`unsubscribeUser` verbs in `authorization` drive what appears here.
+Which features this household is entitled to — the license and entitlement surface telling the system (and the app) which capabilities are unlocked: subscriptions, feature flags, regional eligibility. It's the gatekeeping data behind 'this feature isn't available on your system'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -531,7 +531,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `favorites`
 
-Sonos favorites via the modern API. Scoped to group or household; GET lists the favorites the group can reach, POST adds. This is the same store that UPnP `FV:` ContentDirectory items write to — both views stay in sync.
+The favorites list over the modern API — your saved stations, playlists, and items managed as plain API resources: list what's saved, add new favorites, remove old ones. The JSON counterpart of the favorites the classic library service tracks.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -553,7 +553,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `playOnCompletion`,
 
 ## `groupVolume`
 
-Volume for a whole playback group. GET reads the group's aggregate volume state (volume, mute, fixed flag); POSTs set volume or apply relative deltas across all members. Use this for group-level sliders — writing to every `playerVolume` instead produces drift and step ordering artifacts.
+Group-level volume over the modern API — the JSON version of the group volume and mute commands: set the group's absolute level, adjust it by a step, read the aggregate value. The routes behind the app's single slider that moves every grouped room at once.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -585,7 +585,7 @@ Route fragments these ops build or forward to: `v1/players/`, `/playerVolume`, `
 
 ## `groups`
 
-Playback group lifecycle. `createGroup` forms a group, `setGroupMembers`/`modifyGroupMembers` change membership, `getExtended`/`history`/`subscription` read state and events. Group ops are where zone-group topology actually changes — UPnP `ZoneGroupState` events reflect the result.
+Group management for the modern API — creating groups from rooms, adding member players, removing them, and dissolving groups back into independent rooms. The same group-coordination idea the classic services implement, expressed as resource operations the current app prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -606,7 +606,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `includeDeviceInfo`
 
 ## `hardwareStatus`
 
-Large read/write surface exposing per-player hardware condition — the binary carries verbs for battery cells, water ingress, PoE state, ship mode and other hardware probes, most of which exist for products this Playbar-era build doesn't ship. On this device the useful subset is player-scoped status reads; the exotic verbs register but their backing hardware is absent.
+Hardware health and status — the player's report on its physical state: temperatures, wireless link quality, and other machine-level readings. Diagnostics screens and the network-health features draw from these routes to explain what's happening inside the box.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -660,7 +660,7 @@ Route fragments these ops build or forward to: `v1/players/%s/hardwareStatus/bat
 
 ## `hdmi`
 
-HDMI/CEC status and control for home-theater players — EDID info and power-cycle ops. Mostly GET on this build.
+The HDMI input surface — controlling and reading the TV-connected input on products with HDMI-ARC: audio mode, TV detection, format, and the settings around how the soundbar takes its TV feed. Relevant to the soundbar-era products this codebase serves.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -682,7 +682,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `history`
 
-Household playback history. Stores the tracks/stations the household played, with fields for track metadata, position, play-mode and queue context. DELETE clears entries; the `subscribeUser` model gates visibility per user.
+Playback history — what this player has played recently, exposed as an API resource. Features that show your listening history (or that report it) draw their data from these routes.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -706,7 +706,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `homeTheater`
 
-Home-theater configuration — a large resource covering the HT player, its bonded surrounds/sub, night/enhancement modes, channel-map sets and HDMI links. Player-scoped. Grouped with `pinewood`/`soundSwap`, it drives the Playbar-family feature set.
+The home-theater settings surface — everything specific to a TV-connected rig over the modern API: lip-sync delay, surround levels, subwoofer settings, night mode, speech enhancement. The JSON surface behind the 'home theater' section of the soundbar's settings.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -755,7 +755,7 @@ Route fragments these ops build or forward to: `v1/players/%s/homeTheater`, `v1/
 
 ## `householdUpdate`
 
-Per-device household software update — a single player checks and applies firmware relative to its household, where `households`/`update` drive the household-wide flow.
+Household firmware updates over the modern API — checking whether updates exist, reading the rollout status per player, and triggering the update process, all as JSON routes. The current app's 'update your system' flow runs through here.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -783,7 +783,7 @@ Op-level JSON keys recovered from op-object methods: `muse`
 
 ## `households`
 
-Top-level household object: create/lookup, members, the `none`-scoped ops are unauthenticated bootstrap endpoints (a player with no household talks here). Everything else in muse hangs off a `householdId` bound by these routes.
+The household resource itself — the top-level object all household-scoped routes hang off: the umbrella identity under which players, groups, and services live. A request naming a household says 'this operation is about the system as a whole, not one speaker'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -806,7 +806,7 @@ Field vocabulary recovered from the resource's implementation functions: `househ
 
 ## `info`
 
-Read-only per-player info — identity, capabilities, version. The cheap 'what is this box' query.
+General player information — version, model, identity, and related facts: the modern API's 'about this device' read, used by anything needing the player's basic description.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -828,7 +828,7 @@ Implementation messages:
 
 ## `ircontrol`
 
-IR remote-control config for players with IR sensors (the volume-and-mute commands the soundbar learned from a TV remote). GET reads learned state, POST teaches/clears.
+Infrared remote control over the modern API — the remote-learning and IR-repeater features expressed as routes: the modern twin of the classic home-theater control commands that teach the soundbar your TV remote.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -846,7 +846,7 @@ Op-level JSON keys recovered from op-object methods: `enabled`, `muse`
 
 ## `localContentLibrary`
 
-The local music library (shared folders) via muse — browse/index/control for SMB library shares, distinct from UPnP ContentDirectory browse.
+The local music library over the modern API — your indexed share folders, their contents, and library maintenance exposed as JSON resources. The modern front-end for the same library the classic browse service serves, so the app can manage 'Music Library' without the old protocol.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -870,7 +870,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `path`, `username`,
 
 ## `management`
 
-Administrative POSTs on a player — factory/maintenance operations.
+Device management — reboot, factory-reset paths, and similarly powerful maintenance operations over the modern API. Deliberately restricted: these are the routes you don't want a random network client reaching, which is part of why the API authenticates every call.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -897,7 +897,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `fullSync`, `settin
 
 ## `musicServiceAccounts`
 
-Music-service account linking for the household/group — add, remove and inspect the SMAPI service accounts bound to the household. The SOAP-side `upnpMusicServices` resource is the equivalent read surface.
+Streaming-service accounts over the modern API — the JSON version of the account-management family: add a service login, replace credentials, set a nickname, remove an account. The routes behind the app's 'services & voice' account settings.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -928,7 +928,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `userIdHashCode`, `
 
 ## `networkTest`
 
-Per-player network diagnostics — run wireless/Internet tests and read results. Powers the 'check network' app flows.
+Network testing — routes that exercise the player's connectivity: ping-style checks and throughput probes used by diagnostics and the app's network-health features to prove whether the player's connection is the problem.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -948,7 +948,7 @@ Op-level JSON keys recovered from op-object methods: `delaySecs`, `durationSecs`
 
 ## `pinewood`
 
-The remote-control API ('pinewood' = TV-remote emulation). All POST, player-scoped: `mute`, `volumeUp`/`volumeDown`, `power`, `dpad` directions, `back`, `home`, `settings`, `play`, `loadResource`. A client implements a full remote by posting these verbs — cloud-relayed through the same mux when off-LAN.
+An internal codename surface — the 'pinewood' routes cover a feature family known in the firmware by its development name (a remote-control channel in this case). Structurally present; the operations below show exactly which routes it exposes.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -984,7 +984,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `platformInternal`
 
-Privileged platform ops — POST-only, player/household scoped, used by first-party infrastructure rather than the public app.
+Internal platform routes — operations meant for Sonos's own components rather than apps: the back-channel surface of the modern API used for system-level coordination between the player's own parts and Sonos's services.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1006,7 +1006,7 @@ Op-level JSON keys recovered from op-object methods: `fullSync`, `setting`, `ope
 
 ## `playback`
 
-The big one: transport control for a group. `play`, `pause`, `seek`, `loadStream`, track-list ops, play-mode changes, line-in/content selection — 32 ops, all group-scoped. This is the SOAP `AVTransport`'s modern replacement and every verb maps onto the same playback engine underneath.
+Playback control over the modern API — the core remote: play, pause, skip, seek, and source selection expressed as JSON commands. This is the surface the current app actually drives when you press buttons on the now-playing screen, the modern counterpart of the classic transport commands.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1075,7 +1075,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `playbackExtended`
 
-Extended playback reads — richer state than the plain playback GETs (detailed position/track info for the now-playing surface).
+Extended playback operations — the less-common transport actions beyond basic play/pause: session control, source management, and the richer playback verbs the main playback group doesn't carry.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1091,7 +1091,7 @@ Op-level JSON keys recovered from op-object methods: `muse`
 
 ## `playbackMetadata`
 
-Read/write playback metadata on a group — the track display state the player publishes. The write op lets privileged callers correct displayed metadata.
+Now-playing metadata over the modern API — the current track's title, artist, album, artwork, and related display data as a resource the app can fetch cleanly, rather than parsing it out of the packed metadata strings the classic layer uses.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1109,7 +1109,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `itemId`, `rating`
 
 ## `playbackSession`
 
-Sessioned playback — the queue/stream model the S2-era app uses. `loadContainer`, `seekRelative`, subscribe/unsubscribe ops, sessionId-scoped routes; 30 POST/DELETE ops. A playback session owns a media container (queue, station, stream) and emits subscription events as it advances.
+Playback sessions — the modern API's model of 'a thing playing': tracks a session's lifecycle from creation through playing, suspension, and end, letting the app reason about playback as objects with state rather than reading raw variables.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1160,7 +1160,7 @@ Route fragments these ops build or forward to: `v1/groups/%s/playback/seek`, `v1
 
 ## `playerVolume`
 
-Per-player volume: GET reads `{volume, muted, fixed, smartplay}`; POSTs set absolute volume, apply `volumeDelta`, duck/unduck (`/duck`, `/unduck` for temporary dips during doorbell/voice), and mute/unmute. `smartplay` fields expose per-source smart-volume behavior.
+Per-player volume over the modern API — a single speaker's volume and mute as JSON resources: the modern twin of the classic rendering-control commands, behind the per-room sliders.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1198,7 +1198,7 @@ Route fragments these ops build or forward to: `v1/players/`, `/playerVolume`, `
 
 ## `playlists`
 
-Household/group playlist surface — Sonos playlists (saved queue snapshots) listable and creatable here; the same objects UPnP `SQ:` favorites expose.
+Sonos playlists over the modern API — the saved-queue feature as resources: list the playlists stored on the system, create new ones, edit their contents, delete them. The JSON surface behind 'Sonos Playlists' in the app.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1221,7 +1221,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `playlistId`, `play
 
 ## `positioning`
 
-Per-player audio positioning/tuning — the mic-based room-detection suite behind `roomDetection` plus speaker-placement measurements. Player-scoped; drives Trueplay-style measurement capture.
+Speaker positioning — the room-placement features: which physical spot a speaker occupies in a bonded or surround arrangement, and the operations around assigning and detecting those positions during setup.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1267,7 +1267,7 @@ Validation / log strings recovered from op-object methods:
 
 ## `power`
 
-Player power ops — POST-only power transitions (the player has no soft-power via SOAP; muse exposes it).
+Standby and sleep behavior plus power-state reads over the modern API — the routes behind low-power operation and waking. The modern-API counterpart of the standby/idle machinery — how the app asks about and controls the player's power state directly.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1291,7 +1291,7 @@ Related enum registrations (proven integer values — see `enum_tables`):
 
 ## `roomDetection`
 
-Mic-based room detection — start/stop the chirp-based proximity and room-matching flow that the Chirp stack backs. POST deletes/stops in-flight detection state.
+Room detection over the modern API — the 'which physical speaker is this' identification feature as routes: the chirp-and-identify flow used while placing surrounds and bonded speakers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1309,7 +1309,7 @@ Op-level JSON keys recovered from op-object methods: `channelNumber`, `durationS
 
 ## `settings`
 
-The settings resource — 34 ops, the broadest write surface. GET reads setting values, PATCH (`updateAllSettings`) applies merged batches, PUT/POST handle per-scope writes. Scope params split player/household/user layers; PATCH is the only method used exclusively by this resource — batch updates are PATCH-shaped.
+General settings over the modern API — the player's configuration as readable and writable JSON settings rather than one command per knob: the consolidated settings surface the app prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1357,7 +1357,7 @@ Op-level JSON keys recovered from op-object methods: `setting`, `muse`, `network
 
 ## `sleepTimer`
 
-Group sleep timer — set/clear/read the 'sleep in N minutes' state, the muse-side twin of the `Sleep` argument on AVTransport.
+The sleep timer over the modern API — set a 'stop playing in N minutes' timer, read how much is left, cancel it. A small resource group mirroring the classic sleep-timer commands.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1375,7 +1375,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `duration`
 
 ## `smartplay`
 
-SmartPlay per-household state — the update/firmware-reporting context that carries version/build fields for the smart update pipeline.
+'Smart play' — Sonos's smarter playback-decision feature family, exposed as its own resource group. The operations listed below are the routes it adds; the name reflects an intelligent-playback feature rather than a user-facing setting.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1390,7 +1390,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `soundSwap`
 
-Home-theater sound-swap — POSTs that move/re-assign the front player role among bonded HT members (swap the TV-facing box). Player-scoped.
+Sound swap — the feature that moves a TV's audio between a soundbar and a paired portable speaker ('swap the sound to the other room'), exposed as API routes for triggering and managing the swap.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1408,7 +1408,7 @@ Op-level JSON keys recovered from op-object methods: `playerId`, `muse`, `playba
 
 ## `svc`
 
-Sonos Voice Control surface ('svc' = Sonos Voice Control) — voice-assistant status and management on voice-capable players.
+An internal service-level group — routes that don't fit a named resource, used for operations scoped to the API itself rather than to a thing like 'playback' or 'alarms'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1428,7 +1428,7 @@ Op-level JSON keys recovered from op-object methods: `enabled`, `geoLocation`, `
 
 ## `systemReporting`
 
-First-party telemetry/crash-report uploads — POST-only, `none`-scoped (these routes deliberately bypass household scoping so a misconfigured player can still report). Carries `systemReporting`, `zoneDefinition`, `channelMapSet`, `zones` fields plus `/accountSubscription`, `/productEvent`, `/softwareDownload` sub-paths.
+System reporting — fleet-level telemetry and reporting routes: how the player packages and sends its health and usage data to Sonos over the modern channel.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1450,7 +1450,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `systemTime`
 
-Household wall-clock/location time — GET reads the household clock state, PUT sets timezone/location-derived time used by alarms and schedules.
+Household system time over the modern API — the shared clock's JSON surface: read and set the coordinated household time that alarms and scheduling depend on.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1470,7 +1470,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `timeZoneInfo`
 
 ## `time`
 
-Player-local time reads — GETs return the player's clock/status for alarm-trigger UI.
+Time over the modern API — reading the player's current time and timezone: the JSON counterpart of the classic time getters, for anything needing the player's own view of 'now'.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1496,7 +1496,7 @@ Implementation messages:
 
 ## `timers`
 
-Household/group timers — the scheduler behind alarms and sleep timers, backed by the SQLite `timers`/`paused_timers` tables.
+The machinery for timed operations beyond the alarm-clock flow, exposed as its own resource group over the modern API. Covers scheduled work on the player — timing machinery the JSON surface exposes as its own group.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1524,7 +1524,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `name`, `duration`,
 
 ## `trueplay`
 
-Trueplay room-tuning ops — start/update/query a tuning run on a home-theater player, tied to the `x-rincon-sonarcal` test-tone pipeline.
+Trueplay — Sonos's room-tuning feature — over the modern API: calibration status and the tuning-session commands as routes, the JSON front-end for the measure-and-tune flow.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1558,7 +1558,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `duration`, `rate`,
 
 ## `trueroom`
 
-Trueroom adaptive tuning — the successor to one-shot Trueplay: `estimatorConfiguration`, `adaptation`, `calibrationStatus`, `swapInputMute`. POSTs run the continuous-tuning estimator and query its adaptation state.
+'Trueroom' — the room-correction system this generation used internally (the sonar-style calibration that predates the Trueplay branding on this era's hardware). These routes drive the measurement and tuning flow.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1582,7 +1582,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `trueroomEstimatedP
 
 ## `update`
 
-Household software update — check, schedule, and apply firmware across the household.
+Software update over the modern API — the player-level update routes: check for new firmware, download it, and apply it as JSON operations. The per-device half of the update flow.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1602,7 +1602,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `useCachedOnly`, `u
 
 ## `upnpAVTransport`
 
-The SOAP AVTransport service exposed over muse — every route proxies a UPnP action (subscribe/get) so the modern app can drive transport through the same mux as everything else. Field names and semantics are exactly the SOAP arguments.
+The classic AVTransport service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1624,7 +1624,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpAlarmClock`
 
-SOAP AlarmClock over muse — list/create/update/delete alarms via the mux.
+The classic AlarmClock service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1646,7 +1646,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpAudioIn`
 
-SOAP AudioIn over muse — line-in source config/state.
+The classic AudioIn service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1668,7 +1668,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpConnectionManager`
 
-SOAP ConnectionManager over muse — protocol-info listing.
+The classic ConnectionManager service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1690,7 +1690,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpContentDirectory`
 
-SOAP ContentDirectory over muse — browse/search/containers.
+The classic ContentDirectory service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1712,7 +1712,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpDeviceProperties`
 
-SOAP DeviceProperties over muse — device attributes/settings.
+The classic DeviceProperties service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1734,7 +1734,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpGroupManagement`
 
-SOAP GroupManagement over muse — group coordinator ops.
+The classic GroupManagement service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1756,7 +1756,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpGroupRenderingControl`
 
-SOAP GroupRenderingControl over muse — group volume/mute.
+The classic GroupRenderingControl service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1778,7 +1778,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpHTControl`
 
-SOAP HTControl over muse — home-theater control.
+The classic HTControl service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1800,7 +1800,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpMusicServices`
 
-SOAP MusicServices over muse — SMAPI account listing.
+The classic MusicServices service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1822,7 +1822,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpQueue`
 
-SOAP Queue over muse — queue browse/ops.
+The classic Queue service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1844,7 +1844,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpRenderingControl`
 
-SOAP RenderingControl over muse — per-player volume/EQ.
+The classic RenderingControl service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1866,7 +1866,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpSystemProperties`
 
-SOAP SystemProperties over muse — system keys.
+The classic SystemProperties service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1888,7 +1888,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpVirtualLineIn`
 
-SOAP VirtualLineIn over muse — virtual line-in sources.
+The classic VirtualLineIn service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1910,7 +1910,7 @@ Op-level JSON keys recovered from op-object methods: `headers`, `input`, `output
 
 ## `upnpZoneGroupTopology`
 
-SOAP ZoneGroupTopology over muse — topology state/subscription.
+The classic ZoneGroupTopology service presented as a modern API resource — a bridge letting the new app reach the old commands through the JSON layer rather than the classic protocol. Every operation here maps to a command documented on that service's own page, so the app can use whichever channel it prefers.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1934,7 +1934,7 @@ Field vocabulary (request/response keys seen in the resource's client tables —
 
 ## `virtualLineIn`
 
-Native muse virtual-line-in surface (distinct from the upnp* proxy): configure/manage virtual line-in sources for a player.
+External-audio sessions as JSON resources — the push-audio feature's modern surface, parallel to the classic VLI service. How the app creates or joins an external-feed session through the modern API rather than the classic commands.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1965,7 +1965,7 @@ Op-level JSON keys recovered from op-object methods: `source`, `muse`, `backChan
 
 ## `virtualRemoteControl`
 
-Virtual remote — send remote-button events to a player through muse (related to `pinewood` but button-event oriented).
+Virtual remote control — lets an app act as the speaker's remote: button events and remote-style commands delivered as API calls rather than hardware presses.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -1990,7 +1990,7 @@ Related enum registrations (proven integer values — see `enum_tables`):
 
 ## `voice`
 
-Voice assistant integration state — assistant enablement/locale on voice players.
+Voice-assistant integration — the voice-service routes (status, linked assistants) on products that support them; present in the shared codebase for platform parity even where the hardware lacks microphones.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|
@@ -2016,7 +2016,7 @@ Op-level JSON keys recovered from op-object methods: `muse`, `allowVoiceDataColl
 
 ## `zones`
 
-Zone listing for a household — the zone view of topology (players + groups as user-facing zones). NOTE: the extracted field vocabulary for this resource over-captured into the binary's error-string region, so its field list is not a clean schema — treat ops/paths as proven and field names as noisy.
+Zones over the modern API — the household's rooms and zones as resources: the modern view of the player map the classic topology service provides, for apps that read the household's shape as JSON.
 
 | Method | Path | Op | Trailing param | Flags | Exec (vtable +0x0c) | Params | Spec lists (classId: root, field:type pairs) |
 |---|---|---|---|---|---|---|---|

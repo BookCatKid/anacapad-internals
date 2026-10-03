@@ -1,6 +1,6 @@
 # State variables
 
-State variables are the player's named properties - things like Volume, Mute, or the current track URI. 'Evented' means the player can push a live update to subscribers the moment the value changes; 'argument-type' variables exist only to declare the shape of command inputs and outputs and are not device state.
+State variables are the player's named properties — things like volume, mute, or the address of the current track. Every command either reads them (the Get* family) or writes them (the Set* family), and the event system watches them: when one changes, the player announces it to anything that subscribed. The table below is the full property list — what each variable is called, what type of value it holds, its allowed range or values where the spec pins them down, and which commands touch it. Think of it as the player's complete settings-and-state inventory.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -504,7 +504,7 @@ Evented variables carry `<NAME val="..."/>` elements inside `LastChange` documen
 
 ### `AC.AlarmListVersion`
 
-Bumps when alarms change — re-fetch the list on change.
+A version counter for the alarm list — ticks up every time an alarm is created, edited, or deleted. Apps watch this single number to know their cached alarm list went stale rather than re-fetching the whole list constantly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -516,7 +516,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.DateFormat`
 
-Household date format preference, replicated like TimeFormat.
+The speaker's preferred date display format — the setting behind how dates render in anything that asks the player rather than guessing at your region's convention.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -528,7 +528,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeFormat`
 
-Household time format — 12h vs 24h, shared across zones via the replicated DesiredTimeFormat.
+The speaker's preferred clock format — 12-hour versus 24-hour — read by anything displaying times the way the speaker was configured to. 12-hour versus 24-hour — read by anything displaying times the way the speaker was configured.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -540,7 +540,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeGeneration`
 
-A generation counter that changes whenever household time settings change — the cheap way to detect clock config updates.
+A counter that bumps whenever the household clock settings change — timezone switches, manual time sets, server changes. Lets other devices notice 'the clock just moved' and react.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -552,7 +552,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AC.TimeServer`
 
-Configured time source — the household SNTP setup.
+The address of the network time source the speaker syncs against — the configured time server, reported so apps and diagnostics can see where the household clock comes from.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -564,7 +564,7 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 
 ### `AI.IRRepeaterState`
 
-IR-repeater state on AudioIn-capable hardware.
+Whether the infrared repeater is currently on — mirrors the home-theater IR setting so a change shows up as an event. Dead on this build along with the rest of the AudioIn surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -576,7 +576,7 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 
 ### `AI.TOSLinkConnected`
 
-Whether the optical input has signal (AudioIn).
+Whether something is plugged into the optical input — the line-in detection flag. Part of the AudioIn surface that's a reject-everything stub on this firmware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -588,7 +588,7 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 
 ### `AVT.AVTransportURI`
 
-The URI of the current source — what you set with SetAVTransportURI. Not always the same as the playing track (queue vs stream).
+The address of what's loaded in the player right now — the URI for the current source: a queue reference, a radio stream URL, a line-in selector, a service item. When this value changes, the speaker is pointing at something different — it's the answer to 'what is this room set to play'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -600,7 +600,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.AVTransportURIMetaData`
 
-DIDL metadata for the transport URI itself (vs the current track's metadata) — the container/session description rather than the item playing.
+The description of what's loaded — title, artwork, and other display metadata for whatever AVTransportURI points at, packed in the track-metadata format apps render the 'now playing' header from.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -612,7 +612,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentCrossfadeMode`
 
-The active crossfade duration between tracks (seconds), mirroring SetCrossfadeMode. Evented in LastChange so controllers update the UI live.
+Whether crossfade is on — the blend-between-tracks setting, reported so the app's toggle stays in sync with the actual player state. The blend-between-tracks setting — reported so the app's toggle stays in sync.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -624,7 +624,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentMediaDuration`
 
-Duration of the current media object (vs the current track) — differs when the container outlives individual items, e.g., a radio stream that never ends.
+Total duration of the loaded media — pinned at 'not implemented' in this build because Sonos reports durations per-track (CurrentTrackDuration) rather than for the whole program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -636,7 +636,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.CurrentPlayMode`
 
-Shuffle/repeat mode — NORMAL, SHUFFLE_NOREPEAT, REPEAT_ALL etc.
+The current play mode — normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. The variable behind which shuffle/repeat icons light up in the app. Normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat — the variable behind which shuffle/repeat icons light up in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -648,7 +648,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentRecordQualityMode`
 
-Current record quality — conformance field, unused on a renderer.
+The recording quality setting — a leftover field from the standard spec; a speaker doesn't record, so it's permanently 'not implemented' here. A leftover field from the standard spec — permanently 'not implemented' on a speaker.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -660,7 +660,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.CurrentSection`
 
-The current section within a multi-section container — used by services that split content into logical parts.
+Which 'section' of the current program is active — used by sources with internal structure (like chapters or segments); for ordinary tracks it's effectively the current position in the list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -672,7 +672,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrack`
 
-1-based index of the playing track in the queue.
+The index of the track currently playing — which entry of the queue is live right now. Advances as the queue progresses; combined with NumberOfTracks it's 'track 4 of 23'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -684,7 +684,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackDuration`
 
-Length of the current track (H:MM:SS).
+How long the current track is — the value the app's progress bar divides elapsed time by to draw the fill position. The value the app's progress bar divides elapsed time by to draw its fill.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -696,7 +696,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackMetaData`
 
-DIDL-Lite metadata for the playing track — title/artist/album/art. Arrives inside LastChange events; parse the XML inside the val attribute.
+Metadata for the playing track — title, artist, album, artwork — packed in the track-metadata XML format. Everything the app's now-playing display shows about the song comes from this field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -708,7 +708,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTrackURI`
 
-The URI of the current track — e.g. a stream URL or x-rincon-queue ref.
+The address of the playing track itself — the specific item's URI, distinct from the source-level AVTransportURI: the queue might be the source while this names the exact song inside it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -720,7 +720,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.CurrentTransportActions`
 
-Which transport ops are valid right now (Play, Pause, Seek, Next...) — drive your UI's enabled buttons from this.
+The list of transport commands currently legal — 'Play,Stop,Next' and friends — computed live from the source and state. Apps read it to decide which buttons to enable and which to grey out.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -732,7 +732,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.NextAVTransportURI`
 
-The URI scheduled to load when the current transport finishes — set by NextAVTransportURI in the gapless model. Sonos queues largely bypass it via x-rincon-queue.
+The address of the next track, announced in advance — the gapless-playback lookahead: what has been lined up to play when the current track ends, so the player can pre-buffer it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -744,7 +744,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.NextAVTransportURIMetaData`
 
-Metadata paired with NextAVTransportURI — gapless next-item info.
+Metadata for the announced next track — the title and artwork the app can show in 'up next' before the track actually starts. The title and artwork the app can show in 'up next' before the track starts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -756,7 +756,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.NumberOfTracks`
 
-How many tracks are in the current queue/transport.
+How many tracks are in the current program — the queue length for queue playback, or a count for sources that behave like lists. The queue length for queue playback, or a count for sources that behave like lists.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -768,7 +768,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.PlaybackStorageMedium`
 
-Where the current media came from — NETWORK, the queue, a service stream, etc. Mostly informational; rarely drives client logic.
+Which 'medium' the current playback comes from — queue, network stream, line-in, and so on: the broad category label for the current source. Queue, network stream, line-in — the broad category label for the current source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -780,7 +780,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.PossiblePlaybackStorageMedia`
 
-The list of media the renderer can play from — the storage-medium enum for conformance.
+The list of source types this player can play — the hardware's declared talents, fixed per model: which media categories it will accept at all.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -792,7 +792,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NONE
 
 ### `AVT.PossibleRecordQualityModes`
 
-Record quality modes — conformance field, unused on a renderer.
+The recording-quality options the player claims — none, since a speaker doesn't record; standard-spec boilerplate kept for protocol completeness. Spec boilerplate for a playback-only device.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -804,7 +804,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.PossibleRecordStorageMedia`
 
-Record-capable media list — conformance field, empty/none on a renderer.
+The recording media the player claims — none; another spec field kept for completeness on a playback-only device. Another spec field kept for completeness on a device that doesn't record.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -816,7 +816,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.RecordMediumWriteStatus`
 
-Write status of the record medium — conformance field, irrelevant on a renderer.
+Write-protect status of the 'record medium' — boilerplate for a player that doesn't record; present because the standard requires the field. Present because the standard requires the field — irrelevant on a player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -828,7 +828,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.RecordStorageMedium`
 
-Record-capable medium — present for UPnP-AV conformance; this renderer doesn't record, so it's effectively a fixed value.
+Which medium would be recorded to — fixed at none on a playback-only device; spec boilerplate. Fixed at none on a playback-only device — spec boilerplate.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -840,7 +840,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.TransportErrorDescription`
 
-Human-readable description paired with a TransportError event — the 'why' text for stream failures.
+A text description of the last transport failure — the human-readable message attached when playback errors, describing what went wrong. The human-readable message attached when playback errors — describing what went wrong.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -852,7 +852,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorHttpCode`
 
-HTTP status when a stream fetch failed — useful for diagnosing why playback stopped.
+When a stream fails, the HTTP status from the failed fetch — for example a 404 from a dead stream URL — so apps can tell 'the file is gone' apart from 'the network died'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -864,7 +864,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorHttpHeaders`
 
-The HTTP headers captured on a transport-level HTTP failure — invaluable for debugging dead streams since it preserves the server's actual response.
+The response headers captured from a failed stream fetch — extra diagnostics attached to transport errors, useful for debugging why a stream died. Extra diagnostics attached to transport errors — useful for debugging why a stream died.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -876,7 +876,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportErrorURI`
 
-The URI that produced the current transport error — which stream failed.
+The address that failed when a transport error occurred — which stream or item the error belongs to, so the failure can be traced back to its source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -888,7 +888,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportPlaySpeed`
 
-Playback speed — normally 1; other values indicate trick-play modes. On this stack it's effectively always '1' for real sources.
+The playback speed — normally '1'; the standard's field for variable-speed playback, which this firmware doesn't implement. Normally '1' — the standard's field for variable-speed playback this firmware doesn't implement.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -900,7 +900,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension). constant NOT_
 
 ### `AVT.TransportState`
 
-The player's transport state — PLAYING, PAUSED_PLAYBACK, STOPPED, TRANSITIONING. This is the first thing most clients subscribe to.
+The headline playback state — PLAYING, PAUSED_PLAYBACK, STOPPED, or TRANSITIONING. The single most-watched variable on the player: every 'is it playing?' answer in every app comes from this one field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -912,7 +912,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.TransportStatus`
 
-OK or an error indicator for the current transport operation.
+The health of the transport — OK or an error indicator, paired with the state so 'stopped because you asked' differs from 'stopped because the stream died'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -924,7 +924,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:AlarmRunning`
 
-True while an alarm is sounding.
+Whether an alarm is currently ringing — set while an alarm fires so the system (and snooze/stop logic) knows an alarm session is live. The 'r:' prefix marks it as a Sonos extension beyond the standard variable set.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -936,7 +936,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:CurrentValidPlayModes`
 
-Sonos extension: the play modes currently valid for this source — which of NORMAL/SHUFFLE/REPEAT/REPEAT_ONE the UI should offer right now. Changes with source type.
+Which play modes are currently legal — the shuffle/repeat choices you may pick right now, computed from the source: repeat-one makes no sense on a live stream, so it's omitted then.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -948,7 +948,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlAccountID`
 
-Sonos extension: which service account owns the active direct-control session — identifies whose Connect session is attached.
+Which account owns an active direct-control session — the identity of the external service feeding the player, set while one is in control. The identity of the external service feeding the player — set while one is in control.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -960,7 +960,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlClientID`
 
-When a service has direct control (Spotify Connect etc.), this is the controlling client's ID.
+Which client owns an active direct-control session — the specific app or instance behind an external feed. The specific app or instance behind an external feed — set while a direct-control session owns the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -972,7 +972,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:DirectControlIsSuspended`
 
-Sonos extension: direct control (e.g., Spotify Connect targeting the group) is currently suspended — the session exists but isn't driving playback.
+Whether the direct-control session is suspended — paused in a way that keeps the session alive while the external source isn't actively streaming. Paused in a way that keeps the session alive while the external source isn't actively streaming.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -984,7 +984,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:EnqueuedTransportURI`
 
-The URI that was originally queued — differs from AVTransportURI when the source resolved to something else (e.g. queue → stream).
+The address of the source queued up to take over — the next program's URI: what will become current when the player switches source, distinct from the next track inside the current program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -996,7 +996,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:EnqueuedTransportURIMetaData`
 
-Sonos extension: the DIDL metadata for EnqueuedTransportURI — what's queued up, so controllers can show it without a second lookup.
+Metadata for the queued-up source — the description of whatever EnqueuedTransportURI points at, so apps can display what's coming next at the program level. The description of whatever EnqueuedTransportURI points at — so apps can show what's coming at the program level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1008,7 +1008,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:NextTrackMetaData`
 
-Sonos extension: DIDL for the next track — paired with r:NextTrackURI.
+Metadata for the next track in the Sonos extension namespace — parallels the standard NextAVTransportURIMetaData under the r: prefix. Parallels the standard NextAVTransportURIMetaData under the r: prefix.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1020,7 +1020,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:NextTrackURI`
 
-Sonos extension: the next track's URI in the queue — for 'up next' display without parsing the whole queue.
+The next track's address in the Sonos extension namespace — the same lookahead concept as NextAVTransportURI, exposed under the r: prefix. The same lookahead concept as NextAVTransportURI, exposed under the r: prefix.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1032,7 +1032,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:RestartPending`
 
-Sonos extension: a restart of the transport is pending — the engine will resume playback after an internal reset. Clients should treat it as 'transient, don't alarm the user'.
+Whether the player has flagged that a restart is pending — a marker used around updates and recovery so clients know the session may bounce.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1044,7 +1044,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:SleepTimerGeneration`
 
-Bumps whenever a sleep timer is set/changed — watch it to keep timer UI in sync.
+A counter that ticks whenever the sleep timer is set, changed, or cancelled — so apps can tell a fresh timer apart from an old one without comparing durations.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1056,7 +1056,7 @@ AVTransport evented variable (r: prefix = rincon/Sonos extension).
 
 ### `AVT.r:SnoozeRunning`
 
-True while a snoozed alarm is pending.
+Whether an alarm snooze is currently counting down — set between hitting snooze and the alarm re-ringing. Set between hitting snooze and the alarm re-ringing — the 'a snooze is counting down' flag.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2180,7 +2180,7 @@ evented state variable — appears in AudioIn LastChange/GENA event notification
 
 ### `CD.ContainerUpdateIDs`
 
-Per-container update ids — the standard UPnP change signal for browse caches.
+The change-markers for library containers — a list of which folders and playlists changed since the last check, so an app refreshes only the parts of its browse view that moved instead of re-reading the whole library.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2191,7 +2191,7 @@ ContentDirectory evented variable in f_103035c4
 
 ### `CD.FavoritesUpdateID`
 
-Bumps whenever Sonos Favorites change — re-browse FV:2 when you see this.
+A version counter for the favorites list — bumps whenever your saved stations, playlists, or items change, telling apps their favorites view is stale. Bumps whenever your saved stations, playlists, or items change — telling apps their favorites view is stale.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2202,7 +2202,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CD.RadioFavoritesUpdateID`
 
-Bumps when saved radio favorites change.
+A version counter for saved radio favorites — bumps when your radio presets change, so the stations list refreshes only when it needs to. Bumps when your radio presets change — so the stations list refreshes only when needed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2213,7 +2213,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CD.SavedQueuesUpdateID`
 
-Bumps when Sonos Playlists (saved queues) change.
+A version counter for Sonos playlists — bumps when any saved queue is created, edited, or deleted: the 'your playlists changed' signal. Bumps when any saved queue is created, edited, or deleted — the 'your playlists changed' signal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2224,7 +2224,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CD.ShareIndexInProgress`
 
-True while the library index is rebuilding — browsing shares may be incomplete.
+Whether a music-library rescan is running right now — the flag behind the 'updating music index' spinner in the app. The flag behind the 'updating music index' spinner — on while a rescan walks your folders.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2235,7 +2235,7 @@ ContentDirectory evented variable in f_103035c4
 
 ### `CD.ShareListUpdateID`
 
-Bumps when the local music-library share list changes.
+A version counter for the music-shares list — bumps when folders are added to or removed from the library, so apps re-fetch the share list only on change.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2246,7 +2246,7 @@ ContentDirectory evented variable in f_10303de4
 
 ### `CM.CurrentConnectionIDs`
 
-The ConnectionManager's active connection id list — almost always '0' on this renderer since there's one logical input path.
+The list of live connections against the player — the evented form of the connection-list command: fires whenever a control session opens or closes. The evented form of the connection-list command — fires whenever a control session opens or closes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2627,7 +2627,7 @@ evented state variable — appears in ContentDirectory LastChange/GENA event not
 
 ### `DP.CurrentZoneName`
 
-The room name — 'ZoneNameChangedEvent' fires on rename.
+This speaker's room name — the label you gave it in the app ('Kitchen'). Fires when it gets renamed, so every display updates. The label you gave it in the app ('Kitchen') — fires on rename so every display updates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2638,7 +2638,7 @@ DeviceProperties evented variable (ZoneNameChangedEvent)
 
 ### `DP.Invisible`
 
-Whether the player is hidden from room lists.
+Whether the speaker is hidden — an 'invisible' flag removing the player from normal room display, used for satellites and bonded members that shouldn't appear as separate rooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2649,7 +2649,7 @@ DeviceProperties evented variable (DeviceInfo attr literal)
 
 ### `DP.MicEnabled`
 
-Whether the microphone is enabled (on voice-capable hardware).
+Whether the speaker's microphone is enabled — the mic-on flag for voice-capable products; kept for spec parity on this older hardware. The mic-on flag for voice-capable products — kept for spec parity on this older hardware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2660,7 +2660,7 @@ DeviceProperties evented variable (DeviceInfo attr literal)
 
 ### `DP.ResetVolumeAfter`
 
-DeviceProperties flag: volume resets to a default after playback/grouping changes — used by fixed-volume and demo behaviors.
+Whether the speaker resets its volume after a triggered session — the flag used by alarm/autoplay so a wake-up volume doesn't become the permanent level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3256,7 +3256,7 @@ evented state variable — appears in DeviceProperties LastChange/GENA event not
 
 ### `GM.DelegatedGroupCoordinatorID`
 
-When control is delegated, the acting coordinator's ID.
+Which member group leadership was delegated to — set during a coordinator hand-off so the topology knows who is taking over the group. Set during a coordinator hand-off so the topology knows who's taking over the group.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3267,7 +3267,7 @@ GroupManagement evented variable (event-pool literal)
 
 ### `GM.LocalGroupUUID`
 
-This player's group UUID — which group it currently belongs to.
+The identifier of the group this speaker currently belongs to — its group membership in one value; changes on every group and ungroup. Its group membership in one value — changes on every group and ungroup.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3278,7 +3278,7 @@ GroupManagement evented variable (event-pool literal)
 
 ### `GM.VirtualLineInGroupID`
 
-The group hosting virtual line-in — which group a VLI source belongs to.
+The group associated with a virtual line-in session — set while an external feed session exists, tying the session to the group it serves. Set while an external feed session exists — tying the session to the group it serves.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3289,7 +3289,7 @@ GroupManagement evented variable (setVirtualLineInGroupIDLocked worker)
 
 ### `GRC.GroupMute`
 
-Group mute — coordinator-level.
+The group's mute state — the evented flag every controller follows for the group mute button: change it anywhere and everyone sees it flip. The evented flag every controller follows for the group mute button — change it anywhere and everyone sees it flip.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3300,7 +3300,7 @@ GroupRenderingControl evented variable (SetGroupMute rc-log literal)
 
 ### `GRC.GroupVolume`
 
-The whole group's volume — settable only on the group coordinator.
+The group's aggregate volume — the number behind the group slider, re-derived by the coordinator as member levels change. The number behind the group slider — re-derived by the coordinator as member levels change.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3311,7 +3311,7 @@ GroupRenderingControl evented variable (SetGroupVolume rc-log literal)
 
 ### `GRC.GroupVolumeChangeable`
 
-Whether group volume is adjustable right now.
+Whether the group volume can currently be changed — a capability flag: in some configurations the group level is locked or derived and the slider should disable.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3480,7 +3480,7 @@ evented state variable — appears in GroupRenderingControl LastChange/GENA even
 
 ### `HT.LEDFeedbackState`
 
-LED feedback state for HT control ops.
+Whether the remote-received LED flash is on — the home-theater feedback setting, evented so settings screens stay truthful. The remote-received LED flash setting — evented so settings screens stay truthful.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3491,7 +3491,7 @@ HTControl evented variable in f_10739c34
 
 ### `HT.RemoteConfigured`
 
-Whether the TV remote is configured (HTControl).
+Whether the speaker has a configured infrared remote — set once remote-learning is done; the flag apps check before offering the setup wizard. Set once remote-learning is done — the flag apps check before offering the setup wizard.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3572,7 +3572,7 @@ evented state variable — appears in HTControl LastChange/GENA event notificati
 
 ### `MS.ServiceListVersion`
 
-Bumps when the music-service list changes — re-read GetAvailableServices.
+A version counter for the music-service catalog — bumps when the available-services list changes, so apps re-pull the catalog only when it moved. Bumps when the available-services list changes — so apps re-pull the catalog only when it moved.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3863,7 +3863,7 @@ argument-type state variable (SCPD type declaration for action args; not device 
 
 ### `Queue.Curated`
 
-Whether the queue is service-curated (cloud-queue playlists mark this).
+Whether a queue is 'curated' — marked as managed by some system component rather than a raw user queue. Marked as managed by some system component rather than a raw user queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3883,7 +3883,7 @@ evented state variable — appears in Queue LastChange/GENA event notifications
 
 ### `Queue.QueueID`
 
-Opaque queue identifier for the Queue events channel (a Sonos-proprietary event namespace).
+The identifier of the queue being described — which managed queue an event or answer refers to. Which managed queue an event or answer refers to — the queue's identifier.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3894,7 +3894,7 @@ queue identifier assigned at AttachQueue/CreateQueue
 
 ### `Queue.QueueOwnerID`
 
-Identifies what currently owns the queue — the service or session that populated it. Lets a client tell 'the user's queue' from 'a service-pushed cloud queue'.
+Which component owns a queue — the entity (internal module or session) holding edit rights over it. The entity (internal module or session) holding edit rights over the queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3905,7 +3905,7 @@ queue owner UDN
 
 ### `Queue.UpdateID`
 
-Queue version — increments on every queue edit; use it for change detection.
+A queue's version stamp — bumps on every edit; the token apps send back to prove they're editing the version they last saw, preventing lost updates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3916,7 +3916,7 @@ queue content update id
 
 ### `RCS.AudioDelay`
 
-Lip-sync offset — delay applied to align audio with video.
+Lip-sync delay for the main output — how much audio delay is applied so sound lines up with the TV picture; exists because video processing adds latency the audio must wait out.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3928,7 +3928,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.AudioDelayLeftRear`
 
-Lip-sync delay for the left rear channel, in ms — compensates satellite latency in bonded home-theater setups.
+Lip-sync delay for the left rear channel — the surround-specific version of the audio delay, so rear speakers can be timed independently. The surround-specific version of the audio delay — left rear timed independently.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3940,7 +3940,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.AudioDelayRightRear`
 
-Lip-sync delay for the right rear channel — the paired setting to AudioDelayLeftRear.
+Lip-sync delay for the right rear channel — the companion to the left-rear delay setting. The companion to the left-rear delay — right rear's own lip-sync trim.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3952,7 +3952,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Bass`
 
-Bass EQ level (-10..10).
+The bass level — the equalizer's bass setting, evented so the app's EQ panel tracks changes made anywhere. The equalizer's bass setting, evented so the app's EQ panel tracks changes made anywhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3964,7 +3964,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.DialogLevel`
 
-Speech-enhancement/dialog level — HT feature.
+The dialogue-boost amount — how much speech-enhancement lift is applied on products offering it; a per-model tone control. How much speech-enhancement lift is applied — a per-model tone control on products offering it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3976,7 +3976,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.HeightChannelLevel`
 
-Level trim for height/up-firing channels on models that have them — part of the HT tuning set.
+The level of height/ceiling channels — a setting for surround products with upward-firing speakers; present for spec parity on this older unit. A setting for surround products with upward-firing speakers — present for spec parity here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3988,7 +3988,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Loudness`
 
-Loudness compensation on/off.
+The loudness toggle — Sonos's fullness boost for quiet listening, evented alongside the rest of the EQ state. Sonos's fullness boost for quiet listening — evented with the rest of the EQ state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4000,7 +4000,7 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 
 ### `RCS.MusicSurroundLevel`
 
-How much ambient/surround processing applies to music playback specifically — separate from TV surround tuning.
+How much music playback goes to the surround speakers — the 'ambient versus full' music-surround level in a home-theater setup. The 'ambient versus full' music-surround level in a home-theater setup.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4012,7 +4012,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Mute`
 
-Mute state per channel — '1'/'0'.
+The mute flag per channel — the most basic evented variable on this service: fires every time mute flips, whether from an app or the physical button.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4024,7 +4024,7 @@ RenderingControl evented variable; emit-literal at RCS template (per-channel via
 
 ### `RCS.NightMode`
 
-Night mode (DRC compression) state — HT feature.
+Night mode — the dynamic-range compressor that softens loud effects for late-night TV: a home-theater toggle reported here. The dynamic-range compressor softening loud effects for late-night TV — a home-theater toggle.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4036,7 +4036,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.OutputFixed`
 
-Fixes the player's output at full level so an external amplifier controls volume. When on, SetVolume requests are ignored — the app shows 'volume fixed'. Read it before sending volume commands to a bonded or amped zone.
+Whether output is fixed-level — the flag locking the speaker at line level for feeding an external amplifier. The flag locking the speaker at line level for feeding an external amplifier.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4048,7 +4048,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.PresetNameList`
 
-EQ preset names — includes 'FactoryDefaults' used by factory reset.
+The list of named EQ/volume presets available — the preset vocabulary some products expose for one-tap sound modes. The preset vocabulary some products expose for one-tap sound modes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4060,7 +4060,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SonarCalibrationAvailable`
 
-Whether sonar-based calibration is offered — a capability flag the app checks before showing the calibration flow.
+Whether sonar/room calibration can run on this device — a capability flag telling apps whether to offer the tuning feature. A capability flag telling apps whether to offer the tuning feature.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4072,7 +4072,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SonarEnabled`
 
-Whether Trueplay/sonar calibration is active on this player.
+Whether sonar calibration is currently enabled — the tuning system's on/off state after a completed calibration. The tuning system's on/off state after a completed calibration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4084,7 +4084,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SpeakerSize`
 
-Configured speaker size tag used by DSP tuning (satellite vs full-range). Written during bonded-group setup; affects crossover and bass handling rather than anything a client sets directly.
+The speaker-size classification — the large/small designation the audio pipeline uses for bass handling in home-theater configuration. The large/small designation the audio pipeline uses for bass handling in theater configuration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4096,7 +4096,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SpeechEnhanceEnabled`
 
-Speech/dialog enhancement toggle — boosts the dialog band via the DAP config. The app's 'speech enhancement' switch maps here.
+Whether speech enhancement is on — the dialogue-clarity feature on theater products, evented so the toggle follows the real device state. The dialogue-clarity feature on theater products — evented so the toggle follows the real state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4108,7 +4108,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubCrossover`
 
-The low-pass crossover frequency used when a Sub is bonded — where mains hand bass to the subwoofer. Updated when Trueplay or manual tuning changes the blend.
+The subwoofer crossover frequency — where bass hands off from the soundbar to the bonded sub: a home-theater tuning value. Where bass hands off from the soundbar to the bonded sub — a home-theater tuning value.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4120,7 +4120,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubEnabled`
 
-Whether the bonded Sub is enabled in the group. Toggling routes low frequencies back to the mains without unbonding.
+Whether the bonded subwoofer is enabled — the sub on/off flag inside a theater rig. The sub on/off flag inside a theater rig. Toggles the bonded sub's participation — the variable behind the app switch for 'use the sub'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4132,7 +4132,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubGain`
 
-Sub output level — only on setups with a bonded Sub.
+The subwoofer gain — the sub's level trim relative to the rest of the rig. The sub's level trim relative to the rest of the rig — how hot the bass runs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4144,7 +4144,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SubPolarity`
 
-Subwoofer polarity (normal/inverted) for bonded Subs — set during tuning to align the sub's phase with the mains. A mis-set value sounds like missing bass.
+The subwoofer polarity — the phase setting (normal/inverted) keeping the sub's bass in step with the bar's drivers. The phase setting (normal/inverted) keeping the sub's bass in step with the bar's drivers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4156,7 +4156,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SupportsMaxDialogLevel`
 
-Capability flag advertising that this model supports maximum dialog level — clients gate the dialog-level control on it.
+Whether this device supports the maximum dialogue-level setting — a capability flag gating the strongest speech-boost option. A capability flag gating the strongest speech-boost option.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4168,7 +4168,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundEnabled`
 
-Whether bonded surrounds are active.
+Whether surround speakers are active in the rig — the rear-channel enable flag. The rear-channel enable flag inside a theater rig. Flips the rear-channel participation on or off within a bonded theater rig.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4180,7 +4180,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundLevel`
 
-Surround speaker level.
+The surround speakers' level trim — how loud the rears play relative to the bar. How loud the rear speakers play relative to the bar — the rear-channel trim.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4192,7 +4192,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.SurroundMode`
 
-The surround processing mode currently active — how stereo/HT input maps onto the bonded channel set.
+The surround mode for music playback — the 'ambient' versus 'full' setting deciding how much music goes to the rear speakers. 'Ambient' versus 'full' — how much music goes to the rear speakers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4204,7 +4204,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Treble`
 
-Treble EQ level (-10..10).
+The treble level — the equalizer's treble setting, evented alongside bass. The equalizer's treble setting, evented alongside bass. Adjust it anywhere and every evented view reflects the new value together with the other tone settings.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4216,7 +4216,7 @@ RenderingControl evented variable; emit-literal at RCS template
 
 ### `RCS.Volume`
 
-The player's volume (0-100-ish; Master channel). Subscribe for slider UIs.
+The volume per channel — the most-watched variable on this service: every slider move, button press, or remote command lands here. Every slider move, button press, or remote command lands here — the most-watched variable on this service.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5001,7 +5001,7 @@ non-evented VirtualLineIn state variable — read via action out-args, not pushe
 
 ### `ZGT.ZoneGroupState`
 
-The full household topology document — every zone, its coordinator, members and names. The topological ground truth; subscribe to it for 'what's grouped with what'.
+The entire household map as one variable — every player, its room name, its group, and each group's leader, packed into a single document. The heartbeat of multi-room awareness: it changes (and announces) every time the system's shape changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5267,7 +5267,7 @@ evented state variable — appears in ZoneGroupTopology LastChange/GENA event no
 
 ### `alarm_status_schema`
 
-The `/status/alarm` XML schema: the full alarm list with ids, times, rooms, programs, and enabled flags — the same data ListAlarms returns, rendered as a status page.
+The field list for the alarm page on the player's built-in diagnostics website — which alarm details the player exposes when you (or support tools) visit its status pages: what's scheduled, what's ringing, and the bookkeeping around each.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5278,7 +5278,7 @@ The `/status/alarm` XML schema: the full alarm list with ids, times, rooms, prog
 
 ### `avt_lastchange`
 
-The AVTransport LastChange schema: every field that can appear in the evented document — standard UPnP vars plus the `r:` Sonos extensions (enqueue info, direct-control state, sleep/alarm fields, restart flags). This is the complete list of what a subscriber can see change.
+The field list for the transport service's bundled change reports — everything packed into the 'what just changed in playback' message: state, track, position, mode, source. One event carries all of this at once, which is why an app updates its whole now-playing screen from a single notification.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5289,7 +5289,7 @@ AVTransport LastChange evented fields
 
 ### `device_props_extra_vars`
 
-Additional DeviceProperties state variables beyond the standard set — internal counters and flags surfaced for diagnostics.
+Additional device-property fields the settings service carries beyond the standard set — the extra bits of speaker configuration reported alongside the usual name/LED/button state. The extra bits of speaker configuration reported alongside the usual name/LED/button state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5300,7 +5300,7 @@ more state vars
 
 ### `device_props_update_ids`
 
-The update-counter variables in DeviceProperties — bump-on-change ids for config sections, letting subscribers detect changes without full re-reads.
+The set of change-counters the device-properties service keeps — version numbers that tick when different aspects of the speaker's config change, so interested parties can tell what moved without comparing every field.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5311,7 +5311,7 @@ update counters
 
 ### `ht_input_session`
 
-The HT input-session telemetry schema (zpHTInputSession): correlation id, connection type, coordinator identity, durations, input format, content type — the record each TV-audio session produces.
+The telemetry fields captured for a home-theater input session — the bookkeeping the soundbar keeps about an active TV/optical input session: source, timing, and session state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5322,7 +5322,7 @@ HT input-session telemetry fields
 
 ### `netsettings_schema`
 
-The netsettings.json schema: the replicated network store — Wi-Fi config, SonosNet settings, and the PSK hierarchy — versioned and checksum-protected.
+The layout of the player's replicated network-settings store — the on-disk document holding WiFi credentials and network configuration that all devices in the household share. This is where your WiFi password actually lives inside the system: encrypted per-household, replicated across players so any of them can join the network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5333,7 +5333,7 @@ netsettings.json replicated network+PSK store
 
 ### `playstatemanager_schema`
 
-The `/status` page schema for the play-state manager: which sources exist, their states, and the transitions the manager is tracking — the internal view behind 'what's playing and why'.
+The fields of the play-state manager page on the diagnostics site — the component's own view of who's playing what where, exposed for debugging group playback issues.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5344,7 +5344,7 @@ The `/status` page schema for the play-state manager: which sources exist, their
 
 ### `renderingcontrol_status_schema`
 
-The XML schema of the `/status/renderingcontrol` page: current volume/mute/EQ levels per zone as the engine sees them — what you'd diff against RenderingControl events when a client seems out of sync.
+The fields on the diagnostics page for the volume/tone service — the player's internal view of channel volumes, mutes, EQ values, and flags, exposed for support and debugging.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5355,7 +5355,7 @@ The XML schema of the `/status/renderingcontrol` page: current volume/mute/EQ le
 
 ### `replicated_netsettings_schema`
 
-The netsettings replication schema: the XML/JSON that carries network config and PSK material between household members — versioned so a mismatch triggers resync.
+The layout of the replicated network-settings document exchanged between players — the shared network config (including WiFi details) every household member keeps in sync so any player can stand up the same network configuration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5366,7 +5366,7 @@ netsettings replicated XML
 
 ### `savedqueues_rsq_schema`
 
-The savedqueues.rsq file schema: gzipped XML with LastUpdateDevice/Version/Next headers and per-queue SavedQueue entries — the on-disk form of 'Sonos playlists'.
+The file format of the saved-queues store on disk — how Sonos playlists are actually persisted on the speaker: the record structure that survives reboots, written by the queue-backup commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5377,7 +5377,7 @@ savedqueues.rsq persistence
 
 ### `services_xml_schema`
 
-The replicated services XML schema: the available-services list (musicservices.xml) with descriptor refs and versions — the household's shared SMAPI registry.
+The layout of the replicated services list — the document describing which music services exist on the household that all players share, so every speaker sees the same service catalog.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5388,7 +5388,7 @@ replicated services list XML
 
 ### `shares_schema`
 
-The replicated share registry schema: the `<Shares>` document with each share's path, credentials-ref, id, and verified-protocol flag — what the indexer reads and what replicates between players.
+The layout of the replicated share registry — the document listing your music-library folders that all household players keep a copy of, so every speaker can index and play from the same shares.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5399,7 +5399,7 @@ replicated share registry XML
 
 ### `sounddevice_status_schema`
 
-The SoundDevice page schema: per-zone volume, ducking state, and output-device status — the hardware-side view behind RenderingControl.
+The fields of the SoundDevice diagnostics page — per-zone audio bookkeeping: each player's volume, ducking state, and output details as the player reports them internally.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5410,7 +5410,7 @@ SoundDevice page (per-zone volume/ducking)
 
 ### `update_info_schema`
 
-The UpdateInfo page schema: current firmware version, SWGen, compatibility floor, and update availability — the device's own view of its software state.
+The fields of the update-info diagnostics page — what the player reports about its firmware status: current version, what updates are pending or downloading, and update history.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5421,7 +5421,7 @@ UpdateInfo page
 
 ### `userradio_schema`
 
-The userradio.xml schema (plus the .d.xml delta variant): replicated user-radio favorites — station lists that follow the household rather than a single player.
+The layout of the user-radio favorites file — the document storing your saved radio stations, plus the delta-file format used to apply incremental changes without rewriting the whole list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5432,7 +5432,7 @@ userradio.xml (+.d.xml delta) replicated favorites
 
 ### `vli_state_snapshot`
 
-The VirtualLineIn state snapshot: the record captured at session transitions (source, target, delegation state) — what survives a handoff so a VLI session can resume on a new owner.
+The snapshot recorded when a virtual line-in session changes state — the fields captured at transitions so the session can be handed off or resumed: source, coordinator, transport settings at that moment.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5443,7 +5443,7 @@ VLI handoff snapshot recorded at state transitions
 
 ### `zone_group_state_schema`
 
-The ZoneGroupState document schema: the complete household map — groups, coordinators, members, vanished and quarantined devices, and embedded MediaServers account records — as evented by ZoneGroupTopology.
+The layout of the household-map document — the same ZoneGroupState the topology service emits: every player, room, group, and coordinator, structured so any device can parse the whole system's shape.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5454,7 +5454,7 @@ evented ZoneGroupState XML emitted by topology_base
 
 ### `zoneplayers_status_schema`
 
-The `/status` ZonePlayers page schema: every discovered player's attributes — useful for seeing what this device thinks the rest of the household looks like.
+The fields of the ZonePlayers diagnostics page — the player's internal census of every speaker it knows about: IDs, rooms, versions, and addresses, exposed for debugging.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5465,7 +5465,7 @@ The `/status` ZonePlayers page schema: every discovered player's attributes — 
 
 ### `zp_support_info`
 
-The ZPSupportInfo schema: the bundle of device state support pulls for diagnostics — versions, network state, recent errors — emitted as structured XML.
+The layout of the support-information bundle — the structured data gathered when you submit diagnostics: versions, hardware details, state, and configuration, packaged so Sonos support can read it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5476,7 +5476,7 @@ ZPSupportInfo schema
 
 ### `zpinfo_schema`
 
-The ZPInfo schema: device identity (serial, MAC, version), DeviceInfo fields, and Playmode state — the composite record `/status/zpinfo` emits.
+The layout of the player's self-description documents — the fields a speaker publishes about itself: identity, device info, and play-mode capabilities, used by the rest of the household to recognize it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5487,7 +5487,7 @@ ZPInfo + DeviceInfo + Playmode
 
 ### `zps_page`
 
-The `/status` household-update page fields: update status, pending versions, and per-device state — the page that shows how a rollout is progressing across the household.
+The fields of the household update-status page — the diagnostics view showing each player's update state during a rollout: who's updated, who's downloading, who's pending or failed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

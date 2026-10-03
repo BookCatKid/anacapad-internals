@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Coordinator-facing group-membership service. Group members use these actions to join/leave a coordinator and to report buffering state; normal clients rarely call it, but it is advertised. Everything here operates on group members identified by MemberID.
+This service is how grouped Sonos speakers coordinate behind the scenes. When you group rooms together in the app, one speaker becomes the coordinator — the leader that picks the music and relays it to the others. The commands in this service are mostly the members talking to that leader: joining a group, leaving it, reporting how well their audio buffering is coping, and receiving updates about which 'area' of the system is the current music source. You will never see most of this in an app screen — it is the internal glue that makes group playback stay in sync and recover gracefully when a member drops off the network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -35,7 +35,7 @@ Coordinator-internal group membership service: members join/leave and report buf
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Joins the calling member (MemberID + BootSeq) to this group. Returns the coordinator's current URI, the joined group UUID, volume/reset hints and transport settings so the new member can align playback.
+Adds a speaker to the group as a follower. The new member announces itself to the coordinator (its ID and a boot counter that lets the leader tell a fresh join from a stale reconnect), and the leader replies with everything the member needs to fall into line: the address of the stream it should listen to, the group's identity, whether it should reset its volume, and which settings it should adopt. This is the handshake that turns 'Bedroom selected Living Room' into actual synchronized playback.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -220,7 +220,7 @@ impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,8
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes MemberID from the group.
+Removes a speaker from the group — what happens when you uncheck a room in the grouping screen, or when the app decides a member should leave. The coordinator drops that member's entry from its list and stops feeding it group audio.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -346,7 +346,7 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Member-to-coordinator feedback of a buffering result code for a track fetch. NOTE: the implementation always returns error 402 in this build - the action exists on the wire but does nothing.
+A feedback channel from member to coordinator: a follower speaker reports how successfully it managed to buffer the audio stream it was given — essentially 'I got the track data fine' or 'I had trouble keeping up'. The coordinator uses these reports to judge group health; a member that keeps reporting failures can be handled differently from one playing happily.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -464,7 +464,7 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the group's desired source-area ids (used to steer which zone's content the group plays).
+Tells group members which area of the system the music is coming from. Sonos organizes a household into logical 'areas' (the multi-room spaces newer app versions use), and this command propagates the coordinator's current source-area choice to the followers so everyone agrees where the sound originates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

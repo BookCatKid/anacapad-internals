@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Player identity, hardware features and local configuration: zone name/icon, serial/software/hardware versions, LED and button state, button lock, autoplay preferences (which room's line-in or TV input auto-plays here and at what volume), stereo-pair and home-theater satellite management, household id, config mode, and the room-detection chirp used during setup.
+This service manages the speaker's own settings — the properties of the physical device rather than anything about music. It covers the status LED and the physical buttons on top (including locking them so kids can't press them), the room name and icon that show up in the app, and the player's identity inside the household. It is also where speaker bonding lives: turning two identical speakers into a stereo pair, attaching surround speakers or a subwoofer to a soundbar, and undoing those bonds. On top of that it owns the autoplay defaults — what a player should automatically do when a familiar source comes back — and a configuration mode that apps enter during setup and diagnostics. In short: everything you would find under 'this speaker' in system settings routes through here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -58,7 +58,7 @@ Device properties service: LED/button state, zone attributes, stereo-pair and ho
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Bonds additional players to this player via a ChannelMapSet (which member plays which channel).
+Bonds additional speakers to this one so they behave as a single room. The argument describes which channel each added speaker should play (for example, which speaker becomes left and which becomes right). This is one of the building blocks the app uses when you group speakers into a surround setup or stereo arrangement — unlike casual grouping, a bond is a deeper hardware-level association: the bonded speakers share a room identity and split audio channels between them rather than just playing in sync.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -185,7 +185,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds a surround/sub satellite to a home-theater group via HTSatChanMapSet.
+Attaches one speaker to this player as a home-theater satellite — the role surround speakers or a sub play behind a soundbar. You name the room the satellite lives in and describe which channels it should carry, and the speaker integrates it into the home-theater rig. This is part of what happens when you set up 'Playbar + surrounds' in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -314,7 +314,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Creates a stereo pair from two players, describing left/right assignment in ChannelMapSet.
+Joins two matching speakers into a stereo pair — one playing the left channel, one the right, presented in the app as a single room. The argument describes which physical speaker takes which channel. After bonding, the pair behaves as one logical speaker for almost everything else: playback, grouping, and volume.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -441,7 +441,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Puts the player into a configuration mode (used during setup/registration); returns the resulting State.
+Puts the speaker into a special configuration mode used during setup, diagnostics, or factory servicing. You pass a mode name plus options, and it returns the state the device ended up in. This is deliberately not a normal-day command — the app uses it for onboarding flows and support tools, and while it is active the speaker behaves differently from usual.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -576,7 +576,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Leaves configuration mode.
+Takes the speaker back out of configuration mode after EnterConfigMode, restoring normal behavior. Options say how to exit — for example whether to keep or discard changes made while in that mode.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -697,7 +697,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-For a given autoplay Source, returns whether linked zones are grouped when autoplay triggers.
+Reports whether autoplay is allowed to bring grouped speakers along — when a player resumes a source automatically, should it also wake up the rooms it is grouped with? A simple on/off setting read back by the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -826,7 +826,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-For a given autoplay Source, returns the UUID of the room that will take over playback.
+Reports which room this speaker will automatically join (or treat as the source) when autoplay kicks in. Autoplay is Sonos's 'resume what this room does' feature: if the configured room starts playing, this speaker follows. This command reads which room was chosen for that.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -956,7 +956,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the volume the player jumps to when the given autoplay Source activates.
+Reports the volume the speaker should use when autoplay starts it playing — separate from its normal volume, so a wake-up source does not blast at whatever the level happened to be.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1085,7 +1085,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether the player's physical buttons are locked (child-lock).
+Reports whether the physical buttons on the speaker are locked. When locked, pressing play/pause or the volume rocker on the unit does nothing — the child-lock of the Sonos world. The app reads this to show the toggle's current position.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1207,7 +1207,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the current physical button state (e.g. which buttons are pressed).
+Reports the state of the speaker's physical buttons — whether they are enabled and possibly their current pressed state. Diagnostic plumbing for the hardware controls.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1326,7 +1326,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the household identifier this player is registered to.
+Reports the identifier of the Sonos household this speaker belongs to. Every speaker in a home shares one household ID — it is how the system knows two players are part of the same installation rather than neighbors' devices that happen to be reachable. Apps use this constantly behind the scenes to decide which speakers belong together.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1448,7 +1448,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether the status LED is on or off.
+Reports whether the speaker's status LED is on or off — the setting behind 'Status Light' in the app. The LED is the small indicator on the unit; some people switch it off in bedrooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1566,7 +1566,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether autoplay applies the configured autoplay volume (vs. keeping current volume).
+Reports whether the speaker should apply its special autoplay volume when it starts playing automatically, or just keep whatever volume it already had. Together with the autoplay volume itself, this decides whether auto-started playback comes in at a set level or at whatever the speaker last used.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1699,7 +1699,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the player's configured room name, icon and room configuration.
+Reports this speaker's descriptive attributes — its room name, icon, and related presentation details, i.e. what the app shows for this device on the rooms screen.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1827,7 +1827,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns identity and version info: serial number, software/hardware versions, IP and MAC addresses, flags and build metadata.
+Reports this speaker's identifying details — model, software version, serial-related fields: the 'About my Sonos product' data the app displays and support tools collect. The 'about this product' data — what you see in the app under the speaker's details and what support asks for.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1973,7 +1973,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Un-bonds zones described by ChannelMapSet; KeepGrouped controls whether playback grouping is preserved.
+Breaks a hardware bond between speakers — the undo for AddBondedZones. You describe which bonded speakers to release and whether they should stay merely grouped (casual sync) afterward; the speakers regain independent room identities.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2104,7 +2104,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes a home-theater satellite by room UUID.
+Detaches one home-theater satellite — a surround speaker or sub — from this player's theater rig. The speaker goes back to being a normal standalone room.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2229,7 +2229,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Plays the ultrasonic chirp used by Sonos room/speaker detection during setup; returns a PlayId to stop it.
+Makes a bonded speaker play a repeating chirp sound so the system (or you) can tell which physical box is which — the 'identify this speaker' feature used while arranging surrounds or pairing. You choose which channel chirps and for how long, and can ask it to chirp even while normal audio is playing; it returns an ID used to stop the chirping.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2367,7 +2367,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops a chirp previously started by RoomDetectionStartChirping.
+Stops the identification chirp started by RoomDetectionStartChirping — you hand back the ID that command returned. Hand back the ID the start command returned; the targeted speaker goes quiet.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2488,7 +2488,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Breaks a stereo pair described by ChannelMapSet back into two independent players.
+In this firmware build this command is a documented no-op: it is supposed to split a stereo pair back into two independent speakers, but its implementation was replaced by an empty routine that accepts the request, returns success, and changes nothing. The wiring and the advert in the spec remain — only the actual work is missing. To actually break a pair on this build, the app has to go through the bonded-zones removal path instead.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2610,7 +2610,7 @@ dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets whether autoplay groups linked zones for a Source.
+Turns the autoplay linked-zones option on or off — whether automatic playback should include the speakers this one is grouped with. When on, an autoplay start pulls the speaker's group members along rather than playing alone.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2735,7 +2735,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets which room UUID autoplay for a Source should target.
+Chooses which room this speaker follows when autoplay is triggered — the room whose playback it will automatically join. The speaker follows that room's playback when autoplay triggers — picking the leader for the follow-me feature.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2860,7 +2860,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the autoplay volume for a Source.
+Sets the volume level to use specifically for autoplay starts — the cap that stops an auto-resumed source from coming in too loud. The cap that stops an auto-started source blasting at whatever the volume happened to be.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2981,7 +2981,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Locks or unlocks the player's physical buttons.
+Locks or unlocks the speaker's physical buttons — the child-lock toggle. While locked, presses on the unit's controls are ignored; control still works from the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3102,7 +3102,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Turns the status LED on or off.
+Turns the speaker's status LED on or off — the 'Status Light' toggle in settings. The 'Status Light' toggle in settings — off makes the unit dark for bedrooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3222,7 +3222,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Enables or disables applying the autoplay volume.
+Chooses whether autoplay should use the dedicated autoplay volume (GetAutoplayVolume) or leave the speaker's current volume alone. On means autoplay uses its dedicated volume; off means it keeps the current level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3343,7 +3343,7 @@ impl rc passthrough also present: nonzero impl r3 is passed to ->v\[+0x14\] verb
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the room name, icon and configuration shown to users.
+Sets this speaker's descriptive properties — room name, icon, and related fields. This is what happens when you rename a room in the app. This is what happens when you rename a room or change its icon in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

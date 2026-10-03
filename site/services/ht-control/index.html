@@ -3170,7 +3170,7 @@
 
 <h1 id="htcontrol-htcontrolcontrol"><code>HTControl</code> — <code>/HTControl/Control</code><a class="headerlink" href="#htcontrol-htcontrolcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Home-theater control: IR repeater passthrough, LED feedback, and IR-remote learning so a TV remote can drive volume on the soundbar. Relevant to playbar-family hardware with an IR receiver.</p>
+<p>This service manages the remote-control features of a home-theater product — a soundbar like the Playbar that sits under your TV. It covers the infrared repeater (the feature that passes your TV remote's volume commands through to the speaker), the little light-up feedback the unit gives when it receives a remote command, and the remote-learning wizard: the part of setup where you point your TV remote at the soundbar and press volume-up so it learns the signal. Everything here exists because a soundbar's job is to cooperate with the remote you already own.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.</p>
@@ -3268,7 +3268,7 @@
 </table>
 <h3 id="commitlearnedircodes"><code>CommitLearnedIRCodes</code><a class="headerlink" href="#commitlearnedircodes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Stores the codes captured by LearnIRCode under a remote Name.</p>
+<p>Saves a set of infrared codes the speaker just learned. During remote setup the unit listens for your TV remote's signals and captures them; this command stores those captured codes under a name so the association persists — otherwise the learning session would be forgotten.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Commits learned codes under Name via impl-&gt;v[+0x18] on the svc+4 member.</p>
@@ -3381,7 +3381,7 @@
 </details>
 <h3 id="getirrepeaterstate"><code>GetIRRepeaterState</code><a class="headerlink" href="#getirrepeaterstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns whether IR commands are retransmitted to the AV equipment.</p>
+<p>Reports whether the infrared repeater is currently on — whether the speaker is passing your TV remote's volume and mute commands through to itself, versus ignoring them.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the IR-repeater enabled state via impl-&gt;v[+0x8] on r4-in.</p>
@@ -3489,7 +3489,7 @@
 </details>
 <h3 id="getledfeedbackstate"><code>GetLEDFeedbackState</code><a class="headerlink" href="#getledfeedbackstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the LED feedback state used to acknowledge IR-learned volume presses.</p>
+<p>Reports whether the speaker is set to flash its indicator light when it receives an infrared remote command — the visual 'yes, I heard you' some people disable because the blink is distracting.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the LED-feedback state via impl-&gt;v[+0x8] on r4-in.</p>
@@ -3599,7 +3599,7 @@
 </details>
 <h3 id="identifyirremote"><code>IdentifyIRRemote</code><a class="headerlink" href="#identifyirremote" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Asks the user to press buttons so the player can identify the remote layout, bounded by Timeout (seconds).</p>
+<p>Runs the part of remote setup where the speaker tries to figure out what brand or family of remote is being pointed at it — you aim your remote, press a button within a time limit, and it classifies the signal so it can respond to that remote's command set going forward.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Identifies an IR remote with a Timeout via impl-&gt;v[+0xc] on the sp+0x2c member.</p>
@@ -3711,7 +3711,7 @@
 </details>
 <h3 id="isremoteconfigured"><code>IsRemoteConfigured</code><a class="headerlink" href="#isremoteconfigured" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns whether an IR remote has been configured.</p>
+<p>Reports whether the speaker has already been taught a remote — whether the remote-learning setup has been done (so the app knows whether to offer the wizard or go straight to settings).</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns whether an IR remote is configured via impl-&gt;v[+0x8] on r4-in.</p>
@@ -3818,7 +3818,7 @@
 </details>
 <h3 id="learnircode"><code>LearnIRCode</code><a class="headerlink" href="#learnircode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Captures a single IRCode within Timeout during remote setup.</p>
+<p>Captures a single infrared code: you point your remote at the speaker and press a button within a time limit, and it records the raw signal. Individual learned codes are then stored permanently by CommitLearnedIRCodes.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Captures an IRCode within Timeout via impl-&gt;v[+0xc] on the sp+0x4c member.</p>
@@ -3940,7 +3940,7 @@
 </details>
 <h3 id="setirrepeaterstate"><code>SetIRRepeaterState</code><a class="headerlink" href="#setirrepeaterstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Enables or disables IR repeater passthrough.</p>
+<p>Turns the infrared repeater on or off — whether TV remote volume commands should control the soundbar at all. Off means the soundbar ignores your TV remote's volume commands entirely.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets the IR-repeater state (DesiredIRRepeaterState) via impl-&gt;v[+0xc] on the svc+4 member.</p>
@@ -4063,7 +4063,7 @@
 </details>
 <h3 id="setledfeedbackstate"><code>SetLEDFeedbackState</code><a class="headerlink" href="#setledfeedbackstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Sets the LED feedback pattern for IR volume presses.</p>
+<p>Turns the remote-received light flash on or off — the visual acknowledgement toggle. The visual 'yes, I heard you' toggle — off stops the flash when you use the remote.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets LED feedback (LEDFeedbackState) via impl-&gt;v[+0x20] on the svc+4 member.</p>

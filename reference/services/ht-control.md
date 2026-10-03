@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Home-theater control: IR repeater passthrough, LED feedback, and IR-remote learning so a TV remote can drive volume on the soundbar. Relevant to playbar-family hardware with an IR receiver.
+This service manages the remote-control features of a home-theater product — a soundbar like the Playbar that sits under your TV. It covers the infrared repeater (the feature that passes your TV remote's volume commands through to the speaker), the little light-up feedback the unit gives when it receives a remote command, and the remote-learning wizard: the part of setup where you point your TV remote at the soundbar and press volume-up so it learns the signal. Everything here exists because a soundbar's job is to cooperate with the remote you already own.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -39,7 +39,7 @@ Home-theater control service: IR repeater state, LED feedback, and IR-remote lea
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Stores the codes captured by LearnIRCode under a remote Name.
+Saves a set of infrared codes the speaker just learned. During remote setup the unit listens for your TV remote's signals and captures them; this command stores those captured codes under a name so the association persists — otherwise the learning session would be forgotten.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -157,7 +157,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns whether IR commands are retransmitted to the AV equipment.
+Reports whether the infrared repeater is currently on — whether the speaker is passing your TV remote's volume and mute commands through to itself, versus ignoring them.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -272,7 +272,7 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the LED feedback state used to acknowledge IR-learned volume presses.
+Reports whether the speaker is set to flash its indicator light when it receives an infrared remote command — the visual 'yes, I heard you' some people disable because the blink is distracting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -391,7 +391,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Asks the user to press buttons so the player can identify the remote layout, bounded by Timeout (seconds).
+Runs the part of remote setup where the speaker tries to figure out what brand or family of remote is being pointed at it — you aim your remote, press a button within a time limit, and it classifies the signal so it can respond to that remote's command set going forward.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -508,7 +508,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns whether an IR remote has been configured.
+Reports whether the speaker has already been taught a remote — whether the remote-learning setup has been done (so the app knows whether to offer the wizard or go straight to settings).
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -622,7 +622,7 @@ impl returns 0 unconditionally (single literal-0 exit); only the handler request
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Captures a single IRCode within Timeout during remote setup.
+Captures a single infrared code: you point your remote at the speaker and press a button within a time limit, and it records the raw signal. Individual learned codes are then stored permanently by CommitLearnedIRCodes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -743,7 +743,7 @@ impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer reject
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Enables or disables IR repeater passthrough.
+Turns the infrared repeater on or off — whether TV remote volume commands should control the soundbar at all. Off means the soundbar ignores your TV remote's volume commands entirely.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -873,7 +873,7 @@ IR repeater not implemented on this hardware (cntlzw flag from member)
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the LED feedback pattern for IR volume presses.
+Turns the remote-received light flash on or off — the visual acknowledgement toggle. The visual 'yes, I heard you' toggle — off stops the flash when you use the remote.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

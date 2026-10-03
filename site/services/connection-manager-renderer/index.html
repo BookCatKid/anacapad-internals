@@ -2010,7 +2010,7 @@
 
 <h1 id="connectionmanager-mediarendererconnectionmanagercontrol"><code>ConnectionManager</code> — <code>/MediaRenderer/ConnectionManager/Control</code><a class="headerlink" href="#connectionmanager-mediarendererconnectionmanagercontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Standard UPnP ConnectionManager for the renderer half of the device. On Sonos this is mostly vestigial (playback isn't pull-pushed through UPnP connections), so connection ids are typically empty - but the three actions are the real spec.</p>
+<p>This is a standard plumbing service that both Sonos devices and apps use to inventory live connections — the active sessions between a control point and this player. Almost everything it does is bookkeeping: which connections exist, what each one is for, and which media formats the player claims it can send or receive. You will never see its commands surfaced in an app; they exist because the classic device-control standard every networked media player implements requires them.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.</p>
@@ -2068,7 +2068,7 @@
 </table>
 <h3 id="getcurrentconnectionids"><code>GetCurrentConnectionIDs</code><a class="headerlink" href="#getcurrentconnectionids" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the CSV list of active connection ids (usually empty on a zone player).</p>
+<p>Returns the list of connections currently open against this player, as a comma-separated list of connection IDs. Each ID names one live control session — for instance an app actively steering playback. When nothing is connected, the list is empty.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the CSV list of active connection ids. Wrapper calls impl-&gt;v[+0x8] on the r4-in impl object; a NONZERO return means success — the emit helper f_10735918 then serializes the id list — while 0 raises fault 402. This is the nonzero=success convention seen elsewhere in the streamer/getter family.</p>
@@ -2178,7 +2178,7 @@
 </details>
 <h3 id="getcurrentconnectioninfo"><code>GetCurrentConnectionInfo</code><a class="headerlink" href="#getcurrentconnectioninfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns per-connection detail (peer manager, protocol info, direction, status) for a ConnectionID previously returned by GetCurrentConnectionIDs.</p>
+<p>Returns the full details of one connection: which remote control point owns it, what it is being used for, which media formats it announced, and whether the data flows into or out of this player. You give it a connection ID from GetCurrentConnectionIDs and it fills in the seven fields describing that session.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req-&gt;v[+0x8], then calls the impl member at svc+4 -&gt;v[+0x1c] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.</p>
@@ -2351,7 +2351,7 @@
 </details>
 <h3 id="getprotocolinfo"><code>GetProtocolInfo</code><a class="headerlink" href="#getprotocolinfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the Source and Sink protocol-info CSVs - the MIME-type/protocol strings this renderer can play.</p>
+<p>Reports which media formats this player advertises it can produce or consume — the protocol/capability string pair used by devices to decide whether they can hand each other a stream. In practice this is how a control point learns the speaker can play HTTP audio streams, the special Sonos-internal formats, and so on.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the supported protocol info strings (Source/Sink CSVs) via impl-&gt;v[+0x8] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.</p>

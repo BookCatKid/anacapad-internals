@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Standard UPnP ConnectionManager for the renderer half of the device. On Sonos this is mostly vestigial (playback isn't pull-pushed through UPnP connections), so connection ids are typically empty - but the three actions are the real spec.
+This is a standard plumbing service that both Sonos devices and apps use to inventory live connections — the active sessions between a control point and this player. Almost everything it does is bookkeeping: which connections exist, what each one is for, and which media formats the player claims it can send or receive. You will never see its commands surfaced in an app; they exist because the classic device-control standard every networked media player implements requires them.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -34,7 +34,7 @@ Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/C
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the CSV list of active connection ids (usually empty on a zone player).
+Returns the list of connections currently open against this player, as a comma-separated list of connection IDs. Each ID names one live control session — for instance an app actively steering playback. When nothing is connected, the list is empty.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -153,7 +153,7 @@ The impl->v\[+0x8\] call returned 0 — no usable connection list. | n/a — suc
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns per-connection detail (peer manager, protocol info, direction, status) for a ConnectionID previously returned by GetCurrentConnectionIDs.
+Returns the full details of one connection: which remote control point owns it, what it is being used for, which media formats it announced, and whether the data flows into or out of this player. You give it a connection ID from GetCurrentConnectionIDs and it fills in the seven fields describing that session.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -297,7 +297,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the Source and Sink protocol-info CSVs - the MIME-type/protocol strings this renderer can play.
+Reports which media formats this player advertises it can produce or consume — the protocol/capability string pair used by devices to decide whether they can hand each other a stream. In practice this is how a control point learns the speaker can play HTTP audio streams, the special Sonos-internal formats, and so on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

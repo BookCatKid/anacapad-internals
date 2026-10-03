@@ -1619,14 +1619,14 @@
                   
 
 <h1 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h1>
-<p>What a failed command actually returns. UPnP defines a standard 'fault' reply carrying a numeric error code, and every Sonos action can raise a fixed set of them. This page shows the reply's wire shape, the complete vocabulary of codes the firmware can emit, and which codes each individual action can return.</p>
+<p>What a failed command actually returns. When a request goes wrong — a missing argument, a value out of range, a command that doesn't exist — the player answers with a standardized fault message carrying a numeric error code. Some codes mean the same thing everywhere in the system (bad arguments are always the same number); others are service-specific or internal error codes leaking out. This page documents the fault format itself, every code the firmware is proven to emit, and for each command the specific set of errors it can produce — which is often the most useful part, since 'what can go wrong' is as much of an interface as 'what it does right'.</p>
 <h2 id="soap-fault-wire-format">SOAP fault wire format<a class="headerlink" href="#soap-fault-wire-format" title="Permanent link">&para;</a></h2>
-<p>The exact XML skeleton of a failed reply. One important detail: only the number travels in the fault - no human-readable message is included on this channel. Any descriptive text comes back through the command's output arguments instead.</p>
+<p>The exact structure of a failure reply — the envelope a fault travels in. One detail worth knowing: only the error number is machine-checked by the player; the human-readable message beside it is decorative, and some errors carry deliberately unhelpful text. So when you see a fault, trust the number, not the words.</p>
 <pre><code class="language-xml">&lt;s:Fault&gt;&lt;faultcode&gt;s:Client&lt;/faultcode&gt;&lt;faultstring&gt;UPnPError&lt;/faultstring&gt;&lt;detail&gt;&lt;UPnPError xmlns=&quot;urn:schemas-upnp-org:control-1-0&quot;&gt;&lt;errorCode&gt;%d&lt;/errorCode&gt;&lt;/UPnPError&gt;&lt;/s:Fault&gt;
 </code></pre>
 <p>fault detail carries ONLY the numeric errorCode - no errorDescription element on the wire; literal detail strings (e.g. Update URL is malformed) travel via out-arg records, not this template</p>
 <h2 id="fault-code-vocabulary">Fault code vocabulary<a class="headerlink" href="#fault-code-vocabulary" title="Permanent link">&para;</a></h2>
-<p>Every numeric error code proven to be emittable by this firmware. The standard UPnP ranges cover common failures like 'action not found' and 'invalid args'; codes in the high bands are Sonos-internal additions.</p>
+<p>Every numeric error code proven to be emittable by this firmware. The standard ranges cover common meanings — invalid action, missing argument, value out of range — while higher numbers encode Sonos-specific failures: wrong playback mode for this source, optimistic-concurrency clashes on queue edits, feature-not-implemented on this model. Where a code's meaning was recovered from the binary rather than the public spec, that's noted.</p>
 <ul>
 <li><strong>status:</strong> strong</li>
 <li><strong>extraction:</strong> original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.</li>
@@ -1640,7 +1640,7 @@
 - <strong>notes:</strong>
   - <strong>census_union:</strong> Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.</p>
 <h2 id="per-action-error-surface">Per-action error surface<a class="headerlink" href="#per-action-error-surface" title="Permanent link">&para;</a></h2>
-<p>For each action, the union of codes it can actually produce - everything its handler, its argument validation, and its dispatch layer can raise.</p>
+<p>For each command, the union of error codes it can actually produce — everything its routine, argument validation, and internal machinery can emit, not just the generic set. This is the practical section: 'what can this specific command fail with' is what a real client needs to handle.</p>
 <h3 id="avtransport"><code>AVTransport</code><a class="headerlink" href="#avtransport" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

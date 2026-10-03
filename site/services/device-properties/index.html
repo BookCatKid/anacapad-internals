@@ -7788,7 +7788,7 @@
 
 <h1 id="deviceproperties-devicepropertiescontrol"><code>DeviceProperties</code> — <code>/DeviceProperties/Control</code><a class="headerlink" href="#deviceproperties-devicepropertiescontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Player identity, hardware features and local configuration: zone name/icon, serial/software/hardware versions, LED and button state, button lock, autoplay preferences (which room's line-in or TV input auto-plays here and at what volume), stereo-pair and home-theater satellite management, household id, config mode, and the room-detection chirp used during setup.</p>
+<p>This service manages the speaker's own settings — the properties of the physical device rather than anything about music. It covers the status LED and the physical buttons on top (including locking them so kids can't press them), the room name and icon that show up in the app, and the player's identity inside the household. It is also where speaker bonding lives: turning two identical speakers into a stereo pair, attaching surround speakers or a subwoofer to a soundbar, and undoing those bonds. On top of that it owns the autoplay defaults — what a player should automatically do when a familiar source comes back — and a configuration mode that apps enter during setup and diagnostics. In short: everything you would find under 'this speaker' in system settings routes through here.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Device properties service: LED/button state, zone attributes, stereo-pair and home-theater satellite bonding, config mode, and autoplay defaults.</p>
@@ -8038,7 +8038,7 @@
 </table>
 <h3 id="addbondedzones"><code>AddBondedZones</code><a class="headerlink" href="#addbondedzones" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Bonds additional players to this player via a ChannelMapSet (which member plays which channel).</p>
+<p>Bonds additional speakers to this one so they behave as a single room. The argument describes which channel each added speaker should play (for example, which speaker becomes left and which becomes right). This is one of the building blocks the app uses when you group speakers into a surround setup or stereo arrangement — unlike casual grouping, a bond is a deeper hardware-level association: the bonded speakers share a room identity and split audio channels between them rather than just playing in sync.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Adds bonded zones (ChannelMapSet) via impl-&gt;v[+0x18].</p>
@@ -8158,7 +8158,7 @@
 </details>
 <h3 id="addhtsatellite"><code>AddHTSatellite</code><a class="headerlink" href="#addhtsatellite" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Adds a surround/sub satellite to a home-theater group via HTSatChanMapSet.</p>
+<p>Attaches one speaker to this player as a home-theater satellite — the role surround speakers or a sub play behind a soundbar. You name the room the satellite lives in and describe which channels it should carry, and the speaker integrates it into the home-theater rig. This is part of what happens when you set up 'Playbar + surrounds' in the app.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Adds a home-theater satellite with HTSatChanMapSet via impl-&gt;v[+0x48].</p>
@@ -8280,7 +8280,7 @@
 </details>
 <h3 id="createstereopair"><code>CreateStereoPair</code><a class="headerlink" href="#createstereopair" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Creates a stereo pair from two players, describing left/right assignment in ChannelMapSet.</p>
+<p>Joins two matching speakers into a stereo pair — one playing the left channel, one the right, presented in the app as a single room. The argument describes which physical speaker takes which channel. After bonding, the pair behaves as one logical speaker for almost everything else: playback, grouping, and volume.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Bonds two players into a stereo pair with ChannelMapSet via impl-&gt;v[+0x20].</p>
@@ -8400,7 +8400,7 @@
 </details>
 <h3 id="enterconfigmode"><code>EnterConfigMode</code><a class="headerlink" href="#enterconfigmode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Puts the player into a configuration mode (used during setup/registration); returns the resulting State.</p>
+<p>Puts the speaker into a special configuration mode used during setup, diagnostics, or factory servicing. You pass a mode name plus options, and it returns the state the device ended up in. This is deliberately not a normal-day command — the app uses it for onboarding flows and support tools, and while it is active the speaker behaves differently from usual.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Enters a device config Mode with Options, returning State via impl-&gt;v[+0x60].</p>
@@ -8547,7 +8547,7 @@
 </details>
 <h3 id="exitconfigmode"><code>ExitConfigMode</code><a class="headerlink" href="#exitconfigmode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Leaves configuration mode.</p>
+<p>Takes the speaker back out of configuration mode after EnterConfigMode, restoring normal behavior. Options say how to exit — for example whether to keep or discard changes made while in that mode.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Exits config mode with Options via impl-&gt;v[+0x64].</p>
@@ -8662,7 +8662,7 @@
 </details>
 <h3 id="getautoplaylinkedzones"><code>GetAutoplayLinkedZones</code><a class="headerlink" href="#getautoplaylinkedzones" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>For a given autoplay Source, returns whether linked zones are grouped when autoplay triggers.</p>
+<p>Reports whether autoplay is allowed to bring grouped speakers along — when a player resumes a source automatically, should it also wake up the rooms it is grouped with? A simple on/off setting read back by the app.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns IncludeLinkedZones flag via impl-&gt;v[+0x1c].</p>
@@ -8799,7 +8799,7 @@
 </details>
 <h3 id="getautoplayroomuuid"><code>GetAutoplayRoomUUID</code><a class="headerlink" href="#getautoplayroomuuid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>For a given autoplay Source, returns the UUID of the room that will take over playback.</p>
+<p>Reports which room this speaker will automatically join (or treat as the source) when autoplay kicks in. Autoplay is Sonos's 'resume what this room does' feature: if the configured room starts playing, this speaker follows. This command reads which room was chosen for that.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the configured autoplay RoomUUID via impl-&gt;v[+0x1c].</p>
@@ -8937,7 +8937,7 @@
 </details>
 <h3 id="getautoplayvolume"><code>GetAutoplayVolume</code><a class="headerlink" href="#getautoplayvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the volume the player jumps to when the given autoplay Source activates.</p>
+<p>Reports the volume the speaker should use when autoplay starts it playing — separate from its normal volume, so a wake-up source does not blast at whatever the level happened to be.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns CurrentVolume used for autoplay via impl-&gt;v[+0x1c].</p>
@@ -9074,7 +9074,7 @@
 </details>
 <h3 id="getbuttonlockstate"><code>GetButtonLockState</code><a class="headerlink" href="#getbuttonlockstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether the player's physical buttons are locked (child-lock).</p>
+<p>Reports whether the physical buttons on the speaker are locked. When locked, pressing play/pause or the volume rocker on the unit does nothing — the child-lock of the Sonos world. The app reads this to show the toggle's current position.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns CurrentButtonLockState via impl-&gt;v[+0x8].</p>
@@ -9186,7 +9186,7 @@
 </details>
 <h3 id="getbuttonstate"><code>GetButtonState</code><a class="headerlink" href="#getbuttonstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the current physical button state (e.g. which buttons are pressed).</p>
+<p>Reports the state of the speaker's physical buttons — whether they are enabled and possibly their current pressed state. Diagnostic plumbing for the hardware controls.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns button state via impl-&gt;v[+0x8].</p>
@@ -9295,7 +9295,7 @@
 </details>
 <h3 id="gethouseholdid"><code>GetHouseholdID</code><a class="headerlink" href="#gethouseholdid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the household identifier this player is registered to.</p>
+<p>Reports the identifier of the Sonos household this speaker belongs to. Every speaker in a home shares one household ID — it is how the system knows two players are part of the same installation rather than neighbors' devices that happen to be reachable. Apps use this constantly behind the scenes to decide which speakers belong together.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns CurrentHouseholdID via impl-&gt;v[+0x8].</p>
@@ -9407,7 +9407,7 @@
 </details>
 <h3 id="getledstate"><code>GetLEDState</code><a class="headerlink" href="#getledstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether the status LED is on or off.</p>
+<p>Reports whether the speaker's status LED is on or off — the setting behind 'Status Light' in the app. The LED is the small indicator on the unit; some people switch it off in bedrooms.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns CurrentLEDState via impl-&gt;v[+0x8].</p>
@@ -9517,7 +9517,7 @@
 </details>
 <h3 id="getuseautoplayvolume"><code>GetUseAutoplayVolume</code><a class="headerlink" href="#getuseautoplayvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether autoplay applies the configured autoplay volume (vs. keeping current volume).</p>
+<p>Reports whether the speaker should apply its special autoplay volume when it starts playing automatically, or just keep whatever volume it already had. Together with the autoplay volume itself, this decides whether auto-started playback comes in at a set level or at whatever the speaker last used.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns UseVolume flag via impl-&gt;v[+0x1c].</p>
@@ -9656,7 +9656,7 @@
 </details>
 <h3 id="getzoneattributes"><code>GetZoneAttributes</code><a class="headerlink" href="#getzoneattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the player's configured room name, icon and room configuration.</p>
+<p>Reports this speaker's descriptive attributes — its room name, icon, and related presentation details, i.e. what the app shows for this device on the rooms screen.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns zone attributes via impl-&gt;v[+0x8].</p>
@@ -9786,7 +9786,7 @@
 </details>
 <h3 id="getzoneinfo"><code>GetZoneInfo</code><a class="headerlink" href="#getzoneinfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns identity and version info: serial number, software/hardware versions, IP and MAC addresses, flags and build metadata.</p>
+<p>Reports this speaker's identifying details — model, software version, serial-related fields: the 'About my Sonos product' data the app displays and support tools collect. The 'about this product' data — what you see in the app under the speaker's details and what support asks for.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns zone info via impl-&gt;v[+0x8].</p>
@@ -9958,7 +9958,7 @@
 </details>
 <h3 id="removebondedzones"><code>RemoveBondedZones</code><a class="headerlink" href="#removebondedzones" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Un-bonds zones described by ChannelMapSet; KeepGrouped controls whether playback grouping is preserved.</p>
+<p>Breaks a hardware bond between speakers — the undo for AddBondedZones. You describe which bonded speakers to release and whether they should stay merely grouped (casual sync) afterward; the speakers regain independent room identities.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl-&gt;v[+0x1c].</p>
@@ -10088,7 +10088,7 @@
 </details>
 <h3 id="removehtsatellite"><code>RemoveHTSatellite</code><a class="headerlink" href="#removehtsatellite" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Removes a home-theater satellite by room UUID.</p>
+<p>Detaches one home-theater satellite — a surround speaker or sub — from this player's theater rig. The speaker goes back to being a normal standalone room.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Removes HT satellite SatRoomUUID via impl-&gt;v[+0x4c].</p>
@@ -10208,7 +10208,7 @@
 </details>
 <h3 id="roomdetectionstartchirping"><code>RoomDetectionStartChirping</code><a class="headerlink" href="#roomdetectionstartchirping" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Plays the ultrasonic chirp used by Sonos room/speaker detection during setup; returns a PlayId to stop it.</p>
+<p>Makes a bonded speaker play a repeating chirp sound so the system (or you) can tell which physical box is which — the 'identify this speaker' feature used while arranging surrounds or pairing. You choose which channel chirps and for how long, and can ask it to chirp even while normal audio is playing; it returns an ID used to stop the chirping.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwappableAudio -&gt; impl-&gt;v[+0x50], returning PlayId.</p>
@@ -10364,7 +10364,7 @@
 </details>
 <h3 id="roomdetectionstopchirping"><code>RoomDetectionStopChirping</code><a class="headerlink" href="#roomdetectionstopchirping" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Stops a chirp previously started by RoomDetectionStartChirping.</p>
+<p>Stops the identification chirp started by RoomDetectionStartChirping — you hand back the ID that command returned. Hand back the ID the start command returned; the targeted speaker goes quiet.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Stops chirping for PlayId via impl-&gt;v[+0x54].</p>
@@ -10479,7 +10479,7 @@
 </details>
 <h3 id="separatestereopair"><code>SeparateStereoPair</code><a class="headerlink" href="#separatestereopair" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Breaks a stereo pair described by ChannelMapSet back into two independent players.</p>
+<p>In this firmware build this command is a documented no-op: it is supposed to split a stereo pair back into two independent speakers, but its implementation was replaced by an empty routine that accepts the request, returns success, and changes nothing. The wiring and the advert in the spec remain — only the actual work is missing. To actually break a pair on this build, the app has to go through the bonded-zones removal path instead.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Parses inputs, then calls impl-&gt;v[+0x24] = null stub f_1019d288. In this build, separating a stereo pair is a binary-proven no-op: the request is accepted and success emitted without any operation or state change.</p>
@@ -10597,7 +10597,7 @@
 </details>
 <h3 id="setautoplaylinkedzones"><code>SetAutoplayLinkedZones</code><a class="headerlink" href="#setautoplaylinkedzones" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets whether autoplay groups linked zones for a Source.</p>
+<p>Turns the autoplay linked-zones option on or off — whether automatic playback should include the speakers this one is grouped with. When on, an autoplay start pulls the speaker's group members along rather than playing alone.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets IncludeLinkedZones (+Source) via impl-&gt;v[+0x28].</p>
@@ -10722,7 +10722,7 @@
 </details>
 <h3 id="setautoplayroomuuid"><code>SetAutoplayRoomUUID</code><a class="headerlink" href="#setautoplayroomuuid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets which room UUID autoplay for a Source should target.</p>
+<p>Chooses which room this speaker follows when autoplay is triggered — the room whose playback it will automatically join. The speaker follows that room's playback when autoplay triggers — picking the leader for the follow-me feature.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets the autoplay RoomUUID (+Source selector) via impl-&gt;v[+0x30].</p>
@@ -10847,7 +10847,7 @@
 </details>
 <h3 id="setautoplayvolume"><code>SetAutoplayVolume</code><a class="headerlink" href="#setautoplayvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets the autoplay volume for a Source.</p>
+<p>Sets the volume level to use specifically for autoplay starts — the cap that stops an auto-resumed source from coming in too loud. The cap that stops an auto-started source blasting at whatever the volume happened to be.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets the autoplay Volume (+Source) via impl-&gt;v[+0x38].</p>
@@ -10970,7 +10970,7 @@
 </details>
 <h3 id="setbuttonlockstate"><code>SetButtonLockState</code><a class="headerlink" href="#setbuttonlockstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Locks or unlocks the player's physical buttons.</p>
+<p>Locks or unlocks the speaker's physical buttons — the child-lock toggle. While locked, presses on the unit's controls are ignored; control still works from the app.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets DesiredButtonLockState via impl-&gt;v[+0x6c].</p>
@@ -11085,7 +11085,7 @@
 </details>
 <h3 id="setledstate"><code>SetLEDState</code><a class="headerlink" href="#setledstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Turns the status LED on or off.</p>
+<p>Turns the speaker's status LED on or off — the 'Status Light' toggle in settings. The 'Status Light' toggle in settings — off makes the unit dark for bedrooms.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets DesiredLEDState via impl-&gt;v[+0x10].</p>
@@ -11199,7 +11199,7 @@
 </details>
 <h3 id="setuseautoplayvolume"><code>SetUseAutoplayVolume</code><a class="headerlink" href="#setuseautoplayvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Enables or disables applying the autoplay volume.</p>
+<p>Chooses whether autoplay should use the dedicated autoplay volume (GetAutoplayVolume) or leave the speaker's current volume alone. On means autoplay uses its dedicated volume; off means it keeps the current level.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets UseVolume flag (+Source) via impl-&gt;v[+0x40].</p>
@@ -11322,7 +11322,7 @@
 </details>
 <h3 id="setzoneattributes"><code>SetZoneAttributes</code><a class="headerlink" href="#setzoneattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets the room name, icon and configuration shown to users.</p>
+<p>Sets this speaker's descriptive properties — room name, icon, and related fields. This is what happens when you rename a room in the app. This is what happens when you rename a room or change its icon in the app.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via impl-&gt;v[+0x8].</p>

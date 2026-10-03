@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-The playback engine of the zone - the largest service. Covers transport control (Play/Pause/Stop/Next/Previous), seeking, source selection via URIs and metadata, play modes and crossfade, the implicit playback queue (add/remove/reorder/clear), saved queues, group coordination transfer (one player handing the coordinator role to another, with full state snapshots), alarms/sleep timers, and Sonos-specific extras like autoplay and direct-control sessions. InstanceID is always 0. Many mutating actions take UpdateID for optimistic concurrency: pass the last queue UpdateID you saw and the call fails if the queue changed underneath you.
+This is the biggest and most important service on the player — the remote control for playback itself. Transport commands live here: play, pause, stop, skip, seek, and setting what to play. The queue lives here too: adding tracks, removing them, reordering them, saving the queue as a Sonos playlist. So do play modes like shuffle and repeat, crossfade, the sleep timer, and the alarm run/snooze commands used when an alarm actually fires. Finally, the whole group-coordination family is in this service: becoming the leader of a group, handing leadership to another speaker, and joining or leaving the coordinated-playback roles. If you think of the Sonos app as a remote control, this service is the buttons that matter most.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -80,7 +80,7 @@ UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Bulk-enqueues tracks into the implicit playback queue. EnqueuedURIs and EnqueuedURIMetaData are parallel lists (count must equal NumberOfURIs); DesiredFirstTrackNumberEnqueued positions them, EnqueueAsNext inserts after the current track. ContainerURI/ContainerMetaData describe the source list itself. UpdateID guards against concurrent queue edits. Returns where the tracks landed, how many were added, and the new length/UpdateID.
+Adds a batch of tracks to the play queue in one shot — what happens when you tap 'play album' or 'add all to queue' rather than dropping songs in one at a time. You send a list of track addresses (with optional metadata about each), where to insert them, and whether to drop them at the end or next-up, and the speaker reports back how many were added and the queue's new length.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -251,7 +251,7 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds one track URI (+DIDL-Lite metadata) to the playback queue. DesiredFirstTrackNumberEnqueued picks the position (0 = append), EnqueueAsNext inserts right after the current track. Returns the 1-based position where it landed and tracks actually added.
+Adds a single track or stream to the play queue. You give it the item's address (its URI — the URL-like locator Sonos uses for songs, streams, and service items) plus metadata describing it, and optionally where in the queue to put it and whether it should be queued to play right after the current song. This is the most basic queue-edit command the app issues.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -411,7 +411,7 @@ URI arguments flow through the queue-manager singleton (0x11096770) and its f_10
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds a track to a saved queue identified by ObjectID at AddAtIndex. Returns counts and a NewUpdateID for that queue.
+Appends a track to an existing saved queue — a Sonos playlist. Rather than the live queue, this edits a stored list: you identify which playlist by its object ID, pass the track and its metadata plus a position, and the item lands inside that stored list for later recall.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -580,7 +580,7 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Persists the current playback queue to flash so it survives reboot.
+Writes the current play queue to storage so it survives a reboot or a crash. Ordinarily the queue lives in memory; this command snapshots it to the player's flash so the same 'now playing' list can be restored after a power cut or update. Backing up an empty queue is a silent success — there is simply nothing to write.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -721,7 +721,7 @@ None The saved-queue store file is "savedqueues.rsq" (rodata 0x10ed3104), the sa
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Makes this player coordinate the standalone group it belongs to; returns the coordinator id and new group id. Used in group rebuild flows.
+Promotes this speaker into the coordinator role of its own group. 'Coordinator' is Sonos's name for the speaker in a group that owns the music: it picks the source, drives playback, and streams audio to the followers. This command is used when a speaker that was playing on its own (a 'standalone group' of one) needs to formally take the leadership seat — for example when other rooms are about to join it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -875,7 +875,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Bulk state-transfer: this player takes over as group coordinator, receiving the previous coordinator's complete transport/queue/alarm/sleep state in the arguments (TransportSettings, CurrentQueueTrackList, member list, etc.). Nothing is read from arg descriptors - the handler forwards the whole blob.
+Makes this speaker take over as the leader of an existing group, adopting whatever the group is already playing. Used when group leadership is being reassigned — the app (or the system) decides a different speaker should carry the session, and this command performs the takeover while keeping the group's music going.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1045,7 +1045,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Like BecomeGroupCoordinator but also transfers the audio source state (CurrentAVTTrackList, CurrentSourceState, ResumePlayback flag) so the new coordinator continues the same source.
+Makes this speaker both the leader of a group and the origin of the group's music — the combined version of the takeover: 'I become coordinator AND everyone plays what I am playing'. Used when you effectively want the system to follow this room's selection rather than the previous leader's.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1220,7 +1220,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Asks this coordinator to hand coordination to NewCoordinator, carrying the current transport settings and URI so playback continues; RestartSink controls whether the sink restarts.
+Moves group leadership from one member to another in a controlled hand-off — the old leader passes its transport settings to the new one so playback continues seamlessly. Unlike the 'Become*' commands where a speaker claims leadership itself, this one is the system's way of directing a swap between named members, with the play state carried across.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1376,7 +1376,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Applies a new TransportSettings blob (play state, mode, etc.) to the current URI - used when a group coordinator pushes state to members.
+Installs a new set of playback settings — the command external sources use when they want to take over the player's audio pipeline directly. Sonos calls this family of sessions 'direct control': an outside system (like a music service's own connect protocol or a line-in style feed) tells the player what to stream and how, rather than the player pulling from its queue. Because it replaces the player's normal source, it only works while the player is idle — sending it during active playback is rejected.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1523,7 +1523,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets a sleep timer that fades playback out after NewSleepTimerDuration ('HH:MM:SS').
+Sets or cancels the sleep timer — the 'stop playing after N minutes' feature. You pass a duration and the speaker schedules itself to stop (or fade out) at that point; passing an empty value cancels a running timer. This is what the app's sleep-timer picker ultimately sends.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1662,7 +1662,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Creates a new named saved queue containing one initial track (EnqueuedURI + metadata) and returns its AssignedObjectID plus queue stats.
+Creates a new saved queue — a Sonos playlist — from a title plus an optional first track. The speaker registers the list, gives it an object ID, and later commands can add more tracks to it. This is behind the 'Save as Sonos playlist' action in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1829,7 +1829,7 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Hands the coordinator role to NewCoordinator. RejoinGroup controls whether this player stays as a member; ClearSource (added in 86.10) controls whether it drops the source.
+Hands group leadership to another member without the new leader asking for it — the current coordinator names its successor and can additionally tell the old member to rejoin the group as a follower and/or clear the music source. It is the orderly version of a takeover: the leader resigns in favor of a chosen member rather than the member seizing the role.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1968,7 +1968,7 @@ worker rc returned verbatim except 803->0
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Ends a cloud/direct-control playback session, returning the player to normal UPnP control.
+Closes an external direct-control session — the counterpart of ChangeTransportSettings. When an outside system that was feeding the player directly (a connected music service, a virtual line-in session) is finished, this tears the session down so the player returns to its normal queue and sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2099,7 +2099,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether crossfade between tracks is enabled.
+Reports whether crossfade is currently on — whether the speaker blends the end of one track into the start of the next for a few seconds instead of a hard cut.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2228,7 +2228,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the actions currently legal for this source as a CSV (e.g. 'Play,Pause,Stop,Seek') - depends on the stream type and capabilities, so poll it rather than assuming.
+Reports which transport commands are currently legal on this player — the list behind which buttons the app greys out. For example, 'Next' only appears when there is actually a next track, and 'Seek' only appears when the current source supports scrubbing. The answer is computed live from what is playing right now, so it changes as you move through a queue or switch sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2366,7 +2366,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns what media this player can play/record and its recording quality modes.
+Reports what categories of media this player can play and record — a fixed description of the hardware's talents (the kinds of sources it accepts, and which recording media/qualities it advertises, which for a speaker is essentially none). Apps use it to know what a given box can do before offering it sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2507,7 +2507,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns metadata about the current media source: track count and duration, current/next URIs + metadata, and the medium (queue, stream, line-in) - i.e. what container is loaded rather than where playback is within it (use GetPositionInfo for that).
+Reports the big-picture state of what is loaded in the player — how many tracks are in the current program, the total duration, what is playing now and what comes next (with metadata for each), and which 'medium' is in use (queue, stream, line-in, etc). It is the summary an app calls when it wants the full session context rather than just 'what song is this'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2671,7 +2671,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns where playback sits inside the media: current track number/URI/metadata, track duration, relative and absolute position times, and track counts.
+Reports exactly where playback is within the current track — the data behind the app's progress bar: which track number is playing, how long it is, title/artist/album metadata, the track's address, and the elapsed position (in time and as counts for stream-type sources). Apps poll this regularly while a song plays to keep the scrubber moving.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2829,7 +2829,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the time left on the sleep timer and the timer generation counter.
+Reports how much time is left on a running sleep timer, plus a generation counter that changes whenever the timer is reset — so an app can tell 'still 12 minutes' apart from 'a new timer was just set'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2971,7 +2971,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-If an alarm is currently ringing, returns its ID, group and the logged start time.
+Reports details about the alarm currently ringing, if one is — which alarm it is (its ID), which group it belongs to, and when it was scheduled to start. Empty when no alarm is going off.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3111,7 +3111,7 @@ request arg-parse layer: handler emits no literal fault exits; InstanceID is rea
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns transport state (PLAYING/PAUSED_PLAYBACK/STOPPED/TRANSITIONING), status and speed.
+Reports the headline playback state: whether the player is playing, paused, stopped, or transitioning, plus a status string and the play speed. This is the single most-asked question on the whole service — the app's play/pause button position is driven by it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3249,7 +3249,7 @@ nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quality mode.
+Reports the current play mode (normal, repeat-all, repeat-one, shuffle, shuffle+repeat) and the recording-quality mode string. The app reads it to show which shuffle/repeat icon should be lit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3386,7 +3386,7 @@ Invalid InstanceID — parsed InstanceID != 0 rejected by the impl guard (proven
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Skips to the next track in the queue. Faults (typically 711/701 family) if the current source doesn't support skipping.
+Skips to the next track — the app's forward button. What it does depends on the source: on queue playback it advances to the next queued song; on streams and external sources it asks that source for the next item (or does nothing if the source has no concept of 'next'). If there is nothing to skip to, the command quietly has no effect.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3536,7 +3536,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Tells the player a URI it may have queued has been deleted from the server so it can drop or skip it.
+Warns the player that something it might be playing has been deleted upstream — for example a music-share folder that was removed or a queue entry whose backing item vanished. The speaker compares the deleted address against its current source; if it is not using that item, the notice is ignored. If it is, playback of the now-dangling source is cleaned up.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3674,7 +3674,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Pauses playback. Only valid while playing; faults on sources that can't pause.
+Pauses playback — the pause button. On sources that cannot truly pause (live radio, some streams), the underlying operation effectively stops or mutes the feed, and resuming means reconnecting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3810,7 +3810,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts or resumes playback. Speed selects the rate - '1' is normal; fractional rate strings select slower/faster trick-play on sources that support it.
+Starts or resumes playback — the play button. It only accepts normal speed; asking for any other speed is refused, because this firmware does not support trick-play speeds on the standard path. What it does depends on the source: resume the queue at its stored position, reconnect a stream, or hand the command to whatever external session owns the source.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3952,7 +3952,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Skips back to the previous track.
+Skips back to the previous track — the back button. Same source-dependence as Next: on queue playback it steps back one song (or to the start of the current one, per Sonos convention); on streams it asks the source whether a 'previous' exists.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4097,7 +4097,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Clears the implicit playback queue entirely.
+Empties the play queue completely — 'clear queue' in the app. Everything queued, including the currently selected track's list membership, is dropped; playback of the queue stops since there is nothing left to play.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4226,7 +4226,7 @@ None The Queue service reaches the identical engine worker through queue-manager
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes the queued track identified by ObjectID (track object id), guarded by UpdateID for optimistic concurrency.
+Deletes one track from the queue by position. It optionally accepts an update-ID — a version number for the queue — so the app can say 'delete track 5, but only if the queue is still the one I last saw', which prevents two people (or a stale app screen) from editing different versions of the list and silently clobbering each other.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4373,7 +4373,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes NumberOfTracks consecutive tracks starting at 1-based StartingIndex; returns the NewUpdateID.
+Deletes a contiguous run of tracks from the queue — 'remove tracks 3 through 10'. Both arguments count from 1, and zero is rejected rather than treated as a no-op, so callers must pass real positions.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4532,7 +4532,7 @@ Request parse layer rejected an argument before the impl was invoked.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Moves a run of tracks (StartingIndex + NumberOfTracks) to InsertBefore within the queue, UpdateID-guarded.
+Moves a block of tracks to a different position in the queue — drag-and-drop in the app's queue view. You name the starting track, how many tracks move, and before which position they should land; all positions count from 1.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4674,7 +4674,7 @@ nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 40
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Rewrites a saved queue's ordering from TrackList/NewPositionList; returns length change and new UpdateID.
+Reorders tracks inside a saved queue — a Sonos playlist — rather than the live play queue: the stored-list equivalent of dragging songs around in the queue editor.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4840,7 +4840,7 @@ None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Server-driven 'fire this alarm now' trigger carrying the full alarm definition - used internally when an alarm goes off; also useful for testing alarm playback.
+Fires a programmed alarm immediately — 'run this alarm now' rather than waiting for its scheduled time. Used for alarm previews and by the system's own scheduling path when an alarm's moment arrives.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4993,7 +4993,7 @@ None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm st
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Saves the current playback queue as a named saved queue (Title); ObjectID selects an existing saved queue to overwrite. Returns AssignedObjectID.
+Saves the current play queue as a named Sonos playlist — the 'Save queue' action. You give it a title; it trims whitespace and rejects empty names. The queue must actually contain something for this to work — you cannot save an empty list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5151,7 +5151,7 @@ savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedque
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Repositions playback. Unit selects the seek mode: TRACK_NR jumps to a track number, REL_TIME seeks to 'HH:MM:SS' from track start, TIME_DELTA does a relative jump. Parsing is lenient (numeric prefixes accepted, trailing junk ignored) but the accepted Unit set and the semantics depend on whether the source is indexed or streamed - a request can be accepted yet ignored downstream, so check GetPositionInfo after seeking.
+Jumps to a different position in what's playing — the app's scrub bar plus 'play track 7'. You say what kind of target (a track number in the queue, an absolute timestamp like 2:30, or a relative offset like -30 seconds) and the value; the player repositions within the current source if that source supports seeking — live streams simply cannot be scrubbed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5308,7 +5308,7 @@ Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x1
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Loads a new source: a track/stream URI plus its DIDL-Lite metadata. This is how a client starts a radio stream or a file URI - the previous queue position is not implied; you typically call Play afterwards.
+Tells the player what to play — the single most important content command. You pass an address (a queue reference, a stream URL, a line-in selector, a service item) plus metadata describing it, and the player adopts it as the current source. 'Play this radio station' and 'play from this queue' both reduce to setting the right URI here; what happens afterward depends on what the address points at.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5451,7 +5451,7 @@ None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this ac
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Turns crossfade on or off.
+Turns crossfade on or off — the smooth blend between consecutive tracks. It only applies to queue playback, because blending requires both tracks to come from the same local list; on other sources the command is rejected.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5589,7 +5589,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets up gapless playback: the URI + metadata that should follow the current track, so the decoder can pre-buffer it.
+Announces the upcoming track so the player can pre-buffer it — the mechanism behind gapless playback. While one song plays, the app (or the queue engine) supplies the next track's address and metadata; the player gets it ready so the transition has no silence. It only works on queue playback — the mode that knows what 'next' means.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5734,7 +5734,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets play mode: NORMAL, REPEAT_ALL, REPEAT_ONE, SHUFFLE, SHUFFLE_NOREPEAT, SHUFFLE_REPEAT_ONE (exact accepted set is enforced).
+Chooses the play mode — normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. This is what the shuffle and repeat buttons send. Some modes only make sense on the queue (you cannot repeat-one a live radio station), and the player rejects those combinations.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5872,7 +5872,7 @@ Request-layer parse/validation failure surfaced through the request fault vfunc 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Snoozes the currently ringing alarm by Duration ('HH:MM:SS').
+Snoozes the currently ringing alarm for a given duration — the alarm-clock snooze button. It parses the requested nap length and reschedules the alarm to fire again then; the duration must be in the format the shared alarm machinery understands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6019,7 +6019,7 @@ session/streamer rc domain reached through transport vfuncs: propagated codes in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts autoplay for a source: plays ProgramURI (+metadata) at the configured autoplay volume, optionally grouping linked zones; ResetVolumeAfter restores volume afterwards.
+Launches an autoplay program — the mechanism behind 'when this alarm fires, start this playlist in that room'. You provide the program to run (what to play and its settings) and the player submits a session for it, the same machinery that backs alarm-triggered playback.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6170,7 +6170,7 @@ None Suppression: engine+0x465c "operation overridden" flag returns 0x32a (810) 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops playback and clears transport position.
+Stops playback — the stop button. Unlike pause (which freezes position for resume), stop tears the current transport down; for queue playback resuming afterward means starting the track over.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

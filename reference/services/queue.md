@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-The multi-queue registry: explicit saved/independent queues addressed by QueueID, separate from the implicit playback queue AVTransport edits. Provides create/attach/browse/mutate operations with optimistic concurrency - every mutating action takes the queue's last UpdateID and returns the new one, and a stale UpdateID faults. AttachQueue is how a client adopts a queue owned by another context.
+This service is the queue engine's own control surface — the internal, more powerful twin of the 'add to queue' commands most apps use. The difference: instead of editing 'the' queue, these commands can create, attach to, and manage multiple queues identified by number, each owned by some component of the system. It is how Sonos's own internals (and advanced third-party tools) build playlists, inspect them, save them as Sonos playlists, and keep track of who's allowed to modify what — the machinery underneath the single user-facing queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -42,7 +42,7 @@ Sonos-internal queue-management service exposing the queue-registry impl object 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Bulk-adds tracks to an explicit queue: EnqueuedURIsAndMetaData holds NumberOfURIs packed URI+metadata entries; positioning via DesiredFirstTrackNumberEnqueued or EnqueueAsNext. UpdateID-guarded.
+Adds a batch of tracks to a specific queue in one call — the multi-queue equivalent of adding an album to the play queue. You pick the queue by ID, pass the track list plus where to insert it, and get back how many were added, the queue's new length, and its new version stamp.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -216,7 +216,7 @@ Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adds a single track (+DIDL-Lite metadata) to the queue at DesiredFirstTrackNumberEnqueued (or after the current track with EnqueueAsNext). Returns its position, count added and the new UpdateID.
+Adds one track to a specific queue — the single-item version of AddMultipleURIs: queue ID, the item's address and metadata, where it should land, and whether it should be inserted as 'play next'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -381,7 +381,7 @@ Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Attaches to a queue owned by QueueOwnerID, returning the QueueID to use in subsequent calls plus the owner context.
+Connects to an existing queue someone else created and returns its ID plus its owner context — how a component that didn't create a queue gets permission to work with it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -522,7 +522,7 @@ Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Persists the queue registry to flash (trackqueue.rsq) so queues survive reboot.
+Writes a queue's state to storage so it survives a reboot — the queue-engine counterpart of the 'save the play queue to disk' feature on the main service.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -632,7 +632,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reads back a queue's contents: starting at StartingIndex, up to RequestedCount tracks, returned as a DIDL-Lite Result document with NumberReturned/TotalMatches and the queue's UpdateID.
+Reads back the contents of a queue — the track list it currently holds — for apps that want to display or inspect what's in it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -778,7 +778,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Creates a new queue owned by QueueOwnerID with a policy (QueuePolicy), returning its QueueID.
+Makes a brand-new queue owned by a named component of the system, with a policy describing its behavior, and returns the new queue's ID. This is how the system sets up separate track lists beyond the one the user sees.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -911,7 +911,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Empties the queue; UpdateID-guarded.
+Empties one specific queue — every track removed, and the queue's version stamp bumps so other users know it changed. The queue keeps existing but holds nothing — its version stamp bumps so other users know it changed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1045,7 +1045,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Removes NumberOfTracks consecutive tracks starting at StartingIndex; returns NewUpdateID.
+Deletes a contiguous run of tracks from a specific queue — 'remove items 3 through 10 from queue 2' — returning the queue's new version stamp.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1185,7 +1185,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Moves a run of tracks to InsertBefore within the queue; UpdateID-guarded.
+Moves a block of tracks to a new position inside a specific queue — the multi-queue version of dragging songs around. The multi-queue version of dragging songs around in the queue view.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1328,7 +1328,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Atomically replaces the whole queue contents: new tracks from ContainerURI/ContainerMetaData plus packed EnqueuedURIsAndMetaData, with CurrentTrackIndex/NewCurrentTrackIndices pointing at what should be playing. Bulk transfer - no per-arg capacity limits.
+Swaps a queue's entire contents for a new list in one operation — wipe what's there and load this instead — returning the queue's new version stamp.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1490,7 +1490,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Saves the queue as a Sonos playlist (Title); ObjectID selects an existing playlist to overwrite. Returns AssignedObjectID.
+Saves a specific queue's contents as a named Sonos playlist — the internal counterpart of 'Save queue' in the app. The internal counterpart of 'Save queue' in the app — a stored playlist out of a queue's contents.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

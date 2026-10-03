@@ -2806,7 +2806,7 @@
 
 <h1 id="audioin-audioincontrol"><code>AudioIn</code> — <code>/AudioIn/Control</code><a class="headerlink" href="#audioin-audioincontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>hidden</code> · <strong>status</strong> <code>confirmed</code></p>
-<p>The legacy hardware line-in service. Its specification document still ships and its address is still registered, but the service is not listed in the device description and every action routes to a dead handler that always answers 'not implemented' (error 401). The feature was removed on this model - treat all six actions as dead surface, documented so clients can recognize the fault. The action entries below describe what the API used to do.</p>
+<p>On paper this service is the control point for line-in audio — the physical input jack that lets you plug a turntable or another source into a Sonos player. The product specification still advertises commands for configuring that input and for broadcasting line-in audio to other rooms. But in this particular firmware build none of it actually works: every single command in this service is routed to a 'reject everything' routine that refuses each request with an error before doing anything. Think of it as a door that was left in the spec sheet after the feature behind it was removed — the menu entries are all there, and all of them are dead.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>AudioIn service on the zone player — registered, but its service object is a 4-byte stub whose dispatcher rejects EVERY action with 401. The object chain is fully traced: new(4) at f_101981f0:0x1019c218, ctor f_1073d930 installs vptr 0x10f11f70, stored into *(r3-in+0xaa6c) (r30-0x5594 where r30=r3-in+0x10000, computed at 0x10198224). No actions exist in this build.</p>
@@ -2886,7 +2886,7 @@
 </table>
 <h3 id="starttransmissiontogroup"><code>StartTransmissionToGroup</code><a class="headerlink" href="#starttransmissiontogroup" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
-<p>Historically started streaming this player's analog line-in to the group identified by CoordinatorID, returning the resulting transport settings. In this build it always faults 401.</p>
+<p>Supposed to begin broadcasting whatever is plugged into the line-in jack to a group of speakers — the command that turns one player's turntable into house-wide audio. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
@@ -3029,7 +3029,7 @@
 </details>
 <h3 id="stoptransmissiontogroup"><code>StopTransmissionToGroup</code><a class="headerlink" href="#stoptransmissiontogroup" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
-<p>Historically stopped line-in transmission to the group. In this build it always faults 401.</p>
+<p>Supposed to stop a line-in broadcast that StartTransmissionToGroup had started. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
@@ -3140,7 +3140,7 @@
 </details>
 <h3 id="setaudioinputattributes"><code>SetAudioInputAttributes</code><a class="headerlink" href="#setaudioinputattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
-<p>Historically renamed the line-in source and set its icon. In this build it always faults 401.</p>
+<p>Supposed to configure the line-in jack — for example giving the source a friendly name so 'Turntable' shows up as an input choice in the app. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
@@ -3261,7 +3261,7 @@
 </details>
 <h3 id="getaudioinputattributes"><code>GetAudioInputAttributes</code><a class="headerlink" href="#getaudioinputattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
-<p>Historically returned the line-in source name and icon. In this build it always faults 401.</p>
+<p>Supposed to report how the player's line-in jack is configured — things like the name it shows in the app and the audio format it accepts. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
@@ -3376,7 +3376,7 @@
 </details>
 <h3 id="setlineinlevel"><code>SetLineInLevel</code><a class="headerlink" href="#setlineinlevel" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
-<p>Historically set left/right line-in gain levels. In this build it always faults 401.</p>
+<p>Supposed to set the line-in gain — how much the player amplifies the signal coming in on the jack before it plays or is sent to other rooms. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>
@@ -3497,7 +3497,7 @@
 </details>
 <h3 id="getlineinlevel"><code>GetLineInLevel</code><a class="headerlink" href="#getlineinlevel" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp_stub</code> · <strong>removed/stub — faults 401</strong></p>
-<p>Historically returned the left/right line-in gain levels. In this build it always faults 401.</p>
+<p>Supposed to report the current line-in signal level or the gain configured for it — the software equivalent of looking at the input meter. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Advertised AudioIn action — dispatched to the reject-all dispatcher f_1073d8f8 which unconditionally emits 401 for every action name (AudioIn/line-in feature not implemented in this build; vtable 0x10f11f70[+0x08])</p>

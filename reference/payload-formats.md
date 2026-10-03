@@ -1,6 +1,6 @@
 # Payload formats
 
-Some command arguments look like plain text but are really packed data - bit flags, delimited tuples, escaped XML documents. These entries decode what's actually inside each opaque field.
+Some command arguments look like plain text but are actually packed data — bit flags where each bit is a separate on/off switch, comma-separated tuples, and small structured documents riding inside string fields. The state-variable spec calls them 'string', but they have real internal grammar. This page decodes each packed format: which fields exist inside, what each one means, and where the format shows up. It's the difference between seeing 'a string argument' and knowing it's really a settings record.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -10,7 +10,7 @@ Opaque payload/field grammars recovered from sscanf/printf templates and parser 
 
 ## `SonosAvtStateFile` `strong`
 
-The AVTransport persisted-state vocabulary — what survives reboot for transport state.
+The vocabulary of names used in the transport's save/restore machinery — the keys the player writes when it persists playback state so it can resume after a reboot.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -51,7 +51,7 @@ Field-to-offset mapping and value formats per key are not yet decoded - requires
 
 ## `SonosRcChannel` `confirmed`
 
-RenderingControl channel tokens — 'Master', 'LF', 'RF' etc.; other values are rejected.
+The channel names the volume/tone commands accept — 'Master', 'LF' (left-front), 'RF' (right-front), plus some extended tokens used internally. Sending an unrecognized channel name is an error, so the accepted vocabulary is documented exactly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -81,7 +81,7 @@ Used by: RenderingControl.GetMute; RenderingControl.SetMute (adds FocusMode); Re
 
 ## `SonosRcInstance` `confirmed`
 
-RenderingControl accepts only InstanceID 0 — anything else faults with 702.
+The instance-number convention on the volume service: the commands expect the instance to be 0 and reject anything else — a different rejection code than the transport service uses, a quirk worth knowing when an app gets a fault back.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -110,7 +110,7 @@ Used by: all RenderingControl actions (inconsistent enforcement)
 
 ## `SonosSeekTime` `confirmed`
 
-The Seek target format — HH:MM:SS-ish time strings; leading '-' is handled.
+How a seek-time argument is written. When you scrub to a position, the time arrives as text with a specific grammar — an optional minus sign for 'go back', then numbers. The parser is strict enough that the exact accepted shapes were recovered; this entry documents what the seek argument can legally look like.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -138,7 +138,7 @@ Action-specific restrictions layer on top: e.g. Seek indexed mode rejects a set 
 
 ## `SonosTrackOrdinal` `confirmed`
 
-The Seek 'track number' operand — a plain decimal index into the queue.
+How 'play track N' is expressed — the number you send to select a track by position. The parser accepts ordinary decimal text with the usual tolerance for spacing and signs; this documents what counts as a valid track number.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -166,7 +166,7 @@ The mask-before-validate ordering looks alarming but is inert: the record field 
 
 ## `codec_mime_flags` `strong`
 
-A small lookup that tags audio formats (wav/wma/adts) and MIME types with internal flags — used to pick the right decoder for a stream before playback starts.
+The decoder/format flag packing — how audio-format capabilities are encoded as bit flags alongside their MIME descriptions. How audio-format capabilities are packed as bit flags alongside their MIME descriptions.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -184,7 +184,7 @@ A small lookup that tags audio formats (wav/wma/adts) and MIME types with intern
 
 ## `contentdir_root_map` `strong`
 
-The ContentDirectory browse root map — FV:2→FavoritesUpdateID, R:0→RadioFavoritesUpdateID, SQ:→SavedQueuesUpdateID, S:→ShareListUpdateID — the top-level browse tree.
+The top of the music library tree — the fixed root containers every browse starts from: artists, albums, tracks, genres, playlists, folders, and the rest, recovered from the enumeration code.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -202,7 +202,7 @@ Fields: `object-id prefix`, `UpdateID state variable`
 
 ## `device_description` `confirmed`
 
-The UPnP device description XML — services advertised, presentation URLs; AudioIn may be omitted by variant.
+The root device-description document — the file every client first fetches: the player's self-description with its substitution tokens filled, and the list of all 16 service specs it advertises.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -226,7 +226,7 @@ UPnP root device-description htdocs template + 35 substitution tokens; advertise
 
 ## `didl_cdudn_desc` `strong`
 
-A Sonos-specific DIDL <desc> element carrying the content-directory UDN — used to say which player owns an item.
+A special descriptor element in track metadata — the 'cdudn' desc tagging which content directory an item came from, letting the system trace an item back to its source library.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -242,7 +242,7 @@ DIDL desc element: <desc id="cdudn" nameSpace="urn:schemas-rinconnetworks-com:me
 
 ## `didl_lite` `confirmed`
 
-The DIDL-Lite XML that carries track/container metadata — this is what you put in SetAVTransportURI's metadata arg and what Browse returns. The full grammar (classes, protocolInfo, search criteria) is decoded below.
+The track-metadata format end to end — the XML envelope carrying title, artist, album, artwork, class, and resource for every track the player describes, plus the Sonos-specific extension fields. This is the single most-seen document in the system: everything 'now playing' passes through it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -268,7 +268,7 @@ DIDL-Lite metadata envelope + full object.* class/protocolInfo/search-criteria g
 
 ## `didl_lite_header` `confirmed`
 
-The exact DIDL-Lite document header the firmware emits — namespace list included, useful when building metadata by hand.
+The header of the metadata documents — the exact opening lines of the the track-metadata XML format XML the player emits when describing tracks: the namespace declarations every track description starts with.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -284,7 +284,7 @@ DIDL-Lite document header (verbatim literal at 0x10ee8958): <DIDL-Lite xmlns:dc=
 
 ## `didl_res_protocolinfo` `strong`
 
-How the <res> element's protocolInfo attribute is formatted per URI scheme — the fourth field determines what decoder path handles it.
+How a track's resource line describes its format — the 'protocolInfo' field pattern the player writes per source scheme, declaring the MIME type and addressing each item uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -300,7 +300,7 @@ DIDL res protocolInfo emitters by scheme: x-rincon-playlist:*:*:* (0x10e89314), 
 
 ## `fixed_volume_tokens` `strong`
 
-The FV: token space inside RenderingControl — Fixed Volume parameters (NOT the favourites FV:2 container — that dual-use is documented here).
+'FV' markers and related tokens the tone machinery parses for fixed-volume handling — the small vocabulary inside the extended-EQ router that decides when volume stays locked. A tiny format inside the sound-control path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -318,7 +318,7 @@ Fields: `FV`, `FV:<n>`, `FV:GC`, `FV:GC-HB`, `FVPXY`
 
 ## `gena_event_envelope` `confirmed`
 
-The GENA event notification format — the propertyset XML delivered to your SUBSCRIBE callback URL.
+The wire envelope of a classic event notification — the propertyset body plus the headers (event type, sequence number, subscription ID, and Sonos's own boot counter) that make a notification a valid subscription message.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -342,7 +342,7 @@ GENA event wire envelope — <e:propertyset>/<e:property> var elements + NT/NTS/
 
 ## `group_effective_values_blob` `strong`
 
-The group-scoped variant of the signed-blob settings format (version 11).
+A second signed-blob variant — the version-11 sibling envelope used for group effective-values data, with its own magic marker distinguishing it. Its own magic marker distinguishes it — the version-11 sibling envelope for group effective-values data.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -358,7 +358,7 @@ Version-11 sibling section of sonos_signed_blob_json: ',\n{"magic":"(=^+^=)","ve
 
 ## `http_status_map` `strong`
 
-A lookup table that turns HTTP status codes from cloud/service calls into the player's own error numbers; anything unrecognized becomes 499. It's the 'objectStatusMap' that auth errors complain about.
+The player's HTTP status-code tables — two parallel maps translating internal results into web status codes, covering the extended set of statuses its web layer can emit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -383,7 +383,7 @@ A lookup table that turns HTTP status codes from cloud/service calls into the pl
 
 ## `itunes_plist_importer` `strong`
 
-The iTunes-library XML key vocabulary the importer understands — for local library shares.
+The vocabulary of the iTunes-library importer — the keys the player recognizes when importing an iTunes XML playlist file, the bridge that lets an iTunes library become a Sonos library.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -411,7 +411,7 @@ Apple plist-XML grammar keys; importer maps iTunes XML library (Tracks/Playlists
 
 ## `lastchange_templates` `confirmed`
 
-The three LastChange event document templates (per-service namespaces) — the shape of change notifications.
+The three LastChange document roots — the envelope shapes each service's bundled-change report uses, with their per-service namespaces. Each service's bundled-change report uses one of these roots with its own namespace — the shared shape under the per-service details.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -442,7 +442,7 @@ the three LastChange/Event doc root templates + per-service xmlns
 
 ## `ncd_device_payload` `confirmed`
 
-Inside the firmware update there's a small blob that's the factory-default manufacturing record — the template that gets filled in with a serial number, MAC addresses, and calibration data when a unit is built. Shipping it empty in the update is how every player starts with the right shape of identity data before the factory programs real values.
+The factory-default configuration blob — the template of non-volatile config data programmed into each unit at manufacture, found embedded in the firmware as a payload.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -452,7 +452,7 @@ device-payload.bin (section type 13, 54757B) = the factory-default NCD (non-vola
 
 ## `protocolinfo` `confirmed`
 
-The full GetProtocolInfo capability set — every MIME/protocolInfo pair the player accepts, i.e. what it can play.
+The full capability vocabulary the player declares in its format strings — every MIME type and scheme it claims to send or accept, the complete 'what can this box play' contract.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -479,7 +479,7 @@ ConnectionManager protocolInfo capability set (libavcodec decoder) — complete 
 
 ## `savedqueues_rsq` `confirmed`
 
-The saved-queue persistence format — Sonos Playlists are stored as this XML and replicated between players.
+The saved-playlists file format — the structure of the file where Sonos playlists persist: per-playlist records with versioning and track lists, written atomically so a crash can't leave a corrupt store.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -511,7 +511,7 @@ replicated via nodetx like netsettings; 'Migrated tracks for account sn=%u' migr
 
 ## `scpd` `confirmed`
 
-The SCPD service-description XML served per service — the action/argument definitions (note: binary behavior is ground truth; SCPDs are comparison evidence).
+The service-specification documents — the advertised command lists served at /xml/*.xml: what the product claims to support, as distinct from what the binary actually implements. This page's whole availability story rests on that comparison.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -536,7 +536,7 @@ SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml — advert
 
 ## `scrobble_submission` `strong`
 
-The Last.fm scrobble POST body — Audioscrobbler 1.2 indexed fields (a\[0\], t\[0\], i\[0\]...).
+The scrobbling submission format — the form a last.fm-style 'now playing report' takes when the player submits your listening history to a scrobble service. The form a 'now playing report' takes when the player submits your listening history to a scrobble service — session, artist, title, timestamp, source per track.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -554,7 +554,7 @@ Fields: `s`, `a\[\]`, `t\[\]`, `i\[\]`, `o\[\]`, `r\[\]`, `l\[\]`, `b\[\]`, `n\[
 
 ## `skip_restriction_bits` `strong`
 
-Why a stream won't let you skip: a bitmask of restriction reasons — the track is an ad, licensing forbids it, there's no next/previous track, or you're paused. Radio services set these per-track.
+The packed skip-restriction flags — the bits describing what a source forbids (no next, no previous), used when a service constrains navigation. Which bit means 'no next', 'no previous' and friends — how a source's navigation constraints are encoded.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -571,7 +571,7 @@ Why a stream won't let you skip: a bitmask of restriction reasons — the track 
 
 ## `smapi_capability_bits` `strong`
 
-The menu of features a music service can advertise: each name maps to one bit in the service's Capabilities number - search, three kinds of favorites (track/album/artist), extended metadata, alarms, playlists, logging, headers, and so on. When a service says it supports track favorites, that's the second bit set in this table.
+The capability bitfield for music-service integrations — the packed flags word where each bit declares a feature a service supports (seeking, skipping, metadata kinds), decoded bit by bit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -588,7 +588,7 @@ The menu of features a music service can advertise: each name maps to one bit in
 
 ## `soap_envelope` `confirmed`
 
-The SOAP request/response wire format — envelope, action element naming and fault shape.
+The request/response envelope — the wrapping document every command call and reply is built inside: header, body, and the per-command element naming the operation and its service.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -614,7 +614,7 @@ SOAP request/response/fault wire envelope: <s:Envelope><s:Header><s:Body><u:{act
 
 ## `soap_envelope_variants` `confirmed`
 
-The two envelope templates — one with encodingStyle, one without — so generated clients should accept either.
+The two envelope openings the command layer uses — one with an explicit encoding-style declaration, one without; both wrap the same request and response bodies.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -630,7 +630,7 @@ Two SOAP envelope open-templates: with encodingStyle (0x10eebc90: s:encodingStyl
 
 ## `soap_fault_wire` `confirmed`
 
-The exact XML a failed action returns — faultcode/faultstring/detail layout for error handling.
+The body of a fault reply — the exact document skeleton every error response is built as, carrying the code and description fields that tell a caller what failed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -658,7 +658,7 @@ Used by: all 199 action fault paths via req->v\[+0x14\]
 
 ## `soapaction_header` `confirmed`
 
-The SOAPACTION header format the router expects — serviceType#action quoted; wrong quoting is a common client bug.
+The command-name header — the HTTP header that says which operation a request wants (service type plus action name): the routing key telling the player which command to run.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -681,7 +681,7 @@ SOAPACTION HTTP header grammar: SOAPACTION: "{serviceType}#{action}" targeting t
 
 ## `sonos_access_settings_json` `strong`
 
-The access-control settings document — JSON versioned with a lastUpdateDevice field.
+The template of the access-control settings document — the small JSON record controlling restricted-admin and read-access levels on the player. The small JSON record controlling restricted-admin and read-access levels on the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -699,7 +699,7 @@ Fields: `version`, `lastUpdateDevice`, `named-permission entries`
 
 ## `sonos_alarm_doc` `confirmed`
 
-The alarm document format — <Alarms> root with version/update fields; what GetAlarmList-style state looks like.
+The alarm document's opening structure — the versioned envelope the stored alarm list is written in, carrying which device last updated it. Carries which device last updated the alarm list — the versioned envelope the stored alarms are written in.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -715,7 +715,7 @@ Alarm document grammar: <Alarms LastUpdateDevice="%s" Version="0" SchemaVersion=
 
 ## `sonos_audio_settings_line` `strong`
 
-A packed audio-settings line — bass/treble/loudness/etc. serialized as tagged fields.
+The packed audio-settings line — a compact serialization stuffing every tone/volume setting into one text record: volume, balance, bass, treble, loudness, and the surround/sub fields in a fixed order.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -733,7 +733,7 @@ Fields: `AMV`, `LV`, `RV`, `B`, `T`, `L`, `F`, `SS`, `LEV`, `SW`, `SC`, `SP`, `D
 
 ## `sonos_browse_filter_vocab` `strong`
 
-The browse-filter capability list — which DIDL fields you can request in Browse filter args.
+Which metadata fields a browse request can ask for — the accepted filter lists (title, artist, album, duration, resource) so callers know what they can select back.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -749,7 +749,7 @@ Browse-filter capability lists: dc:title,upnp:artist,upnp:album,res@duration,res
 
 ## `sonos_buzzer_uri` `strong`
 
-Buzzer sound asset paths on disk.
+The file paths of the built-in alarm buzzers — where the firmware keeps its wake-up tones on the device filesystem. Where the firmware keeps its wake-up tones on the device filesystem.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -765,7 +765,7 @@ Buzzer asset URIs: file:///opt/buzzers/%s and file://%s/buzzers/0.mp3 (f_1026bad
 
 ## `sonos_class_audioBook` `strong`
 
-The audiobook DIDL class literal.
+The object class for audiobook items — the tag marking a library item as an audiobook rather than music, so apps can shelve it correctly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -781,7 +781,7 @@ The audiobook DIDL class literal.
 
 ## `sonos_diag_filename` `strong`
 
-Diagnostic filename format — IP_date_time naming for submitted bundles.
+The diagnostic filename pattern — IP address plus date and time baked into the name, so a diagnostics bundle names which machine and moment it came from at a glance.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -797,7 +797,7 @@ Diagnostic/log filename grammar: %d.%d.%d.%d_%4d-%2d-%2d_%2d-%2d-%2d — IPv4_da
 
 ## `sonos_duration_hhmmss` `strong`
 
-Sleep-timer duration format — HH:MM:SS.
+How durations are written — the sleep timer's hours:minutes:seconds format: 'stop in 20 minutes' travels as 00:20:00. Documents the exact accepted shape. 'Stop in 20 minutes' travels as 00:20:00 — the exact accepted shape of the duration argument.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -816,7 +816,7 @@ Fields: `HH`, `MM`, `SS`
 
 ## `sonos_favorites_version` `strong`
 
-The FV: object-ID prefix — FV:2 is the favourites root in ContentDirectory; FV:<n>+FVPXY also mean Fixed Volume in RenderingControl (dual-use, both documented).
+The 'FV:' version token — a marker used in two different places: inside the EQ parameter machinery and as a favorites-list version, documented separately so the same-looking token isn't misread.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -836,7 +836,7 @@ Fields: `FV prefix`, `version int \| 'GC' literal \| 'GC-HB' suffix`
 
 ## `sonos_hex_blob_line` `strong`
 
-A hex-record line format used in binary blob dumps.
+The hex-dump record line format — a debugging line shape the player parses: colon-separated hex fields of specific widths. Colon-separated hex fields of specific widths — a debugging line shape the player parses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -852,7 +852,7 @@ Hex blob/record line grammar (f_10803f38): %02X: / %08X:%08X:%016llX: / %02X%02X
 
 ## `sonos_http_date` `strong`
 
-The HTTP Date header formats parsed — RFC1123/RFC850/asctime variants.
+How the player reads HTTP Date headers — the three date spellings web standards allow, all accepted so servers writing any of them parse correctly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -868,7 +868,7 @@ HTTP Date parsers (f_100a6724): RFC1123 %*s %d %d:%d:%d %d%*s, RFC850 %d %n%*s %
 
 ## `sonos_http_date_emit` `strong`
 
-The Date header format the player emits.
+How the player writes HTTP Date headers — the single canonical date format it emits when dating its own responses. The single canonical date format it emits when dating its own responses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -884,7 +884,7 @@ HTTP Date emit: %s, %02d %s %04d %02d:%02d:%02d GMT (f_100a663c)
 
 ## `sonos_http_statusline` `strong`
 
-HTTP status-line parsing variants.
+How the player reads an HTTP status line — the 'HTTP/1.1 200' shape its own HTTP client and server machinery parses. The 'HTTP/1.1 200' shape its own HTTP client and server machinery parses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -900,7 +900,7 @@ HTTP status-line parsers HTTP/%d.%d (f_100a4b24), HTTP/1.1 %d + HTTP/1.0 %d (f_1
 
 ## `sonos_https_ep` `strong`
 
-IPv4:port HTTPS endpoint formatting.
+The secure-endpoint address pattern — 'https://' plus IP and port: how a direct secure endpoint is written when the player names one. 'https://' plus IP and port — how a direct secure endpoint is written when the player names one.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -916,7 +916,7 @@ HTTPS endpoint emit: https://%d.%d.%d.%d:%d — IPv4:port (f_10653a34)
 
 ## `sonos_iso8601_timestamps` `strong`
 
-ISO-8601 timestamp formats accepted in scheduling/alarm fields.
+How timestamps are written — the two accepted shapes: compact (20241031T153000.000Z) and the dashed extended form, used wherever times travel in arguments. Compact (20241031T153000.000Z) and dashed extended forms are both accepted — used wherever times travel in arguments.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -934,7 +934,7 @@ Fields: `compact+extended ISO-8601 with ms and optional tz`
 
 ## `sonos_iv_token` `strong`
 
-An IV= prefixed token scan — crypto init-vector handling in some payload.
+An 'IV=' prefixed token the firmware scans for — an initialization-vector style field seen where encrypted data is handled. An initialization-vector style field seen where encrypted data is handled.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -950,7 +950,7 @@ IV= prefixed token scan in f_103c0364
 
 ## `sonos_lastchange_attr_form` `confirmed`
 
-Sonos puts LastChange values in attributes (<r:X val="..."/>) not elements — parse attributes, not child text.
+A Sonos formatting choice worth knowing: the player's LastChange documents write each changed variable as an attribute-valued element rather than the element-body style other devices use — a parser expecting the standard shape will misread these.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -966,7 +966,7 @@ Sonos LastChange serializes variables in ATTRIBUTE form <r:NAME val="..."/> (rin
 
 ## `sonos_linein_demo` `strong`
 
-A line-in demo-mode settings field.
+The line-in demo-mode settings field — a bracketed flag the settings store carries for the (stubbed on this build) line-in feature. A bracketed flag in the settings store for the (stubbed on this build) line-in feature's demo mode.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -982,7 +982,7 @@ Settings field: LineInDemoMode: \[%hu\] parsed by f_100a6ce0
 
 ## `sonos_mac_dash` `strong`
 
-MAC address variant — dash-separated with a trailing field.
+A MAC-address variant using dashes instead of colons — the second accepted hardware-address shape, so both common spellings parse. The dash-separated variant — the second accepted hardware-address shape, so both common spellings parse.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -998,7 +998,7 @@ MAC grammar variant: %02hhX-%02hhX-%02hhX-%02hhX-%02hhX-%02hhX:%*c — dash-sepa
 
 ## `sonos_mac_parse` `strong`
 
-MAC address parse format — colon-separated hex.
+How the player reads a MAC address — the six-hex-pairs-with-colons shape it accepts for hardware identifiers, parsed strictly so malformed addresses are rejected. Six hex pairs with colons — the hardware-identifier shape parsed strictly so malformed addresses are rejected.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1016,7 +1016,7 @@ Fields: `6 hex octets`
 
 ## `sonos_metadata_urn` `strong`
 
-The rinconnetworks metadata namespace used for Sonos extension fields (e.g. rating) in DIDL.
+The metadata URN for content ratings — the namespace tag marking rating metadata inside track descriptions, so rating fields are recognized. The namespace tag marking rating metadata inside track descriptions — so rating fields get recognized.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1032,7 +1032,7 @@ Metadata URN scan: urn:schemas-rinconnetworks-com:metadata-1-0/|rating — conte
 
 ## `sonos_packed_object_id` `strong`
 
-A packed binary object-ID format — internal handle, not user-facing.
+The packed object-ID format — a long hex string encoding many fields into one identifier, used where an item's ID must carry several pieces of information at once.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1050,7 +1050,7 @@ Fields: `14 packed hex fields`
 
 ## `sonos_path_two_seg` `strong`
 
-Two-segment path splitting used by internal routers.
+A two-segment path split — the 'first/second' grammar used where a route or locator is divided into exactly two parts. A 'first/second' split used where a route or locator divides into exactly two parts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1066,7 +1066,7 @@ Two-segment path split %\[^/\]/%\[^/\] by f_1055c55c
 
 ## `sonos_queue_doc` `strong`
 
-Queue XML serialization — carries NumTracks and per-track entries.
+The 'NumTracks' attribute the queue's XML documents carry — how the queue's track count is written in its stored form. How the queue's track count is written in its stored form — the 'NumTracks' attribute on queue documents.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1084,7 +1084,7 @@ Fields: `NumTracks attr`
 
 ## `sonos_saved_queue_file` `strong`
 
-The saved-queue file name — savedqueues.rsq on flash.
+The saved-playlists filename — 'savedqueues.rsq': the on-disk file where Sonos playlists persist across reboots. The on-disk file where Sonos playlists persist across reboots — named 'savedqueues.rsq'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1100,7 +1100,7 @@ Saved-queue persist filename savedqueues.rsq (f_104791b0)
 
 ## `sonos_saved_queue_id` `strong`
 
-SQ:<n> object IDs address saved queues in ContentDirectory.
+How a saved-playlist ID is written — 'SQ:' followed by a number: the identifier commands use to name which stored playlist they mean. The identifier commands use to name which stored playlist they mean — 'SQ:' followed by a number.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1118,7 +1118,7 @@ Fields: `SQ prefix`, `decimal index`
 
 ## `sonos_signed_blob_json` `strong`
 
-A checksummed JSON envelope used for protected settings blobs (magic + length + checksum fields).
+The signed-blob envelope — a JSON wrapper carrying a magic marker, a length, a checksum, and a counter: used where the player needs a self-verifying data block that can't be silently truncated or corrupted.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1142,7 +1142,7 @@ Fields: `magic`, `length`, `checksum`, `counter`
 
 ## `sonos_state_flags` `strong`
 
-Zone state flags — frozen/allow/auto booleans controlling zone behavior.
+Zone state flags as written — the 'frozen / allowed / auto' style fields the zone settings carry as packed text rather than separate booleans.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1160,7 +1160,7 @@ Fields: `frozen`, `allow`, `auto`
 
 ## `sonos_track_encryption_meta` `strong`
 
-Track-encryption metadata elements in DIDL — method/format fields for protected content.
+The track-encryption metadata fields — elements describing how a track's data is encrypted, for protected content the player can handle. For protected content the player can handle — elements describing how a track's data is encrypted.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1176,7 +1176,7 @@ Track-encryption metadata elements: <TrackEncryptionMethod>%s</..> and <TrackEnc
 
 ## `sonos_track_summary_doc` `confirmed`
 
-Queue summary documents — TrackQueueSummary/TrackSummary roots used by /status and internal APIs.
+The track-summary document roots — the envelope the player's queue-summary endpoints emit when describing what's in the queue. The envelope the player's queue-summary endpoints emit when describing what's in the queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1192,7 +1192,7 @@ Queue-summary doc roots: <TrackQueueSummary> (0x10ea978c) and <TrackSummary> (0x
 
 ## `sonos_version_pair` `strong`
 
-Simple major.minor version strings.
+How version numbers are written — 'major.minor' pairs like 86.10: the shape the firmware's version comparisons and update checks accept. 'major.minor' pairs like 86.10 — the shape version comparisons and update checks accept.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1210,7 +1210,7 @@ Fields: `major`, `minor`
 
 ## `status_doc` `confirmed`
 
-The /status diagnostic XML document grammar — the full element inventory of the diagnostic pages.
+The complete element grammar of the diagnostics pages — every field the built-in status website can emit, so the diagnostics surface is fully documented rather than just its route list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1248,7 +1248,7 @@ complete /status + diagnostic XML doc element grammar
 
 ## `trackqueue_rsq` `confirmed`
 
-The live queue persistence file — the queue survives reboots via this transactional store.
+The live-queue persistence format — how the current play queue is written to disk: a transactional store with a guard mechanism so an interrupted write doesn't destroy the queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1274,7 +1274,7 @@ trackqueue.rsq live-queue persistence store — transactional append/replace w/ 
 
 ## `transport_action_bits` `strong`
 
-The fixed vocabulary behind GetCurrentTransportActions — each transport verb (Play, Stop, Pause, Next, Previous, Seek, Set) owns one bit; the player sets the bits for whatever the current source can actually do and prints the names as a comma-separated list.
+The packed transport-actions field — how the 'currently legal commands' answer is encoded as bits, and which bit means play, pause, seek, and the rest.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1291,7 +1291,7 @@ The fixed vocabulary behind GetCurrentTransportActions — each transport verb (
 
 ## `upnp_gena_event_doc` `confirmed`
 
-The event document root element and namespace — the wrapper around LastChange payloads.
+The envelope of a classic event notification — the 'propertyset' document the player sends when it announces changed variables to subscribers, plus the LastChange wrapper for bundled updates.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1307,7 +1307,7 @@ GENA event document: <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0"> (0
 
 ## `upnp_search_criteria_vocab` `strong`
 
-The search-criteria grammar ContentDirectory's Search accepts (upnp:class matching).
+The search grammar the library accepts — which 'where' clauses a search request can legally use: matching by object class and reference-ID existence. Which 'where' clauses a library search can legally use — matching by object class and reference-ID existence.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1323,7 +1323,7 @@ UPnP search-criteria grammar accepted by CD search: upnp:class = "object.contain
 
 ## `vli_mimes` `confirmed`
 
-The MIME whitelist for VLI/queue items: AIFF, FLAC, MP4/M4A, MP3 (multiple spellings), OGG variants including x-spotify-ogg, WAV/L16, WMA, and the mpegurl playlist types. A URI whose Content-Type isn't in this set is rejected before the transport tries it — this is the accepted-codec contract.
+The content types a virtual line-in session accepts — the whitelist of formats an external source may push at the player. The whitelist of formats an external source may push at the player in a virtual line-in session.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1335,7 +1335,7 @@ Fields: `audio/x-aiff`, `audio/flac`, `audio/mp4`, `audio/x-m4a`, `audio/mpeg`, 
 
 ## `zone_audio_state` `confirmed`
 
-The per-zone audio state block — the 37-field EQ/DSP/volume schema used in status docs.
+The extended per-zone audio state blocks — the status records the player keeps for each zone's audio: volume, EQ, and queue-related flags beyond the headline values.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

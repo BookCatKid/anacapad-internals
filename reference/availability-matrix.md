@@ -1,6 +1,6 @@
 # Availability matrix
 
-The complete command surface in one table: every action the firmware can dispatch, whether it really works, and where its handler sits in the program. 'Stub' marks commands still advertised in the public spec documents but removed in this software - they answer 'not implemented' on the wire. 'Hidden-callable' would be a command that works but is never advertised; this build has none.
+The complete command surface in one table: every action the firmware can route to real code, alongside whether it actually works. For each command you can see whether it's advertised to apps, whether calling it does anything, and how confident we are in that verdict.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

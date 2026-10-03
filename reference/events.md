@@ -1,14 +1,14 @@
 # Eventing
 
-Two update channels live side by side. GENA is the classic UPnP mechanism: a controller subscribes over HTTP and the player posts XML notifications when state changes. Alongside it is Sonos's own websocket channel (WSS), which the current app uses for newer features. This page lists which events each service can emit on each channel.
+Two update channels live side by side on this player, two generations of the same idea. The older one is the classic subscribe-and-notify mechanism every networked media device of this era uses: an app signs up with a service, and the player pushes a message each time something changes — your phone knows the volume moved because the speaker told it, not because it kept asking. The newer channel is a persistent websocket-style connection the modern app uses: one long-lived pipe over which named event channels carry everything from playback changes to household configuration edits. The sections below explain both — which events exist, how subscriptions are managed, and how a state change turns into a message on the wire.
 
 ## Per-service eventing
 
-For each service: whether it emits classic UPnP notifications, whether it carries the big 'LastChange' state document, and which websocket event names it offers.
+For each service: whether it emits classic notifications at all, and whether it carries the big 'LastChange' document — the bundled change report that packs many updates (track change, state change, volume change) into a single message rather than spamming one message per variable. Services with their own LastChange feed are the busy ones — the playback and volume services an app follows most closely.
 
 ## `AVTransport`
 
-The busiest event source - this is how an app learns the player started, paused, skipped, or changed tracks without polling. It emits the big LastChange document covering transport state, current track, and queue position.
+The busiest event source in the system — every play, pause, skip, seek, queue change, and mode change announces itself here, bundled into a LastChange document so a track change plus a state change arrive as one update instead of two. This is the feed that keeps the app's now-playing screen live.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -27,7 +27,7 @@ UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions
 
 ## `AlarmClock`
 
-Announces alarm-related state: the running-alarm list and its version counter bump when alarms are added, edited, or fire.
+Fires when the alarm list or household time settings change — a new alarm, an edit, a deletion, a timezone change. Apps holding the alarm screen open refresh off this feed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -51,7 +51,7 @@ GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS
 
 ## `AudioIn`
 
-Line-in streaming events - reports when a line-in transmission to the group starts or stops and the attributes of the audio input.
+Registered but silent on this build — the whole AudioIn service is a reject-everything stub, so nothing here ever emits an event, matching the dead commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -75,7 +75,7 @@ GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:up
 
 ## `ConnectionManager (mediarenderer)`
 
-Renderer-side connection bookkeeping - the list of active connection IDs and the protocols the player can serve, mostly static but notified on change.
+The playback-side connection service's notifications — fired when control connections open or close against the player. Routine plumbing like its library-side sibling. Fires as control sessions open and close — the feed behind 'who is talking to this player right now'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -97,7 +97,7 @@ GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290
 
 ## `ConnectionManager (mediaserver)`
 
-Server-side equivalent - reports the media-server connections list and the serving protocols.
+The library-side connection service's notifications — fired when connections open or close against the music-library side of the player. Routine plumbing; apps rarely subscribe. Since this player has no content to prepare for others, the updates here are mostly bookkeeping rather than the busy list seen on the renderer side.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -119,7 +119,7 @@ GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (
 
 ## `ContentDirectory`
 
-Fires when the music-library index changes - SystemUpdateID bumps on rescan, share index progress, and favorites/radio-location list versions.
+Fires when the music library changes — a rescan finishing, an object created or destroyed, the library version ticking up. The 'your music changed, refresh the browse view' signal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -144,7 +144,7 @@ GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (N
 
 ## `DeviceProperties`
 
-Device-level state changes: LED on/off, button lock, household ID, linked-zone membership, autoplay settings.
+Fires when device settings change — LED on/off, button lock, room name or attributes, bonded-zone changes. The feed behind a settings screen updating itself when something else edits the speaker.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -171,7 +171,7 @@ GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event
 
 ## `GroupManagement`
 
-Group membership changes - when players join or leave this player's group.
+Fires when group membership changes — a speaker joining or leaving the group, source-area updates. The feed that keeps a multi-room view correct while people regroup rooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -194,7 +194,7 @@ GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event 
 
 ## `GroupRenderingControl`
 
-Group volume/mute state - fires when the coordinator-side group volume, mute, or a volume snapshot changes.
+Fires when the group-level volume or mute changes — the feed that keeps every controller's group slider in sync when someone adjusts the group. This is the event feed behind the group volume slider and group mute button updating in real time everywhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -216,7 +216,7 @@ GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e
 
 ## `HTControl`
 
-Home-theater control events - IR repeater state, LED feedback, remote identification results.
+Fires when home-theater control state changes — IR repeater toggled, remote learned, LED feedback switched. Rare and quiet; mostly for the settings screens. Lets an app watch the home-theater settings — remote-learning state, TV autoplay, LED feedback — as they change.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -238,7 +238,7 @@ GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:
 
 ## `MusicServices`
 
-Music-service account changes - the available-services list and session IDs refresh when accounts are added or reauthorized.
+Fires when the music-service list or account sessions change — a service added or removed, a session refreshed. The catalog-changed signal. Primarily the available-services version — fires when the catalog of services changes so apps refresh.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -262,7 +262,7 @@ GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + 
 
 ## `QPlay`
 
-QPlay session events - state of the QPlay (Tencent) playback source.
+The QPlay service's event surface — part of the Tencent QQ Music integration; silent on builds where that feature isn't active, which is nearly everywhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -281,7 +281,7 @@ GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp
 
 ## `Queue`
 
-Queue edits - last-index changes, queue length, and save/backup results so apps can refresh their queue view.
+Fires when a managed queue changes — tracks added, removed, reordered, a queue created or destroyed. The internal feed the system's own components follow when watching queue edits.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -300,7 +300,7 @@ UPnP GENA NOTIFY; custom Sonos Queue namespace (not standard UPnP metadata-1-0)
 
 ## `RenderingControl`
 
-Per-player audio settings - volume, mute, EQ, loudness, fixed-output and room-calibration status changes.
+The volume and tone feed — every volume move, mute, bass/treble/loudness change announces here, bundled into LastChange so the app's slider tracks whatever anyone else does, including the physical buttons on the unit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -320,7 +320,7 @@ UPnP GENA NOTIFY with e:propertyset -> LastChange -> Event(InstanceID=0) -> val=
 
 ## `SystemProperties`
 
-Household/account bookkeeping - account lists, web-code provisioning results, and RDM (remote management) state changes.
+Fires when a settings-store key or an account credential changes — the 'some configuration was edited' signal other features watch. Carries the stored-settings version stamps — fires when configuration like voice IDs or the service map changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -349,7 +349,7 @@ GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event
 
 ## `VirtualLineIn`
 
-Virtual line-in stream events - when a player acts as a line-in source for the group and transport state of that virtual source.
+Fires when a virtual line-in session changes — a feed starting or stopping, its transport state moving. Relevant only while an external source is pushing audio.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -371,7 +371,7 @@ GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT
 
 ## `ZoneGroupTopology`
 
-The household roster - fires when zones join, leave, regroup, or change attributes, plus software-update progress events.
+The household-shape feed — fires whenever the map of the system changes: a speaker appears or disappears, rooms group or ungroup, coordinators change. The most important subscription for anything rendering the whole-system view.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -397,7 +397,7 @@ GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:even
 
 ## WSS subscription registry
 
-The named events the player offers on its websocket channel - the modern subscription vocabulary the app actually uses (groupVolume, playbackSession, and friends). Each entry is one name a client can subscribe to.
+The named event channels the player offers on its modern websocket connection — the subscription vocabulary the current app uses. Where the classic mechanism announces 'something in this service changed', these channels carry richer, named event types — playback state, group membership, settings — each with its own subscription. The table lists every channel name the firmware knows about.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -521,7 +521,7 @@ Event names: `accessorySwapStatus`, `tvAudioSignalStatus`, `activeZonesChange`, 
 
 ## GENA internals
 
-How classic UPnP eventing is implemented here: how a subscription is validated, how the notification XML is assembled, and what happens when a subscriber stops answering.
+How the classic notification mechanism is implemented on this player: what happens when an app subscribes (how the player validates the request, assigns the subscription, and remembers where to send updates), how a state change becomes a notification message, and how renewals and timeouts keep the subscription list clean. This is the machinery behind 'your app updates the moment the volume changes'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

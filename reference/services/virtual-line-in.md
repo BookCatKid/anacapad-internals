@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Treats a networked line-in source as a virtual transport on this player - transport-style control (Play/Pause/Stop/Next/Previous/SetVolume) plus Start/StopTransmission to run the session. It's the 'line-in from another player' surface.
+This service is the control surface for a 'virtual line-in' session — Sonos's mechanism for piping audio into the player from a source that isn't a playlist or a radio stream. When an external feed is pushing audio at the player (for example, a music service's own direct-streaming feature or a compatible in-home source), the system wraps that feed in a virtual line-in session, and the commands here are how the source controls it: start and stop the transmission, and use play/pause/skip/volume on the session. It looks like a mini remote control for a live feed rather than for the queue.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -39,7 +39,7 @@ Virtual Line-In sink service: a VLI playback session exposes transport-like cont
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Advances the virtual line-in transport (context-dependent).
+Skips to the next item in a virtual line-in session — forwards the 'next' request to whatever external source is feeding the player, if that source supports skipping.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -153,7 +153,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Pauses the virtual line-in source.
+Pauses the virtual line-in session — pauses the external feed on the source's side rather than just locally muting it. Pauses the external feed on the source's side rather than just locally muting it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -267,7 +267,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts/resumes the virtual line-in source at the given Speed ('1' normal).
+Starts or resumes the virtual line-in session — tells the external feed to begin streaming and the player to present it as the current source. Speed handling mirrors the main transport's play command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -385,7 +385,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Steps the virtual line-in transport back.
+Skips back to the previous item in a virtual line-in session — again, a request forwarded to the external source feeding the player. A request forwarded to the external source feeding the player — works only if that source supports going back.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -499,7 +499,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets the playback volume for the line-in session.
+Sets the volume for the virtual line-in session — the level at which the incoming feed is played on this speaker. Sets how loud the incoming feed plays on this speaker, independent of its own source's level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -617,7 +617,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Begins receiving the line-in stream from the given CoordinatorID; returns the resulting transport settings.
+Opens a virtual line-in session: tells this player to receive an audio feed being sent by the named coordinator and report back the transport settings the session will use. This is the handshake that lets an external source push audio at the player rather than the player pulling it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -745,7 +745,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Stops the virtual line-in transport.
+Stops the virtual line-in session's playback — halts the current feed. Halts the current feed — the session can be resumed with Play afterward. Unlike the pause commands, stop ends the feed's position — a resume starts the session's content over rather than continuing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -863,7 +863,7 @@ request-layer parse/impl gate failure | Wrapper parse layer rejected an argument
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Ends the line-in transmission from the given coordinator.
+Closes the virtual line-in session entirely — tears down the connection to the feeding coordinator, ending the push session. Tears down the connection to the feeding coordinator entirely — the push session ends rather than just pausing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

@@ -3192,7 +3192,7 @@
 
 <h1 id="virtuallinein-mediarenderervirtuallineincontrol"><code>VirtualLineIn</code> — <code>/MediaRenderer/VirtualLineIn/Control</code><a class="headerlink" href="#virtuallinein-mediarenderervirtuallineincontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Treats a networked line-in source as a virtual transport on this player - transport-style control (Play/Pause/Stop/Next/Previous/SetVolume) plus Start/StopTransmission to run the session. It's the 'line-in from another player' surface.</p>
+<p>This service is the control surface for a 'virtual line-in' session — Sonos's mechanism for piping audio into the player from a source that isn't a playlist or a radio stream. When an external feed is pushing audio at the player (for example, a music service's own direct-streaming feature or a compatible in-home source), the system wraps that feed in a virtual line-in session, and the commands here are how the source controls it: start and stop the transmission, and use play/pause/skip/volume on the session. It looks like a mini remote control for a live feed rather than for the queue.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Virtual Line-In sink service: a VLI playback session exposes transport-like controls; impl object is r5-in (VLI session impl).</p>
@@ -3290,7 +3290,7 @@
 </table>
 <h3 id="next"><code>Next</code><a class="headerlink" href="#next" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Advances the virtual line-in transport (context-dependent).</p>
+<p>Skips to the next item in a virtual line-in session — forwards the 'next' request to whatever external source is feeding the player, if that source supports skipping.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Next-track in the VLI session via impl-&gt;v[+0x1c].</p>
@@ -3401,7 +3401,7 @@
 </details>
 <h3 id="pause"><code>Pause</code><a class="headerlink" href="#pause" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Pauses the virtual line-in source.</p>
+<p>Pauses the virtual line-in session — pauses the external feed on the source's side rather than just locally muting it. Pauses the external feed on the source's side rather than just locally muting it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Pauses VLI playback via impl-&gt;v[+0x18].</p>
@@ -3512,7 +3512,7 @@
 </details>
 <h3 id="play"><code>Play</code><a class="headerlink" href="#play" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Starts/resumes the virtual line-in source at the given Speed ('1' normal).</p>
+<p>Starts or resumes the virtual line-in session — tells the external feed to begin streaming and the player to present it as the current source. Speed handling mirrors the main transport's play command.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl-&gt;v[+0x14] on the r5-in VLI session impl.</p>
@@ -3633,7 +3633,7 @@
 </details>
 <h3 id="previous"><code>Previous</code><a class="headerlink" href="#previous" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Steps the virtual line-in transport back.</p>
+<p>Skips back to the previous item in a virtual line-in session — again, a request forwarded to the external source feeding the player. A request forwarded to the external source feeding the player — works only if that source supports going back.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Previous-track via impl-&gt;v[+0x20].</p>
@@ -3744,7 +3744,7 @@
 </details>
 <h3 id="setvolume"><code>SetVolume</code><a class="headerlink" href="#setvolume" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets the playback volume for the line-in session.</p>
+<p>Sets the volume for the virtual line-in session — the level at which the incoming feed is played on this speaker. Sets how loud the incoming feed plays on this speaker, independent of its own source's level.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets VLI-session volume (DesiredVolume) via impl-&gt;v[+0x24].</p>
@@ -3865,7 +3865,7 @@
 </details>
 <h3 id="starttransmission"><code>StartTransmission</code><a class="headerlink" href="#starttransmission" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Begins receiving the line-in stream from the given CoordinatorID; returns the resulting transport settings.</p>
+<p>Opens a virtual line-in session: tells this player to receive an audio feed being sent by the named coordinator and report back the transport settings the session will use. This is the handshake that lets an external source push audio at the player rather than the player pulling it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Starts a VLI transmission to CoordinatorID, returning CurrentTransportSettings via impl-&gt;v[+0x8].</p>
@@ -4008,7 +4008,7 @@
 </details>
 <h3 id="stop"><code>Stop</code><a class="headerlink" href="#stop" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Stops the virtual line-in transport.</p>
+<p>Stops the virtual line-in session's playback — halts the current feed. Halts the current feed — the session can be resumed with Play afterward. Unlike the pause commands, stop ends the feed's position — a resume starts the session's content over rather than continuing.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Stops VLI playback via impl-&gt;v[+0x10].</p>
@@ -4121,7 +4121,7 @@
 </details>
 <h3 id="stoptransmission"><code>StopTransmission</code><a class="headerlink" href="#stoptransmission" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Ends the line-in transmission from the given coordinator.</p>
+<p>Closes the virtual line-in session entirely — tears down the connection to the feeding coordinator, ending the push session. Tears down the connection to the feeding coordinator entirely — the push session ends rather than just pausing.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Stops the VLI transmission to CoordinatorID via impl-&gt;v[+0xc].</p>

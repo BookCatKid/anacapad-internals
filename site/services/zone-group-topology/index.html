@@ -3268,7 +3268,7 @@
 
 <h1 id="zonegrouptopology-zonegrouptopologycontrol"><code>ZoneGroupTopology</code> — <code>/ZoneGroupTopology/Control</code><a class="headerlink" href="#zonegrouptopology-zonegrouptopologycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>Zone topology and household management. GetZoneGroupState is the famous one: a single XML snapshot listing every group, member, coordinator and source - the fastest way to map a household. The rest covers software update control, mobile-device registration, diagnostics upload and coordinator callbacks for alarms/unresponsive members.</p>
+<p>This service keeps track of the household's shape — which speakers exist, which rooms they're in, and how they're grouped. The zone-group state it serves is the master map of the whole Sonos system: every player, its name, its group membership, and its coordinator. On top of the map-reading commands, it carries system-level operations: checking for and starting software updates, reporting a speaker that has gone unresponsive, submitting diagnostic bundles to Sonos, and alarm bookkeeping. Think of it as the service that answers 'what does my Sonos system look like right now' plus the fleet-maintenance commands.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Zone-group topology service: group membership state, attributes, software update and diagnostics reporting.</p>
@@ -3366,7 +3366,7 @@
 </table>
 <h3 id="beginsoftwareupdate"><code>BeginSoftwareUpdate</code><a class="headerlink" href="#beginsoftwareupdate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (e.g. forced downgrade), ExtraOptions for transport options.</p>
+<p>Starts a firmware update on the player — downloads the update package from the given address and applies it, with flags and options controlling how. This is what the system sends when you tap 'update' in the app and the rollout reaches this speaker.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl-&gt;v[+0xc] on the svc+4 member.</p>
@@ -3499,7 +3499,7 @@
 </details>
 <h3 id="checkforupdate"><code>CheckForUpdate</code><a class="headerlink" href="#checkforupdate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.</p>
+<p>Asks whether a firmware update is available — queries the update channel (or the local cache if asked) for a newer version and returns details of what it found. The 'check for updates' button's payload.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl-&gt;v[+0x8] on the doubly-indirect member.</p>
@@ -3660,7 +3660,7 @@
 </details>
 <h3 id="getzonegroupattributes"><code>GetZoneGroupAttributes</code><a class="headerlink" href="#getzonegroupattributes" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the household's group name/id, the member UUIDs, and the Muse household id.</p>
+<p>Reports this speaker's zone-group identity fields — the descriptive attributes of its place in the household topology (its name, icon, and grouping-related properties). The descriptive attributes of this speaker's place in the household — name, icon, and grouping-related properties.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns zone-group identity fields. Wrapper calls impl-&gt;v[+0x34] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).</p>
@@ -3806,7 +3806,7 @@
 </details>
 <h3 id="getzonegroupstate"><code>GetZoneGroupState</code><a class="headerlink" href="#getzonegroupstate" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.</p>
+<p>Returns the full map of the household — the complete zone-group state: every player the system knows, its room name, which group it belongs to, and who leads each group. This one call is how apps render the whole multi-room view; it is also the state that updates (and re-announces) whenever rooms join or leave groups.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Serializes the full zone-group state XML via impl-&gt;v[+0x28] on the doubly-indirect member.</p>
@@ -3919,7 +3919,7 @@
 </details>
 <h3 id="registermobiledevice"><code>RegisterMobileDevice</code><a class="headerlink" href="#registermobiledevice" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.</p>
+<p>Supposed to register a phone or tablet with the system — but in this build it is a documented no-op: it accepts the request and replies success without storing anything or calling any implementation. The advertised command is a leftover — nothing is registered and no state changes.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change</p>
@@ -4050,7 +4050,7 @@
 </details>
 <h3 id="reportalarmstartedrunning"><code>ReportAlarmStartedRunning</code><a class="headerlink" href="#reportalarmstartedrunning" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).</p>
+<p>Tells the topology that an alarm has begun ringing — a bookkeeping ping so the household's shared state knows which alarm is active, feeding the displays and the snooze/stop flow that follow.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Reports that an alarm started running — feeds the alarm/topology bookkeeping via impl-&gt;v[+0x14].</p>
@@ -4144,7 +4144,7 @@
 </details>
 <h3 id="reportunresponsivedevice"><code>ReportUnresponsiveDevice</code><a class="headerlink" href="#reportunresponsivedevice" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.</p>
+<p>Reports that a speaker in the household has gone silent — used when one member notices another is not answering, so the system can mark it unresponsive and take the requested action (warn the user, drop it from the group, retry).</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Reports DeviceUUID unresponsive with DesiredAction via impl-&gt;v[+0x10] on the svc+4 member.</p>
@@ -4269,7 +4269,7 @@
 </details>
 <h3 id="submitdiagnostics"><code>SubmitDiagnostics</code><a class="headerlink" href="#submitdiagnostics" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support.</p>
+<p>Packages and submits a diagnostic report — the 'submit diagnostics' support feature. It gathers the player's logs and state into a bundle tagged with a diagnostic ID that Sonos support can look up; you can ask it to include data from the controllers too, and the returned ID is the reference you give to support.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl-&gt;v[+0x18] on the doubly-indirect member.</p>

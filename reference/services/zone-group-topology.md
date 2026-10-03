@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Zone topology and household management. GetZoneGroupState is the famous one: a single XML snapshot listing every group, member, coordinator and source - the fastest way to map a household. The rest covers software update control, mobile-device registration, diagnostics upload and coordinator callbacks for alarms/unresponsive members.
+This service keeps track of the household's shape — which speakers exist, which rooms they're in, and how they're grouped. The zone-group state it serves is the master map of the whole Sonos system: every player, its name, its group membership, and its coordinator. On top of the map-reading commands, it carries system-level operations: checking for and starting software updates, reporting a speaker that has gone unresponsive, submitting diagnostic bundles to Sonos, and alarm bookkeeping. Think of it as the service that answers 'what does my Sonos system look like right now' plus the fleet-maintenance commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -39,7 +39,7 @@ Zone-group topology service: group membership state, attributes, software update
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Starts a firmware update: UpdateURL to fetch from, Flags controlling behaviour (e.g. forced downgrade), ExtraOptions for transport options.
+Starts a firmware update on the player — downloads the update package from the given address and applies it, with flags and options controlling how. This is what the system sends when you tap 'update' in the app and the rollout reaches this speaker.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -164,7 +164,7 @@ launcher f_1073f1c8 performs external-update hook (write+exec); its rc is forwar
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Asks whether a firmware update is available; UpdateType selects the channel, CachedOnly avoids the network fetch, Version filters; returns the UpdateItem XML.
+Asks whether a firmware update is available — queries the update channel (or the local cache if asked) for a newer version and returns details of what it found. The 'check for updates' button's payload.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -307,7 +307,7 @@ Software update requested but capability flag impl+0x5f4 clear (feature-gated)
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the household's group name/id, the member UUIDs, and the Muse household id.
+Reports this speaker's zone-group identity fields — the descriptive attributes of its place in the household topology (its name, icon, and grouping-related properties). The descriptive attributes of this speaker's place in the household — name, icon, and grouping-related properties.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -450,7 +450,7 @@ topology rc domain adds {800} via zgt worker
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the complete zone topology as an XML document: every group, its coordinator, member players, and what each is playing. The single most useful call for mapping a household.
+Returns the full map of the household — the complete zone-group state: every player the system knows, its room name, which group it belongs to, and who leads each group. This one call is how apps render the whole multi-room view; it is also the state that updates (and re-announces) whenever rooms join or leave groups.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -571,7 +571,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Registers a mobile controller (name, UDN, IP:port) so the zone can push callbacks to it.
+Supposed to register a phone or tablet with the system — but in this build it is a documented no-op: it accepts the request and replies success without storing anything or calling any implementation. The advertised command is a leftover — nothing is registered and no state changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -693,7 +693,7 @@ no action-level fault path exists - handler commits unconditionally (request-env
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Member-to-coordinator callback: reports that an alarm started running (drives 'alarm is playing' indicators).
+Tells the topology that an alarm has begun ringing — a bookkeeping ping so the household's shared state knows which alarm is active, feeding the displays and the snooze/stop flow that follow.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -810,7 +810,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Reports a missing/unresponsive DeviceUUID with a DesiredAction (e.g. remove it from groups) so the coordinator can heal topology.
+Reports that a speaker in the household has gone silent — used when one member notices another is not answering, so the system can mark it unresponsive and take the requested action (warn the user, drop it from the group, retry).
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -934,7 +934,7 @@ DeviceID lacks RINCON_ prefix (strncmp,7) - f_10121310 returns 402 | Wrapper par
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Uploads a diagnostics bundle; IncludeControllers widens scope, Type selects the dump kind; returns a DiagnosticID to quote to support.
+Packages and submits a diagnostic report — the 'submit diagnostics' support feature. It gathers the player's logs and state into a bundle tagged with a diagnostic ID that Sonos support can look up; you can ask it to include data from the controllers too, and the returned ID is the reference you give to support.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

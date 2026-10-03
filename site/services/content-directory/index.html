@@ -5136,7 +5136,7 @@
 
 <h1 id="contentdirectory-mediaservercontentdirectorycontrol"><code>ContentDirectory</code> — <code>/MediaServer/ContentDirectory/Control</code><a class="headerlink" href="#contentdirectory-mediaservercontentdirectorycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.</p>
+<p>This service is the front door to the speaker's music library — the index it builds from your music shares (a NAS folder, a computer's shared drive) so albums and artists can be browsed without a computer being involved at playback time. Browsing lives here: ask for the children of a folder, a playlist, an artist, and get back tracks and containers with their metadata. So does library maintenance: kicking off a rescan of your shares, forcing a re-sort, checking whether indexing is in progress, and creating or editing library objects. In short, everything the app does under 'Music Library' routes through these commands.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.</p>
@@ -5298,7 +5298,7 @@
 </table>
 <h3 id="browse"><code>Browse</code><a class="headerlink" href="#browse" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.</p>
+<p>The one command that does nearly all library navigation. You name a container — the library root, an artist, a folder, a playlist — and ask for either its own metadata or its children, with a starting offset and a count for paging, plus which fields you want and how to sort. Everything from 'show my albums' to 'list tracks in this playlist' reduces to Browse calls; the app pages through large collections a slice at a time.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -&gt; children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -&gt; metadata path, anything else -&gt; 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].</p>
@@ -5518,7 +5518,7 @@
 </details>
 <h3 id="createobject"><code>CreateObject</code><a class="headerlink" href="#createobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.</p>
+<p>Creates a new library object — for example a new playlist container inside the library tree. You give the parent container and the object's details; the library assigns it an ID and returns it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Creates a CDS object: ContainerID/Elements -&gt; impl-&gt;v[+0x20], returning ObjectID/Result.</p>
@@ -5677,7 +5677,7 @@
 </details>
 <h3 id="destroyobject"><code>DestroyObject</code><a class="headerlink" href="#destroyobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Deletes ObjectID from the library.</p>
+<p>Deletes a library object by ID — removing a playlist or another entry from the library tree. Removing a playlist or another entry from the library tree by its ID.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Destroys ObjectID via impl-&gt;v[+0x28].</p>
@@ -5794,7 +5794,7 @@
 </details>
 <h3 id="findprefix"><code>FindPrefix</code><a class="headerlink" href="#findprefix" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).</p>
+<p>Locates items in a container whose titles start with a given prefix — the backing operation for alphabet-jump scrolling in a long list: 'take me to the S's'. It returns the index where matches begin.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl-&gt;v[+0x18].</p>
@@ -5948,7 +5948,7 @@
 </details>
 <h3 id="getalbumartistdisplayoption"><code>GetAlbumArtistDisplayOption</code><a class="headerlink" href="#getalbumartistdisplayoption" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether the library groups by album artist or contributing artist.</p>
+<p>Reports how the library is configured to treat album artists — the display option that decides whether compilations and guest-artist tracks group under the album artist or the track artist.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the album-artist display option via impl-&gt;v[+0x8].</p>
@@ -6055,7 +6055,7 @@
 </details>
 <h3 id="getallprefixlocations"><code>GetAllPrefixLocations</code><a class="headerlink" href="#getallprefixlocations" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns all container prefixes that contain ObjectID (an item can live under several indices).</p>
+<p>Reports the alphabet positions inside the library — where each letter's section starts — so an app can build an A-Z jump index over a large collection.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl-&gt;v[+0x1c].</p>
@@ -6209,7 +6209,7 @@
 </details>
 <h3 id="getbrowseable"><code>GetBrowseable</code><a class="headerlink" href="#getbrowseable" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether the local library share is currently marked browseable.</p>
+<p>Reports whether the library is currently browseable at all — during a rescan or certain states the index can be temporarily unavailable, and apps check this before offering browse screens.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns IsBrowseable via impl-&gt;v[+0x8].</p>
@@ -6316,7 +6316,7 @@
 </details>
 <h3 id="getlastindexchange"><code>GetLastIndexChange</code><a class="headerlink" href="#getlastindexchange" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.</p>
+<p>Reports when the library index last changed — the timestamp an app uses to decide whether its cached view of your music is stale and needs re-browsing.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns LastIndexChange timestamp via impl-&gt;v[+0x8].</p>
@@ -6424,7 +6424,7 @@
 </details>
 <h3 id="getsearchcapabilities"><code>GetSearchCapabilities</code><a class="headerlink" href="#getsearchcapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.</p>
+<p>Reports which fields the library's search can match on — which kinds of queries are supported (title, artist, album, and so on). Which fields the library's search can match on — what kinds of queries are legal to send.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns search capabilities via impl-&gt;v[+0x8].</p>
@@ -6531,7 +6531,7 @@
 </details>
 <h3 id="getshareindexinprogress"><code>GetShareIndexInProgress</code><a class="headerlink" href="#getshareindexinprogress" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether a library reindex is currently running.</p>
+<p>Reports whether a library rescan is running right now — the 'updating music index' spinner's data source. The 'updating music index' spinner's data source — on while a rescan walks your folders.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns IsIndexing flag via impl-&gt;v[+0x8].</p>
@@ -6638,7 +6638,7 @@
 </details>
 <h3 id="getsortcapabilities"><code>GetSortCapabilities</code><a class="headerlink" href="#getsortcapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns which DIDL properties can be used in Browse SortCriteria.</p>
+<p>Reports which orderings the library can return results in — which sorts you can legally ask Browse for. Which orderings the library can return — what sorts you can legally ask a browse for.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns sort capabilities via impl-&gt;v[+0x8].</p>
@@ -6745,7 +6745,7 @@
 </details>
 <h3 id="getsystemupdateid"><code>GetSystemUpdateID</code><a class="headerlink" href="#getsystemupdateid" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the global library UpdateID - compare before/after to detect any change.</p>
+<p>Reports the library's global version number — a counter that increments whenever anything in the library changes. Apps compare it against what they last saw to detect that the collection changed under them.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the system update Id via impl-&gt;v[+0x8].</p>
@@ -6853,7 +6853,7 @@
 </details>
 <h3 id="refreshshareindex"><code>RefreshShareIndex</code><a class="headerlink" href="#refreshshareindex" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Triggers a rescan of the configured music shares.</p>
+<p>Triggers a rescan of the music shares — the 'Update Music Library' command. The player re-walks the shared folders and rebuilds its index of what's available.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Triggers a share-index refresh (AlbumArtistDisplayOption) via impl-&gt;v[+0x30].</p>
@@ -6972,7 +6972,7 @@
 </details>
 <h3 id="requestresort"><code>RequestResort</code><a class="headerlink" href="#requestresort" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Re-sorts the library index using SortOrder.</p>
+<p>Asks the library to re-sort its index — the housekeeping operation after changes that affect ordering, such as a new album-artist display setting. Housekeeping after changes that affect ordering — like a new album-artist display setting.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Requests an index resort (SortOrder) via impl-&gt;v[+0x34].</p>
@@ -7089,7 +7089,7 @@
 </details>
 <h3 id="setbrowseable"><code>SetBrowseable</code><a class="headerlink" href="#setbrowseable" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Marks the library share browseable or not.</p>
+<p>Turns the library's browseability on or off — effectively hiding or exposing the local index to controllers. Effectively hides or exposes the local index to controllers — an off library doesn't show up to browse.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets Browseable flag via impl-&gt;v[+0x40].</p>
@@ -7205,7 +7205,7 @@
 </details>
 <h3 id="updateobject"><code>UpdateObject</code><a class="headerlink" href="#updateobject" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Rewrites an object's metadata: CurrentTagValue -&gt; NewTagValue DIDL fragments for ObjectID.</p>
+<p>Edits one field of a library object — renames a playlist or tweaks an item's stored metadata: 'change this tag's value to that'. 'Change this tag's value to that' — renames a playlist or tweaks an item's stored metadata.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Updates ObjectID: CurrentTagValue -&gt; NewTagValue via impl-&gt;v[+0x24].</p>

@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Alarm scheduler for the zone. Lets a client create, list, update and delete alarms, and read/set the household clock settings those alarms run against (current time, time zone, time server, 12/24h and date formats, and the daily music-index refresh time). Alarms target a single room by UUID and can play a stream URI or a library playlist at a fixed volume, optionally grouping linked zones. Changes are announced through the evented AlarmListVersion.
+This service handles everything related to alarms and household time on a Sonos speaker. When you set an alarm in the Sonos app — say, wake up to a radio station at 7am on weekdays — the app uses the commands in this service to create it, and the speaker stores it and fires it on its own even if your phone is nowhere nearby. It also owns the household clock: every Sonos speaker in a home shares one coordinated sense of what time it is and what timezone it lives in, and the commands here are how apps read or adjust that shared clock. Some commands are everyday ones the app calls when you open the alarms screen; others, like the timezone and time-format ones, are plumbing that keeps every device in the house agreeing on wall-clock time.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -48,7 +48,7 @@ Alarm and clock service: alarm CRUD plus household time/timezone/settings getter
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Creates a new alarm and returns its AssignedID, which is needed for UpdateAlarm and DestroyAlarm. StartLocalTime and Duration use 'HH:MM:SS'; Recurrence is a keyword such as ONCE, EVERYDAY, WEEKDAYS or WEEKENDS. RoomUUID selects the player, ProgramURI/ProgramMetaData choose what plays (a stream URI, or a Sonos playlist/library URI), PlayMode picks e.g. NORMAL or SHUFFLE_NOREPEAT, Volume is 0-100, and IncludeLinkedZones controls whether bonded players join in.
+Adds a new alarm to this speaker. When you create an alarm in the Sonos app, this is the command that actually registers it: you send the start time, how long it should play, whether it repeats and on which days, which room it should sound in, what it should play (a playlist, a radio station, or a chime), how loud, and whether it should turn on grouped speakers too. The speaker replies with an ID number for the new alarm, which the app then uses to refer to it later — for example when you edit or delete it. Once created, the alarm lives inside the speaker itself and will go off without the app needing to be open.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -223,7 +223,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Deletes the alarm with the given ID (an AssignedID previously returned by CreateAlarm, or an id from ListAlarms). Returns nothing; the change shows up in AlarmListVersion.
+Deletes one alarm permanently. You give it the ID number of the alarm you want gone — the same number the speaker handed out when the alarm was created — and it removes it from its internal list. This is what the app sends when you swipe-to-delete an alarm. If the alarm was already ringing, deleting it does not silence it; it only removes the scheduled entry, so it will not fire again tomorrow.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -353,7 +353,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the 'HH:MM:SS' local time at which the player rebuilds the local music-library index each day.
+Reports what time of day the speaker is set to rebuild its music library index. Sonos systems that play from a shared music folder on your network periodically rescan that folder to pick up new albums, and the system does this once a day at a fixed quiet hour. This command simply reads back the configured hour — the app uses it when you look at the music-library settings screen.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -474,7 +474,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the player's time and date display preferences (e.g. 12h vs 24h clock).
+Reports how times and dates are displayed — for example 24-hour versus 12-hour clock, and which date layout the speaker believes it is in a region that uses. It is a small settings read: the app calls it when it needs to present times the same way the player will.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -599,7 +599,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Converts a monotonically-increasing household timestamp (as used in event and queue bookkeeping) into an absolute UTC time.
+Translates a moment in time into the household's shared clock. Sonos speakers in one home keep a single synchronized time that may differ slightly from ordinary internet time, because speakers need millisecond agreement to play in sync. This command answers the question 'in the household's own timekeeping, what time is this particular timestamp?' It exists for features that need every room to schedule something at the exact same instant.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -729,7 +729,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the player's current UTC time, local time, time zone and TimeGeneration (a counter that increments whenever the household clock is set - useful for detecting clock changes).
+Reports what time the speaker thinks it is right now, in four flavors at once: the household's synchronized clock, the local wall-clock time, the timezone it is configured with, and a generation counter that ticks up whenever the clock settings change. Apps use this when they need the player's own view of 'now' rather than trusting the phone's clock — alarms and schedules depend on the speaker's clock, not yours.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -865,7 +865,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the configured household time-server address used to keep zone clocks in sync.
+Reports which network time source the speaker is configured to synchronize against. Sonos players keep their shared clock disciplined by regularly checking a time server (either one on the internet or one inside the household). This command just reads back the configured server's address, as used by the settings screens.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -986,7 +986,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the current time zone index and whether DST is auto-adjusted. Use GetTimeZoneRule to resolve the index to a tz rule string.
+Reports which timezone the speaker is currently set to, and whether it is allowed to adjust itself for daylight-saving changes automatically. The answer comes back as a numeric timezone index rather than a name like 'Europe/London' — Sonos keeps its own internal table of timezones, and this command returns the speaker's slot in that table.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1109,7 +1109,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Same as GetTimeZone but also returns the resolved CurrentTimeZone rule string in one call.
+Same idea as GetTimeZone, but it also returns the actual daylight-saving rule attached to the timezone — the dates and offsets that say when clocks spring forward and fall back. The app uses this when it needs to display not just which zone you are in but what will happen at the next clock change.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1236,7 +1236,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Looks up a time zone rule string (POSIX-style TZ spec) by Index.
+Looks up the daylight-saving rule for one specific timezone entry in the speaker's internal timezone table. You hand it a timezone index and it returns the rule that zone follows. This is reference plumbing rather than a user-facing feature — it lets an app reason about future clock changes without having its own timezone database.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1366,7 +1366,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the full alarm list as an XML document plus CurrentAlarmListVersion. The version counter is the cheap way to poll for changes; it is also evented.
+Returns every alarm the speaker currently has stored — the same list you see in the app's alarm screen, including disabled ones. Each entry comes with its ID, time, repeat pattern, target room, what it will play, volume, and whether grouped speakers join in. The app calls this whenever it needs to render or sync the alarm list; the speaker is the source of truth.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1490,7 +1490,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Changes the daily library-index refresh time ('HH:MM:SS').
+Sets the time of day at which the speaker rebuilds its music library index. When you change 'update music library daily at 4am' in settings, this is the command that stores the new hour. It only schedules the rescan; the actual scanning work is done elsewhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1620,7 +1620,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the 12/24-hour time format and the date format.
+Changes the speaker's preferred time and date display formats — for example switching between 12-hour and 24-hour clock. It stores the new preference; other commands like GetFormat read it back.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1760,7 +1760,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the player's clock: DesiredTime is UTC 'HH:MM:SS'-style time plus a time zone so the local offset can be derived. Setting the clock bumps TimeGeneration.
+Sets the household clock directly. You provide the time you want the system to consider 'now' plus the timezone that time is expressed in, and the speaker adopts it as the shared household time. Because this changes the clock for the whole system, it is the kind of command normally issued by setup tools or the app during initial configuration — not something a user calls day to day.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1890,7 +1890,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Sets the address of the household time server (host/IP used for clock sync).
+Points the speaker at a different network time source. Provide an address and the speaker will synchronize its shared clock against that server from then on — useful for keeping a household on an internal time source, or working around an unreachable default.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2020,7 +2020,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Selects the time zone by Index and toggles automatic DST adjustment.
+Changes which timezone the speaker belongs to and whether daylight-saving adjustment should happen automatically. This is what the app sends when you tell the system you have moved or when timezone data changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2154,7 +2154,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Edits an existing alarm in place. ID is the AssignedID from CreateAlarm or ListAlarms; the remaining arguments carry the complete replacement definition (same fields as CreateAlarm), so callers should send the full record rather than a diff.
+Edits an existing alarm in place. You send the alarm's ID plus a complete new set of fields — new time, new repeat pattern, new room, new thing to play, new volume — and the speaker replaces the stored entry. This is what happens behind the scenes when you edit an alarm in the app: rather than delete and recreate, it updates the existing record.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

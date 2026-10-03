@@ -1,10 +1,10 @@
 # Architecture
 
-How a network command reaches real code. When a control message arrives at the player it passes through a chain of checks: a router decides which service owns the address, a gate decides whether that service is enabled on this particular device, then a dispatcher picks the right command handler. This page maps that plumbing.
+How a network command reaches real code. When a control message arrives at the player it doesn't land on one dedicated function — it passes through a layered routing system: parsed, looked up by name, validated, and finally handed to the code that does the work. This page maps that journey and the machinery on each step.
 
 ## Routing
 
-The tables below are the player's URL map for control traffic. Each row is one service address (like /AlarmClock/Control) and shows which internal flag decides whether the service answers at all. Services gated 'by field' only respond when this player is in the right role - for instance several only work on the group coordinator.
+The tables below are the player's URL map for control traffic. Each row is one service address — the path part of the URL the command is sent to, like a postal code for which department should open the letter. When a request arrives, the player matches its destination against this map to find the right service object, and from there the per-service command table takes over. Seeing all the addresses in one place is the clearest proof of which services genuinely exist on this firmware — anything missing here can't be reached no matter what the spec documents say.
 
 | Router | Kind | Records |
 |---|---|---|
@@ -47,7 +47,7 @@ The tables below are the player's URL map for control traffic. Each row is one s
 
 ## Request object vtable
 
-Every command receives its arguments through the same generic 'request' object. Its method table has fixed slots - read a parameter, identify the caller, build the response - so one piece of plumbing serves all 205 commands uniformly. The table lists what each slot is for.
+Every command receives its arguments through the same generic 'request' object — think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free — missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list with confidence: the form's slots are visible in the code.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -69,7 +69,7 @@ Every action wrapper interacts with the request through these vfunc slots (confi
 
 ## Capability fields
 
-The player keeps internal switches that decide which features exist on this hardware or in this mode. They are why a Playbar exposes a different command set than a Play:1, and why whole services can silently enable or disable at runtime. Each row is one switch and the behavior it gates.
+The player keeps internal switches that decide which features exist on this particular hardware or in this mode — a capabilities checklist consulted at runtime. Some commands read these switches before doing anything: a feature may be compiled into the firmware but disabled on this model, or enabled only while a certain mode is active. This is why 'the command exists' doesn't always mean 'the command works' — a switch can make an otherwise-live command refuse to run.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -97,7 +97,7 @@ Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/A
 
 ## Internal functions
 
-Named helper routines the command handlers share - parameter parsers, validators, and error translators. They're listed because the real argument-checking logic lives here rather than inside each command.
+Named helper routines the command handlers share — the common toolbox: argument parsers that turn text fields into numbers, validators that enforce ranges and required values, and error translators that turn internal result codes into proper network error replies. Listing them matters because they're the vocabulary every routine speaks; once you know these helpers, you can predict how any command will react to malformed input.
 
 | Address | Role | Description |
 |---|---|---|
@@ -286,7 +286,7 @@ Named helper routines the command handlers share - parameter parsers, validators
 
 ## Dispatch candidates
 
-Functions we investigated because they looked like command dispatchers; each entry records the verdict.
+Functions we investigated because they looked like command routers — the routines that might have been the switchboard steering incoming commands to their implementations. Most turned out to be something else; the survivors are documented here with the evidence for and against.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -361,11 +361,11 @@ RESOLVED: dispatcher 0x1073d8f8 is the AudioIn service dispatcher (vtable 0x10f1
 
 ## Shared subsystems
 
-Building blocks reused across many commands - URI grammars, metadata parsers, error helpers. Documented once here rather than repeated under every command that uses them.
+Building blocks reused across many commands — URI grammars for the address formats the player accepts, metadata parsers for the XML-ish documents that describe tracks, and error helpers that format failures consistently. Documenting them once, here, keeps the service pages from repeating the same machinery dozens of times — when a command 'parses a track URI', this is what that means.
 
 ### `soap_fault_wire_format`
 
-The exact XML shape of a SOAP fault response from this firmware — the faultcode/faultstring/detail element layout a client must parse when an action fails.
+The fault wire format — the exact document shape of a returned error: what a failure looks like on the network.  What a failure looks like on the network — the exact document shape of a returned error.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -382,7 +382,7 @@ The exact XML shape of a SOAP fault response from this firmware — the faultcod
 
 ### `soap_fault_code_vocabulary`
 
-Every UPnP error code the firmware can raise (UPnP-defined 4xx/5xx plus Sonos custom codes like ERROR_LASTFM_*), so clients can map numeric codes to causes.
+The fault-code vocabulary — the full set of numeric error codes the command layer can emit, in their own terms.  The full set of numeric error codes the command layer can emit, in their own terms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -405,7 +405,7 @@ Every UPnP error code the firmware can raise (UPnP-defined 4xx/5xx plus Sonos cu
 
 ### `soap_client`
 
-The outbound UPnP/SOAP client the player uses to call other players — coordinator-to-satellite calls, group joins, delegate actions all go through it.
+The the classic command protocol client — the machinery for outbound classic-API calls: when the player itself calls another device's commands (like group fan-out to members).  When the player calls another device's commands (like group fan-out to members), this is the outbound machinery it uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -419,7 +419,7 @@ The outbound UPnP/SOAP client the player uses to call other players — coordina
 
 ### `soap_param_redaction`
 
-Parameters the firmware deliberately strips or masks in logging/diagnostics — mostly credentials and session tokens. If you see missing values in /status dumps, this is why.
+Parameter redaction — which argument values get scrubbed before logging: the privacy machinery keeping credentials out of the logs.  The privacy machinery keeping credentials out of logs — which argument values get scrubbed before recording.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -432,7 +432,7 @@ Parameters the firmware deliberately strips or masks in logging/diagnostics — 
 
 ### `upnp_client_stack`
 
-The player's UPnP control-point side — it acts as a client toward other Sonos devices (and historically other UPnP gear), handling M-SEARCH, subscriptions and action calls.
+The the classic device-control protocol client stack — the machinery for acting as a client to other the classic device-control protocol devices: the outbound classic-protocol layer.  The outbound classic-protocol layer — acting as a client to other devices.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -447,7 +447,7 @@ The player's UPnP control-point side — it acts as a client toward other Sonos 
 
 ### `upnp_eventing_impl`
 
-The concrete event-delivery machinery behind GENA — how LastChange blobs are assembled and pushed to subscribers' callback URLs.
+The the classic device-control protocol eventing implementation — the concrete machinery behind the classic subscribe/notify channel.  The concrete machinery behind the classic subscribe/notify channel. Covers subscription install, renewal, expiry cleanup, and the per-subscriber notify sequence.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -461,7 +461,7 @@ The concrete event-delivery machinery behind GENA — how LastChange blobs are a
 
 ### `upnp_genaclient`
 
-The GENA subscription client — used when the player subscribes to another device's events rather than serving its own.
+The the classic device-control protocol the classic event protocol client — the client side of the classic event protocol: when the player subscribes to other devices' events.  When the player subscribes to other devices' events — the client side of the classic event protocol.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -473,7 +473,7 @@ The GENA subscription client — used when the player subscribes to another devi
 
 ### `gena_eventing`
 
-The UPnP GENA event layer: subscription tracking (SubscribedEvents, LogicalSID), SID preinstall for boot-time delivery, notify dispatch and per-service LastChange event variables. This is what delivers AVTransport/RenderingControl change events to subscribers.
+The classic the classic device-control protocol eventing implementation — subscribe, renew, notify: the machinery behind the older event channel. The classic subscribe/notify protocol implemented in full — listeners subscribe per service and get every state change pushed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -495,7 +495,7 @@ The UPnP GENA event layer: subscription tracking (SubscribedEvents, LogicalSID),
 
 ### `subscription_manager`
 
-Tracks active GENA subscriptions: who is subscribed to which service, renewal expiry, and cleanup when subscribers vanish.
+The subscription manager — owns event subscriptions: who subscribed, renewal tracking, expiry cleanup.  Owns event subscriptions — who subscribed, renewals, expiry cleanup. Owns the registry of active subscribers so a lapsed client stops receiving traffic.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -510,7 +510,7 @@ Tracks active GENA subscriptions: who is subscribed to which service, renewal ex
 
 ### `wss_event_vocabulary`
 
-The vocabulary of events that flow over the websocket/cloud channel — the event types above the TLV framing.
+The websocket event vocabulary — the named events the modern channel carries: the subscription terms the app uses.  The named events the modern channel carries — the subscription terms the app uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -638,7 +638,7 @@ The vocabulary of events that flow over the websocket/cloud channel — the even
 
 ### `internal_event_bus`
 
-The internal pub/sub bus — subsystems subscribe to events (topology change, settings change, button press) without calling each other directly.
+The internal event bus — the spine connecting in-process events: the backbone the publish/subscribe machinery runs on.  The backbone the publish/subscribe machinery runs on — the spine connecting in-process events.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -667,7 +667,7 @@ The internal pub/sub bus — subsystems subscribe to events (topology change, se
 
 ### `device_description_template`
 
-The XML template for the player's UPnP device description (what /xml/device_description.xml serves). Two variants exist — one including the AudioIn service and one without — so clients must not assume AudioIn is always advertised.
+The device-description template — the skeleton document that becomes the player's self-description once filled with this unit's values: the file every client fetches first.  Filled with this unit's values it becomes the self-description file every client fetches first.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -697,7 +697,7 @@ The XML template for the player's UPnP device description (what /xml/device_desc
 
 ### `svcmanifest`
 
-The service manifest — the compiled table mapping UPnP service types to their control/event URLs and dispatch records.
+The service manifest — the build's service inventory: the list behind what the device description advertises.  The build's service inventory — the list behind what the device description advertises.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -710,7 +710,7 @@ The service manifest — the compiled table mapping UPnP service types to their 
 
 ### `xml_parser`
 
-The shared XML parser layer — used for DIDL, SCPD, settings XML and most of the schemas in this database.
+The XML parser — the bundled parser every XML-speaking component uses: metadata, specs, settings all decode through it.  Every XML-speaking component decodes through this bundled parser — metadata, specs, settings.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -725,7 +725,7 @@ The shared XML parser layer — used for DIDL, SCPD, settings XML and most of th
 
 ### `mega_impl_object`
 
-The mega-implementation object — many UPnP service interfaces share one underlying C++ object that fields calls for several services at once.
+The mega implementation object — the large composite object at the heart of the player, assembled from dozens of sub-interfaces: the single structure most services reach into for their real work.  Most services reach into this single structure for their real work — the composite object at the player's heart.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -744,7 +744,7 @@ The mega-implementation object — many UPnP service interfaces share one underl
 
 ### `svc_array`
 
-The flat service array the manifest is built from — every registered UPnP service with its handler pointers.
+The service array — the registry of service objects embedded in the program: the table behind which services exist.  The table behind which services exist — the registry of service objects embedded in the program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -759,7 +759,7 @@ The flat service array the manifest is built from — every registered UPnP serv
 
 ### `composite_subobject_interfaces`
 
-Some services expose nested implementation objects (e.g. line-in and HT-input sub-objects inside AudioIn) — the composite pattern used to share logic.
+How the big implementation objects are assembled — a single service object is built from many sub-objects each providing one interface, and this maps which sub-objects exist and what each contributes.  It maps which sub-objects exist and what each provides — how the big service objects are actually assembled.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -773,7 +773,7 @@ Some services expose nested implementation objects (e.g. line-in and HT-input su
 
 ### `native_protocols`
 
-Sonos's proprietary LAN protocols — SCI, MRPC, netstart2, TLV, CHSRC/CHSNK — the buses players use among themselves below UPnP.
+The native protocol set — Sonos's own internal protocols recovered as a group: the channel-source/sink audio distribution, node messaging, and related private wire formats.  Sonos's own internal protocols as a group — the audio-distribution, node-messaging, and private wire formats recovered together.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1021,7 +1021,7 @@ Sonos's proprietary LAN protocols — SCI, MRPC, netstart2, TLV, CHSRC/CHSNK —
 
 ### `hwmessagelib`
 
-The hardware-message layer — multicast BUTTON/AMP-style messages between players on the LAN.
+The hardware-message library — the shared library for hardware-level messaging between components: the plumbing under button/LED/hardware events.  The shared library for hardware-level messaging — plumbing under button/LED/hardware events.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1037,7 +1037,7 @@ The hardware-message layer — multicast BUTTON/AMP-style messages between playe
 
 ### `wifi_sonosnet`
 
-SonosNet — the proprietary mesh: channel selection, bridging, FirstZP/PriorityBridge knobs and the wireless links between players.
+SonosNet wireless — Sonos's own mesh network: the proprietary wireless linking speakers use instead of (or alongside) your WiFi.  Sonos's proprietary mesh — the dedicated wireless linking speakers use instead of (or alongside) your WiFi.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1056,7 +1056,7 @@ SonosNet — the proprietary mesh: channel selection, bridging, FirstZP/Priority
 
 ### `bt_sbc`
 
-Bluetooth SBC codec plumbing — present in the binary even on models without BT hardware; part of the shared codebase.
+The Bluetooth SBC decoder path — Bluetooth audio handling present in the shared codebase for products that include it.  Part of the platform code on this build — present for products that carry Bluetooth, dormant here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1071,7 +1071,7 @@ Bluetooth SBC codec plumbing — present in the binary even on models without BT
 
 ### `ssdp_discovery`
 
-The SSDP responder/advertiser — answers M-SEARCH, announces the player on boot/network change. This is what makes the player discoverable at all.
+Device-discovery announcements and searches — the classic find-each-other protocol: speakers announce presence, search for peers, and log who answered. The older discovery layer alongside the Sonos-specific mechanisms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1094,7 +1094,7 @@ The SSDP responder/advertiser — answers M-SEARCH, announces the player on boot
 
 ### `ssdp_signed_msearch`
 
-Support for signed/authenticated M-SEARCH — discovery requests carrying credentials get different answers than anonymous ones.
+Signed M-search — the authenticated form of discovery search: a signed variant protecting the discovery exchange.  The authenticated form of discovery search — a signed variant protecting the exchange.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1108,7 +1108,7 @@ Support for signed/authenticated M-SEARCH — discovery requests carrying creden
 
 ### `proprietary_headers`
 
-Custom HTTP headers the firmware emits and consumes — X-Sonos-* household/player identifiers, X-RINCON-BOOTSEQ boot-counter checks, the fake WMP NSS user-agent used when fetching Windows-media streams, and ICY metadata negotiation.
+The proprietary HTTP headers — the Sonos-specific request/response headers the firmware recognizes: the private extensions riding on ordinary HTTP.  The Sonos-specific request/response headers the firmware recognizes — private extensions riding on ordinary HTTP.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1169,7 +1169,7 @@ Custom HTTP headers the firmware emits and consumes — X-Sonos-* household/play
 
 ### `chirp_sdk`
 
-The ultrasonic 'chirp' used to pair devices without touching Wi-Fi credentials comes from a third-party SDK (Chirp 4.2.3, build 1898). The speaker plays or listens for a short encoded tone to exchange setup information — the same technique used for room detection in home-theater setup.
+The chirp SDK interface — the internal API for the speaker-identification tone: start, stop, and configure the 'which box am I' chirp.  So the room-detection commands don't each reimplement tone control — one shared interface for identification sounds.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

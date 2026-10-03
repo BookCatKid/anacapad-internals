@@ -5136,7 +5136,7 @@
 
 <h1 id="systemproperties-systempropertiescontrol"><code>SystemProperties</code> — <code>/SystemProperties/Control</code><a class="headerlink" href="#systemproperties-systempropertiescontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>A generic key/value store plus the music-service account manager. SetString/GetString/Remove are a free-form property bag that many features lean on (client-facing settings ride through it). The account actions manage per-service credentials: legacy login (AddAccountX), OAuth (AddOAuthAccountX and friends keyed by AccountUDN), nickname/edit/remove, and credential refresh. Two SCPD-advertised actions are dead in this build: ProvisionCredentialedTrialAccountX (name string absent - hard-removed) and ResetThirdPartyCredentials (string present but unreferenced - soft-removed); both fault 401 on the wire.</p>
+<p>This service is two things bolted together. First, it's the player's generic settings store — a key/value cupboard where the system keeps configuration strings that other features read (get, set, and delete named settings). Second, it holds the entire account-management family: every command for adding, editing, replacing, and removing the service-account credentials stored on the speaker — the saved logins that let it reach Spotify et al without your phone. It also carries a remote-diagnostics flag Sonos support uses, a web-code command for account linking, a post-update housekeeping hook, and two ghost entries that are still advertised but dead in this build.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>System properties service: generic config string store (Get/Set/Remove) plus the account-credential management family (AddAccountX/AddOAuthAccountX/Edit<em>/Remove</em>/Replace<em>/Refresh</em>/SetAccountNicknameX/GetWebCode), RDM flag, and post-update tasks.</p>
@@ -5295,7 +5295,7 @@
 </table>
 <h3 id="addaccountx"><code>AddAccountX</code><a class="headerlink" href="#addaccountx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Registers a music-service account with legacy credentials (AccountType id, AccountID username, AccountPassword); returns the AccountUDN used by all other account actions.</p>
+<p>Adds a new service account to the speaker — the classic username-and-password path for attaching a music service. You supply the service type plus the login ID and password, and the account is stored so the player can reach the service on its own.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Adds a service account: AccountType/AccountID/AccountPassword via impl-&gt;v[+0x18].</p>
@@ -5460,7 +5460,7 @@
 </details>
 <h3 id="addoauthaccountx"><code>AddOAuthAccountX</code><a class="headerlink" href="#addoauthaccountx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Registers an OAuth music-service account: AccountType plus token/key/device-id/authorization-code/redirect metadata and optional UserIdHashCode/AccountTier. Returns AccountUDN and the service-provided AccountNickname.</p>
+<p>Adds a service account using OAuth-style credentials instead of a raw password — the modern login flow where the app hands the player a token and key obtained from the service's sign-in page. It takes a full bundle of credential fields and registers the account.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Adds an OAuth account: 8 credential fields via impl-&gt;v[+0x1c].</p>
@@ -5683,7 +5683,7 @@
 </details>
 <h3 id="dopostupdatetasks"><code>DoPostUpdateTasks</code><a class="headerlink" href="#dopostupdatetasks" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Runs bookkeeping that should execute after a firmware update (data migration, cached-state rebuild).</p>
+<p>Runs the housekeeping jobs that should happen after a firmware update — migration and cleanup steps the system wants performed once the new software is up. Invoked by the update flow rather than by users.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Runs post-update migration/cleanup tasks via impl-&gt;v[+0x14].</p>
@@ -5772,7 +5772,7 @@
 </details>
 <h3 id="editaccountmd"><code>EditAccountMd</code><a class="headerlink" href="#editaccountmd" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Replaces the metadata (Md) blob for an account.</p>
+<p>Edits the metadata attached to a stored service account — extra descriptive data the service keeps about the login, distinct from the password itself. Extra descriptive data the service keeps about a login, distinct from the password itself.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Edits account metadata: AccountType/AccountID/NewAccountMd via impl-&gt;v[+0x30].</p>
@@ -5910,7 +5910,7 @@
 </details>
 <h3 id="editaccountpasswordx"><code>EditAccountPasswordX</code><a class="headerlink" href="#editaccountpasswordx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Changes the password on a legacy-credential account.</p>
+<p>Supposed to change the password on a stored service account — but in this firmware build it is a documented no-op: the routine behind it is an empty routine that accepts the request, returns success, and updates nothing. The command remains advertised in the spec, but the actual password-edit feature was removed; account credentials now change through the replace/refresh commands instead.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Parses AccountID + NewAccountPassword, then calls impl-&gt;v[+0x24] which is the null stub f_1019d288 (stwu/addi/blr - no work, no state write). In this build the password-edit request is accepted and an empty success response is emitted without performing any operation.</p>
@@ -6050,7 +6050,7 @@
 </details>
 <h3 id="enablerdm"><code>EnableRDM</code><a class="headerlink" href="#enablerdm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Enables or disables Retail Demo Mode on the player.</p>
+<p>Turns the remote-diagnostics feature on or off — the flag that controls whether Sonos's support tooling is allowed deeper access to the player for troubleshooting. Support sessions that need more than the normal logs get it by enabling RDM through this command.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets the RDM (remote diagnostics) flag via impl-&gt;v[+0x3c].</p>
@@ -6163,7 +6163,7 @@
 </details>
 <h3 id="getrdm"><code>GetRDM</code><a class="headerlink" href="#getrdm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns whether Retail Demo Mode is enabled.</p>
+<p>Reports whether remote diagnostics are currently enabled — reads back the flag set by EnableRDM, so an app or support tool can see whether deeper diagnostic access is switched on.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Reads the RDM flag via impl-&gt;v[+0x40].</p>
@@ -6274,7 +6274,7 @@
 </details>
 <h3 id="getstring"><code>GetString</code><a class="headerlink" href="#getstring" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Reads a property value by VariableName from the key/value store.</p>
+<p>Reads one named setting from the player's generic settings store — 'what is the value of this configuration key'. Other features stash strings here and fetch them back through this command.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Reads config VariableName -&gt; StringValue via impl-&gt;v[+0xc].</p>
@@ -6411,7 +6411,7 @@
 </details>
 <h3 id="getwebcode"><code>GetWebCode</code><a class="headerlink" href="#getwebcode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Returns a short WebCode for the given AccountType - used to link an account via the provider's web flow.</p>
+<p>Requests a short web code for a service account type — the short-lived code used in link-your-account flows, where the speaker produces a code you enter on a website to connect a service without typing a password on the player.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns a WebCode for AccountType via impl-&gt;v[+0x14].</p>
@@ -6546,7 +6546,7 @@
 </details>
 <h3 id="refreshaccountcredentialsx"><code>RefreshAccountCredentialsX</code><a class="headerlink" href="#refreshaccountcredentialsx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Refreshes OAuth credentials (token/key) for an existing AccountUID.</p>
+<p>Refreshes the stored credentials for a music-service account — the token-renewal path. Modern services rotate credentials; when a session token nears expiry the app calls this with the fresh token/key/ID bundle and the speaker replaces the old ones, keeping the account logged in without a full re-login.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl-&gt;v[+0x14].</p>
@@ -6699,7 +6699,7 @@
 </details>
 <h3 id="remove"><code>Remove</code><a class="headerlink" href="#remove" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Deletes VariableName from the key/value store.</p>
+<p>Deletes one named setting from the generic settings store — the counterpart of GetString/SetString for keys that should no longer exist. The counterpart of GetString/SetString for keys that should no longer exist.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Deletes config VariableName via impl-&gt;v[+0x10].</p>
@@ -6819,7 +6819,7 @@
 </details>
 <h3 id="removeaccount"><code>RemoveAccount</code><a class="headerlink" href="#removeaccount" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Deletes a music-service account by AccountType + AccountID.</p>
+<p>Removes a stored service account — deletes the saved login for a music service by its type and account ID. This is what happens when you remove a service from Sonos in the app.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Removes AccountType/AccountID via impl-&gt;v[+0x20].</p>
@@ -6949,7 +6949,7 @@
 </details>
 <h3 id="replaceaccountx"><code>ReplaceAccountX</code><a class="headerlink" href="#replaceaccountx" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Swaps the account behind AccountUDN for new credentials (NewAccountID/password or OAuth token set), returning NewAccountUDN.</p>
+<p>Replaces one stored account's credentials wholesale — the command for switching a service slot from one login to another. You identify the existing account and supply the full new credential set (ID, password, token, key, and the OAuth device marker), and the speaker swaps them, returning the new account's identifier. This is the working path for account credential changes on this build, since EditAccountPasswordX is a no-op.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Replaces an account's credentials: AccountUDN plus five new fields via impl-&gt;v[+0x34].</p>
@@ -7143,7 +7143,7 @@
 </details>
 <h3 id="setaccountnicknamex"><code>SetAccountNicknameX</code><a class="headerlink" href="#setaccountnicknamex" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Sets the display nickname for an AccountUDN.</p>
+<p>Sets the friendly name on a stored account — the label like 'Home Spotify' that shows in the app's service list when several accounts for the same service exist.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets AccountNickname for AccountUDN via impl-&gt;v[+0x28].</p>
@@ -7275,7 +7275,7 @@
 </details>
 <h3 id="setstring"><code>SetString</code><a class="headerlink" href="#setstring" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>virtual</code></p>
-<p>Writes VariableName=StringValue into the property store.</p>
+<p>Writes one named setting into the player's generic settings store — 'save this configuration key with this value'. 'Save this configuration key with this value' — the generic write for the settings store.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Writes VariableName=StringValue via impl-&gt;v[+0x8].</p>

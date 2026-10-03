@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Per-player audio rendering: volume (linear 0-100 and dB), mute, bass/treble/loudness and extended EQ, fixed (line-out level) output mode, headphone detection, room-calibration enable, and volume ramps used by alarms/sleep timers. Channel is 'Master' or 'LF'/'RF' for stereo pairs. NOTE: several actions are deliberately neutered on this hardware (e.g. GetBass is a confirmed no-op) - check each action's status before trusting it.
+This service controls how the speaker sounds — volume, mute, and tone. The everyday commands live here: the volume slider, the mute button, and the bass/treble/loudness settings in the equalizer panel. It also holds a few oddities unique to this firmware: some commands are half-connected (they accept your request but do nothing with it), a couple are only implemented on certain internal builds of the player, and one documented command actually does something completely different from its name. The per-channel design — Master, left-front, right-front — also reveals that the same code drives single speakers and channel-splitting configurations like a soundbar.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -58,7 +58,7 @@ UPnP RenderingControl for the zone player: per-channel volume, mute, loudness an
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Returns the bass level - BUT it is neutered on this build: the implementation is a confirmed no-op placeholder, so the returned CurrentBass is meaningless. GetEQ(EQType='Bass') is the working path.
+Supposed to report the speaker's bass level — but in this firmware build it is a documented no-op: the routine behind it was replaced by an empty routine that performs nothing and returns nothing. The command still appears in the service's advertised list, so an app can call it, it just gets an empty answer rather than a bass value. The settings that do work for reading tone are the generic GetEQ command and the visible slider values in the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -156,7 +156,7 @@ Sonos neutered GetBass while leaving GetTreble (+0x38 -> real impl f_100e3450) f
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Reads an EQ parameter by EQType (e.g. Bass/Treble/Loudness-style ids) from the audio pipeline.
+Reads one of the speaker's tone settings — the generic equalizer query that can fetch bass, treble, or other tone parameters depending on which one you ask for. This is the working path apps actually use to read the EQ panel's values.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -260,7 +260,7 @@ f_100e382c is the shared EQ-read worker - GetEQ, GetTreble's f_100e1fec sibling,
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether headphones are plugged in (players with a headphone jack).
+Reports headphone-related state — the readout the firmware uses to know whether a headphone output path is in play and what the associated volume/mute bookkeeping is. On a soundbar-class product like this one it is part of the shared volume/mute record rather than a feature the user sees.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -359,7 +359,7 @@ Field semantics of +0x7ff/+0x801 remain the key unknown: they appear in SetMute'
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Returns the loudness-compensation setting for a Channel.
+Reports the loudness setting — Sonos's bass/treble boost that makes quiet listening sound fuller. On this build it is only half-wired: whether the command does anything depends on which internal flavor of the player is running, and the firmware doesn't make that choice visible from the outside. On some configurations it answers properly; on others the routine slot is a stub.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -464,7 +464,7 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Returns mute state for a Channel ('Master' unless addressing a stereo-pair side).
+Reports whether the speaker is muted — the state behind the mute button. Mute is stored per audio channel (master, left, right), and this reads the flag for the channel you ask about.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -571,7 +571,7 @@ GetMute accepts only 3 channels although the mute field array has a 4th entry (+
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether output is at fixed level (for line-out/receiver use) vs. variable.
+Reports whether the speaker's output is fixed-level — locked at full line level for feeding an external amplifier — or variable (controlled by the volume slider). A wiring option for setups where the player feeds another amp that should do the volume control.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -669,7 +669,7 @@ Reading flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixe
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether room calibration (Trueplay) is enabled and available on this player.
+Reports the state of the speaker's room-calibration — Sonos's tuning process (Trueplay on newer products, the sonar-based tuning on this era) that measures a room and adjusts the speaker's sound to fit. The answer tells an app whether calibration has been done and what state it's in.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -771,7 +771,7 @@ Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Returns whether this hardware supports fixed-level output mode at all.
+Reports whether this player can do fixed-level output at all — the 'can I even offer the fixed-volume option' check apps use before showing the setting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -870,7 +870,7 @@ Verify at runtime: the 63/52 returns suggest this getter may fault or emit disti
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns treble level - same neutering caveat as GetBass may apply; GetEQ is the reliable path.
+Supposed to report the speaker's treble level — but like GetBass it is a documented no-op in this build: the routine is an empty routine that does and returns nothing. The advertised command exists; the working read path for treble is the generic GetEQ command.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -975,7 +975,7 @@ Largest unresolved piece: the CurrentTreble out path. Worth a focused pass on f_
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the linear volume for a Channel (0-100).
+Reports the speaker's volume for a channel — the number behind the app's volume slider, on a 0-100 scale. The number behind the app's volume slider, on a 0-100 scale, for whichever channel you ask about.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1100,7 +1100,7 @@ Error code differs from AVTransport: nonzero InstanceID yields 702 here vs 718 i
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the volume in decibels (scaled; see GetVolumeDBRange for this player's range).
+Reports the volume in decibel terms rather than the 0-100 scale — the technical-scale companion to GetVolume, used where the system wants real loudness units rather than slider position.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1202,7 +1202,7 @@ Despite the name the impl is a mode-select thunk over the same worker used by Se
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Returns the dB volume range this player supports.
+Supposed to report the decibel range the volume control can span — but in this build it is a documented anomaly: the routine registered for this command is actually the physical-button mute routine, the same code that runs when you press the unit's mute button. Calling it toggles mute rather than returning a range — a wiring mistake preserved in the firmware, and a good example of how these reference docs capture what the binary really does rather than what the spec says it should.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1307,7 +1307,7 @@ Flag for live-object verification: the installed impl may differ if a derived cl
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Starts a timed volume ramp to DesiredVolume of type RampType (used for alarm/sleep-timer fades); returns RampTime.
+Commands a gradual volume change — a 'ramp' from the current level to a target over time rather than a jump. On this build it only exists on one internal flavor of the player (the command's implementation slot is absent on the base class), so whether it works depends on which build path is running.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1426,7 +1426,7 @@ Feature-gated by impl class like SetRoomCalibrationStatus.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Resets bass/treble/loudness and stereo balance to neutral; returns the resulting values.
+Resets the basic tone settings — bass, treble, and loudness back to neutral — and returns the resulting per-channel values so the app can update its EQ display. The reset can also touch the mute state as part of its housekeeping.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1537,7 +1537,7 @@ f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Resets the extended EQ band EQType.
+Resets an extended equalizer band — the finer-grained tone bands beyond basic bass/treble — back to its neutral value. Returns the named band to neutral — part of restoring a flat response without touching other bands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1630,7 +1630,7 @@ The 'SetVolumeWithoutProxy' tag inside ResetExtEQ confirms f_100d9d40/f_100d99b0
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Undoes a previous RampToVolume, restoring the earlier volume.
+Undoes a volume ramp — puts the volume back to whatever it was before a RampToVolume started. Interestingly the class split is the mirror of the ramp command: this restore works on the base player flavor where the ramp itself is absent — the leftover of a half-finished feature.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1726,7 +1726,7 @@ Inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Sets the bass level - neutered like GetBass on this build; use SetEQ with the bass EQType instead.
+Sets the speaker's bass level — the app's bass slider. The value is stored in the player's tone state; one quirk is that a sentinel value is treated as 'leave it alone' rather than as a real setting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1819,7 +1819,7 @@ Impl signature is (impl, recordptr) - a different convention than the channel/va
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Assigns left/right channels to players in a stereo pair via ChannelMap.
+Assigns which audio channels each part of the player outputs — the mapping used in bonded/stereo/home-theater arrangements to say which physical output carries left, right, or other channels. Plumbing for multi-speaker configurations rather than an everyday setting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1913,7 +1913,7 @@ Derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Sets an EQ parameter (EQType, e.g. bass/treble/loudness id) to DesiredValue - the working EQ path.
+Sets one of the speaker's tone parameters through the generic equalizer path — the working route the app uses when you move a tone slider, since the dedicated SetTreble command is a no-op in this build.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2013,7 +2013,7 @@ Zero-gated dual worker calls are an unusual pattern - possibly 'apply defaults w
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Enables or disables loudness compensation for a Channel.
+Turns the loudness setting on or off — the fullness boost for quiet listening. Like GetLoudness it is conditionally implemented: on this firmware whether the command really runs depends on which internal player class is installed, which cannot be determined from the outside.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2113,7 +2113,7 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Mutes or unmutes a Channel.
+Mutes or unmutes the speaker for a given channel — the mute button. Beyond flipping the flag it also does bookkeeping: on the master channel it synchronizes the saved volume snapshot so that unmuting restores the level you had, marks the state as changed so other parts of the system update, and applies the committed state to the audio hardware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2219,7 +2219,7 @@ InstanceID nonzero; checked inside worker f_100d99b0 under the mutex.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Switches between fixed and variable output level where supported.
+Chooses fixed versus variable output level — whether the speaker's output is pinned at full level for an external amp or follows the volume control.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2312,7 +2312,7 @@ Flag +0x7ff is the same byte that gates SetVolume's write and selects volume fie
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adjusts volume by a signed Adjustment; returns NewVolume. Safer than absolute SetVolume for slider deltas.
+Moves the volume by a relative step — 'up by 5' rather than 'to 55' — and reports the resulting level. How volume-up/down buttons that don't know the current value do their job.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2418,7 +2418,7 @@ Shares all worker caveats with SetVolume (dead InstanceID check, hardcoded 'Mast
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Enables or disables Trueplay room calibration.
+Writes the room-calibration state — the setter that pairs with GetRoomCalibrationStatus, recording that tuning was started, completed, or cleared. On this build it only exists on one internal player flavor; on the base class the slot is absent and calling it hits an unimplemented path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2512,7 +2512,7 @@ One of three actions missing from the base vtable (with RampToVolume and Restore
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Sets treble level - same neuter caveat; prefer SetEQ.
+Supposed to set the treble level — but in this build it is a documented no-op: its routine is the same empty routine as GetBass and GetTreble. The request is accepted and an empty success is returned while nothing changes. Real treble adjustment happens through the generic SetEQ path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2604,7 +2604,7 @@ Asymmetric with SetBass (+0x34 -> real impl f_100d72dc): bass can be written but
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Sets the linear volume for a Channel (0-100).
+Sets the speaker's absolute volume — what the app's volume slider sends. On the master channel it also maintains a shadow copy of the level used for mute/unmute restore, and in certain configurations the write can be skipped entirely when a flag says an external path owns the level.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2703,7 +2703,7 @@ Shared worker for three SOAP actions via arg-remapping thunks; the 'desired<2' s
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
 
-Sets the volume in decibels within the range reported by GetVolumeDBRange.
+Supposed to set the volume in decibel units — but in this build it is a documented anomaly: the registered routine ignores the arguments and toggles the speaker's mute state, running the same routine as a press of the physical mute button. Calling it flips mute on or off instead of setting a decibel level — another case where the spec advertises one thing and the binary wires another.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

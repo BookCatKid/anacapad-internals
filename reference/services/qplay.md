@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `confirmed`
 
-Tencent QPlay handshake - the single-action auth protocol used by QQ Music clients on Chinese-market zones. The device description advertises QPlay:2 capability via qq:X_QPlay_SoftwareCapability rather than a serviceType.
+This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers — the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present — QPlay is a feature that shipped only on units sold for the Chinese market, which is why most users have never seen it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -31,7 +31,7 @@ QPlay (QQ Music) authentication service stub; the extractor resolved no handler 
 
 visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp-dispatched`
 
-Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode.
+The QPlay login handshake — the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration; meaningless to ordinary apps.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

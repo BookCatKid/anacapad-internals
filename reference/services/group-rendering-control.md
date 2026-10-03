@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-Group-level volume control. These actions apply to the whole group coordinated by this player - SetGroupVolume applies the same absolute volume to every member, while SetRelativeGroupVolume keeps the members' relative offsets (that's the action Sonos apps call for the group volume slider). SnapshotGroupVolume exists so a ramp/group adjustment can later be balanced.
+This service controls volume and mute for a whole group at once. When several rooms are grouped and you drag the group volume slider, the app doesn't go and adjust each speaker itself — it sends one command here to the group's leader, and the leader does the fan-out: it sets its own speaker directly and relays the change to every member. It can also snapshot everyone's individual volumes — the mechanism behind 'group mute' that can later restore each room to its own previous level instead of unmuting to a flat value.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -38,7 +38,7 @@ Group-scoped rendering control service. Each action delegates to a shared group-
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the group mute state (any/all-muted semantics per the coordinator).
+Reports the group's overall mute state — whether group audio is currently silenced. The coordinator computes a single answer from its members, so the app can show one mute button for the whole group.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -178,7 +178,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the current group volume.
+Reports the group's overall volume — a single number representing the group for the app's main slider. The coordinator derives it from member levels rather than just reporting its own, though exactly how it weighs the members is internal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -319,7 +319,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Mutes or unmutes every player in the group.
+Mutes or unmutes the whole group at once. The coordinator applies the mute to itself and forwards the request to every member — which is what makes one tap silence all the grouped rooms together.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -466,7 +466,7 @@ reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when alre
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Sets every member of the group to the same absolute DesiredVolume (0-100).
+Sets the group's absolute volume level. The coordinator applies it locally and fans the change out to every member, so a single slider move re-levels all the grouped rooms.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -611,7 +611,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Adjusts group volume by a signed Adjustment while preserving per-player offsets; returns the resulting NewVolume. Prefer this over SetGroupVolume for slider UIs.
+Adjusts the group volume by an amount rather than to an exact level — 'turn the group up by 5'. It applies the delta across the members and reports back the group's new volume.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -764,7 +764,7 @@ nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Captures per-member volumes so a subsequent group adjustment can be made consistently.
+Takes a snapshot of each member's current volume before a group-wide change — most importantly before a group mute. That way, when the group is unmuted, every room can return to its own previous level instead of all coming back at some uniform value.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

@@ -11840,7 +11840,7 @@
 
 <h1 id="avtransport-mediarendereravtransportcontrol"><code>AVTransport</code> — <code>/MediaRenderer/AVTransport/Control</code><a class="headerlink" href="#avtransport-mediarendereravtransportcontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>strong</code></p>
-<p>The playback engine of the zone - the largest service. Covers transport control (Play/Pause/Stop/Next/Previous), seeking, source selection via URIs and metadata, play modes and crossfade, the implicit playback queue (add/remove/reorder/clear), saved queues, group coordination transfer (one player handing the coordinator role to another, with full state snapshots), alarms/sleep timers, and Sonos-specific extras like autoplay and direct-control sessions. InstanceID is always 0. Many mutating actions take UpdateID for optimistic concurrency: pass the last queue UpdateID you saw and the call fails if the queue changed underneath you.</p>
+<p>This is the biggest and most important service on the player — the remote control for playback itself. Transport commands live here: play, pause, stop, skip, seek, and setting what to play. The queue lives here too: adding tracks, removing them, reordering them, saving the queue as a Sonos playlist. So do play modes like shuffle and repeat, crossfade, the sleep timer, and the alarm run/snooze commands used when an alarm actually fires. Finally, the whole group-coordination family is in this service: becoming the leader of a group, handing leadership to another speaker, and joining or leaving the coordinated-playback roles. If you think of the Sonos app as a remote control, this service is the buttons that matter most.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>UPnP AVTransport service implemented by the chsrc/transport engine object (<em>(svc+4)). Impl vfuncs live in a large vtable (A=0x10eaf2ec standalone, B=0x10edfbb8 group-aware; identical except SetAVTransportURI and the three Become</em>Coordinator* ops). All impls serialize on mutex impl+0x458 and dispatch on the transport-source mode enum at impl+0x4654: 2=indexed/queue (requests submitted to impl+0x580 via f_10255f64/f_10256a84), others reach the streamer session at impl+0x5a0 via op-0x19 submission f_102aff9c on impl+0x5dc.</p>
@@ -12215,7 +12215,7 @@
 </table>
 <h3 id="addmultipleuristoqueue"><code>AddMultipleURIsToQueue</code><a class="headerlink" href="#addmultipleuristoqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Bulk-enqueues tracks into the implicit playback queue. EnqueuedURIs and EnqueuedURIMetaData are parallel lists (count must equal NumberOfURIs); DesiredFirstTrackNumberEnqueued positions them, EnqueueAsNext inserts after the current track. ContainerURI/ContainerMetaData describe the source list itself. UpdateID guards against concurrent queue edits. Returns where the tracks landed, how many were added, and the new length/UpdateID.</p>
+<p>Adds a batch of tracks to the play queue in one shot — what happens when you tap 'play album' or 'add all to queue' rather than dropping songs in one at a time. You send a list of track addresses (with optional metadata about each), where to insert them, and whether to drop them at the end or next-up, and the speaker reports back how many were added and the queue's new length.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Batch-enqueues a list of track URIs. Impl f_102b7170 is a thin 718-gate tail-calling worker f_102b7000, which runs the shared boilerplate (name string from impl+0x3dc, impl+0x458 lock, f_102a5718 submission check, f_100caad8 change emit) and walks the EnqueuedURIs list.</p>
@@ -12451,7 +12451,7 @@
 </details>
 <h3 id="adduritoqueue"><code>AddURIToQueue</code><a class="headerlink" href="#adduritoqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Adds one track URI (+DIDL-Lite metadata) to the playback queue. DesiredFirstTrackNumberEnqueued picks the position (0 = append), EnqueueAsNext inserts right after the current track. Returns the 1-based position where it landed and tracks actually added.</p>
+<p>Adds a single track or stream to the play queue. You give it the item's address (its URI — the URL-like locator Sonos uses for songs, streams, and service items) plus metadata describing it, and optionally where in the queue to put it and whether it should be queued to play right after the current song. This is the most basic queue-edit command the app issues.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls shared enqueue worker f_102b6948(engine, args..., 0). The worker logs "avt_impl" "Add to queue %u; URI: %s" and "Add to queue %u; MD: %s", takes the impl+0x458 lock, and performs the enqueue through the queue/session machinery.</p>
@@ -12646,7 +12646,7 @@
 </details>
 <h3 id="adduritosavedqueue"><code>AddURIToSavedQueue</code><a class="headerlink" href="#adduritosavedqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Adds a track to a saved queue identified by ObjectID at AddAtIndex. Returns counts and a NewUpdateID for that queue.</p>
+<p>Appends a track to an existing saved queue — a Sonos playlist. Rather than the live queue, this edits a stored list: you identify which playlist by its object ID, pass the track and its metadata plus a position, and the item lands inside that stored list for later recall.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.</p>
@@ -12855,7 +12855,7 @@
 </details>
 <h3 id="backupqueue"><code>BackupQueue</code><a class="headerlink" href="#backupqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Persists the current playback queue to flash so it survives reboot.</p>
+<p>Writes the current play queue to storage so it survives a reboot or a crash. Ordinarily the queue lives in memory; this command snapshots it to the player's flash so the same 'now playing' list can be restored after a power cut or update. Backing up an empty queue is a silent success — there is simply nothing to write.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0 — backing up an empty queue is a silent success no-op. Otherwise it builds the "trackqueue"/"trackqueue.rsq" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.</p>
@@ -12987,7 +12987,7 @@
 </details>
 <h3 id="becomecoordinatorofstandalonegroup"><code>BecomeCoordinatorOfStandaloneGroup</code><a class="headerlink" href="#becomecoordinatorofstandalonegroup" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Makes this player coordinate the standalone group it belongs to; returns the coordinator id and new group id. Used in group rebuild flows.</p>
+<p>Promotes this speaker into the coordinator role of its own group. 'Coordinator' is Sonos's name for the speaker in a group that owns the music: it picks the source, drives playback, and streams audio to the followers. This command is used when a speaker that was playing on its own (a 'standalone group' of one) needs to formally take the leadership seat — for example when other rooms are about to join it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs "avt_impl" "BecomeCoordinatorOfStandaloneGroup", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.</p>
@@ -13147,7 +13147,7 @@
 </details>
 <h3 id="becomegroupcoordinator"><code>BecomeGroupCoordinator</code><a class="headerlink" href="#becomegroupcoordinator" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Bulk state-transfer: this player takes over as group coordinator, receiving the previous coordinator's complete transport/queue/alarm/sleep state in the arguments (TransportSettings, CurrentQueueTrackList, member list, etc.). Nothing is read from arg descriptors - the handler forwards the whole blob.</p>
+<p>Makes this speaker take over as the leader of an existing group, adopting whatever the group is already playing. Used when group leadership is being reassigned — the app (or the system) decides a different speaker should carry the session, and this command performs the takeover while keeping the group's music going.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs "avt_impl" "BecomeGroupCoordinator", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.</p>
@@ -13377,7 +13377,7 @@
 </details>
 <h3 id="becomegroupcoordinatorandsource"><code>BecomeGroupCoordinatorAndSource</code><a class="headerlink" href="#becomegroupcoordinatorandsource" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Like BecomeGroupCoordinator but also transfers the audio source state (CurrentAVTTrackList, CurrentSourceState, ResumePlayback flag) so the new coordinator continues the same source.</p>
+<p>Makes this speaker both the leader of a group and the origin of the group's music — the combined version of the takeover: 'I become coordinator AND everyone plays what I am playing'. Used when you effectively want the system to follow this room's selection rather than the previous leader's.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Makes this player group coordinator AND selects this player's source for the group. Impl f_102df410 logs via the same avt_impl preamble and runs the combined coordinator+source promotion path (structure parallel to BecomeGroupCoordinator; the worker core past the logging preamble is unresolved). This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102df410) and B (vtable 0x10edfbb8, impl 0x105134a8) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.</p>
@@ -13618,7 +13618,7 @@
 </details>
 <h3 id="changecoordinator"><code>ChangeCoordinator</code><a class="headerlink" href="#changecoordinator" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Asks this coordinator to hand coordination to NewCoordinator, carrying the current transport settings and URI so playback continues; RestartSink controls whether the sink restarts.</p>
+<p>Moves group leadership from one member to another in a controlled hand-off — the old leader passes its transport settings to the new one so playback continues seamlessly. Unlike the 'Become*' commands where a speaker claims leadership itself, this one is the system's way of directing a swap between named members, with the play state carried across.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Reassigns group coordination from one member to another with transport-settings handover. Impl f_102af490 logs "change coordinator: old = %s, new = %s, ts = %s, uri = %s" on the avt_impl channel, then under impl+0x458 enforces InstanceID==0 (718) and runs the coordinator-change path taking CurrentCoordinator, NewCoordinator, NewTransportSettings, CurrentAVTransportURI and RestartSink.</p>
@@ -13795,7 +13795,7 @@
 </details>
 <h3 id="changetransportsettings"><code>ChangeTransportSettings</code><a class="headerlink" href="#changetransportsettings" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Applies a new TransportSettings blob (play state, mode, etc.) to the current URI - used when a group coordinator pushes state to members.</p>
+<p>Installs a new set of playback settings — the command external sources use when they want to take over the player's audio pipeline directly. Sonos calls this family of sessions 'direct control': an outside system (like a music service's own connect protocol or a line-in style feed) tells the player what to stream and how, rather than the player pulling from its queue. Because it replaces the player's normal source, it only works while the player is idle — sending it during active playback is rejected.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Installs new transport settings — the VLI/direct-control path. Impl f_102b1d40 logs "avt_impl" "%s: ts = %s [%s]" then locks impl+0x458: InstanceID!=0 -&gt; 718 and impl+0x4654 must be 0 — this action is IDLE-ONLY, the inverse of the mode-1|2 actions; any active transport returns 800. It memcpy's a 0x38-byte settings record, parses NewTransportSettings via f_103917b4, checks source state via f_102b0a48, logs "ChangeTransportSettings(): stopping local VLI (txs=%s)" on the vli channel and stops the local VLI via f_106aa3b0, manipulates bit-flags at impl+0x5b4, logs "vli src tx settings sntp port: %u", then "ChangeTransportSettings installClock" -&gt; f_109876d8 + f_106aa13c + a vfunc bctrl installs a clock, finishing with f_1030f7f8(0,0).</p>
@@ -13945,7 +13945,7 @@
 </details>
 <h3 id="configuresleeptimer"><code>ConfigureSleepTimer</code><a class="headerlink" href="#configuresleeptimer" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets a sleep timer that fades playback out after NewSleepTimerDuration ('HH:MM:SS').</p>
+<p>Sets or cancels the sleep timer — the 'stop playing after N minutes' feature. You pass a duration and the speaker schedules itself to stop (or fade out) at that point; passing an empty value cancels a running timer. This is what the app's sleep-timer picker ultimately sends.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration — an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2} — any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.</p>
@@ -14082,7 +14082,7 @@
 </details>
 <h3 id="createsavedqueue"><code>CreateSavedQueue</code><a class="headerlink" href="#createsavedqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Creates a new named saved queue containing one initial track (EnqueuedURI + metadata) and returns its AssignedObjectID plus queue stats.</p>
+<p>Creates a new saved queue — a Sonos playlist — from a title plus an optional first track. The speaker registers the list, gives it an object ID, and later commands can add more tracks to it. This is behind the 'Save as Sonos playlist' action in the app.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Creates a new saved queue (Sonos playlist). Impl f_102bd048 is an arg-shifting 718-gate that dispatches into the saved-queue subsystem worker f_10479bb4 (via an atomic-init guarded entry). Title, EnqueuedURI/EnqueuedURIMetaData and the out params are forwarded positionally.</p>
@@ -14281,7 +14281,7 @@
 </details>
 <h3 id="delegategroupcoordinationto"><code>DelegateGroupCoordinationTo</code><a class="headerlink" href="#delegategroupcoordinationto" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Hands the coordinator role to NewCoordinator. RejoinGroup controls whether this player stays as a member; ClearSource (added in 86.10) controls whether it drops the source.</p>
+<p>Hands group leadership to another member without the new leader asking for it — the current coordinator names its successor and can additionally tell the old member to rejoin the group as a follower and/or clear the music source. It is the orderly version of a takeover: the leader resigns in favor of a chosen member rather than the member seizing the role.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Hands group-coordinator responsibility to another member. Impl f_102de180: InstanceID!=0 -&gt; 718; NewCoordinator must be a non-NULL, non-empty string (either fault -&gt; 402). Under the impl+0x458 lock it calls worker f_102ddae8(engine, NewCoordinator, RejoinGroup, ClearSource), then translates the result with isel: a worker code of 0x323 (decimal 803) is remapped to 0 — that specific code is treated as success — while every other code passes through verbatim.</p>
@@ -14431,7 +14431,7 @@
 </details>
 <h3 id="enddirectcontrolsession"><code>EndDirectControlSession</code><a class="headerlink" href="#enddirectcontrolsession" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Ends a cloud/direct-control playback session, returning the player to normal UPnP control.</p>
+<p>Closes an external direct-control session — the counterpart of ChangeTransportSettings. When an outside system that was feeding the player directly (a connected music service, a virtual line-in session) is finished, this tears the session down so the player returns to its normal queue and sources.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags "end VLI" and "end direct control". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) — the same cleanup Play/Stop use — then returns 0 unconditionally.</p>
@@ -14556,7 +14556,7 @@
 </details>
 <h3 id="getcrossfademode"><code>GetCrossfadeMode</code><a class="headerlink" href="#getcrossfademode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns whether crossfade between tracks is enabled.</p>
+<p>Reports whether crossfade is currently on — whether the speaker blends the end of one track into the start of the next for a few seconds instead of a hard cut.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplate: builds a scoped context from the impl+0x3dc name string, RAII-locks impl+0x458, returns 718 on InstanceID!=0; the body fills the CrossfadeMode out byte from engine state.</p>
@@ -14693,7 +14693,7 @@
 </details>
 <h3 id="getcurrenttransportactions"><code>GetCurrentTransportActions</code><a class="headerlink" href="#getcurrenttransportactions" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the actions currently legal for this source as a CSV (e.g. 'Play,Pause,Stop,Seek') - depends on the stream type and capabilities, so poll it rather than assuming.</p>
+<p>Reports which transport commands are currently legal on this player — the list behind which buttons the app greys out. For example, 'Next' only appears when there is actually a next track, and 'Seek' only appears when the current source supports scrubbing. The answer is computed live from what is playing right now, so it changes as you move through a queue or switch sources.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -&gt; *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.</p>
@@ -14840,7 +14840,7 @@
 </details>
 <h3 id="getdevicecapabilities"><code>GetDeviceCapabilities</code><a class="headerlink" href="#getdevicecapabilities" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns what media this player can play/record and its recording quality modes.</p>
+<p>Reports what categories of media this player can play and record — a fixed description of the hardware's talents (the kinds of sources it accepts, and which recording media/qualities it advertises, which for a speaker is essentially none). Apps use it to know what a given box can do before offering it sources.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4 shares the getter boilerplate; no InstanceID input on this action per the extractor's arg map.</p>
@@ -14997,7 +14997,7 @@
 </details>
 <h3 id="getmediainfo"><code>GetMediaInfo</code><a class="headerlink" href="#getmediainfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns metadata about the current media source: track count and duration, current/next URIs + metadata, and the medium (queue, stream, line-in) - i.e. what container is loaded rather than where playback is within it (use GetPositionInfo for that).</p>
+<p>Reports the big-picture state of what is loaded in the player — how many tracks are in the current program, the total duration, what is playing now and what comes next (with metadata for each), and which 'medium' is in use (queue, stream, line-in, etc). It is the summary an app calls when it wants the full session context rather than just 'what song is this'.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).</p>
@@ -15201,7 +15201,7 @@
 </details>
 <h3 id="getpositioninfo"><code>GetPositionInfo</code><a class="headerlink" href="#getpositioninfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns where playback sits inside the media: current track number/URI/metadata, track duration, relative and absolute position times, and track counts.</p>
+<p>Reports exactly where playback is within the current track — the data behind the app's progress bar: which track number is playing, how long it is, title/artist/album metadata, the track's address, and the elapsed position (in time and as counts for stream-type sources). Apps poll this regularly while a song plays to keep the scrubber moving.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns position metadata for the current track: Track number, TrackDuration, TrackMetaData, TrackURI, RelTime, AbsTime, RelCount, AbsCount. Impl f_102b1a88 is the widest getter (~10 out pointers in r5-r10+stack); mode impl+0x4654 selects whether position comes from the indexed engine or the streamer session.</p>
@@ -15395,7 +15395,7 @@
 </details>
 <h3 id="getremainingsleeptimerduration"><code>GetRemainingSleepTimerDuration</code><a class="headerlink" href="#getremainingsleeptimerduration" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the time left on the sleep timer and the timer generation counter.</p>
+<p>Reports how much time is left on a running sleep timer, plus a generation counter that changes whenever the timer is reset — so an app can tell 'still 12 minutes' apart from 'a new timer was just set'.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102ada98 shares the getter boilerplate; reads the sleep-timer fields from the engine.</p>
@@ -15548,7 +15548,7 @@
 </details>
 <h3 id="getrunningalarmproperties"><code>GetRunningAlarmProperties</code><a class="headerlink" href="#getrunningalarmproperties" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>If an alarm is currently ringing, returns its ID, group and the logged start time.</p>
+<p>Reports details about the alarm currently ringing, if one is — which alarm it is (its ID), which group it belongs to, and when it was scheduled to start. Empty when no alarm is going off.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.</p>
@@ -15704,7 +15704,7 @@
 </details>
 <h3 id="gettransportinfo"><code>GetTransportInfo</code><a class="headerlink" href="#gettransportinfo" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns transport state (PLAYING/PAUSED_PLAYBACK/STOPPED/TRANSITIONING), status and speed.</p>
+<p>Reports the headline playback state: whether the player is playing, paused, stopped, or transitioning, plus a status string and the play speed. This is the single most-asked question on the whole service — the app's play/pause button position is driven by it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -&gt; indexed fill path 0x102b1a44; ==1 -&gt; 0x102b19c8; else -&gt; f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.</p>
@@ -15859,7 +15859,7 @@
 </details>
 <h3 id="gettransportsettings"><code>GetTransportSettings</code><a class="headerlink" href="#gettransportsettings" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Returns the current play mode (NORMAL/REPEAT_ALL/SHUFFLE…) and recording quality mode.</p>
+<p>Reports the current play mode (normal, repeat-all, repeat-one, shuffle, shuffle+repeat) and the recording-quality mode string. The app reads it to show which shuffle/repeat icon should be lit.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerplate; PlayMode reflects the enum written by SetPlayMode (NORMAL..SHUFFLE_REPEAT_ONE mapped back to its string).</p>
@@ -16008,7 +16008,7 @@
 </details>
 <h3 id="next"><code>Next</code><a class="headerlink" href="#next" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Skips to the next track in the queue. Faults (typically 711/701 family) if the current source doesn't support skipping.</p>
+<p>Skips to the next track — the app's forward button. What it does depends on the source: on queue playback it advances to the next queued song; on streams and external sources it asks that source for the next item (or does nothing if the source has no concept of 'next'). If there is nothing to skip to, the command quietly has no effect.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -&gt; f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -&gt; indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2-&gt;800, 3-&gt;711, else-&gt;701}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.</p>
@@ -16148,7 +16148,7 @@
 </details>
 <h3 id="notifydeleteduri"><code>NotifyDeletedURI</code><a class="headerlink" href="#notifydeleteduri" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Tells the player a URI it may have queued has been deleted from the server so it can drop or skip it.</p>
+<p>Warns the player that something it might be playing has been deleted upstream — for example a music-share folder that was removed or a queue entry whose backing item vanished. The speaker compares the deleted address against its current source; if it is not using that item, the notice is ignored. If it is, playback of the now-dangling source is cleaned up.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) — the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs "job"/"deleted uri", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &amp;rec) — likely triggering source-failover or stop behavior for the deleted content.</p>
@@ -16284,7 +16284,7 @@
 </details>
 <h3 id="pause"><code>Pause</code><a class="headerlink" href="#pause" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Pauses playback. Only valid while playing; faults on sources that can't pause.</p>
+<p>Pauses playback — the pause button. On sources that cannot truly pause (live radio, some streams), the underlying operation effectively stops or mutes the feed, and resuming means reconnecting.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.</p>
@@ -16411,7 +16411,7 @@
 </details>
 <h3 id="play"><code>Play</code><a class="headerlink" href="#play" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Starts or resumes playback. Speed selects the rate - '1' is normal; fractional rate strings select slower/faster trick-play on sources that support it.</p>
+<p>Starts or resumes playback — the play button. It only accepts normal speed; asking for any other speed is refused, because this firmware does not support trick-play speeds on the standard path. What it does depends on the source: resume the queue at its stored position, reconnect a stream, or hand the command to whatever external session owns the source.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Starts playback. Impl f_102d4078: InstanceID!=0 -&gt; 718; strcmp(Speed,'1')!=0 -&gt; 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.</p>
@@ -16552,7 +16552,7 @@
 </details>
 <h3 id="previous"><code>Previous</code><a class="headerlink" href="#previous" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Skips back to the previous track.</p>
+<p>Skips back to the previous track — the back button. Same source-dependence as Next: on queue playback it steps back one song (or to the start of the current one, per Sonos convention); on streams it asks the source whether a 'previous' exists.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998: lock impl+0x458, log 'upnp'/'previous', call f_102b6214. mode!=2 -&gt; f_102b01b4 (submit op-0x19 then streamer prev vfunc at *(impl+0x5a0); streamer nonzero=ok). mode==2 -&gt; FIRST checks capability: f_10258ab0(impl+0x580,0,1) bit 0x00100000 - if the source cannot skip back, returns success WITHOUT submitting anything (silent no-op). If capable: f_102b5ddc, build rec, submit f_10255f64; nonzero rc -&gt; 711, zero -&gt; clear impl+0x6ed8 + return 0.</p>
@@ -16688,7 +16688,7 @@
 </details>
 <h3 id="removealltracksfromqueue"><code>RemoveAllTracksFromQueue</code><a class="headerlink" href="#removealltracksfromqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Clears the implicit playback queue entirely.</p>
+<p>Empties the play queue completely — 'clear queue' in the app. Everything queued, including the currently selected track's list membership, is dropped; playback of the queue stops since there is nothing left to play.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Removes every track from the local queue. Impl f_102b3bf4 delegates to shared worker f_102b3a84(engine,0,0): it formats its first arg with snprintf("%u") and compares it against stored queue-id strings inside the indexed session impl+0x580 (fields +0x2d8ec skip-match and +0x2fff4 match); the hardcoded selector 0 targets the default queue. When the selector matches, f_10149b24 iterates the queue-list object at session+0x2ff98 and f_102b397c performs the removal; a selector mismatch yields 718.</p>
@@ -16810,7 +16810,7 @@
 </details>
 <h3 id="removetrackfromqueue"><code>RemoveTrackFromQueue</code><a class="headerlink" href="#removetrackfromqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Removes the queued track identified by ObjectID (track object id), guarded by UpdateID for optimistic concurrency.</p>
+<p>Deletes one track from the queue by position. It optionally accepts an update-ID — a version number for the queue — so the app can say 'delete track 5, but only if the queue is still the one I last saw', which prevents two people (or a stale app screen) from editing different versions of the list and silently clobbering each other.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Removes a single track from the queue. Impl f_102aa770: after the 718-gate it fetches the queue's current update-id via f_10149b24(session+0x2d890). A nonzero UpdateID argument must equal that current id or the action returns 0x404 (decimal 1028) — optimistic concurrency; UpdateID=0 skips the check. Mode impl+0x4654 must be 1 or 2 (else 800). It then builds a request record via f_1032e270, tags it with f_1032e440(rec,1,ObjectID), and submits via f_10255f64(session). Submission returns nonzero on success: on success it probes impl+0x5dc via f_1014708c and may clear impl+0x6ed8, returning 0; on submission failure it returns 800.</p>
@@ -16960,7 +16960,7 @@
 </details>
 <h3 id="removetrackrangefromqueue"><code>RemoveTrackRangeFromQueue</code><a class="headerlink" href="#removetrackrangefromqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Removes NumberOfTracks consecutive tracks starting at 1-based StartingIndex; returns the NewUpdateID.</p>
+<p>Deletes a contiguous run of tracks from the queue — 'remove tracks 3 through 10'. Both arguments count from 1, and zero is rejected rather than treated as a no-op, so callers must pass real positions.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -&gt; 718; then two hard rejections BEFORE any work — StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector "0" via snprintf("%u") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match — selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -&gt; 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.</p>
@@ -17140,7 +17140,7 @@
 </details>
 <h3 id="reordertracksinqueue"><code>ReorderTracksInQueue</code><a class="headerlink" href="#reordertracksinqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Moves a run of tracks (StartingIndex + NumberOfTracks) to InsertBefore within the queue, UpdateID-guarded.</p>
+<p>Moves a block of tracks to a different position in the queue — drag-and-drop in the app's queue view. You name the starting track, how many tracks move, and before which position they should land; all positions count from 1.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -&gt; 718, then three hard zero-checks before any queue work — StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector — the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).</p>
@@ -17299,7 +17299,7 @@
 </details>
 <h3 id="reordertracksinsavedqueue"><code>ReorderTracksInSavedQueue</code><a class="headerlink" href="#reordertracksinsavedqueue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Rewrites a saved queue's ordering from TrackList/NewPositionList; returns length change and new UpdateID.</p>
+<p>Reorders tracks inside a saved queue — a Sonos playlist — rather than the live play queue: the stored-list equivalent of dragging songs around in the queue editor.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gate dispatching into saved-queue worker f_1047a3bc. ObjectID, UpdateID, TrackList/NewPositionList and the out params are forwarded positionally.</p>
@@ -17499,7 +17499,7 @@
 </details>
 <h3 id="runalarm"><code>RunAlarm</code><a class="headerlink" href="#runalarm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Server-driven 'fire this alarm now' trigger carrying the full alarm definition - used internally when an alarm goes off; also useful for testing alarm playback.</p>
+<p>Fires a programmed alarm immediately — 'run this alarm now' rather than waiting for its scheduled time. Used for alarm previews and by the system's own scheduling path when an alarm's moment arrives.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc — the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.</p>
@@ -17693,7 +17693,7 @@
 </details>
 <h3 id="savequeue"><code>SaveQueue</code><a class="headerlink" href="#savequeue" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Saves the current playback queue as a named saved queue (Title); ObjectID selects an existing saved queue to overwrite. Returns AssignedObjectID.</p>
+<p>Saves the current play queue as a named Sonos playlist — the 'Save queue' action. You give it a title; it trims whitespace and rejects empty names. The queue must actually contain something for this to work — you cannot save an empty list.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -&gt; 402, and strpbrk rejects any \r or \n -&gt; 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) — the same persistence/path helper BackupQueue uses — storing the queue under the given ObjectID and writing the assigned object id.</p>
@@ -17866,7 +17866,7 @@
 </details>
 <h3 id="seek"><code>Seek</code><a class="headerlink" href="#seek" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Repositions playback. Unit selects the seek mode: TRACK_NR jumps to a track number, REL_TIME seeks to 'HH:MM:SS' from track start, TIME_DELTA does a relative jump. Parsing is lenient (numeric prefixes accepted, trailing junk ignored) but the accepted Unit set and the semantics depend on whether the source is indexed or streamed - a request can be accepted yet ignored downstream, so check GetPositionInfo after seeking.</p>
+<p>Jumps to a different position in what's playing — the app's scrub bar plus 'play track 7'. You say what kind of target (a track number in the queue, an absolute timestamp like 2:30, or a relative offset like -30 seconds) and the value; the player repositions within the current source if that source supports seeking — live streams simply cannot be scrubbed.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Repositions playback within the current transport source, dispatched to the zone-player engine as impl vfunc +0x34 -&gt; f_102b95a8(engine,InstanceID,Unit,Target): queue/track ordinal seek (TRACK_NR) or time seek (REL_TIME absolute / TIME_DELTA relative).</p>
@@ -18024,7 +18024,7 @@
 </details>
 <h3 id="setavtransporturi"><code>SetAVTransportURI</code><a class="headerlink" href="#setavtransporturi" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Loads a new source: a track/stream URI plus its DIDL-Lite metadata. This is how a client starts a radio stream or a file URI - the previous queue position is not implied; you typically call Play afterwards.</p>
+<p>Tells the player what to play — the single most important content command. You pass an address (a queue reference, a stream URL, a line-in selector, a service item) plus metadata describing it, and the player adopts it as the current source. 'Play this radio station' and 'play from this queue' both reduce to setting the right URI here; what happens afterward depends on what the address points at.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ — B is the group-aware variant reached in grouped mode; semantics described are the A path.</p>
@@ -18169,7 +18169,7 @@
 </details>
 <h3 id="setcrossfademode"><code>SetCrossfadeMode</code><a class="headerlink" href="#setcrossfademode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Turns crossfade on or off.</p>
+<p>Turns crossfade on or off — the smooth blend between consecutive tracks. It only applies to queue playback, because blending requires both tracks to come from the same local list; on other sources the command is rejected.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock impl+0x458, log 'upnp'/'change crossfade', call f_102b26dc. The worker REQUIRES mode impl+0x4654==2 (indexed) - anything else -&gt; 712 immediately. In indexed mode it further requires f_101471f0(impl+0x5dc)!=0 AND strncmp(current URI,'x-sonosapi-hls:',15)!=0 AND f_101475dc!=0 (crossfade-capable, non-HLS source). When the source cannot crossfade: arg==0 still succeeds silently, arg!=0 -&gt; 712. When capable: a request record (f_1032e270 + f_1032e550(rec,arg,1)) is submitted via f_10255f64(impl+0x580); success clears impl+0x6ed8.</p>
@@ -18306,7 +18306,7 @@
 </details>
 <h3 id="setnextavtransporturi"><code>SetNextAVTransportURI</code><a class="headerlink" href="#setnextavtransporturi" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets up gapless playback: the URI + metadata that should follow the current track, so the decoder can pre-buffer it.</p>
+<p>Announces the upcoming track so the player can pre-buffer it — the mechanism behind gapless playback. While one song plays, the app (or the queue engine) supplies the next track's address and metadata; the player gets it ready so the transition has no silence. It only works on queue playback — the mode that knows what 'next' means.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate — impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -&gt; f_10765a00/f_10762c30/f_106fbef4, with "lookup of %s URIs for %s failed" topology logging on failure) — i.e. the next-track request can be delegated to the actual playback member.</p>
@@ -18454,7 +18454,7 @@
 </details>
 <h3 id="setplaymode"><code>SetPlayMode</code><a class="headerlink" href="#setplaymode" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Sets play mode: NORMAL, REPEAT_ALL, REPEAT_ONE, SHUFFLE, SHUFFLE_NOREPEAT, SHUFFLE_REPEAT_ONE (exact accepted set is enforced).</p>
+<p>Chooses the play mode — normal, repeat-all, repeat-one, shuffle, or shuffle-and-repeat. This is what the shuffle and repeat buttons send. Some modes only make sense on the queue (you cannot repeat-one a live radio station), and the player rejects those combinations.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: lock impl+0x458, log 'upnp'/'change play mode', call f_102b24dc(impl,mode-str) which maps the string to an enum {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}. Non-NORMAL modes require capability gates: f_10147928(impl+0x5dc)!=0 (source/queue present), f_10148308!=0 (cap), and byte impl+0x1a03 (shuffle-capable flag), else 712. Per-mode apply: mode==2 -&gt; indexed path; mode==1 -&gt; f_106a9e88(impl+0x5a0,1,mode_enum,0,0) streamer vfunc, its failure -&gt; 712.</p>
@@ -18591,7 +18591,7 @@
 </details>
 <h3 id="snoozealarm"><code>SnoozeAlarm</code><a class="headerlink" href="#snoozealarm" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Snoozes the currently ringing alarm by Duration ('HH:MM:SS').</p>
+<p>Snoozes the currently ringing alarm for a given duration — the alarm-clock snooze button. It parses the requested nap length and reschedules the alarm to fire again then; the duration must be in the format the shared alarm machinery understands.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -&gt; 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero — the ringing-alarm flag (else 701). It then logs "upnp"/"snooze", submits a transport op via f_102d0ac8(impl,0,0,...) — the same submission helper as the Pause fallback — calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.</p>
@@ -18736,7 +18736,7 @@
 </details>
 <h3 id="startautoplay"><code>StartAutoplay</code><a class="headerlink" href="#startautoplay" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Starts autoplay for a source: plays ProgramURI (+metadata) at the configured autoplay volume, optionally grouping linked zones; ResetVolumeAfter restores volume afterwards.</p>
+<p>Launches an autoplay program — the mechanism behind 'when this alarm fires, start this playlist in that room'. You provide the program to run (what to play and its settings) and the player submits a session for it, the same machinery that backs alarm-triggered playback.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0 — sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -&gt; 402), checks additional flags, and submits the autoplay session.</p>
@@ -18909,7 +18909,7 @@
 </details>
 <h3 id="stop"><code>Stop</code><a class="headerlink" href="#stop" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>strong</code> · dispatch <code>direct</code></p>
-<p>Stops playback and clears transport position.</p>
+<p>Stops playback — the stop button. Unlike pause (which freezes position for resume), stop tears the current transport down; for queue playback resuming afterward means starting the track over.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -&gt; 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.</p>

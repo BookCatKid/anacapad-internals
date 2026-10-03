@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-SMAPI music-service discovery: which streaming services are configured on the household and their descriptor metadata (capabilities, auth type, presentation maps). The account credentials themselves live under SystemProperties.
+This service manages the player's relationship with streaming services — Spotify, Apple Music, and the dozens of others Sonos supports. It answers 'which services are available on this system', asks the cloud for a refreshed service list, and hands out session tokens: the credentials a service (or the app on its behalf) needs to keep a logged-in session alive on the speaker. It's the account/session plumbing between your speaker and your streaming subscriptions — not the commands that actually play music.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -34,7 +34,7 @@ Sonos music-service account/session service; impl member at svc+4 for the sessio
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the session id used to authenticate SMAPI calls for the given ServiceId + Username.
+Returns the session token for a specific music-service account — the credential string that lets a client act on that service as you. You name the service and the account username, and the speaker hands back its stored session ID.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -169,7 +169,7 @@ capability/mode flag gate (sp byte flags tested before arg parse)
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Returns the full music-service descriptor list (XML: service ids, names, capabilities, auth policies, presentation metadata) plus the flat type list and a version counter for change detection.
+Returns the full list of music services this system knows about — the catalog the app shows when you browse 'Add Music Services' or pick a source: service names, capabilities, and how to talk to each one.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -294,7 +294,7 @@ impl->v\[+0x8\] rc surfaced | Wrapper parse layer rejected an argument before th
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
 
-Forces a refresh of the cached service descriptor list from the cloud/catalog.
+Asks the speaker to refresh its catalog of music services — re-pull the current service list so newly launched or updated services appear. Re-pulls the current service list so newly launched or updated services appear.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

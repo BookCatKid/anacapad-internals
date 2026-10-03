@@ -2,7 +2,7 @@
 
 **visibility** `advertised` · **status** `strong`
 
-The local music-library service. Browse is the workhorse: hierarchical object ids (folders, artists, albums, playlists, shares) returning DIDL-Lite XML with paging via StartingIndex/RequestedCount and change detection via UpdateID/GetSystemUpdateID. Also covers object create/update/delete for editable containers, prefix lookups used by the app, share-index refresh control, and sort/browse capability queries. NOTE: the Search action is gone in this build - it exists in 25.2-era firmware but has been removed here.
+This service is the front door to the speaker's music library — the index it builds from your music shares (a NAS folder, a computer's shared drive) so albums and artists can be browsed without a computer being involved at playback time. Browsing lives here: ask for the children of a folder, a playlist, an artist, and get back tracks and containers with their metadata. So does library maintenance: kicking off a rescan of your shares, forcing a re-sort, checking whether indexing is in progress, and creating or editing library objects. In short, everything the app does under 'Music Library' routes through these commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -47,7 +47,7 @@ UPnP ContentDirectory for the local music index: browse, object create/destroy/u
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Browses the library tree. ObjectID selects the container (e.g. 'Q:0' the queue, 'A:ARTIST', 'SQ:' saved queues, 'S:' shares, music-service object ids); BrowseFlag is BrowseDirectChildren or BrowseMetadata; Filter/SortCriteria follow the CDS spec. Returns DIDL-Lite Result, counts, and an UpdateID that changes when the container does - cache on it.
+The one command that does nearly all library navigation. You name a container — the library root, an artist, a folder, a playlist — and ask for either its own metadata or its children, with a starting offset and a count for paging, plus which fields you want and how to sort. Everything from 'show my albums' to 'list tracks in this playlist' reduces to Browse calls; the app pages through large collections a slice at a time.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -220,7 +220,7 @@ invalid BrowseFlag: value is neither "BrowseDirectChildren" nor "BrowseMetadata"
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Creates an object (e.g. a playlist entry) inside ContainerID; Elements is a DIDL-Lite fragment. Returns the new ObjectID.
+Creates a new library object — for example a new playlist container inside the library tree. You give the parent container and the object's details; the library assigns it an ID and returns it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -362,7 +362,7 @@ indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachabil
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Deletes ObjectID from the library.
+Deletes a library object by ID — removing a playlist or another entry from the library tree. Removing a playlist or another entry from the library tree by its ID.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -484,7 +484,7 @@ indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachabil
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Locates the object prefix for ObjectID - returns the StartingIndex under the given Prefix and an UpdateID (used to map an item back to its container position).
+Locates items in a container whose titles start with a given prefix — the backing operation for alphabet-jump scrolling in a long list: 'take me to the S's'. It returns the index where matches begin.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -623,7 +623,7 @@ Resolved-object capability check: vtbl\[+0x14\] must equal the prefix-search ent
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether the library groups by album artist or contributing artist.
+Reports how the library is configured to treat album artists — the display option that decides whether compilations and guest-artist tracks group under the album artist or the track artist.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -739,7 +739,7 @@ impl single-call impl: rc = worker call result verbatim (mr r3 at 0x10307ab8 is 
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns all container prefixes that contain ObjectID (an item can live under several indices).
+Reports the alphabet positions inside the library — where each letter's section starts — so an app can build an A-Z jump index over a large collection.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -880,7 +880,7 @@ Resolved-object capability check: vtbl\[+0x18\] must equal the prefix-search ent
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether the local library share is currently marked browseable.
+Reports whether the library is currently browseable at all — during a rescan or certain states the index can be temporarily unavailable, and apps check this before offering browse screens.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -994,7 +994,7 @@ impl 0x10302470: writes byte 1 to out then returns 0; the action never faults fr
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the timestamp/id of the last library reindex - cheap polling point for 'did the library change'.
+Reports when the library index last changed — the timestamp an app uses to decide whether its cached view of your music is stale and needs re-browsing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1109,7 +1109,7 @@ impl 0x1030259c: single exit returns 0; the action never faults from the impl --
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns which DIDL properties Search would accept - vestigial since Search itself is removed in this build.
+Reports which fields the library's search can match on — which kinds of queries are supported (title, artist, album, and so on). Which fields the library's search can match on — what kinds of queries are legal to send.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1225,7 +1225,7 @@ impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim v
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns whether a library reindex is currently running.
+Reports whether a library rescan is running right now — the 'updating music index' spinner's data source. The 'updating music index' spinner's data source — on while a rescan walks your folders.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1339,7 +1339,7 @@ impl 0x1030269c: single exit returns 0; the action never faults from the impl --
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns which DIDL properties can be used in Browse SortCriteria.
+Reports which orderings the library can return results in — which sorts you can legally ask Browse for. Which orderings the library can return — what sorts you can legally ask a browse for.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1455,7 +1455,7 @@ impl single-call impl: rc = worker call result verbatim; rc forwarded verbatim v
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Returns the global library UpdateID - compare before/after to detect any change.
+Reports the library's global version number — a counter that increments whenever anything in the library changes. Apps compare it against what they last saw to detect that the collection changed under them.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1570,7 +1570,7 @@ impl 0x10302640: single exit returns 0; the action never faults from the impl --
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Triggers a rescan of the configured music shares.
+Triggers a rescan of the music shares — the 'Update Music Library' command. The player re-walks the shared folders and rebuilds its index of what's available.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1696,7 +1696,7 @@ propagated reachability; site-level trigger undecoded
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Re-sorts the library index using SortOrder.
+Asks the library to re-sort its index — the housekeeping operation after changes that affect ordering, such as a new album-artist display setting. Housekeeping after changes that affect ordering — like a new album-artist display setting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1818,7 +1818,7 @@ propagated reachability; site-level trigger undecoded
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Marks the library share browseable or not.
+Turns the library's browseability on or off — effectively hiding or exposing the local index to controllers. Effectively hides or exposes the local index to controllers — an off library doesn't show up to browse.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1938,7 +1938,7 @@ Wrapper parse layer rejected an argument before the impl call.
 
 visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
 
-Rewrites an object's metadata: CurrentTagValue -> NewTagValue DIDL fragments for ObjectID.
+Edits one field of a library object — renames a playlist or tweaks an item's stored metadata: 'change this tag's value to that'. 'Change this tag's value to that' — renames a playlist or tweaks an item's stored metadata.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

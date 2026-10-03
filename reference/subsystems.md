@@ -1,6 +1,6 @@
 # Non-SOAP subsystems
 
-A Sonos player is much more than a UPnP endpoint. Inside this one program are dozens of independent engines: audio decoders, a websocket client for the cloud, alarm scheduling, Wi-Fi and network monitoring, LED control, music-library indexing, clock synchronization. This page lists every subsystem found and how deeply each is understood - 'documented' means mapped end to end, 'partial' means we know what it does but not every detail, 'vocab' means only its vocabulary is recovered so far.
+A Sonos player is much more than a set of remote commands. Inside this one program are dozens of independent subsystems — the queue engine, the group-streaming machinery, the alarm scheduler, the music-library indexer, the HTTP server that hosts the diagnostics pages, the IPC buses the player's many internal processes use to talk, and more. The command services documented elsewhere are really just the network front-end to these engines. This page is the tour of everything under the hood: each subsystem gets a plain explanation of what it does and why it exists, with the engineering evidence collapsed underneath.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -10,76 +10,76 @@ Self-contained protocols/engines living in the same binary beside or below the U
 
 | Subsystem | Coverage | Summary |
 |---|---|---|
-| `ab_experiments` | **partial** | Sonos can enrol a zone in A/B experiments pushed from the cloud. |
-| `abr_engine` | **partial** | The adaptive-bitrate engine that keeps HTTP streams (HLS, Icecast-style playlists) alive. |
-| `account_cert_lifecycle` | **partial** | Every player holds a device certificate used to authenticate to Sonos cloud and to music services that demand deviceCerts. |
-| `account_migration` | **partial** | The migration machinery that converts pre-OAuth music-service accounts to OAuth: reauth flow, token generation, per-service retries, and a cloud-connectivity gate that delays migration until the device is online. |
-| `addrmon` | **partial** | The netlink address monitor: subscribes to RTM_NEWLINK/RTM_GETLINK kernel events so IP address changes are seen instantly rather than polled. |
-| `aha_ops` | **partial** | Internal operations used when a group coordinator hands an active stream to a new member — stop, restore, and VLI (virtual line-in) session suspend/end. |
-| `arp_assoc` | **partial** | Layer-2 connectivity diagnostics: the ARP checker pings the gateway and counts consecutive failures to detect groupcast problems; arping runs async/sync probes on a timer with reset-on-data; the association tracker records Wi-Fi association metrics. |
-| `audio_clip` | **partial** | The doorbell/alert clip player. |
-| `audio_decoder` | **partial** | The generic decoder wrapper — used by the ffmpeg-based WMA path among others — that owns codec lifecycle (create, init, header parse, seek, scan, position reporting) and publishes a status XML blob with sample rate, bit depth, channels, and frame size. |
-| `audio_decoders` | **partial** | The bundled decoder layer for open codecs: Vorbis synthesis (with explicit guards for null PCM, missing config data, and insufficient bytes) and AAC/AAC+ (with a disable flag and upsampling factor). |
-| `audio_fifo` | **partial** | A record-based circular audio buffer used inside the Spotify eSDK path: writes land in pos/range records, discontiguous offsets are rejected, and reads advance through contiguous records only. |
-| `audio_rate_ctrl` | **partial** | The sample-rate converter plus the time-sync integrator that keeps a group of players sample-locked. |
-| `audio_stream_mixer` | **partial** | The per-stream mixer: each stream can buffer, schedule a presentation time, resync, drain, or skip ahead, with a small fade engine for gain ramps (crossfades and ducking ride on this). |
-| `audio_tap` | **partial** | Debug tap points that let a developer siphon a WAV stream out of nearly any point in the audio pipeline — line-in, decoder output, mixer input/output, DSP output, LLA output, even the chirp and voice channels. |
-| `audio_taps` | **partial** | Internal PCM capture points let the firmware record the audio passing through it — used for diagnostics and, importantly, for TV lip-sync: the SPDIF tap captures the TV input so playback can be synchronized against the output tap. |
-| `audioin_groups` | **partial** | AudioIn (line-in distribution) group bookkeeping: groups are keyed by the coordinator's RINCON id, sources pick compressed or uncompressed transport, and members join/leave a shared `x-rincon-stream:` URI. |
-| `audiotap_manager` | **partial** | The async request plumbing behind the audio-tap feature: each tap request gets a mutex-protected consumer, a poll loop, and write accounting. |
-| `authz` | **partial** | The `/authz` policy layer that decides what a caller may do: static per-role policies, fast-path policies, guest/offline policies, and an mTLS policy — selected at request time. |
-| `auto_update` | **partial** | The auto-update scheduler FSM: states from INIT through REFRESH, SCHEDULED (and SCHEDULED_POST_WOW for wake-on-wireless), SESSION_MONITOR, SESSION_REPORT, SESSION_ACTIVE — with PendingStart/SessionStart/SessionAttempts counters. |
-| `bandwidth_meter` | **partial** | The eSDK's throughput estimator: it times chunk downloads, computes bytes/sec and kbit/s over a sliding window with high/low watermarks, and counts how often throughput dips below a threshold. |
-| `boot_sequence` | **partial** | The boot-sequence manager: tracks boot progress, bumps the sequence counter on events like first Wi-Fi connection, and honors settings like ForceWifiDisable/SonosNetDisable. |
-| `browse_prefixes` | **partial** | The object-id prefix grammar used in browse and queue items: `newrelease:album:genre:`, `staffpick:album:genre:`, `top:album:genre:`, `playlist:`, `favorite:track`, `artist_tracks:`, plus the `urn:schemas-rinconnetworks-com:metadata-1-0/` namespace marker. |
-| `bt_sbc` | **partial** | The SBC decoder for Bluetooth-received audio: parses packet headers, validates frame sizes, tracks bitpool/subband/mode parameters, and drops truncated packets rather than playing garbage. |
-| `business_msp` | **partial** | Hooks for Sonos Business managed deployments — the strings reference adding/removing and syncing a 'Sonos Business MSP' relationship. |
-| `buttons_ir` | **partial** | Physical input pipeline. |
+| `ab_experiments` | **partial** | Sonos can enrol a system in A/B experiments pushed from the cloud — feature tests where some households get a new behavior and others don't, with the player reporting which variant it ran. |
+| `abr_engine` | **partial** | The adaptive-bitrate engine — the logic that keeps internet streams alive when your connection is shaky. |
+| `account_cert_lifecycle` | **partial** | Every player carries a device certificate — a cryptographic identity card issued by Sonos that proves to the cloud 'this is a genuine Sonos device'. |
+| `account_migration` | **partial** | When account formats change between firmware versions, existing saved logins have to be converted — this block migrates stored service accounts from older formats to newer ones during updates, so your services stay logged in across an upgrade. |
+| `addrmon` | **partial** | The address monitor — watches the player's own network addresses and notifies the rest of the system when they change. |
+| `aha_ops` | **partial** | Operations for a legacy partner integration called 'aha' — present in the shared codebase as part of the service-integration layer, where Sonos keeps the machinery for services that were supported on some products or generations. |
+| `arp_assoc` | **partial** | Watches the low-level network association table — tracking which devices are reachable on the local network segment. |
+| `audio_clip` | **partial** | The short-sound player — machinery for playing brief audio clips over the system (chimes, doorbell sounds, prompts), distinct from the main music pipeline. |
+| `audio_decoder` | **partial** | The audio decoding layer — the component that turns compressed audio data into raw sound samples ready for the amplifier. |
+| `audio_decoders` | **partial** | The collection of specific decoder modules plugged into the decoding layer — the individual format handlers (MP3, FLAC, AAC family, and friends) the player picks between per stream. |
+| `audio_fifo` | **partial** | The audio buffer — the queue of decoded sound samples sitting between decoding and output. |
+| `audio_rate_ctrl` | **partial** | The audio rate controller — keeps the player's playback clock disciplined against the incoming audio so buffers neither starve nor overflow. |
+| `audio_stream_mixer` | **partial** | Mixes multiple audio streams — the component that lets overlay sounds (alerts, chimes, calibration tones) blend into whatever's playing rather than fighting for the output. |
+| `audio_tap` | **partial** | A single audio tap — a capture point inside the audio path where the firmware can siphon off sound. |
+| `audio_taps` | **partial** | The family of audio capture points — places in the audio pipeline where sound can be tapped for measurement: used by room-tuning, by the Trueplay-style calibration, and by diagnostics that need to hear what the player is emitting. |
+| `audioin_groups` | **partial** | Grouping machinery for the line-in input — letting a line-in source be shared across a group like any other source. |
+| `audiotap_manager` | **partial** | Coordinates the audio capture points — which taps exist, who's listening on each, and when they open and close. |
+| `authz` | **partial** | The authorization machinery — the component that checks credentials on incoming requests: API keys on the modern surface, permission checks across the system. |
+| `auto_update` | **partial** | The automatic-update machinery — decides when the system should fetch and install firmware on its own schedule, per the household's update settings. |
+| `bandwidth_meter` | **partial** | Measures actual network throughput — a meter the streaming code consults to decide whether the connection can sustain a given bitrate. |
+| `boot_sequence` | **partial** | The player's boot logic — the ordered bring-up sequence inside this program: which subsystems initialize in which order, what must succeed before the next stage starts, and what the player does when something fails partway. |
+| `browse_prefixes` | **partial** | The prefix-jump machinery — the 'go to the S's' indexing that lets a long library list be navigated alphabetically, behind the FindPrefix and prefix-location commands. |
+| `bt_sbc` | **partial** | Bluetooth SBC audio support — the decoder path for the standard Bluetooth audio format, present in the shared codebase for products that include Bluetooth. |
+| `business_msp` | **partial** | A managed-service-provider / business-tier integration block — machinery for enterprise-managed Sonos deployments, where an organization administers fleets of players. |
+| `buttons_ir` | **partial** | The physical controls layer — the code that reads the unit's buttons (play/pause, volume, mute) and the infrared remote input, turning hardware presses into the same commands an app would send. |
 | `capability_guards` | **partial** | The per-setting capability gate messages: 'Supported only for devices that support power over ethernet', 'water sensor', 'microphone switch', 'subwoofer', 'suspendable devices', plus requiredMinimumBatteryPercentage. |
 | `catalog_translate` | **partial** | The `/content/api` catalog-ID translator: `translateId(objectId, serviceId, targetObjectId)` calls `GET catalog/id/%s?destinationServiceId=%s` on the cloud to map an item ID from one service into another's namespace — e.g., 'the same album on Spotify vs Deezer'. |
 | `cec_diagnostics` | **partial** | The HDMI-CEC/ARC diagnostic field set: tvCECStatus, tvPowerStatus, deviceCEC, stateSAM/errorSAM, stateARC/errorARC, errorTV, eARCActive, testAudio/testVideo. |
 | `cert_files` | **partial** | The on-flash layout for cert material: files named for `encrypted-private-key`, `expiration`, `encryption-key-type`, and `sonos-key-and-cert`. |
 | `chanmapset` | **partial** | The ChannelMapSet initializer: builds the channel-map tables that describe how speaker channels are assigned (stereo pair L/R, surround roles), with bounds ('Initializer List too large, truncating') and duplicate detection. |
 | `chirp` | **partial** | The acoustic data-over-sound stack (Chirp SDK 4.2.3, Chirp core 4.2.1) used for setup and secure pairing. |
-| `chirp_stack` | **partial** | The embedded Chirp acoustic library — the speaker can literally emit and decode data-over-sound chirps (CDMA/FSK profiles). |
+| `chirp_stack` | **partial** | The full chirp implementation stack — the complete path from a room-detection command to an audible tone coming out of a specific speaker: request handling, tone selection, and routing through the audio path. |
 | `cloud_api_paths` | **partial** | The URL builders for every cloud call: `/tokens`, `/invite`, `/redeem`, `/users`, `/firmwareDownload`, `/softwareDownload`, `/accountSubscription`, `/productEvent`, each under household/player/service/group prefixes with query params like `protocolVersion=`, `accountId=`, `includeDeviceInfo=`. |
-| `cloud_synchronizer` | **partial** | The background thread that registers all cloud sync services at boot and consumes just-in-time events, discarding ones it doesn't recognize. |
-| `common_logger` | **partial** | The logging infrastructure config: filter/level/fileSize/preserveSize/host settings, the `\[category \| timestamp\]` line format, category-name validation, and log-shipping to a host. |
-| `cpu_monitor` | **partial** | A /proc/stat reader that logs per-core usr/sys/idle/IRQ percentages with a shutdown-state detector and divide-by-zero guards. |
+| `cloud_synchronizer` | **partial** | The cloud synchronizer — keeps household state (settings, accounts, playlists) mirrored between the local system and Sonos's cloud so both sides stay current. |
+| `common_logger` | **partial** | The shared logging machinery — the unified way every subsystem writes log lines: formatting, severity levels, and the named log channels each module writes to. |
+| `cpu_monitor` | **partial** | The CPU monitor — watches processor load and reports it. |
 | `crash_report` | **partial** | Crash-event telemetry: per-process crash counts with upload responses (procName, numCrashes, uploadResp, playerCrash, lifetime). |
-| `crossfade` | **partial** | The crossfade engine that blends the tail of one track into the head of the next. |
-| `csfcm` | **partial** | The channel-source frame-context manager: a bounded pool of frame contexts that get marked, added, flushed, and popped with timestamps — 'NO FREE CONTEXTS' is the saturation failure. |
-| `daemon_ipc` | **partial** | The request-forwarding table that lets this program ask its sibling system daemons to do things - the power coordinator, the Bluetooth manager, the LED manager, and netstartd - plus the watchdog and crash-upload routes. |
-| `dataio` | **partial** | The shared HTTP transport: a poll loop, header parsing (HTTP Result, Last-Modified, Content-Type, SET-COOKIE, cache-control/max-age, ETag, WWW-Authenticate), and guarded reads ('tried to read N bytes where only M available'). |
+| `crossfade` | **partial** | The crossfade implementation — the audio machinery that overlaps the tail of one track with the head of the next during the crossfade window. |
+| `csfcm` | **partial** | An internal component identified by build-tree naming — part of the firmware's module set recovered structurally. |
+| `daemon_ipc` | **partial** | The request-forwarding table that lets this program ask its sibling system daemons to do things — the power coordinator, the Bluetooth manager, the LED manager, and the network-startup process — plus the answers those requests can return. |
+| `dataio` | **partial** | The data I/O layer — shared helpers for reading and writing structured records, used across the subsystems that serialize state to disk or wire. |
 | `desired_settings` | **partial** | The Desired* replicated settings: DesiredTimeFormat, DesiredDateFormat, DesiredTimeServer, DesiredTime, TimeZoneForDesiredTime, HouseholdUTCTime, DesiredDailyIndexRefreshTime. |
-| `dev_disc` | **partial** | The SSDP device-discovery thread (ddt): logs MSEARCH/ALIVE/BYEBYE per device with source addresses, counts lost SSDP messages, handles CDALIVE/CDBYEBYE and QUARANTINE_RECHECK packets, and takes 'hint' hints for faster convergence. |
+| `dev_disc` | **partial** | The device-discovery thread (ddt): logs alive/gone announcements per device with source addresses, counts lost discovery messages, and handles the local-network discovery exchanges. |
 | `device_registration` | **partial** | The two-phase secure-enrollment handshake: `POST /product/v2/households/{hh}/players?action=refresh` starts it, `?action=complete&token={tok}` finishes with the issued credential. |
 | `device_unlock` | **partial** | A hidden developer-unlock feature: hitting /devunlock or /mfgunlock marks the player as unlocked (a flag file in /tmp) and reboots it. |
 | `devicecertmanager` | **partial** | The manager that downloads and refreshes the device cert from the cloud: ETag-cached GETs, metadata records (requestTimeMS, downloadStatusCode, previousETag), 'downloaded' vs 'unchanged' outcomes, and a scheduled refresh job when metadata is unknown. |
 | `diagnostics` | **partial** | The distributed diagnostics engine: builds a DiagnosticManifest (v2.0.0), POSTs to `/v2/diags` on product-diagnostics with serial_num, distributes a diagId to every player, triggers per-device collection, and gathers the results. |
-| `didl_extractor` | **partial** | The DIDL-Lite metadata extractor: pulls Sonos `r:` fields (tiid, radioName, trackGain, chapterNum/Count, linkUrl, isAd, streamContent, podcast/episode/audiobook fields) and standard upnp/dc fields (originalTrackNumber, album) out of track XML, keyed by class (podcast, show, audiobook chapter). |
+| `didl_extractor` | **partial** | The metadata-document extractor: pulls Sonos's extra fields out of track descriptions — internal IDs, radio names, track gain, chapter numbers, ad markers, stream content, and podcast/audiobook typing. |
 | `drm_content_keys` | **partial** | The DRM key path: `skd://itunes.apple.com/P{pid}/s1/e1` StoreKit URIs for FairPlay content keys, duplicate-entry detection, and the `X-Sonos-Playback-Id` header services use to correlate a playback with the device that requested it. |
 | `dropout_logging` | **partial** | The dropout-event telemetry: tracks group-role changes, corrected-context changes, and presentation-time conditions; slots events into a bounded list with per-condition increments ('set pt reached', 'pt in fut - inaud'). |
 | `dsp_files` | **partial** | The DSP file inventory: eqdata.txt, persistentEQ.xml, dsp_preset*.xml, dsp_system_*.bin, satellite_processor.bin under `/dsp` and `/opt/dsp`, plus the sonar-tone flush path and an amp-timer hook. |
 | `dsp_ht_engine` | **partial** | The full home-theatre audio configuration surface: surround/subwoofer state, downmix mode, dialog enhancement, AI speech enhancement, height-channel level, autoplay/autostop silence thresholds and a Tweaks bitmask — plus a 37-field per-zone audio record covering everything from balance and sub crossover to trueplay status. |
 | `dsp_params` | **partial** | The `/drc`, `/staticparams`, `/dynamicparams` param surfaces: DRC boost, speaker angles (front/height/rear-surround), virtualizer mode, bass extraction, DAP cutoff, filters, and per-mode profiles. |
-| `dts_decoder` | **partial** | The DTS decoder (dcadec): profile taxonomy from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express; endian-checked sync detection; and a status XML with BitDepth/DTSProfile/BitRate/NumPrimaryChannels. |
+| `dts_decoder` | **partial** | The DTS decoder: supports the profile family from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express, with careful sync detection and status reporting. |
 | `ducking` | **partial** | When a speaker needs to quiet the music for something urgent — a voice reply, a chime, a page — the players agree on it over a ducking protocol. |
-| `effective_settings` | **partial** | The `effectiveSettings` muse resource: `getAllSettings`/`updateAllSettings` plus per-group get/update, exposed on player and household routes and mirrored at `/settings/api/v1/locations/*/effectiveSettings`. |
+| `effective_settings` | **partial** | Effective-settings resolution — computes the setting value actually in force after layering defaults, household values, group values, and device overrides: behind the effectiveSettings API surface. |
 | `embedded_sqlite` | **partial** | A libsqlite3 is linked in; at least the local timer/alarm store persists through SQL statements. |
 | `enet_stats` | **partial** | Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats counters (rx/tx packets/bytes/errors/drops/multicasts/collisions), and deep EthIntrf detail (CRC, frame, FIFO, missed errors). |
 | `entitlements` | **partial** | Sonos-side licensing: each account/household can carry <Entitlement> records (type, isTrial, sku, date range, codes). |
-| `esdk_events` | **partial** | The eSDK telemetry channel (evs): event types EsdkPlaybackStats, EsdkPlaybackErrors, EsdkHttpErrors, EsdkDownload, EsdkEvent, EsdkCapabilities; EndSong records carry ms_played and track ids; events encode into an envelope and ship over `hm://hwp-events/v1/log_event`. |
-| `esdk_httpio` | **partial** | The eSDK HTTP layer (`eSDK/httpio`, version 3.205.205): request formatting (hostname/path), response parsing (transfer-encoding unsupported variants, CDN content-encoding rejection, redirects, content-range validation, header-end detection), socketio timeouts and read/write/EOF errors, and DNS result handling. |
-| `esdk_socket` | **partial** | The eSDK's raw socket layer: IPv4-only (IPv6 explicitly unsupported), DNS queueing with a bounded queue, connect/bind/accept error taxonomy, socket-option plumbing, and the socketio stream FSM (INACTIVE/STARTING) that decides new-vs-reused sockets. |
+| `esdk_events` | **partial** | The eSDK event layer — how the embedded Spotify component reports state changes (connection, playback, errors) up to the player. |
+| `esdk_httpio` | **partial** | The eSDK HTTP I/O — the network layer the embedded Spotify component uses for its own web requests. |
+| `esdk_socket` | **partial** | The eSDK socket layer — the raw socket plumbing the embedded Spotify component uses beneath its HTTP and protocol traffic. |
 | `event_loop` | **partial** | The main event loop: a thread pool processing queued work with watchdog timestamps, logging start/stop/drain/shutdown and elapsed time. |
 | `eventloop_perf` | **partial** | The in-process event loop plus its perf counters: per-observer callback durations are checked against a threshold ('exceeded duration threshold Nms > Mms'), and counters track events queued, failed-to-queue, and per-subject stats. |
 | `exec_pages` | **partial** | The `/status` exec pages: a command table mapping diagnostic URLs to shell commands — `/debugfiles` (ls jffs debug dirs), `/du-jffs`, `/ifconfig`, `/lsmod`, `/mount`, `/netstat`, `/ntpsources` (chronyc), `/ps`, `/route`, and more. |
 | `ext_audio_src` | **partial** | The external-audio-source job engine: clips/TTS arrive as jobs with a FSM (STARTING→RESUMING→RESUMED / CANCELLED / DISCARDED), priority, and exclusivity — too many jobs drop new ones, deferred streams queue up. |
-| `factory_reset` | **partial** | The wipe path: a factoryReset.txt sentinel file, sonosFactoryResetFull entry, LED_MODE_FACTORY_RESET feedback, and a remote management/factoryReset muse route. |
-| `favorites` | **partial** | The favorites store: user radio stations and recents, replicated across the household with an accept/reject decision ('deciding whether to accept replicated list'), DIDL namespacing, and migration paths from old Rhapsody-era and non-OAuth formats. |
-| `favourites_model` | **partial** | Sonos Favourites (the pinned items in the app). |
-| `fcs_detail` | **partial** | The fcs diagnostic record: a handler pair where one side reads `sonosClockGetTime` into the response buffer — a timestamp/status page used by field-service diagnostics. |
+| `factory_reset` | **partial** | The factory-reset machinery — the sequence that wipes settings, accounts, and stored state back to out-of-box condition: which steps run in what order when a reset is requested. |
+| `favorites` | **partial** | The favorites engine — the store of saved items (stations, playlists, songs) the app shows as favorites, including the version counters that tell apps when the list changed. |
+| `favourites_model` | **partial** | The favorites data model — how favorite items are represented and organized internally: the structure behind the favorites API and file formats. |
+| `fcs_detail` | **partial** | Internals of an internal component abbreviated 'fcs' in build metadata — recovered structurally; part of the firmware's module set. |
 | `fd_event` | **partial** | The fdevent epoll wrapper: named threads (signal.write, wait.poll, check.poll, reset.read) driving epoll_create1/ctl/wait with fd-capacity and 'already monitored' errors, plus EventSync naming. |
 | `fdevent` | **partial** | Same fdevent layer as fd_event: the epoll-based event engine everything else (addrmon, select thread, audio fds) multiplexes on. |
 | `feature_flag_registry` | **partial** | Feature flags arrive as JSON keys in the cloud-delivered settings document — not compile-time switches. |
@@ -87,20 +87,20 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `fileio` | **partial** | The fileDataMgr async I/O: stream registration, SMB readdir/open, an 'in memory' fast path, HTTP reopen-at-offset resume via `?after=`, and content-type sniffing (`application/xml`). |
 | `fmp4_parser` | **partial** | The fragmented-MP4 parser for segmented audio: validates box order (mfhd seq, tfhd before trun, tfdt), builds the trun table (seqnum, sample sizes/offsets/durations), and explicitly rejects senc sub-entry encryption it can't parse — 'Sub-entry encryption isn't supported' means the HLS Sample-AES path isn't this parser. |
 | `group_object_model` | **partial** | How zones actually group: the coordinator/satellite topology, zone storage, play-state manager and the ZoneGroupTopology event model sit here. |
-| `group_rc` | **partial** | GroupRenderingControl: group volume and mute. |
-| `healthcheck` | **partial** | The periodic health probe: a timer that schedules the next check (6-gate decision on whether to run), contacts `/ws/diag/diag_instructions.xml?hhid=` for server instructions, honors SubmitPermission, and records ServerDiagInstructions. |
+| `group_rc` | **partial** | The group rendering-control engine — the internal machinery that applies group volume/mute to all members, behind the GroupRenderingControl commands. |
+| `healthcheck` | **partial** | The health-check machinery — periodic self-tests the player runs to verify it's functioning, with results feeding diagnostics and recovery decisions. |
 | `healthcheck_contact` | **partial** | The healthcheck's server-contact half: instruction fetch, permission gating, and reschedule-on-response. |
 | `hhsettings_rest` | **partial** | The household-settings REST API inside the device: `public/{key}` is readable by anyone, `restricted/{key}` needs permissions, `restricted-admin/{key}` needs admin. |
 | `history_mgr` | **partial** | The cloud play-history manager: POSTs played tracks, keeps pre/post caches with ETags and cache-control honoring, serves `recentlyPlayed`, and repairs a corrupt cache after a 304. |
-| `hls_audio` | **partial** | The HLS audio player: seeks land on segment boundaries (or snap forward), it can force a source switch when a playlist mixes codec variants, tracks ADTS metadata seconds, and requires group capabilities for some variants. |
-| `hls_player` | **partial** | The HLS engine's stream semantics: variant tags (hls-live, hls-static), segment-aligned seeking, codec-variant failover, IV handling ('No IV, using seq. |
+| `hls_audio` | **partial** | The segmented-stream audio player: seeks land on segment boundaries (or snap forward), it can switch variants when a playlist mixes formats, and it tracks stream metadata per segment. |
+| `hls_player` | **partial** | The segmented-stream engine's stream semantics: live-versus-static variant tags, segment-aligned seeking, format-variant failover, and decryption-key handling for protected streams. |
 | `household_settings` | **partial** | The `householdsettings.json` store: versioned JSON with per-category sections (public/restricted/restricted-admin), each carrying read/write permission strings and a settings list (explicitContentFiltering, recentlyPlayed, etc.). |
 | `ht_audio_sources` | **partial** | The TV-audio source type registry: tv-sat-as (satellite), tv-gm-dm-as (group-member downmix), tv-proc-as (TV processor), AIHomeTheater, and chsnk-sat-as — plus the ForceSubmitTvSessionReport op. |
 | `htaudio_chproc` | **partial** | HT channel processing: stream types (htain, htaoutl/htaoutr/htaouts, remote, downmix), DRC state changes per dspZone (night mode, dialog enhancement, speech extraction), channel-map transitions, and SPDIF input with its own protocolInfo. |
 | `htaudio_satellite_tx` | **partial** | The satellite-transmission stats schema: time-to-play, bytes sent, tx errors, serialization errors, late frames, resync frames. |
-| `http_client` | **partial** | The async HTTP client (curl multi + thread pool): `performAsync` schedules requests, reports curl errors verbatim, enforces timeouts, and counts tasks. |
+| `http_client` | **partial** | The HTTP client — the machinery for outgoing web requests: every call the player makes to services, the cloud, or other players goes through here. |
 | `httpcache` | **partial** | The HTTP cache manager: hash-based invalidation (local+remote hashes compared, remote caches invalidated over the LAN), `/jffs` mount checking via statvfs/`/proc/mounts`, and per-key get/set statuses. |
-| `hw_events` | **partial** | The hardware-event handler: netlink multicast messages for buttons, orientation, and thermal events on the select thread, with overflow/unknown/readNextMsg error handling and a button-forwarding mode that ships presses to a private-IP target (used for bonded/home-theater remotes). |
+| `hw_events` | **partial** | The hardware-event layer: low-level system messages for buttons, orientation, and thermal events arrive on a dedicated thread, with overflow and malformed-message handling. |
 | `ibt` | **partial** | Intended-target fan-out: a single muse command can name `intendedTargets` — a set of players — and the planner expands it into per-target executions, validating that the command supports fan-out and each target parses. |
 | `inprocess_events` | **partial** | The in-process observer registry: named observers register per subject (PlaybackEvent and friends), the engine logs each registration with a running count, and flags like `enableSemiSleep`/`enableHTSourceSleep` mark power-sensitive listeners. |
 | `interrupt_reasons` | **partial** | The playback-interrupt reason enum: CLOUD, HT_PLAYBACK, HT_POWER_STATE, AIRPLAY, AUDIO_CLIP, SPEAKER_DETECTION, FIXED_VOLUME, ROOM_DETECTION, IR_CONTROL, ALEXA_CBL — the 'why did my music duck/stop' taxonomy. |
@@ -108,67 +108,67 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `ir_learn` | **partial** | The IR learning flow: multi-pass capture (passes 1 and 3 must match in size and bits), repeat-style detection (alternating, repeating, non-repeating), and one-button learn with tolerance. |
 | `json_parser` | **partial** | The embedded JSON parser's error enum: Exceeded max depth, Invalid unicode escape/escape/string character/numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory. |
 | `json_schema_validator` | **partial** | The JSON Schema validator used by local settings: keywords patternProperties, maxLength/minLength, maxItems/minItems, maxProperties/minProperties, required, additionalProperties, uniqueItems, dependencies, exclusiveMinimum/Maximum, instanceRef, fileFormatVersion, targetType. |
-| `lechmere_wss` | **partial** | The persistent secure-websocket channel between player and cloud ('lechmere'): RFC6455 framing carrying an inner TLV command vocabulary — this is how the cloud pushes control and the player reports state in real time. |
+| `lechmere_wss` | **partial** | The persistent secure-websocket channel between player and cloud ('lechmere') — the always-on pipe cloud commands and modern-API calls arrive over, using a compact binary message format inside standard web framing. |
 | `led_engine` | **partial** | The status LED is a scripted animation system: patterns are programs of RGB steps with hold/fade times, checksummed and selected by internal state codes (R_LED_* — setup, muted, playing, broken-device, join-household...). |
 | `led_hw` | **partial** | The LED hardware feature map: bHasMicrophone, bHasMuteLED, bHasStatusLED, bHasOnlyStatusLED, bHasHardwareLedSwap, bCanSetWhiteBrightness — per-model booleans that determine which LED behaviors even exist. |
 | `libsonos_certval` | **partial** | Device-certificate verification lives in its own shared library, separate from the main player code. |
 | `load_content` | **partial** | The muse `loadContent` verb family: `loadContainer`, `loadStream`, `loadFavorite`, `loadPlaylist`, `loadTrackList` — with a type whitelist (spotify.connect items, linein variants, trackList programs, podcast episodes, audiobook chapters, homeTheater-input). |
 | `local_routes_2` | **partial** | A second cluster of local routes bound via a path-matcher rather than the master pointer table: `/createGroup`, `/unjoin`, `/activate`, `/deactivate`, `/duck`, `/unduck`, `/definition`, `/missingDefinition`, `/activeZone`, `/memberSettings`. |
-| `log_domain_map` | **partial** | Every anacapa.*.log domain names a subsystem boundary — the 21 domains are effectively a module map of the binary. |
+| `log_domain_map` | **partial** | Every log channel the program can write to names a subsystem boundary — the 21 log domains are effectively a module map of the whole binary. |
 | `log_domains` | **partial** | The anacapa log-domain map: per-subsystem files under `/opt/log/anacapa.*.log` (alarm.job, avt.play, chsrc.state, ext.audio.action, gm.events, hdmi, lechmere.event, musecmdandrsp, spotify, tv, vl...), the main anacapa.log, and `/opt/conf/anacapa_logger.toml` categories. |
 | `longpress` | **partial** | The long-press button behavior — group-coordinator clone cycling: a GC list (head/tail/current) of cloneable coordinators, 'cycling to %s:%s', with tracked add/remove/promotion and 'last PAUSED/STOPPED GC is no longer cloneable' detection. |
-| `mdns_controller` | **partial** | The mDNS service controller: register-once guards, TXTRecord populate/update/remove with duplicate suppression, and player-discovery startup. |
-| `mdns_discovery` | **partial** | The mDNS discovery half: TXT key enumeration errors, bye-bye reason updates, an 'older version or missing keys' compat check, household filtering ('not in our household: discovered vs ours'), and topology notification with the remote bootseq. |
+| `mdns_controller` | **partial** | The discovery-service controller: register-once guards, record populate/update/remove with duplicate suppression, and startup of player discovery. |
+| `mdns_discovery` | **partial** | The discovery half: record-key enumeration, gone-reason updates, a compatibility check for older or incomplete records, and household filtering so foreign speakers get ignored. |
 | `media_player_abstraction` | **partial** | Beneath AVTransport sits a plug-in layer of source implementations - one per stream type (line-in, TV, Spotify, AirPlay-style sources). |
-| `media_player_mgr` | **partial** | The media-player actor registry: each player is an actor keyed by uuid/index/port/ssl/mtls with overlap detection, lifecycle (register/create/shutdown), and per-player config dirs with their own `anacapa_logger.toml`. |
+| `media_player_mgr` | **partial** | The media-player registry: each playback session is tracked with its identity, port, and security settings, plus lifecycle events as players register and shut down. |
 | `memmon` | **partial** | The memory monitor: reads `/proc/meminfo` (MemAvailable, MemFree) plus per-process statm/cmdline, writes rotating logs to `/tmp/memorylog/log.N`, and emits 'memory report avail/free' records with a skip counter. |
 | `memory_monitor` | **partial** | Same memmon layer (see memmon): the threads memlog/memmon/memory_status drive the sampling and rotation. |
 | `mntmgr` | **partial** | The SMB mount manager: mounts live under `/tmp/smb/{uid}_{id}`, trial mounts under `/tmp/smb/tmp*` probe dialect support ('unsupported protocol: strike N/M', 'flagging failed'), dedup by unc/share, enforce a max-share count, and unmount idle shares. |
 | `model_sku_vocabulary` | **partial** | Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability conditionals — which features a given hardware reports. |
 | `model_table` | **partial** | The ZPS model-compatibility table: every model id this build recognizes (ZPS1–ZPS55, ZP120, ANVIL) — the local unit being ZPS9 (Playbar). |
-| `mp3_decoder` | **partial** | The MP3 stream decoder: xing/VBR header handling ('No size in xing header', VBR duration math), frame resync bounded at 20 attempts ('corrupt file'), frame errors (illegal sample rate, header/sync/data overflow), and LAME/ID3 normalization. |
+| `mp3_decoder` | **partial** | The MP3 stream decoder: variable-bitrate header handling, duration math, frame resync with a bounded retry, and error reporting for corrupt frames. |
 | `mp_autoplay` | **partial** | The media-player autoplay logic for virtual line-in sources: vol/useVol/includeZones params, AirPlay zone inclusion via `AirplayIncludeGroupedEvt`, and linein object types (homeTheater, airplay, bluetooth) keyed to `x-sonos-vli:` URIs. |
 | `mpegts_id3` | **partial** | The MPEG-TS demuxer plus timed-ID3 extraction for HLS radio metadata: PAT/PMT parsing, audio PID selection ('No audio PID'), stream-type rejection, PTS handling, and timed-ID3v2 tag extraction with size caps and OOB guards. |
 | `mpmgr` | **partial** | The mpmgr actor layer (see media_player_mgr): the registry and resolver that maps a target key to a concrete media-player actor — including the 'no actor available' and 'unexpected target ID type' failure modes. |
 | `multi_daemon_boundary` | **partial** | anacapad is one daemon of ~13 on the player. |
 | `muse_field_schema` | **partial** | The JSON field names used in muse payloads, grouped by domain: auth (accessToken, refreshToken, pinEpoch), battery (chargingState, rawBatteryPercentage, batteryTemperature), device (isCoordinator, isSatellite, bootSequenceId, museHouseholdName), plus settings, positioning, and queue fields. |
 | `muse_logging` | **partial** | The internal command/event logger (`muselogcmd`/`muselogevt`) that records dispatched muse operations — loadAudioClip, setProtectedAdminSettings, createVoiceAccount among them. |
-| `muse_perf` | **partial** | A per-stage profiler inside the muse engine: AUTH_IS_AUTHORIZED, COMMAND_PARSE, COMMAND_DISPATCH, COMMAND_EXECUTE, plus per-verb stages like PLAYER_VOLUME_SET_VOLUME, each reporting total ms, average, and count. |
+| `muse_perf` | **partial** | A per-stage profiler inside the modern-API engine: it times each phase a request passes through — authorization, parsing, routing, execution — plus per-operation stages. |
 | `muse_semantics` | **partial** | The 'muse' API is Sonos's real product API — the REST-style surface the app talks to over the cloud/websocket channel. |
 | `muse_target_validator` | **partial** | The gate that resolves a command's target: implicit targets (the receiving player), explicit targets (another player or group by id), and the rejections (guest_access_disallowed, forbidden, not_authorized, not_found). |
 | `music_services` | **partial** | The available-services store: `musicservices.xml` plus a backstop file, state variables (ZPMusicServicesList, ServiceListVersion, AvailableServiceDescriptorList/TypeList/ListVersion), and settings like the online-update base URL. |
 | `netif_monitor` | **partial** | The netlink interface-address monitor — the same selthrd.RIfAddressMonitor machinery as addrmon: RTM_NEWLINK/GETLINK events feeding reset/data/except/timeout handlers. |
 | `netstart_events` | **partial** | The netstartd IPC event vocabulary: hello, setup start/stop, idle/alive/open, in-setup-mode, SSID set/clear, triggered-upgrade, connection-type updates — plus WAC mode states (/var/run/wac_mode, disabled/enabled/timeout). |
 | `noderx` | **partial** | The inter-player RX transport (noderx): output buffer bookkeeping (lastRead, lastConsecutiveGood, lastRx), a flight-recorder line per packet, startup with delayed packets/frames, large-gap 'don't NACK' startup, and discontiguous-NACK suppression. |
-| `nslookup_detail` | **partial** | The `/nslookup` exec page: a gate plus a `nslookup` shell-out driven by a parameter table — one of the tools-page commands, listed separately because it resolves through a different dispatch path than the main exec table. |
+| `nslookup_detail` | **partial** | The /nslookup diagnostic page detail: a permission gate plus a lookup routine driven by a parameter table — one of the tools-page commands, listed separately because it resolves names on demand for network debugging. |
 | `overrideconfig` | **partial** | The `/overrideconfig` endpoint: a form POST that commits an override file, with strict body validation (read errors, content-length mismatch, init/commit failures) and a meta-refresh success page to `/fcs`. |
 | `perf_counters` | **partial** | The perf-counter schema: keyed counters with wallClockEndTime ('end of the window as UTC'), description fields, and min/avg/max accounting — 'average value should be 0' asserts on reset. |
-| `perfect_sync` | **partial** | The forced perfect-initial-sync mechanism: `forcePerfectInitialSync` pins a stream's first play time to an exact timestamp ('ignoring %d usec diff'), used when group start alignment matters more than smooth ramp-in. |
+| `perfect_sync` | **partial** | The 'perfect sync' machinery — Sonos's multi-room synchronization: how grouped speakers keep their audio clocks aligned tightly enough that rooms play in lip-sync-level unison. |
 | `play_history` | **partial** | Recently-played tracking: plays are recorded by the track monitor/recorder, buffered, and POSTed to the household history API with strict completeness rules; the app fetches an ETag-cached list; clearHistory/removeHistoryItem ops exist. |
 | `playlist_parsers` | **partial** | Below the URI layer sit real playlist parsers: ASX/WMP (mswmext), M3U (x-mpegurl), Apple HLS playlists (vnd.apple.mpegurl), DASH manifests. |
 | `psk_hierarchy` | **partial** | The household's symmetric-key tree: four PSKs — HhPsk (DTLS for household comms), ControlPsk, RoomEncPsk (encrypts room names), LanSwapPsk — each with a backup mirror for seamless rotation. |
-| `qplay` | **partial** | QPlay (Tencent's music-cast protocol) support - minimal in this build: the device description advertises the capability strings and a QPlayAuth action exists, but no seed/code exchange or control channel was found. |
-| `qplay_protocol` | **partial** | Tencent's QPlay protocol (QQ音乐 casting). |
+| `qplay` | **partial** | The QPlay integration — the Tencent QQ Music casting feature: the machinery behind the QPlayAuth handshake and the session that streams audio afterward. |
+| `qplay_protocol` | **partial** | The QPlay protocol implementation — the wire details of the Tencent casting protocol: seed/code exchange and the session flow. |
 | `queue_persistence` | **partial** | How the queue survives reboots: saved queues are an XML document (.rsq) of SavedQueue+Track elements written atomically via a .tmp rename with a .d.rsq backup; the live queue persists as trackqueue.rsq; both are validated at boot and on replication. |
 | `rdmbuttonfwd_detail` | **partial** | The /rdmbuttonfwd endpoint's behavior: it checks authentication and whether the player is in RDM (remote display/room) mode - only then do physical button presses get forwarded to the remote display; otherwise requests are rejected. |
 | `runtime_flag_files` | **partial** | A set of sentinel files in /tmp and /var/run flip device behaviour at runtime: device_unlocked_flag, brokendevice, wifidisabled, crashed_play_state, event_preserve, wac_mode, netmanager_extender_flags, systemtimeoffset... |
 | `runtime_policy` | **partial** | The runtime policy object: consults fcs, hhsettings, and settingsmgr to decide 'Disallowed' outcomes — e.g., effective P2P policy encryption status, 'Use Thor w/ Muse', 'Chsrc Optimization Enabled'. |
 | `scrobbler` | **partial** | Last.fm scrobbling is built in: the player handshakes with post.audioscrobbler.com (Audioscrobbler protocol 1.2), then POSTs each played track as form fields (artist/title/timestamp/album/MBID...). |
-| `select_thread` | **partial** | The RSelectThread epoll wrapper: epollAddFD/remove with per-user accounting ('too many users'), interrupt-fd handling, fd-change detection ('improperly changed its FD'), eventfd errors, and mutex-protected updates. |
+| `select_thread` | **partial** | The central event-wait thread: file-descriptor add and remove with per-user accounting, interrupt handling, and change detection — the program's main loop that waits on sockets, timers, and hardware at once. |
 | `semisleep_power` | **partial** | A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/AmplifierPowerStateChanged/DirectControlIsSuspended strings indicate players can enter a low-power 'semi sleep' and resume — relevant to idle latency and why a sleeping player can lag on first command. |
-| `sethostip_detail` | **partial** | The `/sethostip` handler detail: a gate plus a tail that sets the host IP and responds — one of the engineering endpoints, bound through a different dispatch path than the master table. |
+| `sethostip_detail` | **partial** | The /sethostip endpoint detail: a gate plus a routine that sets the host address and responds — one of the engineering endpoints, wired through a different route than the normal pages. |
 | `settings_replication` | **partial** | Household state is kept in sync by a replication protocol: each named store (accounts, netsettings, favourites, saved queues, areas) has a version+format handshake and per-item transfers between players. |
 | `sharelist` | **partial** | The SMB share-list manager: add/remove/reindex/resort shares, replicate the list via `indexrepl` with a 'us vs them' remoteSettingIsBetter comparison, and drop shares whose protocol fails verification. |
 | `shoutcast` | **partial** | The Shoutcast/ICY stream client: request headers (icy-name, location, CONTENT-TYPE, server — 'Cougar' server id), response handling (ICY 200, HTTP 200/30x variants), redirects (including audio/x-mpegurl), and metadata-interval handling. |
 | `shutdown_reasons` | **partial** | The idle/shutdown reason enum: APICall, BluetoothConnection, PartnerDisappeared, Recovery, UserSuspend, UserShutdown, APIShutdown, CriticalShutdown, UnknownShutdown — plus the idle-state transitions and battery fields (RawBattPct...). |
-| `shutdown_seq` | **partial** | The modZPShutdown ordered teardown: HttpClient, ZonePlayer, AsyncMuseThreadPool, InternalEventDispatcher, resetZone, DropoutEventHandler, deleteTimedJobManager, AsyncThreadPool, finalSection, finalSectionEnd. |
+| `shutdown_seq` | **partial** | The ordered teardown sequence: web client, zone player, the cloud-API thread pool, the internal event distributor, then timed jobs and state — each component stopped in a specific order. |
 | `signal_source` | **partial** | The signal/tone source: single-instance tone injection ('only one signal can run at any given time'), playId validation, channel-number targeting, and policy gating. |
 | `smapi_descriptor` | **partial** | The SMAPI service-descriptor schema: apiKey, presentationMap, strings, reporting, browse, and Moment sections plus accountTiers (paidLimited, paidPremium). |
 | `smartplay` | **partial** | The SmartPlay bridge-content loader: triggered by BUTTON or EMPTY_AVT, it calls the cloud `/bridge/content/api`, fetches content for a group, and starts playback — all timed (loadContent/getContent/fetchContentAndStartPlay in ms). |
 | `sntp_server` | **partial** | Sonos runs its own time system: players sync from Sonos's *.sonostime.pool.ntp.org pool, but a single household player also hosts an SNTP server and the others sync from it — the server role can migrate. |
 | `socket_hal` | **partial** | The eSDK socket HAL: platform sockets abstracted for the Connect stack — IPv4-only (`Tried to use IPv6 but this platform does not support it`), DNS queueing with a bounded queue, socket-option plumbing, and the accept/connect/bind error taxonomy. |
-| `sonarctl_detail` | **partial** | The `/sonarctl` handler detail: control surface for the sonar (room-detection acoustic) subsystem — gated like the other engineering endpoints. |
-| `sonoscp` | **partial** | The sonos content-provider umbrella (`sonos_cprovider`): the SMAPI SOAP client plus the WMP provider plus service-descriptor handling — the big module that speaks outbound to music services on the device's behalf. |
+| `sonarctl_detail` | **partial** | The /sonarctl endpoint detail: a control surface for the room-detection acoustic subsystem, gated like the other engineering endpoints. |
+| `sonoscp` | **partial** | The content-provider umbrella: the music-service client, the Windows Media provider, and service-descriptor handling together — the module that speaks to external content sources. |
 | `sound_device` | **partial** | The sound-device abstraction: the layer between the mixer/LLA and the hardware — device open, buffer negotiation, select/poll integration, and the fault taxonomy the audio stack surfaces. |
 | `sound_swap` | **partial** | SoundSwap: the feature that lets an audio session follow the user between devices. |
 | `spdif_detect` | **partial** | The SPDIF input detector: format detection on the optical/ARC input that decides which decoder path (PCM, Dolby, DTS) gets the stream. |
@@ -180,7 +180,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `stream_fetcher` | **partial** | The generic stream fetcher FSM: open, headers, redirect handling, resume-at-offset (`?after=`), and error recovery for HTTP audio. |
 | `stream_playback` | **partial** | The stream playback engine: the DS (data-source) selection, playlist fetch scheduling, failover between alternates, and recovery accounting (buffer-ahead ms deciding if there's 'time to recover'). |
 | `tdm_driver` | **partial** | The TDM/SPDIF interface to the DSP (`/dev/dsp`): an mmap'd ring with `TDM_SETMODE` ioctl setup. |
-| `telemetry` | **partial** | The telemetry umbrella: the event pipeline feeding usage metrics, dropout events, and playback stats to the cloud — with SHA256-checked persistence (`/tmp/event_preserve`) so events survive a crash before upload. |
+| `telemetry` | **partial** | The telemetry machinery overall — gathering usage and health data about the system: what gets measured and how it's packaged for Sonos. |
 | `telemetry_client` | **partial** | The telemetry submission client: endpoint selection, batch send, retry, and the `Esdk*`/usage event schemas it accepts. |
 | `telemetry_submission` | **partial** | The diagnostics pipeline: Telemetry 1.0 events tagged with field names, uploaded with the product-data-telemetry message-type header, plus the user-facing SubmitDiagnostics flow and a per-player positioning telemetry level setting. |
 | `testenv_environment` | **partial** | A hidden /testenv page lets a tester point the whole player at a different Sonos cloud environment (production, perf, staging, test or int) and override the update URL. |
@@ -189,114 +189,114 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `tj_wakeup` | **partial** | The timed-job wakeup machinery: the scheduler half that fires jobs on time including across suspend — the 'wake the device to run a job' path that interacts with semi-sleep. |
 | `token_refresh` | **partial** | The OAuth token-refresh state machine: dedicated threads watch expiry, request refresh through the cloud queue, wait for completion, and stash tokens to file — logging HTTP status per attempt. |
 | `track_play_monitor` | **partial** | The track-play monitor/recorder: records what actually played (for history and scrobbling), detects interrupted vs natural finishes, and emits the play events historymgr ships. |
-| `trueplay` | **partial** | The Trueplay subsystem umbrella: the TPNode protocol, SDK integration (v6.2.0.1), measurement/collect/compute lifecycle, and the calibration results that feed DSP config. |
+| `trueplay` | **partial** | The Trueplay/sonar tuning feature — room calibration as a whole: measuring the room's acoustics and adjusting the speaker's sound to fit. |
 | `trueplay_api` | **partial** | The Trueplay API factory + node layer: `trueplay_api.cpp` provides the SDK entry points, node messages carry protobuf-encoded actions/statuses with version negotiation, and TrueplayAPIFactory instantiates the right implementation per product. |
-| `ttm_helper_detail` | **partial** | The `/ttm_helper` handler detail: the time-to-music measurement helper — an engineering endpoint that times how long a play takes end-to-end, gated like the other diag surfaces. |
+| `ttm_helper_detail` | **partial** | The /ttm_helper endpoint detail: a 'time to music' measurement helper — an engineering endpoint that times how long a play command takes end to end. |
 | `unlock` | **partial** | The `/unlock` engineering unlock: a challenge/response state toggle (unlock vs lock branches) with auth calls and a rate limit. |
 | `update_coordinator` | **partial** | The update coordinator: schedules firmware downloads, enforces battery/version gates, drives the `availableSoftwareUpdate` event, and coordinates the household-wide rollout. |
 | `update_machinery` | **partial** | Firmware updates are manifest-driven: a cloud manifest lists per-model target rows and a minimum auto-update version; household updates run check→download→launch across members with the coordinator orchestrating. |
-| `upnputil` | **partial** | Shared UPnP utilities: parsing `host:port` out of server URLs with strict port validation, mapping internal statuses to UPNP_RESULT codes while preserving the original error, and the canonical ZonePlayer UDN format. |
+| `upnputil` | **partial** | Shared control-protocol utilities: parsing host:port out of server addresses with strict validation, and mapping internal statuses to wire-level result codes. |
 | `usage_metrics` | **partial** | The usage-metrics schema: the counters and records the device reports for feature usage — submit/permission-gated like diagnostics. |
 | `user_update` | **partial** | The user-initiated update flow: the 'check for updates' path vs the coordinator's scheduled path — same manifest/download machinery, different trigger and UX semantics. |
-| `vli_ctrl` | **partial** | The VLI control interface (`media_player_vli_ctrl`): the event grammar, MIME whitelist, DIDL extractor for VLI items, and URI→service map — the control plane a VLI source uses to talk to the group. |
+| `vli_ctrl` | **partial** | The virtual-line-in control interface: the event grammar, the format whitelist, the metadata extractor for pushed items, and the URI-to-service routing — the control plane for external sources feeding the player. |
 | `voice_skill` | **partial** | The voice-assistant integration bits: skill/voice-account vocabulary, ALEXA_TTS/audio-clip types, and the voice-related feature flags. |
 | `wac_mode` | **partial** | WiFi Accessory Configuration — the Apple's-WAC-style setup mode where the player broadcasts a setup network (wacd daemon, /var/run/wac_mode flag, timeout). |
 | `watchdog` | **partial** | The watchdog subsystem: `/dev/chk` device, `/watchdog.log` + `/watchdog.dmesg` captures, a health-check thread on a configurable frequency, a client registration API (named clients with callbacks — 'client must have a name', 'already registered'), manual/force triggers, and `/sbin/reboot` on unresponsive. |
-| `wmp_provider` | **partial** | The Windows Media Player content provider: NSS browse/search over `/WMPNSSv`, capability flags (SCPA, SCPB, SCPI), a search grammar (`upnp:class derivedfrom "object.item.audioItem"`), container-class specs (musicArtist, musicAlbum, musicGenre, playlistContainer), and sort/filter fields including Microsoft extensions. |
+| `wmp_provider` | **partial** | The Windows Media Player content provider: browse and search over shared Windows libraries, with its own capability flags and search grammar. |
 | `ws_client` | **partial** | The outbound WebSocket client used for the lechmere/cloud channel: performs the Upgrade handshake (Location, Sec-WebSocket-Accept, Sec-WebSocket-Extensions), negotiates per-message deflate only during open (an unsolicited deflate offer fails the connection), retries openSession, generates nonces, and reports `disconnectedReason` plus close codes. |
-| `ws_server` | **partial** | The player runs a local WebSocket endpoint so apps can hold a live control connection instead of polling. |
+| `ws_server` | **partial** | The player runs a local websocket endpoint so apps can hold a live control connection instead of polling — it does the standard handshake, negotiates compression, and then carries the same event traffic the cloud pipe does. |
 | `zgt_errors` | **partial** | The ZGT error paths: `ReportUnresponsiveDevice` handling with source address logging, and `GetZoneGroupAttributes` request validation failures (no valid UUID, invalid TServer, invalid TRequest). |
 | `zones_mgr` | **partial** | The zone lifecycle manager: zone-definition changes fire ZonesDefinitionsChangedEvent, muse exposes `getZoneDefinition` lookups, and transitions on primary/secondary are logged — including failures on the primary that leave a zone half-formed. |
 | `zones_storage` | **partial** | The zone-definition store: name/id/channelMapSet records with a max-zone cap, create/update/remove ops (removal is blocked while the zone is active), and replication of offered files with rename-into-place semantics. |
-| `zpinfo_dpimpl` | **partial** | The ZPInfo diagnostic surface from dp_impl: the `<ZPInfo>` schema (device attrs, network info, support fields) plus `/enetports`/ethportstatistics and the shutdown/idle-reason enum — the dp layer's contribution to `/status`. |
-| `account_actions` | **strong** | The DeviceProperties account-management actions: `AddAccountX`, `AddOAuthAccountX`, `EditAccountPasswordX`, `RemoveAccount`, credential refresh, and post-update tasks, with args covering OAuth codes, tokens, md5s, and web codes. |
-| `accounts_replication` | **strong** | The accounts manager's internal op set: adding accounts by credentials, OAuth token, OAuth code, or direct-control; modifying and migrating entries; reporting. |
-| `acoustic_metrics` | **strong** | The schema for positioning's acoustic measurements: TDOAs, correlation peaks, threshold/leading-edge energy terms, spectral similarity, noise/signal RMS, and confidence scores. |
-| `alarm_clock` | **?** | The AlarmClock service: alarms + sleep timers over UPnP, SQLite persistence (`timers` table), suspend-aware remaining-time serialization, and the AHA/alarm op vocabulary for autoplay interactions. |
-| `album_art` | **?** | Album artwork handling: fetch, cache, resize, and serve — backing the `<albumArtURI>` fields and the app's artwork grid. |
-| `amp_manager` | **strong** | The amplifier power manager that decides when the output stages physically turn on, mute, or drop to a low-power rail. |
-| `ap_layer` | **strong** | The Spotify Connect access-point layer: resolves `apresolve.spotify.com`, opens a TLS socket to an access point, exchanges a Hello/ApWelcome handshake, and carries everything afterward as typed TLV packets (guarded at 16 KiB). |
-| `areas` | **strong** | The Areas manager — Sonos's name for rooms as a durable concept: `areas.json` persistence with atomic rename-on-write, schema-version checks, a built-in 'Everywhere' area, and ID-distinctness constraints. |
-| `async_stream` | **strong** | The shared buffered-stream primitive used under almost every audio path: a segmented, seekable buffer that pauses/resumes at stream positions, reaps played blocks, and supports a rate-limited multi-threaded reader. |
-| `audio_in` | **?** | The AudioIn service: physical line-in/optical input control — the Unpaired*/Autoplay*/LineIn* state variables, source format selection, and the group-distribution hooks (see audioin_groups). |
-| `autoplay` | **?** | Autoplay source injection: when a line-in/TV/AirPlay/BT source goes live, configured target zones start playing it — with volume override and zone-inclusion params. |
-| `av_transport` | **?** | The AVTransport UPnP service — playback control core: SetAVTransportURI, Play/Pause/Stop/Seek, Next/Previous, play modes, crossfade, and the LastChange event stream. |
-| `avt_impl` | **strong** | The avt_impl layer under the AVTransport service: transport-source selection (CHSRC for grouped audio, HTAudio for TV input), session bookkeeping in `avt.txt` with backup/restore and read/write locks, and the RAVTMediaRenderer actor. |
-| `avt_lastchange` | **strong** | The complete `LastChange` event grammar for AVTransport: the standard UPnP fields (TransportState, CurrentTrack*, AVTransportURI*, NumberOfTracks, play/crossfade modes) plus Sonos extensions under the `r:` namespace (EnqueuedTransportURI*, sleep/alarm fields, more). |
-| `browse_ids` | **strong** | The SMAPI browse container-ID vocabulary: library roots (ALBARTIST, LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS...), genre branches, global containers, and per-service subtrees. |
+| `zpinfo_dpimpl` | **partial** | The ZPInfo diagnostic surface: the device-info document schema (attributes, network info, support fields) plus the ethernet-port statistics and shutdown-log surfaces. |
+| `account_actions` | **strong** | The operations behind music-service account management — the routines that actually add, edit, and remove the saved logins for services like Spotify, sitting underneath the account commands documented on the services pages. |
+| `accounts_replication` | **strong** | Keeps music-service accounts in sync across the household — when you add a Spotify login on one speaker, this machinery replicates it to the others so any room can play that service. |
+| `acoustic_metrics` | **strong** | Gathers measurements about the audio hardware — signal levels, channel data, and other acoustic telemetry the player reports for diagnostics and tuning. |
+| `alarm_clock` | **?** | The alarm engine itself — the scheduler that wakes up, checks which alarms are due, and fires them (including triggering playback in the right rooms). |
+| `album_art` | **?** | Fetches and serves album artwork — downloads cover images from music services, caches them locally, and serves them over the player's own web interface so apps can display what the speaker sees. |
+| `amp_manager` | **strong** | Manages the internal amplifier — enabling and disabling output stages, applying gains, and handling the amp's power state. |
+| `ap_layer` | **strong** | The access-point layer — code for when a Sonos player acts as or manages a wireless access point. |
+| `areas` | **strong** | The household-areas machinery — the internal model of multi-room 'areas' that newer app versions organize by, matching the areas API surface documented on the muse page. |
+| `async_stream` | **strong** | An asynchronous streaming helper — plumbing for data that arrives or is consumed in chunks rather than all at once. |
+| `audio_in` | **?** | The line-in input path — machinery for audio arriving on the physical input jack. |
+| `autoplay` | **?** | The autoplay feature — the machinery that makes a speaker resume or follow a source automatically (the 'start playing when this room does' behavior configured through the autoplay settings). |
+| `av_transport` | **?** | The transport engine's core — the state machine that actually runs playback: source selection, play/pause/stop/skip/seek, and the mode-specific behavior per source type. |
+| `avt_impl` | **strong** | The implementation object behind the transport service — where the command handlers' real work happens once the network layer has unpacked a request. |
+| `avt_lastchange` | **strong** | The machinery that builds the transport service's bundled change reports — collects which playback variables moved and serializes them into one LastChange notification. |
+| `browse_ids` | **strong** | The identifier scheme for the music library — how containers and items get their browse IDs, so 'artist X' or 'playlist Y' has a stable address in the library tree. |
 | `catalog_translation` | **strong** | The same catalog-translation facility as catalog_translate: cloud-backed ID mapping with a local cache ('retrieved translation from cache' vs 'connecting to translation service'). |
 | `cdn_fetcher` | **strong** | The eSDK's CDN downloader: three cooperative fibers (socket IO, HTTP IO, chunk copy) pull track data from Spotify's CDN with explicit offset/size requests, follow redirects, retry on timeouts, and fail over to the next CDN host when one stalls. |
 | `cert` | **?** | Device identity certificate handling: the Sonos-issued cert + encrypted private key used for mTLS and signing — see cert_files for layout, cert_layer for validation, devicecertmanager for refresh. |
 | `cert_layer` | **?** | The X.509 validation internals: issuer/env/household/user match rules, issue-date checks, and the MISMATCH_* error taxonomy behind every mTLS or signed-request failure. |
-| `chirp_sdk` | **strong** | The public Chirp SDK wrapper: profile construction, payload encoding/decoding, symbol extraction, and the process_shorts input/output audio pump. |
+| `chirp_sdk` | **strong** | The SDK layer of the chirp feature — the internal interface other components call to start and stop the speaker-identification tone, so the room-detection commands don't each reimplement tone control. |
 | `chsnk` | **?** | The group-audio channel sink: the receiving end of a framed, SNTP-synchronized audio stream from the group's source. |
-| `chsnk_detail` | **strong** | The detailed chsnk behavior: remote seamless transitions parse incoming source packets and either quick-handoff or wait out a timed handoff window, with packet-compatibility checks (protocol version, full-frame/id/class/offset matching). |
-| `chsrc_chsnk` | **substantially decoded** | The paired group-audio channel protocol: chsrc is the source side (the player that owns the audio, producing framed packets with play-hint states), chsnk is the sink side (every other member). |
-| `circuit_breaker` | **strong** | A CLOSED/OPEN/SEMI_OPEN circuit breaker wrapped around muse command delivery: when commands to the cloud start failing, the breaker opens and fast-fails instead of queuing forever, then probes recovery through a semi-open state. |
+| `chsnk_detail` | **strong** | The internals of the channel-sink implementation — the detailed machinery of how a group member receives, buffers, and stays in sync with the leader's audio feed. |
+| `chsrc_chsnk` | **substantially decoded** | The channel source-and-sink pair — Sonos's internal protocol for distributing audio between players: the leader is the source, followers are sinks, and this subsystem is the transport that keeps them sample-synchronized across the network. |
+| `circuit_breaker` | **strong** | A circuit-breaker — the reliability pattern that stops the player hammering a dead dependency. |
 | `cloud` | **?** | The cloud-integration umbrella: API path construction, service hostnames, registration, and the lechmere event channel — the parts of the device that are useless without internet. |
 | `cloud_queue` | **strong** | Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (voice assistants, direct control) schedule tracks. |
 | `cloud_registration` | **?** | Cloud registration state machine: binds the player to a household online; `getRegistrationStatus` exposes progress; failures retry with backoff and leave local playback working. |
 | `cloud_services` | **strong** | The registry of which cloud hostnames serve what: `sslauth.sonos.com` for authenticated calls, per-service `*.ws.sonos.com` endpoints for lechmere events, crash upload, feature config, music history, registration, recommendations, and more. |
-| `content_directory` | **strong** | The ContentDirectory implementation: dual-URN service (Sonos and UPnP org), full browse/create/destroy/update actions, share-indexing state variables (SystemUpdateID, ShareIndexInProgress, ShareIndexLastError, Favorites/Radio/SavedQueues update IDs), and locale handling (zh-CN, ja-JP). |
-| `customsd` | **strong** | The `/customsd` page — a CSRF-protected form that registers a custom SMAPI service descriptor: SID range 240–253/255, name, secureUri, poll interval, and an authType radio (Session ID, Anonymous, DeviceLink, AppLink), plus optional strings/presentation-map/manifest version+URI fields. |
+| `content_directory` | **strong** | The music-library engine — builds and holds the index of your shared music folders so 'browse by artist/album/genre' works without re-walking the shares every time. |
+| `customsd` | **strong** | A custom service-discovery block — internal lookup machinery used where the standard discovery protocols don't fit, named by the /customsd web endpoint that exposes it. |
 | `datatap` | **?** | Internal data taps for diagnostics: structured capture hooks into subsystems that don't publish state otherwise. |
-| `device_props` | **?** | The DeviceProperties service: device-level attributes — serial, MAC, display settings, button/LED behavior, IR, and the account-management actions (AddAccountX etc.). |
+| `device_props` | **?** | The DeviceProperties service internals: device-level attributes — serial number, hardware address, display settings, button and light behavior, infrared handling — plus the account-management commands. |
 | `devmode` | **?** | Developer mode: `/devmode` page, statement files, and the unlock challenge — gated diagnostic behavior that differs from production. |
 | `diag_build_artifact` | **confirmed** | There's a separate factory/retail test firmware — the 'diag' build — that isn't the normal product. |
-| `dolby_decoder` | **strong** | The Dolby decoder front-end plus the DAP (Dolby Audio Processing) configuration model. |
+| `dolby_decoder` | **strong** | The Dolby decoder front-end plus the DAP (Dolby Audio Processing) configuration model — the machinery that decodes the surround format TVs and discs send, with its tuning stored as a JSON config on disk. |
 | `download_status` | **confirmed** | The file-download result enum: ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, SIZE_ERROR, FILE_ERROR, CONNECTION_ERROR, DOWNLOAD_SUCCEEDED, FILE_UNCHANGED, DOWNLOAD_IN_PROGRESS. |
 | `dsp_config` | **strong** | The DSPConfig nanopb blob: `/opt/dsp` files (ht_config, ht_config_sat) decoded with protobuf, holding per-model bonded gains and volume breakpoint tables. |
-| `error_codes` | **?** | The shared error-taxonomy umbrella: muse ERROR_*, JWT errors, LLA errors, download statuses — each enumerated in its own record. |
-| `esdk_api` | **strong** | The Spotify eSDK API table — the complete Sp* surface: connection/login (LoginBlob, OauthToken, SetConnectivity, Logout), playback (Play, Pause, Skip, Seek, SeekRelative, Volume, Shuffle, Repeat, CycleRepeatMode, BecomeActiveDevice), queue (PlayUri, PlayContextUri, QueueUri), event pump (SpPumpEvents), notify hooks (track length/error/stream events/seek complete/download position), and DRM format restriction. |
-| `esdk_callbacks` | **strong** | The eSDK callback registration model: playback callbacks (on_notify, on_seek, on_apply_volume), stream/delivery callbacks (on_data, on_start, on_end, on_flush, on_pos), connection (on_message, on_new_credentials), device-alias, DNS, socket (17 fn ptrs), TLS, debug, and error — each registered in a named block and removable. |
-| `esdk_crypto` | **strong** | The eSDK login crypto: RSA-2048 bignum arithmetic with a modpow workspace, the login-hello exchange whose buffer must fit SHA1 digest + two signatures + the workspace, and the entropy HAL (`hal_get_random_bytes`). |
-| `esdk_internals` | **strong** | The eSDK internals below the API: AP connection layer, TLV framing, mercury/hermes channels, CDN fetcher, DRM key/IV lifecycle, track pipeline, socket HAL, bandwidth meter, and the login crypto (SHA1+signature+modpow). |
-| `evo_decoder` | **strong** | The Dolby Evolution decoder — the DDPI UDC path used for newer Dolby bitstreams (MAT/Atmos-era). |
-| `expat` | **strong** | The vendored Expat 2.5.0 XML parser: billion-laughs amplification accounting (direct/indirect byte counts with amplification ratio), debug env vars (EXPAT_ACCOUNTING_DEBUG and friends), /dev/urandom entropy with fallback, and attribute-type handling. |
+| `error_codes` | **?** | The error-code machinery — the tables and translation logic that turn internal failures into the numeric fault codes commands return. |
+| `esdk_api` | **strong** | The embedded-SDK API surface — the public interface of the Spotify embedded SDK (eSDK) inside the firmware: the calls the player side makes into the Spotify component. |
+| `esdk_callbacks` | **strong** | The eSDK callback wiring — the hooks where the embedded Spotify component calls back into the player (events, audio requests, state changes). |
+| `esdk_crypto` | **strong** | The eSDK cryptography — the cryptographic routines inside the embedded Spotify component: key handling and the secure channel Spotify Connect uses. |
+| `esdk_internals` | **strong** | Embedded Spotify SDK internals — the recovered map of the eSDK's internal structure: its modules, state, and how Sonos integrated it. |
+| `evo_decoder` | **strong** | The Dolby Evolution decoder — the path used for newer Dolby bitstreams (the MAT/Atmos-era formats). |
+| `expat` | **strong** | The bundled Expat XML parser: includes accounting against amplification attacks, debug environment variables, and the versioned parser core every document-reading component shares. |
 | `feature_config` | **strong** | The complete `featureConfig` schema — the cloud-pushed feature document: flags for Spotify adaptive bitrate + Connect-for-all-accounts, metrics config URLs, preferred RP container, voice data collection, partner integrations (Lutron, Amazon Music DASH, Apple Music HLSv7, TuneIn replacement/migration), semiSleep, trueplay data collection, dropout context, and more. |
-| `group_mgmt` | **?** | The GroupManagement service: bonded-group lifecycle (stereo pairs, surrounds) — create/remove/validate plus the evented membership state. |
+| `group_mgmt` | **?** | The group-management engine — the internal machinery of group membership: who's in a group, who leads it, joining and leaving, behind the GroupManagement commands. |
 | `hermes` | **strong** | The mercury/hermes channel layer for Spotify: `hm://hwptp/*` URIs carry device state (volume, play, shuffle, repeat, queue, pull_playback) between the cloud and the Connect session, plus content-encryption-key and offline-restriction channels. |
 | `ht_telemetry` | **strong** | The TV input-session report (`zpHTInputSession`): per-session correlation id, connection type, coordinator UUID/boot-seq, session/play durations, input rate, burst type, content type, and forced flag — tagged `tv_usage`. |
-| `htaudio` | **?** | The home-theater audio path: TV input capture, channel processing, satellite transmission, and autoplay for HT sources. |
+| `htaudio` | **?** | The home-theater audio subsystem — the overall audio path for a soundbar product: TV input to speaker output, including the surround/processing stage. |
 | `http_cache` | **strong** | The HTTP cache semantics: stale-while-revalidate, stale-if-error, no-store, public/private directives mapped to a status enum (fresh, stale, stale_revalidate, stale_use_if_server_error, populated, refreshed, rejected). |
-| `http_engine` | **?** | The device's embedded HTTP engine: route tables (master + secondary status registry), the static/exec page dispatch, CSRF gating, and the auth plumbing that fronts every `/status`, `/tools`, and exec endpoint. |
-| `http_headers` | **?** | The HTTP header vocabulary the device emits and parses: auth challenges, `X-Sonos-*` extensions (playback-id, VLI markers), GENA headers for eventing, and the content-negotiation used by SMAPI and cloud calls. |
-| `ibt_planner` | **strong** | The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets ('implicit target parsed \[...\]' / 'explicit target parsed \[...\]'), and rejects commands that don't support the intendedTargets parameter or that aren't in the IBT-eligible set ('unsupported IBT command'). |
-| `ibt_plans` | **strong** | IBT ('intended targets') is how cloud-issued household commands fan out to specific players. |
+| `http_engine` | **?** | The device's embedded web engine: route tables for both the main and status-site registry, static and executable page handling, request forgery protection, and the auth plumbing guarding sensitive endpoints. |
+| `http_headers` | **?** | The HTTP header vocabulary the device emits and parses: auth challenges, Sonos's own X-Sonos extensions, eventing headers, and the standard set. |
+| `ibt_planner` | **strong** | The planner half of intended-target execution: when a cloud command names its players, this generates the target list and parses whether targets were explicit or implied. |
+| `ibt_plans` | **strong** | IBT ('intended targets') is how cloud-issued household commands fan out to specific players — a command arriving over the cloud channel is compiled into a 'plan' naming which players execute it. |
 | `ir_decoder` | **strong** | The IR receiver subsystem: learned code lists for vol_up/vol_down/mute/input (bounded, 'list full'), config in `/opt/ir/irconfig.txt`, hex `%02x` encoding, and device open/descriptor errors. |
 | `jwt_auth` | **strong** | The JWT layer for muse and device tokens: HS256 signing, X.509-chain (x5c) validation, and a granular error taxonomy (malformed header/payload/signature, untrusted chain, missing private key). |
-| `korn_events` | **strong** | The eSDK 'korn' event enum — ~70 lifecycle events: INITIALIZED/SHUTDOWN, WEBSERVER_START/STARTED/UPDATED, ZEROCONF_* (device added, credential transfer, auth token/code), MDNS_* (pause/resume/devices/discovered), and more. |
+| `korn_events` | **strong** | The embedded-Spotify component's event enum — roughly 70 lifecycle events: init and shutdown, web-server start and updates, and the zero-config discovery events for credential transfer and auth tokens. |
 | `korn_kernel` | **strong** | The eSDK module kernel: a temp-RAM arena allocator with strict accounting (num_allocs, free pointer, alignment, MAX_KORN_TEMP_RAM_ALLOCS), an event-count guard (SP_MAX_EVENTS), and the pump loop that dispatches korn events to modules. |
 | `lechmere` | **?** | The lechmere event channel: the persistent cloud pipe carrying muse commands in and device events out — `{scope}/{ns}/{verb}` route templates define its addressing. |
 | `leds_zp` | **strong** | The LED engine: HW feature flags, mode flags (R_LED_UPGRADE, R_LED_BROKEN_DEVICE, audio-device flags), brightness control, and the R_LED flag enum (join household, setup/WAC, factory reset, clone-check failure, warning, playing, muted, booting...). |
 | `libflac` | **strong** | The vendored libFLAC 1.3.4 (20220220): decoder error taxonomy (BAD_HEADER, FRAME_CRC_MISMATCH, UNPARSEABLE_STREAM, OGG_ERROR, SEEK_ERROR) and the I/O callback status set (WRITE/LENGTH/TELL/SEEK/READ/INIT variants). |
 | `lla` | **strong** | The low-level audio interface between anacapad and the kernel DSP driver. |
 | `local_settings_mgr` | **strong** | The local settings manager: `_settings.json`, `_effective.json`, `_attrdata.json`, `_exclude.json`, `settings_targettypes.json`, `__location_summation`, `__migration_data` — each file wrapped in a magic header (`\|_(:/)_\|`) with length/checksum/counter and a trailer. |
-| `mdns` | **Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file** | The mDNS stack: service registration, TXT record management, discovery, and household filtering. |
-| `mdns_device` | **strong** | The device's own mDNS TXT record schema: byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, locationid. |
-| `mod_zp` | **?** | The core ZonePlayer module — the umbrella object owning zone lifecycle, group membership, and the shutdown sequence. |
-| `muse` | **?** | The muse command protocol: ~67 namespaces / ~320 verbs of cloud-API surface — playback, settings, grouping, positioning, registration, UPnP bridge — dispatched by the muse engine. |
-| `muse_engine` | **?** | The muse dispatcher: namespace registry, target validation, IBT fan-out, authorization, execution — mounted on `/api`, `/device_account`, and the lechmere pipe. |
+| `mdns` | **Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file** | Multicast DNS — the core discovery protocol implementation: how devices announce and find each other on the local network without any server. |
+| `mdns_device` | **strong** | The device's own discovery record schema: the fields it advertises — protocol versions, household ID, port info, variant, sequence — that controllers read when they find the speaker. |
+| `mod_zp` | **?** | The 'mod_zp' module — a zone-player module by build-tree naming; part of the player-facing internals recovered structurally. |
+| `muse` | **?** | The muse layer — Sonos's internal name for the modern API machinery as a whole: the route tables, router, operation objects, and pipeline documented on the muse API page. |
+| `muse_engine` | **?** | The modern-API engine: the namespace registry, request validation, fan-out to target players, authorization, and execution — mounted on the /api routes and the cloud pipe. |
 | `muse_enums` | **strong** | The enum tables shared by muse fields: actor roles (VOICE_ASSISTANT, GUEST, ADMIN, EMPLOYEE, PLAYER_TO_PLAYER, BLE_DTLS), authz resources (AUTHZPOLICIES, DEVICES, ENTITLEMENTS, SETTINGS, HISTORY), permissions (PLAY_TO_BONDED, STOP_CONTENT, USE_SHARED_QUEUE), content types (PLAYLIST, EPISODE, PODCAST...), and credential types (ACCESS_TOKEN, API_KEY, GUEST_TOKEN_PIN). |
 | `muse_errors` | **strong** | The ~80-entry error registry every muse command can return: generic (INVALID_ACTION, UNSUPPORTED_COMMAND), playback (PLAYBACK_FAILED, SKIP_LIMIT_REACHED, EXPLICIT_NOT_ALLOWED, PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE), session (SESSION_IN_PROGRESS, JOIN_FAILED, EVICTED), and infrastructure (SERVICE_NOT_AVAILABLE, CLOUD_QUEUE_SERVER, NOT_DESIGNATED_DEVICE). |
 | `muse_events` | **strong** | The ~65 event types a muse client can subscribe to: avTransport, playbackStatus, renderingControl, zoneGroupTopology, groupCoordinatorChanged, sleepTimerStatus, trueplayStatus, audioInput, batteryStatus, bluetooth status, and more. |
-| `muse_types` | **strong** | The 203 object-type names the cloud API's schema can use, stored in one contiguous alphabetical block - accessorySwap through zoneMemberState. |
-| `muse_verb_ns_registry` | **confirmed** | The complete menu of commands the cloud protocol supports, organised as namespace/verb pairs — for example 'authorization.resolveToken' means the resolveToken command inside the authorization namespace. |
+| `muse_types` | **strong** | The 203 object-type names the cloud API's schema can use, stored as one contiguous list — every field name, event name, and object shape the modern protocol speaks. |
+| `muse_verb_ns_registry` | **confirmed** | The complete menu of commands the cloud protocol supports, organised as namespace/verb pairs — 'authorization.resolveToken' means resolveToken inside the authorization group. |
 | `muse_verbs` | **strong** | The verb-name table — every operation callable per namespace: `getAreas`/`createArea`, `loadAudioClip`, `getRegistrationStatus`/`transferDeviceRegistration`, `submitDiagnostics`, settings getters/setters, playback load ops, and hundreds more across ~67 namespaces. |
 | `music_accounts` | **?** | Music-service accounts as embedded in ZoneGroupState: per-account nickname/serial/flags/tier/credential fields that every member sees — replicated with vector clocks. |
 | `netconfig_fsm` | **confirmed** | The actual network bring-up is a mode state machine driven by a shell script: each call takes a mode — join the mesh, join a home WiFi, run the open setup hotspot, check credentials without committing, run as an island with no uplink — plus flags for things like spanning tree. |
-| `network` | **?** | Network configuration and monitoring: Wi-Fi/SonosNet modes, netlink address events, connection-type tracking — the base layer `networkStatus` events reflect. |
-| `network_tools` | **strong** | The `/tools` diagnostic page: HTML forms that run `ping -c 3`, `traceroute`, `nslookup`, and `/mdnsannounce` against a host parameter, plus a `/pcap` endpoint that streams a packet capture (with an exclusion filter for its own HTTP connection). |
+| `network` | **?** | The network layer as a whole — the player's general networking machinery beneath the specific protocols: sockets, interfaces, and the shared plumbing. |
+| `network_tools` | **strong** | The /tools diagnostic page: HTML forms that run ping, traceroute, nslookup, and a discovery announcement against a host you enter, plus a packet-capture endpoint. |
 | `nodetx` | **?** | The inter-player TX transport: min/max packet range tracking, per-packet crossfade state, resync operations, and the NACK/retransmit machinery the source side uses to serve late joiners and packet loss. |
 | `player_settings` | **strong** | The PlayerSettingsManager (settings v2): volumeMode (including PASS_THROUGH where EQ is locked), monoMode, wifiDisable/meshDisable/wifiPowerSave, batteryUsagePolicy, bluetoothPolicy, networkingMode, lineIn, eq (treble/bass/loudness), gainTrimDB, and zone attributes. |
 | `product_models` | **strong** | The product codename ↔ ZPS model table: Playbar, ElRey, Bravo, Hideout, Pallas, Apollo, Lasso, Play1, TitanWOW variants, Monaco, Play3, Encore, Alpine, Pinewood, Prima, Mojave, Optimo2/Optimo1 — with the ZPS numeric ids. |
 | `protocol_info` | **strong** | The Source/SinkProtocolInfo CSV: the URI-scheme whitelist (http-get, x-file-cifs, file, sonos.com-mms/http/spotify/rtrecent, x-rincon family, x-sonosapi-stream/hls/hls-static/radio, x-rincon-cpcontainer) each paired with a MIME filter. |
 | `queue_schema` | **strong** | The track-queue status XML: `<Queue>` with EntriesMax/Used/HighWater, string-table usage, UpdateID, ObjectID, OwnerID, Policy, and CloudQueue fields. |
 | `radiolog` | **?** | The `/radiolog` diagnostic surface: radio-related event logging exposed through the status pages — station tuning, stream errors, and ICY metadata events. |
-| `rc_impl` | **strong** | The rc_impl layer: the RenderingControl implementation's event vocabulary (VolumeChangedEvent, DuckingEvent, StereoPairStateEvent, TrueplayCalibrationChangedEvent, FeatureConfigChangedEvent), settings write-back, ramp-type enum for fades, sonar calibration modes, and the `/status` output schema that exposes current levels. |
+| `rc_impl` | **strong** | The RenderingControl engine's event vocabulary — volume-changed, ducking, stereo-pair-state, and tuning-changed notifications the sound-control service publishes internally. |
 | `registration` | **?** | Local device registration: the on-LAN enrollment half that precedes cloud registration — tracks per-device reg state inside the household. |
 | `registration_machine` | **?** | The `regdevicecert.cxx` FSM driving the secure-registration protocol: sequential regState transitions with timeout/retry handling, transfer-mode tracking, and SSL error capture. |
-| `rendering_control` | **?** | The RenderingControl service: volume/mute/EQ per zone with LastChange events — the slider/mute-button SOAP surface. |
+| `rendering_control` | **?** | The rendering-control engine — the internal model of volume, mute, and tone per channel that the RenderingControl commands manipulate. |
 | `reporting` | **?** | The reporting/telemetry umbrella: usage metrics, dropout events, TV sessions, spotify stats, and the uploader that ships them. |
 | `rootfs_boot_chain` | **confirmed** | The boot chain is layered and safe-by-default: mount the virtual filesystems, lay down the RAM disk, pull in the kernel drivers, check whether a factory reset is being asked for (either a button hold or a marker file), then bring up networking and the daemons — with a developer override file that can take over the whole sequence on unlocked units. |
 | `rootfs_data_files` | **confirmed** | The firmware ships with a handful of data files that do real work: the speaker's DSP tuning coefficients for its six woofer channels, the factory IR codes for TV remotes, a one-entry music-service seed (just TuneIn) that gets replaced by the cloud list, the button-click sounds, and the web pages the player's status server serves. |
@@ -304,23 +304,23 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `sentry_upload` | **strong** | The crash-dump pipeline: `/upload`, `/watchdog`, `/legacy-to-sentry` routes plus the daemon proxies; dump files (anacapad.core, *.dmp for each daemon, jffs debug dirs) collected and uploaded to crash-upload service. |
 | `settings` | **?** | The settings umbrella: household settings, player settings, replicated settings, local settings manager, effective settings — each documented separately. |
 | `share_indexer` | **strong** | The music-library share indexer: `localRequestReindex`, `localRequestResort` (a resort request escalates to full reindex when needed), `localRemoveUnsupportedShares`, and the `<Shares>` XML schema with per-share Path/UserName/VerifiedValidProtocol/Id. |
-| `sibling_daemons` | **confirmed** | Anacapad is the brain, but a team of small daemons does the physical work: netstartd owns the radios and the setup handshake, wacd speaks Apple's WAC for iOS setup, the LED manager drives the status light, and a couple of monitors handle watchdog, discovery and time. |
-| `smapi_client` | **strong** | The SMAPI SOAP client — the outbound side: `http://www.sonos.com/Services/1.1` action namespace with getSessionId, refreshAuthToken, getDeviceAuthToken, getMediaURI, getMediaMetadata, getMetadata, search, reportPlayStatus/Seconds, reportStatus, getAlbumArtURI and more. |
+| `sibling_daemons` | **confirmed** | The sibling-daemon interface — how this program relates to the player's other system processes (the network daemon, updater, and friends): what's delegated to whom. |
+| `smapi_client` | **strong** | The SMAPI client — the outbound side of music-service integration: session IDs, auth-token refresh, device auth tokens, and metadata fetching over each service's own interface. |
 | `smb` | **?** | The SMB client layer under mntmgr: UNC path parsing, dialect probing, credential handling, mount/umount lifecycle, and the stream-open path library browsing uses. |
 | `sntp` | **?** | The SNTP time discipline: chrony-backed clock management, virtual-clock concepts for group timing, server switching when a source degrades (0.sonostime.pool.ntp.org among the pools), and the GC-sync role that makes one player's clock the reference. |
-| `spdif_burst` | **strong** | The optical-output (S/PDIF) burst-format machinery: a table of 37 unsupported formats plus the Dolby/DTS burst types it does handle. |
-| `spec_descriptors` | **confirmed** | The full type system behind the cloud API: 383 machine-readable descriptions of every request, response, event and data structure the protocol uses. |
+| `spdif_burst` | **strong** | The optical-output burst-format machinery: a table of unsupported formats plus the Dolby and DTS burst types it does handle — when a TV sends an unrecognized stream the player refuses rather than emitting noise. |
+| `spec_descriptors` | **confirmed** | The full type system behind the cloud API: 383 machine-readable descriptions of every request, response, event, and data structure the protocol uses. |
 | `spec_object_table` | **confirmed** | The master vocabulary for the whole cloud-API schema system: a table of 331 entries where every type name, field name, event name and namespace label lives. |
-| `spec_pair_stream` | **confirmed** | How every command's field list is stored. |
+| `spec_pair_stream` | **confirmed** | How every modern-API command's field list is stored: each operation's spec lives in a packed table of small numbers pointing into the master vocabulary table — recovered as a complete field-name dictionary. |
 | `spotify` | **?** | The on-device Spotify stack: the eSDK session, the SMAPI↔VLI transitions that let a Connect session take over an existing group, the queue/track pipeline, and the zeroconf/broadcast pieces. |
 | `spotify_connect` | **?** | The Spotify Connect path specifically: AP/hermes control plane, credential blob handling, login FSM, playback session management, and the NTS callbacks that bridge eSDK events to the Sonos transport. |
 | `spotify_esdk` | **strong** | The embedded eSDK (v3.205.205-gd0f06121): the Sp* API surface (play/pause/seek/volume/shuffle/repeat/login/logout/queue/events), the module kernel, the event enum, and the init validation. |
 | `spotify_zeroconf` | **strong** | Spotify zeroconf/broadcast: the `_spotify-connect._tcp` advertisement, device-added events, credential transfer (auth token/code), and the local webserver the Connect handoff uses. |
-| `spotifyzc` | **?** | Same zeroconf layer (see spotify_zeroconf): the ZC event names (ZEROCONF_DEVICE_ADDED, TRANSFER_CRED, TRANSFER_STATUS, AUTH_TOKEN, AUTH_CODE) are the korn events it emits during pairing. |
-| `store_commit_faults` | **strong** | The save-to-disk layer for every replicated store (favorites, saved queues, alarms, timezones, accounts) writes a temp file, fsyncs it, then renames it over the real file. |
-| `stream_metadata` | **?** | The stream-metadata cache: ICY/Shoutcast titles, HLS timed-ID3, and per-stream info blocks, cached so repeated subscribers don't re-parse. |
+| `spotifyzc` | **?** | The zero-config discovery layer the Spotify Connect integration uses: events for device-added, credential transfer, and auth tokens that let a phone hand the speaker a Spotify session. |
+| `store_commit_faults` | **strong** | The save-to-disk layer for every replicated store — favorites, saved queues, alarms, timezones, accounts — writes a temp file, flushes it, then renames it into place. |
+| `stream_metadata` | **?** | The stream-metadata cache: internet-radio song titles, timed-ID3 tags, and per-stream info blocks, kept so repeated listeners don't re-parse. |
 | `svc_manifest` | **strong** | The SMAPI service-manifest store: `svcmanifests.json` with schema-version negotiation (rejecting unsupported actual-vs-supported versions), delete/remove ops with before/after version bookkeeping, and cross-player replication of manifest files. |
-| `sync` | **?** | The group time-sync layer: SNTP-derived clock plus the inter-player offset math that makes `play at time T` mean the same instant on every member. |
+| `sync` | **?** | The synchronization machinery — locks and the coordination primitives the program's threads use to avoid corrupting shared state when many things run at once. |
 | `topology_base` | **strong** | The topology manager: tracks every discovered ZonePlayer (lastIp, moreInfo, orientation, HT flag), emits topology events (AvailableSoftwareUpdate, ZoneGroupName/ID changes, ZonePlayerUUIDsInGroup), and handles quarantine/vanish transitions. |
 | `tp_enums` | **strong** | The Trueplay enum tables: node actions/statuses, speaker masks (3.1 through 9.1.4), channel types (L/R/C/SUB/LS/RS/LRS/RRS/LTM/RTM/LW/RW/MONO/LTR/RTR), orientations (horizontal/vertical/wall/facedown/inverted), and the array codenames (BRAVO, FURY, OPTIMO2, LASSO, APOLLO). |
 | `track_pipeline` | **strong** | The eSDK track pipeline: track insertion, delivery accounting (delivery vs integration latency), position sync timer, underrun handling ('Underrun in download buffer'), redelivery on resume, DRM key/IV loading, and download offsets. |
@@ -328,8 +328,8 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | `trueplay_tuning` | **strong** | Trueplay room tuning is really two surfaces. |
 | `tv_processor` | **strong** | The TV audio processor: input-session tracking, the tv_processor_usage report fields, the tv-proc FSM, and the CEC/ARC interplay. |
 | `upgrade` | **?** | The firmware upgrade path: manifest fetch (`/firmware/swgen/{gen}/latest/`), SWGen compat checks, download status handling, and the apply/reboot flow. |
-| `upnp_eventing` | **?** | GENA eventing: SUBSCRIBE/RENEW/UNSUBSCRIBE with logical SIDs — the push channel UPnP controllers use for LastChange updates. |
-| `virtual_linein` | **?** | The VirtualLineIn (VLI) service: a virtual audio source that can be injected into a group — AirPlay, Bluetooth, Spotify Connect, and external sources all materialize as VLI sessions with `x-sonos-vli:` URIs, delegation guards, and evented state. |
+| `upnp_eventing` | **?** | The classic the classic device-control protocol eventing machinery — the subscribe/renew/notify plumbing behind the older event channel documented on the events page. |
+| `virtual_linein` | **?** | The virtual line-in subsystem — the machinery for audio pushed at the player by an external source: session management behind the VLI commands and service. |
 | `vli` | **?** | The VLI umbrella: source manager, sink, playback tracker, and control interface. |
 | `vli_transport` | **strong** | The VLI transport: the actual audio path a virtual line-in session uses once created — transport selection, buffering, and the seamless-handoff integration with chsnk. |
 | `wifi` | **?** | The Wi-Fi subsystem: wireless modes (SonosNet mesh vs infrastructure vs wired), netmode enum, association tracking, power-save, and the settings keys that control them. |
@@ -342,7 +342,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 
 **coverage** `partial`
 
-Sonos can enrol a zone in A/B experiments pushed from the cloud. Each experiment is an id+name with a value and a shipped defaultValue, so a player without an assignment just runs the default. The /experiments HTTP endpoint exposes the active set. Client authors only need to know these exist — they change behaviour silently between households and explain builds that differ despite identical firmware.
+Sonos can enrol a system in A/B experiments pushed from the cloud — feature tests where some households get a new behavior and others don't, with the player reporting which variant it ran. This block receives the experiment assignments from Sonos's servers, stores them locally, and applies the right code path, so two identical speakers can behave differently depending on which test group they landed in.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -370,7 +370,7 @@ production A/B experiment framework: a /experiments local endpoint plus a replic
 
 **coverage** `partial`
 
-The adaptive-bitrate engine that keeps HTTP streams (HLS, Icecast-style playlists) alive. It picks a data source, refetches playlists on a timer, and fails over to alternates when a playlist comes back empty or times out. Clients see this only as `TransportStatus` errors when every source dies — the retry and source-selection logic is entirely internal and not configurable.
+The adaptive-bitrate engine — the logic that keeps internet streams alive when your connection is shaky. It picks which stream quality to fetch, watches how well downloads keep up, and switches quality up or down to avoid dropouts. When a radio station stutters on bad wifi and then recovers, this is the machinery making that judgment call.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -393,7 +393,7 @@ DS (data-source) selection FSM {"Unable to select another DS","waiting to fetch 
 
 **coverage** `partial`
 
-Every player holds a device certificate used to authenticate to Sonos cloud and to music services that demand deviceCerts. The enrolment, renewal and storage flow lives here; when a client hits certificate errors (R_CLIENT_KEYCERT_* family) this is the machinery involved.
+Every player carries a device certificate — a cryptographic identity card issued by Sonos that proves to the cloud 'this is a genuine Sonos device'. This block manages that certificate's whole lifecycle: requesting it, storing it, renewing it before expiry. Without it, cloud features can't authenticate the box at all.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -434,7 +434,7 @@ three cert managers (certmanager/devicecertmanager/regdevicecert) over four keyc
 
 **coverage** `partial`
 
-The migration machinery that converts pre-OAuth music-service accounts to OAuth: reauth flow, token generation, per-service retries, and a cloud-connectivity gate that delays migration until the device is online. There's also a last.fm email→username fixup and a Sonos Radio (SBiz) capability gate. Explains accounts that silently flip auth schemes after an update.
+When account formats change between firmware versions, existing saved logins have to be converted — this block migrates stored service accounts from older formats to newer ones during updates, so your services stay logged in across an upgrade.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -454,7 +454,7 @@ OAuthMigration flow {reauth,token generation,getAuthTokenResult,accountToOAuthRe
 
 **coverage** `partial`
 
-The netlink address monitor: subscribes to RTM_NEWLINK/RTM_GETLINK kernel events so IP address changes are seen instantly rather than polled. Runs on the select thread with reset/data/except/timeout event names. This is how the player notices DHCP renewals and cable pulls within milliseconds.
+The address monitor — watches the player's own network addresses and notifies the rest of the system when they change. If your router hands the speaker a new IP, or a network interface flaps, this is the component that notices first and tells the discovery, streaming, and web layers to re-announce or rebind — without it, the speaker would keep advertising an address it no longer owns.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -474,7 +474,7 @@ RTM_NEWLINK/RTM_GETLINK via netlink; {"read error %d %s","incorrect type","unexp
 
 **coverage** `partial`
 
-Internal operations used when a group coordinator hands an active stream to a new member — stop, restore, and VLI (virtual line-in) session suspend/end. It also logs which analog/optical source type is feeding the group (line-in vs dock, compressed vs uncompressed). This is bookkeeping for source transitions; there's no client surface beyond the source selection already exposed through AVTransport URIs.
+Operations for a legacy partner integration called 'aha' — present in the shared codebase as part of the service-integration layer, where Sonos keeps the machinery for services that were supported on some products or generations.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -494,7 +494,7 @@ ops {AHA_STOP,AHA_RESTORE,AHA_END_VLI_SESSION,AHA_SUSPEND_VLI_SESSION,AHA_PAUSE_
 
 **coverage** `partial`
 
-Layer-2 connectivity diagnostics: the ARP checker pings the gateway and counts consecutive failures to detect groupcast problems; arping runs async/sync probes on a timer with reset-on-data; the association tracker records Wi-Fi association metrics. When a player 'loses' the network while its IP looks fine, this is usually what detected it first.
+Watches the low-level network association table — tracking which devices are reachable on the local network segment. It feeds the connectivity diagnostics that answer 'can this speaker see the others', complementing the higher-level discovery machinery with raw link-level evidence.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -514,7 +514,7 @@ arpchecker "ARP failure: %d consecutive attempts for %s failed: groupcast proble
 
 **coverage** `partial`
 
-The doorbell/alert clip player. Clips arrive over the muse `audioClip` namespace with a priority, a clip type, LED behavior, and optional buzzer routing; custom types require a `streamUrl` (and HTTPS if `httpAuthorization` is supplied). Playback is delegated to AVTransport or a dedicated engine depending on delivery mode. This is what smart-home integrations and doorbell partners use to play a sound over the system without disturbing the queue.
+The short-sound player — machinery for playing brief audio clips over the system (chimes, doorbell sounds, prompts), distinct from the main music pipeline. Alert chimes, doorbells, and similar sounds ride this path — brief audio that can overlay what's playing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -534,7 +534,7 @@ muse routes players/%s/audioClip + groups/%s/playback/%s + "forward to %s"; clip
 
 **coverage** `partial`
 
-The generic decoder wrapper — used by the ffmpeg-based WMA path among others — that owns codec lifecycle (create, init, header parse, seek, scan, position reporting) and publishes a status XML blob with sample rate, bit depth, channels, and frame size. Seeks are capped to the stream length and counted in absolute positions. Clients never touch it directly; its status fields are what the diagnostics pages echo back per decoder.
+The audio decoding layer — the component that turns compressed audio data into raw sound samples ready for the amplifier. Every format the player accepts (MP3, FLAC, AAC, and friends) flows through here; it picks the right decoder for the stream at hand and manages the decode loop.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -555,7 +555,7 @@ status <SampleRate><SampleBitDepth><NumChannels><ChannelMap><FrameSize>; lifecyc
 
 **coverage** `partial`
 
-The bundled decoder layer for open codecs: Vorbis synthesis (with explicit guards for null PCM, missing config data, and insufficient bytes) and AAC/AAC+ (with a disable flag and upsampling factor). Each decoder emits the same SampleRate/FrameSize/ChannelMap status block, which is how the player describes what it thinks a stream actually contains. Matters when a stream plays at the wrong pitch or channel count — this layer is where the negotiated format is recorded.
+The collection of specific decoder modules plugged into the decoding layer — the individual format handlers (MP3, FLAC, AAC family, and friends) the player picks between per stream.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -577,7 +577,7 @@ vorbis errors {vorbis_synthesis_pcmout produced null PCM data,failed to initiali
 
 **coverage** `partial`
 
-A record-based circular audio buffer used inside the Spotify eSDK path: writes land in pos/range records, discontiguous offsets are rejected, and reads advance through contiguous records only. When the producer skips (a seek or a dropped packet), it logs a discontinuity and resets after too many. This explains occasional clicks or re-buffering on Connect tracks — the fifo enforces strict ordering instead of splicing.
+The audio buffer — the queue of decoded sound samples sitting between decoding and output. It absorbs timing jitter so playback stays smooth when a fetch stalls or the decoder hiccups; how deep and well-managed this buffer is determines whether a flaky network means a gap in the music or nothing noticeable at all.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -597,7 +597,7 @@ records with {pos,range}; writes {"Advance write to next record","Rejecting writ
 
 **coverage** `partial`
 
-The sample-rate converter plus the time-sync integrator that keeps a group of players sample-locked. The ARC adjusts coefficients continuously; when correction saturates it rails at 'Rate Maxed'. The timesync side tracks lock time, integrated error, and per-iteration stats. This is the subsystem that makes multiroom playback stay in sync for hours — drift correction is continuous, not a one-time alignment.
+The audio rate controller — keeps the player's playback clock disciplined against the incoming audio so buffers neither starve nor overflow. It's part of why multi-room audio works at all: every speaker's clock drifts differently, and this machinery continuously corrects so rooms stay in step rather than slowly drifting apart.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -617,7 +617,7 @@ ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Un
 
 **coverage** `partial`
 
-The per-stream mixer: each stream can buffer, schedule a presentation time, resync, drain, or skip ahead, with a small fade engine for gain ramps (crossfades and ducking ride on this). Statistics per stream (errors, drops, buffered, presentation) feed diagnostics. Skip-ahead is how the player jumps past stale audio after a network stall instead of playing it back late.
+Mixes multiple audio streams — the component that lets overlay sounds (alerts, chimes, calibration tones) blend into whatever's playing rather than fighting for the output.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -637,7 +637,7 @@ stream ops {start buffering,set presentation time,resync,drain flag,skipAhead} +
 
 **coverage** `partial`
 
-Debug tap points that let a developer siphon a WAV stream out of nearly any point in the audio pipeline — line-in, decoder output, mixer input/output, DSP output, LLA output, even the chirp and voice channels. Gated by permissions (and a mic gate for privacy-sensitive taps). The `/audiocap` and SPDIF-tap endpoints use this. Not a production API; it exists for engineering audio forensics.
+A single audio tap — a capture point inside the audio path where the firmware can siphon off sound. Calibration and diagnostics features attach here to hear what the player is actually emitting, rather than trusting what it was told to play.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -658,7 +658,7 @@ errors {no tap specified,syntax error,invalid request,permission denied} + audio
 
 **coverage** `partial`
 
-Internal PCM capture points let the firmware record the audio passing through it — used for diagnostics and, importantly, for TV lip-sync: the SPDIF tap captures the TV input so playback can be synchronized against the output tap. The /snapshotspdiftap + /downloadspdiftap endpoints retrieve captures. Not a client-facing feature, but it explains audio-quality and latency behaviour on home-theatre setups.
+The family of audio capture points — places in the audio pipeline where sound can be tapped for measurement: used by room-tuning, by the Trueplay-style calibration, and by diagnostics that need to hear what the player is emitting.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -687,7 +687,7 @@ PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_t
 
 **coverage** `partial`
 
-AudioIn (line-in distribution) group bookkeeping: groups are keyed by the coordinator's RINCON id, sources pick compressed or uncompressed transport, and members join/leave a shared `x-rincon-stream:` URI. This is what makes line-in sharable across rooms — one player owns the ADC, the others subscribe to its stream. The `Unpaired`/`Autoplay` state variables in the AudioIn service are this layer's control surface.
+Grouping machinery for the line-in input — letting a line-in source be shared across a group like any other source. Present in the shared codebase; the user-facing service on this build is stubbed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -707,7 +707,7 @@ groups keyed by coordinator {'Removing group with coord %s','Adding group with c
 
 **coverage** `partial`
 
-The async request plumbing behind the audio-tap feature: each tap request gets a mutex-protected consumer, a poll loop, and write accounting. Pure infrastructure — it exists so a tap can stream continuously without blocking the audio thread.
+Coordinates the audio capture points — which taps exist, who's listening on each, and when they open and close. It arbitrates so calibration, diagnostics, and any other audio listener don't fight over the feed or interfere with playback.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -727,7 +727,7 @@ raudiotapMutex; "failed to setup async request %d %s"; "can't consume from a clo
 
 **coverage** `partial`
 
-The `/authz` policy layer that decides what a caller may do: static per-role policies, fast-path policies, guest/offline policies, and an mTLS policy — selected at request time. Token resolution asks the cloud for permissions and masks tokens in logs. Every sensitive HTTP and muse surface consults this before acting.
+The authorization machinery — the component that checks credentials on incoming requests: API keys on the modern surface, permission checks across the system. The bouncer logic behind 'Invalid API key'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -747,7 +747,7 @@ policies {"Static policy not found for role (%s), version (%s)","Static fast pol
 
 **coverage** `partial`
 
-The auto-update scheduler FSM: states from INIT through REFRESH, SCHEDULED (and SCHEDULED_POST_WOW for wake-on-wireless), SESSION_MONITOR, SESSION_REPORT, SESSION_ACTIVE — with PendingStart/SessionStart/SessionAttempts counters. Settings like `R_AutoUpdateWindowStart`/`R_AutoUpdatePolicy`/`R_CheckUpdateInterval` control it, and blockers (an upcoming alarm, active playback) postpone installs. This is why updates land at odd hours.
+The automatic-update machinery — decides when the system should fetch and install firmware on its own schedule, per the household's update settings. This is what makes a fleet of speakers update overnight without you doing anything: each player knows the policy, checks for a new build, and applies it when its window arrives.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -767,7 +767,7 @@ states {ST_UNDEFINED,ST_INIT,ST_REFRESH,ST_SCHEDULED,ST_SCHEDULED_POST_WOW,ST_SE
 
 **coverage** `partial`
 
-The eSDK's throughput estimator: it times chunk downloads, computes bytes/sec and kbit/s over a sliding window with high/low watermarks, and counts how often throughput dips below a threshold. Spotify uses this internally for stream-quality decisions; it's invisible to clients except through the quality of what Connect ends up delivering.
+Measures actual network throughput — a meter the streaming code consults to decide whether the connection can sustain a given bitrate. It feeds the adaptive-quality decisions: when it reports a weak link, the player picks lower-quality stream variants before the music stutters.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -787,7 +787,7 @@ The eSDK's throughput estimator: it times chunk downloads, computes bytes/sec an
 
 **coverage** `partial`
 
-The boot-sequence manager: tracks boot progress, bumps the sequence counter on events like first Wi-Fi connection, and honors settings like ForceWifiDisable/SonosNetDisable. `bootSequenceId` in the device schema is this counter — cloud clients use it to detect reboots between commands.
+The player's boot logic — the ordered bring-up sequence inside this program: which subsystems initialize in which order, what must succeed before the next stage starts, and what the player does when something fails partway. It ends with the player announcing itself to the household.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -807,7 +807,7 @@ The boot-sequence manager: tracks boot progress, bumps the sequence counter on e
 
 **coverage** `partial`
 
-The object-id prefix grammar used in browse and queue items: `newrelease:album:genre:`, `staffpick:album:genre:`, `top:album:genre:`, `playlist:`, `favorite:track`, `artist_tracks:`, plus the `urn:schemas-rinconnetworks-com:metadata-1-0/` namespace marker. Matching on these prefixes is how the player knows what an opaque service ID actually contains.
+The prefix-jump machinery — the 'go to the S's' indexing that lets a long library list be navigated alphabetically, behind the FindPrefix and prefix-location commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -827,7 +827,7 @@ The object-id prefix grammar used in browse and queue items: `newrelease:album:g
 
 **coverage** `partial`
 
-The SBC decoder for Bluetooth-received audio: parses packet headers, validates frame sizes, tracks bitpool/subband/mode parameters, and drops truncated packets rather than playing garbage. Present on models with Bluetooth RX. Buffering errors surface as frame-status codes; there's no client surface — pairing and routing live elsewhere.
+Bluetooth SBC audio support — the decoder path for the standard Bluetooth audio format, present in the shared codebase for products that include Bluetooth. On this wired-only Playbar hardware it ships dormant: the code is built in but never exercised.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -847,7 +847,7 @@ params "freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%z
 
 **coverage** `partial`
 
-Hooks for Sonos Business managed deployments — the strings reference adding/removing and syncing a 'Sonos Business MSP' relationship. Households under business management can have different service availability (e.g. Sonos Radio suppressed by the SBiz entitlement). Only vocabulary has been recovered.
+A managed-service-provider / business-tier integration block — machinery for enterprise-managed Sonos deployments, where an organization administers fleets of players. Part of the platform layer; mostly dormant on consumer households.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -872,7 +872,7 @@ Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP
 
 **coverage** `partial`
 
-Physical input pipeline. Buttons (play/pause, volume, join, mic-mute, pairing, plus swipe gestures on touch models) are broadcast on an internal multicast group and forwarded to the group coordinator when a player is slaved. Button lock is controllable via SOAP, and the cloud can inject virtual button presses (virtualRemoteControl/buttonCommand) — that's how the app 'remote control' works. IR: the player learns your TV remote via LearnIRCode against Sonos's ir.ws.sonos.com code database.
+The physical controls layer — the code that reads the unit's buttons (play/pause, volume, mute) and the infrared remote input, turning hardware presses into the same commands an app would send.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -904,7 +904,7 @@ button + IR input pipeline: hw-message BUTTON multicast group carries events, lo
 
 **coverage** `partial`
 
-The per-setting capability gate messages: 'Supported only for devices that support power over ethernet', 'water sensor', 'microphone switch', 'subwoofer', 'suspendable devices', plus requiredMinimumBatteryPercentage. These explain why a settings update can be rejected on one model but accepted on another — the validator checks hardware capabilities, not just the schema.
+The per-setting capability gate messages: 'Supported only for devices that support power over ethernet', 'water sensor', 'microphone switch', 'subwoofer', 'suspendable devices', plus requiredMinimumBatteryPercentage. These explain why a settings update can be rejected on one model but accepted on another — the validator checks hardware capabilities, not just the schema. They're the difference between 'compiled in' and 'actually available': the same firmware can ship a feature's code everywhere while the switch disables it on models that lack the hardware or license.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -924,7 +924,7 @@ The per-setting capability gate messages: 'Supported only for devices that suppo
 
 **coverage** `partial`
 
-The `/content/api` catalog-ID translator: `translateId(objectId, serviceId, targetObjectId)` calls `GET catalog/id/%s?destinationServiceId=%s` on the cloud to map an item ID from one service into another's namespace — e.g., 'the same album on Spotify vs Deezer'. Results are cached; missing-param errors name exactly which argument failed.
+The `/content/api` catalog-ID translator: `translateId(objectId, serviceId, targetObjectId)` calls `GET catalog/id/%s?destinationServiceId=%s` on the cloud to map an item ID from one service into another's namespace — e.g., 'the same album on Spotify vs Deezer'. Results are cached; missing-param errors name exactly which argument failed. Without it, every service would need its own browsing logic; with it, one service's 'station' and another's 'channel' both arrive in the app as the same kind of browsable item.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -944,7 +944,7 @@ translateId(%s,%s,%s) with missing-param errors {objectId,serviceId,targetObject
 
 **coverage** `partial`
 
-The HDMI-CEC/ARC diagnostic field set: tvCECStatus, tvPowerStatus, deviceCEC, stateSAM/errorSAM, stateARC/errorARC, errorTV, eARCActive, testAudio/testVideo. This is the data behind 'TV won't turn on with the speaker' — the CEC state machine's observable state.
+The HDMI-CEC/ARC diagnostic field set: tvCECStatus, tvPowerStatus, deviceCEC, stateSAM/errorSAM, stateARC/errorARC, errorTV, eARCActive, testAudio/testVideo. This is the data behind 'TV won't turn on with the speaker' — the CEC state machine's observable state. When a soundbar can't see or control the TV it sits under, these are the tools that report what the HDMI channel is actually doing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -964,7 +964,7 @@ The HDMI-CEC/ARC diagnostic field set: tvCECStatus, tvPowerStatus, deviceCEC, st
 
 **coverage** `partial`
 
-The on-flash layout for cert material: files named for `encrypted-private-key`, `expiration`, `encryption-key-type`, and `sonos-key-and-cert`. Rotation and renewal rewrite these; a corrupt or expired set cascades into mTLS and token-signing failures across every authenticated surface.
+The on-flash layout for cert material: files named for `encrypted-private-key`, `expiration`, `encryption-key-type`, and `sonos-key-and-cert`. Rotation and renewal rewrite these; a corrupt or expired set cascades into mTLS and token-signing failures across every authenticated surface. Losing or corrupting these files means losing the device's cryptographic identity, so their handling is deliberately careful.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -984,7 +984,7 @@ The on-flash layout for cert material: files named for `encrypted-private-key`, 
 
 **coverage** `partial`
 
-The ChannelMapSet initializer: builds the channel-map tables that describe how speaker channels are assigned (stereo pair L/R, surround roles), with bounds ('Initializer List too large, truncating') and duplicate detection. The watchdog thread `awThreadWDCheck` guards its init.
+The ChannelMapSet initializer: builds the channel-map tables that describe how speaker channels are assigned (stereo pair L/R, surround roles), with bounds ('Initializer List too large, truncating') and duplicate detection. The watchdog thread `awThreadWDCheck` guards its init. When you bond speakers, this is the data deciding who plays left, who plays right, and who carries the low end.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1004,7 +1004,7 @@ chanmapset var; 'Initializer List is too large: %d > %d, truncating to %d'; 'Dup
 
 **coverage** `partial`
 
-The acoustic data-over-sound stack (Chirp SDK 4.2.3, Chirp core 4.2.1) used for setup and secure pairing. The `sonos-cdma` profile spreads symbols across CDMA notes; decoding runs an FFT peak-picker, note estimator, scorer, and voter. Built-in profiles include audible, ultrasonic, and the secure-setup variant. This is how the app passes Wi-Fi credentials to an unprovisioned player by playing a sound from the phone.
+The acoustic data-over-sound stack (Chirp SDK 4.2.3, Chirp core 4.2.1) used for setup and secure pairing. The `sonos-cdma` profile spreads symbols across CDMA notes; decoding runs an FFT peak-picker, note estimator, scorer, and voter. Built-in profiles include audible, ultrasonic, and the secure-setup variant. This is how the app passes Wi-Fi credentials to an unprovisioned player by playing a sound from the phone. When you're arranging surrounds and can't tell two identical boxes apart, the app triggers this and the speaker you're pointing at announces itself audibly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1030,7 +1030,7 @@ profile sonos-cdma; decode pipeline {chirp_decoder_t,chirp_cdma_decoder_t,chirp_
 
 **coverage** `partial`
 
-The embedded Chirp acoustic library — the speaker can literally emit and decode data-over-sound chirps (CDMA/FSK profiles). Used for room detection during setup and possibly trueplay discovery. Only the codec vocabulary is catalogued; the wire format hasn't been decoded.
+The full chirp implementation stack — the complete path from a room-detection command to an audible tone coming out of a specific speaker: request handling, tone selection, and routing through the audio path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1071,7 +1071,7 @@ embedded chirp-core 4.2.1_7265 acoustic data-over-audio SDK with a custom 'sonos
 
 **coverage** `partial`
 
-The URL builders for every cloud call: `/tokens`, `/invite`, `/redeem`, `/users`, `/firmwareDownload`, `/softwareDownload`, `/accountSubscription`, `/productEvent`, each under household/player/service/group prefixes with query params like `protocolVersion=`, `accountId=`, `includeDeviceInfo=`. These are the outbound REST paths — the muse namespace routes are the inbound mirror of the same API surface.
+The URL builders for every cloud call: `/tokens`, `/invite`, `/redeem`, `/users`, `/firmwareDownload`, `/softwareDownload`, `/accountSubscription`, `/productEvent`, each under household/player/service/group prefixes with query params like `protocolVersion=`, `accountId=`, `includeDeviceInfo=`. These are the outbound REST paths — the muse namespace routes are the inbound mirror of the same API surface. Collected in one map, they show the full surface of what the player can ask the cloud — the outbound counterpart of the API it serves.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1117,7 +1117,7 @@ paths {/tokens,/invite,/redeem,/users,/firmwareDownload,/softwareDownload,/accou
 
 **coverage** `partial`
 
-The background thread that registers all cloud sync services at boot and consumes just-in-time events, discarding ones it doesn't recognize. It's the glue between 'registered with the cloud' and 'receives pushed state' — a failed synchronizer leaves the device registered but deaf to cloud-initiated changes.
+The cloud synchronizer — keeps household state (settings, accounts, playlists) mirrored between the local system and Sonos's cloud so both sides stay current. It's why your settings survive a player replacement and why changes made remotely appear on the speakers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1137,7 +1137,7 @@ cloud_synchronizer thread: registerServices (max-count abort, called-once guard)
 
 **coverage** `partial`
 
-The logging infrastructure config: filter/level/fileSize/preserveSize/host settings, the `\[category | timestamp\]` line format, category-name validation, and log-shipping to a host. The log-domain list (anacapa_logger.toml categories) is the vocabulary behind every diagnostic trace.
+The shared logging machinery — the unified way every subsystem writes log lines: formatting, severity levels, and the named log channels each module writes to. One consistent logging surface instead of per-module output.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1157,7 +1157,7 @@ keys {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR,.b
 
 **coverage** `partial`
 
-A /proc/stat reader that logs per-core usr/sys/idle/IRQ percentages with a shutdown-state detector and divide-by-zero guards. Internal telemetry — it explains 'core idle at N%' lines in diagnostics.
+The CPU monitor — watches processor load and reports it. The readings feed diagnostics (why was the box slow?) and give features a signal to back off when the player is busy, keeping audio playback prioritized over background work.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1177,7 +1177,7 @@ reads /proc/stat; header " \[%d\] usr sys idle sIRQ | irqD dMS"; row " \[%d\]  %
 
 **coverage** `partial`
 
-Crash-event telemetry: per-process crash counts with upload responses (procName, numCrashes, uploadResp, playerCrash, lifetime). Reported events feed the crash-upload cloud service; failed uploads are logged for retry.
+Crash-event telemetry: per-process crash counts with upload responses (procName, numCrashes, uploadResp, playerCrash, lifetime). Reported events feed the crash-upload cloud service; failed uploads are logged for retry. When the program dies, this captures the state around the failure (logs, stack, context) and packages it so Sonos can diagnose crashes in the field without reproducing them.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1197,7 +1197,7 @@ Crash-event telemetry: per-process crash counts with upload responses (procName,
 
 **coverage** `partial`
 
-The crossfade engine that blends the tail of one track into the head of the next. It works in samples with explicit usec accounting, handles both int16 and typed streams, and bails cleanly on underflowed or empty streams rather than producing a glitch. `CrossfadeMode` in AVTransport controls it; the engine itself is what makes the fade sample-exact.
+The crossfade implementation — the audio machinery that overlaps the tail of one track with the head of the next during the crossfade window. Behind the simple on/off setting is a real mixing path that only works when both tracks come from the same local queue, which is why the command rejects other sources.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1217,7 +1217,7 @@ The crossfade engine that blends the tail of one track into the head of the next
 
 **coverage** `partial`
 
-The channel-source frame-context manager: a bounded pool of frame contexts that get marked, added, flushed, and popped with timestamps — 'NO FREE CONTEXTS' is the saturation failure. It maintains the playback-position/hint bookkeeping the chsrc engine uses to label each outgoing frame.
+An internal component identified by build-tree naming — part of the firmware's module set recovered structurally. Its exact expansion isn't recoverable from the binary's strings; it's documented where it sits and what it connects to rather than by guessed meaning.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1237,7 +1237,7 @@ csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS'
 
 **coverage** `partial`
 
-The request-forwarding table that lets this program ask its sibling system daemons to do things - the power coordinator, the Bluetooth manager, the LED manager, and netstartd - plus the watchdog and crash-upload routes. The netstartd channel's wire format is fully decoded: every message has a small fixed header carrying a message ID and a length, then the payload; messages under one range are events dispatched through a jump table, higher IDs take a local handler path. A 'hello' is sent right after the connection opens, with automatic reconnect on timeout. The first bytes of each header belong to the shared system library and can't be resolved from this program alone.
+The request-forwarding table that lets this program ask its sibling system daemons to do things — the power coordinator, the Bluetooth manager, the LED manager, and the network-startup process — plus the answers those requests can return. The inter-process glue of the appliance.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1257,7 +1257,7 @@ routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/
 
 **coverage** `partial`
 
-The shared HTTP transport: a poll loop, header parsing (HTTP Result, Last-Modified, Content-Type, SET-COOKIE, cache-control/max-age, ETag, WWW-Authenticate), and guarded reads ('tried to read N bytes where only M available'). Most non-audio HTTP the device makes runs through this layer.
+The data I/O layer — shared helpers for reading and writing structured records, used across the subsystems that serialize state to disk or wire. Part of the internal plumbing — recovered by name and structure during the firmware mapping rather than from public docs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1277,7 +1277,7 @@ dataio.poll; parses {HTTP Result,Last-Modified,Content-Type,SET-COOKIE,cache-con
 
 **coverage** `partial`
 
-The Desired* replicated settings: DesiredTimeFormat, DesiredDateFormat, DesiredTimeServer, DesiredTime, TimeZoneForDesiredTime, HouseholdUTCTime, DesiredDailyIndexRefreshTime. 'Desired' means 'what the household wants', as opposed to what's currently applied — the distinction matters during merges and clock sync.
+The Desired* replicated settings: DesiredTimeFormat, DesiredDateFormat, DesiredTimeServer, DesiredTime, TimeZoneForDesiredTime, HouseholdUTCTime, DesiredDailyIndexRefreshTime. 'Desired' means 'what the household wants', as opposed to what's currently applied — the distinction matters during merges and clock sync. This split is what lets the system validate a change before committing it and roll back cleanly if applying fails.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1297,7 +1297,7 @@ The Desired* replicated settings: DesiredTimeFormat, DesiredDateFormat, DesiredT
 
 **coverage** `partial`
 
-The SSDP device-discovery thread (ddt): logs MSEARCH/ALIVE/BYEBYE per device with source addresses, counts lost SSDP messages, handles CDALIVE/CDBYEBYE and QUARANTINE_RECHECK packets, and takes 'hint' hints for faster convergence. This is how players find each other on the LAN before topology forms.
+The device-discovery thread (ddt): logs alive/gone announcements per device with source addresses, counts lost discovery messages, and handles the local-network discovery exchanges. It's the player's ear for other devices appearing and disappearing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1317,7 +1317,7 @@ devdiscthr/ddthrd.cxx: rx logging "%s - rx MSEARCH %s from %s:%d (%zd %d %d)", "
 
 **coverage** `partial`
 
-The two-phase secure-enrollment handshake: `POST /product/v2/households/{hh}/players?action=refresh` starts it, `?action=complete&token={tok}` finishes with the issued credential. The FSM logs state changes, handles suspend/resume mid-registration, retries on schedule, and treats an unexpected 401 as terminal. This is the path a replacement or reset player takes to get a household cert.
+The two-phase secure-enrollment handshake: `POST /product/v2/households/{hh}/players?action=refresh` starts it, `?action=complete&token={tok}` finishes with the issued credential. The FSM logs state changes, handles suspend/resume mid-registration, retries on schedule, and treats an unexpected 401 as terminal. This is the path a replacement or reset player takes to get a household cert. This is the step that ties a fresh speaker to an account after setup, turning 'a box on the network' into 'your registered product'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1337,7 +1337,7 @@ Two-phase enrollment: POST /product/v2/households/{hh}/players?action=refresh th
 
 **coverage** `partial`
 
-A hidden developer-unlock feature: hitting /devunlock or /mfgunlock marks the player as unlocked (a flag file in /tmp) and reboots it. There's a server-side limit on how many times a unit can be unlocked, and diagnostic tests refuse to run on unlocked hardware — unlocked units are treated as non-production.
+A hidden developer-unlock feature: hitting /devunlock or /mfgunlock marks the player as unlocked (a flag file in /tmp) and reboots it. There's a server-side limit on how many times a unit can be unlocked, and diagnostic tests refuse to run on unlocked hardware — unlocked units are treated as non-production. It's a deliberately gated path: unlocking widens what the unit will do, so it's guarded behind a specific flag rather than open by default.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1365,7 +1365,7 @@ developer/manufacturing unlock surface: /unlock, /devunlock, /mfgunlock and /unl
 
 **coverage** `partial`
 
-The manager that downloads and refreshes the device cert from the cloud: ETag-cached GETs, metadata records (requestTimeMS, downloadStatusCode, previousETag), 'downloaded' vs 'unchanged' outcomes, and a scheduled refresh job when metadata is unknown. This is how a player's identity cert survives factory refurbs and re-enrollment.
+The manager that downloads and refreshes the device cert from the cloud: ETag-cached GETs, metadata records (requestTimeMS, downloadStatusCode, previousETag), 'downloaded' vs 'unchanged' outcomes, and a scheduled refresh job when metadata is unknown. This is how a player's identity cert survives factory refurbs and re-enrollment. Where the cert files are storage, this is the brain: tracking issuance, scheduling renewal before expiry, and deciding which certificate is currently active.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1385,7 +1385,7 @@ ETag-cached downloads; metadata {requestTimeMS,downloadStatusCode,httpResultCode
 
 **coverage** `partial`
 
-The distributed diagnostics engine: builds a DiagnosticManifest (v2.0.0), POSTs to `/v2/diags` on product-diagnostics with serial_num, distributes a diagId to every player, triggers per-device collection, and gathers the results. `submitDiagnostics` in the app is the front door to this pipeline.
+The distributed diagnostics engine: builds a DiagnosticManifest (v2.0.0), POSTs to `/v2/diags` on product-diagnostics with serial_num, distributes a diagId to every player, triggers per-device collection, and gathers the results. `submitDiagnostics` in the app is the front door to this pipeline. The /status website, the log collection behind 'submit diagnostics', and the support-bundle assembly all live here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1406,7 +1406,7 @@ manifest <DiagnosticManifest attrs> ver 2.0.0 → POST /v2/diags product-diagnos
 
 **coverage** `partial`
 
-The DIDL-Lite metadata extractor: pulls Sonos `r:` fields (tiid, radioName, trackGain, chapterNum/Count, linkUrl, isAd, streamContent, podcast/episode/audiobook fields) and standard upnp/dc fields (originalTrackNumber, album) out of track XML, keyed by class (podcast, show, audiobook chapter). Every queue entry and Now-Playing display reads through this.
+The metadata-document extractor: pulls Sonos's extra fields out of track descriptions — internal IDs, radio names, track gain, chapter numbers, ad markers, stream content, and podcast/audiobook typing. It's how the player reads the rich details inside each catalog entry.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1427,7 +1427,7 @@ rincon md fields {tiid,radioName,connotation,state,trackGain,chapterNum,chapterC
 
 **coverage** `partial`
 
-The DRM key path: `skd://itunes.apple.com/P{pid}/s1/e1` StoreKit URIs for FairPlay content keys, duplicate-entry detection, and the `X-Sonos-Playback-Id` header services use to correlate a playback with the device that requested it. Also houses the OAuth-vs-credentialType check for getDeviceAuthToken.
+The DRM key path: `skd://itunes.apple.com/P{pid}/s1/e1` StoreKit URIs for FairPlay content keys, duplicate-entry detection, and the `X-Sonos-Playback-Id` header services use to correlate a playback with the device that requested it. Also houses the OAuth-vs-credentialType check for getDeviceAuthToken. For services that deliver encrypted audio, this handles the key material that unlocks it — a necessarily careful component.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1447,7 +1447,7 @@ skd://itunes.apple.com/P{pid}/s1/e1 StoreKit URI; "duplicate content key entry d
 
 **coverage** `partial`
 
-The dropout-event telemetry: tracks group-role changes, corrected-context changes, and presentation-time conditions; slots events into a bounded list with per-condition increments ('set pt reached', 'pt in fut - inaud'). This is the data behind 'why did my music skip' support queries.
+The dropout-event telemetry: tracks group-role changes, corrected-context changes, and presentation-time conditions; slots events into a bounded list with per-condition increments ('set pt reached', 'pt in fut - inaud'). This is the data behind 'why did my music skip' support queries. When music stutters, this is what noticed: it records where and when gaps happened so diagnostics can explain the dropout.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1467,7 +1467,7 @@ triggers {corr ctx chg evt type %u,grp role chg evt %u->%u,clear/set cid src=%u,
 
 **coverage** `partial`
 
-The DSP file inventory: eqdata.txt, persistentEQ.xml, dsp_preset*.xml, dsp_system_*.bin, satellite_processor.bin under `/dsp` and `/opt/dsp`, plus the sonar-tone flush path and an amp-timer hook. These are the loadable DSP personalities — preset vs system vs satellite variants.
+The DSP file inventory: eqdata.txt, persistentEQ.xml, dsp_preset*.xml, dsp_system_*.bin, satellite_processor.bin under `/dsp` and `/opt/dsp`, plus the sonar-tone flush path and an amp-timer hook. These are the loadable DSP personalities — preset vs system vs satellite variants. These are the tuning tables and parameter blobs the signal-processing stage loads — the data side of how this model is voiced.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1488,7 +1488,7 @@ files {eqdata.txt,app/debug/dsp,persistentEQ.xml,/dsp/eqdata.txt,dsp_preset.xml,
 
 **coverage** `partial`
 
-The full home-theatre audio configuration surface: surround/subwoofer state, downmix mode, dialog enhancement, AI speech enhancement, height-channel level, autoplay/autostop silence thresholds and a Tweaks bitmask — plus a 37-field per-zone audio record covering everything from balance and sub crossover to trueplay status. Channel masks up to 9.1.4 are compiled in. Many of these knobs are reachable through hidden RenderingControl EQ-type tokens (SubGain, SubCrossover, SpeakerSize, FV*...).
+The full home-theatre audio configuration surface: surround/subwoofer state, downmix mode, dialog enhancement, AI speech enhancement, height-channel level, autoplay/autostop silence thresholds and a Tweaks bitmask — plus a 37-field per-zone audio record covering everything from balance and sub crossover to trueplay status. Channel masks up to 9.1.4 are compiled in. Many of these knobs are reachable through hidden RenderingControl EQ-type tokens (SubGain, SubCrossover, SpeakerSize, FV*...). Bass management, channel mixing, and delay alignment across bar/surrounds/sub all happen here — the processing that makes a rig sound like one system.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1531,7 +1531,7 @@ home-theatre DSP parameter surface + per-zone audio state schemas fully recovere
 
 **coverage** `partial`
 
-The `/drc`, `/staticparams`, `/dynamicparams` param surfaces: DRC boost, speaker angles (front/height/rear-surround), virtualizer mode, bass extraction, DAP cutoff, filters, and per-mode profiles. `Config not found, loading default` is the fallback path. This is the runtime DSP tuning surface behind `/status` pages.
+The `/drc`, `/staticparams`, `/dynamicparams` param surfaces: DRC boost, speaker angles (front/height/rear-surround), virtualizer mode, bass extraction, DAP cutoff, filters, and per-mode profiles. `Config not found, loading default` is the fallback path. This is the runtime DSP tuning surface behind `/status` pages. The actual coefficients and settings the DSP applies — crossover points, EQ values, limiter behavior, tuned per model.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1551,7 +1551,7 @@ errors {error parsing mode state,error parsing bass extraction mode,error parsin
 
 **coverage** `partial`
 
-The DTS decoder (dcadec): profile taxonomy from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express; endian-checked sync detection; and a status XML with BitDepth/DTSProfile/BitRate/NumPrimaryChannels. Invalid audio modes return an empty speaker layout rather than crashing.
+The DTS decoder: supports the profile family from Digital Surround through ES, 96/24, HD-HRA, HD-MA, and Express, with careful sync detection and status reporting. The second surround format the Playbar can decode alongside Dolby.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1571,7 +1571,7 @@ profiles {Digital Surround,Digital Surround 96/24,Digital Surround ES,High Resol
 
 **coverage** `partial`
 
-When a speaker needs to quiet the music for something urgent — a voice reply, a chime, a page — the players agree on it over a ducking protocol. The requesting player raises a flag, others dequeue it under a lock, and expired requests are cleaned up so a stray duck can't leave a room muted. This is why the whole group dips together and recovers together.
+When a speaker needs to quiet the music for something urgent — a voice reply, a chime, a page — the players agree on it over a ducking protocol. The requesting player raises a flag, others dequeue it under a lock, and expired requests are cleaned up so a stray duck can't leave a room muted. This is why the whole group dips together and recovers together. This is why a chime can be heard over music without stopping it — the music level dips for the duration of the alert.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1592,7 +1592,7 @@ duck.cxx inter-player ducking protocol: 64-bit ducking flags queued per-source (
 
 **coverage** `partial`
 
-The `effectiveSettings` muse resource: `getAllSettings`/`updateAllSettings` plus per-group get/update, exposed on player and household routes and mirrored at `/settings/api/v1/locations/*/effectiveSettings`. 'Effective' means resolved after layering — what actually applies, not what was last written.
+Effective-settings resolution — computes the setting value actually in force after layering defaults, household values, group values, and device overrides: behind the effectiveSettings API surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1612,7 +1612,7 @@ routes v1/players/{playerId}/effectiveSettings{,/{groupName}} + household varian
 
 **coverage** `partial`
 
-A libsqlite3 is linked in; at least the local timer/alarm store persists through SQL statements. Which tables exist and where the database file lives is still unmapped.
+A libsqlite3 is linked in; at least the local timer/alarm store persists through SQL statements. Which tables exist and where the database file lives is still unmapped. Several subsystems keep structured state in it — the library index and various registries lean on this bundled database rather than flat files.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1645,7 +1645,7 @@ embedded libsqlite3 (sqlite3_open_v2/prepare_v2/step/bind_*/column_*/exec/busy_t
 
 **coverage** `partial`
 
-Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats counters (rx/tx packets/bytes/errors/drops/multicasts/collisions), and deep EthIntrf detail (CRC, frame, FIFO, missed errors). The `/enetports` and `/ethportstatistics` endpoints serve this data.
+Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats counters (rx/tx packets/bytes/errors/drops/multicasts/collisions), and deep EthIntrf detail (CRC, frame, FIFO, missed errors). The `/enetports` and `/ethportstatistics` endpoints serve this data. The link status, throughput, and error counts it tracks feed the network diagnostics that explain wired-connection problems.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1665,7 +1665,7 @@ Ethernet port telemetry: `<EnetPorts>` XML with per-port link/speed, EthPrtStats
 
 **coverage** `partial`
 
-Sonos-side licensing: each account/household can carry <Entitlement> records (type, isTrial, sku, date range, codes). The runtime policy consults them — e.g. a Sonos Business (SBiz) entitlement blocks Sonos Radio preinstall. Changes fire entitlements_changed events. Fetched cloud-side, cached locally, and diffed on refresh.
+Sonos-side licensing: each account/household can carry <Entitlement> records (type, isTrial, sku, date range, codes). The runtime policy consults them — e.g. a Sonos Business (SBiz) entitlement blocks Sonos Radio preinstall. Changes fire entitlements_changed events. Fetched cloud-side, cached locally, and diffed on refresh. It's the record behind 'this feature isn't available on your system' — which subscriptions, flags, and regional eligibilities apply here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1689,7 +1689,7 @@ Sonos-side licensing: each account/household can carry <Entitlement> records (ty
 
 **coverage** `partial`
 
-The eSDK telemetry channel (evs): event types EsdkPlaybackStats, EsdkPlaybackErrors, EsdkHttpErrors, EsdkDownload, EsdkEvent, EsdkCapabilities; EndSong records carry ms_played and track ids; events encode into an envelope and ship over `hm://hwp-events/v1/log_event`. Spotify-side playback metrics come from this pipeline.
+The eSDK event layer — how the embedded Spotify component reports state changes (connection, playback, errors) up to the player. How the embedded Spotify component tells the player about track, state, and queue changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1709,7 +1709,7 @@ The eSDK telemetry channel (evs): event types EsdkPlaybackStats, EsdkPlaybackErr
 
 **coverage** `partial`
 
-The eSDK HTTP layer (`eSDK/httpio`, version 3.205.205): request formatting (hostname/path), response parsing (transfer-encoding unsupported variants, CDN content-encoding rejection, redirects, content-range validation, header-end detection), socketio timeouts and read/write/EOF errors, and DNS result handling. Its strictness explains which CDN/redirect behaviors the player tolerates.
+The eSDK HTTP I/O — the network layer the embedded Spotify component uses for its own web requests. The web-traffic plumbing inside the embedded Spotify component — how it talks to Spotify's servers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1729,7 +1729,7 @@ tag eSDK/httpio + 3.205.205; {req_hostname,req_path,"Failed to format http reque
 
 **coverage** `partial`
 
-The eSDK's raw socket layer: IPv4-only (IPv6 explicitly unsupported), DNS queueing with a bounded queue, connect/bind/accept error taxonomy, socket-option plumbing, and the socketio stream FSM (INACTIVE/STARTING) that decides new-vs-reused sockets. Everything eSDK does on the wire lands here.
+The eSDK socket layer — the raw socket plumbing the embedded Spotify component uses beneath its HTTP and protocol traffic. How the Spotify component makes its network connections inside the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1749,7 +1749,7 @@ The eSDK's raw socket layer: IPv4-only (IPv6 explicitly unsupported), DNS queuei
 
 **coverage** `partial`
 
-The main event loop: a thread pool processing queued work with watchdog timestamps, logging start/stop/drain/shutdown and elapsed time. Virtually everything async in anacapad funnels through this loop.
+The main event loop: a thread pool processing queued work with watchdog timestamps, logging start/stop/drain/shutdown and elapsed time. Virtually everything async in anacapad funnels through this loop. Everything in this program that waits for something — timers, sockets, messages — ultimately wakes through this loop, so it's the heartbeat under all the subsystems documented here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1769,7 +1769,7 @@ eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,s
 
 **coverage** `partial`
 
-The in-process event loop plus its perf counters: per-observer callback durations are checked against a threshold ('exceeded duration threshold Nms > Mms'), and counters track events queued, failed-to-queue, and per-subject stats. This is how slow event handlers get caught.
+The in-process event loop plus its perf counters: per-observer callback durations are checked against a threshold ('exceeded duration threshold Nms > Mms'), and counters track events queued, failed-to-queue, and per-subject stats. This is how slow event handlers get caught. If the event loop stalls, everything stalls — this instrumentation watches how long work takes so a wedged task shows up in diagnostics.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1789,7 +1789,7 @@ The in-process event loop plus its perf counters: per-observer callback duration
 
 **coverage** `partial`
 
-The `/status` exec pages: a command table mapping diagnostic URLs to shell commands — `/debugfiles` (ls jffs debug dirs), `/du-jffs`, `/ifconfig`, `/lsmod`, `/mount`, `/netstat`, `/ntpsources` (chronyc), `/ps`, `/route`, and more. These are literal shell-outs behind admin pages — their output is raw command text, not a schema.
+The `/status` exec pages: a command table mapping diagnostic URLs to shell commands — `/debugfiles` (ls jffs debug dirs), `/du-jffs`, `/ifconfig`, `/lsmod`, `/mount`, `/netstat`, `/ntpsources` (chronyc), `/ps`, `/route`, and more. These are literal shell-outs behind admin pages — their output is raw command text, not a schema. Low-level memory-layout bookkeeping tracking which program pages hold code — runtime infrastructure rather than a feature.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1809,7 +1809,7 @@ The `/status` exec pages: a command table mapping diagnostic URLs to shell comma
 
 **coverage** `partial`
 
-The external-audio-source job engine: clips/TTS arrive as jobs with a FSM (STARTING→RESUMING→RESUMED / CANCELLED / DISCARDED), priority, and exclusivity — too many jobs drop new ones, deferred streams queue up. Clip types include doorbell-style AUDIOCLIP, ALEXA_TTS, and ALEXA_WELCOME. This is what plays voice-assistant responses over music.
+The external-audio-source job engine: clips/TTS arrive as jobs with a FSM (STARTING→RESUMING→RESUMED / CANCELLED / DISCARDED), priority, and exclusivity — too many jobs drop new ones, deferred streams queue up. Clip types include doorbell-style AUDIOCLIP, ALEXA_TTS, and ALEXA_WELCOME. This is what plays voice-assistant responses over music. Line-in family and externally pushed feeds enter the pipeline through here, treated as sources like any other once inside.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1829,7 +1829,7 @@ job FSM {STARTING,RESUMING,RESUMED,CANCELLED,DISCARDED} + ops {stopPlaying(too m
 
 **coverage** `partial`
 
-The wipe path: a factoryReset.txt sentinel file, sonosFactoryResetFull entry, LED_MODE_FACTORY_RESET feedback, and a remote management/factoryReset muse route. Steps and what survives (registration? certs?) are not yet decoded.
+The factory-reset machinery — the sequence that wipes settings, accounts, and stored state back to out-of-box condition: which steps run in what order when a reset is requested.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1858,7 +1858,7 @@ factory reset machinery: a 'Factory Reset'/'Remote factory reset' CSRF-posted co
 
 **coverage** `partial`
 
-The favorites store: user radio stations and recents, replicated across the household with an accept/reject decision ('deciding whether to accept replicated list'), DIDL namespacing, and migration paths from old Rhapsody-era and non-OAuth formats. `FavoritesUpdateID` in ContentDirectory events is this store's change counter.
+The favorites engine — the store of saved items (stations, playlists, songs) the app shows as favorites, including the version counters that tell apps when the list changed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1879,7 +1879,7 @@ replication "replicating favorites from %s"/"deciding whether to accept replicat
 
 **coverage** `partial`
 
-Sonos Favourites (the pinned items in the app). They live in a replicated XML store (<Favorites SchemaVersion NextFavorite>) with a sibling <Radio> section for stations; ContentDirectory projects them as the FV:2 container whose changes bump FavoritesUpdateID. You create/delete/edit them through the normal CDS CreateObject/DestroyObject/UpdateObject actions against the favourites directory object, and the cloud mirrors them via the households/groups favorites routes. Radio favourites sit under the R: prefix instead.
+The favorites data model — how favorite items are represented and organized internally: the structure behind the favorites API and file formats. Distinct from the library index — favorites point outward at services and stations, so they're their own store with their own update signal.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1917,7 +1917,7 @@ Sonos favourites store + ContentDirectory projection: FV:2 root container paired
 
 **coverage** `partial`
 
-The fcs diagnostic record: a handler pair where one side reads `sonosClockGetTime` into the response buffer — a timestamp/status page used by field-service diagnostics.
+Internals of an internal component abbreviated 'fcs' in build metadata — recovered structurally; part of the firmware's module set. The filesystem-config-storage path in detail — a named component of the settings persistence machinery.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1937,7 +1937,7 @@ f_105eba60 → f_106ba5b0; sibling f_105eba6c reads sonosClockGetTime into buffe
 
 **coverage** `partial`
 
-The fdevent epoll wrapper: named threads (signal.write, wait.poll, check.poll, reset.read) driving epoll_create1/ctl/wait with fd-capacity and 'already monitored' errors, plus EventSync naming. The async plumbing under sockets, pipes, and file watchers.
+The fdevent epoll wrapper: named threads (signal.write, wait.poll, check.poll, reset.read) driving epoll_create1/ctl/wait with fd-capacity and 'already monitored' errors, plus EventSync naming. The async plumbing under sockets, pipes, and file watchers. It's the primitive 'wake me when this socket is readable' underneath the event loop — networking code relies on it everywhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1957,7 +1957,7 @@ ops {fdevent.signal.write,fdevent.wait.poll,fdevent.check.poll,fdevent.reset.rea
 
 **coverage** `partial`
 
-Same fdevent layer as fd_event: the epoll-based event engine everything else (addrmon, select thread, audio fds) multiplexes on. fd capacity is bounded and monitored-fd overflow is a hard error.
+Same fdevent layer as fd_event: the epoll-based event engine everything else (addrmon, select thread, audio fds) multiplexes on. fd capacity is bounded and monitored-fd overflow is a hard error. The reusable plumbing for socket/file activity watching — a bundled library the networking code builds on rather than rolling its own.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1977,7 +1977,7 @@ ops {removeFd,waitForEvent}; thread names fdevent.{signal.write,wait.poll,check.
 
 **coverage** `partial`
 
-Feature flags arrive as JSON keys in the cloud-delivered settings document — not compile-time switches. Ten featureConfig* keys enumerate what's gated (SemiSleep, SmartPlay, SpotABR, Plink, Quickbonding, MetricsService...). Explains behaviour that differs between households on the same firmware.
+Feature flags arrive as JSON keys in the cloud-delivered settings document — not compile-time switches. Ten featureConfig* keys enumerate what's gated (SemiSleep, SmartPlay, SpotABR, Plink, Quickbonding, MetricsService...). Explains behaviour that differs between households on the same firmware. The master list of toggles: which features exist behind flags and each flag's current state on this unit.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2013,7 +2013,7 @@ complete compile-time feature/config flag vocabulary (48 keys): featureConfig* f
 
 **coverage** `partial`
 
-The feature-flag registry — the build-time map behind featureConfig: same flag vocabulary as the schema plus defaults. Runtime precedence is flag → featureConfig → config → default, so a cloud-pushed value beats the build default.
+The feature-flag registry — the build-time map behind featureConfig: same flag vocabulary as the schema plus defaults. Runtime precedence is flag → featureConfig → config → default, so a cloud-pushed value beats the build default. This is what lets Sonos ship one codebase with per-model and per-household variation — 'compiled in' and 'enabled' are different questions answered here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2033,7 +2033,7 @@ flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enab
 
 **coverage** `partial`
 
-The fileDataMgr async I/O: stream registration, SMB readdir/open, an 'in memory' fast path, HTTP reopen-at-offset resume via `?after=`, and content-type sniffing (`application/xml`). It's the generic 'open a URI as a stream' layer under playlists, artwork, and library browsing.
+The fileDataMgr async I/O: stream registration, SMB readdir/open, an 'in memory' fast path, HTTP reopen-at-offset resume via `?after=`, and content-type sniffing (`application/xml`). It's the generic 'open a URI as a stream' layer under playlists, artwork, and library browsing. Includes the atomic-write patterns that keep state files from corrupting: write to a temp, then swap — so a crash mid-save never leaves a half-written store.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2053,7 +2053,7 @@ async register/unregister + enabled; SMB readdir + "failed to open SMB dir"; "Fi
 
 **coverage** `partial`
 
-The fragmented-MP4 parser for segmented audio: validates box order (mfhd seq, tfhd before trun, tfdt), builds the trun table (seqnum, sample sizes/offsets/durations), and explicitly rejects senc sub-entry encryption it can't parse — 'Sub-entry encryption isn't supported' means the HLS Sample-AES path isn't this parser.
+The fragmented-MP4 parser for segmented audio: validates box order (mfhd seq, tfhd before trun, tfdt), builds the trun table (seqnum, sample sizes/offsets/durations), and explicitly rejects senc sub-entry encryption it can't parse — 'Sub-entry encryption isn't supported' means the HLS Sample-AES path isn't this parser. The segmented-audio format adaptive streams use gets unpacked here — extracting frames and metadata from the fMP4 container.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2073,7 +2073,7 @@ boxes {mfhd(seq check),tfhd(version),tfdt,trun space bounds} + "tfhd not found b
 
 **coverage** `partial`
 
-How zones actually group: the coordinator/satellite topology, zone storage, play-state manager and the ZoneGroupTopology event model sit here. This is the machinery behind ZoneGroupState and the zgt events clients already consume.
+How zones actually group: the coordinator/satellite topology, zone storage, play-state manager and the ZoneGroupTopology event model sit here. This is the machinery behind ZoneGroupState and the zgt events clients already consume. How a group is represented internally — leader, members, their state — the structure everything else navigates when reasoning about groups.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2128,7 +2128,7 @@ zone grouping internals: bonded-role enum (HT_BONDED_MASTER/SATELLITE, UNBONDED_
 
 **coverage** `partial`
 
-GroupRenderingControl: group volume and mute. It snapshots member volumes, computes a normalized group volume (`calculateVolume` with sg/ng/sv/nv terms), validates zone transitions, and propagates DesiredVolume/DesiredMute to members — including partial-failure handling when some members are on fixed output. The group volume slider rides on this.
+The group rendering-control engine — the internal machinery that applies group volume/mute to all members, behind the GroupRenderingControl commands. The group-level volume and mute controls live here so one slider can move every speaker in a room at once.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2148,7 +2148,7 @@ group vol snapshot {"snapshot %s: %u (was %u)","snapshot sum for %u (of %u) zone
 
 **coverage** `partial`
 
-The periodic health probe: a timer that schedules the next check (6-gate decision on whether to run), contacts `/ws/diag/diag_instructions.xml?hhid=` for server instructions, honors SubmitPermission, and records ServerDiagInstructions. The device literally asks the cloud 'what should I do for you today' on this schedule.
+The health-check machinery — periodic self-tests the player runs to verify it's functioning, with results feeding diagnostics and recovery decisions. Runs periodically on its own timer — catching trouble before a user notices it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2168,7 +2168,7 @@ schedule "Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u seco
 
 **coverage** `partial`
 
-The healthcheck's server-contact half: instruction fetch, permission gating, and reschedule-on-response. The returned instructions can trigger diagnostics or other maintenance — it's a remote-control backdoor in the benign sense.
+The healthcheck's server-contact half: instruction fetch, permission gating, and reschedule-on-response. The returned instructions can trigger diagnostics or other maintenance — it's a remote-control backdoor in the benign sense. The reachability half of health checking: verifying the player can still reach the cloud and other players, not just that it's alive internally.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2188,7 +2188,7 @@ schedule "Next healthcheck scheduled to run in %u h %u m %u s" + "Not scheduling
 
 **coverage** `partial`
 
-The household-settings REST API inside the device: `public/{key}` is readable by anyone, `restricted/{key}` needs permissions, `restricted-admin/{key}` needs admin. Errors are specific — key-not-found, wrong size/type, store failure — so clients can distinguish 'doesn't exist' from 'can't write'. This is the low-level path beneath the muse settings namespaces.
+The household-settings REST API inside the device: `public/{key}` is readable by anyone, `restricted/{key}` needs permissions, `restricted-admin/{key}` needs admin. Errors are specific — key-not-found, wrong size/type, store failure — so clients can distinguish 'doesn't exist' from 'can't write'. This is the low-level path beneath the muse settings namespaces. When a component needs to read or write shared household configuration, this is the client that makes the call.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2209,7 +2209,7 @@ path grammar {public/{key},restricted/{key},restricted-admin/{key}}; errors {Key
 
 **coverage** `partial`
 
-The cloud play-history manager: POSTs played tracks, keeps pre/post caches with ETags and cache-control honoring, serves `recentlyPlayed`, and repairs a corrupt cache after a 304. `max-age` controls freshness. This is the 'recently played' list that syncs across the household and app.
+The cloud play-history manager: POSTs played tracks, keeps pre/post caches with ETags and cache-control honoring, serves `recentlyPlayed`, and repairs a corrupt cache after a 304. `max-age` controls freshness. This is the 'recently played' list that syncs across the household and app. Keeps the record of what was played — the data behind any 'recently played' view the system exposes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2230,7 +2230,7 @@ historyService + rphistory + historyEntryInvalid event + ucsType; cache {preCach
 
 **coverage** `partial`
 
-The HLS audio player: seeks land on segment boundaries (or snap forward), it can force a source switch when a playlist mixes codec variants, tracks ADTS metadata seconds, and requires group capabilities for some variants. The player distinguishes hls-live from hls-static — the protocolInfo whitelist is how a URI picks this engine.
+The segmented-stream audio player: seeks land on segment boundaries (or snap forward), it can switch variants when a playlist mixes formats, and it tracks stream metadata per segment. The engine behind most internet-radio playback on the platform.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2250,7 +2250,7 @@ The HLS audio player: seeks land on segment boundaries (or snap forward), it can
 
 **coverage** `partial`
 
-The HLS engine's stream semantics: variant tags (hls-live, hls-static), segment-aligned seeking, codec-variant failover, IV handling ('No IV, using seq. num'), and 'encrypted-but-no-key-URI' rejection. Sample-AES and ABR rendition filtering live here — it's a real HLS client, not just a playlist fetcher.
+The segmented-stream engine's stream semantics: live-versus-static variant tags, segment-aligned seeking, format-variant failover, and decryption-key handling for protected streams. The policy layer over the segment fetcher.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2273,7 +2273,7 @@ variants {hls-live,hls-static,hls-???}; "requires group capabilities %u"; "forci
 
 **coverage** `partial`
 
-The `householdsettings.json` store: versioned JSON with per-category sections (public/restricted/restricted-admin), each carrying read/write permission strings and a settings list (explicitContentFiltering, recentlyPlayed, etc.). `lastUpdateDevice`/`version` fields drive replication conflict resolution.
+The `householdsettings.json` store: versioned JSON with per-category sections (public/restricted/restricted-admin), each carrying read/write permission strings and a settings list (explicitContentFiltering, recentlyPlayed, etc.). `lastUpdateDevice`/`version` fields drive replication conflict resolution. Configuration shared by the whole home lives here, replicated so every player holds the same values rather than each having its own copy.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2293,7 +2293,7 @@ file householdsettings.json {fileVersion,fileSchemaVersion,householdSettings}; J
 
 **coverage** `partial`
 
-The TV-audio source type registry: tv-sat-as (satellite), tv-gm-dm-as (group-member downmix), tv-proc-as (TV processor), AIHomeTheater, and chsnk-sat-as — plus the ForceSubmitTvSessionReport op. These names appear in session reports and in the source-selection logic that decides which HT path feeds a zone.
+The TV-audio source type registry: tv-sat-as (satellite), tv-gm-dm-as (group-member downmix), tv-proc-as (TV processor), AIHomeTheater, and chsnk-sat-as — plus the ForceSubmitTvSessionReport op. These names appear in session reports and in the source-selection logic that decides which HT path feeds a zone. Detects and selects the TV-connected inputs — optical and HDMI — that feed a soundbar its audio.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2313,7 +2313,7 @@ source names {tv-sat-as,tv-gm-dm-as,tv-proc-as,AIHomeTheater,chsnk-sat-as}; Forc
 
 **coverage** `partial`
 
-HT channel processing: stream types (htain, htaoutl/htaoutr/htaouts, remote, downmix), DRC state changes per dspZone (night mode, dialog enhancement, speech extraction), channel-map transitions, and SPDIF input with its own protocolInfo. This is where a stereo TV signal becomes surround across bonded speakers.
+HT channel processing: stream types (htain, htaoutl/htaoutr/htaouts, remote, downmix), DRC state changes per dspZone (night mode, dialog enhancement, speech extraction), channel-map transitions, and SPDIF input with its own protocolInfo. This is where a stereo TV signal becomes surround across bonded speakers. How incoming TV channels are mapped, mixed, and distributed across the rig's speakers — the routing brain of theater audio.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2339,7 +2339,7 @@ DRC "changedDRCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, spe
 
 **coverage** `partial`
 
-The satellite-transmission stats schema: time-to-play, bytes sent, tx errors, serialization errors, late frames, resync frames. On a surround setup, these counters explain lip-sync drift and dropouts between the soundbar and its satellites.
+The satellite-transmission stats schema: time-to-play, bytes sent, tx errors, serialization errors, late frames, resync frames. On a surround setup, these counters explain lip-sync drift and dropouts between the soundbar and its satellites. Sends surround and sub audio from the bar to its bonded satellites — the wireless link that makes rear speakers wire-free.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2360,7 +2360,7 @@ stats schema {timeToPlay/Time between send and play,txSent/Total bytes transmitt
 
 **coverage** `partial`
 
-The async HTTP client (curl multi + thread pool): `performAsync` schedules requests, reports curl errors verbatim, enforces timeouts, and counts tasks. 'No active thread pool' means the request was dropped before it started — a symptom of shutdown-in-progress.
+The HTTP client — the machinery for outgoing web requests: every call the player makes to services, the cloud, or other players goes through here.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2380,7 +2380,7 @@ sonos::http::performAsync; errors {"not scheduled. No active thread pool availab
 
 **coverage** `partial`
 
-The HTTP cache manager: hash-based invalidation (local+remote hashes compared, remote caches invalidated over the LAN), `/jffs` mount checking via statvfs/`/proc/mounts`, and per-key get/set statuses. This is why artwork and metadata stay consistent across players — invalidation propagates.
+The HTTP cache manager: hash-based invalidation (local+remote hashes compared, remote caches invalidated over the LAN), `/jffs` mount checking via statvfs/`/proc/mounts`, and per-key get/set statuses. This is why artwork and metadata stay consistent across players — invalidation propagates. The cache-management layer deciding what's kept and for how long — the policy side of the web cache.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2400,7 +2400,7 @@ hash-based invalidation {cacheHashes,"\[%s\] Cache not found. Cannot invalidate.
 
 **coverage** `partial`
 
-The hardware-event handler: netlink multicast messages for buttons, orientation, and thermal events on the select thread, with overflow/unknown/readNextMsg error handling and a button-forwarding mode that ships presses to a private-IP target (used for bonded/home-theater remotes).
+The hardware-event layer: low-level system messages for buttons, orientation, and thermal events arrive on a dedicated thread, with overflow and malformed-message handling. How physical things happening to the box become software events.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2422,7 +2422,7 @@ hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHand
 
 **coverage** `partial`
 
-Intended-target fan-out: a single muse command can name `intendedTargets` — a set of players — and the planner expands it into per-target executions, validating that the command supports fan-out and each target parses. This is how the app sends one 'set volume' to a whole room instead of issuing per-player calls.
+Intended-target fan-out: a single muse command can name `intendedTargets` — a set of players — and the planner expands it into per-target executions, validating that the command supports fan-out and each target parses. This is how the app sends one 'set volume' to a whole room instead of issuing per-player calls. An internal block identified by build-tree naming — part of the player's internal communication machinery recovered structurally.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2443,7 +2443,7 @@ plan {"already generated ibt plan, no action taken","executing ibt plan for comm
 
 **coverage** `partial`
 
-The in-process observer registry: named observers register per subject (PlaybackEvent and friends), the engine logs each registration with a running count, and flags like `enableSemiSleep`/`enableHTSourceSleep` mark power-sensitive listeners. This is the pub-sub fabric under muse events for handlers inside the same process.
+The in-process observer registry: named observers register per subject (PlaybackEvent and friends), the engine logs each registration with a running count, and flags like `enableSemiSleep`/`enableHTSourceSleep` mark power-sensitive listeners. This is the pub-sub fabric under muse events for handlers inside the same process. How one subsystem tells another something changed without any network — the internal publish/subscribe inside this one program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2463,7 +2463,7 @@ subject.h; Registering/Unregistering "%s" observer "%s". Total observers: %zu; o
 
 **coverage** `partial`
 
-The playback-interrupt reason enum: CLOUD, HT_PLAYBACK, HT_POWER_STATE, AIRPLAY, AUDIO_CLIP, SPEAKER_DETECTION, FIXED_VOLUME, ROOM_DETECTION, IR_CONTROL, ALEXA_CBL — the 'why did my music duck/stop' taxonomy. CEC error codes (CHARGER_NOT_COMPATIBLE, NO_LOGICAL_ADDRESS, CONFIGURING) tag HDMI failures.
+The playback-interrupt reason enum: CLOUD, HT_PLAYBACK, HT_POWER_STATE, AIRPLAY, AUDIO_CLIP, SPEAKER_DETECTION, FIXED_VOLUME, ROOM_DETECTION, IR_CONTROL, ALEXA_CBL — the 'why did my music duck/stop' taxonomy. CEC error codes (CHARGER_NOT_COMPATIBLE, NO_LOGICAL_ADDRESS, CONFIGURING) tag HDMI failures. Records why playback or processing stopped — the 'why did it quit' bookkeeping behind transport status and diagnostics.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2483,7 +2483,7 @@ The playback-interrupt reason enum: CLOUD, HT_PLAYBACK, HT_POWER_STATE, AIRPLAY,
 
 **coverage** `partial`
 
-The zlib buffer wrapper: RCompressBuffer/RDecompressBuffer around deflateInit2/inflateInit2 with per-stage failure logging. Used for saved queues (.rsq), replication payloads, and any gzip-accepted endpoint.
+The zlib buffer wrapper: RCompressBuffer/RDecompressBuffer around deflateInit2/inflateInit2 with per-stage failure logging. Used for saved queues (.rsq), replication payloads, and any gzip-accepted endpoint. Compresses data in flight or at rest — used where logs or state are stored compactly to save space.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2503,7 +2503,7 @@ RCompressBuffer {deflateInit2,deflate,deflateEnd failed} + RDecompressBuffer {in
 
 **coverage** `partial`
 
-The IR learning flow: multi-pass capture (passes 1 and 3 must match in size and bits), repeat-style detection (alternating, repeating, non-repeating), and one-button learn with tolerance. Learned codes that don't fit the cloud IR database (`ir.ws.sonos.com/IRCode/`) format are rejected.
+The IR learning flow: multi-pass capture (passes 1 and 3 must match in size and bits), repeat-style detection (alternating, repeating, non-repeating), and one-button learn with tolerance. Learned codes that don't fit the cloud IR database (`ir.ws.sonos.com/IRCode/`) format are rejected. Captures an unknown remote's signals during setup so the speaker can respond to it — the implementation behind the remote-teaching commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2523,7 +2523,7 @@ htaudio.cxx IR subsystem: code lists vol_up_codes/vol_down_codes/vol_mute_codes/
 
 **coverage** `partial`
 
-The embedded JSON parser's error enum: Exceeded max depth, Invalid unicode escape/escape/string character/numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory. These are the failure modes any settings/manifest/JSON endpoint can hit.
+The embedded JSON parser's error enum: Exceeded max depth, Invalid unicode escape/escape/string character/numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory. These are the failure modes any settings/manifest/JSON endpoint can hit. Every JSON-speaking component decodes through this bundled library — request bodies, settings, API payloads.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2543,7 +2543,7 @@ error enum {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid str
 
 **coverage** `partial`
 
-The JSON Schema validator used by local settings: keywords patternProperties, maxLength/minLength, maxItems/minItems, maxProperties/minProperties, required, additionalProperties, uniqueItems, dependencies, exclusiveMinimum/Maximum, instanceRef, fileFormatVersion, targetType. Every settings write is checked against the schema before persistence.
+The JSON Schema validator used by local settings: keywords patternProperties, maxLength/minLength, maxItems/minItems, maxProperties/minProperties, required, additionalProperties, uniqueItems, dependencies, exclusiveMinimum/Maximum, instanceRef, fileFormatVersion, targetType. Every settings write is checked against the schema before persistence. Checks a decoded JSON document against its expected shape — the machinery behind the modern API's field-by-field request validation.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2563,7 +2563,7 @@ keywords {patternProperties,maxLength,minLength,maxItems,minItems,dependencies,m
 
 **coverage** `partial`
 
-The persistent secure-websocket channel between player and cloud ('lechmere'): RFC6455 framing carrying an inner TLV command vocabulary — this is how the cloud pushes control and the player reports state in real time. Framing is confirmed; the per-namespace command payloads aren't decoded yet. Its inner message format is now known too: every frame opens with six ASCII characters — two for the protocol version, two for the message type, two for the extended-header length — followed by the extended header and payload. Message types are two-letter codes (AA through AK) that select a registered handler, and UPnP traffic is tunneled inside via x-sonos-method, x-sonos-uri and SOAPACTION headers.
+The persistent secure-websocket channel between player and cloud ('lechmere') — the always-on pipe cloud commands and modern-API calls arrive over, using a compact binary message format inside standard web framing. It's the link that makes your speaker controllable from anywhere, not just your home network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2638,7 +2638,7 @@ lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiat
 
 **coverage** `partial`
 
-The status LED is a scripted animation system: patterns are programs of RGB steps with hold/fade times, checksummed and selected by internal state codes (R_LED_* — setup, muted, playing, broken-device, join-household...). Hardware capability flags adapt it to models with mic LEDs, mute LEDs, or only a status LED. SetLEDState's on/off is just the visible tip.
+The status LED is a scripted animation system: patterns are programs of RGB steps with hold/fade times, checksummed and selected by internal state codes (R_LED_* — setup, muted, playing, broken-device, join-household...). Hardware capability flags adapt it to models with mic LEDs, mute LEDs, or only a status LED. SetLEDState's on/off is just the visible tip. Decides what the light should show at any moment — states, blink patterns, and the logic mapping system state to display.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2670,7 +2670,7 @@ Scripted LED animation engine: <LedPatternInfo> docs hold <LedPatternEntry time 
 
 **coverage** `partial`
 
-The LED hardware feature map: bHasMicrophone, bHasMuteLED, bHasStatusLED, bHasOnlyStatusLED, bHasHardwareLedSwap, bCanSetWhiteBrightness — per-model booleans that determine which LED behaviors even exist. This is why the mute LED is separate from the status LED on some products.
+The LED hardware feature map: bHasMicrophone, bHasMuteLED, bHasStatusLED, bHasOnlyStatusLED, bHasHardwareLedSwap, bCanSetWhiteBrightness — per-model booleans that determine which LED behaviors even exist. This is why the mute LED is separate from the status LED on some products. The low-level driver actually switching the indicator LEDs — the hardware end of the light.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2690,7 +2690,7 @@ setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHa
 
 **coverage** `partial`
 
-Device-certificate verification lives in its own shared library, separate from the main player code. It checks a presented certificate against a bundled set of roots, honors a fallback bundle, and watches for bundle updates at runtime. The practical effect: TLS trust for device identity is maintained as a separate, updateable component rather than baked into the app binary.
+Device-certificate verification lives in its own shared library, separate from the main player code. It checks a presented certificate against a bundled set of roots, honors a fallback bundle, and watches for bundle updates at runtime. The practical effect: TLS trust for device identity is maintained as a separate, updateable component rather than baked into the app binary. Sonos's own certificate-verification code — checks a presented certificate is a genuine Sonos-issued credential before trusting it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2709,7 +2709,7 @@ shared lib (1.7MB, stripped but dynsym-rich) implementing sonos::certval::valida
 
 **coverage** `partial`
 
-The muse `loadContent` verb family: `loadContainer`, `loadStream`, `loadFavorite`, `loadPlaylist`, `loadTrackList` — with a type whitelist (spotify.connect items, linein variants, trackList programs, podcast episodes, audiobook chapters, homeTheater-input). Guidance strings steer callers to the right verb. This is the cloud-API entry point for 'play this thing'.
+The muse `loadContent` verb family: `loadContainer`, `loadStream`, `loadFavorite`, `loadPlaylist`, `loadTrackList` — with a type whitelist (spotify.connect items, linein variants, trackList programs, podcast episodes, audiobook chapters, homeTheater-input). Guidance strings steer callers to the right verb. This is the cloud-API entry point for 'play this thing'. Resolves 'give me this item's playable stream' — the step between browsing a service and actually playing its content.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2729,7 +2729,7 @@ verbs {loadContainer,loadStream,loadFavorite,loadPlaylist,loadTrackList} with gu
 
 **coverage** `partial`
 
-A second cluster of local routes bound via a path-matcher rather than the master pointer table: `/createGroup`, `/unjoin`, `/activate`, `/deactivate`, `/duck`, `/unduck`, `/definition`, `/missingDefinition`, `/activeZone`, `/memberSettings`. These are group/zone and ducking operations — recorded here because they don't appear in the primary route table.
+A second cluster of local routes bound via a path-matcher rather than the master pointer table: `/createGroup`, `/unjoin`, `/activate`, `/deactivate`, `/duck`, `/unduck`, `/definition`, `/missingDefinition`, `/activeZone`, `/memberSettings`. These are group/zone and ducking operations — recorded here because they don't appear in the primary route table. A second registry of internal web paths beyond the main table — the secondary route surface recovered during the endpoint sweep.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2751,7 +2751,7 @@ paths {/createGroup,/unjoin,/activate,/deactivate,/duck,/unduck,/definition,/mis
 
 **coverage** `partial`
 
-Every anacapa.*.log domain names a subsystem boundary — the 21 domains are effectively a module map of the binary. Useful when reading log output or /status pages.
+Every log channel the program can write to names a subsystem boundary — the 21 log domains are effectively a module map of the whole binary. Useful when reading log output or diagnostic pages: each line tells you which part of the system produced it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2777,7 +2777,7 @@ Every anacapa.*.log domain names a subsystem boundary — the 21 domains are eff
 
 **coverage** `partial`
 
-The anacapa log-domain map: per-subsystem files under `/opt/log/anacapa.*.log` (alarm.job, avt.play, chsrc.state, ext.audio.action, gm.events, hdmi, lechmere.event, musecmdandrsp, spotify, tv, vl...), the main anacapa.log, and `/opt/conf/anacapa_logger.toml` categories. The domain name in a log line maps to exactly one of these.
+The anacapa log-domain map: per-subsystem files under `/opt/log/anacapa.*.log` (alarm.job, avt.play, chsrc.state, ext.audio.action, gm.events, hdmi, lechmere.event, musecmdandrsp, spotify, tv, vl...), the main anacapa.log, and `/opt/conf/anacapa_logger.toml` categories. The domain name in a log line maps to exactly one of these. The per-channel severity and filtering machinery behind the named log channels — deciding what gets written and where.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2797,7 +2797,7 @@ files /opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.ev
 
 **coverage** `partial`
 
-The long-press button behavior — group-coordinator clone cycling: a GC list (head/tail/current) of cloneable coordinators, 'cycling to %s:%s', with tracked add/remove/promotion and 'last PAUSED/STOPPED GC is no longer cloneable' detection. This is what makes holding the play button clone another room's queue.
+The long-press button behavior — group-coordinator clone cycling: a GC list (head/tail/current) of cloneable coordinators, 'cycling to %s:%s', with tracked add/remove/promotion and 'last PAUSED/STOPPED GC is no longer cloneable' detection. This is what makes holding the play button clone another room's queue. Distinguishes a held button from a tapped one — the timing logic enabling press-and-hold actions on the unit's controls.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2818,7 +2818,7 @@ GC list {head,tail,current} of cloneable group coordinators; "cycling to %s:%s"/
 
 **coverage** `partial`
 
-The mDNS service controller: register-once guards, TXTRecord populate/update/remove with duplicate suppression, and player-discovery startup. Errors like 'attempted to register twice' are lifecycle guards — a second register means a state bug, not a second service.
+The discovery-service controller: register-once guards, record populate/update/remove with duplicate suppression, and startup of player discovery. The code that publishes this speaker's presence on the local network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2838,7 +2838,7 @@ Service lifecycle: register-once guard ("Attempted to register ... twice"), TXTR
 
 **coverage** `partial`
 
-The mDNS discovery half: TXT key enumeration errors, bye-bye reason updates, an 'older version or missing keys' compat check, household filtering ('not in our household: discovered vs ours'), and topology notification with the remote bootseq. This is how a stale or foreign device gets ignored.
+The discovery half: record-key enumeration, gone-reason updates, a compatibility check for older or incomplete records, and household filtering so foreign speakers get ignored. How the player decides which discovered devices are family.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2858,7 +2858,7 @@ The mDNS discovery half: TXT key enumeration errors, bye-bye reason updates, an 
 
 **coverage** `partial`
 
-Beneath AVTransport sits a plug-in layer of source implementations - one per stream type (line-in, TV, Spotify, AirPlay-style sources). Each plugs in through the same function-table interface, so the transport commands you call work identically regardless of which source is actually playing.
+Beneath AVTransport sits a plug-in layer of source implementations - one per stream type (line-in, TV, Spotify, AirPlay-style sources). Each plugs in through the same function-table interface, so the transport commands you call work identically regardless of which source is actually playing. A uniform internal interface over the different kinds of 'players' inside the system — queue playback, streams, external sessions — so upper layers treat them the same.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2887,7 +2887,7 @@ source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay
 
 **coverage** `partial`
 
-The media-player actor registry: each player is an actor keyed by uuid/index/port/ssl/mtls with overlap detection, lifecycle (register/create/shutdown), and per-player config dirs with their own `anacapa_logger.toml`. Targets resolve through `getActor` with backup fallback. It's the internal object model that muse player-scoped commands dispatch into.
+The media-player registry: each playback session is tracked with its identity, port, and security settings, plus lifecycle events as players register and shut down. It's the bookkeeping behind 'which playback objects exist right now'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2907,7 +2907,7 @@ actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); "found actor fo
 
 **coverage** `partial`
 
-The memory monitor: reads `/proc/meminfo` (MemAvailable, MemFree) plus per-process statm/cmdline, writes rotating logs to `/tmp/memorylog/log.N`, and emits 'memory report avail/free' records with a skip counter. Low-memory pressure reports are how OOM-adjacent bugs get diagnosed.
+The memory monitor: reads `/proc/meminfo` (MemAvailable, MemFree) plus per-process statm/cmdline, writes rotating logs to `/tmp/memorylog/log.N`, and emits 'memory report avail/free' records with a skip counter. Low-memory pressure reports are how OOM-adjacent bugs get diagnosed. Watches memory usage and feeds diagnostics plus the safeguards that act when memory runs low.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2927,7 +2927,7 @@ reads /proc/meminfo {MemAvailable:,MemFree:} + /proc/%s/{statm,cmdline}; writes 
 
 **coverage** `partial`
 
-Same memmon layer (see memmon): the threads memlog/memmon/memory_status drive the sampling and rotation. Reports include the skip count so missed samples are visible rather than silent.
+Same memmon layer (see memmon): the threads memlog/memmon/memory_status drive the sampling and rotation. Reports include the skip count so missed samples are visible rather than silent. The data behind 'the player was low on memory' diagnostics — tracking allocation and pressure across the program.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2947,7 +2947,7 @@ reads /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline}; logs to /
 
 **coverage** `partial`
 
-The SMB mount manager: mounts live under `/tmp/smb/{uid}_{id}`, trial mounts under `/tmp/smb/tmp*` probe dialect support ('unsupported protocol: strike N/M', 'flagging failed'), dedup by unc/share, enforce a max-share count, and unmount idle shares. This is the filesystem layer behind library shares.
+The SMB mount manager: mounts live under `/tmp/smb/{uid}_{id}`, trial mounts under `/tmp/smb/tmp*` probe dialect support ('unsupported protocol: strike N/M', 'flagging failed'), dedup by unc/share, enforce a max-share count, and unmount idle shares. This is the filesystem layer behind library shares. How your NAS folders get attached and re-attached — the mount management under 'the library reads my shares'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -2967,7 +2967,7 @@ mount points /tmp/smb/%d_%d + trial /tmp/smb/tmp%d_%u; "already mounted unc=%s s
 
 **coverage** `partial`
 
-Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability conditionals — which features a given hardware reports. The model→capability table hasn't been written out yet.
+Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability conditionals — which features a given hardware reports. The model→capability table hasn't been written out yet. The internal naming for product variants — which model codes exist and how the firmware refers to each hardware flavor.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3005,7 +3005,7 @@ Model identifiers (ZPS9-ZPS61, S0-S9) and product names embedded for capability 
 
 **coverage** `partial`
 
-The ZPS model-compatibility table: every model id this build recognizes (ZPS1–ZPS55, ZP120, ANVIL) — the local unit being ZPS9 (Playbar). Use this to map a firmware build to the products it can run on; unknown ids mean 'not a supported model' at validation time.
+The ZPS model-compatibility table: every model id this build recognizes (ZPS1–ZPS55, ZP120, ANVIL) — the local unit being ZPS9 (Playbar). Use this to map a firmware build to the products it can run on; unknown ids mean 'not a supported model' at validation time. The lookup of known product models — the data letting the firmware say 'this unit is a Playbar' and pick model-specific behavior.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3025,7 +3025,7 @@ models recognized by this build: {ZPS1,ZPS3,ZPS6,ZPS9(this unit),ZPS11,ZPS12,ZPS
 
 **coverage** `partial`
 
-The MP3 stream decoder: xing/VBR header handling ('No size in xing header', VBR duration math), frame resync bounded at 20 attempts ('corrupt file'), frame errors (illegal sample rate, header/sync/data overflow), and LAME/ID3 normalization. 'WMA radio not supported on this platform' is a deliberate exclusion.
+The MP3 stream decoder: variable-bitrate header handling, duration math, frame resync with a bounded retry, and error reporting for corrupt frames. The decoder that plays the most common audio format on the platform.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3046,7 +3046,7 @@ normalization {id3,lame}; "WMA radio not supported on this platform"; resync bou
 
 **coverage** `partial`
 
-The media-player autoplay logic for virtual line-in sources: vol/useVol/includeZones params, AirPlay zone inclusion via `AirplayIncludeGroupedEvt`, and linein object types (homeTheater, airplay, bluetooth) keyed to `x-sonos-vli:` URIs. Target resolution decides the coordinator or declines ('no autoplay target'). This is what makes a phone's AirPlay session start on the right room.
+The media-player autoplay logic for virtual line-in sources: vol/useVol/includeZones params, AirPlay zone inclusion via `AirplayIncludeGroupedEvt`, and linein object types (homeTheater, airplay, bluetooth) keyed to `x-sonos-vli:` URIs. Target resolution decides the coordinator or declines ('no autoplay target'). This is what makes a phone's AirPlay session start on the right room. The autoplay feature as implemented in the media-player layer — resuming or following sources automatically.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3066,7 +3066,7 @@ params {vol,useVol,includeZones} + "airplay include zones: %d" + AirplayIncludeG
 
 **coverage** `partial`
 
-The MPEG-TS demuxer plus timed-ID3 extraction for HLS radio metadata: PAT/PMT parsing, audio PID selection ('No audio PID'), stream-type rejection, PTS handling, and timed-ID3v2 tag extraction with size caps and OOB guards. This is where stream metadata (artist/title) inside radio HLS comes from.
+The MPEG-TS demuxer plus timed-ID3 extraction for HLS radio metadata: PAT/PMT parsing, audio PID selection ('No audio PID'), stream-type rejection, PTS handling, and timed-ID3v2 tag extraction with size caps and OOB guards. This is where stream metadata (artist/title) inside radio HLS comes from. Parses the transport-stream container and ID3 metadata tags some broadcast-style streams carry.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3086,7 +3086,7 @@ TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), 
 
 **coverage** `partial`
 
-The mpmgr actor layer (see media_player_mgr): the registry and resolver that maps a target key to a concrete media-player actor — including the 'no actor available' and 'unexpected target ID type' failure modes. Every player-scoped muse command resolves through here first.
+The mpmgr actor layer (see media_player_mgr): the registry and resolver that maps a target key to a concrete media-player actor — including the 'no actor available' and 'unexpected target ID type' failure modes. Every player-scoped muse command resolves through here first. An internal manager module by build-tree naming — part of the player's module set recovered structurally.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3106,7 +3106,7 @@ actor key {uuid,ix,port,ssl,mtls} + "already exists or has overlapping values"; 
 
 **coverage** `partial`
 
-anacapad is one daemon of ~13 on the player. It pushes WiFi/network settings and PSKs to netstartd over /tmp/netstartd.ipc and receives connection-type updates back; LED, Bluetooth and power daemons get /X-external HTTP routes; each daemon has .dmp crash-report machinery. Most device behaviours (WiFi join, LED, BT pairing) are actually owned by the siblings.
+anacapad is one daemon of ~13 on the player. It pushes WiFi/network settings and PSKs to netstartd over /tmp/netstartd.ipc and receives connection-type updates back; LED, Bluetooth and power daemons get /X-external HTTP routes; each daemon has .dmp crash-report machinery. Most device behaviours (WiFi join, LED, BT pairing) are actually owned by the siblings. The interface layer marking where this program's job ends and the sibling system processes' begins — what gets delegated to whom.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3141,7 +3141,7 @@ anacapad coordinates ~13 sibling daemons over /X-external HTTP routes + /tmp/net
 
 **coverage** `partial`
 
-The JSON field names used in muse payloads, grouped by domain: auth (accessToken, refreshToken, pinEpoch), battery (chargingState, rawBatteryPercentage, batteryTemperature), device (isCoordinator, isSatellite, bootSequenceId, museHouseholdName), plus settings, positioning, and queue fields. These are the wire keys a client must produce — the binary is the authoritative spelling.
+The JSON field names used in muse payloads, grouped by domain: auth (accessToken, refreshToken, pinEpoch), battery (chargingState, rawBatteryPercentage, batteryTemperature), device (isCoordinator, isSatellite, bootSequenceId, museHouseholdName), plus settings, positioning, and queue fields. These are the wire keys a client must produce — the binary is the authoritative spelling. The recovered field-level grammar of the API's JSON documents — which keys exist and what types they carry.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3161,7 +3161,7 @@ auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery
 
 **coverage** `partial`
 
-The internal command/event logger (`muselogcmd`/`muselogevt`) that records dispatched muse operations — loadAudioClip, setProtectedAdminSettings, createVoiceAccount among them. Useful for understanding which operations are considered sensitive enough to log, and for debugging replayed command histories.
+The internal command/event logger (`muselogcmd`/`muselogevt`) that records dispatched muse operations — loadAudioClip, setProtectedAdminSettings, createVoiceAccount among them. Useful for understanding which operations are considered sensitive enough to log, and for debugging replayed command histories. The API layer's own log channels — what the modern machinery reports and under which names.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3181,7 +3181,7 @@ The internal command/event logger (`muselogcmd`/`muselogevt`) that records dispa
 
 **coverage** `partial`
 
-A per-stage profiler inside the muse engine: AUTH_IS_AUTHORIZED, COMMAND_PARSE, COMMAND_DISPATCH, COMMAND_EXECUTE, plus per-verb stages like PLAYER_VOLUME_SET_VOLUME, each reporting total ms, average, and count. Explains where command latency goes — e.g., auth vs dispatch vs the handler itself.
+A per-stage profiler inside the modern-API engine: it times each phase a request passes through — authorization, parsing, routing, execution — plus per-operation stages. Exists so latency inside the API pipeline can be measured and reported.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3201,7 +3201,7 @@ fmt "- %c%010u - %6s -" + "%s: %lldms, %fms avg \[count=%u\]"; stages {AUTH_IS_A
 
 **coverage** `partial`
 
-The 'muse' API is Sonos's real product API — the REST-style surface the app talks to over the cloud/websocket channel. 525 routes are catalogued: every SOAP service is mirrored as an upnp* proxy (call + subscribe), and native namespaces cover players, groups, playback sessions, settings, home theater, alarms, timers, voice, trueplay/trueroom tuning, playlists, diagnostics and 'pinewood' remote control. Per-route request/response schemas remain the open work.
+The 'muse' API is Sonos's real product API — the REST-style surface the app talks to over the cloud/websocket channel. 525 routes are catalogued: every classic command reachable through it, plus modern-only features the old surface never had. This is the vocabulary of what the API can mean, not just its URL list.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3238,7 +3238,7 @@ the muse API is the real product surface: 525 route strings, organized as househ
 
 **coverage** `partial`
 
-The gate that resolves a command's target: implicit targets (the receiving player), explicit targets (another player or group by id), and the rejections (guest_access_disallowed, forbidden, not_authorized, not_found). This is the first thing a command hits after auth — most 4xx-equivalent muse failures originate here.
+The gate that resolves a command's target: implicit targets (the receiving player), explicit targets (another player or group by id), and the rejections (guest_access_disallowed, forbidden, not_authorized, not_found). This is the first thing a command hits after auth — most 4xx-equivalent muse failures originate here. Checks that a request's target (this player, this group) is valid before an operation runs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3258,7 +3258,7 @@ rejects {guest_access_disallowed,forbidden,not_authorized,not_found}; museinfose
 
 **coverage** `partial`
 
-The available-services store: `musicservices.xml` plus a backstop file, state variables (ZPMusicServicesList, ServiceListVersion, AvailableServiceDescriptorList/TypeList/ListVersion), and settings like the online-update base URL. Replication uses the ms read/write locks. This is how the household agrees on which SMAPI services are installed and at what version.
+The available-services store: `musicservices.xml` plus a backstop file, state variables (ZPMusicServicesList, ServiceListVersion, AvailableServiceDescriptorList/TypeList/ListVersion), and settings like the online-update base URL. Replication uses the ms read/write locks. This is how the household agrees on which SMAPI services are installed and at what version. The machinery behind the service catalog — which services exist, their capabilities, and how the player talks to each one's API.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3278,7 +3278,7 @@ musicservices.xml + backstop file; state vars {ZPMusicServicesList,ServiceListVe
 
 **coverage** `partial`
 
-The netlink interface-address monitor — the same selthrd.RIfAddressMonitor machinery as addrmon: RTM_NEWLINK/GETLINK events feeding reset/data/except/timeout handlers. Listed separately because both the address-watch and link-watch consumers ride it.
+The netlink interface-address monitor — the same selthrd.RIfAddressMonitor machinery as addrmon: RTM_NEWLINK/GETLINK events feeding reset/data/except/timeout handlers. Listed separately because both the address-watch and link-watch consumers ride it. Watches the wired and wireless interfaces for up/down and address changes, so the rest of the system learns the moment connectivity shifts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3298,7 +3298,7 @@ netlink {RTM_NEWLINK,RTM_GETLINK}; errors {read error,incorrect type,unexpected 
 
 **coverage** `partial`
 
-The netstartd IPC event vocabulary: hello, setup start/stop, idle/alive/open, in-setup-mode, SSID set/clear, triggered-upgrade, connection-type updates — plus WAC mode states (/var/run/wac_mode, disabled/enabled/timeout). These are the provisioning subsystem's observable transitions.
+The netstartd IPC event vocabulary: hello, setup start/stop, idle/alive/open, in-setup-mode, SSID set/clear, triggered-upgrade, connection-type updates — plus WAC mode states (/var/run/wac_mode, disabled/enabled/timeout). These are the provisioning subsystem's observable transitions. Events from the network-startup machinery — how this program learns the network is coming up, came up, or failed, so it doesn't talk before there's a path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3319,7 +3319,7 @@ events {netstartd hello,Setup start,Setup stop,Netstart is idle,Netstart alive,N
 
 **coverage** `partial`
 
-The inter-player RX transport (noderx): output buffer bookkeeping (lastRead, lastConsecutiveGood, lastRx), a flight-recorder line per packet, startup with delayed packets/frames, large-gap 'don't NACK' startup, and discontiguous-NACK suppression. This is the receiver half of the framed group-audio channel.
+The inter-player RX transport (noderx): output buffer bookkeeping (lastRead, lastConsecutiveGood, lastRx), a flight-recorder line per packet, startup with delayed packets/frames, large-gap 'don't NACK' startup, and discontiguous-NACK suppression. This is the receiver half of the framed group-audio channel. The receive half of the player-to-player telemetry channel — accepts the node-level status messages household members exchange.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3351,7 +3351,7 @@ indices {ob=outputBuf,lr=lastRead,lcg=lastConsecutiveGood,lrx=lastRx}; flight re
 
 **coverage** `partial`
 
-The `/nslookup` exec page: a gate plus a `nslookup` shell-out driven by a parameter table — one of the tools-page commands, listed separately because it resolves through a different dispatch path than the main exec table.
+The /nslookup diagnostic page detail: a permission gate plus a lookup routine driven by a parameter table — one of the tools-page commands, listed separately because it resolves names on demand for network debugging.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3371,7 +3371,7 @@ f_100b96d0: gate → execs nslookup via f_10549cf8 with table arg 0x11097680+0x8
 
 **coverage** `partial`
 
-The `/overrideconfig` endpoint: a form POST that commits an override file, with strict body validation (read errors, content-length mismatch, init/commit failures) and a meta-refresh success page to `/fcs`. This is the engineering mechanism for config overrides that survive reboot.
+The `/overrideconfig` endpoint: a form POST that commits an override file, with strict body validation (read errors, content-length mismatch, init/commit failures) and a meta-refresh success page to `/fcs`. This is the engineering mechanism for config overrides that survive reboot. Lets values be forced for testing or special deployments — a deliberate escape hatch over the normal config stores.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3391,7 +3391,7 @@ form post committing override file; errors {Error reading request body,Request b
 
 **coverage** `partial`
 
-The perf-counter schema: keyed counters with wallClockEndTime ('end of the window as UTC'), description fields, and min/avg/max accounting — 'average value should be 0' asserts on reset. The counter_historical.h/counter_min_avg_max.h headers define the storage classes.
+The perf-counter schema: keyed counters with wallClockEndTime ('end of the window as UTC'), description fields, and min/avg/max accounting — 'average value should be 0' asserts on reset. The counter_historical.h/counter_min_avg_max.h headers define the storage classes. The raw counts and timings behind performance diagnostics — how long operations take and how often they run.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3412,7 +3412,7 @@ headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEn
 
 **coverage** `partial`
 
-The forced perfect-initial-sync mechanism: `forcePerfectInitialSync` pins a stream's first play time to an exact timestamp ('ignoring %d usec diff'), used when group start alignment matters more than smooth ramp-in. Normal sync uses gradual correction; this is the hard-aligned variant.
+The 'perfect sync' machinery — Sonos's multi-room synchronization: how grouped speakers keep their audio clocks aligned tightly enough that rooms play in lip-sync-level unison. This is the technically hardest part of grouping and a long-standing Sonos differentiator.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3432,7 +3432,7 @@ The forced perfect-initial-sync mechanism: `forcePerfectInitialSync` pins a stre
 
 **coverage** `partial`
 
-Recently-played tracking: plays are recorded by the track monitor/recorder, buffered, and POSTed to the household history API with strict completeness rules; the app fetches an ETag-cached list; clearHistory/removeHistoryItem ops exist. Ratings (like/dislike) exist but only for the cloud queue.
+Recently-played tracking: plays are recorded by the track monitor/recorder, buffered, and POSTed to the household history API with strict completeness rules; the app fetches an ETag-cached list; clearHistory/removeHistoryItem ops exist. Ratings (like/dislike) exist but only for the cloud queue. The persistent record of what was played — what the history manager keeps and history features read.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3465,7 +3465,7 @@ historymgr.cxx play-history pipeline: TrackPlayRecorder/TrackPlayMonitor capture
 
 **coverage** `partial`
 
-Below the URI layer sit real playlist parsers: ASX/WMP (mswmext), M3U (x-mpegurl), Apple HLS playlists (vnd.apple.mpegurl), DASH manifests. They turn playlist URLs into the track lists the queue consumes.
+Below the URI layer sit real playlist parsers: ASX/WMP (mswmext), M3U (x-mpegurl), Apple HLS playlists (vnd.apple.mpegurl), DASH manifests. They turn playlist URLs into the track lists the queue consumes. Readers for external playlist formats (M3U, PLS, and friends) so saved playlists from other apps can be imported and played.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3488,7 +3488,7 @@ iterate{ASX,M3U,WLP,PLS}PlayList; ASX <ref href= + entryref; linkUrl= extraction
 
 **coverage** `partial`
 
-The household's symmetric-key tree: four PSKs — HhPsk (DTLS for household comms), ControlPsk, RoomEncPsk (encrypts room names), LanSwapPsk — each with a backup mirror for seamless rotation. Rotation regenerates all four, bumps the netsettings version, and propagates to members. This is the cryptographic root of trust for inter-player traffic.
+The household's symmetric-key tree: four PSKs — HhPsk (DTLS for household comms), ControlPsk, RoomEncPsk (encrypts room names), LanSwapPsk — each with a backup mirror for seamless rotation. Rotation regenerates all four, bumps the netsettings version, and propagates to members. This is the cryptographic root of trust for inter-player traffic. The structure of shared secrets protecting household channels — which key guards which communication path and how they relate.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3508,7 +3508,7 @@ PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each
 
 **coverage** `partial`
 
-QPlay (Tencent's music-cast protocol) support - minimal in this build: the device description advertises the capability strings and a QPlayAuth action exists, but no seed/code exchange or control channel was found. Treat it as placeholder-grade - Chinese-market capability advertising rather than a working feature.
+The QPlay integration — the Tencent QQ Music casting feature: the machinery behind the QPlayAuth handshake and the session that streams audio afterward. China-market feature, dormant elsewhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3528,7 +3528,7 @@ QPlay:2 X_QPlay_SoftwareCapability xmlns:qq=tencent.com in device description; #
 
 **coverage** `partial`
 
-Tencent's QPlay protocol (QQ音乐 casting). Only the QPlayAuth SOAP action is documented; the wider protocol — key derivation, the control channel, why it has a Control route but no Event route — is still undocumented.
+The QPlay protocol implementation — the wire details of the Tencent casting protocol: seed/code exchange and the session flow. One of the private protocols sitting alongside the documented services — how a Tencent-linked client can push music at the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3558,7 +3558,7 @@ Tencent QPlay support: /QPlay/Control SOAP endpoint (no matching /QPlay/Event ro
 
 **coverage** `partial`
 
-How the queue survives reboots: saved queues are an XML document (.rsq) of SavedQueue+Track elements written atomically via a .tmp rename with a .d.rsq backup; the live queue persists as trackqueue.rsq; both are validated at boot and on replication. The SQ: object prefix exposes them to ContentDirectory and the SavedQueuesUpdateID variable tracks changes.
+How the queue survives reboots: saved queues are an XML document (.rsq) of SavedQueue+Track elements written atomically via a .tmp rename with a .d.rsq backup; the live queue persists as trackqueue.rsq; both are validated at boot and on replication. The SQ: object prefix exposes them to ContentDirectory and the SavedQueuesUpdateID variable tracks changes. How queue contents get written to disk and restored — the machinery behind the queue surviving a reboot.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3596,7 +3596,7 @@ How the queue survives reboots: saved queues are an XML document (.rsq) of Saved
 
 **coverage** `partial`
 
-The /rdmbuttonfwd endpoint's behavior: it checks authentication and whether the player is in RDM (remote display/room) mode - only then do physical button presses get forwarded to the remote display; otherwise requests are rejected.
+The /rdmbuttonfwd endpoint's behavior: it checks authentication and whether the player is in RDM (remote display/room) mode - only then do physical button presses get forwarded to the remote display; otherwise requests are rejected. Forwards physical button presses into the diagnostics channel — lets support observe hardware interaction during a session.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3616,7 +3616,7 @@ f_100b9e58: auth gate f_105489fc + RDM-mode predicate f_105e9468 → f_100b9bb0 
 
 **coverage** `partial`
 
-A set of sentinel files in /tmp and /var/run flip device behaviour at runtime: device_unlocked_flag, brokendevice, wifidisabled, crashed_play_state, event_preserve, wac_mode, netmanager_extender_flags, systemtimeoffset... They are the mechanism behind diagnostics, devmode and setup states.
+A set of sentinel files in /tmp and /var/run flip device behaviour at runtime: device_unlocked_flag, brokendevice, wifidisabled, crashed_play_state, event_preserve, wac_mode, netmanager_extender_flags, systemtimeoffset... They are the mechanism behind diagnostics, devmode and setup states. On-disk markers used as switches — the presence or absence of a file toggling a behavior without code changes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3660,7 +3660,7 @@ runtime state is driven by sentinel files: /tmp flags (device_unlocked_flag, bro
 
 **coverage** `partial`
 
-The runtime policy object: consults fcs, hhsettings, and settingsmgr to decide 'Disallowed' outcomes — e.g., effective P2P policy encryption status, 'Use Thor w/ Muse', 'Chsrc Optimization Enabled'. Feature gates that depend on live configuration rather than build flags route through here.
+The runtime policy object: consults fcs, hhsettings, and settingsmgr to decide 'Disallowed' outcomes — e.g., effective P2P policy encryption status, 'Use Thor w/ Muse', 'Chsrc Optimization Enabled'. Feature gates that depend on live configuration rather than build flags route through here. The rules governing what the running system may do — policy checks applied to operations and settings at execution time.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3680,7 +3680,7 @@ ctor deps {fcs,hhsettings,settingsmgr}; Disallowed; P2P {isEffectiveP2PPolicyEnc
 
 **coverage** `partial`
 
-Last.fm scrobbling is built in: the player handshakes with post.audioscrobbler.com (Audioscrobbler protocol 1.2), then POSTs each played track as form fields (artist/title/timestamp/album/MBID...). On a BADTIME handshake it recovers by reading the HTTP Date: header. A newer ws.audioscrobbler.com/2.0 API is also linked. Which account it scrobbles for and the exact trigger policy are still unresolved.
+Last.fm scrobbling is built in: the player handshakes with post.audioscrobbler.com (Audioscrobbler protocol 1.2), then POSTs each played track as form fields (artist/title/timestamp/album/MBID...). On a BADTIME handshake it recovers by reading the HTTP Date: header. A newer ws.audioscrobbler.com/2.0 API is also linked. Which account it scrobbles for and the exact trigger policy are still unresolved. Reports what you played to listening-history services (last.fm-style): packages each finished track into a submission.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3715,7 +3715,7 @@ Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sock
 
 **coverage** `partial`
 
-The RSelectThread epoll wrapper: epollAddFD/remove with per-user accounting ('too many users'), interrupt-fd handling, fd-change detection ('improperly changed its FD'), eventfd errors, and mutex-protected updates. The named `selthrd.*` event sources throughout the docs run on this thread.
+The central event-wait thread: file-descriptor add and remove with per-user accounting, interrupt handling, and change detection — the program's main loop that waits on sockets, timers, and hardware at once. The heartbeat of the whole process.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3735,7 +3735,7 @@ The RSelectThread epoll wrapper: epollAddFD/remove with per-user accounting ('to
 
 **coverage** `partial`
 
-A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/AmplifierPowerStateChanged/DirectControlIsSuspended strings indicate players can enter a low-power 'semi sleep' and resume — relevant to idle latency and why a sleeping player can lag on first command. Not yet decoded.
+A suspend/resume engine: featureConfigSemiSleep plus powerWakeupFromSemiSleep/AmplifierPowerStateChanged/DirectControlIsSuspended strings indicate players can enter a low-power 'semi sleep' and resume — relevant to idle latency and why a sleeping player can lag on first command. Not yet decoded. The low-power mode entered when idle — what keeps running and what sleeps to save energy between uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3771,7 +3771,7 @@ low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemi
 
 **coverage** `partial`
 
-The `/sethostip` handler detail: a gate plus a tail that sets the host IP and responds — one of the engineering endpoints, bound through a different dispatch path than the master table.
+The /sethostip endpoint detail: a gate plus a routine that sets the host address and responds — one of the engineering endpoints, wired through a different route than the normal pages. A development-era network override surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3791,7 +3791,7 @@ f_100b9fac: gate → tail f_105499fc (host-ip set + respond)
 
 **coverage** `partial`
 
-Household state is kept in sync by a replication protocol: each named store (accounts, netsettings, favourites, saved queues, areas) has a version+format handshake and per-item transfers between players. The wire exchange is now decoded: a peer that has a newer setting announces it ('offerUpdatedSetting: src, settingId, lastDevice, version, format') and the receiver pulls it with a plain HTTP GET '...?id=N' carrying an X-RINCON-CONTENT-FORMAT header; the response must echo X-RINCON-CONTENT-VERSION, X-RINCON-LAST-UPDATE-DEVICE, CONTENT-ENCODING and an X-RINCON-SIGNATURE which is verified before install. Downloaded settings land in setrepl.tmp and are atomically promoted. A bad format or encoding gets the setting denylisted (and it stays denylisted until the player re-registers); a signature mismatch, bad version or algorithm aborts the pull. The index itself is an XML list of <Setting idx lud version> records where 'lud' is the last-update device UUID — that's how a player knows which of its settings are stale. The whole protocol is gated on registration: an unregistered player refuses to replicate.
+Household state is kept in sync by a replication protocol: each named store (accounts, netsettings, favourites, saved queues, areas) has a version+format handshake and per-item transfers between players. The wire exchange is now decoded: a peer that has a newer setting announces it ('offerUpdatedSetting: src, settingId, lastDevice, version, format') and the receiver pulls it with a plain HTTP GET '...?id=N' carrying an X-RINCON-CONTENT-FORMAT header; the response must echo X-RINCON-CONTENT-VERSION, X-RINCON-LAST-UPDATE-DEVICE, CONTENT-ENCODING and an X-RINCON-SIGNATURE which is verified before install. Downloaded settings land in setrepl.tmp and are atomically promoted. A bad format or encoding gets the setting denylisted (and it stays denylisted until the player re-registers); a signature mismatch, bad version or algorithm aborts the pull. The index itself is an XML list of <Setting idx lud version> records where 'lud' is the last-update device UUID — that's how a player knows which of its settings are stale. The whole protocol is gated on registration: an unregistered player refuses to replicate. Synchronizes settings across household members so every player holds the same shared configuration.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3847,7 +3847,7 @@ the household replication bus: per-setting transfers ('replicateOne from %s to %
 
 **coverage** `partial`
 
-The SMB share-list manager: add/remove/reindex/resort shares, replicate the list via `indexrepl` with a 'us vs them' remoteSettingIsBetter comparison, and drop shares whose protocol fails verification. Share-index errors and subsumed-path detection keep the library consistent across the household.
+The SMB share-list manager: add/remove/reindex/resort shares, replicate the list via `indexrepl` with a 'us vs them' remoteSettingIsBetter comparison, and drop shares whose protocol fails verification. Share-index errors and subsumed-path detection keep the library consistent across the household. The registry of configured music shares — which folders on which machines are in the library.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3867,7 +3867,7 @@ replication via %s/indexrepl + proposeUpdatedShareList + "remoteSettingIsBetter:
 
 **coverage** `partial`
 
-The Shoutcast/ICY stream client: request headers (icy-name, location, CONTENT-TYPE, server — 'Cougar' server id), response handling (ICY 200, HTTP 200/30x variants), redirects (including audio/x-mpegurl), and metadata-interval handling. This is what plays legacy internet-radio ICY streams.
+The Shoutcast/ICY stream client: request headers (icy-name, location, CONTENT-TYPE, server — 'Cougar' server id), response handling (ICY 200, HTTP 200/30x variants), redirects (including audio/x-mpegurl), and metadata-interval handling. This is what plays legacy internet-radio ICY streams. Support for the classic Shoutcast/ICY internet-radio protocol — the machinery behind many stations' streams.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3892,7 +3892,7 @@ request {icy-name:,location:,CONTENT-TYPE:,server:} + server id Cougar; response
 
 **coverage** `partial`
 
-The idle/shutdown reason enum: APICall, BluetoothConnection, PartnerDisappeared, Recovery, UserSuspend, UserShutdown, APIShutdown, CriticalShutdown, UnknownShutdown — plus the idle-state transitions and battery fields (RawBattPct...). Suspend/resume decisions and 'why did it power off' answers come from this enum.
+The idle/shutdown reason enum: APICall, BluetoothConnection, PartnerDisappeared, Recovery, UserSuspend, UserShutdown, APIShutdown, CriticalShutdown, UnknownShutdown — plus the idle-state transitions and battery fields (RawBattPct...). Suspend/resume decisions and 'why did it power off' answers come from this enum. Records why the player or a subsystem shut down — normal versus crash — powering the diagnostics that explain unexpected stops.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3912,7 +3912,7 @@ The idle/shutdown reason enum: APICall, BluetoothConnection, PartnerDisappeared,
 
 **coverage** `partial`
 
-The modZPShutdown ordered teardown: HttpClient, ZonePlayer, AsyncMuseThreadPool, InternalEventDispatcher, resetZone, DropoutEventHandler, deleteTimedJobManager, AsyncThreadPool, finalSection, finalSectionEnd. The order matters — e.g., muse threads die before the event dispatcher so no late commands can queue.
+The ordered teardown sequence: web client, zone player, the cloud-API thread pool, the internal event distributor, then timed jobs and state — each component stopped in a specific order. How the program shuts down cleanly instead of dying mid-operation.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3932,7 +3932,7 @@ ordered teardown {HttpClient,ZonePlayer,AsyncMuseThreadPool,InternalEventDispatc
 
 **coverage** `partial`
 
-The signal/tone source: single-instance tone injection ('only one signal can run at any given time'), playId validation, channel-number targeting, and policy gating. Sonar calibration tones and test signals use this engine.
+The signal/tone source: single-instance tone injection ('only one signal can run at any given time'), playId validation, channel-number targeting, and policy gating. Sonar calibration tones and test signals use this engine. Where audio signals conceptually originate inside the system — the source-selection abstraction feeding the pipeline.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3952,7 +3952,7 @@ errors "invalid playId"/"failed to stop signal"/"incorrect playId"/"nothing is c
 
 **coverage** `partial`
 
-The SMAPI service-descriptor schema: apiKey, presentationMap, strings, reporting, browse, and Moment sections plus accountTiers (paidLimited, paidPremium). The descriptor is what the player reads to learn a service's capabilities — it's the contract a custom service must implement.
+The SMAPI service-descriptor schema: apiKey, presentationMap, strings, reporting, browse, and Moment sections plus accountTiers (paidLimited, paidPremium). The descriptor is what the player reads to learn a service's capabilities — it's the contract a custom service must implement. The data describing each music service's capabilities and endpoints — what a service can do and how to reach it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3972,7 +3972,7 @@ fields {apiKey,advertising,presentationMap,strings,reporting,browse,Moment}; acc
 
 **coverage** `partial`
 
-The SmartPlay bridge-content loader: triggered by BUTTON or EMPTY_AVT, it calls the cloud `/bridge/content/api`, fetches content for a group, and starts playback — all timed (loadContent/getContent/fetchContentAndStartPlay in ms). 'PlayerSmartPlay missing required field' rejects malformed configs. This is the 'speaker plays something sensible when you press play with an empty queue' feature.
+The SmartPlay bridge-content loader: triggered by BUTTON or EMPTY_AVT, it calls the cloud `/bridge/content/api`, fetches content for a group, and starts playback — all timed (loadContent/getContent/fetchContentAndStartPlay in ms). 'PlayerSmartPlay missing required field' rejects malformed configs. This is the 'speaker plays something sensible when you press play with an empty queue' feature. Sonos's smarter playback-decision feature — the machinery behind intelligent play behaviors the app can invoke.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -3992,7 +3992,7 @@ reasons {BUTTON,EMPTY_AVT}; "PlayerSmartPlay missing required field %s"; /bridge
 
 **coverage** `partial`
 
-Sonos runs its own time system: players sync from Sonos's *.sonostime.pool.ntp.org pool, but a single household player also hosts an SNTP server and the others sync from it — the server role can migrate. Grouped playback start times are scheduled on this clock, which is how multi-room audio stays in sample-accurate sync.
+Sonos runs its own time system: players sync from Sonos's *.sonostime.pool.ntp.org pool, but a single household player also hosts an SNTP server and the others sync from it — the server role can migrate. Grouped playback start times are scheduled on this clock, which is how multi-room audio stays in sample-accurate sync. The player acting as a time source for others — household members can sync against a local player rather than the internet.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4026,7 +4026,7 @@ Dual-mode SNTP stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller
 
 **coverage** `partial`
 
-The eSDK socket HAL: platform sockets abstracted for the Connect stack — IPv4-only (`Tried to use IPv6 but this platform does not support it`), DNS queueing with a bounded queue, socket-option plumbing, and the accept/connect/bind error taxonomy. Everything eSDK does on the network lands here.
+The eSDK socket HAL: platform sockets abstracted for the Connect stack — IPv4-only (`Tried to use IPv6 but this platform does not support it`), DNS queueing with a bounded queue, socket-option plumbing, and the accept/connect/bind error taxonomy. Everything eSDK does on the network lands here. The socket hardware-abstraction layer — the uniform interface hiding platform specifics from everything above it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4046,7 +4046,7 @@ errors {"listen socket_listen/bind/set_option/create ret: %d","DNS callback not 
 
 **coverage** `partial`
 
-The `/sonarctl` handler detail: control surface for the sonar (room-detection acoustic) subsystem — gated like the other engineering endpoints.
+The /sonarctl endpoint detail: a control surface for the room-detection acoustic subsystem, gated like the other engineering endpoints. An internal handle on the chirp machinery used during setup.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4066,7 +4066,7 @@ gate f_105489fc → method check (r9==1 POST?) → f_100b4614+f_100b4364+f_100b4
 
 **coverage** `partial`
 
-The sonos content-provider umbrella (`sonos_cprovider`): the SMAPI SOAP client plus the WMP provider plus service-descriptor handling — the big module that speaks outbound to music services on the device's behalf.
+The content-provider umbrella: the music-service client, the Windows Media provider, and service-descriptor handling together — the module that speaks to external content sources. The integration layer between the player and outside catalogs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4086,7 +4086,7 @@ vars {reports,playbackPolicies}; errors {"Unable to validate specified service i
 
 **coverage** `partial`
 
-The sound-device abstraction: the layer between the mixer/LLA and the hardware — device open, buffer negotiation, select/poll integration, and the fault taxonomy the audio stack surfaces. On this model it fronts the TDM/SPDIF driver.
+The sound-device abstraction: the layer between the mixer/LLA and the hardware — device open, buffer negotiation, select/poll integration, and the fault taxonomy the audio stack surfaces. On this model it fronts the TDM/SPDIF driver. The abstraction over the actual audio hardware — outputs, gains, and device state, the layer between 'set volume' and the amplifier.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4106,7 +4106,7 @@ syslib events {open,get_fd,poll,read,close} errors; LLA checks {DAC count,sample
 
 **coverage** `partial`
 
-SoundSwap: the feature that lets an audio session follow the user between devices. The FSM handles swap requests, target selection, and handoff; muse `soundSwap` namespace verbs drive it. Think 'move what's playing to the speaker I'm next to'.
+SoundSwap: the feature that lets an audio session follow the user between devices. The FSM handles swap requests, target selection, and handoff; muse `soundSwap` namespace verbs drive it. Think 'move what's playing to the speaker I'm next to'. Moving a TV's audio between the soundbar and a paired portable speaker — the machinery behind 'swap the sound to the other room'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4126,7 +4126,7 @@ sound_swap/audio_swap; queue audioSwapEventQueue + progress audioSwapProgress; b
 
 **coverage** `partial`
 
-The SPDIF input detector: format detection on the optical/ARC input that decides which decoder path (PCM, Dolby, DTS) gets the stream. Detection failures surface as the input 'working' but producing silence.
+The SPDIF input detector: format detection on the optical/ARC input that decides which decoder path (PCM, Dolby, DTS) gets the stream. Detection failures surface as the input 'working' but producing silence. Detects and characterizes what's on the optical input — which format is arriving and whether a signal is present.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4146,7 +4146,7 @@ detected {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (D
 
 **coverage** `partial`
 
-The Spotify SMAPI-control bridge: the layer that lets a Connect session appear as a controllable media source — translating between eSDK callbacks and the Sonos transport/queue model, including the SMAPI↔VLI transition semantics.
+The Spotify SMAPI-control bridge: the layer that lets a Connect session appear as a controllable media source — translating between eSDK callbacks and the Sonos transport/queue model, including the SMAPI↔VLI transition semantics. The Sonos-side control path for the Spotify integration — how Sonos's own machinery drives it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4166,7 +4166,7 @@ setPositionInfo fmt "trackId='%s', position=nullptr, duration=%d, bLastReport=tr
 
 **coverage** `partial`
 
-The eSDK thread: the event pump, message queue, rate limiting, and the transition-ack machinery that serializes Connect commands. Most 'Connect did nothing' bugs are a queued op dying silently on this thread.
+The eSDK thread: the event pump, message queue, rate limiting, and the transition-ack machinery that serializes Connect commands. Most 'Connect did nothing' bugs are a queued op dying silently on this thread. The dedicated thread running the embedded Spotify component, isolated from the main event loop.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4186,7 +4186,7 @@ single-request constraint "Already have a spotify request in progress, can only 
 
 **coverage** `partial`
 
-The Spotify→VLI session: how a Connect takeover materializes as a virtual-line-in session on the group — VLI delegation guards, session lifecycle, and the transport handoff. The `x-sonos-vli:` URI scheme is this session's address.
+The Spotify→VLI session: how a Connect takeover materializes as a virtual-line-in session on the group — VLI delegation guards, session lifecycle, and the transport handoff. The `x-sonos-vli:` URI scheme is this session's address. How a Spotify Connect feed is hosted as a virtual-line-in session — the specific session type Connect playback uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4206,7 +4206,7 @@ session verbs {start,suspendSession,startAudio,pauseAudio,stopAudio,playModesCha
 
 **coverage** `partial`
 
-The `/ssh/authorized_keys` management: FCS-gated install/remove of SSH public keys — an engineering/debug feature, not a consumer surface. The gate means it only works when the device is in a permitted state.
+The `/ssh/authorized_keys` management: FCS-gated install/remove of SSH public keys — an engineering/debug feature, not a consumer surface. The gate means it only works when the device is in a permitted state. The secure-shell key material present in the firmware — a security-relevant artifact documented explicitly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4226,7 +4226,7 @@ params {ssh_key,button,remove_keys}; ops {"SSH auth key added to authorized keys
 
 **coverage** `partial`
 
-The mbedTLS session-cache layer: TLS session resumption storage so repeated connections to the same host skip full handshakes. The session-cache errors are distinct from cert validation errors — a bad cache entry isn't a bad cert.
+The mbedTLS session-cache layer: TLS session resumption storage so repeated connections to the same host skip full handshakes. The session-cache errors are distinct from cert validation errors — a bad cache entry isn't a bad cert. Managing secure connections — session establishment, resumption, and the encrypted channel everything secure uses.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4246,7 +4246,7 @@ The mbedTLS session-cache layer: TLS session resumption storage so repeated conn
 
 **coverage** `partial`
 
-The generic stream fetcher FSM: open, headers, redirect handling, resume-at-offset (`?after=`), and error recovery for HTTP audio. It sits under the playlist parsers and feeds the decoder — the 'network' half of streaming playback.
+The generic stream fetcher FSM: open, headers, redirect handling, resume-at-offset (`?after=`), and error recovery for HTTP audio. It sits under the playlist parsers and feeds the decoder — the 'network' half of streaming playback. The download machinery for streaming sources — fetching audio at the pace playback consumes it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4266,7 +4266,7 @@ notifyFrame ty:%d ln:%zu so:%zu ns:%zu f:%u ctx:%u:%u:%llu; getContentKey (encry
 
 **coverage** `partial`
 
-The stream playback engine: the DS (data-source) selection, playlist fetch scheduling, failover between alternates, and recovery accounting (buffer-ahead ms deciding if there's 'time to recover'). This is the engine that keeps a radio stream alive through network hiccups.
+The stream playback engine: the DS (data-source) selection, playlist fetch scheduling, failover between alternates, and recovery accounting (buffer-ahead ms deciding if there's 'time to recover'). This is the engine that keeps a radio stream alive through network hiccups. The playback path for live streams — buffering, underflow handling, and keeping a continuous feed playing smoothly.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4288,7 +4288,7 @@ policy {"Cloud queue policy pause expiry time hit","Queue content expired","clea
 
 **coverage** `partial`
 
-The TDM/SPDIF interface to the DSP (`/dev/dsp`): an mmap'd ring with `TDM_SETMODE` ioctl setup. SPDIF block handling tracks frame counts and restarts on oversize blocks. This is the hardware boundary for the amplified products' output path — everything above it (LLA, mixer, DSP config) eventually lands here.
+The TDM/SPDIF interface to the DSP (`/dev/dsp`): an mmap'd ring with `TDM_SETMODE` ioctl setup. SPDIF block handling tracks frame counts and restarts on oversize blocks. This is the hardware boundary for the amplified products' output path — everything above it (LLA, mixer, DSP config) eventually lands here. The audio-bus driver interface — the time-division-multiplexed link moving digital audio to and from the audio hardware.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4308,7 +4308,7 @@ The TDM/SPDIF interface to the DSP (`/dev/dsp`): an mmap'd ring with `TDM_SETMOD
 
 **coverage** `partial`
 
-The telemetry umbrella: the event pipeline feeding usage metrics, dropout events, and playback stats to the cloud — with SHA256-checked persistence (`/tmp/event_preserve`) so events survive a crash before upload.
+The telemetry machinery overall — gathering usage and health data about the system: what gets measured and how it's packaged for Sonos. Runs on its own collection-and-submission pipeline, distinct from the support-triggered diagnostics upload.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4329,7 +4329,7 @@ PlayerButtons + TelemetryBasePlayer + TelemetryCategoryContext + telemetry tag; 
 
 **coverage** `partial`
 
-The telemetry submission client: endpoint selection, batch send, retry, and the `Esdk*`/usage event schemas it accepts. 'Sending EsdkPlaybackStats log failed' is this layer retrying.
+The telemetry submission client: endpoint selection, batch send, retry, and the `Esdk*`/usage event schemas it accepts. 'Sending EsdkPlaybackStats log failed' is this layer retrying. The sending side of telemetry — delivers collected usage/health data to Sonos's servers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4349,7 +4349,7 @@ reportKVEvent; "report: %s %s %s %u %u"; "name: %s, schemaver: %s, category: %s"
 
 **coverage** `partial`
 
-The diagnostics pipeline: Telemetry 1.0 events tagged with field names, uploaded with the product-data-telemetry message-type header, plus the user-facing SubmitDiagnostics flow and a per-player positioning telemetry level setting. Several telemetry channels are individually feature-flagged.
+The diagnostics pipeline: Telemetry 1.0 events tagged with field names, uploaded with the product-data-telemetry message-type header, plus the user-facing SubmitDiagnostics flow and a per-player positioning telemetry level setting. Several telemetry channels are individually feature-flagged. The packaging and upload step for telemetry — how gathered data leaves the device.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4387,7 +4387,7 @@ telemetry/diagnostics uplink: 'Telemetry 1.0 Event field' format, X-Sonos-Messag
 
 **coverage** `partial`
 
-A hidden /testenv page lets a tester point the whole player at a different Sonos cloud environment (production, perf, staging, test or int) and override the update URL. It lists the six backend APIs the player will use, and the change spreads to every player in the household within about two minutes.
+A hidden /testenv page lets a tester point the whole player at a different Sonos cloud environment (production, perf, staging, test or int) and override the update URL. It lists the six backend APIs the player will use, and the change spreads to every player in the household within about two minutes. Engineering test-environment hooks (lab/test-mode paths) that ship dormant in production builds.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4412,7 +4412,7 @@ POST /testenv switches the player's cloud environment between PROD, PERF, STAGE,
 
 **coverage** `partial`
 
-The thermal management: temperature sensors feeding throttle/shutdown decisions — `thermal` events in hw_events, and the shutdown reasons that fire when the unit overheats. Explains 'speaker shut itself off' on hot days.
+The thermal management: temperature sensors feeding throttle/shutdown decisions — `thermal` events in hw_events, and the shutdown reasons that fire when the unit overheats. Explains 'speaker shut itself off' on hot days. Watches device temperature and acts on it — throttling or shutting down to protect the hardware when it runs hot.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4437,7 +4437,7 @@ syslib thermal {open,get_temp,close} + "cpu:%d, amp:%d, soc:%d" + temperature_vo
 
 **coverage** `partial`
 
-The timed-job registry: the named scheduled tasks (healthcheck, cert refresh, token refresh, history sync, etc.) each with interval and last-run bookkeeping — the cron-like layer inside anacapad.
+The timed-job registry: the named scheduled tasks (healthcheck, cert refresh, token refresh, history sync, etc.) each with interval and last-run bookkeeping — the cron-like layer inside anacapad. The internal scheduler — periodic tasks the program runs on timers, from housekeeping to refresh cycles.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4460,7 +4460,7 @@ jobs {netsettingsBumpVersion,checkSonosNetDisableTestTimedJob,netsettingsRotateK
 
 **coverage** `partial`
 
-The timed-job wakeup machinery: the scheduler half that fires jobs on time including across suspend — the 'wake the device to run a job' path that interacts with semi-sleep.
+The timed-job wakeup machinery: the scheduler half that fires jobs on time including across suspend — the 'wake the device to run a job' path that interacts with semi-sleep. How scheduled jobs wake the system or scheduler when their time arrives.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4480,7 +4480,7 @@ async wakeMissingPlayers {task,timer,request,retry TJ,cancel,failure} + "Unexpec
 
 **coverage** `partial`
 
-The OAuth token-refresh state machine: dedicated threads watch expiry, request refresh through the cloud queue, wait for completion, and stash tokens to file — logging HTTP status per attempt. When SMAPI or cloud calls start failing with auth errors while the token looks valid, this is the FSM that was supposed to have refreshed it.
+The OAuth token-refresh state machine: dedicated threads watch expiry, request refresh through the cloud queue, wait for completion, and stash tokens to file — logging HTTP status per attempt. When SMAPI or cloud calls start failing with auth errors while the token looks valid, this is the FSM that was supposed to have refreshed it. Automatically renews expiring service credentials so accounts stay logged in without you re-authenticating.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4500,7 +4500,7 @@ threads {cqatrs_tx,cloudqueue_tr}; log "\[%s HTTP %d from %s%s\] %s"; states {"u
 
 **coverage** `partial`
 
-The track-play monitor/recorder: records what actually played (for history and scrobbling), detects interrupted vs natural finishes, and emits the play events historymgr ships. The 'recently played' list is this recorder's output.
+The track-play monitor/recorder: records what actually played (for history and scrobbling), detects interrupted vs natural finishes, and emits the play events historymgr ships. The 'recently played' list is this recorder's output. Watches each track's playback for problems — detecting stalls, dropouts, and abnormal endings for diagnostics.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4522,7 +4522,7 @@ per-track log entries {Track Or Station URI,Extra Md,Context URI,CQ Auth Token,S
 
 **coverage** `partial`
 
-The Trueplay subsystem umbrella: the TPNode protocol, SDK integration (v6.2.0.1), measurement/collect/compute lifecycle, and the calibration results that feed DSP config. `trueplayStatus` events report its state to clients.
+The Trueplay/sonar tuning feature — room calibration as a whole: measuring the room's acoustics and adjusting the speaker's sound to fit. The newer-generation tuning system the app walks you through — documented here as the internal machinery it corresponds to.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4542,7 +4542,7 @@ config modes {button-notify,room_calibration-calibrate,speaker-detect,trueroom} 
 
 **coverage** `partial`
 
-The Trueplay API factory + node layer: `trueplay_api.cpp` provides the SDK entry points, node messages carry protobuf-encoded actions/statuses with version negotiation, and TrueplayAPIFactory instantiates the right implementation per product.
+The Trueplay API factory + node layer: `trueplay_api.cpp` provides the SDK entry points, node messages carry protobuf-encoded actions/statuses with version negotiation, and TrueplayAPIFactory instantiates the right implementation per product. The interface other components and clients use to drive a calibration session.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4566,7 +4566,7 @@ SDK 6.2.0.1-main.Unspecified.2db5546c; factory TrueplayAPIFactory + initNode/ini
 
 **coverage** `partial`
 
-The `/ttm_helper` handler detail: the time-to-music measurement helper — an engineering endpoint that times how long a play takes end-to-end, gated like the other diag surfaces.
+The /ttm_helper endpoint detail: a 'time to music' measurement helper — an engineering endpoint that times how long a play command takes end to end. A performance probe for the play path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4586,7 +4586,7 @@ f_100b9740: gate f_105489e4 → dumps runtime text blob (0x11095f88 table, f_100
 
 **coverage** `partial`
 
-The `/unlock` engineering unlock: a challenge/response state toggle (unlock vs lock branches) with auth calls and a rate limit. When unlocked, additional diagnostic surfaces open up; production devices keep it closed.
+The `/unlock` engineering unlock: a challenge/response state toggle (unlock vs lock branches) with auth calls and a rate limit. When unlocked, additional diagnostic surfaces open up; production devices keep it closed. The gated flag enabling restricted functions — related to the device-unlock marker controlling diagnostic/hidden access.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4606,7 +4606,7 @@ flags {/tmp/device_unlocked_flag,/tmp/htdocs_locked,/opt/htdocs_locked}; flow {F
 
 **coverage** `partial`
 
-The update coordinator: schedules firmware downloads, enforces battery/version gates, drives the `availableSoftwareUpdate` event, and coordinates the household-wide rollout. 'Update available but never installs' is usually a gate failing here.
+The update coordinator: schedules firmware downloads, enforces battery/version gates, drives the `availableSoftwareUpdate` event, and coordinates the household-wide rollout. 'Update available but never installs' is usually a gate failing here. Orchestrates household firmware updates — which player updates when, sequencing the rollout across the system.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4626,7 +4626,7 @@ beginUpdate/beginUpdate called./Update already started.; updateHookJob + upgrade
 
 **coverage** `partial`
 
-Firmware updates are manifest-driven: a cloud manifest lists per-model target rows and a minimum auto-update version; household updates run check→download→launch across members with the coordinator orchestrating. Below the manifest's auto-update floor a device needs manual update. Clients see this through DeviceProperties/BeginSoftwareUpdate and the update/check muse route.
+Firmware updates are manifest-driven: a cloud manifest lists per-model target rows and a minimum auto-update version; household updates run check→download→launch across members with the coordinator orchestrating. Below the manifest's auto-update floor a device needs manual update. Clients see this through DeviceProperties/BeginSoftwareUpdate and the update/check muse route. Checking, downloading, verifying, and applying firmware updates end to end — the whole update path.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4667,7 +4667,7 @@ manifest-driven update pipeline: update_manifest carries a base update URL + per
 
 **coverage** `partial`
 
-Shared UPnP utilities: parsing `host:port` out of server URLs with strict port validation, mapping internal statuses to UPNP_RESULT codes while preserving the original error, and the canonical ZonePlayer UDN format. Small but load-bearing — every outbound UPnP call and device description uses it.
+Shared control-protocol utilities: parsing host:port out of server addresses with strict validation, and mapping internal statuses to wire-level result codes. Small plumbing used across the classic command surface.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4687,7 +4687,7 @@ RparseServerLocationAndPort {"Unable to extract host, allocation too small","Por
 
 **coverage** `partial`
 
-The usage-metrics schema: the counters and records the device reports for feature usage — submit/permission-gated like diagnostics. The fields are enumerated in the subsystem record.
+The usage-metrics schema: the counters and records the device reports for feature usage — submit/permission-gated like diagnostics. The fields are enumerated in the subsystem record. Counters measuring how features are used — the statistics feeding Sonos's telemetry.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4707,7 +4707,7 @@ The usage-metrics schema: the counters and records the device reports for featur
 
 **coverage** `partial`
 
-The user-initiated update flow: the 'check for updates' path vs the coordinator's scheduled path — same manifest/download machinery, different trigger and UX semantics.
+The user-initiated update flow: the 'check for updates' path vs the coordinator's scheduled path — same manifest/download machinery, different trigger and UX semantics. The path for updates you explicitly trigger — the 'update now' button versus scheduled rollouts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4727,7 +4727,7 @@ flow {"Running user-initiated HH update",no updates available,manifest download 
 
 **coverage** `partial`
 
-The VLI control interface (`media_player_vli_ctrl`): the event grammar, MIME whitelist, DIDL extractor for VLI items, and URI→service map — the control plane a VLI source uses to talk to the group.
+The virtual-line-in control interface: the event grammar, the format whitelist, the metadata extractor for pushed items, and the URI-to-service routing — the control plane for external sources feeding the player.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4748,7 +4748,7 @@ types {AirPlay,bluetooth/Bluetooth,tvproxy/TV Proxy} + "StartSession for unusabl
 
 **coverage** `partial`
 
-The voice-assistant integration bits: skill/voice-account vocabulary, ALEXA_TTS/audio-clip types, and the voice-related feature flags. The parts of Alexa/GA on-device presence that live inside anacapad.
+The voice-assistant integration bits: skill/voice-account vocabulary, ALEXA_TTS/audio-clip types, and the voice-related feature flags. The parts of Alexa/GA on-device presence that live inside anacapad. Voice-assistant integration machinery — present in the shared codebase for products with voice assistants.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4768,7 +4768,7 @@ The voice-assistant integration bits: skill/voice-account vocabulary, ALEXA_TTS/
 
 **coverage** `partial`
 
-WiFi Accessory Configuration — the Apple's-WAC-style setup mode where the player broadcasts a setup network (wacd daemon, /var/run/wac_mode flag, timeout). This is the first-boot/add-player path.
+WiFi Accessory Configuration — the Apple's-WAC-style setup mode where the player broadcasts a setup network (wacd daemon, /var/run/wac_mode flag, timeout). This is the first-boot/add-player path. Wireless-access-configuration — the setup mode where a new speaker gets its first network credentials during onboarding.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4797,7 +4797,7 @@ WiFi Accessory Config (WAC) setup mode: state lives in /var/run/wac_mode (parsed
 
 **coverage** `partial`
 
-The watchdog subsystem: `/dev/chk` device, `/watchdog.log` + `/watchdog.dmesg` captures, a health-check thread on a configurable frequency, a client registration API (named clients with callbacks — 'client must have a name', 'already registered'), manual/force triggers, and `/sbin/reboot` on unresponsive. This is the last-resort self-heal.
+The watchdog subsystem: `/dev/chk` device, `/watchdog.log` + `/watchdog.dmesg` captures, a health-check thread on a configurable frequency, a client registration API (named clients with callbacks — 'client must have a name', 'already registered'), manual/force triggers, and `/sbin/reboot` on unresponsive. This is the last-resort self-heal. The dead-man's switch — a timer that reboots the device if the software stops checking in; the safety net against hangs.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4817,7 +4817,7 @@ device /dev/chk; files {/watchdog.log,/watchdog.dmesg,timeinfo}; {"Watchdog not 
 
 **coverage** `partial`
 
-The Windows Media Player content provider: NSS browse/search over `/WMPNSSv`, capability flags (SCPA, SCPB, SCPI), a search grammar (`upnp:class derivedfrom "object.item.audioItem"`), container-class specs (musicArtist, musicAlbum, musicGenre, playlistContainer), and sort/filter fields including Microsoft extensions. This is legacy DLNA-library browsing support.
+The Windows Media Player content provider: browse and search over shared Windows libraries, with its own capability flags and search grammar. A leftover integration for libraries served by Windows Media Player's sharing feature.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4837,7 +4837,7 @@ WMP NSS /WMPNSSv browse/search; caps {SCPA,SCPB,SCPI}; search grammar 'upnp:clas
 
 **coverage** `partial`
 
-The outbound WebSocket client used for the lechmere/cloud channel: performs the Upgrade handshake (Location, Sec-WebSocket-Accept, Sec-WebSocket-Extensions), negotiates per-message deflate only during open (an unsolicited deflate offer fails the connection), retries openSession, generates nonces, and reports `disconnectedReason` plus close codes. LoadBalancerHost/WebSocket fields shape where it connects.
+The outbound WebSocket client used for the lechmere/cloud channel: performs the Upgrade handshake (Location, Sec-WebSocket-Accept, Sec-WebSocket-Extensions), negotiates per-message deflate only during open (an unsolicited deflate offer fails the connection), retries openSession, generates nonces, and reports `disconnectedReason` plus close codes. LoadBalancerHost/WebSocket fields shape where it connects. The machinery for outbound websocket connections — when the player itself connects to a websocket service.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4858,7 +4858,7 @@ client handshake {Location,Upgrade: websocket,Connection: Upgrade,Sec-WebSocket-
 
 **coverage** `partial`
 
-The player runs a local WebSocket endpoint so apps can hold a live control connection instead of polling. It does the standard handshake, negotiates compression, and then carries the command channel — the reason the app feels instant compared to the older UPnP polling.
+The player runs a local websocket endpoint so apps can hold a live control connection instead of polling — it does the standard handshake, negotiates compression, and then carries the same event traffic the cloud pipe does. The local twin of the remote channel.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4878,7 +4878,7 @@ websocketserver.cxx serves a local RFC6455 endpoint at /api/v1/websocket (route 
 
 **coverage** `partial`
 
-The ZGT error paths: `ReportUnresponsiveDevice` handling with source address logging, and `GetZoneGroupAttributes` request validation failures (no valid UUID, invalid TServer, invalid TRequest). These are the error strings a malformed topology request produces.
+The ZGT error paths: `ReportUnresponsiveDevice` handling with source address logging, and `GetZoneGroupAttributes` request validation failures (no valid UUID, invalid TServer, invalid TRequest). These are the error strings a malformed topology request produces. The topology service's error layer — the codes and translation for household-map operations.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4898,7 +4898,7 @@ The ZGT error paths: `ReportUnresponsiveDevice` handling with source address log
 
 **coverage** `partial`
 
-The zone lifecycle manager: zone-definition changes fire ZonesDefinitionsChangedEvent, muse exposes `getZoneDefinition` lookups, and transitions on primary/secondary are logged — including failures on the primary that leave a zone half-formed. Channel-map-set (cms) updates flow from primary to secondary to keep stereo/surround mappings consistent.
+The zone lifecycle manager: zone-definition changes fire ZonesDefinitionsChangedEvent, muse exposes `getZoneDefinition` lookups, and transitions on primary/secondary are logged — including failures on the primary that leave a zone half-formed. Channel-map-set (cms) updates flow from primary to secondary to keep stereo/surround mappings consistent. Manages zone membership and attributes — the bookkeeping of which player is in which room/group.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4918,7 +4918,7 @@ events {ZoneMemberSettingsChangedEvt,ZonesDefinitionsChangedEvent}; muse ops {mu
 
 **coverage** `partial`
 
-The zone-definition store: name/id/channelMapSet records with a max-zone cap, create/update/remove ops (removal is blocked while the zone is active), and replication of offered files with rename-into-place semantics. This is the persistence behind stereo pairs and home-theater bonds surviving reboots.
+The zone-definition store: name/id/channelMapSet records with a max-zone cap, create/update/remove ops (removal is blocked while the zone is active), and replication of offered files with rename-into-place semantics. This is the persistence behind stereo pairs and home-theater bonds surviving reboots. Where zone/group records persist — the stored form of the household's shape.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4938,7 +4938,7 @@ zone defs {name,id,channelMapSet} + "reached maximum zone definitions"/"too many
 
 **coverage** `partial`
 
-The ZPInfo diagnostic surface from dp_impl: the `<ZPInfo>` schema (device attrs, network info, support fields) plus `/enetports`/ethportstatistics and the shutdown/idle-reason enum — the dp layer's contribution to `/status`.
+The ZPInfo diagnostic surface: the device-info document schema (attributes, network info, support fields) plus the ethernet-port statistics and shutdown-log surfaces. The structured 'everything about this unit' report for support.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4958,7 +4958,7 @@ vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,Eth
 
 **coverage** `strong`
 
-The DeviceProperties account-management actions: `AddAccountX`, `AddOAuthAccountX`, `EditAccountPasswordX`, `RemoveAccount`, credential refresh, and post-update tasks, with args covering OAuth codes, tokens, md5s, and web codes. This is how music-service accounts get attached to a household — the SOAP surface the app uses during service signup.
+The operations behind music-service account management — the routines that actually add, edit, and remove the saved logins for services like Spotify, sitting underneath the account commands documented on the services pages.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4978,7 +4978,7 @@ args {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,Ac
 
 **coverage** `strong`
 
-The accounts manager's internal op set: adding accounts by credentials, OAuth token, OAuth code, or direct-control; modifying and migrating entries; reporting. Accounts replicate across the household with vector clocks and tombstones, so a deletion on one player propagates correctly instead of resurrecting.
+Keeps music-service accounts in sync across the household — when you add a Spotify login on one speaker, this machinery replicates it to the others so any room can play that service. It's why you only have to sign in once for the whole house.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -4999,7 +4999,7 @@ ops {markAccountsForPushLocked,setAndUpdatePreferredSerialNum,addAccountWithUser
 
 **coverage** `strong`
 
-The schema for positioning's acoustic measurements: TDOAs, correlation peaks, threshold/leading-edge energy terms, spectral similarity, noise/signal RMS, and confidence scores. This is the math under Trueroom-style room estimation — the raw numbers the estimator consumes to decide where a speaker sits.
+Gathers measurements about the audio hardware — signal levels, channel data, and other acoustic telemetry the player reports for diagnostics and tuning. It is the instrumentation side of the audio path: while the pipeline plays sound, this machinery watches what comes out and packages the readings so support tools and calibration features can see what the hardware is actually doing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5019,7 +5019,7 @@ The schema for positioning's acoustic measurements: TDOAs, correlation peaks, th
 
 **coverage** `?`
 
-The AlarmClock service: alarms + sleep timers over UPnP, SQLite persistence (`timers` table), suspend-aware remaining-time serialization, and the AHA/alarm op vocabulary for autoplay interactions.
+The alarm engine itself — the scheduler that wakes up, checks which alarms are due, and fires them (including triggering playback in the right rooms). The alarm commands documented elsewhere just edit the list; this subsystem does the waking-and-firing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5040,7 +5040,7 @@ The AlarmClock service: alarms + sleep timers over UPnP, SQLite persistence (`ti
 
 **coverage** `?`
 
-Album artwork handling: fetch, cache, resize, and serve — backing the `<albumArtURI>` fields and the app's artwork grid.
+Fetches and serves album artwork — downloads cover images from music services, caches them locally, and serves them over the player's own web interface so apps can display what the speaker sees. This is why the artwork loads even when the original image host would be slow: the speaker acts as a local image server for its own now-playing art.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5052,7 +5052,7 @@ Album artwork handling: fetch, cache, resize, and serve — backing the `<albumA
 
 **coverage** `strong`
 
-The amplifier power manager that decides when the output stages physically turn on, mute, or drop to a low-power rail. It listens for volume and play-state changes per zone, can pre-emptively warm the amp so the first samples aren't clipped, and schedules delayed power-off when idle. Explains the small delay before audio emerges after a long silence, and the relay click some models make when the amp rail switches.
+Manages the internal amplifier — enabling and disabling output stages, applying gains, and handling the amp's power state. On a self-amplified speaker like a Playbar this is the last stop before the drivers: the code that decides when the amplifier is awake, how loud its output stage runs, and when it powers down to save energy.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5072,7 +5072,7 @@ AmplifierPowerStateChangedEvent; transitions {"zone %d volume %f -> %f","zone %d
 
 **coverage** `strong`
 
-The Spotify Connect access-point layer: resolves `apresolve.spotify.com`, opens a TLS socket to an access point, exchanges a Hello/ApWelcome handshake, and carries everything afterward as typed TLV packets (guarded at 16 KiB). This is the wire protocol behind every `spotify:` URI playback and the hermes event channels. Client-facing only through Spotify Connect semantics — a client can't speak AP TLV directly; it drives this layer indirectly via the `spotify:` media URIs.
+The access-point layer — code for when a Sonos player acts as or manages a wireless access point. This era's hardware could host its own wireless segment as part of SonosNet (Sonos's dedicated mesh) and during setup, and this layer is the machinery behind that role.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5092,7 +5092,7 @@ endpoints {apresolve.spotify.com,ap.spotify.com,local apresolve,fallback}; hands
 
 **coverage** `strong`
 
-The Areas manager — Sonos's name for rooms as a durable concept: `areas.json` persistence with atomic rename-on-write, schema-version checks, a built-in 'Everywhere' area, and ID-distinctness constraints. When a room survives reboots with its name and settings intact, this is the store doing it.
+The household-areas machinery — the internal model of multi-room 'areas' that newer app versions organize by, matching the areas API surface documented on the muse page.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5112,7 +5112,7 @@ areas.json persistence + atomic-write cycle {accepted file load,rename accepted�
 
 **coverage** `strong`
 
-The shared buffered-stream primitive used under almost every audio path: a segmented, seekable buffer that pauses/resumes at stream positions, reaps played blocks, and supports a rate-limited multi-threaded reader. When you see tracks that resume mid-buffer or seek without re-downloading, this is the machinery. Not a client surface itself, but its segment accounting explains underrun and buffer-ahead log messages.
+An asynchronous streaming helper — plumbing for data that arrives or is consumed in chunks rather than all at once. Streaming sources, downloads, and event channels all move data incrementally, and this shared machinery lets the rest of the code work in chunks without each subsystem re-inventing the buffering.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5133,7 +5133,7 @@ init 'buffersize=%zu; multiThread=%u; ratelimit=%zu us'; segment model {'Data se
 
 **coverage** `?`
 
-The AudioIn service: physical line-in/optical input control — the Unpaired*/Autoplay*/LineIn* state variables, source format selection, and the group-distribution hooks (see audioin_groups).
+The line-in input path — machinery for audio arriving on the physical input jack. On this build the network-facing service is a reject-everything stub, but the lower capture machinery exists in the shared codebase, which is why the service advertises commands at all.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5145,7 +5145,7 @@ The AudioIn service: physical line-in/optical input control — the Unpaired*/Au
 
 **coverage** `?`
 
-Autoplay source injection: when a line-in/TV/AirPlay/BT source goes live, configured target zones start playing it — with volume override and zone-inclusion params.
+The autoplay feature — the machinery that makes a speaker resume or follow a source automatically (the 'start playing when this room does' behavior configured through the autoplay settings).
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5157,7 +5157,7 @@ Autoplay source injection: when a line-in/TV/AirPlay/BT source goes live, config
 
 **coverage** `?`
 
-The AVTransport UPnP service — playback control core: SetAVTransportURI, Play/Pause/Stop/Seek, Next/Previous, play modes, crossfade, and the LastChange event stream. The service record holds the canonical action/argument table.
+The transport engine's core — the state machine that actually runs playback: source selection, play/pause/stop/skip/seek, and the mode-specific behavior per source type. The transport commands on the service page are just the network-facing edge of this engine.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5172,7 +5172,7 @@ The AVTransport UPnP service — playback control core: SetAVTransportURI, Play/
 
 **coverage** `strong`
 
-The avt_impl layer under the AVTransport service: transport-source selection (CHSRC for grouped audio, HTAudio for TV input), session bookkeeping in `avt.txt` with backup/restore and read/write locks, and the RAVTMediaRenderer actor. This is where URI semantics meet the audio engine — e.g., which `x-sonos-*:` scheme maps to which physical path.
+The implementation object behind the transport service — where the command handlers' real work happens once the network layer has unpacked a request. The service page's commands all funnel into this object, which is the bridge between 'a network request arrived' and 'the transport engine did something'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5196,7 +5196,7 @@ TX selection {'Using HTAudio TV TX for GM %s','Using CHSRC TX for GM %s','Why ar
 
 **coverage** `strong`
 
-The complete `LastChange` event grammar for AVTransport: the standard UPnP fields (TransportState, CurrentTrack*, AVTransportURI*, NumberOfTracks, play/crossfade modes) plus Sonos extensions under the `r:` namespace (EnqueuedTransportURI*, sleep/alarm fields, more). Subscribed clients receive this as the single authoritative playback-state stream.
+The machinery that builds the transport service's bundled change reports — collects which playback variables moved and serializes them into one LastChange notification. Subscribers get a single message covering track change, state change, and mode change rather than a storm of individual events.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5216,7 +5216,7 @@ The complete `LastChange` event grammar for AVTransport: the standard UPnP field
 
 **coverage** `strong`
 
-The SMAPI browse container-ID vocabulary: library roots (ALBARTIST, LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS...), genre branches, global containers, and per-service subtrees. These short prefixes are what services embed in object IDs and what the player matches to render browse hierarchies.
+The identifier scheme for the music library — how containers and items get their browse IDs, so 'artist X' or 'playlist Y' has a stable address in the library tree.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5236,7 +5236,7 @@ library {ALBARTIST,LIBARTIST,LIBALBUM,LIBGENRE,LIBTRACKS,LIBPLAYLISTS,LIBSTATION
 
 **coverage** `strong`
 
-The same catalog-translation facility as catalog_translate: cloud-backed ID mapping with a local cache ('retrieved translation from cache' vs 'connecting to translation service'). Useful for cross-service matching features like 'also available on'.
+The same catalog-translation facility as catalog_translate: cloud-backed ID mapping with a local cache ('retrieved translation from cache' vs 'connecting to translation service'). Useful for cross-service matching features like 'also available on'. It's what lets the app show a uniform browse tree no matter which of the dozens of services the catalog came from.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5256,7 +5256,7 @@ GET /content/api/catalog/id/%s?destinationServiceId=%s; translateId(objectId,ser
 
 **coverage** `strong`
 
-The eSDK's CDN downloader: three cooperative fibers (socket IO, HTTP IO, chunk copy) pull track data from Spotify's CDN with explicit offset/size requests, follow redirects, retry on timeouts, and fail over to the next CDN host when one stalls. Chunk progress is logged in kB. This is why Connect playback survives a mid-track CDN hiccup — retry and failover are built into the fetcher.
+The eSDK's CDN downloader: three cooperative fibers (socket IO, HTTP IO, chunk copy) pull track data from Spotify's CDN with explicit offset/size requests, follow redirects, retry on timeouts, and fail over to the next CDN host when one stalls. Chunk progress is logged in kB. This is why Connect playback survives a mid-track CDN hiccup — retry and failover are built into the fetcher. It handles the retries, caching, and pacing so the features pulling content don't each reinvent download logic.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5276,7 +5276,7 @@ fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; requests {"downloading '%s' 
 
 **coverage** `?`
 
-Device identity certificate handling: the Sonos-issued cert + encrypted private key used for mTLS and signing — see cert_files for layout, cert_layer for validation, devicecertmanager for refresh.
+Device identity certificate handling: the Sonos-issued cert + encrypted private key used for mTLS and signing — see cert_files for layout, cert_layer for validation, devicecertmanager for refresh. When the player connects to Sonos's cloud or to other players, this machinery picks and presents the right credential so the other side knows it's talking to a genuine device.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5288,7 +5288,7 @@ Device identity certificate handling: the Sonos-issued cert + encrypted private 
 
 **coverage** `?`
 
-The X.509 validation internals: issuer/env/household/user match rules, issue-date checks, and the MISMATCH_* error taxonomy behind every mTLS or signed-request failure.
+The X.509 validation internals: issuer/env/household/user match rules, issue-date checks, and the MISMATCH_* error taxonomy behind every mTLS or signed-request failure. Other components ask this layer for 'the right credential' rather than reading certificate files themselves.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5300,7 +5300,7 @@ The X.509 validation internals: issuer/env/household/user match rules, issue-dat
 
 **coverage** `strong`
 
-The public Chirp SDK wrapper: profile construction, payload encoding/decoding, symbol extraction, and the process_shorts input/output audio pump. Sonos ships it with libVorbis 1.3.7. Errors map to a small taxonomy (invalid profile, invalid payload, decode failures). Only relevant if you're implementing the acoustic setup side-channel — normal control never touches it.
+The SDK layer of the chirp feature — the internal interface other components call to start and stop the speaker-identification tone, so the room-detection commands don't each reimplement tone control.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5324,7 +5324,7 @@ version chirp-sdk 4.2.3; libvorbis {Xiph.Org libVorbis I 20200704 (Reducing Envi
 
 **coverage** `?`
 
-The group-audio channel sink: the receiving end of a framed, SNTP-synchronized audio stream from the group's source. It validates packet formats, tracks the source's clock offset, and drives the local DAC timing so all members play the same sample at the same wall-clock instant. Seamless handoff lets a new source take over mid-stream by matching frame IDs and packet classes.
+The group-audio channel sink: the receiving end of a framed, SNTP-synchronized audio stream from the group's source. It validates packet formats, tracks the source's clock offset, and drives the local DAC timing so all members play the same sample at the same wall-clock instant. Seamless handoff lets a new source take over mid-stream by matching frame IDs and packet classes. When you group rooms, every follower runs this to receive the leader's stream in sample-accurate step — the sink half of Sonos's internal audio protocol.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5337,7 +5337,7 @@ The group-audio channel sink: the receiving end of a framed, SNTP-synchronized a
 
 **coverage** `strong`
 
-The detailed chsnk behavior: remote seamless transitions parse incoming source packets and either quick-handoff or wait out a timed handoff window, with packet-compatibility checks (protocol version, full-frame/id/class/offset matching). Local sources and the LSE (large sync error) resync path handle drift beyond normal correction. Denylisting kicks in after repeated per-service failures. This is the machinery that makes source handover inaudible when it works.
+The internals of the channel-sink implementation — the detailed machinery of how a group member receives, buffers, and stays in sync with the leader's audio feed.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5357,7 +5357,7 @@ seamless handoff {remote: 'starting seamless transition to remote source','txs c
 
 **coverage** `substantially decoded`
 
-The paired group-audio channel protocol: chsrc is the source side (the player that owns the audio, producing framed packets with play-hint states), chsnk is the sink side (every other member). Together they're SonosNet's real-time audio distribution layer — distinct from the HTTP/fetch paths, with their own packet grammar, resend logic for late joiners, and segment-fetch retry.
+The channel source-and-sink pair — Sonos's internal protocol for distributing audio between players: the leader is the source, followers are sinks, and this subsystem is the transport that keeps them sample-synchronized across the network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5416,7 +5416,7 @@ chsrc.cxx (0x10ea8620-0x10ea95dc) = channel SOURCE: the playback engine producin
 
 **coverage** `strong`
 
-A CLOSED/OPEN/SEMI_OPEN circuit breaker wrapped around muse command delivery: when commands to the cloud start failing, the breaker opens and fast-fails instead of queuing forever, then probes recovery through a semi-open state. This is why a player in a dead-network state still answers local commands quickly — cloud-bound work is short-circuited at the breaker.
+A circuit-breaker — the reliability pattern that stops the player hammering a dead dependency. After enough consecutive failures to a service or endpoint, calls short-circuit for a cooldown period instead of stacking up timeouts: the whole system stays responsive even when something it needs is down.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5436,7 +5436,7 @@ A CLOSED/OPEN/SEMI_OPEN circuit breaker wrapped around muse command delivery: wh
 
 **coverage** `?`
 
-The cloud-integration umbrella: API path construction, service hostnames, registration, and the lechmere event channel — the parts of the device that are useless without internet.
+The cloud-integration umbrella: API path construction, service hostnames, registration, and the lechmere event channel — the parts of the device that are useless without internet. It carries everything from remote app commands to telemetry: the channel that lets Sonos's servers reach your speaker even when you're away from home.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5453,7 +5453,7 @@ The cloud-integration umbrella: API path construction, service hostnames, regist
 
 **coverage** `strong`
 
-Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The windowed fetch protocol is now mapped: the player runs a 'cqfsm' state machine (POLL/PENDING/ERROR_RETRY/DONE/SUCCESS/MEDIA_ERROR/RESET plus the per-request states GET_VERSION, GET_CONTEXT, SCHEDULE_WINDOW, SCHEDULE_CONTEXT, GET_WINDOW, POST_RATE) and pulls three versioned resources from the queue's base URL: 'itemWindow?' (with isExplicit, previousWindowSize, upcomingWindowSize, heardItemId), 'context?', and 'version?'/'version?updateToken=true&'. Each window item carries itemId, actions, mediaUrl, the full audio-format block (mediaFormat, sampleRate, bitDepth, bitRate, numChannels, dolbyAtmos), reportId/privateData, positionMillisAtSegmentStart and a policies list. Playback reports post {timePlayed, durationPlayedMillis, timeSincePlaybackMillis} and ratings post to 'item/<id>/rating' with currentlyHeardItemId. Requests ride under the standard Sonos cloud headers (Bearer/authorisation tokens, X-Sonos-MS-Sig signature, X-Sonos-DeviceCert, X-Sonos-Playback-Id, X-Sonos-Device-Id, MAID, Accept-Language, group attribute/capability), honour Retry-After, and classify failures as Client error / Server error / Unexpected response / Server aborted connection. The per-item 'policies' bitfield values and the queue↔local-queue reconciliation path are the remaining undecoded pieces.
+Sonos's cloud-side queue: playbackMetadata/ratings, trackQueueAdditions and CloudQueueHistory all point at a queue that lives cloud-side rather than in trackqueue.rsq — this is how cloud services (voice assistants, direct control) schedule tracks. Ratings are explicitly 'only implemented for cloud queue'. The windowed fetch protocol is now mapped: the player runs a 'cqfsm' state machine (POLL/PENDING/ERROR_RETRY/DONE/SUCCESS/MEDIA_ERROR/RESET plus the per-request states GET_VERSION, GET_CONTEXT, SCHEDULE_WINDOW, SCHEDULE_CONTEXT, GET_WINDOW, POST_RATE) and pulls three versioned resources from the queue's base URL: 'itemWindow?' (with isExplicit, previousWindowSize, upcomingWindowSize, heardItemId), 'context?', and 'version?'/'version?updateToken=true&'. Each window item carries itemId, actions, mediaUrl, the full audio-format block (mediaFormat, sampleRate, bitDepth, bitRate, numChannels, dolbyAtmos), reportId/privateData, positionMillisAtSegmentStart and a policies list. Playback reports post {timePlayed, durationPlayedMillis, timeSincePlaybackMillis} and ratings post to 'item/<id>/rating' with currentlyHeardItemId. Requests ride under the standard Sonos cloud headers (Bearer/authorisation tokens, X-Sonos-MS-Sig signature, X-Sonos-DeviceCert, X-Sonos-Playback-Id, X-Sonos-Device-Id, MAID, Accept-Language, group attribute/capability), honour Retry-After, and classify failures as Client error / Server error / Unexpected response / Server aborted connection. The per-item 'policies' bitfield values and the queue↔local-queue reconciliation path are the remaining undecoded pieces. This feature lets a queue persist beyond the player and be shared or restored through your account rather than living only in one speaker's memory.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5488,7 +5488,7 @@ resources {itemWindow?,context?,version?,version?updateToken=true&}; params {isE
 
 **coverage** `?`
 
-Cloud registration state machine: binds the player to a household online; `getRegistrationStatus` exposes progress; failures retry with backoff and leave local playback working.
+Cloud registration state machine: binds the player to a household online; `getRegistrationStatus` exposes progress; failures retry with backoff and leave local playback working. Without it, the speaker is local-only — it's the enrollment step that ties your hardware to your Sonos account.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5500,7 +5500,7 @@ Cloud registration state machine: binds the player to a household online; `getRe
 
 **coverage** `strong`
 
-The registry of which cloud hostnames serve what: `sslauth.sonos.com` for authenticated calls, per-service `*.ws.sonos.com` endpoints for lechmere events, crash upload, feature config, music history, registration, recommendations, and more. Knowing this map is what tells you which outage explains which symptom — e.g., lost household settings vs lost voice services are different backends.
+The registry of which cloud hostnames serve what: `sslauth.sonos.com` for authenticated calls, per-service `*.ws.sonos.com` endpoints for lechmere events, crash upload, feature config, music history, registration, recommendations, and more. Knowing this map is what tells you which outage explains which symptom — e.g., lost household settings vs lost voice services are different backends. Features that run partly on Sonos's servers coordinate through this layer, so local and remote halves stay consistent.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5520,7 +5520,7 @@ host patterns {sslauth.sonos.com,https://%s-%s.lower-sslauth.sonos.com%s,https:/
 
 **coverage** `strong`
 
-The ContentDirectory implementation: dual-URN service (Sonos and UPnP org), full browse/create/destroy/update actions, share-indexing state variables (SystemUpdateID, ShareIndexInProgress, ShareIndexLastError, Favorites/Radio/SavedQueues update IDs), and locale handling (zh-CN, ja-JP). The browse surface every library browser and the Sonos app use.
+The music-library engine — builds and holds the index of your shared music folders so 'browse by artist/album/genre' works without re-walking the shares every time. The library commands are its network face.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5540,7 +5540,7 @@ dual URN {urn:schemas-sonos-com:service:ContentDirectory:1,urn:schemas-upnp-org:
 
 **coverage** `strong`
 
-The `/customsd` page — a CSRF-protected form that registers a custom SMAPI service descriptor: SID range 240–253/255, name, secureUri, poll interval, and an authType radio (Session ID, Anonymous, DeviceLink, AppLink), plus optional strings/presentation-map/manifest version+URI fields. This is the dev mechanism for pointing a player at your own music service.
+A custom service-discovery block — internal lookup machinery used where the standard discovery protocols don't fit, named by the /customsd web endpoint that exposes it. Part of the player's 'how do I reach this service' toolkit alongside the normal discovery paths.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5560,7 +5560,7 @@ POST /customsd + csrfToken hidden; fields {SID (240-253 or 255) default 255,name
 
 **coverage** `?`
 
-Internal data taps for diagnostics: structured capture hooks into subsystems that don't publish state otherwise.
+Internal data taps for diagnostics: structured capture hooks into subsystems that don't publish state otherwise. It lets diagnostics observe data as it flows rather than reconstructing it afterward — the difference between watching a stream and guessing at it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5572,7 +5572,7 @@ Internal data taps for diagnostics: structured capture hooks into subsystems tha
 
 **coverage** `?`
 
-The DeviceProperties service: device-level attributes — serial, MAC, display settings, button/LED behavior, IR, and the account-management actions (AddAccountX etc.). It's the service that answers 'what is this player' and 'how is it configured' at the UPnP layer.
+The DeviceProperties service internals: device-level attributes — serial number, hardware address, display settings, button and light behavior, infrared handling — plus the account-management commands. The 'who am I and how do I behave' layer of the speaker.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5586,7 +5586,7 @@ The DeviceProperties service: device-level attributes — serial, MAC, display s
 
 **coverage** `?`
 
-Developer mode: `/devmode` page, statement files, and the unlock challenge — gated diagnostic behavior that differs from production.
+Developer mode: `/devmode` page, statement files, and the unlock challenge — gated diagnostic behavior that differs from production. These hooks are how Sonos's own engineers exercise the device during development — present in production firmware but switched off.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5598,7 +5598,7 @@ Developer mode: `/devmode` page, statement files, and the unlock challenge — g
 
 **coverage** `confirmed`
 
-There's a separate factory/retail test firmware — the 'diag' build — that isn't the normal product. It exists to run production-line audio tests, to offer a retail-display mode that sets idle volumes per model and can switch the radio off, and to scrub credentials out of settings files before a diagnostic upload leaves the device. You never see it in normal use; it's the image a manufacturing fixture or a service bench would run.
+There's a separate factory/retail test firmware — the 'diag' build — that isn't the normal product. It exists to run production-line audio tests, to offer a retail-display mode that sets idle volumes per model and can switch the radio off, and to scrub credentials out of settings files before a diagnostic upload leaves the device. You never see it in normal use; it's the image a manufacturing fixture or a service bench would run. When a support bundle reaches Sonos, this is how they know exactly which build produced it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5620,7 +5620,7 @@ separate 4.4MB diag image (fenway-public, S1-era lineage, GNU/Linux 2.0.0 tag). 
 
 **coverage** `strong`
 
-The Dolby decoder front-end plus the DAP (Dolby Audio Processing) configuration model. Config lives in `/opt/dsp/dolby_config.json` with a JFFS override for debug; the decoder reports SampleRate, LFE presence, and channel count. `/staticparams` and `/dynamicparams` expose virtualizer modes, speaker angles, bass extraction, and DRC cutoffs (100–200 Hz). Night mode and movie mode are preset DAP profiles.
+The Dolby decoder front-end plus the DAP (Dolby Audio Processing) configuration model — the machinery that decodes the surround format TVs and discs send, with its tuning stored as a JSON config on disk. It's what lets the Playbar turn a TV bitstream into sound.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5640,7 +5640,7 @@ config {"unable to parse %s",app/debug/dsp/dolby_config.json (JFFS override),"ov
 
 **coverage** `confirmed`
 
-The file-download result enum: ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, SIZE_ERROR, FILE_ERROR, CONNECTION_ERROR, DOWNLOAD_SUCCEEDED, FILE_UNCHANGED, DOWNLOAD_IN_PROGRESS. Used by firmware and resource downloads — 'unchanged' means ETag cache hit.
+The file-download result enum: ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, SIZE_ERROR, FILE_ERROR, CONNECTION_ERROR, DOWNLOAD_SUCCEEDED, FILE_UNCHANGED, DOWNLOAD_IN_PROGRESS. Used by firmware and resource downloads — 'unchanged' means ETag cache hit. It gives features a uniform answer to 'how is that download going' — progress, errors, completion — rather than each fetch tracking its own.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5660,7 +5660,7 @@ The file-download result enum: ERROR_NOT_CALLED, WRITE_ERROR, TRUNCATION_ERROR, 
 
 **coverage** `strong`
 
-The DSPConfig nanopb blob: `/opt/dsp` files (ht_config, ht_config_sat) decoded with protobuf, holding per-model bonded gains and volume breakpoint tables. Missing entries are per-model errors, not crashes — a model without a breakpoint table just lacks the curve.
+The DSPConfig nanopb blob: `/opt/dsp` files (ht_config, ht_config_sat) decoded with protobuf, holding per-model bonded gains and volume breakpoint tables. Missing entries are per-model errors, not crashes — a model without a breakpoint table just lacks the curve. The settings here select which processing is active — the configuration layer over the raw DSP parameter tables.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5680,7 +5680,7 @@ files under /opt/dsp {ht_config,ht_config_sat}; nanopb decode {"Successfully dec
 
 **coverage** `?`
 
-The shared error-taxonomy umbrella: muse ERROR_*, JWT errors, LLA errors, download statuses — each enumerated in its own record.
+The error-code machinery — the tables and translation logic that turn internal failures into the numeric fault codes commands return. The numeric vocabulary for failures inside the program, mapped to the error codes sent over the wire.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5692,7 +5692,7 @@ The shared error-taxonomy umbrella: muse ERROR_*, JWT errors, LLA errors, downlo
 
 **coverage** `strong`
 
-The Spotify eSDK API table — the complete Sp* surface: connection/login (LoginBlob, OauthToken, SetConnectivity, Logout), playback (Play, Pause, Skip, Seek, SeekRelative, Volume, Shuffle, Repeat, CycleRepeatMode, BecomeActiveDevice), queue (PlayUri, PlayContextUri, QueueUri), event pump (SpPumpEvents), notify hooks (track length/error/stream events/seek complete/download position), and DRM format restriction. Every Spotify feature on-device goes through these calls.
+The embedded-SDK API surface — the public interface of the Spotify embedded SDK (eSDK) inside the firmware: the calls the player side makes into the Spotify component.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5712,7 +5712,7 @@ registration {SpRegisterConnectionCallbacks,SpRegisterDeviceAliasCallbacks,SpReg
 
 **coverage** `strong`
 
-The eSDK callback registration model: playback callbacks (on_notify, on_seek, on_apply_volume), stream/delivery callbacks (on_data, on_start, on_end, on_flush, on_pos), connection (on_message, on_new_credentials), device-alias, DNS, socket (17 fn ptrs), TLS, debug, and error — each registered in a named block and removable. These are the seams where Sonos injects its behavior into the eSDK.
+The eSDK callback wiring — the hooks where the embedded Spotify component calls back into the player (events, audio requests, state changes). How the Spotify component reports events and calls back into the surrounding player code.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5732,7 +5732,7 @@ playback cb {on_notify,on_seek,on_apply_volume} "Successfully registered playbac
 
 **coverage** `strong`
 
-The eSDK login crypto: RSA-2048 bignum arithmetic with a modpow workspace, the login-hello exchange whose buffer must fit SHA1 digest + two signatures + the workspace, and the entropy HAL (`hal_get_random_bytes`). This is what produces the credential blob the AP accepts — the crypto is RSA challenge-response, not a stored password.
+The eSDK cryptography — the cryptographic routines inside the embedded Spotify component: key handling and the secure channel Spotify Connect uses. The cryptographic pieces the embedded Spotify library brings for its secure session handling.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5752,7 +5752,7 @@ bignum asserts {mod\[mod\[0\]\] != 0,mod\[mod\[0\]\] & BIGNUM_TOP_BIT,mlen <= 20
 
 **coverage** `strong`
 
-The eSDK internals below the API: AP connection layer, TLV framing, mercury/hermes channels, CDN fetcher, DRM key/IV lifecycle, track pipeline, socket HAL, bandwidth meter, and the login crypto (SHA1+signature+modpow). Documented per-subsystem; this is the umbrella.
+Embedded Spotify SDK internals — the recovered map of the eSDK's internal structure: its modules, state, and how Sonos integrated it. Sonos bundles Spotify's official component rather than reimplementing Connect — these are its internal parts.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5777,7 +5777,7 @@ build "HEAD-v3.205.205-gd0f06121-dirty" for Sonos_PPC_e500v2s; notify enum {kSpC
 
 **coverage** `strong`
 
-The Dolby Evolution decoder — the DDPI UDC path used for newer Dolby bitstreams (MAT/Atmos-era). It allocates static+dynamic decoder memory, processes input in timeslices, and pulls per-frame metadata. Malformed-signal detection is built in. Only present on home-theater products; explains decoder errors logged as UDC timeslice failures.
+The Dolby Evolution decoder — the path used for newer Dolby bitstreams (the MAT/Atmos-era formats). It reserves decoder memory up front and processes frames with its own status reporting, sitting alongside the classic Dolby path for newer content.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5797,7 +5797,7 @@ The Dolby Evolution decoder — the DDPI UDC path used for newer Dolby bitstream
 
 **coverage** `strong`
 
-The vendored Expat 2.5.0 XML parser: billion-laughs amplification accounting (direct/indirect byte counts with amplification ratio), debug env vars (EXPAT_ACCOUNTING_DEBUG and friends), /dev/urandom entropy with fallback, and attribute-type handling. Every XML parse in the firmware — SOAP, DIDL, ZGS — runs through this copy.
+The bundled Expat XML parser: includes accounting against amplification attacks, debug environment variables, and the versioned parser core every document-reading component shares. The single XML engine underneath all the metadata parsing.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5817,7 +5817,7 @@ version expat_2.5.0; billion-laughs accounting "expat: Accounting(%p): Direct %1
 
 **coverage** `strong`
 
-The complete `featureConfig` schema — the cloud-pushed feature document: flags for Spotify adaptive bitrate + Connect-for-all-accounts, metrics config URLs, preferred RP container, voice data collection, partner integrations (Lutron, Amazon Music DASH, Apple Music HLSv7, TuneIn replacement/migration), semiSleep, trueplay data collection, dropout context, and more. It explains behavior differences between households on identical firmware.
+The complete `featureConfig` schema — the cloud-pushed feature document: flags for Spotify adaptive bitrate + Connect-for-all-accounts, metrics config URLs, preferred RP container, voice data collection, partner integrations (Lutron, Amazon Music DASH, Apple Music HLSv7, TuneIn replacement/migration), semiSleep, trueplay data collection, dropout context, and more. It explains behavior differences between households on identical firmware. These stored toggles feed the capability gates — the persisted answers to 'is this feature on for this household'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5837,7 +5837,7 @@ The complete `featureConfig` schema — the cloud-pushed feature document: flags
 
 **coverage** `?`
 
-The GroupManagement service: bonded-group lifecycle (stereo pairs, surrounds) — create/remove/validate plus the evented membership state.
+The group-management engine — the internal machinery of group membership: who's in a group, who leads it, joining and leaving, behind the GroupManagement commands. One member typically coordinates the group while others follow — this machinery elects that leader and keeps the shared state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5849,7 +5849,7 @@ The GroupManagement service: bonded-group lifecycle (stereo pairs, surrounds) �
 
 **coverage** `strong`
 
-The mercury/hermes channel layer for Spotify: `hm://hwptp/*` URIs carry device state (volume, play, shuffle, repeat, queue, pull_playback) between the cloud and the Connect session, plus content-encryption-key and offline-restriction channels. Push messages arrive over the AP connection as defragmented packets; rate limiting with `Spotify-Unavailable-For` throttles sends. It's the control plane that makes Spotify Connect work.
+The mercury/hermes channel layer for Spotify: `hm://hwptp/*` URIs carry device state (volume, play, shuffle, repeat, queue, pull_playback) between the cloud and the Connect session, plus content-encryption-key and offline-restriction channels. Push messages arrive over the AP connection as defragmented packets; rate limiting with `Spotify-Unavailable-For` throttles sends. It's the control plane that makes Spotify Connect work. This is the internal bridge that lets the Spotify app see and drive your speaker as a Connect device — the channel its traffic rides.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5870,7 +5870,7 @@ roots {hm://hwptp/v1/devices,hm://hwptp/v1/tsv,hm://hwptp/v1,hm://hwptp/v2/resol
 
 **coverage** `strong`
 
-The TV input-session report (`zpHTInputSession`): per-session correlation id, connection type, coordinator UUID/boot-seq, session/play durations, input rate, burst type, content type, and forced flag — tagged `tv_usage`. This is the telemetry behind 'how is the TV input being used' analytics.
+The TV input-session report (`zpHTInputSession`): per-session correlation id, connection type, coordinator UUID/boot-seq, session/play durations, input rate, burst type, content type, and forced flag — tagged `tv_usage`. This is the telemetry behind 'how is the TV input being used' analytics. Input-session data, lip-sync values, and rig health all get packaged here for the diagnostics that debug theater problems.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5890,7 +5890,7 @@ schema {corrId,cid set/clr,sessionLength,sessionPlayTime,connectionType,GCUUID,G
 
 **coverage** `?`
 
-The home-theater audio path: TV input capture, channel processing, satellite transmission, and autoplay for HT sources. Its session lifecycle (start/play/stop with topology tracking) is reported through `zpHTInputSession` telemetry; the IR learn and CEC subsystems hang off it for remote control.
+The home-theater audio subsystem — the overall audio path for a soundbar product: TV input to speaker output, including the surround/processing stage. This is what makes a soundbar-and-surrounds rig behave like one instrument rather than independent speakers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5914,7 +5914,7 @@ The home-theater audio path: TV input capture, channel processing, satellite tra
 
 **coverage** `strong`
 
-The HTTP cache semantics: stale-while-revalidate, stale-if-error, no-store, public/private directives mapped to a status enum (fresh, stale, stale_revalidate, stale_use_if_server_error, populated, refreshed, rejected). Cache correctness for browsed art/metadata lives here.
+The HTTP cache semantics: stale-while-revalidate, stale-if-error, no-store, public/private directives mapped to a status enum (fresh, stale, stale_revalidate, stale_use_if_server_error, populated, refreshed, rejected). Cache correctness for browsed art/metadata lives here. Stores fetched web content (artwork, catalogs) so repeat requests don't hit the network again — the memory behind fast repeat loads.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5934,7 +5934,7 @@ directives {stale-while-revalidate,stale-if-error,no-store,private,public}; stat
 
 **coverage** `?`
 
-The device's embedded HTTP engine: route tables (master + secondary status registry), the static/exec page dispatch, CSRF gating, and the auth plumbing that fronts every `/status`, `/tools`, and exec endpoint. The route records in this reference are its registration tables.
+The device's embedded web engine: route tables for both the main and status-site registry, static and executable page handling, request forgery protection, and the auth plumbing guarding sensitive endpoints. Everything the built-in web server runs on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5954,7 +5954,7 @@ The device's embedded HTTP engine: route tables (master + secondary status regis
 
 **coverage** `?`
 
-The HTTP header vocabulary the device emits and parses: auth challenges, `X-Sonos-*` extensions (playback-id, VLI markers), GENA headers for eventing, and the content-negotiation used by SMAPI and cloud calls. Quirks like malformed substitution anomalies are preserved in the route records.
+The HTTP header vocabulary the device emits and parses: auth challenges, Sonos's own X-Sonos extensions, eventing headers, and the standard set. The shared dictionary for every web exchange the player makes.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5966,7 +5966,7 @@ The HTTP header vocabulary the device emits and parses: auth challenges, `X-Sono
 
 **coverage** `strong`
 
-The planner half of intended-target execution: generates the target list, parses implicit vs explicit targets ('implicit target parsed \[...\]' / 'explicit target parsed \[...\]'), and rejects commands that don't support the intendedTargets parameter or that aren't in the IBT-eligible set ('unsupported IBT command'). Plan-generation failures are logged distinctly from execution failures — a command can be well-formed but unplannable, and a generated plan can still fail per target at dispatch time.
+The planner half of intended-target execution: when a cloud command names its players, this generates the target list and parses whether targets were explicit or implied. It's the routing brain that turns 'command X for the household' into 'command X for these specific speakers'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -5986,7 +5986,7 @@ The planner half of intended-target execution: generates the target list, parses
 
 **coverage** `strong`
 
-IBT ('intended targets') is how cloud-issued household commands fan out to specific players. A command arriving over the muse channel is compiled into a 'plan' — a generated target list — then dispatched one target at a time with a per-target result ('\[dispatch\] dispatched (cmd) to target (player), result \[...\]'). The targets are players and/or areas ('no players or areas were specified'); plans are idempotent ('already generated ibt plan, no action taken'). Dispatched commands authenticate outbound with a bearer token plus the X-Sonos-Type header, and a protocol-version compatibility check runs before forwarding. The observed command surface is group/zone management — '\[group\] adding player to group', 'created new group' — matching the 'zones' verb namespace (activateZone, joinZone, unjoinZone, addZoneDefinition, updateZoneMemberSettings...). It is feature-gated by enablePitchfork. The plan serialization format itself and the full whitelist of IBT-eligible commands are the pieces still undecoded.
+IBT ('intended targets') is how cloud-issued household commands fan out to specific players — a command arriving over the cloud channel is compiled into a 'plan' naming which players execute it. This entry covers the plan format and how plans get built and run.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6022,7 +6022,7 @@ a remote-management command executor: commands named in log domain 'ibt' are com
 
 **coverage** `strong`
 
-The IR receiver subsystem: learned code lists for vol_up/vol_down/mute/input (bounded, 'list full'), config in `/opt/ir/irconfig.txt`, hex `%02x` encoding, and device open/descriptor errors. On HT products this is how a TV remote's volume keys reach the speaker.
+The IR receiver subsystem: learned code lists for vol_up/vol_down/mute/input (bounded, 'list full'), config in `/opt/ir/irconfig.txt`, hex `%02x` encoding, and device open/descriptor errors. On HT products this is how a TV remote's volume keys reach the speaker. Turns raw remote-control pulses into button events — the hardware end of 'your TV remote controls the soundbar'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6043,7 +6043,7 @@ encoding %02x%%20/%02x hex; lists {vol_up_codes,vol_down_codes,vol_mute_codes,in
 
 **coverage** `strong`
 
-The JWT layer for muse and device tokens: HS256 signing, X.509-chain (x5c) validation, and a granular error taxonomy (malformed header/payload/signature, untrusted chain, missing private key). Device tokens are minted via `POST oauth.{env}ws.sonos.com/oauth/v4/pdsw` with a jwt-bearer grant. Every authenticated muse command parses a token through this layer first.
+The JWT layer for muse and device tokens: HS256 signing, X.509-chain (x5c) validation, and a granular error taxonomy (malformed header/payload/signature, untrusted chain, missing private key). Device tokens are minted via `POST oauth.{env}ws.sonos.com/oauth/v4/pdsw` with a jwt-bearer grant. Every authenticated muse command parses a token through this layer first. Parses and verifies the signed tokens used in auth flows — how the player knows a presented credential is genuine and unexpired.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6063,7 +6063,7 @@ JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,P
 
 **coverage** `strong`
 
-The eSDK 'korn' event enum — ~70 lifecycle events: INITIALIZED/SHUTDOWN, WEBSERVER_START/STARTED/UPDATED, ZEROCONF_* (device added, credential transfer, auth token/code), MDNS_* (pause/resume/devices/discovered), and more. This is the Connect stack's internal pub-sub — each event carries the payload the module kernel dispatches.
+The embedded-Spotify component's event enum — roughly 70 lifecycle events: init and shutdown, web-server start and updates, and the zero-config discovery events for credential transfer and auth tokens. How the Spotify integration reports its internal state.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6083,7 +6083,7 @@ The eSDK 'korn' event enum — ~70 lifecycle events: INITIALIZED/SHUTDOWN, WEBSE
 
 **coverage** `strong`
 
-The eSDK module kernel: a temp-RAM arena allocator with strict accounting (num_allocs, free pointer, alignment, MAX_KORN_TEMP_RAM_ALLOCS), an event-count guard (SP_MAX_EVENTS), and the pump loop that dispatches korn events to modules. The memory discipline is why Connect survives long sessions without leaking.
+The eSDK module kernel: a temp-RAM arena allocator with strict accounting (num_allocs, free pointer, alignment, MAX_KORN_TEMP_RAM_ALLOCS), an event-count guard (SP_MAX_EVENTS), and the pump loop that dispatches korn events to modules. The memory discipline is why Connect survives long sessions without leaking. An internal core component by build-tree name — part of the low-level machinery mapped during the firmware inventory.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6103,7 +6103,7 @@ asserts {korn_ptr->_temp_ram_num_allocs == 0,korn_ptr->_temp_ram_free == (char *
 
 **coverage** `?`
 
-The lechmere event channel: the persistent cloud pipe carrying muse commands in and device events out — `{scope}/{ns}/{verb}` route templates define its addressing.
+The lechmere event channel: the persistent cloud pipe carrying muse commands in and device events out — `{scope}/{ns}/{verb}` route templates define its addressing. Sonos's internal name for the websocket event layer the modern API uses — the persistent-connection machinery carrying live events between players and the app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6115,7 +6115,7 @@ The lechmere event channel: the persistent cloud pipe carrying muse commands in 
 
 **coverage** `strong`
 
-The LED engine: HW feature flags, mode flags (R_LED_UPGRADE, R_LED_BROKEN_DEVICE, audio-device flags), brightness control, and the R_LED flag enum (join household, setup/WAC, factory reset, clone-check failure, warning, playing, muted, booting...). The pattern format (checksum, flags, repeat count, steps with LED ids/RGB/hold/fade) is the compiled form patterns arrive in.
+The LED engine: HW feature flags, mode flags (R_LED_UPGRADE, R_LED_BROKEN_DEVICE, audio-device flags), brightness control, and the R_LED flag enum (join household, setup/WAC, factory reset, clone-check failure, warning, playing, muted, booting...). The pattern format (checksum, flags, repeat count, steps with LED ids/RGB/hold/fade) is the compiled form patterns arrive in. Maps player states (playing, muted, updating, erroring) to light patterns — the zone-player-specific LED logic.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6135,7 +6135,7 @@ HW features "setHwFeatures bHasMicrophone=%s, bHasMuteLED=%s, bHasStatusLED=%s, 
 
 **coverage** `strong`
 
-The vendored libFLAC 1.3.4 (20220220): decoder error taxonomy (BAD_HEADER, FRAME_CRC_MISMATCH, UNPARSEABLE_STREAM, OGG_ERROR, SEEK_ERROR) and the I/O callback status set (WRITE/LENGTH/TELL/SEEK/READ/INIT variants). FLAC streams play through this exact build.
+The vendored libFLAC 1.3.4 (20220220): decoder error taxonomy (BAD_HEADER, FRAME_CRC_MISMATCH, UNPARSEABLE_STREAM, OGG_ERROR, SEEK_ERROR) and the I/O callback status set (WRITE/LENGTH/TELL/SEEK/READ/INIT variants). FLAC streams play through this exact build. The bundled lossless-audio decoder — handles FLAC streams from your music library and services that offer lossless.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6155,7 +6155,7 @@ The vendored libFLAC 1.3.4 (20220220): decoder error taxonomy (BAD_HEADER, FRAME
 
 **coverage** `strong`
 
-The low-level audio interface between anacapad and the kernel DSP driver. It opens output/input devices, negotiates buffer limits (min/max/default buffers, channels, frame size, jitter), sets tx latency, and does sample-clock math to compute when a write will actually sound. Status codes (WOULD_BLOCK, UNDERFLOW_OVERFLOW, NO_CSB, SUSPENDED) are the vocabulary the rest of the audio stack uses for hardware faults.
+The low-level audio interface between anacapad and the kernel DSP driver. It opens output/input devices, negotiates buffer limits (min/max/default buffers, channels, frame size, jitter), sets tx latency, and does sample-clock math to compute when a write will actually sound. Status codes (WOULD_BLOCK, UNDERFLOW_OVERFLOW, NO_CSB, SUSPENDED) are the vocabulary the rest of the audio stack uses for hardware faults. An internal module by build-tree naming — part of the utility layer recovered structurally.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6176,7 +6176,7 @@ status codes {WOULD_BLOCK,UNDERFLOW_OVERFLOW,NO_CSB,INVALID_DATA,SUSPENDED}; out
 
 **coverage** `strong`
 
-The local settings manager: `_settings.json`, `_effective.json`, `_attrdata.json`, `_exclude.json`, `settings_targettypes.json`, `__location_summation`, `__migration_data` — each file wrapped in a magic header (`|_(:/)_|`) with length/checksum/counter and a trailer. Migration, per-target defaults, and 'attempt to subvert authorization' detection all live here.
+The local settings manager: `_settings.json`, `_effective.json`, `_attrdata.json`, `_exclude.json`, `settings_targettypes.json`, `__location_summation`, `__migration_data` — each file wrapped in a magic header (`|_(:/)_|`) with length/checksum/counter and a trailer. Migration, per-target defaults, and 'attempt to subvert authorization' detection all live here. Where this speaker's own config lives — the per-device half of the settings world (distinct from household-shared values).
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6196,7 +6196,7 @@ files {_attrdata.json,_exclude.json,_settings.json,_effective.json,settings_targ
 
 **coverage** `Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file`
 
-The mDNS stack: service registration, TXT record management, discovery, and household filtering. Sonos devices advertise `_sonos._tcp` with TXT keys (hhid, bootseq, variant); filtering drops discovered devices that belong to a different household.
+Multicast DNS — the core discovery protocol implementation: how devices announce and find each other on the local network without any server. The same discovery system Apple devices use — speakers broadcast what they are and listen for each other.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6208,7 +6208,7 @@ The mDNS stack: service registration, TXT record management, discovery, and hous
 
 **coverage** `strong`
 
-The device's own mDNS TXT record schema: byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, locationid. Controllers reading `_sonos._tcp` see exactly these keys — the binary is the authority on what each one contains.
+The device's own discovery record schema: the fields it advertises — protocol versions, household ID, port info, variant, sequence — that controllers read when they find the speaker. What your phone sees when it spots the player on the network.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6228,7 +6228,7 @@ TXT keys {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnsseque
 
 **coverage** `?`
 
-The core ZonePlayer module — the umbrella object owning zone lifecycle, group membership, and the shutdown sequence. Most top-level FSMs report through it; it's the 'this player' singleton everything else hangs off.
+The 'mod_zp' module — a zone-player module by build-tree naming; part of the player-facing internals recovered structurally. One of the zone-player internals, inventoried as part of the complete component map.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6240,7 +6240,7 @@ The core ZonePlayer module — the umbrella object owning zone lifecycle, group 
 
 **coverage** `?`
 
-The muse command protocol: ~67 namespaces / ~320 verbs of cloud-API surface — playback, settings, grouping, positioning, registration, UPnP bridge — dispatched by the muse engine.
+The muse layer — Sonos's internal name for the modern API machinery as a whole: the route tables, router, operation objects, and pipeline documented on the muse API page.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6255,7 +6255,7 @@ The muse command protocol: ~67 namespaces / ~320 verbs of cloud-API surface — 
 
 **coverage** `?`
 
-The muse dispatcher: namespace registry, target validation, IBT fan-out, authorization, execution — mounted on `/api`, `/device_account`, and the lechmere pipe.
+The modern-API engine: the namespace registry, request validation, fan-out to target players, authorization, and execution — mounted on the /api routes and the cloud pipe. It's the counterpart of the classic command machinery for the app's REST-style world.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6280,7 +6280,7 @@ The muse dispatcher: namespace registry, target validation, IBT fan-out, authori
 
 **coverage** `strong`
 
-The enum tables shared by muse fields: actor roles (VOICE_ASSISTANT, GUEST, ADMIN, EMPLOYEE, PLAYER_TO_PLAYER, BLE_DTLS), authz resources (AUTHZPOLICIES, DEVICES, ENTITLEMENTS, SETTINGS, HISTORY), permissions (PLAY_TO_BONDED, STOP_CONTENT, USE_SHARED_QUEUE), content types (PLAYLIST, EPISODE, PODCAST...), and credential types (ACCESS_TOKEN, API_KEY, GUEST_TOKEN_PIN).
+The enum tables shared by muse fields: actor roles (VOICE_ASSISTANT, GUEST, ADMIN, EMPLOYEE, PLAYER_TO_PLAYER, BLE_DTLS), authz resources (AUTHZPOLICIES, DEVICES, ENTITLEMENTS, SETTINGS, HISTORY), permissions (PLAY_TO_BONDED, STOP_CONTENT, USE_SHARED_QUEUE), content types (PLAYLIST, EPISODE, PODCAST...), and credential types (ACCESS_TOKEN, API_KEY, GUEST_TOKEN_PIN). The named constants the modern API uses internally — operation types, scopes, status values.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6300,7 +6300,7 @@ actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVI
 
 **coverage** `strong`
 
-The ~80-entry error registry every muse command can return: generic (INVALID_ACTION, UNSUPPORTED_COMMAND), playback (PLAYBACK_FAILED, SKIP_LIMIT_REACHED, EXPLICIT_NOT_ALLOWED, PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE), session (SESSION_IN_PROGRESS, JOIN_FAILED, EVICTED), and infrastructure (SERVICE_NOT_AVAILABLE, CLOUD_QUEUE_SERVER, NOT_DESIGNATED_DEVICE). These strings are the contract — clients should branch on them, not on free-text messages.
+The ~80-entry error registry every muse command can return: generic (INVALID_ACTION, UNSUPPORTED_COMMAND), playback (PLAYBACK_FAILED, SKIP_LIMIT_REACHED, EXPLICIT_NOT_ALLOWED, PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE), session (SESSION_IN_PROGRESS, JOIN_FAILED, EVICTED), and infrastructure (SERVICE_NOT_AVAILABLE, CLOUD_QUEUE_SERVER, NOT_DESIGNATED_DEVICE). These strings are the contract — clients should branch on them, not on free-text messages. How the modern API forms its error responses — the status codes and messages the pipeline emits.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6320,7 +6320,7 @@ results {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED}; playback {ER
 
 **coverage** `strong`
 
-The ~65 event types a muse client can subscribe to: avTransport, playbackStatus, renderingControl, zoneGroupTopology, groupCoordinatorChanged, sleepTimerStatus, trueplayStatus, audioInput, batteryStatus, bluetooth status, and more. Subscriptions are per-namespace with logical SIDs; events are how the cloud API delivers state changes rather than polling.
+The ~65 event types a muse client can subscribe to: avTransport, playbackStatus, renderingControl, zoneGroupTopology, groupCoordinatorChanged, sleepTimerStatus, trueplayStatus, audioInput, batteryStatus, bluetooth status, and more. Subscriptions are per-namespace with logical SIDs; events are how the cloud API delivers state changes rather than polling. How the modern API layer emits its events — the channel model behind the subscription features.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6340,7 +6340,7 @@ The ~65 event types a muse client can subscribe to: avTransport, playbackStatus,
 
 **coverage** `strong`
 
-The 203 object-type names the cloud API's schema can use, stored in one contiguous alphabetical block - accessorySwap through zoneMemberState. Every field in every operation's spec is typed with one of these: simple wrappers like upnpEvent (the generic event value, appearing once per bridged UPnP service) or concrete payload shapes like channelMapPair, bluetoothDevice and deviceInfo. Together with the field-name half of each spec pair this gives the complete request/response grammar for all ~320 cloud verbs.
+The 203 object-type names the cloud API's schema can use, stored as one contiguous list — every field name, event name, and object shape the modern protocol speaks. Together with the field schema it's the complete vocabulary of the API's data model.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6367,7 +6367,7 @@ The 203 object-type names the cloud API's schema can use, stored in one contiguo
 
 **coverage** `confirmed`
 
-The complete menu of commands the cloud protocol supports, organised as namespace/verb pairs — for example 'authorization.resolveToken' means the resolveToken command inside the authorization namespace. Roughly 320 pairs cover everything a client can do: play music (playback.play), manage groups (groups.createGroup), look up zones (zones.getZoneDefinition), translate catalog IDs (catalog.translate), report firmware status (systemReporting.reportFirmwareDownload), and bridge to classic UPnP services. Two-character event codes (AA through AK) sit alongside, which is how subscriptions address event channels.
+The complete menu of commands the cloud protocol supports, organised as namespace/verb pairs — 'authorization.resolveToken' means resolveToken inside the authorization group. The two-part naming system behind every modern-API operation.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6387,7 +6387,7 @@ Pair table @.data 0x110941d8: {namespace_name_ptr, verb_name_ptr} x~320 entries,
 
 **coverage** `strong`
 
-The verb-name table — every operation callable per namespace: `getAreas`/`createArea`, `loadAudioClip`, `getRegistrationStatus`/`transferDeviceRegistration`, `submitDiagnostics`, settings getters/setters, playback load ops, and hundreds more across ~67 namespaces. This is effectively the full cloud-API method list.
+The verb-name table — every operation callable per namespace: `getAreas`/`createArea`, `loadAudioClip`, `getRegistrationStatus`/`transferDeviceRegistration`, `submitDiagnostics`, settings getters/setters, playback load ops, and hundreds more across ~67 namespaces. This is effectively the full cloud-API method list. The operation vocabulary of the modern API — every named operation the route table can invoke.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6407,7 +6407,7 @@ areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,can
 
 **coverage** `?`
 
-Music-service accounts as embedded in ZoneGroupState: per-account nickname/serial/flags/tier/credential fields that every member sees — replicated with vector clocks.
+Music-service accounts as embedded in ZoneGroupState: per-account nickname/serial/flags/tier/credential fields that every member sees — replicated with vector clocks. Where saved service logins live — the credential store retrieved when a service needs to authenticate.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6435,7 +6435,7 @@ Music-service accounts as embedded in ZoneGroupState: per-account nickname/seria
 
 **coverage** `confirmed`
 
-The actual network bring-up is a mode state machine driven by a shell script: each call takes a mode — join the mesh, join a home WiFi, run the open setup hotspot, check credentials without committing, run as an island with no uplink — plus flags for things like spanning tree. This script is why the player can move between 'SonosNet' mesh and plain WiFi without a rewrite: the whole reconfigure is one mode switch.
+The actual network bring-up is a mode state machine driven by a shell script: each call takes a mode — join the mesh, join a home WiFi, run the open setup hotspot, check credentials without committing, run as an island with no uplink — plus flags for things like spanning tree. This script is why the player can move between 'SonosNet' mesh and plain WiFi without a rewrite: the whole reconfigure is one mode switch. Steps through WiFi/network setup in order — which state it's in, what comes next, and how failures back out cleanly rather than leaving a half-configured connection.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6457,7 +6457,7 @@ The actual network bring-up is a mode state machine driven by a shell script: ea
 
 **coverage** `?`
 
-Network configuration and monitoring: Wi-Fi/SonosNet modes, netlink address events, connection-type tracking — the base layer `networkStatus` events reflect.
+The network layer as a whole — the player's general networking machinery beneath the specific protocols: sockets, interfaces, and the shared plumbing. The collective term for everything from interface monitoring to the proprietary mesh to the startup coordinator.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6472,7 +6472,7 @@ Network configuration and monitoring: Wi-Fi/SonosNet modes, netlink address even
 
 **coverage** `strong`
 
-The `/tools` diagnostic page: HTML forms that run `ping -c 3`, `traceroute`, `nslookup`, and `/mdnsannounce` against a host parameter, plus a `/pcap` endpoint that streams a packet capture (with an exclusion filter for its own HTTP connection). CSRF-token protected. This is the engineering page support asks you to visit for network forensics.
+The /tools diagnostic page: HTML forms that run ping, traceroute, nslookup, and a discovery announcement against a host you enter, plus a packet-capture endpoint. A built-in network troubleshooting toolkit served by the speaker itself.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6492,7 +6492,7 @@ forms {"Tools for debugging network issues"}; /bin/ping -c 3 + /usr/bin/tracerou
 
 **coverage** `?`
 
-The inter-player TX transport: min/max packet range tracking, per-packet crossfade state, resync operations, and the NACK/retransmit machinery the source side uses to serve late joiners and packet loss. Together with noderx it forms the reliable-ish audio multicast layer.
+The inter-player TX transport: min/max packet range tracking, per-packet crossfade state, resync operations, and the NACK/retransmit machinery the source side uses to serve late joiners and packet loss. Together with noderx it forms the reliable-ish audio multicast layer. The transmit half — sends this player's node-level status out to the household on the internal message channel.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6506,7 +6506,7 @@ The inter-player TX transport: min/max packet range tracking, per-packet crossfa
 
 **coverage** `strong`
 
-The PlayerSettingsManager (settings v2): volumeMode (including PASS_THROUGH where EQ is locked), monoMode, wifiDisable/meshDisable/wifiPowerSave, batteryUsagePolicy, bluetoothPolicy, networkingMode, lineIn, eq (treble/bass/loudness), gainTrimDB, and zone attributes. These are the per-player keys the settings namespaces and `/settings` surface map onto.
+The PlayerSettingsManager (settings v2): volumeMode (including PASS_THROUGH where EQ is locked), monoMode, wifiDisable/meshDisable/wifiPowerSave, batteryUsagePolicy, bluetoothPolicy, networkingMode, lineIn, eq (treble/bass/loudness), gainTrimDB, and zone attributes. These are the per-player keys the settings namespaces and `/settings` surface map onto. This speaker's own configuration values — the store behind the device-level settings commands.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6526,7 +6526,7 @@ keys {volumeMode,monoMode,wifiDisable,meshDisable,wifiPowerSave,batteryUsagePoli
 
 **coverage** `strong`
 
-The product codename ↔ ZPS model table: Playbar, ElRey, Bravo, Hideout, Pallas, Apollo, Lasso, Play1, TitanWOW variants, Monaco, Play3, Encore, Alpine, Pinewood, Prima, Mojave, Optimo2/Optimo1 — with the ZPS numeric ids. Use this when a log or config names a codename you need to map to a product.
+The product codename ↔ ZPS model table: Playbar, ElRey, Bravo, Hideout, Pallas, Apollo, Lasso, Play1, TitanWOW variants, Monaco, Play3, Encore, Alpine, Pinewood, Prima, Mojave, Optimo2/Optimo1 — with the ZPS numeric ids. Use this when a log or config names a codename you need to map to a product. Which hardware models the firmware knows — names, capabilities, and the model-specific behavior each triggers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6546,7 +6546,7 @@ codenames {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWO
 
 **coverage** `strong`
 
-The Source/SinkProtocolInfo CSV: the URI-scheme whitelist (http-get, x-file-cifs, file, sonos.com-mms/http/spotify/rtrecent, x-rincon family, x-sonosapi-stream/hls/hls-static/radio, x-rincon-cpcontainer) each paired with a MIME filter. SetAVTransportURI acceptance is gated by this list — an unsupported scheme never reaches the engine.
+The Source/SinkProtocolInfo CSV: the URI-scheme whitelist (http-get, x-file-cifs, file, sonos.com-mms/http/spotify/rtrecent, x-rincon family, x-sonosapi-stream/hls/hls-static/radio, x-rincon-cpcontainer) each paired with a MIME filter. SetAVTransportURI acceptance is gated by this list — an unsupported scheme never reaches the engine. Builds and parses the format-capability strings exchanged when devices negotiate what they can send or play.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6566,7 +6566,7 @@ schemes {http-get,x-file-cifs,file,sonos.com-mms,sonos.com-http,sonos.com-spotif
 
 **coverage** `strong`
 
-The track-queue status XML: `<Queue>` with EntriesMax/Used/HighWater, string-table usage, UpdateID, ObjectID, OwnerID, Policy, and CloudQueue fields. The high-water marks and string-table stats are diagnostic — they tell support how full the queue really got. UpdateID is the change counter event subscribers watch.
+The track-queue status XML: `<Queue>` with EntriesMax/Used/HighWater, string-table usage, UpdateID, ObjectID, OwnerID, Policy, and CloudQueue fields. The high-water marks and string-table stats are diagnostic — they tell support how full the queue really got. UpdateID is the change counter event subscribers watch. The structure of queue records — what fields a queue entry carries and how they're stored.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6586,7 +6586,7 @@ The track-queue status XML: `<Queue>` with EntriesMax/Used/HighWater, string-tab
 
 **coverage** `?`
 
-The `/radiolog` diagnostic surface: radio-related event logging exposed through the status pages — station tuning, stream errors, and ICY metadata events. Useful when a stream plays but metadata or tuning behaves oddly.
+The `/radiolog` diagnostic surface: radio-related event logging exposed through the status pages — station tuning, stream errors, and ICY metadata events. Useful when a stream plays but metadata or tuning behaves oddly. Logging specific to the radio/stream-tuning path — what the streaming machinery records for diagnostics.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6600,7 +6600,7 @@ The `/radiolog` diagnostic surface: radio-related event logging exposed through 
 
 **coverage** `strong`
 
-The rc_impl layer: the RenderingControl implementation's event vocabulary (VolumeChangedEvent, DuckingEvent, StereoPairStateEvent, TrueplayCalibrationChangedEvent, FeatureConfigChangedEvent), settings write-back, ramp-type enum for fades, sonar calibration modes, and the `/status` output schema that exposes current levels.
+The RenderingControl engine's event vocabulary — volume-changed, ducking, stereo-pair-state, and tuning-changed notifications the sound-control service publishes internally. It's the source of the updates apps see when the room's sound settings move.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6620,7 +6620,7 @@ events {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,St
 
 **coverage** `?`
 
-Local device registration: the on-LAN enrollment half that precedes cloud registration — tracks per-device reg state inside the household.
+Local device registration: the on-LAN enrollment half that precedes cloud registration — tracks per-device reg state inside the household. Enrolls the player with Sonos's systems — the flow making a device known to the account.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6632,7 +6632,7 @@ Local device registration: the on-LAN enrollment half that precedes cloud regist
 
 **coverage** `?`
 
-The `regdevicecert.cxx` FSM driving the secure-registration protocol: sequential regState transitions with timeout/retry handling, transfer-mode tracking, and SSL error capture. It orchestrates the two-phase enroll (refresh then complete) under `device_registration`.
+The `regdevicecert.cxx` FSM driving the secure-registration protocol: sequential regState transitions with timeout/retry handling, transfer-mode tracking, and SSL error capture. It orchestrates the two-phase enroll (refresh then complete) under `device_registration`. The step-by-step logic of device registration — each state and transition from unregistered to enrolled.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6648,7 +6648,7 @@ The `regdevicecert.cxx` FSM driving the secure-registration protocol: sequential
 
 **coverage** `?`
 
-The RenderingControl service: volume/mute/EQ per zone with LastChange events — the slider/mute-button SOAP surface.
+The rendering-control engine — the internal model of volume, mute, and tone per channel that the RenderingControl commands manipulate. Volume, mute, bass, treble, loudness — the per-speaker sound controls are all handled through this subsystem.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6662,7 +6662,7 @@ The RenderingControl service: volume/mute/EQ per zone with LastChange events —
 
 **coverage** `?`
 
-The reporting/telemetry umbrella: usage metrics, dropout events, TV sessions, spotify stats, and the uploader that ships them. Each subsystem's report schema is documented separately; this is the shared submission plumbing.
+The reporting/telemetry umbrella: usage metrics, dropout events, TV sessions, spotify stats, and the uploader that ships them. Each subsystem's report schema is documented separately; this is the shared submission plumbing. Packages and sends system reports — the machinery delivering telemetry and status to Sonos.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6675,7 +6675,7 @@ The reporting/telemetry umbrella: usage metrics, dropout events, TV sessions, sp
 
 **coverage** `confirmed`
 
-The boot chain is layered and safe-by-default: mount the virtual filesystems, lay down the RAM disk, pull in the kernel drivers, check whether a factory reset is being asked for (either a button hold or a marker file), then bring up networking and the daemons — with a developer override file that can take over the whole sequence on unlocked units. Every boot decision you'd want to trace runs through this one script.
+The boot chain is layered and safe-by-default: mount the virtual filesystems, lay down the RAM disk, pull in the kernel drivers, check whether a factory reset is being asked for (either a button hold or a marker file), then bring up networking and the daemons — with a developer override file that can take over the whole sequence on unlocked units. Every boot decision you'd want to trace runs through this one script. How the device's read-only filesystem image is laid out and mounted at boot — the on-disk structure the firmware starts from.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6698,7 +6698,7 @@ inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {ru
 
 **coverage** `confirmed`
 
-The firmware ships with a handful of data files that do real work: the speaker's DSP tuning coefficients for its six woofer channels, the factory IR codes for TV remotes, a one-entry music-service seed (just TuneIn) that gets replaced by the cloud list, the button-click sounds, and the web pages the player's status server serves. Small files, but they define a lot of the out-of-box behavior.
+The firmware ships with a handful of data files that do real work: the speaker's DSP tuning coefficients for its six woofer channels, the factory IR codes for TV remotes, a one-entry music-service seed (just TuneIn) that gets replaced by the cloud list, the button-click sounds, and the web pages the player's status server serves. Small files, but they define a lot of the out-of-box behavior. The read-only files shipped inside the image — config templates, lookup tables, and assets the program loads at runtime.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6718,7 +6718,7 @@ The firmware ships with a handful of data files that do real work: the speaker's
 
 **coverage** `strong`
 
-The `.rsq` saved-queue format: gzipped XML at `file:///jffs/settings/savedqueues.rsq` with a `.tmp` write path for atomicity — `<SavedQueues LastUpdateDevice Version Next>` containing `<SavedQueue>` entries with Id, Curated flag, and NumTracks. Validation rejects corrupted counts, bad ids, and version mismatches. 'Sonos playlists' are exactly these files.
+The `.rsq` saved-queue format: gzipped XML at `file:///jffs/settings/savedqueues.rsq` with a `.tmp` write path for atomicity — `<SavedQueues LastUpdateDevice Version Next>` containing `<SavedQueue>` entries with Id, Curated flag, and NumTracks. Validation rejects corrupted counts, bad ids, and version mismatches. 'Sonos playlists' are exactly these files. The Sonos-playlist machinery — storing, editing, and retrieving the playlists kept on the system.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6739,7 +6739,7 @@ file:///jffs/settings/savedqueues.rsq (+.tmp write path, .d.rsq variant, applica
 
 **coverage** `strong`
 
-The crash-dump pipeline: `/upload`, `/watchdog`, `/legacy-to-sentry` routes plus the daemon proxies; dump files (anacapad.core, *.dmp for each daemon, jffs debug dirs) collected and uploaded to crash-upload service. 'No URL found to upload' means the crash service endpoint isn't configured.
+The crash-dump pipeline: `/upload`, `/watchdog`, `/legacy-to-sentry` routes plus the daemon proxies; dump files (anacapad.core, *.dmp for each daemon, jffs debug dirs) collected and uploaded to crash-upload service. 'No URL found to upload' means the crash service endpoint isn't configured. Sends crash reports to Sonos's error-tracking service — the packaging and delivery path after a failure.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6759,13 +6759,13 @@ routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/wa
 
 **coverage** `?`
 
-The settings umbrella: household settings, player settings, replicated settings, local settings manager, effective settings — each documented separately. Settings are layered (default → config → featureConfig → replicated → local), so 'effective' values are what actually apply.
+The settings umbrella: household settings, player settings, replicated settings, local settings manager, effective settings — each documented separately. Settings are layered (default → config → featureConfig → replicated → local), so 'effective' values are what actually apply. The general configuration machinery — where settings live, how they're read and written, and how changes propagate.
 
 ## `share_indexer`
 
 **coverage** `strong`
 
-The music-library share indexer: `localRequestReindex`, `localRequestResort` (a resort request escalates to full reindex when needed), `localRemoveUnsupportedShares`, and the `<Shares>` XML schema with per-share Path/UserName/VerifiedValidProtocol/Id. `ShareIndexInProgress`/`ShareIndexLastError` in ContentDirectory events report its state.
+The music-library share indexer: `localRequestReindex`, `localRequestResort` (a resort request escalates to full reindex when needed), `localRemoveUnsupportedShares`, and the `<Shares>` XML schema with per-share Path/UserName/VerifiedValidProtocol/Id. `ShareIndexInProgress`/`ShareIndexLastError` in ContentDirectory events report its state. The engine walking your music folders to build the searchable index — the worker behind 'update music library'.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6790,7 +6790,7 @@ ops {localRemoveUnsupportedShares,localRequestReindex,localRequestResort,"Turnin
 
 **coverage** `confirmed`
 
-Anacapad is the brain, but a team of small daemons does the physical work: netstartd owns the radios and the setup handshake, wacd speaks Apple's WAC for iOS setup, the LED manager drives the status light, and a couple of monitors handle watchdog, discovery and time. Keeping them separate is why a networking crash doesn't kill a playing song.
+The sibling-daemon interface — how this program relates to the player's other system processes (the network daemon, updater, and friends): what's delegated to whom. A multi-process split means this program hands off whole feature areas — knowing the sibling set explains why some work happens elsewhere.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6810,7 +6810,7 @@ Anacapad is the brain, but a team of small daemons does the physical work: netst
 
 **coverage** `strong`
 
-The SMAPI SOAP client — the outbound side: `http://www.sonos.com/Services/1.1` action namespace with getSessionId, refreshAuthToken, getDeviceAuthToken, getMediaURI, getMediaMetadata, getMetadata, search, reportPlayStatus/Seconds, reportStatus, getAlbumArtURI and more. Session/key vocabulary (deviceSessionId, sessionId) and key-swapping live here. Everything a music service sees from the player arrives through this client.
+The SMAPI client — the outbound side of music-service integration: session IDs, auth-token refresh, device auth tokens, and metadata fetching over each service's own interface. It's how the player logs into and talks to Spotify-style backends on your behalf.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6831,7 +6831,7 @@ action namespace http://www.sonos.com/Services/1.1|{...}; actions {getSessionId,
 
 **coverage** `?`
 
-The SMB client layer under mntmgr: UNC path parsing, dialect probing, credential handling, mount/umount lifecycle, and the stream-open path library browsing uses. 'Too many shares mounted' and per-share failure flags are its guards.
+The SMB client layer under mntmgr: UNC path parsing, dialect probing, credential handling, mount/umount lifecycle, and the stream-open path library browsing uses. 'Too many shares mounted' and per-share failure flags are its guards. The Windows-file-sharing implementation — how the player reads your NAS/shared music folders, including dialect negotiation with older servers.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6844,7 +6844,7 @@ The SMB client layer under mntmgr: UNC path parsing, dialect probing, credential
 
 **coverage** `?`
 
-The SNTP time discipline: chrony-backed clock management, virtual-clock concepts for group timing, server switching when a source degrades (0.sonostime.pool.ntp.org among the pools), and the GC-sync role that makes one player's clock the reference. Sample-exact multiroom play depends on this being healthy.
+The SNTP time discipline: chrony-backed clock management, virtual-clock concepts for group timing, server switching when a source degrades (0.sonostime.pool.ntp.org among the pools), and the GC-sync role that makes one player's clock the reference. Sample-exact multiroom play depends on this being healthy. The simple-network-time client — syncs the player's clock against a time source, keeping household time coordinated.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6861,7 +6861,7 @@ The SNTP time discipline: chrony-backed clock management, virtual-clock concepts
 
 **coverage** `strong`
 
-The optical-output (S/PDIF) burst-format machinery: a table of 37 unsupported formats plus the Dolby/DTS burst types it does handle. When a TV sends an unrecognized bitstream, this table is what answers 'unsupported' - which explains silent HDMI inputs. Behind it sits a sizeable dedicated module that repackages compressed audio into the standard burst-frame format for optical output, with recovery handling for oversized frames; it also hosts the compact protobuf codec shared with the hardware-event bus and the Trueplay node protocol.
+The optical-output burst-format machinery: a table of unsupported formats plus the Dolby and DTS burst types it does handle — when a TV sends an unrecognized stream the player refuses rather than emitting noise. The guard logic for the digital output.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -6889,7 +6889,7 @@ supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (
 
 **coverage** `confirmed`
 
-The full type system behind the cloud API: 383 machine-readable descriptions of every request, response, event and data structure the protocol uses. Each is a small record that names its message class (1 and 2 are request-shaped, 3 is the UPnP-bridge response shape, 4-7 are event and update shapes) and points at its field list. Decoded correctly, most specs lead with an ok status field (170 of them) or an upnpResponse envelope (the 60 UPnP-bridge replies), while real payloads are types like alarm, timer, zoneDefinition, groupInfo and musicServiceAccount. Fifty-two descriptors are deliberately empty - operations that take no arguments. Every field entry also names its type, so the whole request/response grammar is recoverable offline. 558 of the 603 cloud routes are now bound to their spec through a small accessor on the operation's dispatch table.
+The full type system behind the cloud API: 383 machine-readable descriptions of every request, response, event, and data structure the protocol uses. Each is a schema the engine can validate messages against — the API's complete grammar.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -8788,7 +8788,7 @@ The full type system behind the cloud API: 383 machine-readable descriptions of 
 
 **coverage** `confirmed`
 
-The master vocabulary for the whole cloud-API schema system: a table of 331 entries where every type name, field name, event name and namespace label lives. Small number-codes inside each operation's spec list index into this table to spell out that operation's fields - three leading slots hold internal helpers, then 'none' (the empty marker), then the ~325 real names in alphabetical order. We found both directions of the lookup inside the binary: a function that turns a number into its name, and one that searches for a name to get its number - which is what finally proved the numbering scheme beyond doubt.
+The master vocabulary for the whole cloud-API schema system: a table of 331 entries where every type name, field name, event name and namespace label lives. Small number-codes inside each operation's spec list index into this table to spell out that operation's fields - three leading slots hold internal helpers, then 'none' (the empty marker), then the ~325 real names in alphabetical order. We found both directions of the lookup inside the binary: a function that turns a number into its name, and one that searches for a name to get its number - which is what finally proved the numbering scheme beyond doubt. The registry of spec-describing objects — the catalog the API machinery consults for each operation's declared shape.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9140,7 +9140,7 @@ Pointer table at .rodata 0x10f97088-0x10f975b0, 331 entries. Slots 0-2 = functio
 
 **coverage** `confirmed`
 
-How every command's field list is stored. Each operation's spec lives in a packed table of small numbers that point into the master vocabulary table, and we have now proven exactly how they read: the entries come in {field-name, type} pairs. The field-name positions carry the real wire keys you would see in the JSON - ok (the status field that opens most messages), globalError and upnpError (the error slots), upnpResponse (the UPnP-bridge reply envelope), plus specialised slots like groupCoordinatorChanged and playbackError. The type positions say what kind of value fills each field - most fields carry upnpEvent, the universal value wrapper, while richer fields name concrete types like channelMapPair or bluetoothDevice. When the same field name repeats with different types, the field is allowed to be any of them - that is how error responses declare their variant payloads. A zero entry means the slot is optional or absent. Different operations' lists are stored back-to-back so they can share common tails - a compact schema encoding.
+How every modern-API command's field list is stored: each operation's spec lives in a packed table of small numbers pointing into the master vocabulary table — recovered as a complete field-name dictionary. The compressed form of the API's argument lists.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9167,7 +9167,7 @@ Spec lists = packed pools of u32 indices into spec_object_table. INDEX SPACE RES
 
 **coverage** `?`
 
-The on-device Spotify stack: the eSDK session, the SMAPI↔VLI transitions that let a Connect session take over an existing group, the queue/track pipeline, and the zeroconf/broadcast pieces. `sonos.com-spotify:` URIs and Spotify Connect sessions both funnel through here.
+The on-device Spotify stack: the eSDK session, the SMAPI↔VLI transitions that let a Connect session take over an existing group, the queue/track pipeline, and the zeroconf/broadcast pieces. `sonos.com-spotify:` URIs and Spotify Connect sessions both funnel through here. Everything Spotify-specific in the player — the sum of the embedded SDK, Connect, and SMAPI-integration pieces.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9179,7 +9179,7 @@ The on-device Spotify stack: the eSDK session, the SMAPI↔VLI transitions that 
 
 **coverage** `?`
 
-The Spotify Connect path specifically: AP/hermes control plane, credential blob handling, login FSM, playback session management, and the NTS callbacks that bridge eSDK events to the Sonos transport. A Connect takeover is this subsystem asserting control over the group's transport.
+The Spotify Connect path specifically: AP/hermes control plane, credential blob handling, login FSM, playback session management, and the NTS callbacks that bridge eSDK events to the Sonos transport. A Connect takeover is this subsystem asserting control over the group's transport. Makes the speaker appear in the Spotify app — session establishment, the Connect protocol, and handing playback to the player's pipeline.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9201,7 +9201,7 @@ The Spotify Connect path specifically: AP/hermes control plane, credential blob 
 
 **coverage** `strong`
 
-The embedded eSDK (v3.205.205-gd0f06121): the Sp* API surface (play/pause/seek/volume/shuffle/repeat/login/logout/queue/events), the module kernel, the event enum, and the init validation. This is the same SDK third-party hardware licensees get — running inside anacapad.
+The embedded eSDK (v3.205.205-gd0f06121): the Sp* API surface (play/pause/seek/volume/shuffle/repeat/login/logout/queue/events), the module kernel, the event enum, and the init validation. This is the same SDK third-party hardware licensees get — running inside anacapad. Spotify's official client library compiled into the firmware — the component actually speaking the Spotify protocol.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9224,7 +9224,7 @@ cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeA
 
 **coverage** `strong`
 
-Spotify zeroconf/broadcast: the `_spotify-connect._tcp` advertisement, device-added events, credential transfer (auth token/code), and the local webserver the Connect handoff uses. This is how the Spotify app discovers and pairs to the speaker on LAN.
+Spotify zeroconf/broadcast: the `_spotify-connect._tcp` advertisement, device-added events, credential transfer (auth token/code), and the local webserver the Connect handoff uses. This is how the Spotify app discovers and pairs to the speaker on LAN. The discovery half of Spotify Connect — how the Spotify app finds this speaker on the network to offer it as a target.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9245,7 +9245,7 @@ URIs x-spotify:// + x-spotify-file://; Content-Type application/json; charset=ut
 
 **coverage** `?`
 
-Same zeroconf layer (see spotify_zeroconf): the ZC event names (ZEROCONF_DEVICE_ADDED, TRANSFER_CRED, TRANSFER_STATUS, AUTH_TOKEN, AUTH_CODE) are the korn events it emits during pairing.
+The zero-config discovery layer the Spotify Connect integration uses: events for device-added, credential transfer, and auth tokens that let a phone hand the speaker a Spotify session. How 'play on this speaker' works in the Spotify app.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9257,7 +9257,7 @@ Same zeroconf layer (see spotify_zeroconf): the ZC event names (ZEROCONF_DEVICE_
 
 **coverage** `strong`
 
-The save-to-disk layer for every replicated store (favorites, saved queues, alarms, timezones, accounts) writes a temp file, fsyncs it, then renames it over the real file. Each store has its own private set of error codes in the 800 range — favorites returns 805 when you already have 70 of them and 806 when the resulting file would exceed 128KB. These codes travel all the way up to the SOAP fault the client sees.
+The save-to-disk layer for every replicated store — favorites, saved queues, alarms, timezones, accounts — writes a temp file, flushes it, then renames it into place. The crash-safe write pattern that keeps your settings from corrupting on power loss.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9284,7 +9284,7 @@ Every replicated XML store has an atomic-save function (open64 '.tmp' -> fwrite 
 
 **coverage** `?`
 
-The stream-metadata cache: ICY/Shoutcast titles, HLS timed-ID3, and per-stream info blocks, cached so repeated subscribers don't re-parse. `radioShowMd`/`streamInfo` fields in DIDL come from here.
+The stream-metadata cache: internet-radio song titles, timed-ID3 tags, and per-stream info blocks, kept so repeated listeners don't re-parse. The memory behind 'now playing' text for radio.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9296,7 +9296,7 @@ The stream-metadata cache: ICY/Shoutcast titles, HLS timed-ID3, and per-stream i
 
 **coverage** `strong`
 
-The SMAPI service-manifest store: `svcmanifests.json` with schema-version negotiation (rejecting unsupported actual-vs-supported versions), delete/remove ops with before/after version bookkeeping, and cross-player replication of manifest files. Manifests are how custom service capabilities (strings, presentation maps) propagate to every player.
+The SMAPI service-manifest store: `svcmanifests.json` with schema-version negotiation (rejecting unsupported actual-vs-supported versions), delete/remove ops with before/after version bookkeeping, and cross-player replication of manifest files. Manifests are how custom service capabilities (strings, presentation maps) propagate to every player. The registry of which services this build carries — the list behind what the device description advertises.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9316,13 +9316,13 @@ svcmanifests.json text/json; versioning {"Invalid schema version format","Unsupp
 
 **coverage** `?`
 
-The group time-sync layer: SNTP-derived clock plus the inter-player offset math that makes `play at time T` mean the same instant on every member. The ASRC/drift correction in audio_rate_ctrl is the enforcement side of this.
+The synchronization machinery — locks and the coordination primitives the program's threads use to avoid corrupting shared state when many things run at once. The machinery deciding which clock the group follows and correcting drifters — why grouped audio doesn't echo.
 
 ## `topology_base`
 
 **coverage** `strong`
 
-The topology manager: tracks every discovered ZonePlayer (lastIp, moreInfo, orientation, HT flag), emits topology events (AvailableSoftwareUpdate, ZoneGroupName/ID changes, ZonePlayerUUIDsInGroup), and handles quarantine/vanish transitions. The `ZonePlayerUUIDsInGroup` event is the canonical 'who's in this room' signal.
+The topology manager: tracks every discovered ZonePlayer (lastIp, moreInfo, orientation, HT flag), emits topology events (AvailableSoftwareUpdate, ZoneGroupName/ID changes, ZonePlayerUUIDsInGroup), and handles quarantine/vanish transitions. The `ZonePlayerUUIDsInGroup` event is the canonical 'who's in this room' signal. The core machinery of the household map — the shared structures the topology service and others build on.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9342,7 +9342,7 @@ ops {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChan
 
 **coverage** `strong`
 
-The Trueplay enum tables: node actions/statuses, speaker masks (3.1 through 9.1.4), channel types (L/R/C/SUB/LS/RS/LRS/RRS/LTM/RTM/LW/RW/MONO/LTR/RTR), orientations (horizontal/vertical/wall/facedown/inverted), and the array codenames (BRAVO, FURY, OPTIMO2, LASSO, APOLLO). The vocabulary every Trueplay message uses.
+The Trueplay enum tables: node actions/statuses, speaker masks (3.1 through 9.1.4), channel types (L/R/C/SUB/LS/RS/LRS/RRS/LTM/RTM/LW/RW/MONO/LTR/RTR), orientations (horizontal/vertical/wall/facedown/inverted), and the array codenames (BRAVO, FURY, OPTIMO2, LASSO, APOLLO). The vocabulary every Trueplay message uses. The named constants of the tuning system — states, actions, and result codes the calibration machinery speaks.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9362,7 +9362,7 @@ SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_
 
 **coverage** `strong`
 
-The eSDK track pipeline: track insertion, delivery accounting (delivery vs integration latency), position sync timer, underrun handling ('Underrun in download buffer'), redelivery on resume, DRM key/IV loading, and download offsets. Each Connect track flows through these stages.
+The eSDK track pipeline: track insertion, delivery accounting (delivery vs integration latency), position sync timer, underrun handling ('Underrun in download buffer'), redelivery on resume, DRM key/IV loading, and download offsets. Each Connect track flows through these stages. The per-track processing path from source to speaker — the stages a single track's audio passes through.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9382,7 +9382,7 @@ The eSDK track pipeline: track insertion, delivery accounting (delivery vs integ
 
 **coverage** `strong`
 
-The Trueplay room-tuning interface (eight methods: setup, apply spatial/spectral/satellite tuning, clear tunings, get tunings, get device config) plus its status codes and version errors. On this Playbar build the whole interface is present but inert: the service object and its method table are fully constructed, yet every single method just prints 'Unimplemented Method <name>' - the tuning features were compiled out because Playbar has no microphone, so it literally cannot tune itself even though the RPC shell exists. A second small helper class mixes four real methods with the same placeholder gets. The message schemas exist as descriptors and the transport class is pinned, so we know exactly how the service would have been wired on a mic-equipped device.
+The Trueplay room-tuning interface (eight methods: setup, apply spatial/spectral/satellite tuning, clear tunings, get tunings, get device config) plus its status codes and version errors. On this Playbar build the whole interface is present but inert: the service object and its method table are fully constructed, yet every single method just prints 'Unimplemented Method <name>' - the tuning features were compiled out because Playbar has no microphone, so it literally cannot tune itself even though the RPC shell exists. A second small helper class mixes four real methods with the same placeholder gets. The message schemas exist as descriptors and the transport class is pinned, so we know exactly how the service would have been wired on a mic-equipped device. The service-layer implementation of the calibration flow — session state and the measure-tune-apply sequence.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9404,7 +9404,7 @@ service sonos.coreaudio.trueplay.v1.TrueplayService; API v1alpha2; errors {Inval
 
 **coverage** `strong`
 
-Trueplay room tuning is really two surfaces. The SOAP side (documented actions) flips tuning on/off; the real work happens over five cloud-routed muse ops on each player: estimatorConfiguration (GET), adaptation (POST), getCalibrationStatus (GET), playSuccessTone (POST) and setSwapInputMute (POST), each reachable as v1/players/{id}/trueroom/<op> or household-qualified. Their wire schemas are decoded: adaptation posts a trueroomEstimatorConfig, calibrationStatus answers with trueroomAdaptationStatus, successTone with trueroomCalibrationStatus, and every op can return the standard globalError union (channelMapPair / wiredSubStatus / chirpRequest). Tuning tones ride a dedicated URI scheme (x-rincon-trueroom:, configmode trueroom-tone): the .ogg asset is fetched into a JFFS 'trueroom-tones' folder, played while the player saves its normal transport state, and the AVT is restored — or deliberately not restored — afterwards. What remains undecoded: the inner field names of trueroomEstimatedParams — the actual estimated distance/delay/EQ values.
+Trueplay room tuning is really two surfaces. The documented commands flip tuning on and off; the real work happens over five cloud-routed modern-API operations on each speaker plus coordination calls — measuring, computing, and applying the correction. This entry maps which piece of the tuning pipeline lives where.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9481,7 +9481,7 @@ Trueplay room tuning stack: muse routes for discovery/presence/config/status (+s
 
 **coverage** `strong`
 
-The TV audio processor: input-session tracking, the tv_processor_usage report fields, the tv-proc FSM, and the CEC/ARC interplay. Distinct from htaudio (the audio path) — this is the control/session side of TV integration.
+The TV audio processor: input-session tracking, the tv_processor_usage report fields, the tv-proc FSM, and the CEC/ARC interplay. Distinct from htaudio (the audio path) — this is the control/session side of TV integration. The home-theater input processing — format detection, sync, and the path TV audio takes once it arrives.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9502,7 +9502,7 @@ state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING
 
 **coverage** `?`
 
-The firmware upgrade path: manifest fetch (`/firmware/swgen/{gen}/latest/`), SWGen compat checks, download status handling, and the apply/reboot flow. Version gating uses MinCompatVersion from ZGS.
+The firmware upgrade path: manifest fetch (`/firmware/swgen/{gen}/latest/`), SWGen compat checks, download status handling, and the apply/reboot flow. Version gating uses MinCompatVersion from ZGS. The apply-the-update path itself — installing a downloaded image and rebooting into it.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9514,7 +9514,7 @@ The firmware upgrade path: manifest fetch (`/firmware/swgen/{gen}/latest/`), SWG
 
 **coverage** `?`
 
-GENA eventing: SUBSCRIBE/RENEW/UNSUBSCRIBE with logical SIDs — the push channel UPnP controllers use for LastChange updates.
+The classic the classic device-control protocol eventing machinery — the subscribe/renew/notify plumbing behind the older event channel documented on the events page. Each subscription gets its own channel and sequence numbers so listeners can tell when they've missed an update.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9532,7 +9532,7 @@ GENA eventing: SUBSCRIBE/RENEW/UNSUBSCRIBE with logical SIDs — the push channe
 
 **coverage** `?`
 
-The VirtualLineIn (VLI) service: a virtual audio source that can be injected into a group — AirPlay, Bluetooth, Spotify Connect, and external sources all materialize as VLI sessions with `x-sonos-vli:` URIs, delegation guards, and evented state.
+The virtual line-in subsystem — the machinery for audio pushed at the player by an external source: session management behind the VLI commands and service.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9544,7 +9544,7 @@ The VirtualLineIn (VLI) service: a virtual audio source that can be injected int
 
 **coverage** `?`
 
-The VLI umbrella: source manager, sink, playback tracker, and control interface. A VLI session is how a 'non-Sonos' audio source rides the group-audio fabric — it gets a session id, a transport URI, and member routing like a real line-in.
+The VLI umbrella: source manager, sink, playback tracker, and control interface. A VLI session is how a 'non-Sonos' audio source rides the group-audio fabric — it gets a session id, a transport URI, and member routing like a real line-in. The VLI core — shorthand for the virtual-line-in machinery: the session object at its center.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9562,7 +9562,7 @@ The VLI umbrella: source manager, sink, playback tracker, and control interface.
 
 **coverage** `strong`
 
-The VLI transport: the actual audio path a virtual line-in session uses once created — transport selection, buffering, and the seamless-handoff integration with chsnk.
+The VLI transport: the actual audio path a virtual line-in session uses once created — transport selection, buffering, and the seamless-handoff integration with chsnk. The audio-transport side of a virtual line-in session — how the pushed audio actually arrives and plays.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9582,7 +9582,7 @@ setTransportToVLIStreamURI {URI,autoplay,become gc} + 'VLI type \[%u\] incompati
 
 **coverage** `?`
 
-The Wi-Fi subsystem: wireless modes (SonosNet mesh vs infrastructure vs wired), netmode enum, association tracking, power-save, and the settings keys that control them. `wifiDisable`/`meshDisable` in player settings are its knobs.
+The Wi-Fi subsystem: wireless modes (SonosNet mesh vs infrastructure vs wired), netmode enum, association tracking, power-save, and the settings keys that control them. `wifiDisable`/`meshDisable` in player settings are its knobs. Wireless driver interface and management — association, scanning, and the wireless side of the network stack.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9596,7 +9596,7 @@ The Wi-Fi subsystem: wireless modes (SonosNet mesh vs infrastructure vs wired), 
 
 **coverage** `strong`
 
-The wireless-mode enum and transitions: which radio mode the device runs (disabled, client, SonosNet node...), with validation per model. `wirelessNetworkStatus` events reflect this state.
+The wireless-mode enum and transitions: which radio mode the device runs (disabled, client, SonosNet node...), with validation per model. `wirelessNetworkStatus` events reflect this state. The radio's operating configurations — joining your WiFi versus SonosNet (Sonos's own mesh) versus setup mode.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9616,7 +9616,7 @@ enum {SONOSNET_MODE,INVALID_MODE,ETHERNET_MODE,STATION_SATELLITE_MODE,SONOSNET_S
 
 **coverage** `strong`
 
-The `<MediaServers>` section of ZoneGroupState: external media-server proxies (`/msprox` URLs) plus the embedded SMAPI account table — each `<Service>` carries NumAccounts with per-account Nickname/SerialNum/Flags/Tier/Password fields. This is how account credentials reach every member without a separate lookup.
+The `<MediaServers>` section of ZoneGroupState: external media-server proxies (`/msprox` URLs) plus the embedded SMAPI account table — each `<Service>` carries NumAccounts with per-account Nickname/SerialNum/Flags/Tier/Password fields. This is how account credentials reach every member without a separate lookup. The media-servers section of the household map — the part describing library-serving members.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9636,7 +9636,7 @@ The `<MediaServers>` section of ZoneGroupState: external media-server proxies (`
 
 **coverage** `strong`
 
-The ZoneGroupState XML schema: `<ZoneGroups>` containing `<ZoneGroup>` per group with Coordinator and member `<ZonePlayer>` elements (UUID, ZoneName, Configuration, SoftwareVersion, SWGen, MinCompatVersion, HTSatChanMapSet and more), plus `<VanishedDevices>` and `<QuarantinedDevices>` with Reason/LastSeenUTC. This is the single document describing the entire household layout.
+The ZoneGroupState XML schema: `<ZoneGroups>` containing `<ZoneGroup>` per group with Coordinator and member `<ZonePlayer>` elements (UUID, ZoneName, Configuration, SoftwareVersion, SWGen, MinCompatVersion, HTSatChanMapSet and more), plus `<VanishedDevices>` and `<QuarantinedDevices>` with Reason/LastSeenUTC. This is the single document describing the entire household layout. The structure of the zone-group state document — the grammar of the household map.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -9657,7 +9657,7 @@ The ZoneGroupState XML schema: `<ZoneGroups>` containing `<ZoneGroup>` per group
 
 **coverage** `?`
 
-The ZoneGroupTopology service: ZoneGroupState XML (groups/coordinators/members/vanished/quarantined) plus evented updates — the household's shared map.
+The ZoneGroupTopology service: ZoneGroupState XML (groups/coordinators/members/vanished/quarantined) plus evented updates — the household's shared map. Maintains the household map — tracking players, rooms, and groups as they change.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 

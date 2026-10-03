@@ -1568,7 +1568,7 @@
 
 <h1 id="qplay-qplaycontrol"><code>QPlay</code> — <code>/QPlay/Control</code><a class="headerlink" href="#qplay-qplaycontrol" title="Permanent link">&para;</a></h1>
 <p><strong>visibility</strong> <code>advertised</code> · <strong>status</strong> <code>confirmed</code></p>
-<p>Tencent QPlay handshake - the single-action auth protocol used by QQ Music clients on Chinese-market zones. The device description advertises QPlay:2 capability via qq:X_QPlay_SoftwareCapability rather than a serviceType.</p>
+<p>This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers — the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present — QPlay is a feature that shipped only on units sold for the Chinese market, which is why most users have never seen it.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth — likely registered but dispatch entry unresolved in this build.</p>
@@ -1609,7 +1609,7 @@
 </table>
 <h3 id="qplayauth"><code>QPlayAuth</code><a class="headerlink" href="#qplayauth" title="Permanent link">&para;</a></h3>
 <p>visibility <code>advertised</code> · reachability <code>callable</code> · confidence <code>confirmed</code> · dispatch <code>strcmp-dispatched</code></p>
-<p>Auth exchange: client sends a Seed string; the player returns Code, MID and DID used to derive the session key. Faults if the seed doesn't decode.</p>
+<p>The QPlay login handshake — the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration; meaningless to ordinary apps.</p>
 <details>
 <summary><b>Technical details</b></summary>
 <p>QPlay authentication handshake (Tencent seed-&gt;code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -&gt; exec f_1073a5d0. Exec calls req-&gt;v[+0x1c] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req-&gt;v[+0x08] (parse-ok check) -&gt; emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl-&gt;v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req-&gt;member[+0x04]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req-&gt;v[+0x24] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v[+0x10] emitter; response committed via req-&gt;v[+0x0c]. The Seed-&gt;Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).</p>
