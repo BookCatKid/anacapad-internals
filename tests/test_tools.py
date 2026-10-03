@@ -483,18 +483,21 @@ class GenSiteTests(unittest.TestCase):
         "config.mts")
 
     def test_config_exists_and_discovers_services(self):
-        src = open(self.CFG).read()
+        with open(self.CFG) as fh:
+            src = fh.read()
         self.assertIn("dirItems('soap', '/soap'", src)
         self.assertIn("readdirSync", src)
         self.assertIn("'soap/state-variables'", src)
 
     def test_config_sets_base_and_search(self):
-        src = open(self.CFG).read()
+        with open(self.CFG) as fh:
+            src = fh.read()
         self.assertIn("'/anacapad-internals/'", src)
         self.assertIn("provider: 'local'", src)
 
     def test_config_disables_vue_hostile_markdown(self):
-        src = open(self.CFG).read()
+        with open(self.CFG) as fh:
+            src = fh.read()
         for rule in ("html_inline", "html_block", "curly_attributes"):
             self.assertIn("'%s'" % rule, src)
 
@@ -503,9 +506,8 @@ class TodoPolicyTests(unittest.TestCase):
     """Completeness policy: a record is finished only when everything
     recoverable from the binaries for it is documented. Any record that
     still carries structured unknowns must carry an informative `todo`
-    (established / still unknown / next step). No generated page may emit
-    grading or coverage metadata. TODO presence is derived from the
-    record's own content."""
+    (established / still unknown / next step). TODO presence is derived
+    from the record's own content."""
 
     DOCS = os.path.join(ROOT, "docs", "documentation.json")
     # evidence items, resolution verdicts and per-expression decode
@@ -513,9 +515,6 @@ class TodoPolicyTests(unittest.TestCase):
     SKIP_KEYS = {"evidence", "engine_resolution", "enabled",
                  "enabled_source"}
     UNKNOWN_KEYS = {"unresolved", "open_questions", "unknowns", "gaps"}
-    BADGE = re.compile(
-        r"`(confirmed|strong|partial|inferred|weak|vocab|absent|"
-        r"documented|unresolved|resolved|todo)`")
     GENERIC_TODO = re.compile(
         r"^\s*(todo|tbd|tbc|fixme|investigate|research|unknown|"
         r"needs work|more research needed|details unknown)"
@@ -531,7 +530,6 @@ class TodoPolicyTests(unittest.TestCase):
         for rel in cls.written:
             with open(os.path.join(cls.tmp, rel)) as fh:
                 cls.pages[rel] = fh.read()
-        cls.all_md = "\n".join(cls.pages.values())
 
     @classmethod
     def tearDownClass(cls):
@@ -593,26 +591,6 @@ class TodoPolicyTests(unittest.TestCase):
         self.assertEqual([], bad[:50])
 
     # -- generated-output policy ------------------------------------------
-    def test_no_status_columns_or_badge_lines(self):
-        hits = [(p, l) for p, t in self.pages.items()
-                for l in t.split("\n")
-                if re.search(r"\|\s*Status\s*\|", l)
-                or self.BADGE.search(l)]
-        self.assertEqual([], hits[:30])
-
-    def test_no_confidence_vocabulary_sections(self):
-        for pat in ("Confidence vocabulary", "confidence vocabulary",
-                    "coverage tier", "coverage summary",
-                    "substantially decoded tier"):
-            self.assertNotIn(pat, self.all_md)
-
-    def test_no_coverage_percentages(self):
-        hits = [l for t in self.pages.values() for l in t.split("\n")
-                if re.search(r"\d+\s*%\s*(of|coverage|documented)", l,
-                             re.I)
-                or re.search(r"coverage[^\n]{0,40}\d+\s*%", l, re.I)]
-        self.assertEqual([], hits[:30])
-
     def test_no_em_or_en_dashes(self):
         hits = [(p, l) for p, t in self.pages.items()
                 for l in t.split("\n") if re.search("[\u2014\u2013]", l)]

@@ -1875,7 +1875,8 @@ def render_artifacts(m):
     copies the real files into reference/public/files/ and fills in
     size, sha256 and kind."""
     man_path = os.path.join(ROOT, "docs", "artifacts.json")
-    man = json.load(open(man_path))
+    with open(man_path) as fh:
+        man = json.load(fh)
     cats = man.get("categories") or {}
     entries = man.get("files") or {}
     files = {}

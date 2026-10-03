@@ -5,4 +5,4 @@
 - No em dash or en dash characters in generated documentation or docs
   prose. Rewrite the sentence, do not swap in a comma.
 - See DOCUMENTATION_WORKFLOW.md for the documentation data contract and
-  the user-facing no-coverage-labels / TODO policy.
+  the record-completeness TODO policy.

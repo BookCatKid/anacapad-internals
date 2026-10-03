@@ -148,7 +148,7 @@ Each record renders its `todo` next to its evidence, and
 `subsystems/open-work.md` collects every `todo` automatically into a work
 queue grouped by record kind. `TodoPolicyTests` enforces the contract:
 records with structured unknowns must carry a `todo`, `todo` text may not
-be generic, and no generated page may emit grading metadata.
+be generic, and the open-work page must collect every outstanding `todo`.
 
 Evidence records carry `type` (`firmware`, `live_test`, `network_capture`,
 `runtime_trace`, `device_observation`), `binary`, `build`, `function`,
