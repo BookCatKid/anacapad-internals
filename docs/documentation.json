@@ -123902,10 +123902,10 @@
    ],
    "field": "networkTestId",
    "todo": [
-    "Established: the two verbs, the URL/state constraints, and the networkTestId field are documented.",
-    "Still unknown: the test result payload schema and the test internals (what is actually measured).",
-    "Next step: decode the results resource's emitted fields."
-   ]
+    "Established: connectivity test = timed connect probe with 5000 ms deadline reporting success/failure; disable test = {delay,duration} wifi off/on cycle; results file app/run/nettestresult.txt addressed by networkTestId.",
+    "Remaining: the full result-file field set (connect time, failure reason codes) - bounded read of the nettestresult.txt writer's emit calls."
+   ],
+   "note": " Test internals decoded (networktestmgr, f_106328e4): the connectivity test is a timed TCP connect probe - it stamps sonosClockGetTime/timevalToMillis, sets a 0x1388 (5000 ms) deadline via timevalAddMs, runs the connect loop, and reports 'Network test complete: %s.' with a 'success'/'failure' result string (intermediate logs: 'Network test started.', 'Opened connection.', 'Successfully connected.', 'Unable to establish connection.'). The disable-network test takes {delay, duration} ('museStartNetworkTests request received - delay: %d, duration: %d'): it waits the delay ('waiting %d sec before disabling wifi'), disables wifi for the duration ('disabling wifi for %d sec', aborting with 'Unable to disable networking, aborting.'), then re-enables ('enabling wifi', 'Unable to re-enable networking.'). Results persist to 'app/run/nettestresult.txt' and are retrieved per-run via the 'networkTestId' selector ('museGetNetworkTestResults request received - id: %s'). API: startNetworkTests / getNetworkTestResults / temporarilyDisableNetwork on the players.networkTest resource."
   },
   "settings_xml": {
    "element": "<Setting Name=\"...\" Value=\"...\"/>",
@@ -124010,27 +124010,27 @@
   "healthcheck_job": {
    "schedule": "\"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\"; skip conditions \"Not scheduling: %d %d %d %d %d %d\"",
    "todo": [
-    "Established: the schedule log and skip-condition pattern are catalogued.",
-    "Still unknown: what the job checks and what it does on failure (beyond the watchdog crash record).",
-    "Next step: trace the job body."
-   ]
+    "Established: job body = timer-pop -> f_103add58 liveness check -> reschedule loop; submit gated on the 'SubmitPermission' settings key; watchdog thread runs the same check with its own frequency validation.",
+    "Remaining: the exact interval source for the %u h/m/s reschedule (config key vs compile-time) - bounded by reading the reschedule call's arguments."
+   ],
+   "note": "healthcheck.cxx job body (f_103ae548, tag 'healthcheck'): on 'Healthcheck timer pop' the job invokes the shared liveness check f_103add58 (the 5-minute-cadence staleness probe also used by the healthcheck record), logs at level 7, and unconditionally reschedules ('Rescheduling next healthcheck', next interval printed as 'Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)'). Failure path: the job's submit path is permission-gated - a strcmp against the 'SubmitPermission' settings key decides whether a health report may be submitted, tying it to the diagnostics-submit consent model. The watchdog side mirrors the same cadence ('Performing health check' / 'Waiting for next health check' / 'In watchdog thread, performing health check' / 'Watchdog health check callback must be non-null' / 'Invalid watchdog health check frequency') - the watchdog thread calls into the same check on its own timer."
   },
   "timezone_table": {
    "schema": "<TimeZoneTable><TimeZoneRules><TimeZone>{StandardTime,DaylightTime,GMTBias,Month,DayOfWeek}</TimeZone></TimeZoneRules></TimeZoneTable> (tzZonePlayer)",
    "feed": "http://update-timezone.sonos.com/timezone/timezones.xml: versioned (\"Accepted new time zone table; version %u\"); fallback \"Invalid timezones file, loading default\"",
    "todo": [
-    "Established: the TimeZone XML schema, the update feed URL, versioning, and the fallback path are documented.",
-    "Still unknown: the field-application path - how a new table is applied to the running system.",
-    "Next step: trace the tzZonePlayer apply path."
-   ]
+    "Established: canonical path /opt/timezones/timezones.xml; apply = rewrite+fsync+re-parse with default fallback; consumers go through the TimeZone query layer and the systemTime API; AlarmClockTimeZoneChangedEvent on change.",
+    "Remaining: whether the re-read is triggered by an explicit invalidation call or lazily on next query - bounded by finding the cache-invalidation site in f_1015aaf8's tail."
+   ],
+   "note": " Apply path decoded (f_1015aaf8): the canonical table lives at /opt/timezones/timezones.xml (registered in the .init path table beside musicservices/musicservices.xml and localsettings.txt). Updating writes the new table to 'timezones.xml' under that directory (open64 O_WRONLY|O_CREAT|O_TRUNC), fsyncs and closes it (durable commit), then the table is re-parsed; a malformed table triggers 'Invalid timezones file, loading default' and a copy/open failure logs 'Unable to open (or copy) timezones file'. The running system consumes the table in-process through the TimeZone query layer (TimeZoneForDesiredTime, CurrentTimeZone, GetTimeZone, GetTimeZoneAndRule, GetTimeZoneRule, SetTimeZone - also reachable via the systemTime.getTimeZoneInfo/setTimeZoneInfo API and the AlarmClockTimeZoneChangedEvent), so application is a file rewrite plus in-process re-read rather than an OS tzset. A missing table yields 'no timezone data available (%d)' and 'noTimeZone' state."
   },
   "netif_events": {
    "description": "DeviceNetInterfaceStateEvent {health,rssi}: subscribe/unsubscribe polling per iface, \"fire event: health %s rssi %d\"",
    "todo": [
-    "Established: the DeviceNetInterfaceStateEvent {health,rssi} model and the per-iface subscribe/poll are documented.",
-    "Still unknown: the health value vocabulary and the poll cadence.",
-    "Next step: decode health values and poll timers."
-   ]
+    "Established: subscriber-gated polling (subscribe arms / unsubscribe disarms / timeout expires); poll target 'wirelessnetworkstatus'; event payload {health:str, rssi:int} + MAC; health is a muse-record string via getter f_10a081ec.",
+    "Remaining: the concrete health name vocabulary (table entries are runtime-resolved {ptr,len} records in the muse region) and the numeric poll interval - bounded by the subscription timer's period argument."
+   ],
+   "note": " Poll model decoded: DeviceNetInterfaceStateEvent is subscriber-gated polling, not free-running - 'subscribe: %s polling' arms a poller, 'unsubscribe: %s polling' disarms it, and 'timeout: %s polling' drops subscribers whose lease expires (f_10160a70 subscribe path, f_10161134 timeout path). The poll queries the 'wirelessnetworkstatus' muse resource (tag 'wirelessnetworkstatus'): f_101600f4 reads the health string and rssi from the returned record (health via getter f_10a081ec on the record object +0x200, rssi from +0x220) and fires 'fire event: health %s rssi %d'; the same pair is reported by 'status: health %s rssi %d'. The health value is a muse-supplied string (the lookup helper resolves it against a {str,len,idx} table), rssi is a signed dBm int; per-MAC formatting '%02x:%02x:%02x:%02x:%02x:%02x' identifies the interface."
   },
   "dsp_drc": {
    "params": [
@@ -124080,50 +124080,50 @@
   "ssh_authorized_keys": {
    "description": "CSRF form POST ssh_key textarea; buttons submit/remove_keys; \"unable to allocate valid port set for %s\" nearby",
    "todo": [
-    "Established: the CSRF form POST surface and the submit/remove buttons are documented.",
-    "Still unknown: the key-file write path and the 'unable to allocate valid port set' interaction are only partially decoded.",
-    "Next step: trace the authorized_keys write path."
-   ]
+    "Established: POST /ssh/authorized_keys {csrfToken,ssh_key,button,remove_keys}; append via fopen64 'a' + fwrite '%s\\n' under sys/debug/ssh/authorized_keys; remove deletes file; dropbearkey computes sha256-base64/md5-hex fingerprints; port-set string proven unrelated (srcbase).",
+    "Remaining: the exact filesystem root 'sys/debug' resolves to at runtime (jffs vs tmp) - bounded by f_1066fcac's prefix argument."
+   ],
+   "note": " Write path decoded (f_1066fda4): POST /ssh/authorized_keys (application/x-www-form-urlencoded) validates csrfToken, then parses fields 'ssh_key' (key text), 'button', 'remove_keys'. Add: f_1066fcac builds the authorized_keys path under the 'sys/debug' root ('/ssh/authorized_keys'), the handler fopen64s it in append mode, fwrites the submitted key as '%s\\n', fcloses, and confirms 'SSH auth key added to authorized keys file'. Remove: 'remove_keys' deletes the file entirely ('SSH authorized keys file removed'). Display: '/usr/bin/dropbearkey' (dropbear SSH server) computes the shown fingerprints in 'sha256-base64' and 'md5-hex' forms; the dropbear host key is '/jffs/persist/ssh/dropbear_ecdsa_host_key' ('ecdsa-sha2-nistp256'). NOTE on the old TODO: 'unable to allocate valid port set for %s' is unrelated - it belongs to srcbase.cxx's chanSrcStateSnapBase port allocation (f_1066f384), only adjacent in rodata to the SSH strings."
   },
   "watchdog_crash": {
    "description": "\"WATCHDOG: %s unresponsive! (UTC %s)\" -> /sbin/reboot (\"returned %d\"); /watchdogcrash + \"Performing health check\"/\"Waiting for next health check\" cycle",
    "todo": [
-    "Established: the watchdog -> reboot chain and the /watchdogcrash health-check cycle are documented.",
-    "Still unknown: the watchdog's monitored-process list and timeout values.",
-    "Next step: enumerate watched processes and timeouts."
-   ]
+    "Established: client-registration model (name+callback per client), single poll thread with build-time %u s frequency, helper socket + HTTP routes, /jffs log+dmesg artifacts with .old rotation, watchdogTimestamp last-kick key, RDM-config client observed.",
+    "Remaining: the concrete frequency constant and the full registered-client list (registrations happen in sonos-watchdog's own section reached via TOC slots - needs a TOC-relative xref pass)."
+   ],
+   "note": " Watchdog internals decoded (sonos-watchdog-1.0/sonos-watchdog/src/watchdog.cxx): it is a client-registration watchdog, not a process monitor - subsystems register named clients each supplying a health check callback ('Watchdog client must have a name', 'Watchdog health check callback must be non-null', 'Watchdog clients:', 'Unregistered watchdog client %s', 'Watchdog client %s not found'). One watchdog thread polls on a per-build frequency ('Watchdog constructed with %u seconds frequency', validated by 'Invalid watchdog health check frequency') running 'In watchdog thread, performing health check' then 'Waiting for next health check' ('watchdog.poll' thread). Lifecycle: 'Creating watchdog' / 'Watchdog already created' / 'Destroying watchdog' / 'End of watchdog destructor'; the zoneplayer eventloop cancels it on shutdown ('Eventloop shutdown. Cancelling watchdog.'). A helper socket endpoint exists ('watchdoghelper', 'Unable to start watchdog helper on port %hu', routes '/watchdog', '/watchdog-legacy', '/watchdogs', '/watchdogcrash'). Crash artifacts: '/jffs/watchdog.log', '/jffs/watchdog.dmesg' (+ '.old' rotations), also surfaced via '/watchdog.log'/'/watchdog.dmesg' handlers and the '%s[watchdog_crash]' tag; a 'watchdogTimestamp' key records the last kick. Observed client-side producers: 'watchdoghelper', 'RDM Config watchdog triggering...' (the RDM config watchdog client)."
   },
   "diag_instructions": {
    "description": "/ws/diag/diag_instructions.xml fetched with ?hhid=: ServerDiagInstructions/SubmitPermission; \"Contacting server for instructions: %s\"; I/O+HTTP error paths",
    "todo": [
-    "Established: the /ws/diag/diag_instructions.xml fetch with hhid, the ServerDiagInstructions/SubmitPermission flow, and error paths are documented.",
-    "Still unknown: the instruction set the server can return and how they're executed.",
-    "Next step: decode the instruction dispatch."
-   ]
+    "Established: GET /ws/diag/diag_instructions.xml?hhid= with length caps; parsed doc drives a 'yes' strncmp; yes + gate ok -> muse message dispatched (f_109bbcfc/0x109bbdb0/0x109bbd10).",
+    "Remaining: the XML element name carrying the yes flag and the destination muse op - bounded read of the f_10c3fc68 call's field argument and the message's target key."
+   ],
+   "note": " Fetch+execute decoded (f_103ae894, 'ServerDiagInstructions', tag healthcheck): the job GETs '/ws/diag/diag_instructions.xml?hhid=<household>' ('Contacting server for instructions: %s'), enforces a bounded body ('Indeterminate instruction file length', 'Incomplete instruction file', 'Instruction file too large'), and XML-parses it ('Failed to parse instruction file'). Execution: the parsed document is checked for a 'yes' directive (f_10c3fc68 field extract + strncmp 'yes'); on yes and a successful gate call (f_109e6790) the job builds a muse message (f_109bbcfc ctor + f_109bbdb0/f_109bbd10 field writes, arg from the parsed record +0xb0) and dispatches it - so the server's instruction set reduces to a boolean trigger plus an opaque parameter handed to a muse op, most plausibly the diagnostics-upload trigger the job name implies. Fetch errors log 'Unable to retrieve instruction file. I/O Error: 0x%x. HTTP Result: %d'."
   },
   "muse_upnp_bridge_actions": {
    "description": "bridge verbs callable via upnp* namespaces: CreateStereoPair,SeparateStereoPair,RemoveHTSatellite{SatRoomUUID},RoomDetection{Start,Stop}Chirping,ChirpIfPlayingSwappableAudio,EnterConfigMode,ExitConfigMode,GetButtonLockState,GetLEDState,GetButtonState,GetHouseholdID,GetZoneAttributes{Name,Icon,Configuration,TargetRoomName},GetZoneInfo{DisplaySoftwareVersion,MACAddress,CopyrightInfo,ExtraInfo,HTAudioIn},GetZoneGroupState,GetZoneGroupAttributes{ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup,MuseHouseholdId},ReportUnresponsiveDevice{DeviceUUID,DesiredAction,DiagnosticID,IncludeControllers},BeginSoftwareUpdate{ExtraOptions},CheckForUpdate{UpdateType,CachedOnly},RegisterMobileDevice{MobileDeviceName,MobileDeviceUDN,MobileIPAndPort},GetLineInLevel,GetAudioInputAttributes,SetLineInLevel{DesiredLeft,Right},SetAudioInputAttributes{DesiredName},StartTransmissionToGroup,SetSourceAreaIds{DesiredSourceAreaIds},ReportTrackBufferingResult{BootSeq,GroupUUIDJoined,VolumeAVTransportURI,CoordinatorID},Get/SetAutoplay{Volume,LinkedZones,RoomUUID,UseAutoplayVolume}",
    "todo": [
-    "Established: the upnp*-namespace bridge verb list callable through muse is catalogued.",
-    "Still unknown: each bridge verb's mapping to its UPnP action and any args translation.",
-    "Next step: map bridge verbs to their UPnP action equivalents."
-   ]
+    "Established: 15 bridged services x 4 verbs {call,subscribe,renew,unsubscribe}; call = passthrough SOAP invocation; subscribe/renew/unsubscribe = GENA lifecycle keyed by logicalSID.",
+    "Remaining: the call verb's request envelope (how action name + args are encoded in the muse request) - bounded read of the call handler's body parser."
+   ],
+   "note": " Verb semantics decoded from the route templates 'playerId,upnp<SERVICE>,<verb>': the bridge is generic per-service, not per-action - 15 services each expose exactly 4 verbs: call, subscribe, renew, unsubscribe. upnp<SERVICE>.call proxies an arbitrary SOAP action invocation against that service (action name + args ride in the request body); upnp<SERVICE>.subscribe performs a GENA SUBSCRIBE and returns the client's 'logicalSID'; upnp<SERVICE>.renew and .unsubscribe take that logicalSID and run the GENA renewal/UNSUBSCRIBE lifecycle (matching the logical-vs-physical SID model in gena_internals). Services bridged: AlarmClock, AudioIn, AVTransport, ConnectionManager, ContentDirectory, DeviceProperties, GroupManagement, GroupRenderingControl, HTControl, MusicServices, Queue, RenderingControl, SystemProperties, VirtualLineIn, ZoneGroupTopology."
   },
   "accepted_mimes": {
    "description": "audio/x-aiff,audio/flac,audio/mp4,audio/x-m4a,audio/mpeg,audio/mp3,audio/mpeg3,application/ogg,audio/ogg,audio/x-spotify-ogg,audio/x-wav,audio/vnd.wave,audio/wma,audio/x-ms-wma,audio/x-mpegurl,audio/mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/x-mpegURL,audio/L16,application/dash+xml,audio/x-sonos-recent",
    "todo": [
-    "Established: the accepted-MIME vocabulary for playback is catalogued.",
-    "Still unknown: the per-MIME decoder/backend assignment.",
-    "Next step: map MIME types to their stream backends."
-   ]
+    "Resolved: complete MIME->codec-id table at 0x10ecc5a8 (24 entries); backend ids 0-9,0xa-0xc,-2 mapped to decoder families; libFLAC linked for flac.",
+    "Remaining: the codec-id enum's symbolic names (which backend object each id instantiates) - bounded by the decoder-factory switch on the id."
+   ],
+   "mapping": "The full MIME->backend table lives at 0x10ecc5a8 as {mime_string_ptr, codec_id} pairs (codec id is the decoder/backend selector): audio/aiff=5, audio/x-aiff=5, audio/flac=6, audio/mp4=3, audio/x-m4a=3, audio/mp4=4 (second entry, the ADTS/AAC variant), audio/aac=4, audio/mpeg=0, audio/mp3=0, audio/mpeg3=0, application/ogg=7, audio/ogg=7, audio/x-spotify=0xc (12), audio/x-spotify-ogg=0xa (10), audio/wav=1, audio/x-wav=1, audio/vnd.wave=1, audio/wma=2, audio/x-ms-wma=2, audio/x-mpegurl=8, audio/mpegurl=9, application/x-mpegurl=9, application/vnd.apple.mpegurl=9, audio/L16=0xfffffffe (-2, the raw/L16 bypass), application/dash+xml=0xb (11). So backend ids: 0=mp3, 1=wav/pcm, 2=wma, 3=mp4-audio(m4a), 4=aac-adts, 5=aiff, 6=flac, 7=ogg(vorbis), 8=mpegurl-legacy, 9=hls-playlist(mpegurl family), 0xa=spotify-ogg, 0xb=dash, 0xc=spotify-track, -2=L16-raw. libFLAC is linked in (FLAC__STREAM_DECODER_* status literals present) for id 6."
   },
   "uri_service_map": {
    "description": "URI prefix -> service impl: x-rincon-mp3radio,x-sonosapi-iqradio,sonos.com-hls-{static,radio,aac,rtrecent},x-rincon-internal,x-rincon-buzzer,pandora.com-pndrradio-http,sonos.com-spotify,real.com-rhapsody-direct,sonos.com-http,real.com-rhapsody-http-1-0,sonos.com-mms,sirius.com-sirradio,last.fm-radio-http,pandora.com-pndrradioad,https:,file:,rhap:,radio-rhap:,radio-radea:,radio-npsdy:,pndrradio-http://,pndrradioad://,lfmtrack:,x-sonos-dock:,hls-static://",
    "todo": [
-    "Established: the URI-prefix -> service-impl map is catalogued.",
-    "Still unknown: the resolution precedence when prefixes collide and any dynamic registrations.",
-    "Next step: trace the prefix-match order."
-   ]
+    "Resolved: first-match ordered strncmp cascade; ':'/'://' terminators make overlapping stems disjoint; transport fallback http->mms->rtsp on open failure; no dynamic registration (all literals).",
+    "Remaining: the full ordered list across all classifier functions (each f_10147xxx thunk is one entry; concatenating them gives the total precedence)."
+   ],
+   "resolution": "Prefix matching is a static ordered cascade, not a longest-match table: the classifiers (f_1014f48c family and the per-prefix predicate thunks like f_101471f0) run strncmp against literal prefixes in fixed source order and the first hit wins. Specific stems are checked before generic ones by authorial order (e.g. 'x-rincon-playlist:' -> 'x-sonosapi-stream:' -> 'x-rincon-mp3radio://' -> sub-predicate families -> 'x-rincon-cpcontainer:' -> 'x-rincon-buzzer:' -> 'x-rincon-configmode:' in f_1014f48c). Collisions are resolved by including the ':'/'://' terminator in each literal, so 'x-sonos-http:' and 'x-sonosprog-http:' are distinct atoms rather than prefix/substring matches. Openers cascade too: 'Failed to open %s (%d) Trying MMS,RTSP next' shows http->mms->rtsp fallback when the first transport fails. No dynamic registration: every comparison is a literal in .rodata reached by generated predicate functions; nothing walks a writable registry."
   },
   "rincon_didl_fields": {
    "description": "urn:schemas-rinconnetworks-com:metadata-1-0/|{tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd}; r:{radioName,streamContent,audioInputIcon,radioShowMd}; upnp:originalTrackNumber; res duration=\" attr; classes object.item.audioItem.{podcast,show,audioBook.chapter}; loadFromExtraMd {pszTrackURI,pszExtraMd}; RTrackDIDLLiteMdExtractor; extractMimeTypeFromHttpContentType",
