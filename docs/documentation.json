@@ -119149,10 +119149,10 @@
    },
    "csrf_note": "All mutating form endpoints carry a csrfToken form field (setstring/removestring/mdnsannounce + the form posts) - the HTTP layer enforces CSRF on writes while reads are open.",
    "todo": [
-    "Established: the second-sweep endpoint inventory, decoded handlers (e.g. /setstring CSRF flow), and the CSRF-on-writes policy are documented.",
-    "Still unknown: the paths list is a rodata audit - handlers for most listed paths are not decoded, only the string evidence is catalogued.",
-    "Next step: decode the remaining listed endpoints' handlers the way /setstring was done."
-   ]
+    "Established: all 102 routes bound to handlers via the .data route table at 0x11090c00 (0x1c-stride {path,handler} records).",
+    "Remaining: per-handler bodies for the debug/support set - bounded per handler fn address now that each route is bound."
+   ],
+   "route_table": "Complete HTTP route table decoded: a .data table at 0x11090c00 of {path_ptr, handler_fn, 5x0} records at 0x1c stride, 102 routes total. It supersedes the string-audit list - every path now has a bound handler. Groups: 16 UPnP /Service/Control routes -> shared dispatcher 0x105e8274; 16 /Service/Event routes -> 0x105e8290; /notify -> 0x105e82c8; description docs /xml/device_description.xml + /xml/group_description.xml; replicated-settings /getrs (0x105e82a8) + /getsetting; /getaa album art; /indexrepl + /msprox media-server proxy; unlock family {/unlock, /unlock.htm, /mfgunlock->0x10675234, /devmode}; debug {/testenv, /customsd, /fcs, /tools, /ping, /traceroute, /mdnsannounce, /pcap, /advconfig, /testpoint, /diaglevel, /diagmsg, /logger, /jobs, /reboot, /reset, /info}; DSP {/save_eq_presets, /getDSP, /putDSP, /setPersistentEQ, /removeDSPDebugFiles, /dolby_config, /audio_tap, /snapshotspdiftap, /downloadspdiftap}; remote {/sonarctl, /ttm_helper, /rdmhhsetup, /rdmbuttonfwd, /mtmhhsetup}; auth/keys {/ssh/fingerprints}; cloud {/cloudqueuepoll, /websocket/api}; spotify {/spotifyzc, /spotdbg, /spotresetnts}; net {/sethostip, /nslookup, /forcegtkrekey}; string-store {/setstring, /removestring}; support {/support/directsubmit, /support/review, /support/aggregate, /support/asyncsubmit, /support/reportstatus, /support/networkmatrix}; top {/status, /dsp, /raw, /api, /musedebug, /device_account}."
   },
   "internal_result_namespace": {
    "name": "internal ERROR_*/R_* name vocabularies",
@@ -119596,10 +119596,39 @@
    "side_effect_dispatcher": "f_104b1e48 (strcmp chain on changed key name)",
    "note": "key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary: other SystemProperties keys may exist under different prefixes",
    "todo": [
-    "Established: the 28 standalone R_* key literals with live code consumers and the side-effect dispatcher f_104b1e48 are catalogued.",
-    "Still unknown: per-key semantics - what each key controls and its value grammar - are not decoded; R_AvailableSvcTypes has only a .data-table consumer.",
-    "Next step: decode the get/set semantics per key through SystemProperties impls."
-   ]
+    "Established: per-key semantics assigned for all 28 keys from consumer context; value grammars recovered where visible (ServiceBitrate {ulow,low,high}, AutoUpdatePolicy 'forced', bool toggles elsewhere).",
+    "Remaining: exact numeric encodings for the enum-valued keys (VolNormMode, AudioInEncodeType) - bounded by their writers' integer literals."
+   ],
+   "key_semantics": {
+    "R_AccountTransferMode": "account-transfer mode flag, read by the household/account ingest (f_1066a788) beside ThirdPartyCredentials",
+    "R_AirplayIncludeLinked": "bool - include linked devices in AirPlay target list; synced into playback config by f_103f9010 and watched by the settings dispatcher",
+    "R_AudioInEncodeType": "audio-in (line-in) encoding format selector",
+    "R_AutoUpdatePolicy": "auto-update policy string; values include 'forced'; read with R_CheckUpdateInterval in f_102a9764",
+    "R_AutoUpdateWindowStart": "update-window start time (HH:MM), feeds the <Window> grammar in auto_update_scheduler",
+    "R_AvailableSoftwareUpdate": "pending-update descriptor written by the update checker and read at report/status sites",
+    "R_AvailableSvcTrials": "list of available service trials, read by f_100c72e8 (trial service catalog)",
+    "R_AvailableSvcTypes": "available service-type vocabulary; consumed through a .data ptr table entry",
+    "R_BrowseByFolderSort": "folder-browse sort mode flag for ContentDirectory",
+    "R_CheckUpdateInterval": "update-check interval in seconds, drives 'Next check for update in %us'",
+    "R_ContentFiltering": "content-filtering policy flag in the account ingest set",
+    "R_CrossfadeDuration": "crossfade duration seconds, synced into trackqueue.rsq playback config",
+    "R_CustomerID": "customer id; ingest guards 'prevented customer ID from being overwritten'; factory-seeded 0",
+    "R_ForceReIndex": "bool trigger - forces a media index rescan when set",
+    "R_HideTuneIn": "bool - hide TuneIn service (factory-seeded true in the settings seed)",
+    "R_HouseholdLocationID": "household location id used by location-settings sync",
+    "R_MigratedTuneIn": "bool - TuneIn->SonosRadio migration completed flag",
+    "R_MuseDuckingPolicy": "ducking policy value for muse-initiated ducking (see ducking_engine)",
+    "R_PromoVersion": "promotional-content version tag",
+    "R_RadioLocation": "radio-region/location setting read beside selfTruePlay and allowMicrophone in f_10485d38",
+    "R_ServiceBitrate": "music-service bitrate tier; value names {ulow,low,high}, logged '%s changed from %d to %d'",
+    "R_ShowNSSServers": "bool - show NSS (NAS) servers in browse, read with R_ShowRhapUPnP in the visibility getter f_10121518",
+    "R_ShowRhapUPnP": "bool - show Rhapsody UPnP server in browse",
+    "R_SvcAccounts": "service-accounts blob consumed by f_102897d8",
+    "R_ThirdPartyCredentials": "third-party credential store flag in the account ingest set",
+    "R_TrialZPSerial": "trial-ZP serial; heavily read (5 sites) and watched by the dispatcher -> f_10121518 side-effect",
+    "R_UseSonosContentDirNS": "bool - use the sonos ContentDirectory namespace variant (see device_description_variants)",
+    "R_VolNormMode": "volume-normalization mode, synced into trackqueue.rsq playback config"
+   }
   },
   "smapi_capability_vocabulary": {
    "name": "SMAPI capability/auth/container vocabulary",
@@ -123547,10 +123576,11 @@
     "chirp_levenshtein"
    ],
    "todo": [
-    "Resolved: payload = message-bytes + separate parity-FEC payload; protocol constraints (alphabet_bits, min/max len, polyphony, fixed-length for CDMA); full encode chain bytes->symbols->CDMA/FSK->wavetable->PCM and decode chain PCM->FFT->CDMA-frame-score->levenshtein->bytes; both CDMA and FSK modulations in-binary.",
-    "Remaining: the concrete sonos-cdma profile parameters (the exact byte budget and symbol count this build uses) - the JSON protocol config would pin them; the profile string reports 'max %u bytes in %.2fs'."
+    "Established: concrete sonos-cdma profile - 44100Hz, 17-20kHz carriers {17k:0,18k:12,19k:24,20k:36}, timings {50ms,4ms,35ms}, levels {0.2..0.8,0.53}; protocol built from JSON-configurable struct.",
+    "Remaining: exact semantic names of each float field (symbol duration vs gap vs fade) - bounded by the field-access order in cdma_encoder.c's init."
    ],
-   "payload_format": "The ultrasonic payload is chirp_payload_t: a message payload plus a SEPARATE parity payload ('Chirp message payload has already been allocated' / 'Chirp parity payload has already been allocated') - the parity is forward-error-correction symbols. Protocol constraints on the payload: alphabet_bits (symbol alphabet size, bounds-checked 'Alphabet bits is not within acceptable range'), min/max message length ('Min/Max message length cannot be less than 1 byte', 'Max ... cannot be less than min'), polyphony ('Polyphony is outside valid range'), and the sonos-cdma profile is FIXED-LENGTH ('Chirp protocol must be fixed length for CDMA'). Encode chain: raw bytes -> chirp_payload_t (payload.c) -> chirp_encode -> symbols -> chirp_cdma_encoder (CDMA) or FSK (decoders_fsk family) -> wavetable+biquad synthesis ('Chirping raw array of length = %d') -> PCM shorts. Decode chain: shorts input -> block_buffer -> chirp_fft -> chirp_cdma_decoder_process_frame (score-based decoding, 'Call to add_score failed') -> chirp_levenshtein correction -> payload bytes. Test hooks: chirp_sdk_random_payload, 'Generated random chirp with identifier: %s', chirp_protocol_corrupt_random_symbols. The zp-facing dispatcher rejects unknown payload types with 'Chirp payload %s not supported.'"
+   "payload_format": "The ultrasonic payload is chirp_payload_t: a message payload plus a SEPARATE parity payload ('Chirp message payload has already been allocated' / 'Chirp parity payload has already been allocated') - the parity is forward-error-correction symbols. Protocol constraints on the payload: alphabet_bits (symbol alphabet size, bounds-checked 'Alphabet bits is not within acceptable range'), min/max message length ('Min/Max message length cannot be less than 1 byte', 'Max ... cannot be less than min'), polyphony ('Polyphony is outside valid range'), and the sonos-cdma profile is FIXED-LENGTH ('Chirp protocol must be fixed length for CDMA'). Encode chain: raw bytes -> chirp_payload_t (payload.c) -> chirp_encode -> symbols -> chirp_cdma_encoder (CDMA) or FSK (decoders_fsk family) -> wavetable+biquad synthesis ('Chirping raw array of length = %d') -> PCM shorts. Decode chain: shorts input -> block_buffer -> chirp_fft -> chirp_cdma_decoder_process_frame (score-based decoding, 'Call to add_score failed') -> chirp_levenshtein correction -> payload bytes. Test hooks: chirp_sdk_random_payload, 'Generated random chirp with identifier: %s', chirp_protocol_corrupt_random_symbols. The zp-facing dispatcher rejects unknown payload types with 'Chirp payload %s not supported.'",
+   "sonos_cdma_profile": "The concrete 'sonos-cdma' protocol profile is a compile-time struct in .data at 0x11094630 (not runtime JSON): sample_rate 44100 (0xac44), timing floats {0.05, 0.004, 0.035}s, level ramps {0.2, 0.4, 0.6, 0.8, 0.53}, and an ultrasonic carrier plan {17000->0, 18000->12, 19000->24, 20000->36} = four 1kHz-spaced carriers in the 17-20kHz band with cumulative symbol-index offsets 0/12/24/36 into a 48-symbol codebook (codebook.c). Companion fields: 0x80000 flag word, '1' format tag, internal table ptrs 0x110bb7xx. The protocol constraints validated at new_chirp_protocol: alphabet_bits range, min/max message length >=1 byte, polyphony range - errors are literal 'chirp_protocol_t: <field> is not within acceptable range'. The profile is instantiated via new_chirp_protocol_from_json_value so the same struct shape can be reconfigured by JSON, but this build's compiled-in default is the sonos-cdma values above."
   },
   "tsclient": {
    "name": "tsclient: MPEG transport-stream demuxer client",
