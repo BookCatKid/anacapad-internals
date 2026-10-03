@@ -123586,10 +123586,10 @@
    ],
    "lifecycle": "handleNewOrGetLink, setupComplete",
    "todo": [
-    "Established: the RFC6455 handshake, frame opcodes, ping/pong/close handling, served files, and link lifecycle are documented.",
-    "Still unknown: per-subprotocol dispatch - how an upgraded connection binds to muse/lechmere - is not traced.",
-    "Next step: trace the post-upgrade subprotocol selection."
-   ]
+    "Resolved: single subprotocol 'lechmere.%u' (versioned) -> all upgraded sockets feed the lechmere/WSS topic layer; RFC6455 handshake fully decoded (key+GUID->sha1->base64); keepalive param; frame-type event dispatch (data/ping/pong/close/cont); outbound client template.",
+    "Remaining: the lechmere.%u version constant offered by this build - bounded read at f_105d4310."
+   ],
+   "subprotocol_dispatch": "Subprotocol negotiation is a single offered token: the server emits 'Sec-WebSocket-Protocol: lechmere.%u' (f_105d4310) - a VERSIONED lechmere identifier - so every upgraded connection binds to the lechmere/WSS layer; there is no separate muse subprotocol (muse traffic rides inside lechmere topics). Upgrade handler f_10689310 (websocketserver.cxx): logs 'Start WS protocol upgrade', requires Upgrade: websocket, parses 'sec-websocket-key' + 'sec-websocket-version' + 'Protocol upgrade keepalive: %u', builds RFC6455 accept = base64(sha1(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')) via sonosBase64Enc, replies 'Sec-WebSocket-Accept'. Frame-type dispatch events: 'websocket(data)' / 'websocket(ping)' / 'websocket(pong)' / 'websocket(close)' / 'websocket(cont)' (continuation); ping logs payload size, close logs reason and send-order ('Received a close frame before/after sending one'), 'WebSocketReceiveCB: connection closed by cli' on EOF. 'sonos.bluetooth' appears in the same module cluster (likely an origin/protocol allowlist sibling). Client-side template 'GET %s HTTP/1.1 Upgrade: websocket' exists for outbound connections."
   },
   "idle_shutdown_reasons": {
    "enum": [
@@ -123605,10 +123605,10 @@
    ],
    "fsm": "dpUpdateIdleState: \"idle state is %sidle, changing to %sidle\"; \"Reporting device %sidle\"; dpimpl/RDPZoneImpl/dpZoneImpl @0x10ef3308+",
    "todo": [
-    "Established: the shutdown-reason enum and the idle-state reporting (dpimpl family) are catalogued.",
-    "Still unknown: which code paths produce each reason and the idle-state machine's transitions are unmapped.",
-    "Next step: trace dpUpdateIdleState's producers per reason."
-   ]
+    "Resolved: producers mapped where directly referenced - StreamEnd->UserShutdown, SeekToPosition->CriticalShutdown, swgen/hhSwgenState path->BluetoothConnection+UnknownShutdown; table is index-driven; idle FSM = dpUpdateIdleState with IsIdle/MoreInfo fields.",
+    "Remaining: the numeric index per enum slot (which index = which name) - bounded read of the indexed table walk."
+   ],
+   "producers": "The name table (0x10ef3368-0x10ef33e0, dp_impl.cxx cluster) is index-driven; only three names have direct references, which map producers: NTSCallbackStreamEnd (f_10218e44) carries 'UserShutdown' - a normal end-of-stream stop reports as user shutdown; NTSCallbackStreamSeekToPosition (f_102190c8) carries 'CriticalShutdown' - a seek-driven stream teardown reports as critical shutdown; f_10695310 (the hhSwgenState writer) references 'BluetoothConnection' and 'UnknownShutdown' while constructing the swgen state blob - the swgen/settings path supplies BT-connection and default reasons. The other names are table slots consumed by index: APICall/APIShutdown for API-driven transitions, PartnerDisappeared for a left-group drop, Recovery for the recovery path, UserSuspend for the power path. The idle FSM itself is dpUpdateIdleState (dp_impl.cxx): 'idle state is %sidle, changing to %sidle' transitions, 'Reporting device %sidle' to the household state, with 'IsIdle' and 'MoreInfo' state-variable fields. dpimpl/RDPZoneImpl/dpZoneImpl are the implementing classes."
   },
   "diagnostics_submit": {
    "flow": "\"Diag submission completed, submissionId: %s, status: %d, diagnosticId: %d\"; \"Failed to add result with submissionId: %s\"",
