@@ -117932,21 +117932,21 @@
    "notes": "RZonePlayer owns m_spMediaPlayerMgr (~RZonePlayer_m_spMediaPlayerMgr dtor); ',mediaplayermanager' is a log-domain tag"
   },
   "misc_components": {
-   "httpcache_manager": "httpcaches.json + InMemoryHttpCacheMutex: HTTP response cache (SMAPI content)",
-   "boot_sequence_mgr": "boot-sequence ordering",
-   "ddthrd": "discovery-daemon thread",
-   "chlog": "changelog",
-   "ampManager": "RAmpManager: amplifier control (ZonePlayer:Amp)",
-   "accountsmgr": "SMAPI account registry",
+   "httpcache_manager": "httpcache_manager.cxx: SMAPI HTTP cache - persisted as httpcaches.json ('parse error %s'), 'cacheHashes' field, per-cache local/remote hash comparison ('hashLocal = %s','hashRemote = %s') driving 'Invalidated local cache' / 'Invalidating remote caches' / 'Cache not found. Cannot invalidate.' / 'Force-cleared cache'. Same module does mount health checks: '/jffs' + '/proc/mounts' + 'failed statvfs %d %s' with '/tmp/brokendevice' sentinel and 'flagging broken device: %04X'",
+   "boot_sequence_mgr": "boot_sequence_mgr.cxx: sequences bring-up on wifi-connection events ('updating boot sequence due to wifi connection event'); manages keys {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey}",
+   "ddthrd": "ddthrd.cxx: RDevDiscThread 'devdiscthr' - the SSDP device-discovery work thread; discards unknown types ('discarding %s type %d'), handles 'zp byebye', 'ddt hint:%d', counts losses '%s - %u SSDP messages lost', per-type work items 'Finished working on type %d'; rx logs MSEARCH/ALIVE/BYEBYE/CDALIVE/CDBYEBYE with peer and size fields",
+   "chlog": "chlog.cxx: RChannelLogger - logs dwell time '%d seconds on account %d/%u' and 'Recorded sync error on account %u/%u'; source vocabulary {Compressed/Uncompressed Line-In, Compressed/Uncompressed Dock, Coordinator Local Library, Coordinator Music Services, Local Line-In, Local Virtual Line-In, Group Member}",
+   "ampManager": "RAmpManager (ampManager.cxx): amp power sequencing - ampPowerOnLocked/ampPowerOffLocked with command vocabulary {power,mute,hipower}; rail transitions 'failed to transition to high/low power rail'; scheduled power-down 'scheduling off in %d sec'; verbose state 'roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d' (rail-off, cancel-off, off-x, nonzero-play, pre, unmuted flags)",
+   "accountsmgr": "accountsmgr.cxx: SMAPI account registry - record validation ('missing serial number'/'missing account ID'/'missing household vector clock'), guest-account migration ('migrateGuestAccount failing on non-guest', 'Bad guest migration: UDN/UserIDHash', 'Migrated %s replication account', 'Migrated tombstoned %s replication account', 'exceeded max deleted accounts' tombstone cap), per-account authToken via getDeviceAuthToken, manifest fetch ('Failed to download manifest file (%s) for service %u'), 'End direct control context UUID: %s', 'Invalid replication operation' guard, zpserviceaccounts.cxx peer module",
    "ai_impl_base/ai_spotify": "AudioIn impls incl. Spotify audio-in",
    "timers_impl/storage": "timers API impl + persistence (timers cloud resource)",
-   "areas": "room-area model (areas cloud resource)",
+   "areas": "areas.cxx 'areasMgr': room-area model persisted to areas.json; fixed 'Everywhere' area UUID 7055133f-81e7-45e6-ba70-8803966c7185; load validation 'Areas successfully loaded from file' vs 'Loaded areas schema version (%d) differs from local version (%d)' vs 'Parsing areas from saved file failed'; invariants 'Area IDs must be distinct', 'Maximum area limit (%d) reached'",
    "zones_mgr/zones_storage": "zone membership mgmt+persistence",
    "todo": [
-    "Established: the component inventory (httpcache, boot-sequence mgr, ddthrd, ampManager, accountsmgr, ai impls, timers, areas, zones_mgr) is catalogued.",
-    "Still unknown: this is an inventory record - most named components have no decoded internals beyond their identification strings.",
-    "Next step: promote each component to its own investigated record as internals are decoded."
-   ]
+    "Established: all inventory components now carry decoded internals - boot_sequence_mgr keys+trigger, ddthrd SSDP work loop, chlog source vocabulary+dwell logging, areas file+Everywhere UUID+invariants, zones_mgr merge/consistency/HT rules; timers_impl and ai_impls covered by timedjobs/audioin_impl records.",
+    "Remaining: none at inventory granularity; per-component depths are bounded by each dedicated record."
+   ],
+   "zones_mgr": "zones_mgr.cxx: zone-membership store; 'cms update from sec: %s = %s + %s' secondary-driven merges; 'Legacy zone exists on %s'; 'more zones active than RMuseActiveZoneList can hold' cap; 'zoneDef %s inconsistent with cms %s'; player churn 'adding/removing player %s'; persists '<File name=\"activeZones\">'; op failures sendUpdateZoneMemberSettingsCmd/updateActiveZone/joinZone; 'primary change not supported for HT'"
   },
   "audio_pipeline": {
    "graph": "source: as-src -> as-srcin -> as-srcin-{chsnk,chsnk0,ext-voice} -> as-srcout -> as-srcout-{chsnk,ext-voice}; dsp: as-dspin -> as-dspin-{tv,ext-voice,ext-chirp} -> as-dspout -> as-dspout-{tv,ext-voice,ext-chirp}: TV/voice/chirp all tap the DSP chain",
@@ -119858,10 +119858,10 @@
     }
    ],
    "todo": [
-    "Established: the extended DIDL class vocabulary beyond the core audioItem set is catalogued.",
-    "Still unknown: which browse actions emit which extended classes and their container relationships are unmapped.",
-    "Next step: trace DIDL emission sites per class."
-   ]
+    "Established: per-class emission sites mapped - f_1071cd28 = central class resolver, f_1041dc78 item writer, f_10382c0c container/browse writer, f_10407f90 line-in emitter, plus per-family writers for radio/spoken-word/favorites/tracklist/searchTypes; live+composer classes are dead.",
+    "Remaining: the container->item parentage rules (which containers hold which items) - bounded by each writer's parent-class arg."
+   ],
+   "emission_map": "Emission sites per class decoded by computed-address xref: f_1071cd28 is the central class-name resolver (consumes nearly every object.* literal - the DIDL class id->name map). Item writer f_1041dc78 emits {musicTrack, podcast, show, audioBook.chapter, object.item}. Container/browse writer f_10382c0c emits {album.musicAlbum(.compilation), playlistContainer, audioBroadcast, musicTrack, audioItem, radioShow}. f_102a21d8 builds playlist containers {playlistContainer, playlistContainer.sameArtist, albumlist}; f_102a1130 the album family. f_10407f90 is the line-in emitter {linein, linein.homeTheater, linein.airplay, linein.bluetooth} - one class per input type. Radio emitters: f_1037fb90 {audioBroadcast, radioShow}, f_104202f4 {playlistContainer, musicTrack, item, musicTrack.recentShow}. f_10523398 handles {podcast, audioBook.chapter} (spoken-word items). f_103833d8/f_1070e2d0 emit object.item.sonos-favorite. Tracklist container writers: f_107687d8, f_1078103c, f_10781078. f_1071ef6c emits object.container.sonos-searchTypes. object.item.audioBroadcast.live and object.container.person.composer have no code refs - defined in the vocabulary but dead in this build."
   },
   "protocol_info_full": {
    "name": "Complete GetProtocolInfo Source CSV",
@@ -120055,10 +120055,20 @@
     }
    ],
    "todo": [
-    "Established: the uncatalogued element vocabularies are listed by file (alarmclock.xml, areas.json, cloudconfig.json, householdsettings.json, zones.json, zpMetricsConfigV2.xml, Scheduler/LedPattern/RadioStationLog/PerformanceCounter clusters).",
-    "Still unknown: all of them - this record is explicitly a catalog of schemas never decomposed.",
-    "Next step: decompose each file's schema cluster into per-element records."
-   ]
+    "Established: every catalogued file schema decomposed - cloudconfig 3-tier precedence, householdsettings fields + the status-page alert, zones defs+lifecycle, alarmclock fields, zpMetricsConfig Incoming wrapper, LedPattern/LedPatternInfo entry grammar, RadioStationLog wrapper, PerformanceCounterTables root, household HHID state vocabulary.",
+    "Remaining: per-element cardinality inside each schema (which fields repeat) - bounded by the parsers' loops."
+   ],
+   "decomposed": {
+    "cloudconfig.json": "FeatureConfigManager/RFeatureConfigManager feature-flag store: fields {swVersion,hwVersion}; three-tier load precedence: cloudconfig_override.json ('Using override config') > cloud-cached ('Using %s cloud-cached config','Error parsing cached config','stale' marker) > cloud-persisted ('Using cloud-persisted config'); fetched with 'cache-control: no-cache'; 'Error parsing feature config.'",
+    "householdsettings.json": "hhsettingsfile: fields {fileVersion,fileSchemaVersion,householdSettings,userMetricsTracking,restricted-admin,'frozen:1','auto:%u'}; guards 'Attempt to set swgen to an invalid value','Input string too long. Returning VALUE_INVALID'; NOTE literal: 'ALERT! Display of these settings on status page (/householdsettings.json) needs to be addressed' - the file doubles as a status page",
+    "zones.json": "zones_storage/ZonesStorage: {schemaVersion,counter} header + zone defs {name,id,channelMap}; lifecycle 'loading saved zones during setup succeeded'/'saved zones successfully migrated during setup'/'creating new zones config file'; 'created new zone: name/id/channelMap'; 'reached maximum zone definitions'; remote writes 'remote settings change: gainTrimDB [%.2f] on %s'",
+    "alarmclock.xml": "sysclock/alarm store: {TimeSource,DailyIndexRefresh,NTPTimeOffset (timeDiff + pbLargeAdjustmentMade),AutoAdjustDst,StartTime,Recurrence} + the alarm element set from alarm_persist_writer; companion sysclock_state file ('Read \"%s\" from sysclock_state file','sysclock_state file is corrupt')",
+    "zpMetricsConfigV2.xml": "conf/zpMetricsConfigV2.xml + zpMetricsConfigV2.meta: {metricsConfig,failReason} wrapped in <Incoming>; drives 'Begin discovery mode %d'",
+    "LedPattern": "<LedPatternInfo> containing <LedPatternEntry time=\"%s\" led_ids=\"%08x\" repeats=\"%u\" steps=\"%u\"> entries; led_set_resumeDefaultLedPattern(Flash) restores saved pattern when bFlashMode",
+    "RadioStationLog": "'<RadioStationLog>'-wrapped station-play log (radiolog.cxx)",
+    "PerformanceCounter": "<PerformanceCounterTables> root for the perfcounter XML dump",
+    "household_state_machine": "nearby household-HHID states {first household, No valid HHID, wrong household - mismatched HHID in localsetting and netsetting, lost household - no HHID in netsetting, newHHDebug,'household ID changed to %s'} + tunnel flags {x-sonos-upnp-tunnel, tunnel, insecureUpnpAllowed}"
+   }
   },
   "internal_error_families": {
    "name": "non-UPnP fault-code families",
