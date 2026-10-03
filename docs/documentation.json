@@ -123573,10 +123573,10 @@
    "snapshot": "State Snapshot (vliType %u): origin %d.%06d, seek time %d.%06d, byte offset %zu, packet num %u, frame offset %u, account %d, playing %d, bitrate %u: the seamless-handoff state payload; \"snapshot conversion with invalid type %du\"",
    "source_mgr": "SelectSource/deactivate/requestStateSS/setStateSSGoal/txSettings/int_startTransmission/int_stopTransmission/int_updateCurrentVLISource/transmitOffBox/startLocalPlaybackAsGroupMember/stopLocalPlaybackAsGroupMember; configureLocalTransport(VLI|null) on groupAdded/Removed; ai_vli name; cookie validation \"validate cookie failed for [%d],[%d]\"",
    "todo": [
-    "Established: the VLI URI format, endpoint/service-id types, group FSM rules, ops, snapshot format, and source-manager calls are proven.",
-    "Still unknown: the group-FSM transition details (semi-sleep member handling beyond the skip log) and the muse key semantics (position/vliCommand payloads) are only partially decoded.",
-    "Next step: decode the group-info processing branch and the two muse keys' payload schemas."
-   ]
+    "Established: vliCommand muse payload = {apiKey,operation,position,volume} under namespace 'vli'; endpoint types airplay/bluetooth/tvproxy; capability-gated membership; group-info processing incl. suspended-room (semi-sleep) detection; GC delegation and membership invariants.",
+    "Remaining: the exact suspended-room action taken after 'Found Suspended Rooms' (skip vs wake) inside f_1068712c's branch."
+   ],
+   "note": " Muse key semantics decoded (f_106881c4): 'vliCommand' is a muse message under the 'vli' namespace carrying {apiKey, operation, position, volume} - the producer builds a message object, sets apiKey + operation strings, reads 'position' and 'volume' members, and dispatches via the muse send vfunc with keys 'vli'/'vliCommand'. 'position' is a plain member read alongside. Endpoint types are 'airplay:', 'bluetooth:', 'tvproxy:' (plus 'Unknown VLI' fallback); capability strings 'com.sonos.airplay'/'spotify.connect.adapter'/'com.sonos.bluetooth' gate which ZPs may join ('Processing ZP(%s) - %s, %s %s Capable', 'Linking non-%s capable ZP %s', 'Removing non-%s capable ZP(%s) from group', 'Non-%s capable ZP(%s) is GC, forcing new GC'). Group-FSM group-info processing (f_1068712c): 'Starting to Process %s Group Info' / 'Found Suspended Rooms While Processing %s Group Info' (semi-sleep members appear as suspended rooms here) / 'Finished Processing %s Group Info in %llu us'. Membership rules: VLI group must cover the whole Sonos group ('VLI Group does not contain all players in the Sonos group'), a group without a GC goes standalone ('No GC in VLI Group, %s player (%s) will become standalone'), a departing GC delegates ('Local GC is Becoming Standalone, delegating to %s'), member cap enforced ('Ignoring player %s (too many members)'), cross-group link refused ('Not linking as zp is grouped with another zp with different VLI group ID'), and stale members are dropped ('Removing %s capable ZP(%s), not found in group'). URI format 'x-sonos-vli:%s:%u,%s' (endpoint-type : id , member list); VLI group ids may not contain commas ('error: VLIGroupIDs cannot contain commas (%s)')."
   },
   "websocket_server": {
    "name": "websocketserver.cxx: muse WSS transport",
@@ -123681,10 +123681,10 @@
     "vli_ot (other)"
    ],
    "todo": [
-    "Established: the duck policies, R_MuseDuckingPolicy key, the 64-bit flag-mask queueing, targets, ops, and the decision-chain gates are documented.",
-    "Still unknown: the flag-mask bit assignment (which bits mean which duck reason) and the GC heartbeat interaction details are only partially decoded.",
-    "Next step: decode the 64-bit mask bit assignments."
-   ]
+    "Established: forward targets {all secondaries, group coordinator, bonded peer} via FV:GC/FV:GC-HB; runDuckingHeartbeat + expireRemoteDuckingFlags renewal/reap pair; DUCKING_LOCAL_MUSE timeout watchdog; duckOrUnduck/clearMuseFlag ops; per-source bit index in the 64-bit mask.",
+    "Remaining: the static bit-index allocation (which numeric bit each source class owns) - the index is assigned at queue time; the source->index map lives in the duck_tracker records."
+   ],
+   "note": " Additional machinery decoded (duck.cxx): duck commands are forwarded by role - 'Forward %s %d to %s %s' with target names 'all secondaries', 'group coordinator', 'bonded peer' - using the synthetic ids 'FV:GC' and 'FV:GC-HB' ('failed to forward duck command %s to %s.'). The GC heartbeat is 'runDuckingHeartbeat' paired with 'expireRemoteDuckingFlags': remote ducking flags carry an expiry and are reaped when the heartbeat source stops renewing; locally, 'WARNING: DUCKING_LOCAL_MUSE cleared by timeout' is a watchdog clearing the DUCKING_LOCAL_MUSE bit when its owner fails to refresh. Ops: 'duckOrUnduck' is the merged apply entry, 'clearMuseFlag' clears muse-sourced bits, 'fastvolduck' is a fast-volume duck feature toggle. Bit sources arrive per-zone ('zone %d received ducking bit 0x%016llx - %d') and queue per target ('Queueing ducking bit from %s 0x%016llx - %d', bounded: 'too many pending ducking bits on %s'); the resolved set is formatted by 'process ducking flags 0x%016llx -> %s' and only re-emitted on change ('Ducking flags unchanged. No update to send.'). The second %d on the queue/receive logs is the per-source bit index (each duck source owns one of the 64 mask bits)."
   },
   "stream_error_counters": {
    "streams": "stream_{music,tts,chirp,tv}_{init_sync,lack_data_no_drain,read_err_full,read_err_part_data}",
@@ -123700,11 +123700,10 @@
    "other": [
     "xfade_err"
    ],
-   "note": "perfcounter names from duck.cxx block 0x10ebec14-0x10ebef98: these are the audio pipeline error taxonomy",
+   "note": "perfcounter names from duck.cxx block 0x10ebec14-0x10ebef98: these are the audio pipeline error taxonomy Registry and export decoded: the counter names live in one flat pointer array at 0x10ebe2a0 (positions are the counter ids used at increment sites): [0-3] stream_music_{init_sync,lack_data_no_drain,read_err_full,read_err_part_data}, [4-7] stream_tts_* same four, [8-11] stream_chirp_* same four, [12-15] stream_tv_* same four, [16-17] stream_ht_{silence,plc}_played, [18-25] tv_decoder_error_{dd,ddp,mat,pcm,dts1,dts2,dts3} + tv_decoder_dsp_error_dap, [26] tv_asrc_error, [27] tv_dialog_extractor_error, [28-29] tv_input_{error,overflow}, [30-35] tvp_stream_{uflw,err,sats_uflw,sats_err,dmix_uflw,dmix_err}, [36] xfade_err, then non-audio entries {testpoint, uninit, 'set pos aud', paud, 'pt in fut - inaud'}. So the pipeline-stage mapping is: each stream family (music/tts/chirp/tv) increments init_sync at decoder init sync failure, lack_data_no_drain on underrun-with-no-drain, read_err_full/read_err_part_data on read errors; the tv decoder family counts per-codec decode errors; tvp_stream_* counts underflow/stream errors per TV-path sub-stream (base, satellites, dmix). Export: counters register with perfCountMgr ('perf-counters', 'perfCountMgr') and are published as XML - '<PerformanceCounterTables>' wrapping '<CounterTable><![CDATA[ ... ]]></CounterTable>'.",
    "todo": [
-    "Established: the audio-pipeline error taxonomy (per-stream init/sync/drain/read counters, tv decoder family, tvp/uflw counters, xfade_err) is catalogued.",
-    "Still unknown: which pipeline stages increment which counter, and the counter export path to telemetry.",
-    "Next step: trace perfcounter increments to their pipeline sites."
+    "Established: 0x10ebe2a0 name array = index-keyed registry; per-stream-family 4-counter pattern (init_sync/lack_data_no_drain/read_err_full/read_err_part_data) for music/tts/chirp/tv; ht silence+plc; tv decoder per-codec family; tvp base/sats/dmix underflow+error pairs; xfade_err; export via perfCountMgr -> PerformanceCounterTables XML.",
+    "Remaining: exact index-vs-site binding for a few outlier counters (testpoint/uninit/paud) and the CounterTable transport (status page vs telemetry upload)."
    ]
   },
   "smb_shares": {
@@ -123887,10 +123886,10 @@
    "dnsservice": "DNSService{CreateConnection,Browse,Resolve,QueryRecord} on br0, domain local.; mDNS Listener thread + poll loop; error-restart \"Attempt # %zu\"; callback table reallocated; \"Ignoring startBrowse during shutdown\"",
    "announce": "addService %s | %s on port %u; updateTxtRecord; SvcRegRecord Reply: /mdnsannounce ResendTriggers this",
    "todo": [
-    "Established: the TXT keywise diff rules, version gate, bye-bye lifecycle, DNSService call set, and announce/update path are documented.",
-    "Still unknown: the full TXT key set per service type and the older-version comparison semantics are only partially decoded.",
-    "Next step: enumerate the TXT keys emitted per service and the version comparator."
-   ]
+    "Established: complete 9-key TXT set {byebyereason,protovers,minApiVersion,mhhid,hhsslport,variant,mdnssequence,locationid,infohash}; parser iterates TXTRecordGetItemAtIndex + strcmp dispatch; mdnssequence old->new monotonic comparison shown in the topology notify log.",
+    "Remaining: the wrap/reset rule for mdnssequence (u32 wraparound handling) and per-service keys for the spotify mDNS service (spotmdns) - a smaller separate table."
+   ],
+   "note": " Full TXT key set for the '_sonos._tcp.' device service decoded from mdns_device_service.cxx + the parser f_106beae8 (which iterates TXTRecordGetItemAtIndex and strcmps each key): {byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, locationid, infohash} - nine keys total, no others handled. 'byebyereason' tags a goodbye record with the shutdown reason; 'protovers'/'minApiVersion' gate compatibility; 'mhhid' is the household id and 'hhsslport' the household SSL port; 'variant' is the product variant; 'locationid' and 'infohash' identify the zone-group location and a content hash. 'mdnssequence' is the announcement version: the topology notify log 'Notify topology of %s at %s; bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}' shows the stored-vs-incoming comparison is a simple monotonic-sequence check (new replaces old when it is larger; bootseq and the {lo-hi} port range are carried alongside). A debug endpoint '/mdnsannounce' and '/opt/log/mdnsd.log' exist for manual announce control."
   },
   "muse_network_test": {
    "verbs": [
