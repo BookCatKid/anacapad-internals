@@ -115814,7 +115814,16 @@
    "todo": [
     "Resolved: MRPC is proven absent (zero literals - mrpc/mr_proto/mediaroom all 0 hits). Bluetooth is proven cloud/peer-mediated: no local stack (no bluedroid/bluez/a2dp), an explicit 'bluetooth pairing, unsupported' error, and the 0x10f9xxxx strings are muse/WSS topic vocabulary + settings keys served by the generic muse forwarding layer.",
     "Remaining cosmetic gap: the exact muse resource path bindings for the bluetooth topic names (which muse URL each maps to) - they ride the generic resource table already catalogued under muse."
-   ]
+   ],
+   "bluetooth_muse_bindings": {
+    "paths": [
+     "v1/players/{playerId}/hardwareStatus/bluetooth",
+     "v1/households/{householdId}/players/{playerId}/hardwareStatus/bluetooth",
+     "v1/players/{playerId}/hardwareStatus/bluetoothPairing",
+     "v1/households/{householdId}/players/{playerId}/hardwareStatus/bluetoothPairing"
+    ],
+    "notes": "player-local and household-scoped forms of both topics; 'bluetooth:' prefix also present (auth/capability tag)"
+   }
   },
   "device_state_store": {
    "model": "embedded settings/state object at member+0x498; key convention: DesiredX (write-intent) / CurrentX (read-back state) / MuseX (household-bound values)",
@@ -117884,11 +117893,13 @@
    "key": "'share_usage' replicated setting -> RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': opt-in telemetry consent",
    "impl": "usagedatasharing.cxx",
    "todo": [
-    "Corrected: opt-in = replicated key 'UMTracking', value grammar includes 'NoReport' (opt-out sentinel); predicate f_10577870 caches at this+9, flag at this+4; 'share_usage' is an unrelated dead mntmgr literal.",
-    "Remaining: the complete UMTracking value vocabulary beyond 'NoReport' - bounded by the value-table the settings writer accepts."
+    "Established: complete value vocabulary - 'NoReport' is the only distinguished literal; dual key surface {RUsageDataSharing R-prop, UMTracking replicated} both gated on the same sentinel.",
+    "Remaining: none at this granularity - the gate, keys, sentinel, and consumers are fully decoded."
    ],
    "mechanism": "'share_usage' is a replicated household key (settings store, synced across members), not a code-referenced literal - consumers read it through the generic replicated-settings getter by key, so no direct xref exists. The opt-in value gates the telemetry/diagnostics upload paths: each telemetry send first resolves share_usage through the replicated store and skips upload when unset (same getter pattern as the other replicated keys decoded under the repset route work).",
-   "optin_mechanics": "CORRECTION: 'share_usage' is a dead mntmgr.cxx literal (SMB mount-share usage key, no code refs) - it is NOT the telemetry opt-in. The real opt-in decoded at f_10577870 (usagedatasharing.cxx): a vfunc+0xc call on the replicated-settings object reads key 'UMTracking' into a 0x20-byte buffer; strcmp against 'NoReport' yields the flag stored at this+4 (flag=1 iff UMTracking=='NoReport', i.e. the field is the opt-OUT state). On change the new value is cached at this+9 and a change event posts. The usagemetrics refresh f_10707cd4 (reads R_CustomerID, logs under tag 'usagemetrics' with 'usageDataSharing refreshed, optin changed to: %d') invokes this predicate; the two gated upload channels from reporting_policy (f_105c9f94, f_1066b320) consume the same flag."
+   "optin_mechanics": "CORRECTION: 'share_usage' is a dead mntmgr.cxx literal (SMB mount-share usage key, no code refs) - it is NOT the telemetry opt-in. The real opt-in decoded at f_10577870 (usagedatasharing.cxx): a vfunc+0xc call on the replicated-settings object reads key 'UMTracking' into a 0x20-byte buffer; strcmp against 'NoReport' yields the flag stored at this+4 (flag=1 iff UMTracking=='NoReport', i.e. the field is the opt-OUT state). On change the new value is cached at this+9 and a change event posts. The usagemetrics refresh f_10707cd4 (reads R_CustomerID, logs under tag 'usagemetrics' with 'usageDataSharing refreshed, optin changed to: %d') invokes this predicate; the two gated upload channels from reporting_policy (f_105c9f94, f_1066b320) consume the same flag.",
+   "key_surface": "usagedatasharing.cxx string set: keys {RUsageDataSharing, UMTracking} both compared against 'NoReport' - RUsageDataSharing is the R_* system-property form; UMTracking the replicated-key form read via vfunc+0xc at f_10577870",
+   "value_vocabulary": "only distinguished value is 'NoReport' (opt-out sentinel) - any other/unset value opts in; no second literal appears in the module, so the accepted vocabulary is open-ended beyond the sentinel"
   },
   "misc_mgrs": {
    "wifi_idle_mgr": "RZPWifiIdleMgr: WifiFuncsSetIdleScan fronthaul ('result %d attempt %d') + WiFiIdleScanUpdateRetry + idle_evt_listener idle events",
@@ -118738,10 +118749,360 @@
     "census_union": "Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults."
    },
    "todo": [
-    "Established: the extended whole-.text census bounds the UPnP-band vocabulary and the per-action bounding rule is stated.",
-    "Still unknown: the concrete per-action error subset - which codes each action can actually emit - requires tracing each impl's reach set (as the record itself notes).",
-    "Next step: compute the reachable literal set per impl worker to narrow each action's fault domain."
-   ]
+    "Established: per-action fault-code candidate subsets extracted for 108/205 actions via direct-call propagation over the 26629-fn call graph; e.g. CreateAlarm->{1025}, GetTimeServer->{129}, AudioIn verbs->{401}; the remaining 97 are vtable-delegated (impl->v[+off]) - their subsets are bounded by the impl class workers already documented per-service.",
+    "Remaining: the 97 vtable-delegated actions need per-class vtable binding (each impl objects vtable is a runtime-installed pointer; resolvable by tracing the objects ctor vptr writes - same method used for rmd_op_worker_class)."
+   ],
+   "per_action_candidates": {
+    "/AlarmClock/Control/CreateAlarm": [
+     1025
+    ],
+    "/AlarmClock/Control/GetTimeServer": [
+     129
+    ],
+    "/AlarmClock/Control/SetTimeServer": [
+     129
+    ],
+    "/AlarmClock/Control/UpdateAlarm": [
+     1025
+    ],
+    "/AudioIn/Control/StartTransmissionToGroup": [
+     401
+    ],
+    "/AudioIn/Control/StopTransmissionToGroup": [
+     401
+    ],
+    "/AudioIn/Control/SetAudioInputAttributes": [
+     401
+    ],
+    "/AudioIn/Control/GetAudioInputAttributes": [
+     401
+    ],
+    "/AudioIn/Control/SetLineInLevel": [
+     401
+    ],
+    "/AudioIn/Control/GetLineInLevel": [
+     401
+    ],
+    "/DeviceProperties/Control/AddBondedZones": [
+     640
+    ],
+    "/DeviceProperties/Control/AddHTSatellite": [
+     402,
+     640
+    ],
+    "/DeviceProperties/Control/CreateStereoPair": [
+     640
+    ],
+    "/DeviceProperties/Control/EnterConfigMode": [
+     128,
+     1024
+    ],
+    "/DeviceProperties/Control/ExitConfigMode": [
+     128
+    ],
+    "/DeviceProperties/Control/GetButtonState": [
+     402
+    ],
+    "/DeviceProperties/Control/GetZoneAttributes": [
+     402
+    ],
+    "/DeviceProperties/Control/GetZoneInfo": [
+     402
+    ],
+    "/DeviceProperties/Control/RemoveBondedZones": [
+     640
+    ],
+    "/DeviceProperties/Control/RemoveHTSatellite": [
+     402
+    ],
+    "/DeviceProperties/Control/SeparateStereoPair": [
+     640
+    ],
+    "/DeviceProperties/Control/SetZoneAttributes": [
+     1024
+    ],
+    "/GroupManagement/Control/AddMember": [
+     129,
+     1025
+    ],
+    "/GroupManagement/Control/SetSourceAreaIds": [
+     1221
+    ],
+    "/MediaRenderer/AVTransport/Control/AddMultipleURIsToQueue": [
+     1021,
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/AddURIToQueue": [
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/AddURIToSavedQueue": [
+     1024,
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/BecomeCoordinatorOfStandaloneGroup": [
+     402
+    ],
+    "/MediaRenderer/AVTransport/Control/ChangeCoordinator": [
+     129,
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/ChangeTransportSettings": [
+     129,
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/CreateSavedQueue": [
+     1024,
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/GetCurrentTransportActions": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/GetDeviceCapabilities": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/GetMediaInfo": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/GetPositionInfo": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/GetTransportInfo": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/GetTransportSettings": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/NotifyDeletedURI": [
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/Play": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/RemoveTrackFromQueue": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/ReorderTracksInSavedQueue": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/RunAlarm": [
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/SaveQueue": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/Seek": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/SetAVTransportURI": [
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/SetNextAVTransportURI": [
+     1025
+    ],
+    "/MediaRenderer/AVTransport/Control/SetPlayMode": [
+     1024
+    ],
+    "/MediaRenderer/AVTransport/Control/StartAutoplay": [
+     1025
+    ],
+    "/MediaRenderer/ConnectionManager/Control/GetCurrentConnectionIDs": [
+     402
+    ],
+    "/MediaRenderer/ConnectionManager/Control/GetCurrentConnectionInfo": [
+     1024
+    ],
+    "/MediaRenderer/ConnectionManager/Control/GetProtocolInfo": [
+     402
+    ],
+    "/MediaRenderer/Queue/Control/AddURI": [
+     1025
+    ],
+    "/MediaRenderer/Queue/Control/AttachQueue": [
+     256,
+     1024
+    ],
+    "/MediaRenderer/Queue/Control/CreateQueue": [
+     257,
+     1025
+    ],
+    "/MediaRenderer/Queue/Control/SaveAsSonosPlaylist": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/GetEQ": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/GetLoudness": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/GetMute": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/GetVolume": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/GetVolumeDB": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/GetVolumeDBRange": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/RampToVolume": [
+     1024,
+     1025
+    ],
+    "/MediaRenderer/RenderingControl/Control/ResetExtEQ": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/RestoreVolumePriorToRamp": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetEQ": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetLoudness": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetMute": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetOutputFixed": [
+     100
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetRelativeVolume": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetVolume": [
+     1024
+    ],
+    "/MediaRenderer/RenderingControl/Control/SetVolumeDB": [
+     1024
+    ],
+    "/MediaRenderer/VirtualLineIn/Control/Play": [
+     1024
+    ],
+    "/MediaRenderer/VirtualLineIn/Control/StartTransmission": [
+     129,
+     1024
+    ],
+    "/MediaRenderer/VirtualLineIn/Control/StopTransmission": [
+     1024
+    ],
+    "/MediaServer/ConnectionManager/Control/GetCurrentConnectionIDs": [
+     402
+    ],
+    "/MediaServer/ConnectionManager/Control/GetCurrentConnectionInfo": [
+     1024
+    ],
+    "/MediaServer/ConnectionManager/Control/GetProtocolInfo": [
+     402
+    ],
+    "/MediaServer/ContentDirectory/Control/CreateObject": [
+     1024
+    ],
+    "/MediaServer/ContentDirectory/Control/DestroyObject": [
+     1024
+    ],
+    "/MediaServer/ContentDirectory/Control/FindPrefix": [
+     1024
+    ],
+    "/MediaServer/ContentDirectory/Control/GetAlbumArtistDisplayOption": [
+     402
+    ],
+    "/MediaServer/ContentDirectory/Control/GetAllPrefixLocations": [
+     1024
+    ],
+    "/MediaServer/ContentDirectory/Control/GetSearchCapabilities": [
+     402
+    ],
+    "/MediaServer/ContentDirectory/Control/GetSortCapabilities": [
+     402
+    ],
+    "/MediaServer/ContentDirectory/Control/RefreshShareIndex": [
+     1024
+    ],
+    "/MediaServer/ContentDirectory/Control/RequestResort": [
+     1024
+    ],
+    "/MediaServer/ContentDirectory/Control/UpdateObject": [
+     1024
+    ],
+    "/MusicServices/Control/GetSessionId": [
+     129,
+     257
+    ],
+    "/QPlay/Control/QPlayAuth": [
+     401
+    ],
+    "/SystemProperties/Control/AddAccountX": [
+     128,
+     144
+    ],
+    "/SystemProperties/Control/AddOAuthAccountX": [
+     144,
+     402,
+     1026
+    ],
+    "/SystemProperties/Control/EditAccountMd": [
+     128
+    ],
+    "/SystemProperties/Control/EditAccountPasswordX": [
+     128
+    ],
+    "/SystemProperties/Control/GetString": [
+     1024
+    ],
+    "/SystemProperties/Control/GetWebCode": [
+     1024
+    ],
+    "/SystemProperties/Control/RefreshAccountCredentialsX": [
+     402
+    ],
+    "/SystemProperties/Control/Remove": [
+     1024
+    ],
+    "/SystemProperties/Control/RemoveAccount": [
+     128
+    ],
+    "/SystemProperties/Control/ReplaceAccountX": [
+     130,
+     144,
+     146,
+     402
+    ],
+    "/SystemProperties/Control/SetAccountNicknameX": [
+     144
+    ],
+    "/SystemProperties/Control/SetString": [
+     1024
+    ],
+    "/ZoneGroupTopology/Control/BeginSoftwareUpdate": [
+     128,
+     402,
+     1025
+    ],
+    "/ZoneGroupTopology/Control/CheckForUpdate": [
+     128,
+     402
+    ],
+    "/ZoneGroupTopology/Control/GetZoneGroupAttributes": [
+     402
+    ],
+    "/ZoneGroupTopology/Control/GetZoneGroupState": [
+     402
+    ],
+    "/ZoneGroupTopology/Control/ReportAlarmStartedRunning": [
+     402
+    ],
+    "/ZoneGroupTopology/Control/ReportUnresponsiveDevice": [
+     128,
+     402,
+     1024
+    ],
+    "/ZoneGroupTopology/Control/SubmitDiagnostics": [
+     402
+    ]
+   },
+   "per_action_method": "direct-call propagation: each action handler_func is BFS-expanded over its bl-target call graph (depth 6, cap 400 fns); the union of every reachable fns accumulator-context error literals (li/ori/oris in the 100..1300 and -3000..-100 bands) is the action-candidate set. 108 of 205 advertised actions yield a concrete subset; the remaining 97 delegate through impl->v[+off] vtable calls whose targets are runtime-bound (the static ceiling for fault attribution)."
   },
   "http_extra_endpoints": {
    "name": "HTTP paths outside the /status route-table cluster",
